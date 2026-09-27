@@ -10,7 +10,7 @@ import { detailDtoSchema } from '../shared/detail.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 import { featureAttributeSchema } from '../shared/enums.js'
-import { effectDtoSchema } from '../effects/effect.js'
+import { featureEffectDtoSchema } from '../effects/effect.js'
 import { featGrantDtoSchema } from '../grants/feat.js'
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
@@ -54,7 +54,7 @@ const featureBaseDtoSchemaBase = z.object({
   attributes: z.optional(authoredReferenceCollectionSchema(featureAttributeSchema)),
   detail: z.optional(z.never()),
   details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
-  effects: z.optional(authoredNestedCollectionSchema(effectDtoSchema)),
+  effects: z.optional(authoredNestedCollectionSchema(featureEffectDtoSchema)),
   rollDefinitions: featureReferenceDtoSchema.shape.rollDefinitions,
   ruleDefinitionIds: z.optional(ruleDefinitionIdsDtoSchema),
   charges: z.optional(chargeUseDtoSchema),

@@ -1,13 +1,8 @@
 import type { OptionAuthored } from '#authored'
 import { FEATURE_ATTRIBUTE_OPTIONS } from '#core'
-import {
-  EFFECT_NODE_MAP,
-  CHARGE_NODE_MAP,
-  FACET_NODE_MAP,
-  FEATURE_GRANTS_NODE_MAP,
-  DETAIL_NODE_MAP
-} from '#maps'
+import { CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP, DETAIL_NODE_MAP } from '#maps'
 import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
+import { FEATURE_EFFECT_NODE_MAP } from './effect.js'
 import { FEATURE_ROLL_DEFINITION_NODE_MAP } from './rollDefinition.js'
 
 const option = buildNodeMap<OptionAuthored>()
@@ -80,7 +75,7 @@ export const OPTION_NODE_MAP = option.define('option', ({ map, nodes, cond }) =>
     .set('order', number(['order'], 'Order', { section: OPTION_SECTIONS.basics, order: 50 }))
     .set(
       'effects',
-      groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, {
+      groupArray(['effects'], 'Effects', () => FEATURE_EFFECT_NODE_MAP, {
         presentation: 'branch',
         section: OPTION_SECTIONS.effects,
         order: 10

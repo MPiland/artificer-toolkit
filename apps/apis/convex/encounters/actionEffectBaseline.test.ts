@@ -137,6 +137,7 @@ function rugSmotherCapability() {
   return {
     kind: 'ENCOUNTER_FEATURE',
     label: 'RUG_SMOTHER',
+    grip: null,
     encounterActorId: rugIds.actor,
     creatureSourceId: rugIds.creature,
     gameSystemId: DND5E_SYSTEM_ID,

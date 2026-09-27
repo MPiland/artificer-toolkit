@@ -1,14 +1,9 @@
 import { FEATURE_ATTRIBUTE_OPTIONS, FEATURE_SECTION_OPTIONS } from '#core'
 import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 import type { FeatureAuthored, FeatureOptionChoice } from '#authored'
-import {
-  EFFECT_NODE_MAP,
-  CHARGE_NODE_MAP,
-  FACET_NODE_MAP,
-  FEATURE_GRANTS_NODE_MAP,
-  DETAIL_NODE_MAP
-} from '#maps'
+import { CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP, DETAIL_NODE_MAP } from '#maps'
 import { OPTION_NODE_MAP } from './option.js'
+import { FEATURE_EFFECT_NODE_MAP } from './effect.js'
 import { FEATURE_ROLL_DEFINITION_NODE_MAP } from './rollDefinition.js'
 
 const optionChoice = buildNodeMap<FeatureOptionChoice>()
@@ -143,7 +138,7 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond, d
     .set('order', number(['order'], 'Order', { section: FEATURE_SECTIONS.basics, order: 60 }))
     .set(
       'effects',
-      groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, {
+      groupArray(['effects'], 'Effects', () => FEATURE_EFFECT_NODE_MAP, {
         presentation: 'branch',
         section: FEATURE_SECTIONS.effects,
         order: 10

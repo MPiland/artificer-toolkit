@@ -321,13 +321,8 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['2d8', 'POISON']
     ]
   ], // Drider: Bite
-  [
-    '00000000-0002-0008-0070-005700000000',
-    [
-      ['1d8+3', 'SLASHING'],
-      ['1d10+3', 'SLASHING']
-    ]
-  ], // Drider: Longsword
+  ['00000000-0002-0008-0070-005700000000', [['1d8+3', 'SLASHING']]], // Drider: Longsword
+  ['00000000-0002-0325-0070-005700000000', [['1d10+3', 'SLASHING']]], // Drider: Longsword
   [
     '00000000-0002-000c-0070-005700000000',
     [
@@ -365,7 +360,12 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
     '00000000-0002-0007-0070-006200000000',
     [
       ['1d8+4', 'SLASHING'],
-      ['3d8', 'POISON'],
+      ['3d8', 'POISON']
+    ]
+  ], // Erinyes: Longsword
+  [
+    '00000000-0002-00d6-0070-006200000000',
+    [
       ['1d10+4', 'SLASHING'],
       ['3d8', 'POISON']
     ]

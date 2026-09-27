@@ -106,14 +106,11 @@ function authoredDice(block: AuthoredResultBlock | undefined): string[] {
   )
 }
 
-/** The authored dice and type of every hit damage outcome, CHOICE options included. */
+/** The authored dice and type of every hit damage outcome. */
 function hitDamageDice(effect: AuthoredEffect): string[] {
   return effect.paths
     .filter((path) => path.pathCode === 'ON_HIT')
-    .flatMap((path) => [
-      ...authoredDice(path.resultBlock),
-      ...(path.options ?? []).flatMap((option) => authoredDice(option.resultBlock))
-    ])
+    .flatMap((path) => authoredDice(path.resultBlock))
 }
 
 const signature = (parts: readonly string[]) => [...parts].sort().join(', ')
@@ -121,24 +118,15 @@ const printedSignature = (parts: readonly PrintedPart[]) =>
   signature(parts.map(([expression, type]) => `${diceOf(expression)} ${type}`))
 
 /**
- * The printed parts an Effect's hit outcomes resolve to. A CHOICE hit path offers each printed
- * alternative as one option, so it lists them all; any other Effect authors one alternative,
- * selected by its authored dice when the stat block prints several.
+ * The printed parts an Effect's hit outcomes resolve to. Each Effect authors one alternative
+ * (a versatile weapon authors one Effect per grip), selected by its authored dice when the stat
+ * block prints several.
  */
 function selectPrinted(
   effect: AuthoredEffect,
   alternatives: readonly PrintedPart[][],
   label: string
 ): PrintedPart[] {
-  const hitPaths = effect.paths.filter((path) => path.pathCode === 'ON_HIT')
-  const choiceOptions = hitPaths.flatMap((path) => path.options ?? [])
-  if (choiceOptions.length > 0) {
-    if (choiceOptions.length !== alternatives.length)
-      throw new Error(
-        `${label} offers ${choiceOptions.length} hit options for ${alternatives.length} printed alternatives.`
-      )
-    return alternatives.flat()
-  }
   if (alternatives.length === 1) return alternatives[0]!
   const authored = signature(hitDamageDice(effect))
   const matching = alternatives.filter((parts) => printedSignature(parts) === authored)

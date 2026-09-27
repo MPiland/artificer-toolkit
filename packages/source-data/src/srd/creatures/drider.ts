@@ -268,6 +268,7 @@ export const drider: CreatureAuthored = {
         {
           id: S.actionId(87, 8),
           order: 1,
+          grip: 'ONE_HANDED' as const,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
@@ -291,51 +292,70 @@ export const drider: CreatureAuthored = {
               id: S.actionId(87, 801),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.CHOICE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
-              selectionKind: 'CHOICE' as const,
-              options: [
-                {
-                  id: S.actionId(87, 802),
-                  order: 1,
-                  label: 'One-Handed',
-                  description: 'Hit: 7 (1d8 + 3) slashing damage',
-                  resultBlock: {
-                    id: S.actionId(87, 803),
-                    resultKind: 'SINGLE' as const,
-                    outcomes: [
-                      {
-                        id: S.actionId(87, 804),
-                        effectKind: S.EFFECT_KIND.DAMAGE,
-                        damageTypeId: S.damageTypeId('SLASHING'),
-                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                        scalingKind: S.SCALING.NONE,
-                        diceConfig: '1d8+3'
-                      }
-                    ]
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(87, 803),
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(87, 804),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8+3'
                   }
-                },
-                {
-                  id: S.actionId(87, 805),
-                  order: 2,
-                  label: 'Two-Handed',
-                  description: '8 (1d10 + 3) slashing damage if used with two hands',
-                  resultBlock: {
-                    id: S.actionId(87, 806),
-                    resultKind: 'SINGLE' as const,
-                    outcomes: [
-                      {
-                        id: S.actionId(87, 807),
-                        effectKind: S.EFFECT_KIND.DAMAGE,
-                        damageTypeId: S.damageTypeId('SLASHING'),
-                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                        scalingKind: S.SCALING.NONE,
-                        diceConfig: '1d10+3'
-                      }
-                    ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          id: S.actionId(87, 805),
+          order: 2,
+          grip: 'TWO_HANDED' as const,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(87, 808),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(87, 802),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(87, 806),
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(87, 807),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10+3'
                   }
-                }
-              ]
+                ]
+              }
             }
           ]
         }

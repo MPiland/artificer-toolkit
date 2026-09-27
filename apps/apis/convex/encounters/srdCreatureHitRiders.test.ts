@@ -23,7 +23,7 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { seededSrdCreature } from '../../tests/fixtures/srdCreatures'
+import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
 
 function srdId(entries: readonly { id: string; code: string }[], code: string) {
@@ -52,6 +52,8 @@ async function setup(input: {
   creature: string
   feature: string
   conditionCodes?: readonly string[]
+  /** The grip of a versatile weapon attack, which is its own action. */
+  grip?: 'ONE_HANDED' | 'TWO_HANDED'
   playerAutoRoll: boolean
   /** The Creature's current hit points, when not its maximum. */
   creatureHitPoints?: number
@@ -70,7 +72,10 @@ async function setup(input: {
   })
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
+    subjects: [
+      importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature }),
+      ...seededSrdLoadoutEquipment(creature).map(importedSubject)
+    ]
   })
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,
@@ -132,7 +137,10 @@ async function setup(input: {
       actor: actorState,
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-    }).find((capability) => capability.ownerFeatureId === featureId)?.actionId
+    }).find(
+      (capability) =>
+        capability.ownerFeatureId === featureId && capability.grip === (input.grip ?? null)
+    )?.actionId
   })
   if (!actionId) throw new Error(`The seeded ${input.creature} ${input.feature} is not an action.`)
   return {
@@ -412,5 +420,40 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(batch.nestedD20).toMatchObject({ defenseOrDc: 10, resultPath: 'ON_SAVE_FAIL' })
     expect(batch.targetTransition.after.conditionIds).toContain(conditionId('PARALYZED'))
     expect(batch.activeEffectTransitions).toMatchObject([{ kind: 'CREATE' }])
+  }, 30000)
+
+  it('offers the Erinyes’ Longsword one- and two-handed and resolves the chosen grip', async () => {
+    const base = await setup({
+      creature: 'Erinyes',
+      feature: 'Longsword',
+      grip: 'TWO_HANDED',
+      playerAutoRoll: true
+    })
+    const choices = await base.owner.caller.query(api.encounters.actionChoices.get, {
+      encounterId: base.run.id,
+      expectedVersion: base.command.expectedVersion,
+      actorId: base.command.actorId
+    })
+    const longswords = (choices?.actions ?? []).filter((action) => action.grip !== null)
+    expect(longswords.map((action) => action.grip?.value).sort()).toEqual([
+      'ONE_HANDED',
+      'TWO_HANDED'
+    ])
+    expect(new Set(longswords.map((action) => action.grip?.attackKey)).size).toBe(1)
+    expect(longswords.find((action) => action.grip?.value === 'TWO_HANDED')?.id).toBe(
+      base.command.actionId
+    )
+    // A natural 19 hits; the two-handed d10 rolls 10 (a d8 could not): 10 + 4 slashing, then 3d8
+    // poison rolling 1s.
+    const result = await executeInRoom(
+      base.owner.caller,
+      { command: base.command },
+      scripted([18, 9, 0, 0, 0])
+    )
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    expect((await settledBatch(base)).damage).toEqual([
+      [14, damageTypeId('SLASHING')],
+      [3, damageTypeId('POISON')]
+    ])
   }, 30000)
 })

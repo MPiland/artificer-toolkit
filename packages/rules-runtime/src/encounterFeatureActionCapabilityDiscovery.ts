@@ -50,6 +50,8 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
   } | null
   /** Exact immutable Feature/option label for sanitized choices. */
   label: string
+  /** The grip of one variant of a versatile weapon attack; each grip is its own action. */
+  grip: NonNullable<EncounterFeatureEffect['grip']> | null
 }
 
 /** A Creature action whose authored mechanics cannot run; it is listed unavailable, not thrown. */
@@ -507,7 +509,8 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
     capability.entryPointDefinitionId !== effect.id ||
     capability.actionId !==
       actionId(actor.id, ownerFeature.id, capability.featureOptionId, effect.id) ||
-    capability.authoredEffectChecksum !== checksumRuleDocument(effect)
+    capability.authoredEffectChecksum !== checksumRuleDocument(effect) ||
+    capability.grip !== (effect.grip ?? null)
   ) {
     throw new Error('Encounter feature action capability authored Effect is stale.')
   }
@@ -695,6 +698,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               effectId,
               actionId: exactActionId,
               label,
+              grip: effect.grip ?? null,
               sourceId: ownerFeatureId,
               mechanicFacts: normalizeCharacterActionMechanicFacts(effectiveCompiledEffect),
               conditionDefinitionIds:

@@ -1,7 +1,8 @@
 import type {
   EffectAuthored,
   EffectInvocationAuthored,
-  EquipmentEffectAuthored
+  EquipmentEffectAuthored,
+  FeatureEffectAuthored
 } from '@artificer-toolkit/shared/authored'
 import { z } from '../zod.js'
 
@@ -135,14 +136,36 @@ export const ATTACK_TRIGGER_CODES: ReadonlySet<string> = new Set([
   triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK
 ])
 
+function isWeaponAttack(effect: { invocation: EffectInvocationAuthored }) {
+  return (
+    effect.invocation.kind !== invocationKindSchema._zod.def.entries.PASSIVE &&
+    weaponAttackTriggerCodes.includes(effect.invocation.triggerCode)
+  )
+}
+
+/**
+ * Feature effects name a grip only for a versatile weapon attack, which authors one effect per grip
+ * so each grip is its own action (D57 ruling 1).
+ */
+export const featureEffectDtoSchema = z
+  .extend(createEffectDtoSchema(pathDtoSchema), { grip: z.optional(equipmentGripSchema) })
+  .check(
+    z.superRefine((effect, context) => {
+      if (effect.grip !== undefined && !isWeaponAttack(effect))
+        context.addIssue({
+          code: 'custom',
+          path: ['grip'],
+          message: 'Only weapon attack effects have a grip.'
+        })
+    })
+  ) as z.ZodMiniType<FeatureEffectAuthored>
+
 /** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
 export const equipmentEffectDtoSchema = z
   .extend(createEffectDtoSchema(pathDtoSchema), { grip: z.nullable(equipmentGripSchema) })
   .check(
     z.superRefine((effect, context) => {
-      const weaponAttack =
-        effect.invocation.kind !== invocationKindSchema._zod.def.entries.PASSIVE &&
-        weaponAttackTriggerCodes.includes(effect.invocation.triggerCode)
+      const weaponAttack = isWeaponAttack(effect)
       if ((effect.grip !== null) !== weaponAttack)
         context.addIssue({
           code: 'custom',

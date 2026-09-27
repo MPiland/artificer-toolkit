@@ -200,6 +200,46 @@ function validateCreatureAttackRolls(
   }
 }
 
+/**
+ * A versatile weapon attack authors one effect per grip, each its own action (D57 ruling 1): a
+ * Feature or option whose effects name a grip for a trigger authors exactly one one-handed and one
+ * two-handed effect of that trigger, and no gripless one.
+ */
+function validateCreatureVersatileAttacks(
+  creature: { features?: z.infer<typeof featureDtoSchema>[] },
+  context: z.core.$RefinementCtx
+) {
+  for (const [featureIndex, feature] of (creature.features ?? []).entries()) {
+    const sources = [
+      { source: feature, path: ['features', featureIndex] },
+      ...(feature.options ?? []).map((option, optionIndex) => ({
+        source: option,
+        path: ['features', featureIndex, 'options', optionIndex]
+      }))
+    ]
+    for (const { source, path } of sources) {
+      const effects = source.effects ?? []
+      const gripped = new Set(
+        effects.flatMap((effect) =>
+          effect.grip === undefined ? [] : [effect.invocation.triggerCode]
+        )
+      )
+      for (const triggerCode of gripped) {
+        const grips = effects
+          .filter((effect) => effect.invocation.triggerCode === triggerCode)
+          .map((effect) => effect.grip)
+          .sort()
+        if (grips.join() !== 'ONE_HANDED,TWO_HANDED')
+          context.addIssue({
+            code: 'custom',
+            path: [...path, 'effects'],
+            message: `"${source.label}" names grips, so it must author exactly one one-handed and one two-handed effect of that attack.`
+          })
+      }
+    }
+  }
+}
+
 const creatureAuthoredDtoObject = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
@@ -248,7 +288,8 @@ const creatureAuthoredDtoObject = z.object({
 })
 
 const creatureAuthoredDtoSchemaBase = creatureAuthoredDtoObject.check(
-  z.superRefine(validateCreatureEquipmentLoadout)
+  z.superRefine(validateCreatureEquipmentLoadout),
+  z.superRefine(validateCreatureVersatileAttacks)
 )
 
 export type CreatureAuthoredDto = z.infer<typeof creatureAuthoredDtoSchemaBase>
@@ -261,6 +302,9 @@ export const creaturePublicationDtoSchema = creatureAuthoredDtoSchemaBase.check(
 
 export const creatureAuthoringInputDtoSchema = z
   .extend(creatureAuthoredDtoObject, { userId: z.optional(authoredIdentifierSchema) })
-  .check(z.superRefine(validateCreatureEquipmentLoadout))
+  .check(
+    z.superRefine(validateCreatureEquipmentLoadout),
+    z.superRefine(validateCreatureVersatileAttacks)
+  )
 
 export type CreatureAuthoringInputDto = z.infer<typeof creatureAuthoringInputDtoSchema>

@@ -135,6 +135,33 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
     expect(second!.commandId).not.toBe(first!.commandId)
   })
 
+  it('offers a versatile attack once, with a grip control that picks its action (D57)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi
+      .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      .mockResolvedValue(resolved)
+    const longsword = (grip: 'ONE_HANDED' | 'TWO_HANDED') => ({
+      id: `erinyes:FEATURE:longsword:EFFECT:${grip}`,
+      label: 'Longsword',
+      attackBonus: 8,
+      grip: { value: grip, attackKey: 'longsword::MELEE_WEAPON_ATTACK' },
+      wieldConflict: null,
+      warnings: []
+    })
+    renderDrawer(onResolve, { choices: [longsword('ONE_HANDED'), longsword('TWO_HANDED')] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    expect(screen.getAllByRole('option', { name: 'Longsword' })).toHaveLength(1)
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('radio', { name: 'Two hands' }))
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ actionId: longsword('TWO_HANDED').id })
+    )
+  })
+
   it('cancels without resending', async () => {
     const user = userEvent.setup()
     const onResolve = vi

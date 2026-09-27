@@ -28,8 +28,8 @@ export const encounterActionChoiceDtoSchema = z.strictObject({
   attackBonus: z.optional(z.number().check(z.int())),
   damageLabel: z.optional(labelSchema),
   /**
-   * The grip of an item's weapon attack; actions sharing `attackKey` are the same attack offered
-   * one- and two-handed. Null for every other action.
+   * The grip of a versatile weapon attack (a Character's item or a Creature's Feature); actions
+   * sharing `attackKey` are the same attack offered one- and two-handed. Null for every other action.
    */
   grip: z.nullable(z.strictObject({ value: equipmentGripSchema, attackKey: labelSchema })),
   /** Present when attacking with this action stows the active shield; the client must confirm. */

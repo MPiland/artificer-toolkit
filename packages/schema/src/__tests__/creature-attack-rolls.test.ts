@@ -125,6 +125,62 @@ describe('Creature attack roll publication rule', () => {
     expect(parsed.error?.issues).toBeUndefined()
   })
 
+  it('offers a versatile weapon as one effect per grip (D57 ruling 1)', () => {
+    const bite = feature({ triggerCode: 'MELEE_WEAPON_ATTACK', rollDefinitions: [attackRoll(30)] })
+    const [oneHanded] = 'effects' in bite ? bite.effects : []
+    const withGrips = (grips: readonly ('ONE_HANDED' | 'TWO_HANDED' | undefined)[]) =>
+      creature([
+        {
+          ...bite,
+          effects: grips.map((grip, index) => ({
+            ...oneHanded,
+            id: uuid(40 + index),
+            order: index + 1,
+            ...(grip ? { grip } : {})
+          }))
+        }
+      ])
+    expect(
+      creaturePublicationDtoSchema.safeParse(withGrips(['ONE_HANDED', 'TWO_HANDED'])).error?.issues
+    ).toBeUndefined()
+    for (const grips of [
+      ['ONE_HANDED'],
+      ['TWO_HANDED', 'TWO_HANDED'],
+      ['ONE_HANDED', undefined]
+    ] as const)
+      expect(creatureAuthoredDtoSchema.safeParse(withGrips(grips)).error?.issues).toEqual([
+        expect.objectContaining({
+          path: ['features', 0, 'effects'],
+          message:
+            '"Bite" names grips, so it must author exactly one one-handed and one two-handed effect of that attack.'
+        })
+      ])
+    const [activated] = (() => {
+      const source = feature({ triggerCode: 'ACTIVATED', rollDefinitions: [] })
+      return 'effects' in source ? source.effects : []
+    })()
+    expect(
+      creatureAuthoredDtoSchema.safeParse(
+        creature([
+          {
+            ...bite,
+            effects: [
+              { ...activated, grip: 'ONE_HANDED' },
+              { ...activated, id: uuid(41), order: 2, grip: 'TWO_HANDED' }
+            ]
+          }
+        ])
+      ).error?.issues
+    ).toEqual(
+      [0, 1].map((index) =>
+        expect.objectContaining({
+          path: ['features', 0, 'effects', index, 'grip'],
+          message: 'Only weapon attack effects have a grip.'
+        })
+      )
+    )
+  })
+
   it('lets a draft be saved, and a published Creature be read, without the ATTACK roll', () => {
     const withoutRoll = creature([
       feature({ triggerCode: 'MELEE_WEAPON_ATTACK', rollDefinitions: [] })

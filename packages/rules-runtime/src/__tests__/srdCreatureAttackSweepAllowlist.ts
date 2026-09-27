@@ -1,7 +1,5 @@
 /**
  * Why a known SRD Creature attack cannot yet run in the room (D53 ruling 4 follow-up slices):
- * - SEQUENTIAL_PATHS: versatile CHOICE hit paths ("paths must be unique direct outcomes"), which wait
- *   on per-variant actions (D57 ruling 1).
  * - SPECIAL_RANGE: SPECIAL (thrown) range, attack-triggered Multiattack and follow-up saves other
  *   than the supported hit-rider shapes.
  * - EQUIPMENT_BASE_DAMAGE: the action's Equipment base damage does not match it, so discovery lists
@@ -11,7 +9,6 @@
  *   unsupported kind, or two conditions on one hit (a grapple that also restrains).
  */
 export type SrdCreatureAttackUnsupportedReason =
-  | 'SEQUENTIAL_PATHS'
   | 'SPECIAL_RANGE'
   | 'EQUIPMENT_BASE_DAMAGE'
   | 'LEGENDARY_OPTION'
@@ -110,9 +107,6 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   '00000000-0002-00ca-0070-012500000000': 'OUTCOME_KIND', // Wight: Life Drain
   '00000000-0002-00d2-0070-012500000000': 'OUTCOME_KIND', // Wight: Longsword
   '00000000-0002-00cc-0070-012a00000000': 'OUTCOME_KIND', // Wraith: Life Drain
-  // SEQUENTIAL_PATHS
-  '00000000-0002-0008-0070-005700000000': 'SEQUENTIAL_PATHS', // Drider: Longsword
-  '00000000-0002-0007-0070-006200000000': 'SEQUENTIAL_PATHS', // Erinyes: Longsword
   // SPECIAL_RANGE
   '00000000-0002-0005-0070-001c00000000': 'SPECIAL_RANGE', // Archmage: Dagger
   '00000000-0002-000b-0070-001d00000000': 'SPECIAL_RANGE', // Assassin: Light Crossbow

@@ -9,7 +9,10 @@ import type {
   DetailAuthored,
   FacetAuthored
 } from '#authored'
-import type { DiceExpression, FeatureAttribute, NodeSubjectCode } from '#core'
+import type { DiceExpression, EquipmentGrip, FeatureAttribute, NodeSubjectCode } from '#core'
+
+/** A Feature effect; a versatile weapon attack authors one effect per grip (D57 ruling 1). */
+export type FeatureEffectAuthored = EffectAuthored & { grip?: EquipmentGrip }
 
 export interface FeatureRollDefinitionAuthored {
   id: string
@@ -27,7 +30,7 @@ export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode
   description: string
   attributes?: FeatureAttribute[]
   details?: DetailAuthored[]
-  effects?: EffectAuthored[]
+  effects?: FeatureEffectAuthored[]
   rollDefinitions?: FeatureRollDefinitionAuthored[]
   ruleDefinitionIds?: string[]
   charges?: ChargeAuthored<true>

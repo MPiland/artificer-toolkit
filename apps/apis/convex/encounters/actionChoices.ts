@@ -230,7 +230,12 @@ export const get = query({
           id: action.actionId,
           label: action.label,
           ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
-          grip: null,
+          grip: action.grip
+            ? {
+                value: action.grip,
+                attackKey: `${action.ownerFeatureId}:${action.featureOptionId ?? ''}:${action.mechanicFacts.invocation.triggerCode}`
+              }
+            : null,
           wieldConflict: null,
           warnings: await readEconomyWarnings(action.mechanicFacts.invocation.activation)
         }))

@@ -159,7 +159,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   durationScalingBreakpoint: ['durationScalingBreakpoint', 'targetCountScalingBreakpoint'],
   durationValue: ['durationValue'],
   diceExpression: ['featureRollExpression'],
-  effect: ['effect'],
+  effect: ['effect', 'featureEffect'],
   effectPath: ['effectPath', 'manifestBehaviorPath'],
   equipmentEffect: ['equipmentEffect'],
   facet: ['facet', 'characterFacet'],

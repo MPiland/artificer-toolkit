@@ -14,14 +14,28 @@ export function srdCreatureRecord(id: string): CreatureAuthored {
 /** The SRD Wolf as seeded. */
 export const srdWolf = srdCreatureRecord(wolf.id)
 
+let seededSubjects: ReturnType<typeof prepareSrdImport>['subjects'] | null = null
 let seededCreatures: readonly CreatureAuthored[] | null = null
+
+function seededSrdSubjects() {
+  seededSubjects ??= prepareSrdImport().subjects
+  return seededSubjects
+}
 
 /** A Creature exactly as the SRD seed imports it (vocabulary codes resolved), by stat block name. */
 export function seededSrdCreature(label: string): CreatureAuthored {
-  seededCreatures ??= prepareSrdImport()
-    .subjects.filter((subject) => subject.subjectKind === 'CREATURE')
+  seededCreatures ??= seededSrdSubjects()
+    .filter((subject) => subject.subjectKind === 'CREATURE')
     .map((subject) => creatureAuthoredDtoSchema.parse(subject.document) as CreatureAuthored)
   const record = seededCreatures.find((candidate) => candidate.label === label)
   if (!record) throw new Error(`The seeded SRD ${label} is missing.`)
   return record
+}
+
+/** The seeded SRD Equipment a Creature's loadout names, which its Encounter snapshot pins. */
+export function seededSrdLoadoutEquipment(creature: CreatureAuthored) {
+  const equipmentIds = new Set((creature.equipmentLoadout ?? []).map((entry) => entry.equipmentId))
+  return seededSrdSubjects().filter(
+    (subject) => subject.subjectKind === 'EQUIPMENT' && equipmentIds.has(subject.id)
+  )
 }

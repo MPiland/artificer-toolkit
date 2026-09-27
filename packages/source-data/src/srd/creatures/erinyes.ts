@@ -114,6 +114,7 @@ export const erinyes: CreatureAuthored = {
         {
           id: S.actionId(98, 7),
           order: 1,
+          grip: 'ONE_HANDED' as const,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
@@ -134,69 +135,83 @@ export const erinyes: CreatureAuthored = {
               id: S.actionId(98, 9),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.CHOICE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
-              selectionKind: 'CHOICE' as const,
-              options: [
-                {
-                  id: S.actionId(98, 210),
-                  order: 1,
-                  label: '8 (1d8 + 4) slashing damage',
-                  description:
-                    'Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) slashing damage, or 9 (1d10 + 4) slashing damage if used with two hands, plus 13 (3d8) poison damage.',
-                  resultBlock: {
-                    id: S.actionId(98, 211),
-                    resultKind: 'SEQUENCE',
-                    outcomes: [
-                      {
-                        id: S.actionId(98, 212),
-                        effectKind: S.EFFECT_KIND.DAMAGE,
-                        damageTypeId: S.damageTypeId('SLASHING'),
-                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                        scalingKind: S.SCALING.NONE,
-                        diceConfig: '1d8+4'
-                      },
-                      {
-                        id: S.actionId(98, 213),
-                        effectKind: S.EFFECT_KIND.DAMAGE,
-                        damageTypeId: S.damageTypeId('POISON'),
-                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                        scalingKind: S.SCALING.NONE,
-                        diceConfig: '3d8'
-                      }
-                    ]
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(98, 211),
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(98, 212),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8+4'
+                  },
+                  {
+                    id: S.actionId(98, 213),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('POISON'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '3d8'
                   }
-                },
-                {
-                  id: S.actionId(98, 214),
-                  order: 2,
-                  label: '9 (1d10 + 4) slashing damage if used with two hands',
-                  description:
-                    'Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) slashing damage, or 9 (1d10 + 4) slashing damage if used with two hands, plus 13 (3d8) poison damage.',
-                  resultBlock: {
-                    id: S.actionId(98, 215),
-                    resultKind: 'SEQUENCE',
-                    outcomes: [
-                      {
-                        id: S.actionId(98, 216),
-                        effectKind: S.EFFECT_KIND.DAMAGE,
-                        damageTypeId: S.damageTypeId('SLASHING'),
-                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                        scalingKind: S.SCALING.NONE,
-                        diceConfig: '1d10+4'
-                      },
-                      {
-                        id: S.actionId(98, 217),
-                        effectKind: S.EFFECT_KIND.DAMAGE,
-                        damageTypeId: S.damageTypeId('POISON'),
-                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                        scalingKind: S.SCALING.NONE,
-                        diceConfig: '3d8'
-                      }
-                    ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          id: S.actionId(98, 214),
+          order: 2,
+          grip: 'TWO_HANDED' as const,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(98, 210),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(98, 218),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(98, 215),
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(98, 216),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10+4'
+                  },
+                  {
+                    id: S.actionId(98, 217),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('POISON'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '3d8'
                   }
-                }
-              ]
+                ]
+              }
             }
           ]
         }

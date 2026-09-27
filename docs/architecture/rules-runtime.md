@@ -617,8 +617,13 @@ only two-handed; only `VERSATILE` or `TWO_HANDED` weapons attack two-handed). A 
 authors one effect per grip, each with its own damage, so each grip is its own Character action;
 thrown effects follow the weapon's handedness. The compiler carries `grip` into
 `CompiledEquipmentEffectGroup`, and action candidates carry it as `equipment.grip` (null for item
-feature actions). Action choices expose `grip` with an `attackKey` shared by the grips of one attack,
-and the tabletop drawer groups them into one action with a grip control.
+feature actions). A Creature's versatile weapon (the Drider and Erinyes Longsword, D57 ruling 1)
+follows the same shape: its Feature or option authors one effect per grip with an optional `grip`
+(exactly one `ONE_HANDED` and one `TWO_HANDED` effect of the attack, checked by the Creature schema),
+so each grip is its own Encounter feature action with its own action identity, and the capability
+descriptor carries `grip`. Action choices expose `grip` with an `attackKey` shared by the grips of
+one attack (the item instance for a Character, the Feature/option for a Creature), and the tabletop
+drawer groups them into one action with a grip control.
 
 `rules-runtime/encounterWieldConflict` is the pure evaluator for the other half of the drawn-weapon
 ruling: when the chosen action's grip is `TWO_HANDED` and an active shield is equipped it returns
@@ -1523,7 +1528,7 @@ these shapes:
 - a state-only hit point maximum reduction, or a fixed 25-foot pull toward the source.
 
 The hit damage before the save may be a fixed amount or bounded dice with a flat modifier or ability
-bonuses. Any other nested save, a versatile `CHOICE` path and a `CLOSED_RULE` outcome stay
+bonuses. Any other nested save, a `CHOICE` path and a `CLOSED_RULE` outcome stay
 unsupported (fail closed). SRD stat blocks author the printed rider save instead of an unconditional
 result, so an action never applies a saved-against effect without the save.
 
