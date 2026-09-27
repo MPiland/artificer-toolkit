@@ -21,7 +21,8 @@ Raw logs and the equivalence harness are in ignored `local-validation/d59/`.
   memoized builder: its 3 in-package users call it. `movementResolutionCommandBaseShape` is no longer
   exported: nothing outside its module used it.
 - **Lint.** `yarn lint` now also runs `yarn lint:schemas` (`scripts/lazySchemas.mjs --check`).
-  `@babel/parser` is declared as a root devDependency (already in the lockfile through Babel).
+  The script parses with `oxc-parser` (TS-ESTree AST), a root devDependency matching the
+  oxlint/oxfmt toolchain; it replaced `@babel/parser` with identical findings and codemod output.
 - **Test.** `packages/schema/src/__tests__/lazy-schemas.test.ts` builds and parses with every
   exported schema and fails if one is eager.
 - **Content tables** are built on demand (`buildContentTables()`, memoized in `content/streams.ts`).

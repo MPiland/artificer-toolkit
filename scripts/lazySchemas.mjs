@@ -11,9 +11,9 @@
 // variant lists, which take `lazySchemaParts`) are reported for a hand edit in both modes.
 // `z.json()` stays eager: it references its own instance, so a proxy would give it two identities
 // and change `zodToConvex` and JSON Schema output.
-import { parse } from '@babel/parser'
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { parseSync } from 'oxc-parser'
 
 const root = path.resolve(import.meta.dirname, '..')
 const sourceRoot = path.join(root, 'packages/schema/src')
@@ -106,13 +106,11 @@ const isWrappable = (init, { schemaBindings, localBuilders }) => {
   )
 }
 
+// ESTree methods (`Property`, `MethodDefinition`) hold their body in a `FunctionExpression` value.
 const functionTypes = new Set([
   'FunctionDeclaration',
   'FunctionExpression',
-  'ArrowFunctionExpression',
-  'ObjectMethod',
-  'ClassMethod',
-  'ClassPrivateMethod'
+  'ArrowFunctionExpression'
 ])
 // Module-level functions, so a call made at module load can be checked through their bodies.
 const localFunctionsOf = (program) => {
@@ -181,9 +179,7 @@ const analyze = (program) => {
         return
       }
     }
-    for (const key of Object.keys(node)) {
-      if (['loc', 'leadingComments', 'trailingComments', 'innerComments'].includes(key)) continue
-      const value = node[key]
+    for (const value of Object.values(node)) {
       if (Array.isArray(value)) value.forEach((child) => visit(child, sites))
       else if (value && typeof value === 'object') visit(value, sites)
     }
@@ -224,13 +220,21 @@ const withLazySchemaImport = (source, program, file) => {
 
 const relative = (file) => path.relative(root, file).replaceAll('\\', '/')
 const lineOf = (source, offset) => source.slice(0, offset).split('\n').length
-const parseModule = (source) =>
-  parse(source, { sourceType: 'module', plugins: ['typescript'] }).program
+// TS-ESTree AST with UTF-16 `start`/`end` offsets; parentheses are dropped, not kept as nodes.
+const parseModule = (file, source) => {
+  const { program, errors } = parseSync(file, source, {
+    lang: 'ts',
+    sourceType: 'module',
+    preserveParens: false
+  })
+  if (errors.length) throw new Error(`${relative(file)}: ${errors[0].message}`)
+  return program
+}
 let wrapped = 0
 const findings = []
 for (const file of files) {
   let source = readFileSync(file, 'utf8')
-  const program = parseModule(source)
+  const program = parseModule(file, source)
   let analysis = analyze(program)
   const wraps = topLevelDeclarators(program)
     .map((declarator) => declarator.init)
@@ -238,10 +242,10 @@ for (const file of files) {
   if (!check && wraps.length) {
     for (const init of wraps.toSorted((a, b) => b.start - a.start))
       source = `${source.slice(0, init.start)}lazySchema(() => ${source.slice(init.start, init.end)})${source.slice(init.end)}`
-    source = withLazySchemaImport(source, parseModule(source), file)
+    source = withLazySchemaImport(source, parseModule(file, source), file)
     writeFileSync(file, source)
     wrapped += wraps.length
-    analysis = analyze(parseModule(source))
+    analysis = analyze(parseModule(file, source))
   }
   for (const site of analysis.sites)
     findings.push(
