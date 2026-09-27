@@ -186,3 +186,126 @@ to do. Disposable harnesses and output are under ignored `local-validation/d52/`
   publish), down from six or more (begin, observe, bundle, spatial effects, prepare, one fog stage
   per owner, commit). A held movement decision's answer or GM void also takes two, down from seven
   (with the route). Each removed call saved its whole per-call setup, about 100–150 ms.
+
+## Re-run after D52 (2026-09-27)
+
+D52 ruling 3 re-run. Diagnostic evidence only; the V15 ledger is unchanged. Both runs completed the
+full frozen schedule and then failed the command p95 assertion
+(`developmentEncounterCutover.ts:449`), as before.
+
+- **Method.** Same as above: the same workload, proof runner, in-memory guard lift, Worker helper and
+  analyzer. The target was the same local backend, reset, deployed, seeded and audited at `46c9e863c`
+  (`codex/phase-08-2-convex-cutover`, clean tree). The harness scripts needed no change, because the
+  workload itself drives the new stage and commit routes. The analyzer (`analyze.mjs`) now matches every
+  `encounter-*` route and also counts movement commits (`encounterMovement:commit`), which the earlier
+  commit pattern missed. The earlier runs were re-analyzed with the same analyzer. `d52.ps1` held
+  `local-validation/.validation.lock` and started and stopped the Worker; `probe3.mjs` ran afterwards
+  under the lock.
+- **Runs.** `v15bl-d52-r1` took 1,260 s and `v15bl-d52-r2` took 1,224 s. Evidence is in
+  `local-validation/v15-browserless/` (`v15bl-d52-r*.analysis.json`, `probe3.json`, `docker-stats.log`)
+  and `local-validation/local-convex-proofs/v15bl-d52-r*.*`.
+
+### Commands and convergence
+
+Values are run 1 / run 2, in ms. There were 848 command samples per run. The "Before D52" column is
+the earlier p95.
+
+| Measure | p50 | p95 | Before D52 p95 | Budget | Result |
+| --- | --- | --- | --- | --- | --- |
+| Gameplay command, all | 801 / 806 | **1,089 / 1,090** | 2,785 / 2,528 | p95 ≤ 1,000 | **Missed** by 9% |
+| `RESOLVE_ACTION` (n=352) | 745 / 748 | 873 / 913 | 1,021 / 852 | | Met |
+| `ADVANCE_TURN` (n=176) | 762 / 761 | 1,080 / 1,059 | 1,318 / 1,071 | | Missed |
+| `SCENE_MOVE` (n=160) | 867 / 863 | 1,370 / 1,360 | 3,051 / 2,611 | | Missed |
+| `REACTION_RESPONSE` (n=160) | 1,003 / 996 | 1,372 / 1,300 | 3,283 / 2,948 | | Missed |
+| Reaction composite (move → response → end) | 3,436 / 3,440 | 4,080 / 3,978 | 7,934 / 7,058 | | (no budget) |
+| Warm durable convergence (n=688) | 142 / 141 | **251 / 252** | 281 / 258 | p95 ≤ 250 | **Missed** by 1–2 ms |
+| Durable convergence p99 / max | | 269 / 269, max 313 / 322 | 308 / 271 | p99 ≤ 500 | Met |
+
+The move p50 fell from about 2.0–2.2 s to 0.86 s, and the reaction response p50 from about 2.4–2.6 s
+to 1.0 s. Action and turn commands did not change; they were already two calls.
+
+### Per-function native execution
+
+Values are `executionTime` / `userExecutionTime` in ms, run 2. Run 1 was within ±3%.
+
+| Function | n | exec p50 / p95 | user p50 / p95 | Reads p50 | Calls per command |
+| --- | --- | --- | --- | --- | --- |
+| `encounters/projectionReads:get`, subscription | 3,515 | 125 / 150 | 113 / 136 | 7 docs / 33 KB | 3.87 per durable commit |
+| `encounters/projectionReads:get`, HTTP (driver reread) | 694 | 141 / 162 | 128 / 147 | 7 / 33 KB | 1 per command (driver) |
+| `liveSessions/encounterCaptureBundle:capture` | 568 | 262 / 302 | 235 / 269 | 44 / 250 KB | 1 per action or turn (was 890) |
+| `liveSessions/encounterRulesCapture:capture` | 80 | 185 / 206 | 165 / 184 | 32 / 82 KB | rare (was 439) |
+| `liveSessions/encounterActionCommit:commit` | 353 | 272 / 321 | 251 / 284 | 62 / 428 KB | 1 per `RESOLVE_ACTION` |
+| `liveSessions/encounterTurnCommit:commit` | 211 | 288 / 351 | 265 / 313 | 109 / 691 KB | 1 per `ADVANCE_TURN` |
+| `liveSessions/encounterMovement:stage` | 322 | 346 / 396 | 283 / 314 | 141 / 335 KB | 1 per move or response |
+| `liveSessions/encounterMovement:commit` | 322 | 341 / 438 | 291 / 362 | 145 / 468 KB | 1 per move or response |
+| `encounters/pendingReads:pendingRuleOccurrence` | 322 | 118 / 135 | 108 / 125 | 7 / 33 KB | driver, per reaction |
+| Removed: `encounterRoute:route`, `encounterMovement:begin`, `:observe`, `:prepare` | 0 | | | | were 161 + 3 × 322 |
+
+- **Calls per command.** The command path made 1,879 Convex function calls for 848 commands
+  (2.2 per command), down from 3,366 (4.0). A move or reaction response is now exactly two calls.
+- **HTTP layer (correction).** The earlier "about 5 ms per route" figure was the route's own
+  exec-minus-user overhead. The route's execution time is about 90–100 ms above its child's, both
+  before and after D52 (for example `encounter-action` 359 ms against the commit's 272 ms, and
+  `encounter-movement-stage` 449 ms against the stage's 346 ms). `probe3.mjs` posted to two Live Session
+  routes without the Worker secret, so each call returned 401 before any child call. Its user time was
+  40–65 ms steady, with a first call of 124 ms. So about half of the HTTP layer is fixed evaluation of
+  the router module graph (`convex/http.ts` imports every route module), paid twice per command.
+- **Mutation overhead.** The movement stage and commit spend 55–68 ms outside user code (exec minus
+  user), against about 21 ms for the action commit. That time goes to their larger read and write sets.
+
+### Subscriber re-executions
+
+There were 3,515 subscription re-executions of `projectionReads:get` in each run, the same as before
+(3,515 and 3,525). That is 3.87 per durable Encounter commit, over 908 commits including moves. The
+earlier "6.0 per commit" left movement commits out of the denominator. The re-executions are identical
+because the workload has the same players and commits; D52 removed calls on the command path, not
+commits. Each commit still costs about 3.9 × 113 ms, or about 435 ms, of backend JavaScript on top of
+the command path.
+
+### Resources
+
+`docker stats` for the Convex container: 5.38 GiB before run 1 and 5.62 GiB after, then 5.62 GiB before
+run 2 and 5.55 GiB after, of 7.35 GiB. CPU was idle between runs, and there was no growth trend. The same
+expected domain rejections appeared in both runs and in the earlier runs: 3 capture-bundle rejections
+and 6 invitation redemptions.
+
+### Where the remaining time goes
+
+**Command p95 is not under 1 s**: it is 1.09 s, a 57% cut. **Durable convergence p95 is not under
+250 ms**: it is 251–252 ms, at the budget rather than clearly under it. p99 is met.
+
+A `RESOLVE_ACTION` at p50 (about 746 ms) breaks down as the bundle route (348 ms), the commit route
+(359 ms) and about 40 ms in the Worker and driver. Each route splits as follows:
+
+- **Fixed per-call setup: about 215 ms, about 58% of the command.** This is the HTTP router graph
+  (40–65 ms) plus the child module (about 150–180 ms, from `probe2`).
+- **Handler work: about 85–115 ms per call, about 27%.**
+- **Other: about 15%.** This is HTTP dispatch, identity and body parsing, and the Worker.
+
+Moves have a larger handler share, because they read 141–145 documents per call. The p95 tails of
+moves, reaction responses and turns sit 300–500 ms above their p50s. They follow the commit p95s
+(`encounterMovement:commit` exec p95 438 ms) and contention with the roughly 435 ms of subscriber
+re-runs that each commit adds. About half of each re-run is also fixed setup (55–65 ms out of about
+113 ms, from `probe`). Durable convergence is mostly one `projectionReads:get` re-run plus sync
+delivery, so it moves with that re-run's cost.
+
+### Recommendation
+
+**(b) Lazy schema construction or a split `packages/schema`, next, before any 6-browser run.** Fixed
+per-call setup is still the largest share of the command path, and of every subscriber re-run and
+durable convergence. So a single change attacks both remaining misses:
+
+- Include the HTTP router graph in scope: `http.ts` and `liveSessions/stateHttp.ts` should not pull
+  heavy contract modules.
+- **Estimate (not measured).** Halving setup, about 100 ms per call, would take about 200 ms off each
+  command. That puts p95 at about 0.85–0.9 s, and durable p95 at about 220 ms.
+
+The other options:
+
+- **(c)** is mostly the same work. `projectionReads:get` reads only 7 documents (33 KB), so its cost is
+  setup-dominated, and trimming its handler has little left to take.
+- **(d)** is secondary: the 55–68 ms of commit overhead on the movement mutations.
+- **(a)** is not yet justified. The browserless numbers sit at or just over both budgets, and browsers
+  only add subscriptions, and so re-runs, on the same isolates. Re-run this browserless check after
+  (b). Run the 6-browser V15 once command p95 is clearly under 1 s and durable p95 is clearly under
+  250 ms.

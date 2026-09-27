@@ -180,6 +180,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   * **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D55** Speed after D52: the browserless check re-run shows command p95 at 1,089–1,090 ms (budget 1,000; was 2,528–2,785) and convergence p95 at 251–252 ms (budget 250). Fixed per-call setup is about 58% of each call: Zod schema construction at module load, plus the HTTP router's full module graph (40–65 ms, paid twice per command).
+  * **Ruling:** build schemas lazily (constructed on first use, memoized), covering the HTTP router path.
+  * **Approach:** a design spike first. Prototype the pattern on the heaviest graphs (`projectionReads:get`, the capture bundle, one commit, the router). Measure the import saving, and prove types and validation are unchanged. Roll out only after that, then re-run the browserless check. The 6-browser V15 run follows only when both budgets pass.
+
 * **D54** D53 step 1 is merged: 290 of 491 SRD attack sources work (was 40), and 203 of 285 creatures have a working attack (was 31). Rulings on its findings:
   1. **Blast radius.** A Creature whose attack action lacks an ATTACK roll is rejected at publication (authoring validation). At runtime, one Creature's invalid action is unavailable, with a reason, instead of throwing for every Creature on the map during movement-reaction discovery.
   2. **Tests use seeded SRD records.** Tests and fixtures move from raw `srd/creatures/*.js` modules to the seeded records (T6).
