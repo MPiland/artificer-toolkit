@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
+import { resolveCreatureDamageExpression } from '../systems/dnd5e/effectActionCompiler.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 import { creatureFeature, srdCondition, srdCreatureActor, testUuid } from './dnd5eSrdEncounter.js'
 import {
@@ -18,10 +19,21 @@ const TARGET_ID = testUuid(0xb2)
  * A seeded SRD Creature's attack against the seeded Ogre (AC 11, 59 hit points, STR 19, CON 16),
  * with every roll a 0-based die face in request order.
  */
-async function attackOgre(input: { attacker: string; feature: string; rolls: readonly number[] }) {
+async function attackOgre(input: {
+  attacker: string
+  feature: string
+  rolls: readonly number[]
+  attackerHitPoints?: number
+}) {
   const attacker = srdByLabel(SRD.creatures, input.attacker)
   const prepared = await prepareCreatureAction({
-    actor: srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
+    actor: srdCreatureActor({
+      id: ATTACKER_ID,
+      creature: attacker,
+      ...(input.attackerHitPoints === undefined
+        ? {}
+        : { currentHitPoints: input.attackerHitPoints })
+    }),
     target: srdCreatureActor({ id: TARGET_ID, creature: srdByLabel(SRD.creatures, 'Ogre') }),
     featureId: creatureFeature(attacker, input.feature).id,
     overridable: true
@@ -67,6 +79,32 @@ describe('SRD Creature attacks with several hit results', () => {
     expect(hit.hitPoints).toBe(59 - 18)
     // One damage source, so one Concentration check at the DC of its total.
     expect(hit.concentrationChecks).toMatchObject([{ appliedAmount: 18, damageTypeId: null }])
+  })
+})
+
+describe('SRD swarm attacks', () => {
+  it('bites a creature in its space for half dice once it has half of its hit points or fewer', async () => {
+    // Swarm of Insects (22 hit points) Bites, +3, reach 0 ft.: 10 (4d4) piercing, or 5 (2d4)
+    // piercing if the swarm has half of its hit points or fewer.
+    const bites = (attackerHitPoints: number, rolls: readonly number[]) =>
+      attackOgre({ attacker: 'Swarm of Insects', feature: 'Bites', attackerHitPoints, rolls })
+    const full = await bites(12, [9, 0, 1, 2, 3])
+    expect(full.execution.d20).toMatchObject({ total: 13, resultPath: 'ON_HIT' })
+    expect(full.damage).toEqual([[1 + 2 + 3 + 4, srdDamageTypeId('PIERCING')]])
+    expect((await bites(11, [9, 0, 1])).damage).toEqual([[1 + 2, srdDamageTypeId('PIERCING')]])
+    // A critical hit doubles the half dice too.
+    expect((await bites(11, [19, 0, 1, 2, 3])).damage).toEqual([
+      [1 + 2 + 3 + 4, srdDamageTypeId('PIERCING')]
+    ])
+  })
+
+  it('leaves half-hit-point dice unresolved without the source’s hit points', () => {
+    const outcome = { values: [{ dice: '4d4', halfHitPointsDice: '2d4' }], bonuses: [] }
+    const resolve = (sourceHitPoints: { current: number; maximum: number } | null) =>
+      resolveCreatureDamageExpression({ outcome, sourceDerivedFacts: {}, sourceHitPoints })
+    expect(resolve(null)).toBeNull()
+    expect(resolve({ current: 12, maximum: 22 })).toBe('4d4')
+    expect(resolve({ current: 11, maximum: 22 })).toBe('2d4')
   })
 })
 

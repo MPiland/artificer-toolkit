@@ -40,6 +40,7 @@ export { SPELL_IDS } from '../ids.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_CHALLENGE_RATINGS,
+  SRD_CONDITION_TYPES,
   SRD_CREATURE_TYPES,
   SRD_DAMAGE_TYPES,
   SRD_LANGUAGES,
@@ -140,6 +141,7 @@ export const CR = {
   CR_30: vocabularyId(SRD_CHALLENGE_RATINGS, 'CR_30')
 } as const
 
+const GRAPPLED_CONDITION_ID = vocabularyId(SRD_CONDITION_TYPES, 'GRAPPLED')
 const WALK_SPEED_ID = vocabularyId(SRD_SPEEDS, 'WALK')
 const SWIM_SPEED_ID = vocabularyId(SRD_SPEEDS, 'SWIM')
 const CLIMB_SPEED_ID = vocabularyId(SRD_SPEEDS, 'CLIMB')
@@ -313,9 +315,12 @@ export function constitutionPoisonDamageSave(input: {
 
 /**
  * A weapon attack action: "Melee Weapon Attack: … reach N ft." (or "Ranged … range N ft."), one
- * target, dealing `diceConfig` damage plus the ability modifier on a hit, then any follow-up save.
- * It takes the IDs `actionId(creatureIndex, localIndex)` through `localIndex + 4`; its ATTACK roll
- * comes from the printed bonus (attack-bonuses.ts).
+ * target, dealing `diceConfig` damage plus the ability modifier on a hit, then in printed order any
+ * further damage parts ("plus 2d6 poison damage"), a grapple (a bare condition, D57 ruling 2) and a
+ * follow-up save. It takes the IDs `actionId(creatureIndex, localIndex)` through `localIndex + 4`,
+ * then one more per further damage part and one for the grapple; its ATTACK roll comes from the
+ * printed bonus (attack-bonuses.ts). A swarm's bites author `halfHitPointsDiceConfig`, the dice
+ * rolled while the swarm has half of its hit points or fewer.
  */
 export function weaponAttack(input: {
   creatureIndex: number
@@ -324,11 +329,35 @@ export function weaponAttack(input: {
   feet: number
   damageType: string
   diceConfig: string
+  halfHitPointsDiceConfig?: string
   ability: AbilityCode | null
+  extraDamage?: readonly { damageType: string; diceConfig: string }[]
+  grapples?: true
   followUpSave?: FollowUpSaveAuthored
 }): NonNullable<FeatureAuthored['effects']>[number] {
   const id = (offset: number) => actionId(input.creatureIndex, input.localIndex + offset)
-  const sequence = input.followUpSave !== undefined
+  const extraDamage = input.extraDamage ?? []
+  const riders = [
+    ...extraDamage.map((part, index) => ({
+      id: id(5 + index),
+      effectKind: EFFECT_KIND.DAMAGE,
+      damageTypeId: damageTypeId(part.damageType),
+      valueKind: DAMAGE_VALUE_KIND.DICE,
+      scalingKind: SCALING.NONE,
+      diceConfig: part.diceConfig
+    })),
+    ...(input.grapples
+      ? [
+          {
+            id: id(5 + extraDamage.length),
+            effectKind: EFFECT_KIND.CONDITION,
+            conditionId: GRAPPLED_CONDITION_ID
+          }
+        ]
+      : []),
+    ...(input.followUpSave ? [input.followUpSave] : [])
+  ]
+  const sequence = riders.length > 0
   return {
     id: id(0),
     order: 1,
@@ -367,6 +396,9 @@ export function weaponAttack(input: {
               valueKind: DAMAGE_VALUE_KIND.DICE,
               scalingKind: SCALING.NONE,
               diceConfig: input.diceConfig,
+              ...(input.halfHitPointsDiceConfig
+                ? { halfHitPointsDiceConfig: input.halfHitPointsDiceConfig }
+                : {}),
               ...(input.ability
                 ? {
                     bonuses: [
@@ -380,14 +412,13 @@ export function weaponAttack(input: {
                   }
                 : {})
             },
-            ...(input.followUpSave ? [input.followUpSave] : [])
+            ...riders
           ]
         }
       }
     ]
   }
 }
-
 function grantedSkill(
   level: typeof SCALING_AMOUNT_KIND.FULL | typeof SCALING_AMOUNT_KIND.DOUBLE,
   creatureIndex: number,

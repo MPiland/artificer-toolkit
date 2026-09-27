@@ -185,6 +185,33 @@ describe('encounter action target range', () => {
     ])
   })
 
+  it('lets a swarm’s 0-foot reach reach only a target in its space', () => {
+    const range = { id: 'range', rangeKind: 'DISTANCE' as const, amount: 0, unit: 'FEET' as const }
+    const notInSpace = {
+      code: 'TARGET_OUT_OF_RANGE',
+      message: "The target isn't in this creature's space."
+    }
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(0, 0) } })).toEqual(
+      []
+    )
+    // A Medium swarm in one square of a Large target shares its space.
+    expect(
+      rangeWarnings({ range, scene: { source: token(1, 1), target: token(0, 0, 2) } })
+    ).toEqual([])
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(1, 0) } })).toEqual([
+      notInSpace
+    ])
+    // A gridless Scene measures adjacency as 5 feet too, so reach 0 checks overlap, not distance.
+    const gridless: SceneGrid = { kind: 'GRIDLESS', pixelsPerUnit: 20, unit: 'FEET' }
+    expect(
+      rangeWarnings({ range, scene: { grid: gridless, source: token(0, 0), target: token(0, 0) } })
+    ).toEqual([])
+    expect(
+      rangeWarnings({ range, scene: { grid: gridless, source: token(0, 0), target: token(1, 0) } })
+    ).toEqual([notInSpace])
+    expect(rangeWarnings({ range, scene: null })).toEqual([UNCHECKED])
+  })
+
   it('reaches a Large target from any square adjacent to one of its squares', () => {
     const range = { id: 'range', rangeKind: 'DISTANCE' as const, amount: 5, unit: 'FEET' as const }
     const large = token(1, 1, 2)

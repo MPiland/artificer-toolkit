@@ -76,6 +76,11 @@ export type DamageFixedPayload =
 export type DamageDicePayload =
   | {
       diceConfig: string
+      /**
+       * The dice rolled instead while the source has half of its hit points or fewer (a swarm's
+       * "or 1d6 piercing damage if the swarm has half of its hit points or fewer").
+       */
+      halfHitPointsDiceConfig?: string
       valueKind: typeof DAMAGE_VALUE_KIND.DICE
       scalingKind: typeof SCALING.NONE
     }

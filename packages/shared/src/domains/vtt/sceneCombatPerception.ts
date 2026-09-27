@@ -115,6 +115,21 @@ export function measureSceneTokenFootprintDistance(
   return grid.kind === 'GRIDLESS' ? distance + gridlessBaseSquare(grid) : distance
 }
 
+/** Whether two token footprints share any area; touching edges do not overlap. */
+export function sceneTokenFootprintsOverlap(
+  left: PerceptionSceneToken,
+  right: PerceptionSceneToken
+): boolean {
+  return (
+    Number.isFinite(left.width) &&
+    Number.isFinite(left.height) &&
+    Number.isFinite(right.width) &&
+    Number.isFinite(right.height) &&
+    Math.abs(left.position.x - right.position.x) < (left.width + right.width) / 2 - 1e-8 &&
+    Math.abs(left.position.y - right.position.y) < (left.height + right.height) / 2 - 1e-8
+  )
+}
+
 function withinLightCone(light: SceneLight, point: ScenePoint): boolean {
   if (light.kind === 'POINT' || light.angleDegrees >= 360) return true
   const direction = (light.directionDegrees * Math.PI) / 180

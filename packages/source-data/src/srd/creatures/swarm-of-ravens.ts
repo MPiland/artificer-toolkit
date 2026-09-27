@@ -62,6 +62,7 @@ export const swarmOfRavens: CreatureAuthored = {
           feet: 5,
           damageType: 'PIERCING',
           diceConfig: '2d6',
+          halfHitPointsDiceConfig: '1d6',
           ability: null
         })
       ],

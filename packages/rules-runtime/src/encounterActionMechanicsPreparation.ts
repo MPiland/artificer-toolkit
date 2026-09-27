@@ -331,6 +331,10 @@ export async function prepareEncounterActionMechanics<
           )
         }
       },
+      sourceHitPoints: {
+        current: sourceFacts.state.current,
+        maximum: sourceFacts.effectiveMaximumHitPoints
+      },
       targetActorId: target.id,
       targetDerivedFacts: targetFacts.targetDerivedFacts,
       targetConditionIds: targetFacts.state.conditions,

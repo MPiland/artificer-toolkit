@@ -69,6 +69,7 @@ export const swarmOfRats: CreatureAuthored = {
           feet: 0,
           damageType: 'PIERCING',
           diceConfig: '2d6',
+          halfHitPointsDiceConfig: '1d6',
           ability: null
         })
       ],

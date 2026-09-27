@@ -269,13 +269,21 @@ function parseResolvedOutcomeExpressions(value: RuleValue | undefined): Record<s
 export function resolveCreatureDamageExpression(input: {
   outcome: Record<string, unknown>
   sourceDerivedFacts: Record<string, unknown>
+  /** The source's locked hit points; they select authored half-hit-point dice (a swarm's). */
+  sourceHitPoints: { current: number; maximum: number } | null
 }): string | null {
   const values = input.outcome.values
   if (!Array.isArray(values) || values.length !== 1) return null
   const [value] = values
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const dice = (value as Record<string, unknown>).dice
-  if (typeof dice !== 'string') return null
+  const { dice: fullDice, halfHitPointsDice } = value as Record<string, unknown>
+  if (typeof fullDice !== 'string') return null
+  let dice = fullDice
+  if (typeof halfHitPointsDice === 'string') {
+    // "If the swarm has half of its hit points or fewer" reads the source's current hit points.
+    if (!input.sourceHitPoints) return null
+    if (2 * input.sourceHitPoints.current <= input.sourceHitPoints.maximum) dice = halfHitPointsDice
+  }
   const bonuses = input.outcome.bonuses
   if (!Array.isArray(bonuses) || bonuses.length === 0) return dice
   const statBlock = input.sourceDerivedFacts.statBlock
@@ -355,12 +363,14 @@ function isSupportedTestTargetPolicy(
     return false
   }
   if (invocation.activation.code === 'ACTION') {
+    // A melee attack may reach 0 ft.: a swarm's "one target in the swarm's space".
+    const minimumDistance = isDnd5eMeleeAttackKind(dnd5eAttackKind(invocation.triggerCode)) ? 0 : 1
     return (
       invocation.range.rangeKind === 'UNLIMITED' ||
       invocation.range.rangeKind === 'TOUCH' ||
       (invocation.range.rangeKind === 'DISTANCE' &&
         Number.isSafeInteger(invocation.range.amount) &&
-        invocation.range.amount > 0)
+        invocation.range.amount >= minimumDistance)
     )
   }
   return (
@@ -1620,8 +1630,12 @@ function validateDiceOutcomeGroup(
     // A critical hit rolls hit damage dice twice, so they must stay bounded when doubled.
     if (
       first.pathCode === 'ON_HIT' &&
-      !/^[1-9]\d*$/.test(firstOutcome.dice) &&
-      parseBoundedDiceConfiguration(firstOutcome.dice).terms[0]!.count > 15
+      [firstOutcome.dice, firstOutcome.halfHitPointsDice].some(
+        (dice) =>
+          dice !== undefined &&
+          !/^[1-9]\d*$/.test(dice) &&
+          parseBoundedDiceConfiguration(dice).terms[0]!.count > 15
+      )
     )
       unsupported('D&D critical dice exceed the bounded exact-dice contract.')
     return
@@ -2919,19 +2933,28 @@ function exactDiceConfiguration(
       unsupported('D&D dice scaling does not select an authored value.')
     authored = selected.dice
   }
+  // Half-hit-point dice are selected from the source's locked hit points when facts are bound.
+  const halfHitPointsDice =
+    outcome.scalingKind === 'NONE' && typeof outcome.halfHitPointsDice === 'string'
+      ? outcome.halfHitPointsDice
+      : null
   const resolved =
     facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
     facts.resolvedDamageExpressions?.[selectedPath]
   if (!resolved) {
-    if (Array.isArray(outcome.bonuses) && outcome.bonuses.length > 0)
+    if ((Array.isArray(outcome.bonuses) && outcome.bonuses.length > 0) || halfHitPointsDice)
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
-  const authoredDice = parseBoundedDiceConfiguration(authored)
-  const resolvedDice = parseBoundedDiceConfiguration(resolved)
-  const authoredTerm = authoredDice.terms[0]!
-  const resolvedTerm = resolvedDice.terms[0]!
-  if (authoredTerm.count !== resolvedTerm.count || authoredTerm.die !== resolvedTerm.die)
+  const resolvedTerm = parseBoundedDiceConfiguration(resolved).terms[0]!
+  const matchesAuthoredDice = (dice: string) => {
+    const authoredTerm = parseBoundedDiceConfiguration(dice).terms[0]!
+    return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
+  }
+  if (
+    !matchesAuthoredDice(authored) &&
+    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice))
+  )
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved
 }
@@ -5751,6 +5774,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     published,
     sourceDerivedFacts,
     targetActorId,
+    sourceHitPoints,
     targetDerivedFacts,
     currentHitPoints,
     temporaryHitPoints,
@@ -5779,7 +5803,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         const expression =
           typeof row.expression === 'string'
             ? row.expression
-            : resolveCreatureDamageExpression({ outcome: row, sourceDerivedFacts: sourceFacts })
+            : resolveCreatureDamageExpression({
+                outcome: row,
+                sourceDerivedFacts: sourceFacts,
+                sourceHitPoints: sourceHitPoints ?? null
+              })
         if (expression === null) continue
         if (typeof row.outcomeId === 'string' && row.outcomeId.length > 0) {
           if (resolvedDamageOutcomeExpressions[row.outcomeId] !== undefined)
@@ -5806,7 +5834,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         const expression =
           typeof row.expression === 'string'
             ? row.expression
-            : resolveCreatureDamageExpression({ outcome: row, sourceDerivedFacts: sourceFacts })
+            : resolveCreatureDamageExpression({
+                outcome: row,
+                sourceDerivedFacts: sourceFacts,
+                sourceHitPoints: sourceHitPoints ?? null
+              })
         if (expression === null) continue
         const key = DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS[row.pathCode]
         resolvedDamageExpressionFacts[key] = expression

@@ -30,6 +30,7 @@ export interface PreparedEncounterMovementReactionAction {
   actionMechanic: Readonly<Record<string, unknown>>
   movementInterruption?: null | { kind: 'STOP'; whenResultPath: string }
   sourceDerivedFacts: Readonly<Record<string, unknown>>
+  sourceHitPoints?: { current: number; maximum: number } | null
   target: {
     actorId: string
     currentHitPoints: number
@@ -271,6 +272,7 @@ export async function executeEncounterMovementReactionAction(input: {
     actionMechanic: input.prepared.actionMechanic,
     published: input.prepared.published,
     sourceDerivedFacts: input.prepared.sourceDerivedFacts,
+    sourceHitPoints: input.prepared.sourceHitPoints ?? null,
     targetActorId: target.actorId,
     targetDerivedFacts: target.derivedFacts,
     targetConditionIds: target.conditionIds,

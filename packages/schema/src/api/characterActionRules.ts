@@ -149,6 +149,10 @@ const actionDamageFactSchema = z.strictObject({
         dice: z.nullable(
           stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
         ),
+        /** The dice rolled instead while the source has half of its hit points or fewer. */
+        halfHitPointsDice: z.nullable(
+          stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+        ),
         multiplier: z.nullable(finiteNumberSchema),
         minimum: z.nullable(finiteNumberSchema),
         maximum: z.nullable(finiteNumberSchema)

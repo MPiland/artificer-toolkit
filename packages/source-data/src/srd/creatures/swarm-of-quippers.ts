@@ -75,6 +75,7 @@ export const swarmOfQuippers: CreatureAuthored = {
           feet: 0,
           damageType: 'PIERCING',
           diceConfig: '4d6',
+          halfHitPointsDiceConfig: '2d6',
           ability: null
         })
       ],

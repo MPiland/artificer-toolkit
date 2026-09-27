@@ -810,6 +810,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
                     order: 0,
                     amount: null,
                     dice: '1d10',
+                    halfHitPointsDice: null,
                     multiplier: null,
                     minimum: null,
                     maximum: null

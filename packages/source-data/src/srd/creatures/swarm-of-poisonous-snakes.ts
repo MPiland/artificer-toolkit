@@ -62,6 +62,7 @@ export const swarmOfPoisonousSnakes: CreatureAuthored = {
           feet: 0,
           damageType: 'PIERCING',
           diceConfig: '2d6',
+          halfHitPointsDiceConfig: '1d6',
           ability: null,
           followUpSave: S.constitutionPoisonDamageSave({
             id: S.actionId(314, 10),

@@ -98,6 +98,7 @@ const damageFixedDtoSchema = z.union([
 const damageDiceDtoSchema = z.union([
   z.object({
     diceConfig: authoredIdentifierSchema,
+    halfHitPointsDiceConfig: z.optional(authoredIdentifierSchema),
     valueKind: z.literal('DICE'),
     scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
   }),

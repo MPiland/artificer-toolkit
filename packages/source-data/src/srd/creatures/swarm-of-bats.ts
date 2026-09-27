@@ -75,6 +75,7 @@ export const swarmOfBats: CreatureAuthored = {
           feet: 0,
           damageType: 'PIERCING',
           diceConfig: '2d4',
+          halfHitPointsDiceConfig: '1d4',
           ability: null
         })
       ],

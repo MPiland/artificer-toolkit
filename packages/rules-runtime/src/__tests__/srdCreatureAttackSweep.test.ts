@@ -83,8 +83,11 @@ function resolvedHitDamage(creature: CreatureAuthored, unit: AttackUnit): string
     (outcome) => {
       if (outcome.kind !== 'DAMAGE' || outcome.pathCode !== 'ON_HIT') return []
       const expression =
-        resolveCreatureDamageExpression({ outcome, sourceDerivedFacts: { statBlock } }) ??
-        String(outcome.values[0]?.amount ?? 'unresolved')
+        resolveCreatureDamageExpression({
+          outcome,
+          sourceDerivedFacts: { statBlock },
+          sourceHitPoints: { current: creature.hitPoints, maximum: creature.hitPoints }
+        }) ?? String(outcome.values[0]?.amount ?? 'unresolved')
       const multiplier = outcome.amountMultiplier === null ? '' : ` x${outcome.amountMultiplier}`
       return [
         `${canonicalDamage(expression)} ${damageTypeCodes.get(outcome.damageTypeId)}${multiplier}`
@@ -158,8 +161,6 @@ function unsupportedReason(
   const message = error instanceof Error ? error.message : String(error)
   if (stage === 'DISCOVERY' && unit.equipmentBound) return 'EQUIPMENT_BASE_DAMAGE'
   if (/paths must be unique direct outcomes/.test(message)) return 'SEQUENTIAL_PATHS'
-  const { range } = unit.effect.invocation
-  if (range.rangeKind === 'DISTANCE' && range.amount === 0) return 'SWARM_SPACE'
   if (/unsupported bounded shape/.test(message)) {
     return unit.owner.section === 'LEGENDARY_ACTION' ? 'LEGENDARY_OPTION' : 'SPECIAL_RANGE'
   }

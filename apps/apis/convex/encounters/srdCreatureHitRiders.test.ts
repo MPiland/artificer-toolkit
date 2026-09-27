@@ -53,6 +53,8 @@ async function setup(input: {
   feature: string
   conditionCodes?: readonly string[]
   playerAutoRoll: boolean
+  /** The Creature's current hit points, when not its maximum. */
+  creatureHitPoints?: number
 }) {
   const base = await setupCharacterRun()
   await setAutoRollDice(base.t, base.owner.userId, true)
@@ -118,8 +120,16 @@ async function setup(input: {
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
       .unique()
     if (!actorRow) throw new Error('The SRD attack fixture Creature is missing.')
+    const actorState = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+    if (input.creatureHitPoints !== undefined) {
+      const hurt = { ...actorState, currentHitPoints: input.creatureHitPoints }
+      await ctx.db.patch(actorRow._id, {
+        stateJson: JSON.stringify(hurt),
+        stateChecksum: checksumCanonicalJson(hurt)
+      })
+    }
     return discoverEncounterFeatureActionCapabilities({
-      actor: encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson)),
+      actor: actorState,
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
     }).find((capability) => capability.ownerFeatureId === featureId)?.actionId
@@ -257,6 +267,33 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(result.occurrence?.status).toBe('COMPLETE')
     expect((await settledBatch(base)).damage).toEqual([[2, damageTypeId('PIERCING')]])
   }, 30000)
+
+  it('bites a creature in the Swarm of Rats’ space for half dice once it has half of its hit points or fewer (D61)', async () => {
+    const bites = (creatureHitPoints: number) =>
+      setup({
+        creature: 'Swarm of Rats',
+        feature: 'Bites',
+        playerAutoRoll: true,
+        creatureHitPoints
+      })
+    // Reach 0 ft.; a natural 19 hits for 2d6 piercing, or 1d6 at 12 of 24 hit points or fewer.
+    const full = await bites(13)
+    const fullResult = await executeInRoom(
+      full.owner.caller,
+      { command: full.command },
+      scripted([18, 2, 3])
+    )
+    expect(fullResult.occurrence?.status).toBe('COMPLETE')
+    expect((await settledBatch(full)).damage).toEqual([[3 + 4, damageTypeId('PIERCING')]])
+    const half = await bites(12)
+    const halfResult = await executeInRoom(
+      half.owner.caller,
+      { command: half.command },
+      scripted([18, 2])
+    )
+    expect(halfResult.occurrence?.status).toBe('COMPLETE')
+    expect((await settledBatch(half)).damage).toEqual([[3, damageTypeId('PIERCING')]])
+  }, 60000)
 
   it('routes the Giant Spider’s poison save to the Character’s player, then halves on a success', async () => {
     const base = await setup({ creature: 'Giant Spider', feature: 'Bite', playerAutoRoll: false })

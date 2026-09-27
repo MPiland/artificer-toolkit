@@ -156,6 +156,9 @@ function resolveOutcomeValue(
 ): number | string | null {
   const selected = selectValue(outcome.values, level)
   if (selected === null) return null
+  // Half-hit-point dice depend on the source's live hit points, which only a Creature's bound
+  // facts select, so a Character action leaves that damage unresolved.
+  if ('halfHitPointsDice' in selected && selected.halfHitPointsDice !== null) return null
   if (outcome.valueKind === 'DICE') return selected.dice
   if (outcome.valueKind === 'POOL' && outcome.scalingKind !== 'NONE' && level !== null) {
     // A per-level multiplier rounds down, as authored damage multipliers do (SRD).

@@ -116,9 +116,10 @@ export const DAMAGE_BONUS_NODE_MAP = damageBonus.define(
 // Main Damage Node Map - handles all damage value kinds
 const damage = buildNodeMap<DamageUnioned>()
 
-export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data }) => {
+export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data, logic }) => {
   const { text, number, selectSingle, groupArray } = nodes
   const { table } = data
+  const { and } = logic
   const local = cond.local()
 
   map
@@ -171,6 +172,16 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
         order: 3,
         requiredIf: true,
         showIf: local.field(['valueKind']).eq('DICE')
+      })
+    )
+    .set(
+      'halfHitPointsDiceConfig',
+      text(['halfHitPointsDiceConfig'], 'Dice at Half Hit Points or Fewer', {
+        order: 3,
+        showIf: and([
+          local.field(['valueKind']).eq('DICE'),
+          local.field(['scalingKind']).eq('NONE')
+        ])
       })
     )
     .set(

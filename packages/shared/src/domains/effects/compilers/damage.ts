@@ -78,6 +78,8 @@ export type CompiledDamagePayloadByValue<S extends ScalingSource = ScalingSource
   [DAMAGE_VALUE_KIND.DICE]:
     | {
         dice: string
+        /** Rolled instead while the source has half of its hit points or fewer. */
+        halfHitPointsDice?: string
         valueKind: typeof DAMAGE_VALUE_KIND.DICE
         scalingKind: typeof SCALING.NONE
       }
@@ -184,6 +186,9 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               damageTypeId: authored.damageTypeId,
               valueKind: authored.valueKind,
               dice: authored.diceConfig,
+              ...(authored.halfHitPointsDiceConfig === undefined
+                ? {}
+                : { halfHitPointsDice: authored.halfHitPointsDiceConfig }),
               ...bonusFields,
               ...presentationFields,
               scalingKind: authored.scalingKind

@@ -4,6 +4,7 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import {
   lengthMeasurementInSceneUnits,
   measureSceneTokenFootprintDistance,
+  sceneTokenFootprintsOverlap,
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
@@ -12,6 +13,11 @@ type DispositionActor = { id: string; disposition: EncounterActorDispositionDto 
 
 /** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
 const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
+
+const RANGE_UNCHECKED: EncounterRuleWarningDto = {
+  code: 'TARGET_RANGE_UNCHECKED',
+  message: "Range can't be checked without both tokens on the map."
+}
 
 /**
  * How two Encounter actors stand toward each other, from their GM-set dispositions (Foundry token
@@ -66,17 +72,25 @@ export function evaluateEncounterActionTargetPolicy(input: {
   else if (targeting.dispositionKind === 'HOSTILE' && relationship === 'ALLIED')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets hostile creatures.' })
   if (range.rangeKind === 'UNLIMITED') return warnings
+  // Reach 0 ft. (a swarm's "one target in the swarm's space") needs the footprints to overlap.
+  if (range.rangeKind === 'DISTANCE' && range.amount === 0) {
+    if (!input.sceneContext) warnings.push(RANGE_UNCHECKED)
+    else if (
+      !sceneTokenFootprintsOverlap(input.sceneContext.sourceToken, input.sceneContext.targetToken)
+    )
+      warnings.push({
+        code: 'TARGET_OUT_OF_RANGE',
+        message: "The target isn't in this creature's space."
+      })
+    return warnings
+  }
   const distance = input.sceneContext
     ? measuredDistance(
         input.sceneContext,
         range.rangeKind === 'DISTANCE' ? { amount: range.amount, unit: range.unit } : TOUCH_RANGE
       )
     : null
-  if (distance === null)
-    warnings.push({
-      code: 'TARGET_RANGE_UNCHECKED',
-      message: "Range can't be checked without both tokens on the map."
-    })
+  if (distance === null) warnings.push(RANGE_UNCHECKED)
   else if (distance.measured > distance.maximum)
     warnings.push({ code: 'TARGET_OUT_OF_RANGE', message: 'The target is out of range.' })
   return warnings

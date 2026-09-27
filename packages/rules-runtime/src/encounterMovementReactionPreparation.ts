@@ -118,6 +118,7 @@ export async function prepareEncounterMovementReactionAction<
     actionMechanic: prepared.binding.actionMechanic,
     movementInterruption: revalidate.option.binding.movementInterruption,
     sourceDerivedFacts: prepared.binding.sourceDerivedFacts,
+    sourceHitPoints: prepared.binding.sourceHitPoints ?? null,
     target: {
       actorId: target.id,
       currentHitPoints: prepared.binding.currentHitPoints,

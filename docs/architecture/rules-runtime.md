@@ -1538,6 +1538,19 @@ authored only for a genuine critical-only rider, never to fake doubling. Single-
 only fixed amounts, which have no dice. An unscaled hit may author at most 15 dice so its critical
 stays within the 31-dice bound.
 
+**CURRENT / swarms (D61):** a swarm's bites are ordinary melee weapon attacks with two authored
+additions. A melee attack may have reach 0 ft. ("one target in the swarm's space"): the compiler
+accepts `DISTANCE` 0 only for melee attack triggers, and `evaluateEncounterActionTargetPolicy` then
+checks that the two token footprints overlap (`sceneTokenFootprintsOverlap`) instead of measuring
+distance, so the rule is the same on square and gridless Scenes. An unscaled dice damage outcome may
+author `halfHitPointsDiceConfig`, the dice rolled while the source has half of its hit points or
+fewer. Preparation binds the source's locked current and effective maximum hit points
+(`sourceHitPoints`); `bindFacts` resolves the half or full dice into the outcome's resolved damage
+expression, and OUTCOME accepts either authored dice (a critical doubles whichever is rolled). An
+action that authors half-hit-point dice fails closed without the source's hit points, and a Character
+action leaves that damage unresolved. The swarm's other traits (moving through openings, no healing)
+stay description-only, and a reach-0 opportunity attack is not supported.
+
 No unselected damage dice are requested. Each phase is independently acyclic and executes once with
 one evidence stage. Resource consumption, aggregate mutations, events, and terminal receipt changes
 remain deferred until the terminal phase succeeds. A paused occurrence may retain the sealed current

@@ -244,6 +244,8 @@ export function normalizeCharacterActionMechanicFacts(
             order: 'order' in damage ? damage.order : 0,
             amount: 'amount' in damage ? nullableNumber(damage.amount) : null,
             dice: 'dice' in damage ? (damage.dice ?? null) : null,
+            halfHitPointsDice:
+              'halfHitPointsDice' in damage ? (damage.halfHitPointsDice ?? null) : null,
             multiplier: 'multiplier' in damage ? nullableNumber(damage.multiplier) : null,
             minimum: 'min' in damage ? nullableNumber(damage.min) : null,
             maximum: 'max' in damage ? nullableNumber(damage.max) : null

@@ -313,6 +313,11 @@ export interface CharacterRuleActionSystemAdapter {
     published: ServerPublishedRuleDefinitionDto
     /** Exact current source derived facts selected under the aggregate lock. */
     sourceDerivedFacts: Readonly<Record<string, unknown>>
+    /**
+     * Exact current source hit points selected under the aggregate lock, which select authored
+     * half-hit-point damage dice; an action that authors them fails closed without it.
+     */
+    sourceHitPoints?: { current: number; maximum: number } | null
     targetActorId: string
     /** Exact current target derived facts selected under the aggregate lock. */
     targetDerivedFacts: Readonly<Record<string, unknown>>

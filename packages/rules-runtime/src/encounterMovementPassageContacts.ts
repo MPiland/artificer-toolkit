@@ -1,5 +1,6 @@
 import {
   collectTokenFootprintPathCrossings,
+  sceneTokenFootprintsOverlap,
   type ScenePoint,
   type SceneToken,
   type SpatialMovementKind
@@ -28,23 +29,6 @@ export type EncounterMovementPassageDiscovery =
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0
-}
-
-function footprintsOverlapAtPosition(input: {
-  readonly movingToken: Pick<SceneToken, 'height' | 'position' | 'width'>
-  readonly position: ScenePoint
-  readonly stationaryToken: Pick<SceneToken, 'height' | 'position' | 'width'>
-}): boolean {
-  return (
-    Number.isFinite(input.movingToken.width) &&
-    Number.isFinite(input.movingToken.height) &&
-    Number.isFinite(input.stationaryToken.width) &&
-    Number.isFinite(input.stationaryToken.height) &&
-    Math.abs(input.position.x - input.stationaryToken.position.x) <
-      (input.movingToken.width + input.stationaryToken.width) / 2 - 1e-8 &&
-    Math.abs(input.position.y - input.stationaryToken.position.y) <
-      (input.movingToken.height + input.stationaryToken.height) / 2 - 1e-8
-  )
 }
 
 /**
@@ -79,11 +63,7 @@ export function discoverEncounterMovementPassageContact(input: {
     ...new Set(
       hostile
         .filter((token) =>
-          footprintsOverlapAtPosition({
-            movingToken,
-            stationaryToken: token,
-            position: endpoint
-          })
+          sceneTokenFootprintsOverlap({ ...movingToken, position: endpoint }, token)
         )
         .map((token) => input.actorIdByTokenId.get(token.id)!)
     )

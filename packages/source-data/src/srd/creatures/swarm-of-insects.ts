@@ -63,6 +63,7 @@ export const swarmOfInsects: CreatureAuthored = {
           feet: 0,
           damageType: 'PIERCING',
           diceConfig: '4d4',
+          halfHitPointsDiceConfig: '2d4',
           ability: null
         })
       ],
