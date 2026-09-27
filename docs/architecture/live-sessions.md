@@ -553,7 +553,11 @@ its table (of every table when the table is unknown), and drops them again when 
 read overlapping the write is never kept. Convex transactions are serializable, so a memoized read
 from earlier in the same transaction is as fresh as a new one, and every fence still compares against
 a current read. Each mutation read, and each `deriveOnce` result, is a private copy, so callers may
-mutate what they read; the derivation itself runs once per stored document version.
+mutate what they read; the derivation itself runs once per stored document version. A geometry
+save's movement response and spatial preparation derivations are also keyed on content identity
+(the save without the fields each never reads): the commit verifies its preparation as it will be
+stored (`storedAfterWrite`) before writing it, and its re-read of the written save reuses that
+verification and the stored movement response's instead of parsing and hashing them again.
 
 **Import visibility (CURRENT, D34).** Imported rows are readable only while their import job is
 `COMPLETED` (`imports/visibility.ts`). A trigger in `lib/mutations.ts` bumps the SYSTEM revision of

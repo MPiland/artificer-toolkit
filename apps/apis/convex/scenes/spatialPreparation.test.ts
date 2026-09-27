@@ -173,7 +173,7 @@ describe('spatial preparation persistence', () => {
     }
     await expect(
       value.base.owner.caller.run((ctx) => persistSpatialPreparation(ctx, value.saveId, pending))
-    ).resolves.toEqual(pending)
+    ).resolves.toEqual({ preparation: pending, checksum: checksumCanonicalJson(pending) })
     await value.base.owner.caller.run(async (ctx) => {
       const { row, save } = await readGeometrySave(ctx, value.saveId)
       expect(readSpatialPreparation(save)).toEqual(pending)
@@ -277,7 +277,7 @@ describe('spatial preparation persistence', () => {
     const first = await value.base.owner.caller.run((ctx) =>
       persistSpatialPreparation(ctx, value.saveId, frozen)
     )
-    expect(first).toEqual(frozen)
+    expect(first).toEqual({ preparation: frozen, checksum: checksumCanonicalJson(frozen) })
     const stored = await value.base.owner.caller.run(async (ctx) => {
       const { save } = await readGeometrySave(ctx, value.saveId)
       return readSpatialPreparation(save)
@@ -295,7 +295,7 @@ describe('spatial preparation persistence', () => {
     })
     await expect(
       value.base.owner.caller.run((ctx) => persistSpatialPreparation(ctx, value.saveId, frozen))
-    ).resolves.toEqual(frozen)
+    ).resolves.toEqual({ preparation: frozen, checksum: checksumCanonicalJson(frozen) })
   })
 
   it('rejects different evidence and rolls back a preparation write when its parent throws', async () => {
@@ -322,7 +322,7 @@ describe('spatial preparation persistence', () => {
     await expect(
       value.base.owner.caller.run((ctx) => persistSpatialPreparation(ctx, value.saveId, changed))
     ).rejects.toThrow('Spatial preparation cannot replace previously frozen evidence.')
-    expect(persisted).toEqual(frozen)
+    expect(persisted.preparation).toEqual(frozen)
   })
 
   it('refuses to replace prepared Character revisions', async () => {

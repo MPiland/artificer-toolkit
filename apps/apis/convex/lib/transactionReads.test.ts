@@ -3,7 +3,12 @@ import { expect, it } from 'vitest'
 
 import schema from '../schema'
 import { withSceneVisionTracking } from './mutations'
-import { deriveOnce, memoizeMutationReads, memoizeTransactionReads } from './transactionReads'
+import {
+  deriveOnce,
+  memoizeMutationReads,
+  memoizeTransactionReads,
+  storedAfterWrite
+} from './transactionReads'
 
 it('serves identical reads once, frozen, and keeps different ranges apart', async () => {
   const t = convexTest(schema)
@@ -202,5 +207,48 @@ it('derives a mutation memo document once per stored version, handing out privat
     await db.patch(documentId, { revision: 'second' })
     expect(deriveOnce(await read(), derive)).toEqual({ revision: 'second' })
     expect(derived).toBe(2)
+  })
+})
+
+it('shares an identity-keyed derivation with a re-read of the same content after a write', async () => {
+  const t = convexTest(schema)
+  const id = crypto.randomUUID()
+  const documentId = await t.run((ctx) =>
+    ctx.db.insert('sceneVisionRevisions', { scope: 'CHARACTER', id, revision: 'first' })
+  )
+  let derived = 0
+  const derive = (document: { revision: string }) => {
+    derived += 1
+    return { revision: document.revision }
+  }
+  const identity = (document: { revision: string }) => document.revision
+  await t.run(async (ctx) => {
+    const db = memoizeMutationReads(ctx.db)
+    const read = async () => {
+      const document = await db.get(documentId)
+      if (!document) throw new Error('Missing the memoized document.')
+      return document
+    }
+    expect(deriveOnce(await read(), derive, identity)).toEqual({ revision: 'first' })
+    // Verified before the write, as it will be stored.
+    const candidate = storedAfterWrite(await read(), { revision: 'second' })
+    expect(deriveOnce(candidate, derive, identity)).toEqual({ revision: 'second' })
+    expect(derived).toBe(2)
+    await db.patch(documentId, { revision: 'second' })
+    const reread = deriveOnce(await read(), derive, identity)
+    expect(reread).toEqual({ revision: 'second' })
+    expect(derived).toBe(2)
+    // Private copies still: a caller's change never reaches the next re-read.
+    reread.revision = 'changed'
+    expect(deriveOnce(await read(), derive, identity)).toEqual({ revision: 'second' })
+    await db.patch(documentId, { revision: 'third' })
+    expect(deriveOnce(await read(), derive, identity)).toEqual({ revision: 'third' })
+    expect(derived).toBe(3)
+    // Outside a memoized transaction, nothing is shared.
+    const plain = await ctx.db.get(documentId)
+    if (!plain) throw new Error('Missing the document.')
+    deriveOnce(plain, derive, identity)
+    deriveOnce(plain, derive, identity)
+    expect(derived).toBe(5)
   })
 })

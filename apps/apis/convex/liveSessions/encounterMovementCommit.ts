@@ -161,10 +161,11 @@ export async function commitLiveMovement(
   // checked (D52); a completed publication validates its receipt before the revisions it consumed.
   const admission =
     staged.save.status === 'PUBLISHED' ? null : await readLiveMovementWriteAdmission(ctx, input)
-  if (admission) {
-    await persistSpatialPreparation(ctx, saveId, input.preparation)
+  const prepared = admission
+    ? await persistSpatialPreparation(ctx, saveId, input.preparation)
+    : null
+  if (admission)
     for (const layer of input.fogLayers) await stageSceneGeometryFog(ctx, { saveId, layer })
-  }
   const current = admission ? await readGeometrySave(ctx, saveId) : staged
   const { save, campaign, membership } = current
   const preparation = readSpatialPreparation(save)
@@ -176,7 +177,8 @@ export async function commitLiveMovement(
     save.sessionVision?.campaignId !== input.campaignId ||
     preparation?.encounterId !== input.movement.encounterId ||
     // Reading the stored preparation verified its stored checksum.
-    save.spatialPreparationChecksum !== checksumCanonicalJson(input.preparation)
+    save.spatialPreparationChecksum !==
+      (prepared?.checksum ?? checksumCanonicalJson(input.preparation))
   )
     throw new Error('Live movement commit scope mismatch.')
   const resolution = readMovementResolution(save)

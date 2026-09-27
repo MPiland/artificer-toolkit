@@ -23,8 +23,34 @@ import {
 
 /** Private response evidence is bound to the exact Scene segment; it never becomes client input. */
 export function readMovementResolution(save: SceneStoredGeometrySave) {
-  return deriveOnce(save, parseMovementResolution)
+  return deriveOnce(save, parseMovementResolution, movementResolutionIdentity)
 }
+
+/**
+ * A save's content identity without the fields a derivation never reads, so the stored evidence it
+ * verified is reused when the transaction re-reads the save after writing only those fields.
+ */
+function saveIdentity(save: SceneStoredGeometrySave, unread: ReadonlySet<string>) {
+  return JSON.stringify(
+    Object.entries(save)
+      .filter(([key, value]) => value !== undefined && !unread.has(key))
+      .sort(([left], [right]) => (left < right ? -1 : 1))
+  )
+}
+
+const preparationUnread = new Set(['id', 'status', 'expiresAt', 'fogSaves', 'characterRevisions'])
+const movementResolutionUnread = new Set([
+  ...preparationUnread,
+  'actorUserId',
+  'inputChecksum',
+  'sessionVision',
+  'spatialPreparationJson',
+  'spatialPreparationChecksum'
+])
+const movementResolutionIdentity = (save: SceneStoredGeometrySave) =>
+  saveIdentity(save, movementResolutionUnread)
+const spatialPreparationIdentity = (save: SceneStoredGeometrySave) =>
+  saveIdentity(save, preparationUnread)
 
 function parseMovementResolution(save: SceneStoredGeometrySave) {
   const retained = save.movementResolution
@@ -59,7 +85,7 @@ function parseMovementResolution(save: SceneStoredGeometrySave) {
 export function readSpatialPreparation(
   save: SceneStoredGeometrySave
 ): SceneSpatialPreparation | null {
-  return deriveOnce(save, parseSpatialPreparation)
+  return deriveOnce(save, parseSpatialPreparation, spatialPreparationIdentity)
 }
 
 function parseSpatialPreparation(save: SceneStoredGeometrySave): SceneSpatialPreparation | null {

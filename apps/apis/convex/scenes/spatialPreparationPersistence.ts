@@ -8,10 +8,12 @@ import {
   readSpatialPreparation
 } from './geometryDocuments'
 import { readSessionVisionScope } from './sessionVisionDocuments'
+import { storedAfterWrite } from '../lib/transactionReads'
 
 /**
  * Internal staged evidence only. The parent validates token control and publishes all gameplay state.
  * `value` is already parsed by the caller's contract; it is validated again as stored below.
+ * Returns the stored preparation and its checksum.
  */
 export async function persistSpatialPreparation(
   ctx: MutationCtx,
@@ -20,12 +22,12 @@ export async function persistSpatialPreparation(
 ) {
   const { row, save, header, userId } = await readGeometrySave(ctx, saveId)
   assertGeometryReceiving(save, header.version, userId)
-  const checksum = checksumCanonicalJson(value)
-  readSpatialPreparation({
-    ...save,
+  const stored = {
     spatialPreparationJson: JSON.stringify(value),
-    spatialPreparationChecksum: checksum
-  })
+    spatialPreparationChecksum: checksumCanonicalJson(value)
+  }
+  // Verified as it will be stored; the transaction's re-read of the same content reuses this.
+  readSpatialPreparation(storedAfterWrite(save, stored))
   const { campaign } = await readSessionVisionScope(ctx, save.sessionVision!)
   const run = await ctx.db
     .query('encounterRuns')
@@ -48,15 +50,13 @@ export async function persistSpatialPreparation(
   if (!binding || binding.sceneId !== save.sceneId || binding.campaignId !== state.campaignId)
     throw new Error('Spatial preparation Scene binding is stale.')
   const prior = readSpatialPreparation(save)
+  const checksum = stored.spatialPreparationChecksum
   if (prior) {
     if (checksum !== save.spatialPreparationChecksum)
       throw new Error('Spatial preparation cannot replace previously frozen evidence.')
-    return prior
+    return { preparation: prior, checksum }
   }
   if (save.fogSaves.length !== 0) throw new Error('Spatial preparation must precede fog staging.')
-  await ctx.db.patch(row._id, {
-    spatialPreparationJson: JSON.stringify(value),
-    spatialPreparationChecksum: checksum
-  })
-  return value
+  await ctx.db.patch(row._id, stored)
+  return { preparation: value, checksum }
 }
