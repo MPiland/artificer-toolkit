@@ -273,7 +273,9 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0005-0070-00a900000000', 8], // Hydra: Multiattack (no printed bonus; from Bite)
   ['00000000-0001-0006-0070-00a900000000', 8], // Hydra: Bite
   ['00000000-0001-0002-0070-00aa00000000', 2], // Hyena: Bite
-  ['00000000-0001-0004-0070-00ab00000000', 10], // Ice Devil: Multiattack (no printed bonus; from Tail)
+  ['00000000-0001-0004-0070-00ab00000000', 10], // Ice Devil: Multiattack (no printed bonus; from Bite, Claws, Tail)
+  ['00000000-0001-0005-0070-00ab00000000', 10], // Ice Devil: Bite
+  ['00000000-0001-0007-0070-00ab00000000', 10], // Ice Devil: Claws
   ['00000000-0001-0006-0070-00ab00000000', 10], // Ice Devil: Tail
   ['00000000-0001-0004-0070-00ac00000000', 3], // Ice Mephit: Claws
   ['00000000-0001-0004-0070-00ad00000000', 5], // Imp: Sting (Bite in Beast Form)
