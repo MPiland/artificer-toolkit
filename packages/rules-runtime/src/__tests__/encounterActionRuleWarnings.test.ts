@@ -502,7 +502,12 @@ describe('encounter action rule warning gate', () => {
           ...effect,
           invocation: {
             ...effect.invocation,
-            range: { id: effect.invocation.range.id, rangeKind: 'DISTANCE', amount: 30, unit: 'FEET' }
+            range: {
+              id: effect.invocation.range.id,
+              rangeKind: 'DISTANCE',
+              amount: 30,
+              unit: 'FEET'
+            }
           }
         }
       ]

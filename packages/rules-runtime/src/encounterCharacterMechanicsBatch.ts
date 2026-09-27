@@ -152,7 +152,8 @@ export function foldCharacterMechanicsApplications(input: {
       const { conditionId } = application
       const beforePresent = conditions.has(conditionId)
       const ownBefore = ownConditions.has(conditionId)
-      const retained = application.kind === 'CONDITION_REMOVE' && retainedConditions.has(conditionId)
+      const retained =
+        application.kind === 'CONDITION_REMOVE' && retainedConditions.has(conditionId)
       if (application.kind === 'CONDITION_APPLY') {
         conditions.add(conditionId)
         ownConditions.add(conditionId)

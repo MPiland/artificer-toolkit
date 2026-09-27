@@ -518,8 +518,12 @@ describe('initiative lifecycle procedures and cadence', () => {
     const staged = inMemoryInitiativeRepository(state)
     const participant = state.participants[0]!
     const side = state.sides[0]!
-    const { createdAt: _pc, updatedAt: _pu, version: participantVersion, ...participantFields } =
-      participant
+    const {
+      createdAt: _pc,
+      updatedAt: _pu,
+      version: participantVersion,
+      ...participantFields
+    } = participant
     const { createdAt: _sc, updatedAt: _su, version: sideVersion, ...sideFields } = side
     const { sideId: _sideId, ...participantUpdate } = participantFields
     await staged.repository.updateInitiativeParticipant({

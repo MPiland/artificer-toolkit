@@ -35,7 +35,11 @@ import {
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/concentrationIdentity.js'
 import { SRD, evaluateSrdCharacter, srdByLabel } from './dnd5eSrdCharacter.js'
 import { createSrdRulesRuntime, creatureFeature } from './dnd5eSrdEncounter.js'
-import { creatureActor, prepareCreatureAction, settleCreatureAction } from './encounterCreatureAction.js'
+import {
+  creatureActor,
+  prepareCreatureAction,
+  settleCreatureAction
+} from './encounterCreatureAction.js'
 
 const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e001'
 const CASTER_ID = '00000000-0000-4000-8000-0000000000a1'
