@@ -1710,13 +1710,24 @@ preview all use it, so the Sheet and the Encounter show the same maximum. The Sh
 reduction in hit point management as "<label> · Until long rest" or "<label> · Until restored" with its
 amount. The label is the acting Feature or action label ("Life Drain"), frozen onto the
 `HIT_POINT_MAXIMUM_REDUCTION` contribution as the required `sourceLabel` when the effect is created;
-the attacking Creature's own name is never stored there. Current hit
+the attacking Creature's own name is never stored there. The contribution also freezes the required
+`sourceHidden`: whether the acting actor was hidden from players (`public` false) at resolution.
+Only the GM's Sheet view shows a hidden source's label; every other viewer gets `label: null`
+(`projectCharacterSheetForViewer`), which the web shows as "Unknown source". Current hit
 points clamp to the reduced maximum in the Sheet, its commands and the Encounter projection. A rest
 preview's maximum leaves out the reductions that rest ends (`activeEffectEndsOnRest`, the same test
 the rest uses to delete them). The Character row's stored `maximumHitPoints` (D7) is the maximum
 _before_ reductions. Reduction effects are written separately from the Character row, in the room's
 commit paths and on rests, so the row never records them. Row readers subtract them through
 `characters/characterMaximumHitPoints`: the Encounter projections and a live resource-only batch.
+
+**CURRENT / Roll-mode reasons from hidden actors (D62).** A player's pending roll prompt
+(`encounters/rollModeReasons`) never names a contributor that comes from an actor hidden from
+players. That covers an active effect the hidden actor owns or cast, and a basic action it holds
+(Dodge). The advantage or disadvantage still applies and reads "Unseen source". The GM reads every
+label. The room builds summaries without labels, so only this Convex read labels them. Known limit:
+a contributor from the roller's own rules policy (its features, items and conditions) names no
+Encounter actor, so it is never redacted.
 
 No unselected damage dice are requested. Each phase is independently acyclic and executes once with
 one evidence stage. Resource consumption, aggregate mutations, events, and terminal receipt changes
