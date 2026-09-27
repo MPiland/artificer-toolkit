@@ -60,6 +60,8 @@ export function prepareEncounterActionEffectPlans(input: {
   sourceActorId: string
   /** The acting Feature or action label a target state contribution freezes, when it has one. */
   sourceLabel: string | null
+  /** Whether the acting actor is hidden from players; frozen with the label. */
+  sourceHidden: boolean
   target: {
     actorId: string
     conditionIds: readonly string[]
@@ -394,7 +396,8 @@ function prepareTargetStateEffect(
             sourceDamageNodeId: contribution.sourceDamageNodeId,
             sourceDamageOperationKey: contribution.sourceDamageOperationKey,
             recoveryTags: contribution.recoveryTags,
-            sourceLabel
+            sourceLabel,
+            sourceHidden: input.sourceHidden
           }
         : {
             kind: 'SCALAR_REDUCTION' as const,

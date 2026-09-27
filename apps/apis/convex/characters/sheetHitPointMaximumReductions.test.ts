@@ -55,6 +55,7 @@ function reductionDefinition(
         amount,
         recoveryTags,
         sourceLabel: 'Life Drain',
+        sourceHidden: false,
         sourceDamageOutcomeId: crypto.randomUUID(),
         sourceDamageNodeId: 'entry',
         sourceDamageOperationKey: 'comparison'
@@ -100,6 +101,7 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
         {
           id: drainId,
           label: 'Life Drain',
+          sourceHidden: false,
           amount: 4,
           recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
         }

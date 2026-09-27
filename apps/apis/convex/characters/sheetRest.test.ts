@@ -105,7 +105,8 @@ function hitPointMaximumReduction(
     sourceDamageNodeId: 'entry',
     sourceDamageOperationKey: 'comparison',
     recoveryTags,
-    sourceLabel: 'Life Drain'
+    sourceLabel: 'Life Drain',
+    sourceHidden: false
   }
 }
 
@@ -569,6 +570,7 @@ describe('native Character rest preview and completion', () => {
         {
           id: restorationOnlyEffectId,
           label: 'Life Drain',
+          sourceHidden: false,
           amount: 3,
           recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
         }

@@ -137,7 +137,9 @@ export const characterSheetOverviewDtoSchema = z.object({
   maxHitPointsReductions: z.array(
     z.strictObject({
       id: z.guid(),
-      label: stringSchema.check(z.minLength(1)),
+      /** Null for a viewer other than the GM when the attacker was hidden. */
+      label: z.nullable(stringSchema.check(z.minLength(1))),
+      sourceHidden: booleanSchema,
       amount: integerSchema.check(z.positive()),
       recoveryTags: hitPointMaximumReductionRecoveryTagsSchema
     })

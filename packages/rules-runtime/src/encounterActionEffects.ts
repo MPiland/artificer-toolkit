@@ -80,6 +80,7 @@ export function prepareNativeActionEffectsPlan<
       prepared.source.kind === 'CREATURE'
         ? prepared.source.capability.label
         : (prepared.source.candidate.label ?? null),
+    sourceHidden: !prepared.actor.public,
     target: {
       actorId: prepared.target.id,
       conditionIds: target.characterFacts

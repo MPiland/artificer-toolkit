@@ -3,6 +3,7 @@ import type { EncounterD20RollMode } from './encounterEvidenceAnswer.js'
 /** One recorded d20 contributor, as the evidence policies store it. */
 export type EncounterD20Contributor = {
   sourceId: string
+  domainKey: string | null
   influence: 'ADVANTAGE' | 'DISADVANTAGE'
 }
 
@@ -22,6 +23,9 @@ export const ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID = 'rule:long-range'
 const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
   [ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID, 'Long range']
 ])
+
+/** The reason a viewer reads for a contributor that comes from an actor hidden from them (D62). */
+export const ENCOUNTER_UNSEEN_SOURCE_REASON = 'Unseen source'
 
 /** For summaries built where labels are not read; the pending read adds them. */
 export const noEncounterRollModeReasons: EncounterRollModeReasons = () => []
@@ -45,16 +49,19 @@ export function collectEncounterRollModeContributors(
 
 /**
  * Labels the mode's contributors by source, or by their rules-owned label; unlabeled sources are
- * left out, duplicates merged.
+ * left out, duplicates merged. A contributor from an actor hidden from the viewer keeps its place
+ * under the generic unseen-source reason, never its own label.
  */
 export function labelEncounterRollModeReasons(
-  labels: ReadonlyMap<string, string>
+  labels: ReadonlyMap<string, string>,
+  hidden: (contributor: EncounterD20Contributor) => boolean = () => false
 ): EncounterRollModeReasons {
   return (input) => [
     ...new Set(
       modeContributors(input).flatMap((contributor) => {
-        const label =
-          labels.get(contributor.sourceId) ?? RULE_CONTRIBUTOR_LABELS.get(contributor.sourceId)
+        const label = hidden(contributor)
+          ? ENCOUNTER_UNSEEN_SOURCE_REASON
+          : (labels.get(contributor.sourceId) ?? RULE_CONTRIBUTOR_LABELS.get(contributor.sourceId))
         return label ? [label] : []
       })
     )

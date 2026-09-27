@@ -5574,8 +5574,9 @@ export declare const api: {
               maxHitPointsReductions: Array<{
                 amount: number;
                 id: string;
-                label: string;
+                label: string | null;
                 recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
+                sourceHidden: boolean;
               }>;
               proficiencyBonus: number;
               savingThrows: Array<{
@@ -6818,8 +6819,9 @@ export declare const api: {
             maxHitPointsReductions: Array<{
               amount: number;
               id: string;
-              label: string;
+              label: string | null;
               recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
+              sourceHidden: boolean;
             }>;
             proficiencyBonus: number;
             savingThrows: Array<{
@@ -24678,8 +24680,9 @@ export declare const api: {
             maxHitPointsReductions: Array<{
               amount: number;
               id: string;
-              label: string;
+              label: string | null;
               recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
+              sourceHidden: boolean;
             }>;
             proficiencyBonus: number;
             savingThrows: Array<{
@@ -29260,8 +29263,9 @@ export declare const api: {
               maxHitPointsReductions: Array<{
                 amount: number;
                 id: string;
-                label: string;
+                label: string | null;
                 recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
+                sourceHidden: boolean;
               }>;
               proficiencyBonus: number;
               savingThrows: Array<{

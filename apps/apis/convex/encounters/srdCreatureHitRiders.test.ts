@@ -227,6 +227,24 @@ function answerSave(base: Fixture, result: EncounterCommandResultDto, face: numb
   }
 }
 
+/** The Wight hits the Character for 6 necrotic and its Life Drain save fails (D62). */
+async function lifeDrainCharacter(input: { hidden: boolean }) {
+  const base = await setup({
+    creature: 'Wight',
+    feature: 'Life Drain',
+    playerAutoRoll: false,
+    hidden: input.hidden
+  })
+  // A natural 19 hits for 1d6 + 2 necrotic, the die rolling 4; the Character's save waits on its player.
+  const pending = await executeInRoom(
+    base.owner.caller,
+    { command: base.command },
+    scripted([18, 3])
+  )
+  const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
+  expect(answered.occurrence?.status).toBe('COMPLETE')
+  return { base, batch: await settledBatch(base) }
+}
 describe('seeded SRD Creature hit riders in the room', () => {
   it('deals both damage parts of the Hell Hound’s Bite on one hit', async () => {
     const base = await setup({ creature: 'Hell Hound', feature: 'Bite', playerAutoRoll: true })
@@ -496,22 +514,17 @@ describe('seeded SRD Creature hit riders in the room', () => {
     ])
   }, 30000)
 
-  it('drains the Character’s hit point maximum with the Wight’s Life Drain until a long rest (D62)', async () => {
-    const base = await setup({
-      creature: 'Wight',
-      feature: 'Life Drain',
-      playerAutoRoll: false,
-      hidden: true
+  it('names a visible attacker’s Life Drain on the player’s Sheet (D62)', async () => {
+    const { base } = await lifeDrainCharacter({ hidden: false })
+    const drained = await base.player.caller.query(api.characters.sheet.get, {
+      id: base.character.id
     })
-    // A natural 19 hits for 1d6 + 2 necrotic, the die rolling 4; the Character's save waits on its player.
-    const pending = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 3])
-    )
-    const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
-    expect(answered.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
+    expect(drained?.overview.maxHitPointsReductions).toEqual([
+      expect.objectContaining({ label: 'Life Drain', sourceHidden: false, amount: 6 })
+    ])
+  }, 30000)
+  it('drains the Character’s hit point maximum with the Wight’s Life Drain until a long rest (D62)', async () => {
+    const { base, batch } = await lifeDrainCharacter({ hidden: true })
     expect(batch.nestedD20).toMatchObject({ defenseOrDc: 13, resultPath: 'ON_SAVE_FAIL' })
     expect(batch.damage).toEqual([[6, damageTypeId('NECROTIC')]])
     const maximum = batch.targetTransition.before.maximumHitPoints
@@ -535,14 +548,18 @@ describe('seeded SRD Creature hit riders in the room', () => {
     // The attack's Feature label is frozen onto the reduction and read back by the Sheet.
     expect(drain?.definition).toMatchObject({
       stateContributions: [
-        expect.objectContaining({ kind: 'HIT_POINT_MAXIMUM_REDUCTION', sourceLabel: 'Life Drain' })
+        expect.objectContaining({
+          kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+          sourceLabel: 'Life Drain',
+          sourceHidden: true
+        })
       ]
     })
     const drained = await base.player.caller.query(api.characters.sheet.get, {
       id: base.character.id
     })
-    // A hidden Wight: the player's Sheet names the attack, never the Creature.
-    expect(JSON.stringify(drained)).not.toMatch(/Wight/i)
+    // A hidden Wight: the player's Sheet names neither the attack nor the Creature.
+    expect(JSON.stringify(drained)).not.toMatch(/Wight|Life Drain/i)
     expect(JSON.stringify(drained)).not.toContain(base.command.actorId)
     const playerEncounter = await base.player.caller.query(api.encounters.projectionReads.get, {
       encounterId: base.run.id
@@ -551,7 +568,22 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(drained?.overview.maxHitPointsReductions).toEqual([
       {
         id: drain?.id,
+        label: null,
+        sourceHidden: true,
+        amount: 6,
+        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+      }
+    ])
+    // The GM's view of the same Sheet keeps the frozen label.
+    const gmView = await base.owner.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: base.campaign.id,
+      characterId: base.character.id
+    })
+    expect(gmView.overview.maxHitPointsReductions).toEqual([
+      {
+        id: drain?.id,
         label: 'Life Drain',
+        sourceHidden: true,
         amount: 6,
         recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
       }

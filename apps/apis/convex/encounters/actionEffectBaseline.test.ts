@@ -260,6 +260,7 @@ function planWith(
     commandId: ids.command,
     sourceActorId: ids.source,
     sourceLabel: null,
+    sourceHidden: false,
     target: {
       actorId: ids.target,
       conditionIds,

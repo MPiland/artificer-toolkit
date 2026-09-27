@@ -25,6 +25,7 @@ function reduction(
         amount,
         recoveryTags,
         sourceLabel: 'Test reduction',
+        sourceHidden: false,
         sourceDamageOutcomeId: '00000000-0000-4000-8000-00000000d002',
         sourceDamageNodeId: 'entry',
         sourceDamageOperationKey: 'comparison'
@@ -47,12 +48,14 @@ describe('hit point maximum reductions', () => {
       {
         activeEffectId: drain.id,
         label: 'Test reduction',
+        sourceHidden: false,
         amount: 3,
         recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
       },
       {
         activeEffectId: golem.id,
         label: 'Test reduction',
+        sourceHidden: false,
         amount: 5,
         recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
       }

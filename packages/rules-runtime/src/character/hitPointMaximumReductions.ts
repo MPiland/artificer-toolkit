@@ -6,6 +6,7 @@ type ReductionSourceEffect = Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal
 export type HitPointMaximumReduction = {
   activeEffectId: string
   label: string
+  sourceHidden: boolean
   amount: number
   recoveryTags: HitPointMaximumReductionRecoveryTag[]
 }
@@ -26,6 +27,7 @@ export function listHitPointMaximumReductions(
                   {
                     activeEffectId: effect.id,
                     label: contribution.sourceLabel,
+                    sourceHidden: contribution.sourceHidden,
                     amount: contribution.amount,
                     recoveryTags: contribution.recoveryTags
                   }

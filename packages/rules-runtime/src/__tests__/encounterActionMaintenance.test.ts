@@ -91,7 +91,8 @@ describe('conditions ended with maintained effects', () => {
           sourceDamageNodeId: 'damage',
           sourceDamageOperationKey: 'damage',
           recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM'],
-          sourceLabel: 'Slam'
+          sourceLabel: 'Slam',
+          sourceHidden: false
         }
       ]
     })

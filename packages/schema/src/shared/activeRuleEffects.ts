@@ -119,7 +119,9 @@ export const activeRuleEffectStateContributionDtoSchema = z.strictObject({
   sourceDamageOperationKey: identifierSchema,
   recoveryTags: hitPointMaximumReductionRecoveryTagsSchema,
   /** The attacking Feature or action label ("Life Drain"), frozen when the reduction is created. */
-  sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
+  sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+  /** Whether the attacker was hidden from players when the reduction was created. */
+  sourceHidden: z.boolean()
 })
 
 export const activeRuleEffectScalarReductionContributionDtoSchema = z.strictObject({

@@ -174,19 +174,20 @@ export function projectCharacterSheetForViewer(
       adjustment.field === 'MAXIMUM_MODIFIER' &&
       context.secretAdjustmentIds.has(adjustment.id)
   )
-  const shown =
-    secretMaximumOverride || secretMaximumModifier
-      ? {
-          ...projected,
-          overview: {
-            ...projected.overview,
-            ...(secretMaximumOverride ? { maxHitPointsOverride: null } : {}),
-            ...(secretMaximumModifier
-              ? { maxHitPointsModifier: 0, maxHitPointsModifierAdjustmentId: null }
-              : {})
-          }
-        }
-      : projected
+  const shown = {
+    ...projected,
+    overview: {
+      ...projected.overview,
+      ...(secretMaximumOverride ? { maxHitPointsOverride: null } : {}),
+      ...(secretMaximumModifier
+        ? { maxHitPointsModifier: 0, maxHitPointsModifierAdjustmentId: null }
+        : {}),
+      // Only the GM learns what a hidden attacker used (D62).
+      maxHitPointsReductions: projected.overview.maxHitPointsReductions.map((reduction) =>
+        reduction.sourceHidden ? { ...reduction, label: null } : reduction
+      )
+    }
+  }
   return presentCampaignCharacterText(
     context.viewer === 'PARTY_MEMBER'
       ? withoutPersonalityAndBackground(withoutPlayerNotes(shown))
