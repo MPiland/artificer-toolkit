@@ -7,6 +7,7 @@ import {
   mutation as rawMutation
 } from '../_generated/server'
 import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
+import { memoizeMutationReads } from './transactionReads'
 
 type SceneVisionScope = Pick<SceneVisionRevision, 'scope' | 'id'>
 
@@ -206,4 +207,12 @@ export const mutation = customMutation(rawMutation, customCtx(withSceneVisionTra
 export const internalMutation = customMutation(
   rawInternalMutation,
   customCtx(withSceneVisionTracking)
+)
+/**
+ * An internal mutation whose identical reads are served once per transaction. The memo sits
+ * beneath the triggers, so their writes invalidate it too (`memoizeMutationReads`).
+ */
+export const memoizedInternalMutation = customMutation(
+  rawInternalMutation,
+  customCtx((ctx) => withSceneVisionTracking({ ...ctx, db: memoizeMutationReads(ctx.db) }))
 )

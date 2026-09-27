@@ -14,7 +14,7 @@ import {
   type SceneGeometryCommandResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { MutationCtx } from '../_generated/server'
-import { internalMutation } from '../lib/mutations'
+import { internalMutation, memoizedInternalMutation } from '../lib/mutations'
 import { readRuleOccurrenceVoidDecline } from '../encounters/occurrenceVoid'
 import { finishSceneGeometry } from '../scenes/geometryCommands'
 import { readGeometrySave } from '../scenes/geometryDocuments'
@@ -80,10 +80,11 @@ async function beginLiveSceneCommand(
  * Stages a room Scene commit in one transaction (D52): routes a decision (another planner's
  * occurrence stages nothing), begins the save, observes the room's Scene vision and, for an
  * Encounter-bound move, reads the planner's capture bundle under the staged save. The room plans any
- * rules in the DO before its atomic commit; nothing here changes gameplay or authority.
+ * rules in the DO before its atomic commit; nothing here changes gameplay or authority. The stage
+ * and the commit each serve their repeated reads once (`memoizedInternalMutation`).
  */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
-export const stage = internalMutation({
+export const stage = memoizedInternalMutation({
   args: v.any(),
   handler: async (ctx, args: unknown): Promise<LiveSessionMovementStage> => {
     const { characterRevisions, tokenOrdinals, maintenanceDefinitionIds, ...input } =
@@ -124,7 +125,7 @@ export const stage = internalMutation({
   }
 })
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
-export const commit = internalMutation({
+export const commit = memoizedInternalMutation({
   args: v.any(),
   handler: async (ctx, args: unknown): Promise<LiveSessionMovementCommitResponse> =>
     commitLiveMovement(ctx, args)

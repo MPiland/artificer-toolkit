@@ -2,7 +2,8 @@ import { convexTest } from 'convex-test'
 import { expect, it } from 'vitest'
 
 import schema from '../schema'
-import { deriveOnce, memoizeTransactionReads } from './transactionReads'
+import { withSceneVisionTracking } from './mutations'
+import { deriveOnce, memoizeMutationReads, memoizeTransactionReads } from './transactionReads'
 
 it('serves identical reads once, frozen, and keeps different ranges apart', async () => {
   const t = convexTest(schema)
@@ -46,6 +47,99 @@ it('serves identical reads once, frozen, and keeps different ranges apart', asyn
         .withIndex('by_scope_id', (q) => q.eq('scope', 'CHARACTER'))
         .take(4)
     )
+  })
+})
+
+it('never serves a value a write in the same transaction changed', async () => {
+  const t = convexTest(schema)
+  const id = crypto.randomUUID()
+  const other = crypto.randomUUID()
+  const [documentId, otherId] = await t.run(async (ctx) => [
+    await ctx.db.insert('sceneVisionRevisions', { scope: 'CHARACTER', id, revision: 'first' }),
+    await ctx.db.insert('authoredRouteIds', {
+      subjectKind: 'CHARACTER',
+      subjectId: other,
+      routeNumber: 1,
+      publicId: 'other'
+    })
+  ])
+  await t.run(async (ctx) => {
+    let reads = 0
+    const counted = new Proxy(ctx.db, {
+      get(target, property) {
+        const value: unknown = Reflect.get(target, property)
+        if (typeof value !== 'function') return value
+        return (...args: unknown[]) => {
+          if (property === 'get' || property === 'query') reads++
+          return value.apply(target, args)
+        }
+      }
+    })
+    const db = memoizeMutationReads(counted)
+    expect(memoizeMutationReads(db)).toBe(db)
+    const byScope = () =>
+      db
+        .query('sceneVisionRevisions')
+        .withIndex('by_scope_id', (q) => q.eq('scope', 'CHARACTER').eq('id', id))
+        .unique()
+    const all = () => db.query('sceneVisionRevisions').collect()
+    const unrelated = await db.get(otherId)
+    expect((await byScope())?.revision).toBe('first')
+    // A document a query returned is served to a get by its ID, each time as a private copy the
+    // caller may change; the memo keeps what was stored.
+    const readsBefore = reads
+    const read = await db.get(documentId)
+    expect(read).toMatchObject({ revision: 'first' })
+    Object.assign(read!, { revision: 'changed' })
+    expect(await db.get('sceneVisionRevisions', documentId)).toMatchObject({ revision: 'first' })
+    expect(reads).toBe(readsBefore)
+
+    // A patch by bare ID drops the document's gets and its table's queries.
+    await db.patch(documentId, { revision: 'second' })
+    expect(await db.get(documentId)).toMatchObject({ revision: 'second' })
+    expect(await db.get('sceneVisionRevisions', documentId)).toMatchObject({ revision: 'second' })
+    expect((await byScope())?.revision).toBe('second')
+    // Reads of documents and tables the write cannot change are still served from the memo.
+    const readsAfterWrite = reads
+    expect(await db.get(otherId)).toEqual(unrelated)
+    expect(reads).toBe(readsAfterWrite)
+
+    await db.replace('sceneVisionRevisions', documentId, {
+      scope: 'CHARACTER',
+      id,
+      revision: 'third'
+    })
+    expect((await byScope())?.revision).toBe('third')
+    expect(await all()).toHaveLength(1)
+    await db.insert('sceneVisionRevisions', { scope: 'PLAY', id, revision: 'inserted' })
+    expect(await all()).toHaveLength(2)
+    await db.delete(documentId)
+    expect(await db.get(documentId)).toBeNull()
+    expect(await byScope()).toBeNull()
+    expect(await all()).toHaveLength(1)
+  })
+})
+
+it('drops reads a trigger write changes when the memo sits beneath the triggers', async () => {
+  const t = convexTest(schema)
+  const characterId = crypto.randomUUID()
+  await t.run(async (ctx) => {
+    const db = memoizeMutationReads(ctx.db)
+    const tracked = withSceneVisionTracking({ ...ctx, db })
+    const revision = () =>
+      db
+        .query('sceneVisionRevisions')
+        .withIndex('by_scope_id', (q) => q.eq('scope', 'CHARACTER').eq('id', characterId))
+        .unique()
+    expect(await revision()).toBeNull()
+    // The trigger refreshes the Character's revision row through the memo, which drops the read.
+    await tracked.db.insert('authoredRouteIds', {
+      subjectKind: 'CHARACTER',
+      subjectId: characterId,
+      routeNumber: 1,
+      publicId: 'route-1'
+    })
+    expect((await revision())?.revision).toEqual(expect.any(String))
   })
 })
 
