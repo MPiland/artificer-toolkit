@@ -62,24 +62,46 @@ function resultDocuments(value: unknown): object[] {
   return []
 }
 
+/** Each private copy a mutation memo or derivation handed out, keyed to the value it copies. */
+const copySources = new WeakMap<object, object>()
+
+/** A private copy of `value`; it and each document in it derive from what they copy. */
+function privateCopy<T>(value: T): T {
+  const copy = structuredClone(value)
+  if (typeof copy === 'object' && copy !== null) copySources.set(copy, value as object)
+  const sources = resultDocuments(value)
+  resultDocuments(copy).forEach((document, index) => copySources.set(document, sources[index]!))
+  return copy
+}
+
 /**
- * A pure derivation (parse, checksum verification) of a stored document. For a document a
- * memoized reader served, it runs once per transaction and its deeply frozen result is shared, so
- * callers must not mutate it; any other document derives on every call. `derive` must be a stable
- * module-level function, since it keys the cache.
+ * A pure derivation (parse, checksum verification) of a stored document, or of a value an earlier
+ * derivation returned. For a document a query memo served, it runs once per transaction and its
+ * deeply frozen result is shared, so callers must not mutate it. For a mutation memo's private copy
+ * it runs once per stored document and each call returns a private copy. Any other value derives
+ * on every call. `derive` must be a stable module-level function that never mutates its input,
+ * since it keys the cache and runs on the stored value.
  */
 export function deriveOnce<Document extends object, Value>(
   document: Document,
   derive: (document: Document) => Value
 ): Value {
-  if (!memoizedDocuments.has(document)) return derive(document)
-  let values = derivations.get(document)
+  const source = copySources.get(document) as Document | undefined
+  const key = source ?? (memoizedDocuments.has(document) ? document : undefined)
+  if (!key) return derive(document)
+  let values = derivations.get(key)
   if (!values) {
     values = new Map()
-    derivations.set(document, values)
+    derivations.set(key, values)
   }
-  if (!values.has(derive)) values.set(derive, deepFreeze(derive(document)))
-  return values.get(derive) as Value
+  if (!values.has(derive)) {
+    const value = derive(key)
+    if (!source && typeof value === 'object' && value !== null)
+      memoizedDocuments.add(deepFreeze(value))
+    values.set(derive, value)
+  }
+  const value = values.get(derive) as Value
+  return source ? privateCopy(value) : value
 }
 
 /**
@@ -95,7 +117,8 @@ export function memoizeTransactionReads<Database extends DatabaseReader>(db: Dat
 
 /**
  * The same memo for a mutation transaction, which also writes. Each read returns a private copy,
- * as a fresh read would, so callers may mutate what they read; `deriveOnce` derives every call.
+ * as a fresh read would, so callers may mutate what they read; `deriveOnce` derives each stored
+ * document once and returns private copies too.
  *
  * Write invariant: a read is served from the memo only while nothing it covers was written in the
  * transaction. Writes pass straight through and first drop every memoized read they could change:
@@ -121,7 +144,7 @@ function memoizeReads<Database extends DatabaseReader>(db: Database, share: bool
   const inserted = new Map<string, unknown>()
   /** Counts write starts and ends; a read that overlapped a write never records its documents. */
   let writeEpoch = 0
-  const serve = (value: unknown) => (share ? value : structuredClone(value))
+  const serve = (value: unknown) => (share ? value : privateCopy(value))
   async function once(
     reads: Map<string, Promise<unknown>>,
     key: string,

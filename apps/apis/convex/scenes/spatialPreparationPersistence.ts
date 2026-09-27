@@ -1,7 +1,4 @@
-import {
-  sceneSpatialPreparationSchema,
-  type SceneSpatialPreparation
-} from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { readRunState } from '../encounters/documents'
@@ -12,15 +9,17 @@ import {
 } from './geometryDocuments'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 
-/** Internal staged evidence only. The parent validates token control and publishes all gameplay state. */
+/**
+ * Internal staged evidence only. The parent validates token control and publishes all gameplay state.
+ * `value` is already parsed by the caller's contract; it is validated again as stored below.
+ */
 export async function persistSpatialPreparation(
   ctx: MutationCtx,
   saveId: string,
-  preparation: SceneSpatialPreparation
+  value: SceneSpatialPreparation
 ) {
   const { row, save, header, userId } = await readGeometrySave(ctx, saveId)
   assertGeometryReceiving(save, header.version, userId)
-  const value = sceneSpatialPreparationSchema.parse(preparation)
   const checksum = checksumCanonicalJson(value)
   readSpatialPreparation({
     ...save,

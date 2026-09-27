@@ -56,6 +56,42 @@ function contactEvidence<T extends { concentrationChecks?: MovementConcentration
   return contact
 }
 
+/** Checksums of values a commit never mutates, each computed once per object. */
+const checksums = new WeakMap<object, string>()
+function checksumOnce(value: object): string {
+  let checksum = checksums.get(value)
+  if (checksum === undefined) {
+    checksum = checksumCanonicalJson(value)
+    checksums.set(value, checksum)
+  }
+  return checksum
+}
+
+/** A retained contact's evidence, without its Concentration checks, checksummed once. */
+const evidenceChecksums = new WeakMap<object, string>()
+function evidenceChecksum(
+  value: object & { concentrationChecks?: MovementConcentrationExecutionDto[] }
+): string {
+  let checksum = evidenceChecksums.get(value)
+  if (checksum === undefined) {
+    checksum = checksumCanonicalJson(contactEvidence(value))
+    evidenceChecksums.set(value, checksum)
+  }
+  return checksum
+}
+
+/** Element-wise equality of two checksummed lists, which is canonical equality of the lists. */
+function sameChecksums<T extends object>(
+  left: readonly T[],
+  right: readonly T[],
+  checksum: (value: T) => string
+) {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => checksum(value) === checksum(right[index]!))
+  )
+}
+
 type MovementOutcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 
 function appliedSpatialPrefix(outcome: MovementOutcome) {
@@ -80,12 +116,11 @@ function appliedSpatialPrefix(outcome: MovementOutcome) {
 
 /** A response may append child checks to its latest damage, but never rewrite committed contacts. */
 function retainedContactChecks<
-  T extends { concentrationChecks?: MovementConcentrationExecutionDto[] }
+  T extends object & { concentrationChecks?: MovementConcentrationExecutionDto[] }
 >(prior: readonly T[], next: readonly T[]) {
   if (
     next.length < prior.length ||
-    checksumCanonicalJson(prior.map(contactEvidence)) !==
-      checksumCanonicalJson(next.slice(0, prior.length).map(contactEvidence))
+    !sameChecksums(prior, next.slice(0, prior.length), evidenceChecksum)
   )
     throw new Error('Movement response changed its retained contact history.')
   return prior.flatMap((entry, index) => {
@@ -93,8 +128,7 @@ function retainedContactChecks<
     const nextChecks = next[index]!.concentrationChecks ?? []
     if (
       nextChecks.length < previousChecks.length ||
-      checksumCanonicalJson(previousChecks) !==
-        checksumCanonicalJson(nextChecks.slice(0, previousChecks.length))
+      !sameChecksums(previousChecks, nextChecks.slice(0, previousChecks.length), checksumOnce)
     )
       throw new Error('Movement response changed its retained Concentration history.')
     return nextChecks.slice(previousChecks.length)
@@ -141,7 +175,8 @@ export async function commitLiveMovement(
     save.actorUserId !== userId ||
     save.sessionVision?.campaignId !== input.campaignId ||
     preparation?.encounterId !== input.movement.encounterId ||
-    checksumCanonicalJson(preparation) !== checksumCanonicalJson(input.preparation)
+    // Reading the stored preparation verified its stored checksum.
+    save.spatialPreparationChecksum !== checksumCanonicalJson(input.preparation)
   )
     throw new Error('Live movement commit scope mismatch.')
   const resolution = readMovementResolution(save)
@@ -260,8 +295,11 @@ export async function commitLiveMovement(
       if (step.kind === 'SPATIAL') {
         const expected = spatial.slice(spatialIndex, spatialIndex + step.executions.length)
         if (
-          checksumCanonicalJson(expected.map(contactEvidence)) !==
-          checksumCanonicalJson(step.executions)
+          expected.length !== step.executions.length ||
+          expected.some(
+            (execution, index) =>
+              evidenceChecksum(execution) !== checksumCanonicalJson(step.executions[index])
+          )
         )
           throw new Error('Movement spatial settlement differs from its retained receipt.')
         for (const execution of expected) {
@@ -283,10 +321,7 @@ export async function commitLiveMovement(
         checks.push(...expected.flatMap((entry) => entry.concentrationChecks ?? []))
       } else if (step.kind === 'REACTION') {
         const expected = reactions[reactionIndex]
-        if (
-          !expected ||
-          checksumCanonicalJson(contactEvidence(expected)) !== checksumCanonicalJson(step.execution)
-        )
+        if (!expected || evidenceChecksum(expected) !== checksumCanonicalJson(step.execution))
           throw new Error('Movement reaction settlement differs from its retained receipt.')
         const nextDistance = expected.option.candidate.pathDistance
         if (nextDistance + 1e-8 < distance) throw new Error('Movement contacts are out of order.')
@@ -326,7 +361,7 @@ export async function commitLiveMovement(
         passageSettled = true
       } else {
         const expected = checks.shift()
-        if (!expected || checksumCanonicalJson(expected) !== checksumCanonicalJson(step.execution))
+        if (!expected || checksumOnce(expected) !== checksumCanonicalJson(step.execution))
           throw new Error('Movement Concentration differs from its retained contact.')
         actors = await persistLiveMovementConcentration(ctx, {
           ...common,

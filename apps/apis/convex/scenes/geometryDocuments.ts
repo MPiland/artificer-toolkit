@@ -14,6 +14,7 @@ import { readRunState } from '../encounters/documents'
 import { readLiveScene } from './liveDocuments'
 import { geometryTarget, normalizeGeometryInput } from './geometryValues'
 import { readPresentedVisionScene } from './sessionVisionDocuments'
+import { deriveOnce } from '../lib/transactionReads'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import {
   sceneSpatialPreparationSchema,
@@ -22,6 +23,10 @@ import {
 
 /** Private response evidence is bound to the exact Scene segment; it never becomes client input. */
 export function readMovementResolution(save: SceneStoredGeometrySave) {
+  return deriveOnce(save, parseMovementResolution)
+}
+
+function parseMovementResolution(save: SceneStoredGeometrySave) {
   const retained = save.movementResolution
   if (!retained) return null
   const command = resolveRuleOccurrenceInputDtoSchema.parse(JSON.parse(retained.commandJson))
@@ -54,6 +59,10 @@ export function readMovementResolution(save: SceneStoredGeometrySave) {
 export function readSpatialPreparation(
   save: SceneStoredGeometrySave
 ): SceneSpatialPreparation | null {
+  return deriveOnce(save, parseSpatialPreparation)
+}
+
+function parseSpatialPreparation(save: SceneStoredGeometrySave): SceneSpatialPreparation | null {
   if (save.spatialPreparationJson === undefined && save.spatialPreparationChecksum === undefined)
     return null
   if (save.spatialPreparationJson === undefined || save.spatialPreparationChecksum === undefined)
@@ -235,7 +244,8 @@ export async function readGeometrySave(ctx: QueryCtx, saveId: string) {
     .withIndex('by_publicId', (q) => q.eq('id', saveId.toLowerCase()))
     .unique()
   if (!row) throw new Error('Scene geometry save is unavailable.')
-  const save = parseGeometrySave(row)
+  // Parsed once per stored save in a memoized transaction (`deriveOnce`).
+  const save = deriveOnce(row, parseGeometrySave)
   // Only the save's own actor may continue it; a player's door save exists only through the room.
   const scene = await readLiveScene(
     ctx,

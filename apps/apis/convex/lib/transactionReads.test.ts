@@ -167,3 +167,40 @@ it('derives a memoized document once, frozen, and any other document on every ca
     expect(derived).toBe(3)
   })
 })
+
+it('derives a mutation memo document once per stored version, handing out private copies', async () => {
+  const t = convexTest(schema)
+  const id = crypto.randomUUID()
+  const documentId = await t.run((ctx) =>
+    ctx.db.insert('sceneVisionRevisions', { scope: 'CHARACTER', id, revision: 'first' })
+  )
+  let derived = 0
+  const derive = (document: { revision: string }) => {
+    derived += 1
+    return { revision: document.revision }
+  }
+  const chained = (value: { revision: string }) => ({ upper: value.revision.toUpperCase() })
+  await t.run(async (ctx) => {
+    const db = memoizeMutationReads(ctx.db)
+    const read = async () => {
+      const document = await db.get(documentId)
+      if (!document) throw new Error('Missing the memoized document.')
+      return document
+    }
+    const first = deriveOnce(await read(), derive)
+    const second = deriveOnce(await read(), derive)
+    expect(second).toEqual(first)
+    expect(second).not.toBe(first)
+    expect(Object.isFrozen(first)).toBe(false)
+    expect(derived).toBe(1)
+    // A caller's change to its copy never reaches the next caller.
+    first.revision = 'changed'
+    expect(deriveOnce(await read(), derive)).toEqual({ revision: 'first' })
+    // A derivation of a derived copy is cached too.
+    expect(deriveOnce(second, chained)).toEqual({ upper: 'FIRST' })
+    // A written document derives again from its new stored value.
+    await db.patch(documentId, { revision: 'second' })
+    expect(deriveOnce(await read(), derive)).toEqual({ revision: 'second' })
+    expect(derived).toBe(2)
+  })
+})
