@@ -13,13 +13,15 @@ import {
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { equipAllCharacterItems, setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { internal } from '../_generated/api'
+import { srdWolf } from '../../tests/fixtures/srdCreatures'
+import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 
 /**
  * A player's SRD Fighter with an equipped seeded Longsword, acting first in an Assisted Run against
- * a custom target. Returns the one-handed Longsword attack and its resolved hit damage.
+ * the seeded SRD Wolf. Returns the one-handed Longsword attack and its resolved hit damage.
  */
 async function setup() {
   const base = await setupCharacterRun({}, longsword)
@@ -31,12 +33,29 @@ async function setup() {
       (definition) => definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID
     )
   })
-  const target = base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')
-  if (!target) throw new Error('The Longsword fixture target is missing.')
+  const creature = srdWolf
+  await base.t.mutation(internal.content.import.importSubjects, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
+  })
+  const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
+    gameSystemId: base.campaign.gameSystemId,
+    name: 'Longsword critical fixture',
+    commandId: crypto.randomUUID(),
+    enemies: [{ kind: 'CREATURE', sourceId: creature.id }]
+  })
+  const run = await base.owner.caller.mutation(api.encounters.runs.create, {
+    campaignId: base.campaign.id,
+    blueprintId: blueprint.id,
+    commandId: crypto.randomUUID()
+  })
+  const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
+  const target = run.actors.find((candidate) => candidate.kind === 'CREATURE')
+  if (!actor || !target) throw new Error('The Longsword fixture actors are missing.')
   const attack = await base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+      .withIndex('by_publicId', (q) => q.eq('id', run.id))
       .unique()
     if (!row) throw new Error('The Longsword fixture Run is missing.')
     const state = encounterRunStateSchema.parse({
@@ -44,14 +63,14 @@ async function setup() {
       status: 'ACTIVE',
       automationMode: 'ASSISTED',
       round: 1,
-      currentActorId: base.actor.id
+      currentActorId: actor.id
     })
     const projection = encounterGmProjectionDtoSchema.parse({
       ...JSON.parse(row.projectionJson),
       status: 'ACTIVE',
       automationMode: 'ASSISTED',
       round: 1,
-      currentActorId: base.actor.id
+      currentActorId: actor.id
     })
     await ctx.db.patch(row._id, {
       status: 'ACTIVE',
@@ -60,7 +79,7 @@ async function setup() {
       projectionJson: JSON.stringify(projection),
       projectionChecksum: checksumCanonicalJson(projection)
     })
-    await seedActiveInitiative(ctx, state, [base.actor.id, target.id])
+    await seedActiveInitiative(ctx, state, [actor.id, target.id])
     const facts = await loadCharacterSheetFacts(
       ctx,
       base.player.userId,
@@ -80,16 +99,17 @@ async function setup() {
   })
   return {
     ...base,
+    run,
     attack,
     command: {
       type: 'RESOLVE_ACTION' as const,
       acceptedWieldConflict: null,
       // No Scene is bound, so the Longsword's reach can't be measured (D11).
       acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED' as const],
-      encounterId: base.run.id,
+      encounterId: run.id,
       commandId: crypto.randomUUID(),
-      expectedVersion: base.run.version,
-      actorId: base.actor.id,
+      expectedVersion: run.version,
+      actorId: actor.id,
       targetActorId: target.id,
       actionId: attack.actionId,
       optionalCombatIntent: null,
@@ -126,7 +146,7 @@ describe('a Character weapon critical hit in the room', () => {
       settled.status !== 'COMPLETE' ||
       settled.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
     )
-      throw new Error('Expected a settled Longsword attack on the custom target.')
+      throw new Error('Expected a settled Longsword attack on the Wolf.')
     const batch = settled.applicationOutputs
     expect(batch.d20).toMatchObject({ selectedNatural: 20, resultPath: 'ON_CRIT' })
     expect(
