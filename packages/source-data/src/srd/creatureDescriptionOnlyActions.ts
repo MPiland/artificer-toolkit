@@ -10,8 +10,6 @@ const MULTIATTACK =
   'Multiattack names the attacks the Creature makes in one action; each attack is its own Effect, and the Multiattack itself is description-only (mechanics follow-up, D60).'
 const UNMODELED =
   'The printed mechanics have no model yet, so the GM resolves the printed text (mechanics follow-up, D60).'
-const LEGENDARY_OWN_ACTION =
-  'The legendary option uses one of the Creature’s own printed actions, which waits on legendary options that reference them (D51 B).'
 const CHROMATIC_DETECT =
   'The chromatic dragons’ Detect authors no Effect, unlike the metallic dragons’ DRAGON_LEGENDARY_DETECT; it waits on the legendary option rework (D51 B).'
 
@@ -105,11 +103,6 @@ export const SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS: ReadonlyMap<string, string> 
     'Mummy Lord|legendaryActions Blasphemous Word (Costs 2 Actions)',
     'Mummy Lord|legendaryActions Channel Negative Energy (Costs 2 Actions)',
     'Mummy Lord|legendaryActions Whirlwind of Sand (Costs 2 Actions)'
-  ]),
-  ...entries(LEGENDARY_OWN_ACTION, [
-    'Lich|legendaryActions Paralyzing Touch (Costs 2 Actions)',
-    'Vampire|legendaryActions Unarmed Strike',
-    'Vampire|legendaryActions Bite (Costs 2 Actions)'
   ]),
   ...entries(CHROMATIC_DETECT, [
     'Adult Black Dragon|legendaryActions Detect',

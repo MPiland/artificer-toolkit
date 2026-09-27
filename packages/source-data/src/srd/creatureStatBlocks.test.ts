@@ -254,8 +254,9 @@ const mismatches = new Map<string, string>(
 
 /**
  * `Creature label|actions Name` (or `reactions`, `legendaryActions`) of every printed action whose
- * authored Feature or legendary option has no Effect, on itself or on one of its options. A printed
- * name with no authored source at all is a name difference above instead.
+ * authored Feature or legendary option has no Effect, on itself or on one of its options, and names no
+ * action it runs (D51 option B). A printed name with no authored source at all is a name difference
+ * above instead.
  */
 const descriptionOnlyActions = new Set(
   srdBaselineContent.subjects.creatures.flatMap((creature) => {
@@ -273,7 +274,8 @@ const descriptionOnlyActions = new Set(
         const source = sources.find((candidate) => candidate.label === name)
         const hasEffect =
           source !== undefined &&
-          [source, ...(source.options ?? [])].some((entry) => (entry.effects ?? []).length > 0)
+          ('actionReference' in source ||
+            [source, ...(source.options ?? [])].some((entry) => (entry.effects ?? []).length > 0))
         return source && !hasEffect ? [`${creature.label}|${field} ${name}`] : []
       })
     )
