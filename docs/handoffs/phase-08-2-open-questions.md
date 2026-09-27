@@ -180,6 +180,22 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   - **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D60 (blocks closed beta) Monster completeness, following the M6 audit.** The audit fixed 388 of 457 stat-block differences. The printed content that is still missing is queued as slice M7:
+  * **Breath weapons:**
+    * The metallic dragons share one Breath Weapons action with one Recharge 5–6, per the SRD. Today each breath has its own charge.
+    * Young Copper and Young Gold dragons are missing their second breath.
+  * **Missing actions:**
+    * Actions: Aboleth Tentacle, Tail and Enslave (and clean up the stray legendary Effects on its Multiattack); Ice Devil Wall of Ice; Kraken Fling; Oni Glaive; Solar Flying Sword; Succubus/Incubus Charm and Etherealness; Werebear Greataxe.
+    * Reactions: Marilith Parry and Stone Giant Rock Catching.
+    * Spellcasting: Androsphinx and Solar.
+    * Legendary options: Aboleth, Kraken, Solar and Tarrasque.
+  * **Missing creatures:** the six SRD swarms (Bats, Insects, Poisonous Snakes, Quippers, Rats, Ravens).
+  * **Model gaps:**
+    * A flat skill bonus on Creature proficiency grants.
+    * Damage-defense conditions such as "from spells" and "from magic weapons wielded by good creatures".
+  * **Mechanics** for description-only traits (Water Breathing, Sunlight Weakness, Rust Metal, Acid Absorption and similar) and the description-only Multiattacks.
+  * **Extraction source:** `pdftotext` is accepted as a one-time authoring tool for the stat-block extractor. It isn't a runtime dependency.
+
 * **D59** Adopt lazy schemas (spike branch `worktree-agent-a007a1dd573f90707`; write-up `d55-lazy-schema-spike-2026-09-27.md`).
   * **Measured:** module load drops 73–84% on every hot function, and all 2,168 exported schemas, Convex validators, JSON Schema, parse results and deploy metadata are identical.
   * **What's included:**
