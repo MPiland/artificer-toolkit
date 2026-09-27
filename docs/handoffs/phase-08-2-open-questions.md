@@ -204,6 +204,21 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Ruling:** build schemas lazily (constructed on first use, memoized), covering the HTTP router path.
   * **Approach:** a design spike first. Prototype the pattern on the heaviest graphs (`projectionReads:get`, the capture bundle, one commit, the router). Measure the import saving, and prove types and validation are unchanged. Roll out only after that, then re-run the browserless check. The 6-browser V15 run follows only when both budgets pass.
 
+* **D57 SRD hit riders, slice M2.** The 108 `SEQUENTIAL_PATHS` attacks were grouped by authored shape, and 67 of them now run, plus the Guardian Naga Bite, Scorpion Sting and Spider Bite. 376 of 516 SRD attack Effects work (309 before M2), and 247 Creatures have a working attack (was 215). The sweep allowlist shrinks from 207 to 140, and every SRD attack now resolves to its printed hit damage, so the damage-mismatch list is gone.
+  * **Now running:**
+    * Several damage parts on one hit (dragon Bites, Hell Hound, Deva Mace, Ettercap Bite and others) and single-damage sequences: one damage source, one Concentration check at the total (D50.4).
+    * A hit followed by a Constitution save for poison damage, half on a success (Giant Spider, Wyvern, Scorpion and 7 more), or none on a success (Spider). Their stat blocks applied the poison with no save; they now author the save.
+    * Save or prone (Mastiff, Giant Crocodile Tail), applied once.
+    * Save or paralyzed/poisoned, repeating the save at the end of each of the target's turns and ending after 1 minute (10 turns): Ghoul, Ghast, Lich, Ettercap, Bearded Devil and the Quasit's Claws.
+    * Grapple on hit (Constrictor Snake, Crocodile, Chuul, Giant Crab, Giant Scorpion Claw, Roc, Ankheg, Giant Constrictor Snake): a bare `GRAPPLED` condition (ruling 2).
+  * **Still blocked, by their real blocker:** `CLOSED_RULE` riders and hits that apply two conditions (grappled and restrained) are `OUTCOME_KIND`; the Cockatrice and Dragon Turtle Tail saves (now authored) are unsupported follow-up saves; Mimic Pseudopod's unconditional grapple was removed because its Adhesive rule carries it.
+  * **Not modeled:** "can't regain hit points while poisoned" (Bearded Devil) and the Pseudodragon's "fails by 5 or more" unconsciousness. The Pseudodragon keeps its separately authored save action with its `CLOSED_RULE`; merging it needs a "fails by N" result.
+  * **Rulings:**
+    1. **Versatile weapons (Drider and Erinyes Longsword, `CHOICE`).** The controller picks one- or two-handed when declaring the attack, offered as two action variants (Foundry-style). Not small (new action identities through discovery, choices and receipts), so both stay listed as `SEQUENTIAL_PATHS`.
+    2. **Grapples.** Option (a) for now: a bare condition the GM removes. Option (b), a target-owned grapple relationship with an escape DC, ending when the grappler is incapacitated or moves away, and size limits, is queued before closed beta.
+    3. **Repeating saves** may carry a `ROUND` or `MINUTE` duration (a minute is 10 of the target's turns). Only the repeating shape may carry a duration. The SRD stat blocks that print one author it.
+    4. **Critical hits** are their own slice (D58).
+
 * **D54** D53 step 1 is merged: 290 of 491 SRD attack sources work (was 40), and 203 of 285 creatures have a working attack (was 31). Rulings on its findings:
   1. **Blast radius.** A Creature whose attack action lacks an ATTACK roll is rejected at publication (authoring validation). At runtime, one Creature's invalid action is unavailable, with a reason, instead of throwing for every Creature on the map during movement-reaction discovery.
   2. **Tests use seeded SRD records.** Tests and fixtures move from raw `srd/creatures/*.js` modules to the seeded records (T6).

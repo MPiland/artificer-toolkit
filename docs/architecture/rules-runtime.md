@@ -1506,6 +1506,27 @@ For the current D&D action contract there are at most two ordered phases:
 2. `OUTCOME` exists only when that selected path has an executable outcome. It specializes exact
    authored dice/scaling values and issues only those exact evidence requests.
 
+**CURRENT / hit results and immediate saves (D57):** a selected path may hold several
+authored results: separate paths or one `SEQUENCE` result block. OUTCOME specializes each outcome as
+its own group, in authored order, so a Bite's piercing and fire damage are two damage rows of one
+damage source (one Concentration check at their total, D50.4). A result block that ends in an
+`IMMEDIATE` `FOLLOW_UP_SAVE` after hit damage runs the save inside the same OUTCOME graph: the
+target's controller rolls it (D19) unless their auto-roll is on, and the adapter supports exactly
+these shapes:
+
+- full nested damage on a failure and `multiplier: 0.5` of the same dice on a success, or the
+  nested damage on a failure only;
+- one condition on a failure, applied once;
+- one condition on a failure that repeats the save at the end of each of the target's turns (an
+  Encounter active effect), ending after its authored `ROUND` or `MINUTE` duration (a minute is
+  10 of the target's turns); only this shape may carry a duration;
+- a state-only hit point maximum reduction, or a fixed 25-foot pull toward the source.
+
+The hit damage before the save may be a fixed amount or bounded dice with a flat modifier or ability
+bonuses. Any other nested save, a versatile `CHOICE` path and a `CLOSED_RULE` outcome stay
+unsupported (fail closed). SRD stat blocks author the printed rider save instead of an unconditional
+result, so an action never applies a saved-against effect without the save.
+
 No unselected damage dice are requested. Each phase is independently acyclic and executes once with
 one evidence stage. Resource consumption, aggregate mutations, events, and terminal receipt changes
 remain deferred until the terminal phase succeeds. A paused occurrence may retain the sealed current
