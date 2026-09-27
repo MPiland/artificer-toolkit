@@ -5,7 +5,7 @@
 - **Update when:** a Gate 4 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **45** criteria and **8** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
+Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **46** criteria and **9** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -148,12 +148,12 @@ Evidence:
 
 ## V07 — Committed token movement and multi-client convergence
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** 2026-09-17 (notes; reopened 2026-09-25)
 - **Proof tier:** LOCAL_E2E
 - **Criteria met:** 3/5
 
-Reopened 2026-09-25 for ADR 0034 player agency criteria. Earlier scoped acceptance evidence still backs the ACCEPTED criteria; the player agency criteria are unproven.
+Reopened 2026-09-25 for ADR 0034 player agency criteria. Earlier scoped acceptance evidence still backs the ACCEPTED criteria; the player agency criteria are READY_FOR_ACCEPTANCE since the fifth readiness pass (2026-09-27) and await the final-source R08 run.
 
 What was proven or remains to prove:
 
@@ -161,7 +161,7 @@ What was proven or remains to prove:
 - `V07.2` ACCEPTED: Movement reactions, Passage continuation, stopped-path fog and GM undo pass in the browser.
 - `V07.3` ACCEPTED: Peers converge, and reconnect, reload and current departure refusal pass with exact cleanup.
 - `V07.4` READY_FOR_ACCEPTANCE: A player commits moves of tokens they control outside Encounters, and unbound tokens keep Scene token control (ADR 0034).
-- `V07.5` IN_PROGRESS: Moves of Encounter-bound tokens follow the actor-control predicate, and a player's remaining movement is shown but not enforced (ADR 0034).
+- `V07.5` READY_FOR_ACCEPTANCE (fifth pass): Moves of Encounter-bound tokens follow the actor-control predicate, and a player's remaining movement is shown but not enforced (ADR 0034).
 
 Evidence:
 
@@ -373,6 +373,8 @@ What was proven or remains to prove:
 - `V15.2` IN_PROGRESS: Local measurements meet ephemeral preview p95 of 150 ms or less, warm durable convergence p95 of 250 ms or less and p99 of 500 ms or less, and gameplay command p95 of one second or less.
 - `V15.3` IN_PROGRESS: The workload includes player-issued commands for the actors players control (ADR 0034).
 - `V15.4` NOT_STARTED: The managed workload passes the same thresholds as part of authorized R09 promotion.
+
+Latest local measurement: the [browserless runs](v15-browserless-2026-09-26.md) complete the frozen schedule with player-issued commands but miss the thresholds (after D52, command p95 1.09 s and durable convergence p95 251–252 ms; preview not measured). See the [fifth readiness pass](gate-readiness-2026-09-25.md#fifth-pass-2026-09-27-against-aa68fd681).
 
 Evidence:
 

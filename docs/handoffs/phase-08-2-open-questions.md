@@ -5,7 +5,9 @@
 > Updated: 2026-09-27.
 
 ## Open
-(none)_
+
+- **Q13 (2026-09-27, R03.1 wording).** R03.1 says "every protected source-data corpus file matches its pre-removal hash". The approved SRD rulings (Q11/D45 basic actions, D50–D61 Creature corrections) have since changed 211 corpus files after `7bbc04287` alone, so the clause cannot hold as written, although the DB/SQL/Kysely removal half passes the static audit. Options: (a) restate it as "the protected corpus matches the current SRD manifest checksum reported by the seed audit, and every change since the removal traces to a recorded ruling" (recommended; it keeps the clause's intent that the removal corrupted nothing); (b) drop the corpus clause, since R03.2's final seed/import/audit covers the corpus; (c) keep it and compare only files no ruling touched. R03.1 stays IN_PROGRESS until this is answered. See the [fifth readiness pass](../validation/phase-08-2/gate-readiness-2026-09-25.md#fifth-pass-2026-09-27-against-aa68fd681).
+  - **Answer:**
 
 ## Decisions to review
 

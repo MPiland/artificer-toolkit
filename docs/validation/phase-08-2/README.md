@@ -11,7 +11,7 @@ One summary per gate gives each case's status, acceptance date, proof tier, crit
 - [Gate 3 — Characters, Campaigns, Social](gate-3-characters-campaigns-social.md)
 - [Gate 4 — Scene, Encounter, VTT](gate-4-scene-encounter-vtt.md)
 - [Gate 5 — Cutover and release](gate-5-cutover-release.md)
-- [Gate readiness review, 2026-09-25](gate-readiness-2026-09-25.md): four passes (2026-09-25 to 2026-09-26, last against `276ad42d1`) that leave 58 criteria and 10 cases READY_FOR_ACCEPTANCE, with the missing clause of every criterion still open
+- [Gate readiness review, 2026-09-25](gate-readiness-2026-09-25.md): five passes (2026-09-25 to 2026-09-27, last against `aa68fd681`) that leave 64 criteria and 12 cases READY_FOR_ACCEPTANCE, with the missing clause of every criterion still open
 
 ## R08 preparation
 

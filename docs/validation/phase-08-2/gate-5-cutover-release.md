@@ -5,7 +5,7 @@
 - **Update when:** a Gate 5 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 5 has **1/10** cases and **3/23** criteria accepted. A further **3** criteria are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
+Gate 5 has **1/10** cases and **3/23** criteria accepted. A further **8** criteria and **1** case (R06) are READY_FOR_ACCEPTANCE: implemented and covered by current tests or the current static audit, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md), fifth pass).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -20,7 +20,7 @@ The ledger's `criteria` arrays are the authority for what each case must prove; 
 
 What was proven or remains to prove:
 
-- `R01.1` IN_PROGRESS: The local legacy runtime is removed, and the retained subscription, ticket and Worker path passes focused contract tests, affected typechecks, fresh package builds and a zero-consumer scan.
+- `R01.1` READY_FOR_ACCEPTANCE (fifth pass; static audit and integration run at `aa68fd681`): The local legacy runtime is removed, and the retained subscription, ticket and Worker path passes focused contract tests, affected typechecks, fresh package builds and a zero-consumer scan.
 - `R01.2` NOT_STARTED: Complete same-source R08 product journeys and the release audit show that all product data flows through Convex.
 
 Evidence:
@@ -38,7 +38,7 @@ Evidence:
 
 What was proven or remains to prove:
 
-- `R02.1` IN_PROGRESS: Supabase runtime source, workspace dependencies and lockfile requirements are removed.
+- `R02.1` READY_FOR_ACCEPTANCE (fifth pass; static audit and lockfile at `aa68fd681`): Supabase runtime source, workspace dependencies and lockfile requirements are removed.
 - `R02.2` NOT_STARTED: Final same-source R08 auth, session, SSR, realtime and media journeys and the release audit pass with no Supabase runtime dependency.
 
 Evidence:
@@ -56,7 +56,7 @@ Evidence:
 
 What was proven or remains to prove:
 
-- `R03.1` IN_PROGRESS: The DB workspace, SQL/Kysely runtime, migrations and consumers are removed, and every protected source-data corpus file matches its pre-removal hash.
+- `R03.1` IN_PROGRESS: The DB workspace, SQL/Kysely runtime, migrations and consumers are removed, and every protected source-data corpus file matches its pre-removal hash. The removal half passes the static audit; the corpus-hash clause needs an architect ruling because user-approved SRD corrections have since changed the corpus (see the [fifth readiness pass](gate-readiness-2026-09-25.md#fifth-pass-2026-09-27-against-aa68fd681)).
 - `R03.2` NOT_STARTED: Final native seed, import and audit and the same-source R08 lifecycle pass.
 
 Evidence:
@@ -74,7 +74,7 @@ Evidence:
 
 What was proven or remains to prove:
 
-- `R04.1` IN_PROGRESS: GoRules runtime source, Rule Studio, dependencies and configuration are removed.
+- `R04.1` READY_FOR_ACCEPTANCE (fifth pass; static audit and lockfile at `aa68fd681`): GoRules runtime source, Rule Studio, dependencies and configuration are removed.
 - `R04.2` NOT_STARTED: The complete native rule-corpus and gameplay proof passes in the same R08 source state.
 
 Evidence:
@@ -92,7 +92,7 @@ Evidence:
 
 What was proven or remains to prove:
 
-- `R05.1` IN_PROGRESS: tRPC routers and clients, product Netlify functions and durable-command compatibility are removed, with static/SSR web packaging kept.
+- `R05.1` READY_FOR_ACCEPTANCE (fifth pass; static audit, lockfile and integration run at `aa68fd681`): tRPC routers and clients, product Netlify functions and durable-command compatibility are removed, with static/SSR web packaging kept.
 - `R05.2` NOT_STARTED: Final native journeys and the same-source R08 packaging and request audit pass.
 
 Evidence:
@@ -103,14 +103,14 @@ Evidence:
 
 ## R06 — Session Durable Object is the active live-command authority
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** never accepted
 - **Proof tier:** REVIEW
 - **Criteria met:** 0/4
 
 What was proven or remains to prove:
 
-- `R06.1` IN_PROGRESS: The Durable Object runs heavy live rule evaluation and fact preparation in order, with authorized capture and validated atomic Convex commits that preserve replay, version checks and Character/Encounter/Scene atomicity.
+- `R06.1` READY_FOR_ACCEPTANCE (fifth pass; D43 closed the no-room bound-move path): The Durable Object runs heavy live rule evaluation and fact preparation in order, with authorized capture and validated atomic Convex commits that preserve replay, version checks and Character/Encounter/Scene atomicity.
 - `R06.2` READY_FOR_ACCEPTANCE: Live Encounter-bound movement has a working Durable Object-to-Convex route (the gap exposed by V15-20260924-05).
 - `R06.3` READY_FOR_ACCEPTANCE: Character Sheet writes stay in Convex under the approved Character authority amendment.
 - `R06.4` READY_FOR_ACCEPTANCE: While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, and the direct-write fence covers only the presented Scene (ADR 0033).

@@ -2673,7 +2673,7 @@
           "id": "V07",
           "title": "Committed token movement and multi-client convergence",
           "proofTier": "LOCAL_E2E",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/phase82-ultra-continuation-20260911/v07-standalone-movement-01/completion.md",
             ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
@@ -2722,17 +2722,22 @@
             {
               "id": "V07.5",
               "text": "Moves of Encounter-bound tokens follow the actor-control predicate, and a player's remaining movement is shown but not enforced (ADR 0034).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/encounters/playerControl.test.ts › moves an Encounter-bound token only for the bound actor controllers",
                 "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › moves an Encounter-bound token for its actor controllers, not its Scene token controllers",
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses private staging with a bad secret, identity or epoch, and a non-controller at begin",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a player staging a move of a token whose actor they do not control is refused NOT_ACTOR_CONTROLLER with nothing staged; replaces the pre-D52 separate-begin test)",
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)",
+                "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › shows a player their own actor's turn movement against its Character walking speed (V07.5) (the player who controls the current actor reads only their entry, used 5 against the stored Character walkingSpeed; the GM reads every actor)",
                 "apps/apis/convex/encounters/activeReads.test.ts › reads the active projection and pending decision together with existing visibility and membership rules (the GM reads every actor's used/budget; a player who controls no actor reads an empty list)",
+                "apps/apis/convex/encounters/basicActions.test.ts › Dash spends the action and adds the speed to this turn’s budget; a second one warns first (D45: the displayed budget doubles after Dash)",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.model.test.ts › shows a player the readout on their own Character's turn only",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.model.test.ts › shows the GM the current actor's readout on every turn",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.test.tsx › shows the movement spent against the walking-speed budget",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.test.tsx › warns softly past the budget in Assisted mode",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.test.tsx › shows the number only past the budget in Manual mode",
-                "impl: apps/apis/convex/encounters/turnMovement.ts (readTurnMovementView), apps/apis/convex/encounters/activeReads.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.tsx, apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx"
+                "not enforced: no room planner or Convex commit reads the turn movement record (it sits outside the Run version and checksum, D38)",
+                "impl: apps/apis/convex/encounters/turnMovement.ts (readTurnMovementView), apps/apis/convex/encounters/activeReads.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.tsx, apps/web/src/domains/campaigns/vtt/CampaignVttStage.model.ts (readActiveTurn), apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx"
               ]
             }
           ]
@@ -3085,7 +3090,7 @@
                 "apps/apis/convex/encounters/evidenceRolls.test.ts › rolls on the server without a prompt when the roller auto-rolls",
                 "apps/apis/convex/encounters/evidenceRolls.test.ts › raises no save prompt in a Manual Run, where a save-forcing action is refused whole",
                 "apps/apis/convex/encounters/concentration.test.ts › raises no concentration prompt in a Manual Run, where the damaging action is refused whole",
-                "apps/apis/convex/encounters/spatialMovement.test.ts › leaves targets and effects unchanged in Manual mode",
+                "apps/apis/convex/scenes/uninterruptedMovement.test.ts › publishes $mode $movementKind movement and fog without a Run occurrence (replaces the spatialMovement.test.ts Manual test deleted with the Convex movement rules in S4-e: with a spatial effect seeded, the room plans a MANUAL move as UNINTERRUPTED/MANUAL and the Run, actors, occurrences, receipts and effects are unchanged)",
                 "apps/apis/convex/encounters/turnActiveEffects.test.ts › commits the planner’s MANUAL phase with its fixed occurrence version (replaces the deleted turnEffects.test.ts Manual test: the room plans a Manual turn with a pending end-of-turn save effect as MANUAL and commits it without settling the effect)",
                 "impl: apps/apis/convex/encounters/evidenceRolls.ts, apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId), apps/apis/convex/encounters/actionAdmission.ts and apps/session-worker/src/nativeEncounterRules.ts (Manual refusal)"
               ]
@@ -3125,8 +3130,9 @@
               "text": "In Assisted mode an authored automatic reaction becomes a Use/Decline choice for its controller.",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/apis/convex/encounters/automaticMovementReactionPolicy.test.ts › offers an authored automatic reaction to its controller as a Use/Decline choice in Assisted mode",
-                "impl: apps/apis/convex/encounters/movementReactionDiscovery.ts"
+                "packages/rules-runtime/src/__tests__/encounterMovementReactionDecision.test.ts › offers an authored automatic reaction to its controller as a Use/Decline choice (replaces the automaticMovementReactionPolicy.test.ts Convex discovery test deleted in S4-e)",
+                "apps/apis/convex/encounters/movementReactionEffects.test.ts › offers an automatic reaction as Use/Decline and keeps it inert until entered dice, then replays one created effect (an AUTOMATIC-policy Creature reaction reaches its controller, the GM, as a MOVEMENT_REACTION Use/Decline choice planned in the room)",
+                "impl: packages/rules-runtime/src/encounterMovementReactionDecision.ts (organizeEncounterMovementReactionDecisions), packages/rules-runtime/src/encounterMovementReactionDiscovery.ts"
               ]
             },
             {
@@ -3136,7 +3142,7 @@
               "proof": [
                 "apps/apis/convex/auth.test.ts › defaults new profiles to automatic dice and persists the choice only for the caller",
                 "apps/apis/convex/encounters/evidenceRolls.test.ts › rolls on the server without a prompt when the roller auto-rolls",
-                "apps/apis/convex/encounters/automaticMovementReactionPolicy.test.ts › offers an authored automatic reaction to its controller as a Use/Decline choice in Assisted mode",
+                "apps/apis/convex/encounters/movementReactionEffects.test.ts › publishes a real repeated-save condition from an Automatic Scene reaction (with the default auto-roll on, the GM still gets the Use/Decline choice; after Use the dice roll on the server and the reaction completes; replaces the deleted automaticMovementReactionPolicy.test.ts citation)",
                 "apps/web/src/settings/SettingsPages.test.tsx › persists the automatic dice rolling preference",
                 "impl: apps/apis/convex/lib/rollPreferences.ts, apps/apis/convex/account.ts, apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId)"
               ]
@@ -3312,8 +3318,10 @@
               "text": "Same-Scene movement contention and distinct-Scene writes stay consistent.",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: same-Scene bound-move race with one stale loser, exact replay and concurrent distinct-Scene writes)",
-                "apps/apis/convex/scenes/standaloneMovement.test.ts › rejects a competing staged move after the first publication changes the Scene"
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: since S4-e (D43) a no-room bound move is refused SCENE_NOT_PRESENTED with the Scene header and Run unchanged, and two clients' concurrent distinct-Scene writes both commit and replay exactly; the Convex-native bound-move race it used to run was deleted with that path)",
+                "apps/apis/convex/scenes/standaloneMovement.test.ts › rejects a competing staged move after the first publication changes the Scene (two staged moves of the same token: the first publishes, the second is refused as changed, one Scene command and version 1)",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a room bound move with a stale Scene, presentation or Encounter version is refused 409 with nothing staged)",
+                "note: the room is the single writer of the presented Scene and runs its commands one at a time (R06.4, D41), so same-Scene bound moves are ordered in the room and a stale one is refused at the Convex fence; the reaction-response race is V14.4"
               ]
             },
             {
@@ -3329,7 +3337,7 @@
               "text": "A terminal reaction outcome race has one winner, one stale loser, one reaction spend and one mechanics receipt, and winner, root and loser replay preserve state.",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/apis/convex/scenes/movementResolution.test.ts › races every reaction response to one winner and one stale loser, spending the reaction once (each response step, through the terminal outcome, has one winner and one recognized stale loser; reaction ruleUsage is 1; the loser leaves no command, receipt, occurrence or Scene trace; one command receipt per committed Run version; since S4-d the responses race through the room, a retried winner or loser is refused as stale, and those retries and the root replay leave every stored table unchanged)",
+                "apps/apis/convex/scenes/movementResolution.test.ts › races every reaction response to one winner and one stale loser, spending the reaction once (each response step, through the terminal outcome, has one winner and one recognized stale loser; reaction ruleUsage is 1; the loser leaves no command, receipt, occurrence or Scene trace; one command receipt per committed Run version; since S4-d the responses race through the room, a retried winner or loser is refused as stale, and those retries and the root replay leave every stored table unchanged; since S4-e the root move is also planned in the room (planStagedMovementInRoom) and the timeline re-parses every stored receipt)",
                 "impl: apps/session-worker/src/nativeRoomEncounterCommand.ts (MOVEMENT route), apps/session-worker/src/nativeExternalSceneCommit.ts, apps/apis/convex/liveSessions/encounterMovementCommit.ts, apps/apis/convex/scenes/movementResolutionPublication.ts"
               ]
             },
@@ -3360,20 +3368,30 @@
               "text": "The frozen local workload (one GM, five players, eleven actors, eight rounds, up to two actions and one reaction per actor turn) completes with same-aggregate conflicts, unrelated concurrency, replay, rollback and privacy.",
               "status": "IN_PROGRESS",
               "proof": [
-                ".codex/validation/phase82-goal-20260923/v15-05-analysis/outcome.md (failed attempt V15-20260924-05)"
+                ".codex/validation/phase82-goal-20260923/v15-05-analysis/outcome.md (failed attempt V15-20260924-05, superseded)",
+                "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (browserless runs on the room architecture completed the full frozen schedule, then exited 1 on the command p95 assertion, before and after D52)",
+                "partial: apps/apis/convex/encounters/cutoverConcurrency.test.ts › runs one frozen eight-round schedule across two concurrent Encounters (schedule shape and workload accounting only; commands are simulated)",
+                "missing: a local workload run that exits 0 with the full driver assertions"
               ]
             },
             {
               "id": "V15.2",
               "text": "Local measurements meet ephemeral preview p95 of 150 ms or less, warm durable convergence p95 of 250 ms or less and p99 of 500 ms or less, and gameplay command p95 of one second or less.",
               "status": "IN_PROGRESS",
-              "proof": null
+              "proof": [
+                "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (after D52: gameplay command p95 1,089-1,090 ms, budget 1,000, missed; warm durable convergence p95 251-252 ms, budget 250, missed; p99 met; ephemeral preview not measured)",
+                "missing: command p95 at or under 1 s, durable convergence p95 at or under 250 ms, and a measured ephemeral preview p95"
+              ]
             },
             {
               "id": "V15.3",
               "text": "The workload includes player-issued commands for the actors players control (ADR 0034).",
               "status": "IN_PROGRESS",
-              "proof": null
+              "proof": [
+                "partial: apps/apis/tests/developmentEncounterCutover.ts (scheduleEncounterCutoverWorkload assigns actors 2-11 to PLAYER_1-PLAYER_5; the V15 driver issues their commands from player room sockets, ad2811bce)",
+                "partial: apps/apis/convex/encounters/cutoverConcurrency.test.ts › runs one frozen eight-round schedule across two concurrent Encounters (the schedule includes GM and PLAYER_1-PLAYER_5 participants)",
+                "missing: player command issuance is exercised only by the real-backend driver, whose runs have not passed (V15.1)"
+              ]
             },
             {
               "id": "V15.4",
@@ -3403,9 +3421,14 @@
             {
               "id": "R01.1",
               "text": "The local legacy runtime is removed, and the retained subscription, ticket and Worker path passes focused contract tests, affected typechecks, fresh package builds and a zero-consumer scan.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+                "scan: node scripts/auditNativeBoundaries.mjs passes at aa68fd681 (10 workspaces, 3,462 runtime/config files; retired apps/session-host, packages/db, packages/functions, apps/apis/src/trpc, apps/web/src/supabase and netlify/functions paths absent; ignored local-validation/acceptance-readiness-20260927/audit-native-boundaries.log)",
+                "builds, typechecks and tests: the aa68fd681 integration run (ignored local-validation/s6/m7-m8-d51b/summary.txt) passed package builds, backend and web typechecks, Convex 360 files / 2,171 tests, Worker 134 + unit, schema, shared and source-data suites; web had one Builder load timeout (CharacterBuilderAuthoringRuntime.test.tsx) that passes alone and in CI",
+                "apps/apis/convex/liveSessions/tickets.test.ts › issues HS256 60-second tickets for active owner and player admissions",
+                "apps/session-worker/test/nativeWorkerEntry.test.ts › refuses a valid ticket used on another Campaign room path",
+                "apps/session-worker/test/nativeRoomAdmission.test.ts › renews current authority once under the activation lock before any socket is READY",
+                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json (historical removal evidence)"
               ]
             },
             {
@@ -3429,9 +3452,11 @@
             {
               "id": "R02.1",
               "text": "Supabase runtime source, workspace dependencies and lockfile requirements are removed.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+                "scan: node scripts/auditNativeBoundaries.mjs passes at aa68fd681 (no @supabase/ import, SUPABASE_* variable, supabase.co or /auth|realtime|rest|storage/v1 request in git-tracked runtime/config source; no forbidden @supabase/ or supabase dependency in any workspace manifest; apps/web/src/supabase absent)",
+                "lockfile: yarn.lock has no @supabase/ entry at aa68fd681",
+                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json (historical removal evidence)"
               ]
             },
             {
@@ -3457,7 +3482,9 @@
               "text": "The DB workspace, SQL/Kysely runtime, migrations and consumers are removed, and every protected source-data corpus file matches its pre-removal hash.",
               "status": "IN_PROGRESS",
               "proof": [
-                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+                "partial: node scripts/auditNativeBoundaries.mjs passes at aa68fd681 (packages/db absent, no .sql file, no kysely/pg/postgres import or sql template and no forbidden kysely/pg/postgres dependency in any workspace manifest; yarn.lock keeps only Better Auth's transitive kysely, pg and @better-auth/kysely-adapter)",
+                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json (historical removal evidence)",
+                "missing: the corpus-hash clause no longer holds as written. User-approved rulings (Q11/D45 basic actions, D50-D61 SRD Creature corrections) changed 211 non-test files under packages/source-data/src/srd after 7bbc04287 alone (201 Creature files, the basic-action catalogue, two spells, the semantic ledger and import/audit modules). Needs an architect ruling (open question Q13) to restate the clause, for example against the current SRD manifest checksum the seed audit reports"
               ]
             },
             {
@@ -3481,9 +3508,11 @@
             {
               "id": "R04.1",
               "text": "GoRules runtime source, Rule Studio, dependencies and configuration are removed.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+                "scan: node scripts/auditNativeBoundaries.mjs passes at aa68fd681 (no @gorules/, gorules or Rule Studio reference in git-tracked runtime/config source, no @gorules/ dependency in any workspace manifest, apps/web/src/domains/rules, apps/web/src/data/rules and the admin rules route absent)",
+                "lockfile: yarn.lock has no @gorules/ entry at aa68fd681",
+                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json (historical removal evidence)"
               ]
             },
             {
@@ -3507,9 +3536,12 @@
             {
               "id": "R05.1",
               "text": "tRPC routers and clients, product Netlify functions and durable-command compatibility are removed, with static/SSR web packaging kept.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+                "scan: node scripts/auditNativeBoundaries.mjs passes at aa68fd681 (no trpc or /api/trpc reference, no /.netlify/functions request, @netlify/functions only in the web SSR bridge apps/web/src/server/auth/convex.server.ts; apps/apis/src/trpc, apps/web/src/server/trpc.ts, netlify/functions, netlify/edge-functions and packages/functions absent)",
+                "lockfile: yarn.lock has no @trpc/ entry at aa68fd681",
+                "packaging: the aa68fd681 integration run (ignored local-validation/s6/m7-m8-d51b/summary.txt) passed builds and the web typecheck; the only durable-command code left is the Session Worker's own write-ahead journal (apps/session-worker/src/durableCommandJournal.ts, D27), not a compatibility layer",
+                ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json (historical removal evidence)"
               ]
             },
             {
@@ -3524,7 +3556,7 @@
           "id": "R06",
           "title": "Session Durable Object is the active live-command authority",
           "proofTier": "REVIEW",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/phase82-gate-progress-20260917/live-authority-release/token-move-worker",
             ".codex/validation/phase82-gate-progress-20260917/live-authority-release/token-move-convex",
@@ -3536,13 +3568,20 @@
             {
               "id": "R06.1",
               "text": "The Durable Object runs heavy live rule evaluation and fact preparation in order, with authorized capture and validated atomic Convex commits that preserve replay, version checks and Character/Encounter/Scene atomicity.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "partial: apps/session-worker/src/nativeRoomEncounterCommand.test.ts › sends only the GM tools Convex records to it and plans or rolls every other command in the room",
-                "partial: apps/apis/convex/liveSessions/encounterRoute.test.ts › classifies the pending declaration, and Convex runs only the listed GM commands",
-                "partial: apps/apis/convex/encounters/commands.test.ts › names the dice a room roll draws and refuses draws that do not match them",
-                "partial: every Encounter command enters through the room (encounters/commands:execute is internal); the room plans actions, turns, Concentration, Cleaving, Disarm and movement decisions and draws every dice command's dice (D41); liveSessions/encounterCommand:execute records only CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES with a throwing random source; LivePlannerUnsupportedError and the Convex forward are deleted (S4-d, 276ad42d1)",
-                "missing: with no room authority active, the public scenes/geometryActions:execute still publishes an Encounter-bound root move natively: scenes/spatialPreparation:prepare evaluates movement rules in Convex, and encounters/spatialMovement.ts (rollD20: nextRollInt) and encounters/movementConcentration.ts/concentration.ts (nextRollInt) draw dice in Convex (beginSceneGeometry refuses bound moves only while a room is live, D42). Either refuse Encounter-bound moves in Convex without a live room, or record an architect ruling that this path is allowed"
+                "apps/session-worker/src/nativeRoomEncounterCommand.test.ts › sends only the GM tools Convex records to it and plans or rolls every other command in the room",
+                "apps/apis/convex/liveSessions/encounterRoute.test.ts › classifies the pending declaration, and Convex runs only the listed GM commands",
+                "apps/apis/convex/encounters/commands.test.ts › names the dice a room roll draws and refuses draws that do not match them",
+                "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › refuses a bound move with no room live and still publishes an unbound move natively (D43) (SCENE_NOT_PRESENTED with the Scene unchanged; an unbound token still stages natively)",
+                "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › refuses a bound move on a live Campaign Scene that is not presented (D42)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a movement decision off the presented Scene without staging it (D42)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: a no-room bound move is refused SCENE_NOT_PRESENTED with and without a presentation context, leaving the Scene header and Run unchanged)",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (authorized capture: bad secret, identity, epoch, stale presentation, Scene or Encounter version and non-controllers are refused with nothing staged)",
+                "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan",
+                "apps/apis/convex/liveSessions/encounterActorCap.test.ts › starts and advances a turn in a Run at the actor cap through the room",
+                "structure: every Encounter command enters through the room (encounters/commands:execute is internal); the room plans actions, basic actions, turns, Legendary windows, Concentration, Cleaving, Disarm and movement and draws every dice command's dice (D41); liveSessions/encounterCommand:execute records only CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES (GM tools with no dice) with a throwing random source; S4-e (8b7459d6d, D43/D44) deleted scenes/spatialPreparation, encounters/spatialMovement, movementConcentration and the Convex movement perception/reaction code, and Convex no longer re-runs movement rules at commit; the only Convex random source left is lib/rollRandom.ts, used by free-form personal and Campaign rolls (rolls.ts, campaigns/rolls.ts) and Character Sheet rolls (rollDocuments.ts, R06.3)",
+                "impl: apps/apis/convex/scenes/geometryStaging.ts (beginSceneGeometry: SCENE_NOT_PRESENTED without a live room), apps/apis/convex/scenes/geometryDocuments.ts (assertStandaloneMovement refuses an unbound claim for a token bound in an ACTIVE Run), apps/apis/convex/liveSessions/encounterCommand.ts, packages/schema/src/api/liveSessionEncounterCommand.ts (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES), apps/session-worker/src/nativeRoomEncounterCommand.ts"
               ]
             },
             {
@@ -3551,9 +3590,8 @@
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › runs a bound move, its answer and a GM skip through the room pipeline, advancing the sequence each time (D26, D27)",
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › publishes the same bound move and Scene through the room as the native path (parity)",
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit then fails",
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses private staging with a bad secret, identity or epoch, and a non-controller at begin",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (replaces the pre-D52 private staging refusal test: bad secret, identity or epoch and a non-controller are refused with nothing staged; the native-path parity test was deleted with that path in S4-e, D43)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a move on an Encounter-bound Scene Convex-first with the authority advance (D27)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › keeps the record of a commit that timed out, and the next command settles it",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › completes or abandons a record left by a restart when the next member admits (D27)",

@@ -9,7 +9,7 @@
 
 Work resumed on 2026-09-09. The exact workspace, completed architecture corrections, personal-development
 deployment and ordered next steps are recorded in [the resume checkpoint](08-2-convex-cutover-resume.md).
-Acceptance is 53/75 cases and 195/276 criteria (2026-09-26). A further 58 criteria and 10 cases (F12, P06, V03, V05, V08, V09, V10, V11, V12, V14) are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](../validation/phase-08-2/gate-readiness-2026-09-25.md), last updated against `276ad42d1` in its fourth pass). The 22 open cases are P15, V05, V08, V09, V14, F12 (ADR 0033), P06, V03, V07, V10, V11, V12 (ADR 0034), V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
+Acceptance is 53/75 cases and 195/276 criteria (2026-09-27). A further 64 criteria and 12 cases (F12, P06, V03, V05, V07, V08, V09, V10, V11, V12, V14, R06) are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](../validation/phase-08-2/gate-readiness-2026-09-25.md), last updated against `aa68fd681` in its fifth pass). The 22 open cases are P15, V05, V08, V09, V14, F12 (ADR 0033), P06, V03, V07, V10, V11, V12 (ADR 0034), V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
 
 Status meanings (the same for cases and criteria):
 
@@ -54,7 +54,10 @@ Sheet changes stay in Convex, with the DO owning supported Scene commands and pr
 evidence remains historical. The user reaffirmed DO execution for heavy live rules after real Convex
 execution/size failures; current ownership review must finish that execution/commit boundary while
 preserving Convex Sheet write ownership. The earlier options keeping heavy Encounter evaluation in
-Convex are superseded. The 75-case denominator is unchanged; V15 and R08 remain open.
+Convex are superseded. The 75-case denominator is unchanged; V15 and R08 remain open. Since S4-d and
+S4-e (D41–D44) every Encounter command's rules and dice run in the room and Convex refuses
+Encounter-bound moves without a live room, so all four R06 criteria are READY_FOR_ACCEPTANCE
+(2026-09-27, fifth readiness pass); acceptance still needs the R08 run.
 
 The user clarified acceptance scope on 2026-09-24: each feature case proves its own stated contract;
 the combined system is proved by the separate integration/release gates. A failure at a dependency
