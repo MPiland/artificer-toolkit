@@ -180,6 +180,26 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   * **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D53 (blocks closed beta) SRD creature attacks.** The E4 investigation found that only 31 of 285 SRD creatures have a working attack in the room, and 451 of 491 attack units fail. The end-to-end tests hid it because they rewrote the Wolf into a supported shape.
+  * **Failures by cause:**
+
+    | Cause | Units | Stage |
+    |---|---|---|
+    | No authored ATTACK roll definition | 251 | Execution: `dnd5e.attack-modifier` missing |
+    | SEQUENTIAL/CHOICE paths | 105 | Compile |
+    | SPECIAL range (thrown), attack-triggered Multiattack, follow-up saves | 41 | Compile |
+    | Equipment base-damage mismatch | 39 | Discovery; the whole creature is unusable (21 creatures) |
+    | Legendary options sent as `RESOLVE_ACTION` | 12 | Compile (D51) |
+    | Unsupported outcome kinds | 3 | Compile |
+    | Zero-damage hits | 5 | Execution |
+
+  * **Rulings:**
+    1. Author an `ATTACK` roll definition with the printed bonus on every attack-triggered Creature Feature and option. A one-time authoring script generates it from the printed "+N to hit" (365 units). The 28 without a printed bonus take it from their base attack. It's committed as authored data, and the runtime never parses prose.
+    2. Add a source-data invariant test, and fail early: discovery or compile rejects an attack-triggered action that has no ATTACK roll definition.
+    3. Add a permanent SRD-wide sweep test: every SRD Creature attack must prepare, execute and plan through the room's functions. Known-unsupported shapes get an explicit, shrinking allowlist that fails if it grows.
+    4. Follow-up slices, tracked by the sweep test: SEQUENTIAL/CHOICE paths, SPECIAL/thrown range and Multiattack, the Equipment base-damage mismatch, Legendary options as the creature's own actions (D51 B), outcome kinds and zero-damage hits.
+  * **Rejected:** deriving the bonus from CR and ability scores. It is wrong in 22 or more cases against the printed values.
+
 * **D52** Command speed, from the browserless V15 check ([v15-browserless-2026-09-26](../validation/phase-08-2/v15-browserless-2026-09-26.md)).
   * **Findings:**
     * The self-hosted backend re-evaluates each function's modules on every call, a fixed cost of about 55–150 ms that is 58–74% of each call.
