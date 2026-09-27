@@ -264,12 +264,14 @@ export const hornedDevil: CreatureAuthored = {
               id: S.actionId(167, 216),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: S.actionId(167, 217),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
+                // Setting an unattended flammable object alight stays description-only: an
+                // Encounter's targets are creatures.
                 outcomes: [
                   {
                     id: S.actionId(167, 218),
@@ -278,11 +280,6 @@ export const hornedDevil: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '4d6'
-                  },
-                  {
-                    id: S.actionId(167, 219),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_HORNED_DEVIL_HURL_FLAME_IGNITION
                   }
                 ]
               }

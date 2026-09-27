@@ -1,5 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const drow: CreatureAuthored = {
@@ -203,6 +203,7 @@ export const drow: CreatureAuthored = {
               id: S.actionId(88, 5),
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 30,
+              longAmount: 120,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -219,8 +220,15 @@ export const drow: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(88, 6) + '__result',
+                id: S.actionId(88, 224),
                 resultKind: 'SEQUENCE' as const,
+                // Poisoned for 1 hour (D62.2); the unconsciousness on a failure by 5 or more stays
+                // description-only.
+                duration: {
+                  id: S.actionId(88, 223),
+                  durationKind: DURATION_KIND.HOUR,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(88, 6),
@@ -245,39 +253,15 @@ export const drow: CreatureAuthored = {
                     onFailure: {
                       kind: 'OUTCOMES',
                       endCurrent: false,
-                      resultKind: 'SEQUENCE',
+                      resultKind: 'SINGLE',
                       outcomes: [
                         {
                           id: S.actionId(88, 222),
                           effectKind: S.EFFECT_KIND.CONDITION,
                           conditionId: conditionTypeId('POISONED')
-                        },
-                        {
-                          id: S.actionId(88, 223),
-                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DROW_HAND_CROSSBOW_POISON
                         }
                       ]
                     }
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(88, 206),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(88, 207),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(88, 208),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEAPON_LONG_RANGE_120
                   }
                 ]
               }

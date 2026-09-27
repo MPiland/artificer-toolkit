@@ -22,7 +22,10 @@ export const stormGiantRock: EquipmentAuthored = {
         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
         range: {
           id: S.equipmentChildId(equipmentId, 0x211, 1),
-          rangeKind: S.RANGE_KIND.SPECIAL
+          rangeKind: S.RANGE_KIND.DISTANCE,
+          amount: 60,
+          longAmount: 240,
+          unit: S.MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
           selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,

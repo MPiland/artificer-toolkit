@@ -266,17 +266,14 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0007-0070-1f7000000000', [['2d6+3', 'BLUDGEONING']]], // Couatl: Constrict
   ['00000000-0002-0001-0070-004800000000', [['1', 'BLUDGEONING']]], // Crab: Claw
   ['00000000-0002-0001-0070-004900000000', [['1d10+2', 'PIERCING']]], // Crocodile: Bite
-  ['00000000-0002-00cc-0070-004a00000000', []], // Cult Fanatic: Multiattack (prints no hit damage)
   ['00000000-0002-0004-0070-004a00000000', [['1d4+2', 'PIERCING']]], // Cult Fanatic: Dagger
   ['00000000-0002-0008-0070-004a00000000', [['1d4+2', 'PIERCING']]], // Cult Fanatic: Dagger
   ['00000000-0002-0001-0070-004b00000000', [['1d6+1', 'SLASHING']]], // Cultist: Scimitar
   ['00000000-0002-0001-0070-197f00000000', [['1d6+3', 'BLUDGEONING']]], // Darkmantle: Crush
-  ['00000000-0002-00ca-0070-004d00000000', []], // Death Dog: Multiattack (prints no hit damage)
   ['00000000-0002-00cb-0070-004d00000000', [['1d6+2', 'PIERCING']]], // Death Dog: Bite
   ['00000000-0002-0001-0070-004e00000000', [['1d8+2', 'PIERCING']]], // Deep Gnome (Svirfneblin): War Pick
   ['00000000-0002-0002-0070-004e00000000', [['1d4+2', 'PIERCING']]], // Deep Gnome (Svirfneblin): Poisoned Dart
   ['00000000-0002-0001-0070-004f00000000', [['1d4', 'PIERCING']]], // Deer: Bite
-  ['00000000-0002-00cc-0070-005000000000', []], // Deva: Multiattack (prints no hit damage)
   [
     '00000000-0002-0001-0070-0b6400000000',
     [
@@ -285,7 +282,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
     ]
   ], // Deva: Mace
   ['00000000-0002-0001-0070-005100000000', [['2d6+3', 'PIERCING']]], // Dire Wolf: Bite
-  ['00000000-0002-00cb-0070-005200000000', []], // Djinni: Multiattack (prints no hit damage)
   [
     '00000000-0002-0001-0070-0a8200000000',
     [
@@ -298,10 +294,8 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0004-0070-005500000000', [['3d12+7', 'PIERCING']]], // Dragon Turtle: Bite
   ['00000000-0002-0008-0070-005500000000', [['2d8+7', 'SLASHING']]], // Dragon Turtle: Claw
   ['00000000-0002-000c-0070-005500000000', [['3d12+7', 'BLUDGEONING']]], // Dragon Turtle: Tail
-  ['00000000-0002-00ca-0070-005600000000', []], // Dretch: Multiattack (prints no hit damage)
   ['00000000-0002-0004-0070-005600000000', [['1d6', 'PIERCING']]], // Dretch: Bite
   ['00000000-0002-0007-0070-005600000000', [['2d4', 'SLASHING']]], // Dretch: Claws
-  ['00000000-0002-00ce-0070-005700000000', []], // Drider: Multiattack (prints no hit damage)
   [
     '00000000-0002-0004-0070-005700000000',
     [
@@ -321,6 +315,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-005800000000', [['1d6+2', 'PIERCING']]], // Drow: Shortsword
   ['00000000-0002-0004-0070-005800000000', [['1d6+2', 'PIERCING']]], // Drow: Hand Crossbow
   ['00000000-0002-00cc-0070-005900000000', [['1d6', 'BLUDGEONING']]], // Druid: Quarterstaff
+  ['00000000-0002-00d0-0070-005900000000', [['1d8', 'BLUDGEONING']]], // Druid: Quarterstaff
   ['00000000-0002-0001-0070-005a00000000', [['1d4', 'BLUDGEONING']]], // Dryad: Club > Club
   ['00000000-0002-0195-0070-005a00000000', [['1d8+4', 'BLUDGEONING']]], // Dryad: Club > Club (Shillelagh)
   ['00000000-0002-0004-0070-0d7a00000000', [['1d8+2', 'PIERCING']]], // Duergar: War Pick > War Pick
@@ -379,7 +374,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-006500000000', [['2d6+3', 'FIRE']]], // Fire Elemental: Touch
   ['00000000-0002-0004-0070-006600000000', [['6d6+7', 'SLASHING']]], // Fire Giant: Greatsword
   ['00000000-0002-0008-0070-006600000000', [['4d10+7', 'BLUDGEONING']]], // Fire Giant: Rock
-  ['00000000-0002-00d0-0070-006700000000', []], // Flesh Golem: Multiattack (prints no hit damage)
   ['00000000-0002-0006-0070-006700000000', [['2d8+4', 'BLUDGEONING']]], // Flesh Golem: Slam
   [
     '00000000-0002-0001-0070-006800000000',
@@ -411,7 +405,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-007700000000', [['1d6+1', 'BLUDGEONING']]], // Giant Crab: Claw
   ['00000000-0002-0015-0070-007800000000', [['3d10+5', 'PIERCING']]], // Giant Crocodile: Bite
   ['00000000-0002-0008-0070-007800000000', [['2d8+5', 'BLUDGEONING']]], // Giant Crocodile: Tail
-  ['00000000-0002-00cb-0070-007900000000', []], // Giant Eagle: Multiattack (prints no hit damage)
   ['00000000-0002-00cc-0070-007900000000', [['1d6+3', 'PIERCING']]], // Giant Eagle: Beak
   ['00000000-0002-00d0-0070-007900000000', [['2d6+3', 'SLASHING']]], // Giant Eagle: Talons
   ['00000000-0002-0001-0070-007a00000000', [['2d6+4', 'BLUDGEONING']]], // Giant Elk: Ram
@@ -438,7 +431,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['1d10', 'POISON']
     ]
   ], // Giant Toad: Bite
-  ['00000000-0002-00cc-0070-008900000000', []], // Giant Vulture: Multiattack (prints no hit damage)
   ['00000000-0002-0007-0070-008900000000', [['2d4+2', 'PIERCING']]], // Giant Vulture: Beak
   ['00000000-0002-000a-0070-008900000000', [['2d6+2', 'SLASHING']]], // Giant Vulture: Talons
   ['00000000-0002-0001-0070-008a00000000', [['1d6+2', 'PIERCING']]], // Giant Wasp: Sting
@@ -491,7 +483,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0009-0070-009b00000000', [['1d6+1', 'PIERCING']]], // Guard: Spear
   ['00000000-0002-0001-0070-009c00000000', [['1d8+4', 'PIERCING']]], // Guardian Naga: Bite
   ['00000000-0002-0005-0070-009c00000000', []], // Guardian Naga: Spit Poison (prints no hit damage)
-  ['00000000-0002-00cc-0070-009d00000000', []], // Gynosphinx: Multiattack (prints no hit damage)
   ['00000000-0002-00cd-0070-009d00000000', [['2d8+4', 'SLASHING']]], // Gynosphinx: Claw
   ['00000000-0002-001f-0070-009e00000000', [['1d8+3', 'SLASHING']]], // Half-Red Dragon Veteran: Longsword
   ['00000000-0002-0008-0070-009e00000000', [['1d6+3', 'PIERCING']]], // Half-Red Dragon Veteran: Shortsword
@@ -506,7 +497,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['2d6', 'FIRE']
     ]
   ], // Hell Hound: Bite
-  ['00000000-0002-00d0-0070-00a200000000', []], // Hezrou: Multiattack (prints no hit damage)
   ['00000000-0002-0004-0070-00a200000000', [['2d10+4', 'PIERCING']]], // Hezrou: Bite
   ['00000000-0002-0008-0070-00a200000000', [['2d6+4', 'SLASHING']]], // Hezrou: Claw
   ['00000000-0002-0004-0070-00a300000000', [['3d8+5', 'BLUDGEONING']]], // Hill Giant: Greatclub
@@ -520,10 +510,8 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-00d0-0070-00a700000000', [['1d8+6', 'PIERCING']]], // Horned Devil: Tail
   ['00000000-0002-00d7-0070-00a700000000', [['4d6', 'FIRE']]], // Horned Devil: Hurl Flame
   ['00000000-0002-0001-0070-00a800000000', [['2d8+4', 'PIERCING']]], // Hunter Shark: Bite
-  ['00000000-0002-00cd-0070-00a900000000', []], // Hydra: Multiattack (prints no hit damage)
   ['00000000-0002-00ce-0070-00a900000000', [['1d10+5', 'PIERCING']]], // Hydra: Bite
   ['00000000-0002-0001-0070-00aa00000000', [['1d6', 'PIERCING']]], // Hyena: Bite
-  ['00000000-0002-00cc-0070-00ab00000000', []], // Ice Devil: Multiattack (prints no hit damage)
   [
     '00000000-0002-000b-0070-228e00000000',
     [
@@ -553,7 +541,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
     ]
   ], // Ice Mephit: Claws
   ['00000000-0002-0001-0070-00ad00000000', [['1d4+3', 'PIERCING']]], // Imp: Sting (Bite in Beast Form)
-  ['00000000-0002-00cc-0070-00ae00000000', []], // Invisible Stalker: Multiattack (prints no hit damage)
   ['00000000-0002-0004-0070-00ae00000000', [['2d6+3', 'BLUDGEONING']]], // Invisible Stalker: Slam
   ['00000000-0002-0008-0070-00af00000000', [['3d8+7', 'BLUDGEONING']]], // Iron Golem: Slam
   ['00000000-0002-000c-0070-00af00000000', [['3d10+7', 'SLASHING']]], // Iron Golem: Sword
@@ -571,7 +558,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-01f8-0070-00b500000000', []], // Lamia: Intoxicating Touch (prints no hit damage)
   ['00000000-0002-0001-0070-00b600000000', [['1d4', 'BLUDGEONING']]], // Lemure: Fist
   ['00000000-0002-0001-0070-0aea00000000', [['3d6', 'COLD']]], // Lich: Paralyzing Touch
-  ['00000000-0002-01f8-0070-00b700000000', []], // Lich: Paralyzing Touch (a sibling Effect deals the hit damage)
   ['00000000-0002-0001-0070-00b800000000', [['1d8+3', 'PIERCING']]], // Lion: Bite
   ['00000000-0002-0005-0070-00b800000000', [['1d6+3', 'SLASHING']]], // Lion: Claw
   ['00000000-0002-0001-0070-00b900000000', [['1', 'PIERCING']]], // Lizard: Bite
@@ -869,6 +855,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Vampire Spawn: Bite
   ['00000000-0002-0001-0070-068400000000', [['2d4+3', 'SLASHING']]], // Vampire Spawn: Claws
   ['00000000-0002-0007-0070-011700000000', [['1d8+3', 'SLASHING']]], // Veteran: Longsword
+  ['00000000-0002-0014-0070-011700000000', [['1d10+3', 'SLASHING']]], // Veteran: Longsword
   ['00000000-0002-000b-0070-011700000000', [['1d6+3', 'PIERCING']]], // Veteran: Shortsword
   ['00000000-0002-000f-0070-011700000000', [['1d10+1', 'PIERCING']]], // Veteran: Heavy Crossbow
   ['00000000-0002-0001-0070-011800000000', [['1d8', 'NECROTIC']]], // Violet Fungus: Rotting Touch
@@ -905,6 +892,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // White Dragon Wyrmling: Bite
   ['00000000-0002-00ca-0070-012500000000', [['1d6+2', 'NECROTIC']]], // Wight: Life Drain
   ['00000000-0002-00d2-0070-012500000000', [['1d8+2', 'SLASHING']]], // Wight: Longsword
+  ['00000000-0002-00dd-0070-012500000000', [['1d10+2', 'SLASHING']]], // Wight: Longsword
   ['00000000-0002-00d8-0070-012500000000', [['1d8+2', 'PIERCING']]], // Wight: Longbow
   ['00000000-0002-0001-0070-012600000000', [['2d8', 'LIGHTNING']]], // Will-o'-Wisp: Shock
   ['00000000-0002-0001-0070-012700000000', [['2d6+4', 'PIERCING']]], // Winter Wolf: Bite

@@ -72,6 +72,7 @@ export const frostGiant: CreatureAuthored = {
           localIndex: 11,
           kind: 'RANGED',
           feet: 60,
+          longFeet: 240,
           damageType: 'BLUDGEONING',
           diceConfig: '4d10',
           ability: 'STRENGTH'

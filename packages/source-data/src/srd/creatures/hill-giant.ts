@@ -121,7 +121,10 @@ export const hillGiant: CreatureAuthored = {
             },
             range: {
               id: S.actionId(163, 9),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 60,
+              longAmount: 240,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,

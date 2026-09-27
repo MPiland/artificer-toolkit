@@ -139,7 +139,13 @@ export const scout: CreatureAuthored = {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(247, 11), rangeKind: S.RANGE_KIND.SPECIAL },
+            range: {
+              id: S.actionId(247, 11),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 150,
+              longAmount: 600,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY

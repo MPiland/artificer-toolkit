@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const sprite: CreatureAuthored = {
   id: S.CREATURE_IDS.SPRITE,
@@ -152,7 +153,8 @@ export const sprite: CreatureAuthored = {
             range: {
               id: S.actionId(260, 213),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 160,
+              amount: 40,
+              longAmount: 160,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -171,6 +173,13 @@ export const sprite: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(260, 215),
                 resultKind: 'SEQUENCE',
+                // Poisoned for 1 minute (D62.2); the unconsciousness on a save of 5 or lower stays
+                // description-only.
+                duration: {
+                  id: S.actionId(260, 218),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(260, 216),
@@ -180,11 +189,15 @@ export const sprite: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     amount: 1
                   },
-                  {
+                  S.conditionSave({
                     id: S.actionId(260, 217),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPRITE_SHORTBOW_POISON
-                  }
+                    savingThrowId: S.actionId(260, 219),
+                    ability: 'CONSTITUTION',
+                    dc: 10,
+                    conditionOutcomeId: S.actionId(260, 220),
+                    conditionId: conditionTypeId('POISONED'),
+                    repeatsAtTurnEnd: false
+                  })
                 ]
               }
             }

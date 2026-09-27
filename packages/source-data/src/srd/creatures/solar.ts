@@ -242,7 +242,8 @@ export const solar: CreatureAuthored = {
             range: {
               id: S.actionId(256, 215),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 600,
+              amount: 150,
+              longAmount: 600,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {

@@ -19,6 +19,7 @@ export const blowgun: EquipmentAuthored = {
     'PIERCING',
     1,
     25,
+    100,
     S.EQUIPMENT_GRIP.ONE_HANDED
   ),
   cost: S.gp(10),

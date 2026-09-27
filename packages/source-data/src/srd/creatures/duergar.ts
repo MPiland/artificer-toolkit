@@ -11,6 +11,8 @@ function weaponAttackOption(input: {
   order: number
   triggerCode: typeof S.TRIGGER.MELEE_WEAPON_ATTACK | typeof S.TRIGGER.RANGED_WEAPON_ATTACK
   range: number
+  /** A ranged attack's long range ("range 30/120 ft."). */
+  longRange?: number
   diceConfig: string
   attackBonus: number
 }) {
@@ -42,6 +44,7 @@ function weaponAttackOption(input: {
             id: S.actionId(3450, input.rangeId),
             rangeKind: S.RANGE_KIND.DISTANCE,
             amount: input.range,
+            ...(input.longRange === undefined ? {} : { longAmount: input.longRange }),
             unit: S.MEASUREMENT_UNIT_CODE.FEET
           },
           targeting: {
@@ -264,7 +267,8 @@ export const duergar: CreatureAuthored = {
           label: 'Javelin (Ranged)',
           order: 2,
           triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
-          range: 120,
+          range: 30,
+          longRange: 120,
           diceConfig: '1d6+2',
           attackBonus: 4
         }),
@@ -288,7 +292,8 @@ export const duergar: CreatureAuthored = {
           label: 'Javelin (Ranged, Enlarged)',
           order: 4,
           triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
-          range: 120,
+          range: 30,
+          longRange: 120,
           diceConfig: '2d6+2',
           attackBonus: 4
         })

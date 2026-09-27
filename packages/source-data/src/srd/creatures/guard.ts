@@ -157,7 +157,10 @@ export const guard: CreatureAuthored = {
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: S.actionId(155, 10),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 20,
+              longAmount: 60,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,

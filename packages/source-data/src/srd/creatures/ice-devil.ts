@@ -82,9 +82,9 @@ export const iceDevil: CreatureAuthored = {
           id: S.actionId(171, 204),
           invocation: {
             kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(171, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
+            range: { id: S.actionId(171, 1204), rangeKind: S.RANGE_KIND.SELF }
           },
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_ICE_DEVIL_MULTIATTACK
         })

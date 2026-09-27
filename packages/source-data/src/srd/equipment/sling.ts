@@ -18,6 +18,7 @@ export const sling: EquipmentAuthored = {
     'BLUDGEONING',
     '1d4',
     30,
+    120,
     S.EQUIPMENT_GRIP.ONE_HANDED
   ),
   cost: S.sp(1),

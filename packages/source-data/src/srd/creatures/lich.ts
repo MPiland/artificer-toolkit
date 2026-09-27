@@ -240,28 +240,7 @@ export const lich: CreatureAuthored = {
               }
             }
           ]
-        },
-        S.closedRuleEffect({
-          id: S.actionId(183, 504),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_SPELL_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(183, 604),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_PARALYZING_TOUCH
-        })
+        }
       ],
       order: 5
     },

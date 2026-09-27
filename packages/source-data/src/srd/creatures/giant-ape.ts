@@ -110,7 +110,8 @@ export const giantApe: CreatureAuthored = {
             range: {
               id: S.actionId(113, 8),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 100,
+              amount: 50,
+              longAmount: 100,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {

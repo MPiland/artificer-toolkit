@@ -105,7 +105,7 @@ export const mammoth: CreatureAuthored = {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
             activation: {
-              code: S.ACTIVATION_CODE.BONUS_ACTION,
+              code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
             range: {

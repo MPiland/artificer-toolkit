@@ -14,7 +14,14 @@ export const shortbow: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
   modifiers: S.rangedWeaponAbilityModifiers(S.equipId(13)),
-  effects: S.rangedWeaponEffects(S.equipId(13), 'PIERCING', '1d6', 80, S.EQUIPMENT_GRIP.TWO_HANDED),
+  effects: S.rangedWeaponEffects(
+    S.equipId(13),
+    'PIERCING',
+    '1d6',
+    80,
+    320,
+    S.EQUIPMENT_GRIP.TWO_HANDED
+  ),
   cost: S.gp(25),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

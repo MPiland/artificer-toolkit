@@ -19,6 +19,7 @@ export const longbow: EquipmentAuthored = {
     'PIERCING',
     '1d8',
     150,
+    600,
     S.EQUIPMENT_GRIP.TWO_HANDED
   ),
   cost: S.gp(50),

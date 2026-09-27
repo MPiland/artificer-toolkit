@@ -886,11 +886,18 @@ function reachRange(equipmentId: string, effectBucket: number) {
     unit: MEASUREMENT_UNIT_CODE.FEET
   }
 }
-function distanceRange(equipmentId: string, effectBucket: number, normalFt: number) {
+/** A ranged attack's printed normal and long range ("range 80/320 ft."). */
+function distanceRange(
+  equipmentId: string,
+  effectBucket: number,
+  normalFt: number,
+  longFt: number
+) {
   return {
     id: equipmentChildId(equipmentId, effectBucket + 1, 1),
     rangeKind: RANGE_KIND.DISTANCE,
     amount: normalFt,
+    longAmount: longFt,
     unit: MEASUREMENT_UNIT_CODE.FEET
   }
 }
@@ -1026,6 +1033,7 @@ export function thrownWeaponEffects(
   damageTypeCode: string,
   diceConfig: string,
   normalRangeFt: number,
+  longRangeFt: number,
   grip: EquipmentGrip
 ): EquipmentEffectAuthored[] {
   return [
@@ -1053,7 +1061,7 @@ export function thrownWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x220, normalRangeFt),
+        range: distanceRange(equipmentId, 0x220, normalRangeFt, longRangeFt),
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
@@ -1069,7 +1077,8 @@ export function thrownVersatileWeaponEffects(
   damageTypeCode: string,
   dice1h: string,
   dice2h: string,
-  normalRangeFt: number
+  normalRangeFt: number,
+  longRangeFt: number
 ): EquipmentEffectAuthored[] {
   return [
     {
@@ -1112,7 +1121,7 @@ export function thrownVersatileWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x230, normalRangeFt),
+        range: distanceRange(equipmentId, 0x230, normalRangeFt, longRangeFt),
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
@@ -1154,6 +1163,7 @@ export function rangedWeaponEffects(
   damageTypeCode: string,
   diceConfig: string,
   normalRangeFt: number,
+  longRangeFt: number,
   grip: EquipmentGrip
 ): EquipmentEffectAuthored[] {
   return [
@@ -1165,7 +1175,7 @@ export function rangedWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x210, normalRangeFt),
+        range: distanceRange(equipmentId, 0x210, normalRangeFt, longRangeFt),
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
@@ -1181,6 +1191,7 @@ export function rangedFixedDamageWeaponEffects(
   damageTypeCode: string,
   amount: number,
   normalRangeFt: number,
+  longRangeFt: number,
   grip: EquipmentGrip
 ): EquipmentEffectAuthored[] {
   return [
@@ -1192,7 +1203,7 @@ export function rangedFixedDamageWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x210, normalRangeFt),
+        range: distanceRange(equipmentId, 0x210, normalRangeFt, longRangeFt),
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY

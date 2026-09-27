@@ -173,9 +173,9 @@ export const drider: CreatureAuthored = {
           id: S.actionId(87, 206),
           invocation: {
             kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(87, 1206), rangeKind: S.RANGE_KIND.SPECIAL }
+            range: { id: S.actionId(87, 1206), rangeKind: S.RANGE_KIND.SELF }
           },
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRIDER_MULTIATTACK
         })
@@ -381,7 +381,8 @@ export const drider: CreatureAuthored = {
             range: {
               id: S.actionId(87, 13),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 600,
+              amount: 150,
+              longAmount: 600,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {

@@ -119,9 +119,9 @@ export const cultFanatic: CreatureAuthored = {
           id: S.actionId(74, 204),
           invocation: {
             kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(74, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
+            range: { id: S.actionId(74, 1204), rangeKind: S.RANGE_KIND.SELF }
           },
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_CULT_FANATIC_MULTIATTACK
         })
@@ -200,7 +200,14 @@ export const cultFanatic: CreatureAuthored = {
             },
             range: {
               id: S.actionId(74, 9),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 20,
+              longAmount: 60,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [

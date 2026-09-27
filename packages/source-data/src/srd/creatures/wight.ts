@@ -143,6 +143,7 @@ export const wight: CreatureAuthored = {
         {
           id: S.actionId(293, 210),
           order: 1,
+          grip: 'ONE_HANDED' as const,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
@@ -163,12 +164,12 @@ export const wight: CreatureAuthored = {
               id: S.actionId(293, 212),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: S.actionId(293, 213),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
                     id: S.actionId(293, 214),
@@ -177,11 +178,50 @@ export const wight: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d8+2'
-                  },
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          id: S.actionId(293, 221),
+          order: 2,
+          grip: 'TWO_HANDED' as const,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(293, 222),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(293, 223),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(293, 224),
+                resultKind: 'SINGLE',
+                outcomes: [
                   {
-                    id: S.actionId(293, 215),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WIGHT_LONGSWORD_TWO_HANDED
+                    id: S.actionId(293, 225),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10+2'
                   }
                 ]
               }
@@ -207,7 +247,8 @@ export const wight: CreatureAuthored = {
             range: {
               id: S.actionId(293, 217),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 600,
+              amount: 150,
+              longAmount: 600,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {

@@ -167,7 +167,10 @@ export const ogre: CreatureAuthored = {
             },
             range: {
               id: S.actionId(209, 10),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 30,
+              longAmount: 120,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,

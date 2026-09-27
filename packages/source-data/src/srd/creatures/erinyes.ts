@@ -235,6 +235,7 @@ export const erinyes: CreatureAuthored = {
               id: S.actionId(98, 11),
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 150,
+              longAmount: 600,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -293,17 +294,14 @@ export const erinyes: CreatureAuthored = {
                     onFailure: {
                       kind: 'OUTCOMES',
                       endCurrent: false,
-                      resultKind: 'SEQUENCE',
+                      resultKind: 'SINGLE',
+                      // Poisoned until lesser restoration or similar magic removes it: the GM
+                      // removes the condition.
                       outcomes: [
                         {
                           id: S.actionId(98, 222),
                           effectKind: S.EFFECT_KIND.CONDITION,
                           conditionId: conditionTypeId('POISONED')
-                        },
-                        {
-                          id: S.actionId(98, 223),
-                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                          ruleKind: S.CLOSED_RULE_KIND.ERINYES_LONGBOW_POISON
                         }
                       ]
                     }

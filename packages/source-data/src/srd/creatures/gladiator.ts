@@ -77,6 +77,7 @@ export const gladiator: CreatureAuthored = {
           localIndex: 11,
           kind: 'RANGED',
           feet: 20,
+          longFeet: 60,
           damageType: 'PIERCING',
           diceConfig: '2d6',
           ability: 'STRENGTH'

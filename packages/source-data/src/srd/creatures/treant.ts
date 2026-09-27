@@ -227,7 +227,8 @@ export const treant: CreatureAuthored = {
             range: {
               id: S.actionId(271, 215),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 180,
+              amount: 60,
+              longAmount: 180,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {

@@ -40,7 +40,7 @@ describe('SRD Creature attack rolls', () => {
         : [label]
     })
 
-    expect(attackSources).toHaveLength(535)
+    expect(attackSources).toHaveLength(521)
     expect(invalid).toEqual([])
   })
 
@@ -50,10 +50,62 @@ describe('SRD Creature attack rolls', () => {
     expect([...SRD_CREATURE_ATTACK_BONUSES.keys()].filter((id) => !sourceIds.has(id))).toEqual([])
   })
 
+  it('authors the printed normal and long range on every ranged weapon attack (D62)', () => {
+    const ranges = srdBaselineContent.subjects.creatures.flatMap((creature) =>
+      (creature.features ?? []).flatMap((feature) =>
+        [feature, ...(feature.options ?? [])].flatMap((source) =>
+          (source.effects ?? []).flatMap((effect) => {
+            if (
+              effect.invocation.kind !== 'ACTION' ||
+              effect.invocation.triggerCode !== 'RANGED_WEAPON_ATTACK'
+            )
+              return []
+            // An option that prints no text of its own reads its Feature's.
+            const printed = /range (\d+)(?: ft\.)?\/(\d+) ft|range (\d+) ft/.exec(
+              source.description || feature.description || ''
+            )
+            const { range } = effect.invocation
+            return [
+              {
+                label: `${creature.label}: ${source.label}`,
+                authored:
+                  range.rangeKind === 'DISTANCE' ? [range.amount, range.longAmount ?? null] : null,
+                printed: printed
+                  ? [Number(printed[1] ?? printed[3]), printed[2] ? Number(printed[2]) : null]
+                  : null
+              }
+            ]
+          })
+        )
+      )
+    )
+
+    expect(ranges).toHaveLength(57)
+    expect(
+      ranges.filter(({ authored, printed }) => JSON.stringify(authored) !== JSON.stringify(printed))
+    ).toEqual([])
+  })
+
+  it('authors a long range on every ranged attack of an SRD weapon (D62)', () => {
+    // Thrown flasks and vials are improvised: they print one range and no long range.
+    const missing = srdBaselineContent.subjects.equipment.flatMap((equipment) =>
+      (equipment.category === 'WEAPON' ? (equipment.effects ?? []) : []).flatMap((effect) =>
+        effect.invocation.kind === 'ACTION' &&
+        effect.invocation.triggerCode === 'RANGED_WEAPON_ATTACK' &&
+        (effect.invocation.range.rangeKind !== 'DISTANCE' ||
+          effect.invocation.range.longAmount === undefined)
+          ? [equipment.label]
+          : []
+      )
+    )
+
+    expect(missing).toEqual([])
+  })
+
   it('uses the printed bonus, or the base attack bonus when none is printed', () => {
     expect(attackBonuses('Wolf: Bite')).toEqual([4])
     expect(attackBonuses('Adult Black Dragon: Tail')).toEqual([11])
-    expect(attackBonuses('Drider: Multiattack')).toEqual([6])
+    expect(attackBonuses('Remorhaz: Swallow')).toEqual([11])
     expect(attackBonuses('Druid: Quarterstaff')).toEqual([2])
     expect(attackBonuses('Dryad: Club (Shillelagh)')).toEqual([6])
   })

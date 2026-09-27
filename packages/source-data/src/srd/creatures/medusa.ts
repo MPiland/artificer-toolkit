@@ -262,7 +262,10 @@ export const medusa: CreatureAuthored = {
             },
             range: {
               id: S.actionId(194, 11),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 150,
+              longAmount: 600,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,

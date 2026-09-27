@@ -122,7 +122,8 @@ export const skeleton: CreatureAuthored = {
             range: {
               id: S.actionId(255, 6),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 320,
+              amount: 80,
+              longAmount: 320,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {

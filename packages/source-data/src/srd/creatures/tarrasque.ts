@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const tarrasque: CreatureAuthored = {
   id: S.CREATURE_IDS.TARRASQUE,
@@ -327,11 +328,15 @@ export const tarrasque: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '4d6+10'
                   },
-                  {
+                  S.conditionSave({
                     id: S.actionId(268, 224),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_TARRASQUE_TAIL
-                  }
+                    savingThrowId: S.actionId(268, 1301),
+                    ability: 'STRENGTH',
+                    dc: 20,
+                    conditionOutcomeId: S.actionId(268, 1302),
+                    conditionId: conditionTypeId('PRONE'),
+                    repeatsAtTurnEnd: false
+                  })
                 ]
               }
             }

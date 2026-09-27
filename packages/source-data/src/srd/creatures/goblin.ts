@@ -128,6 +128,7 @@ export const goblin: CreatureAuthored = {
               id: S.actionId(146, 1203),
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 80,
+              longAmount: 320,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -140,12 +141,12 @@ export const goblin: CreatureAuthored = {
               id: S.actionId(146, 207),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: S.actionId(146, 208),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
                     id: S.actionId(146, 209),
@@ -154,11 +155,6 @@ export const goblin: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d6+2'
-                  },
-                  {
-                    id: S.actionId(146, 210),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEAPON_LONG_RANGE_320
                   }
                 ]
               }

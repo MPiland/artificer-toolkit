@@ -20,7 +20,8 @@ type PrintedPart = readonly [expression: string, damageType: string]
 const PART =
   /(\d+)(?:\s*\((\d+)\s*d\s*(\d+)(?:\s*([+\-−–])\s*(\d+))?\))?\s+([a-z]+)(?:\s+or\s+[a-z]+)?\s+damage/y
 const PLUS = /\s*,?\s*plus\s+/y
-const ALTERNATIVE = /,?\s+or\s+(?=\d)/g
+/** "…, or 6 (1d8 + 2) …" and a listed "…, 4 (1d8) … if wielded with two hands, or …". */
+const ALTERNATIVE = /,?\s+or\s+(?=\d)|,\s+(?=\d+\s+\(\d)/g
 
 const damageTypeCodes = new Set(SRD_DAMAGE_TYPES.map((damageType) => damageType.code))
 
@@ -94,6 +95,21 @@ function hitDamageDice(effect: AuthoredEffect): string[] {
     .flatMap((path) => authoredDice(path.resultBlock))
 }
 
+/** The authored expression and type of every hit damage outcome, as the stat block prints it. */
+function hitDamageExpressions(effect: AuthoredEffect): string[] {
+  return effect.paths
+    .filter((path) => path.pathCode === 'ON_HIT')
+    .flatMap((path) =>
+      (path.resultBlock?.outcomes ?? []).flatMap((outcome) =>
+        outcome.effectKind !== 'DAMAGE'
+          ? []
+          : [
+              `${'diceConfig' in outcome ? outcome.diceConfig : 'amount' in outcome ? outcome.amount : '?'} ${damageTypeCodeById.get(outcome.damageTypeId)}`
+            ]
+      )
+    )
+}
+
 const signature = (parts: readonly string[]) => [...parts].sort().join(', ')
 const printedSignature = (parts: readonly PrintedPart[]) =>
   signature(parts.map(([expression, type]) => `${diceOf(expression)} ${type}`))
@@ -110,7 +126,17 @@ function selectPrinted(
 ): PrintedPart[] {
   if (alternatives.length === 1) return alternatives[0]!
   const authored = signature(hitDamageDice(effect))
-  const matching = alternatives.filter((parts) => printedSignature(parts) === authored)
+  const byDice = alternatives.filter((parts) => printedSignature(parts) === authored)
+  // Dice alone can tie ("4 (1d8) … or 6 (1d8 + 2) … with shillelagh"); the authored expression
+  // then selects the alternative.
+  const expressions = signature(hitDamageExpressions(effect))
+  const matching =
+    byDice.length > 1
+      ? byDice.filter(
+          (parts) =>
+            signature(parts.map(([expression, type]) => `${expression} ${type}`)) === expressions
+        )
+      : byDice
   if (matching.length !== 1)
     throw new Error(
       `${label} prints ${alternatives.length} damage alternatives and its authored dice (${authored}) select ${matching.length}.`

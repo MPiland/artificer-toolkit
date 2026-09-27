@@ -155,7 +155,10 @@ export const knight: CreatureAuthored = {
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: S.actionId(178, 604),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 100,
+              longAmount: 400,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,

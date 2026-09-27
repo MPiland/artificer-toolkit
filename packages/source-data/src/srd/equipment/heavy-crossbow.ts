@@ -20,6 +20,7 @@ export const heavyCrossbow: EquipmentAuthored = {
     'PIERCING',
     '1d10',
     100,
+    400,
     S.EQUIPMENT_GRIP.TWO_HANDED
   ),
   cost: S.gp(50),

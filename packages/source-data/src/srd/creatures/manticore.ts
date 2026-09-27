@@ -190,7 +190,10 @@ export const manticore: CreatureAuthored = {
             },
             range: {
               id: S.actionId(191, 13),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 100,
+              longAmount: 200,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,

@@ -244,6 +244,7 @@ export const guardianNaga: CreatureAuthored = {
               id: S.actionId(156, 6),
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 15,
+              longAmount: 30,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -305,25 +306,6 @@ export const guardianNaga: CreatureAuthored = {
                         }
                       ]
                     }
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(156, 210),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(156, 211),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(156, 212),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEAPON_LONG_RANGE_30
                   }
                 ]
               }

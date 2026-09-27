@@ -98,6 +98,7 @@ export const druid: CreatureAuthored = {
         {
           id: S.actionId(89, 204),
           order: 1,
+          grip: 'ONE_HANDED' as const,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
@@ -118,12 +119,12 @@ export const druid: CreatureAuthored = {
               id: S.actionId(89, 205),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: S.actionId(89, 206),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
                     id: S.actionId(89, 207),
@@ -132,11 +133,51 @@ export const druid: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d6'
-                  },
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        // Shillelagh (+4 to hit, 1d8 + 2) is the druid's spell and stays description-only.
+        {
+          id: S.actionId(89, 208),
+          order: 2,
+          grip: 'TWO_HANDED' as const,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(89, 1203),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(89, 209),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(89, 210),
+                resultKind: 'SINGLE',
+                outcomes: [
                   {
-                    id: S.actionId(89, 208),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRUID_QUARTERSTAFF_ALTERNATE_DAMAGE
+                    id: S.actionId(89, 211),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8'
                   }
                 ]
               }

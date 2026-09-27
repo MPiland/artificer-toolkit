@@ -79,6 +79,7 @@ export const gnoll: CreatureAuthored = {
           localIndex: 21,
           kind: 'RANGED',
           feet: 20,
+          longFeet: 60,
           damageType: 'PIERCING',
           diceConfig: '1d6',
           ability: 'STRENGTH'
@@ -97,6 +98,7 @@ export const gnoll: CreatureAuthored = {
           localIndex: 31,
           kind: 'RANGED',
           feet: 150,
+          longFeet: 600,
           damageType: 'PIERCING',
           diceConfig: '1d8',
           ability: 'DEXTERITY'

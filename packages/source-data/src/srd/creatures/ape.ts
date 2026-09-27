@@ -66,6 +66,7 @@ export const ape: CreatureAuthored = {
           localIndex: 11,
           kind: 'RANGED',
           feet: 25,
+          longFeet: 50,
           damageType: 'BLUDGEONING',
           diceConfig: '1d6',
           ability: 'STRENGTH'

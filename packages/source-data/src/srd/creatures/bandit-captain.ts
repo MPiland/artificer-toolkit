@@ -138,7 +138,13 @@ export const banditCaptain: CreatureAuthored = {
                       amount: 5,
                       unit: S.MEASUREMENT_UNIT_CODE.FEET
                     }
-                  : { id: S.actionId(38, 113), rangeKind: S.RANGE_KIND.SPECIAL },
+                  : {
+                      id: S.actionId(38, 113),
+                      rangeKind: S.RANGE_KIND.DISTANCE,
+                      amount: 20,
+                      longAmount: 60,
+                      unit: S.MEASUREMENT_UNIT_CODE.FEET
+                    },
               targeting: {
                 selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
                 dispositionKind: S.TARGET_DISPOSITION_KIND.ANY

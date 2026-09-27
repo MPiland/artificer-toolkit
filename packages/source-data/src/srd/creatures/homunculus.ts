@@ -1,4 +1,4 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
@@ -75,8 +75,14 @@ export const homunculus: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(166, 3) + '__result',
+                id: S.actionId(166, 9),
                 resultKind: 'SEQUENCE' as const,
+                // Poisoned for 1 minute (D62.2); the "fails by 5" unconsciousness stays description-only.
+                duration: {
+                  id: S.actionId(166, 8),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(166, 4),

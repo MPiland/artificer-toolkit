@@ -1,15 +1,17 @@
 /**
- * Why a known SRD Creature attack cannot yet run in the room (D53 ruling 4 follow-up slices):
- * - SPECIAL_RANGE: SPECIAL (thrown) range, attack-triggered Multiattack and follow-up saves other
- *   than the supported hit-rider shapes.
- * - EQUIPMENT_BASE_DAMAGE: the action's Equipment base damage does not match it, so discovery lists
- *   that action unavailable (D54).
- * - OUTCOME_KIND: an outcome the room does not execute yet: a CLOSED_RULE rider or other
- *   unsupported kind, or two conditions on one hit (a grapple that also restrains).
+ * Why a known SRD Creature attack cannot yet run in the room (D53 ruling 4 follow-up slices; the
+ * design notes per category are in docs/architecture/rules-runtime.md, "M9 sweep categories"):
+ * - FOLLOW_UP_SAVE: a follow-up save the adapter does not run (a condition that turns into another,
+ *   a save whose rider is a closed rule, a push-and-prone save, a hit with no damage before its save).
+ * - OUTCOME_KIND: a hit rider with no typed outcome yet: a CLOSED_RULE (swallowing, attaching,
+ *   curses, draining hit points or hit point maximum, a Strength contest pull) or a choice.
+ * - EQUIPMENT_DAMAGE_TYPE: the printed damage type differs from the held Equipment's, so discovery
+ *   lists that action unavailable (the Ogre Zombie's bludgeoning Morningstar, a probable SRD
+ *   printing error).
  */
 export type SrdCreatureAttackUnsupportedReason =
-  | 'SPECIAL_RANGE'
-  | 'EQUIPMENT_BASE_DAMAGE'
+  | 'FOLLOW_UP_SAVE'
+  | 'EQUIPMENT_DAMAGE_TYPE'
   | 'OUTCOME_KIND'
 
 /**
@@ -19,51 +21,22 @@ export type SrdCreatureAttackUnsupportedReason =
 export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   Record<string, SrdCreatureAttackUnsupportedReason>
 > = {
-  // EQUIPMENT_BASE_DAMAGE
-  '00000000-0002-0001-0070-085000000000': 'EQUIPMENT_BASE_DAMAGE', // Balor: Longsword
-  '00000000-0002-0006-0070-085000000000': 'EQUIPMENT_BASE_DAMAGE', // Balor: Whip
-  '00000000-0002-0005-0070-003800000000': 'EQUIPMENT_BASE_DAMAGE', // Bugbear: Javelin
-  '00000000-0002-0001-0070-003800000000': 'EQUIPMENT_BASE_DAMAGE', // Bugbear: Morningstar
-  '00000000-0002-0069-0070-004200000000': 'EQUIPMENT_BASE_DAMAGE', // Cloud Giant: Morningstar
-  '00000000-0002-0001-0070-0a8200000000': 'EQUIPMENT_BASE_DAMAGE', // Djinni: Scimitar
-  '00000000-0002-00cc-0070-005f00000000': 'EQUIPMENT_BASE_DAMAGE', // Efreeti: Scimitar
-  '00000000-0002-0008-0070-006400000000': 'EQUIPMENT_BASE_DAMAGE', // Ettin: Morningstar
-  '00000000-0002-0004-0070-006600000000': 'EQUIPMENT_BASE_DAMAGE', // Fire Giant: Greatsword
-  '00000000-0002-0001-0070-009a00000000': 'EQUIPMENT_BASE_DAMAGE', // Grimlock: Spiked Bone Club
-  '00000000-0002-0004-0070-00a300000000': 'EQUIPMENT_BASE_DAMAGE', // Hill Giant: Greatclub
-  '00000000-0002-01f9-0070-00c000000000': 'EQUIPMENT_BASE_DAMAGE', // Marilith: Longsword
-  '00000000-0002-0001-0070-00c700000000': 'EQUIPMENT_BASE_DAMAGE', // Minotaur Skeleton: Greataxe
-  '00000000-0002-0001-0070-00c600000000': 'EQUIPMENT_BASE_DAMAGE', // Minotaur: Greataxe
-  '00000000-0002-0001-0070-00d200000000': 'EQUIPMENT_BASE_DAMAGE', // Ogre Zombie: Morningstar
-  '00000000-0002-0001-0070-00d100000000': 'EQUIPMENT_BASE_DAMAGE', // Ogre: Greatclub
-  '00000000-0002-0005-0070-00d100000000': 'EQUIPMENT_BASE_DAMAGE', // Ogre: Javelin
-  '00000000-0002-0009-0070-00d100000000': 'EQUIPMENT_BASE_DAMAGE', // Ogre: Javelin
-  '00000000-0002-01fb-0070-00db00000000': 'EQUIPMENT_BASE_DAMAGE', // Pit Fiend: Mace
-  '00000000-0002-0002-0070-00dc00000000': 'EQUIPMENT_BASE_DAMAGE', // Planetar: Greatsword
-  '00000000-0002-0001-0070-21b100000000': 'EQUIPMENT_BASE_DAMAGE', // Solar: Greatsword
-  '00000000-0002-00d6-0070-010000000000': 'EQUIPMENT_BASE_DAMAGE', // Solar: Longbow
-  '00000000-0002-0001-0070-264b00000000': 'EQUIPMENT_BASE_DAMAGE', // Sprite: Longsword
-  '00000000-0002-00d4-0070-010400000000': 'EQUIPMENT_BASE_DAMAGE', // Sprite: Shortbow
-  '00000000-0002-0001-0070-0ceb00000000': 'EQUIPMENT_BASE_DAMAGE', // Stone Giant: Greatclub
-  '00000000-0002-0004-0070-010a00000000': 'EQUIPMENT_BASE_DAMAGE', // Storm Giant: Greatsword
+  // EQUIPMENT_DAMAGE_TYPE
+  '00000000-0002-0001-0070-00d200000000': 'EQUIPMENT_DAMAGE_TYPE', // Ogre Zombie: Morningstar
   // OUTCOME_KIND
   '00000000-0002-0001-0070-162100000000': 'OUTCOME_KIND', // Black Pudding: Dissolving Pseudopod
   '00000000-0002-0069-0070-003d00000000': 'OUTCOME_KIND', // Chain Devil: Chain
   '00000000-0002-0007-0070-1f7000000000': 'OUTCOME_KIND', // Couatl: Constrict
   '00000000-0002-0001-0070-197f00000000': 'OUTCOME_KIND', // Darkmantle: Crush
-  '00000000-0002-00cc-0070-005900000000': 'OUTCOME_KIND', // Druid: Quarterstaff
   '00000000-0002-0001-0070-007500000000': 'OUTCOME_KIND', // Giant Centipede: Bite
   '00000000-0002-0001-0070-007c00000000': 'OUTCOME_KIND', // Giant Frog: Bite
   '00000000-0002-00cb-0070-008000000000': 'OUTCOME_KIND', // Giant Octopus: Tentacles
-  '00000000-0002-0001-0070-130a00000000': 'OUTCOME_KIND', // Giant Toad: Bite
   '00000000-0002-00cd-0070-008e00000000': 'OUTCOME_KIND', // Glabrezu: Pincer
-  '00000000-0002-00ce-0070-009200000000': 'OUTCOME_KIND', // Goblin: Shortbow
-  '00000000-0002-00d7-0070-00a700000000': 'OUTCOME_KIND', // Horned Devil: Hurl Flame
   '00000000-0002-01f9-0070-00b400000000': 'OUTCOME_KIND', // Kraken: Bite
   '00000000-0002-01f8-0070-00b500000000': 'OUTCOME_KIND', // Lamia: Intoxicating Touch
-  '00000000-0002-01f8-0070-00b700000000': 'OUTCOME_KIND', // Lich: Paralyzing Touch
   '00000000-0002-01fa-0070-00c000000000': 'OUTCOME_KIND', // Marilith: Tail
   '00000000-0002-01f9-0070-00c400000000': 'OUTCOME_KIND', // Merrow: Harpoon
+  '00000000-0002-0203-0070-00c400000000': 'OUTCOME_KIND', // Merrow: Harpoon
   '00000000-0002-01f9-0070-00c500000000': 'OUTCOME_KIND', // Mimic: Pseudopod
   '00000000-0002-01f8-0070-00ca00000000': 'OUTCOME_KIND', // Mummy Lord: Rotting Fist
   '00000000-0002-01f6-0070-00c900000000': 'OUTCOME_KIND', // Mummy: Rotting Fist
@@ -71,81 +44,28 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   '00000000-0002-01f9-0070-00db00000000': 'OUTCOME_KIND', // Pit Fiend: Bite
   '00000000-0002-0001-0070-1db400000000': 'OUTCOME_KIND', // Purple Worm: Bite
   '00000000-0002-01f7-0070-00e600000000': 'OUTCOME_KIND', // Rakshasa: Claw
-  '00000000-0002-0001-0070-0a3c00000000': 'OUTCOME_KIND', // Remorhaz: Bite
   '00000000-0002-01f6-0070-00eb00000000': 'OUTCOME_KIND', // Remorhaz: Swallow
   '00000000-0002-01f9-0070-00ef00000000': 'OUTCOME_KIND', // Roper: Tendril
-  '00000000-0002-0005-0070-1ba000000000': 'OUTCOME_KIND', // Roper: Tendril
+  '00000000-0002-00d6-0070-010000000000': 'OUTCOME_KIND', // Solar: Longbow
   '00000000-0002-0001-0070-197a00000000': 'OUTCOME_KIND', // Specter: Life Drain
   '00000000-0002-0001-0070-11f000000000': 'OUTCOME_KIND', // Stirge: Blood Drain
   '00000000-0002-00e4-0070-010c00000000': 'OUTCOME_KIND', // Tarrasque: Swallow
-  '00000000-0002-00db-0070-010c00000000': 'OUTCOME_KIND', // Tarrasque: Tail
   '00000000-0002-00d0-0070-011600000000': 'OUTCOME_KIND', // Vampire Spawn: Bite
   '00000000-0002-0001-0070-068400000000': 'OUTCOME_KIND', // Vampire Spawn: Claws
   '00000000-0002-00e6-0070-011500000000': 'OUTCOME_KIND', // Vampire: Bite
   '00000000-0002-00e0-0070-011500000000': 'OUTCOME_KIND', // Vampire: Unarmed Strike
-  '00000000-0002-0007-0070-011700000000': 'OUTCOME_KIND', // Veteran: Longsword
   '00000000-0002-00cc-0070-011f00000000': 'OUTCOME_KIND', // Werebear: Bite
   '00000000-0002-0001-0070-1b1100000000': 'OUTCOME_KIND', // Wereboar: Tusks (Boar or Hybrid Form Only)
   '00000000-0002-00cc-0070-012100000000': 'OUTCOME_KIND', // Wererat: Bite (Rat or Hybrid Form Only)
   '00000000-0002-00d3-0070-012200000000': 'OUTCOME_KIND', // Weretiger: Bite (Tiger or Hybrid Form Only)
   '00000000-0002-00cc-0070-012300000000': 'OUTCOME_KIND', // Werewolf: Bite (Wolf or Hybrid Form Only)
   '00000000-0002-00ca-0070-012500000000': 'OUTCOME_KIND', // Wight: Life Drain
-  '00000000-0002-00d2-0070-012500000000': 'OUTCOME_KIND', // Wight: Longsword
   '00000000-0002-00cc-0070-012a00000000': 'OUTCOME_KIND', // Wraith: Life Drain
-  // SPECIAL_RANGE
-  '00000000-0002-0005-0070-001c00000000': 'SPECIAL_RANGE', // Archmage: Dagger
-  '00000000-0002-000b-0070-001d00000000': 'SPECIAL_RANGE', // Assassin: Light Crossbow
-  '00000000-0002-0070-0070-002600000000': 'SPECIAL_RANGE', // Bandit Captain: Dagger
-  '00000000-0002-0005-0070-002500000000': 'SPECIAL_RANGE', // Bandit: Light Crossbow
-  '00000000-0002-0009-0070-003800000000': 'SPECIAL_RANGE', // Bugbear: Javelin
-  '00000000-0002-000c-0070-003c00000000': 'SPECIAL_RANGE', // Centaur: Longbow
-  '00000000-0002-006e-0070-004200000000': 'SPECIAL_RANGE', // Cloud Giant: Rock
-  '00000000-0002-0001-0070-004300000000': 'SPECIAL_RANGE', // Cockatrice: Bite
-  '00000000-0002-0001-0070-1f7000000000': 'SPECIAL_RANGE', // Couatl: Bite
-  '00000000-0002-0008-0070-004a00000000': 'SPECIAL_RANGE', // Cult Fanatic: Dagger
-  '00000000-0002-00cc-0070-004a00000000': 'SPECIAL_RANGE', // Cult Fanatic: Multiattack
-  '00000000-0002-00cb-0070-004d00000000': 'SPECIAL_RANGE', // Death Dog: Bite
-  '00000000-0002-00ca-0070-004d00000000': 'SPECIAL_RANGE', // Death Dog: Multiattack
-  '00000000-0002-0002-0070-004e00000000': 'SPECIAL_RANGE', // Deep Gnome (Svirfneblin): Poisoned Dart
-  '00000000-0002-00cc-0070-005000000000': 'SPECIAL_RANGE', // Deva: Multiattack
-  '00000000-0002-00cb-0070-005200000000': 'SPECIAL_RANGE', // Djinni: Multiattack
-  '00000000-0002-000c-0070-005500000000': 'SPECIAL_RANGE', // Dragon Turtle: Tail
-  '00000000-0002-00ca-0070-005600000000': 'SPECIAL_RANGE', // Dretch: Multiattack
-  '00000000-0002-00ce-0070-005700000000': 'SPECIAL_RANGE', // Drider: Multiattack
-  '00000000-0002-0004-0070-005800000000': 'SPECIAL_RANGE', // Drow: Hand Crossbow
-  '00000000-0002-000a-0070-006200000000': 'SPECIAL_RANGE', // Erinyes: Longbow
-  '00000000-0002-000b-0070-006300000000': 'SPECIAL_RANGE', // Ettercap: Web (Recharge 5-6)
-  '00000000-0002-0008-0070-006600000000': 'SPECIAL_RANGE', // Fire Giant: Rock
-  '00000000-0002-00d0-0070-006700000000': 'SPECIAL_RANGE', // Flesh Golem: Multiattack
-  '00000000-0002-00cb-0070-007900000000': 'SPECIAL_RANGE', // Giant Eagle: Multiattack
-  '00000000-0002-0005-0070-008700000000': 'SPECIAL_RANGE', // Giant Spider: Web (Recharge 5-6)
-  '00000000-0002-00cc-0070-008900000000': 'SPECIAL_RANGE', // Giant Vulture: Multiattack
-  '00000000-0002-0009-0070-009b00000000': 'SPECIAL_RANGE', // Guard: Spear
-  '00000000-0002-0005-0070-009c00000000': 'SPECIAL_RANGE', // Guardian Naga: Spit Poison
-  '00000000-0002-00cc-0070-009d00000000': 'SPECIAL_RANGE', // Gynosphinx: Multiattack
-  '00000000-0002-000c-0070-009e00000000': 'SPECIAL_RANGE', // Half-Red Dragon Veteran: Heavy Crossbow
-  '00000000-0002-00d0-0070-00a200000000': 'SPECIAL_RANGE', // Hezrou: Multiattack
-  '00000000-0002-0008-0070-00a300000000': 'SPECIAL_RANGE', // Hill Giant: Rock
-  '00000000-0002-0005-0070-00a500000000': 'SPECIAL_RANGE', // Hobgoblin: Longbow
-  '00000000-0002-00d0-0070-00a700000000': 'SPECIAL_RANGE', // Horned Devil: Tail
-  '00000000-0002-00cd-0070-00a900000000': 'SPECIAL_RANGE', // Hydra: Multiattack
-  '00000000-0002-00cc-0070-00ab00000000': 'SPECIAL_RANGE', // Ice Devil: Multiattack
-  '00000000-0002-00cc-0070-00ae00000000': 'SPECIAL_RANGE', // Invisible Stalker: Multiattack
-  '00000000-0002-01f8-0070-00b200000000': 'SPECIAL_RANGE', // Knight: Heavy Crossbow
-  '00000000-0002-0005-0070-00b300000000': 'SPECIAL_RANGE', // Kobold: Sling
-  '00000000-0002-0010-0070-00ba00000000': 'SPECIAL_RANGE', // Lizardfolk: Javelin
-  '00000000-0002-0005-0070-00bb00000000': 'SPECIAL_RANGE', // Mage: Dagger
-  '00000000-0002-0004-0070-00be00000000': 'SPECIAL_RANGE', // Mammoth: Stomp
-  '00000000-0002-000c-0070-00bf00000000': 'SPECIAL_RANGE', // Manticore: Tail Spike
-  '00000000-0002-000a-0070-00c200000000': 'SPECIAL_RANGE', // Medusa: Longbow
-  '00000000-0002-0007-0070-00c300000000': 'SPECIAL_RANGE', // Merfolk: Spear
-  '00000000-0002-0203-0070-00c400000000': 'SPECIAL_RANGE', // Merrow: Harpoon
-  '00000000-0002-0200-0070-00d400000000': 'SPECIAL_RANGE', // Orc: Javelin
-  '00000000-0002-0012-0070-00f300000000': 'SPECIAL_RANGE', // Sahuagin: Spear
-  '00000000-0002-0009-0070-00f500000000': 'SPECIAL_RANGE', // Satyr: Shortbow
-  '00000000-0002-000a-0070-00f700000000': 'SPECIAL_RANGE', // Scout: Longbow
-  '00000000-0002-0008-0070-010a00000000': 'SPECIAL_RANGE', // Storm Giant: Rock
-  '00000000-0002-0009-0070-011000000000': 'SPECIAL_RANGE', // Tribal Warrior: Spear
-  '00000000-0002-000f-0070-011700000000': 'SPECIAL_RANGE', // Veteran: Heavy Crossbow
-  '00000000-0002-0015-0070-012300000000': 'SPECIAL_RANGE' // Werewolf: Spear (Humanoid Form Only)
+  // FOLLOW_UP_SAVE
+  '00000000-0002-0001-0070-004300000000': 'FOLLOW_UP_SAVE', // Cockatrice: Bite
+  '00000000-0002-0001-0070-1f7000000000': 'FOLLOW_UP_SAVE', // Couatl: Bite
+  '00000000-0002-00cb-0070-004d00000000': 'FOLLOW_UP_SAVE', // Death Dog: Bite
+  '00000000-0002-000c-0070-005500000000': 'FOLLOW_UP_SAVE', // Dragon Turtle: Tail
+  '00000000-0002-0005-0070-009c00000000': 'FOLLOW_UP_SAVE', // Guardian Naga: Spit Poison
+  '00000000-0002-00d0-0070-00a700000000': 'FOLLOW_UP_SAVE' // Horned Devil: Tail
 }

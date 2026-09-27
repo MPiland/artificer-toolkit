@@ -14,7 +14,7 @@ export const trident: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.VERSATILE
   ],
   modifiers: S.thrownWeaponAbilityModifiers(S.equipId(29)),
-  effects: S.thrownVersatileWeaponEffects(S.equipId(29), 'PIERCING', '1d6', '1d8', 20),
+  effects: S.thrownVersatileWeaponEffects(S.equipId(29), 'PIERCING', '1d6', '1d8', 20, 60),
   cost: S.gp(5),
   weight: S.lbs(4),
   rarityId: S.RARITY_COMMON,

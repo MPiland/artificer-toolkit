@@ -15,7 +15,14 @@ export const handCrossbow: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.LOADING
   ],
   modifiers: S.rangedWeaponAbilityModifiers(S.equipId(34)),
-  effects: S.rangedWeaponEffects(S.equipId(34), 'PIERCING', '1d6', 30, S.EQUIPMENT_GRIP.ONE_HANDED),
+  effects: S.rangedWeaponEffects(
+    S.equipId(34),
+    'PIERCING',
+    '1d6',
+    30,
+    120,
+    S.EQUIPMENT_GRIP.ONE_HANDED
+  ),
   cost: S.gp(75),
   weight: S.lbs(3),
   rarityId: S.RARITY_COMMON,

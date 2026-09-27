@@ -13,24 +13,10 @@ import { creatureAttackRollId } from '../src/srd/creatures/attack-rolls.js'
 import { srdCreatureRecords } from '../src/srd/creatures/index.js'
 
 /**
- * Attacks that print no bonus of their own (a Multiattack or Swallow) take it from the named
+ * Attacks that print no bonus of their own (a Swallow) take it from the named
  * base attacks of the same Creature, keyed by `Creature label|Feature or option label`.
  */
 const BASE_ATTACKS: Readonly<Record<string, readonly string[]>> = {
-  'Cult Fanatic|Multiattack': ['Dagger'],
-  'Death Dog|Multiattack': ['Bite'],
-  'Deva|Multiattack': ['Mace'],
-  'Djinni|Multiattack': ['Scimitar'],
-  'Dretch|Multiattack': ['Bite', 'Claws'],
-  'Drider|Multiattack': ['Longsword', 'Longbow'],
-  'Flesh Golem|Multiattack': ['Slam'],
-  'Giant Eagle|Multiattack': ['Beak', 'Talons'],
-  'Giant Vulture|Multiattack': ['Beak', 'Talons'],
-  'Gynosphinx|Multiattack': ['Claw'],
-  'Hezrou|Multiattack': ['Bite', 'Claw'],
-  'Hydra|Multiattack': ['Bite'],
-  'Ice Devil|Multiattack': ['Bite', 'Claws', 'Tail'],
-  'Invisible Stalker|Multiattack': ['Slam'],
   'Remorhaz|Swallow': ['Bite'],
   'Tarrasque|Swallow': ['Bite']
 }

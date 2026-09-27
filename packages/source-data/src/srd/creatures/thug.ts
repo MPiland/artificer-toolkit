@@ -146,7 +146,8 @@ export const thug: CreatureAuthored = {
             range: {
               id: S.actionId(269, 210),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 400,
+              amount: 100,
+              longAmount: 400,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {

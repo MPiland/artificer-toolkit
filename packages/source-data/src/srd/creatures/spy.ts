@@ -172,7 +172,8 @@ export const spy: CreatureAuthored = {
             range: {
               id: S.actionId(261, 212),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
+              amount: 30,
+              longAmount: 120,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {

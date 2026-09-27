@@ -1,5 +1,4 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const deepGnomeSvirfneblin: CreatureAuthored = {
@@ -209,6 +208,7 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
               id: S.actionId(78, 5),
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 30,
+              longAmount: 120,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -225,8 +225,13 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(78, 6) + '__result',
+                id: S.actionId(78, 224),
                 resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(78, 223),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(78, 6),
@@ -236,69 +241,15 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d4+2'
                   },
-                  {
+                  S.conditionSave({
                     id: S.actionId(78, 220),
-                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
-                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
-                    savingThrow: {
-                      id: S.actionId(78, 221),
-                      dcMethod: 'FIXED_DC',
-                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-                      baseDc: 12
-                    },
-                    attempts: { kind: 'ONCE' },
-                    onSuccess: { kind: 'END' },
-                    onFailure: {
-                      kind: 'OUTCOMES',
-                      endCurrent: false,
-                      resultKind: 'SEQUENCE',
-                      outcomes: [
-                        {
-                          id: S.actionId(78, 222),
-                          effectKind: S.EFFECT_KIND.CONDITION,
-                          conditionId: conditionTypeId('POISONED')
-                        },
-                        {
-                          id: S.actionId(78, 223),
-                          effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
-                          timing: S.FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
-                          savingThrow: {
-                            id: S.actionId(78, 224),
-                            dcMethod: 'FIXED_DC',
-                            abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-                            baseDc: 12
-                          },
-                          attempts: { kind: 'ONCE', repeatOnFailure: true },
-                          onSuccess: { kind: 'END' },
-                          onFailure: { kind: 'CONTINUE' }
-                        },
-                        {
-                          id: S.actionId(78, 225),
-                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEEP_GNOME_POISONED_DART
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(78, 205),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(78, 206),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(78, 207),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEAPON_LONG_RANGE_120
-                  }
+                    savingThrowId: S.actionId(78, 221),
+                    ability: 'CONSTITUTION',
+                    dc: 12,
+                    conditionOutcomeId: S.actionId(78, 222),
+                    conditionId: conditionTypeId('POISONED'),
+                    repeatsAtTurnEnd: true
+                  })
                 ]
               }
             }

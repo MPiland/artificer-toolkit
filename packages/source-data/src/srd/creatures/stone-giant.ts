@@ -110,6 +110,7 @@ export const stoneGiant: CreatureAuthored = {
           localIndex: 1,
           kind: 'RANGED',
           feet: 60,
+          longFeet: 240,
           damageType: 'BLUDGEONING',
           diceConfig: '4d10',
           ability: 'STRENGTH'

@@ -68,6 +68,7 @@ export const veteran: CreatureAuthored = {
         {
           id: S.actionId(279, 7),
           order: 1,
+          grip: 'ONE_HANDED' as const,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
@@ -88,12 +89,12 @@ export const veteran: CreatureAuthored = {
               id: S.actionId(279, 9),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(279, 9) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
                 outcomes: [
                   {
                     id: S.actionId(279, 9),
@@ -110,11 +111,58 @@ export const veteran: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  },
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          id: S.actionId(279, 20),
+          order: 2,
+          grip: 'TWO_HANDED' as const,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(279, 21),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(279, 22),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(279, 22) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
                   {
-                    id: S.actionId(279, 19),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VETERAN_LONGSWORD_TWO_HANDED
+                    id: S.actionId(279, 22),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10',
+                    bonuses: [
+                      {
+                        id: S.actionId(279, 23),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
                   }
                 ]
               }
@@ -197,7 +245,13 @@ export const veteran: CreatureAuthored = {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(279, 16), rangeKind: S.RANGE_KIND.SPECIAL },
+            range: {
+              id: S.actionId(279, 16),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 100,
+              longAmount: 400,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY

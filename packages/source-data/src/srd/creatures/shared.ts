@@ -322,19 +322,23 @@ export function constitutionPoisonDamageSave(input: {
  * printed bonus (attack-bonuses.ts). A swarm's bites author `halfHitPointsDiceConfig`, the dice
  * rolled while the swarm has half of its hit points or fewer.
  */
-export function weaponAttack(input: {
-  creatureIndex: number
-  localIndex: number
-  kind: 'MELEE' | 'RANGED'
-  feet: number
-  damageType: string
-  diceConfig: string
-  halfHitPointsDiceConfig?: string
-  ability: AbilityCode | null
-  extraDamage?: readonly { damageType: string; diceConfig: string }[]
-  grapples?: true
-  followUpSave?: FollowUpSaveAuthored
-}): NonNullable<FeatureAuthored['effects']>[number] {
+export function weaponAttack(
+  input: {
+    creatureIndex: number
+    localIndex: number
+    damageType: string
+    diceConfig: string
+    halfHitPointsDiceConfig?: string
+    ability: AbilityCode | null
+    extraDamage?: readonly { damageType: string; diceConfig: string }[]
+    grapples?: true
+    followUpSave?: FollowUpSaveAuthored
+  } & (
+    | { kind: 'MELEE'; feet: number }
+    /** "range 20/60 ft.": the normal and long range. */
+    | { kind: 'RANGED'; feet: number; longFeet: number }
+  )
+): NonNullable<FeatureAuthored['effects']>[number] {
   const id = (offset: number) => actionId(input.creatureIndex, input.localIndex + offset)
   const extraDamage = input.extraDamage ?? []
   const riders = [
@@ -370,6 +374,7 @@ export function weaponAttack(input: {
         id: id(1),
         rangeKind: RANGE_KIND.DISTANCE,
         amount: input.feet,
+        ...(input.kind === 'RANGED' ? { longAmount: input.longFeet } : {}),
         unit: MEASUREMENT_UNIT_CODE.FEET
       },
       targeting: {

@@ -19,6 +19,7 @@ export const lightHammer: EquipmentAuthored = {
     'BLUDGEONING',
     '1d4',
     20,
+    60,
     S.EQUIPMENT_GRIP.ONE_HANDED
   ),
   cost: S.gp(2),

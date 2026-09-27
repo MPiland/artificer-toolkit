@@ -14,7 +14,14 @@ export const dagger: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.LIGHT,
     S.EQUIPMENT_PROPERTY_CODE.THROWN
   ],
-  effects: S.thrownWeaponEffects(S.equipId(2), 'PIERCING', '1d4', 20, S.EQUIPMENT_GRIP.ONE_HANDED),
+  effects: S.thrownWeaponEffects(
+    S.equipId(2),
+    'PIERCING',
+    '1d4',
+    20,
+    60,
+    S.EQUIPMENT_GRIP.ONE_HANDED
+  ),
   cost: S.gp(2),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,
