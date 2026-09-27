@@ -192,6 +192,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
      * Cleaving continues from a target at full HP that has temporary hit points, when the rules allow it.
      * A `CONDITION_REMOVE` receipt reports `applied` correctly when the condition is on both the Sheet and the Campaign.
      * `inMemoryInitiativeRepository` doesn't leak `expectedVersion` into DTOs or checksums.
+  10. **Heal multipliers** apply the same way damage multipliers do, rounded down. This was found during the D48 fixes.
+  11. **Ranged single-target `ON_USE` actions.** A `DISTANCE` range warns when out of range (D11). It isn't refused.
+  12. **Gridless Scenes** measure the edge-to-edge gap plus the System's base square (5 ft). That matches the grid rule, where adjacent is 5 ft, so reach means the same thing on every Scene.
+  13. **Area actions** (breath weapons, lines, cones, spheres) are confirmed as part of the queued area-targeting work (Phase 8.3, before closed beta). D48 proved Acid Breath's half damage on a single-target copy only.
   9. **Tests typecheck.** Add a repo typecheck config for `packages/rules-runtime/src/__tests__`, run through turbo and CI. Fix the two existing errors it finds: `dnd5eCombatMath.test.ts:815` and `encounterMovementReactionDecision.test.ts:47`.
 
 * **D48** Rules defects found by the T1 fast tests. All are to be fixed, each with a test that fails first:
