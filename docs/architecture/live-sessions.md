@@ -504,8 +504,8 @@ read checksum and revisions, so commit fences are unchanged. The scope is admitt
 Encounter parts (`admitEncounterCaptureParts`) and once for the Character parts
 (`admitCharacterInputsCaptures`): those guards do not depend on the part's request, and a Character
 part still checks that the admitted command covers its Character. A movement scope names each
-Character's own actor, so there each Character part is admitted separately. The Run's System travels once, as
-the bundle's `system`; the Run `inputs` and each Character's `INPUTS` omit it (their read checksums
+Character's own actor, so there each Character part is admitted separately. The Run's System travels at most once,
+as the bundle's `system`; the Run `inputs` and each Character's `INPUTS` omit it (their read checksums
 still cover it) and `bundleCaptures` restores it before handing the parts out. Parity tests compare
 every part of action, turn and movement bundles with its separate capture. The DO hands each part, once, to the
 capture with the same complete input; anything else (later effect pages, other maintenance, Scene
@@ -518,14 +518,42 @@ transaction (D52), so a warm bound move or held movement decision also takes two
 commit. A room planner takes a part the stage already bundled without reading the bundle again.
 Parts still repeat reads (actors, Characters, the System), so the bundle reads through a
 transaction-local memo (`lib/transactionReads.ts`): an identical `get`, or the same table, index
-range, order and read, is served once and deeply frozen, so no part can change another part's view;
-filtered, search and streamed reads pass through. `deriveOnce` parses and verifies a memoized
-document once per transaction (System, Run actor and Character documents) and shares the frozen
-result; documents from an ordinary reader derive on every call. At the legal maxima (100 actors: 12 Characters, one per player seat, and
+range, order and read, is served once and deeply frozen, so no part can change another part's view,
+and a `get` of any document an earlier read returned is served by its ID; filtered, search and
+streamed reads pass through. `deriveOnce` parses and verifies a memoized document once per
+transaction (System, Run actor and Character documents, geometry saves with their movement response
+and spatial preparation) and shares the frozen result; documents from an ordinary reader derive on
+every call. At the legal maxima (100 actors: 12 Characters, one per player seat, and
 88 Creatures) the largest action bundle reads 437 index ranges, 307 documents and 1.4 MB (0.85 MB
 distinct) and returns 0.7 MB (1.1 MB before the System travelled once), each under a quarter of its
 Convex limit; without the memo it read 38.8 MB, over the 16 MiB limit. At 11 actors the returned
 bundle fell from 269 KB to 116 KB, and its JavaScript time (in-process profile) by about 60%.
+
+**Run System stamp (CURRENT).** The room capture cache also holds the last Run System a bundle
+carried, under its stamp: the SYSTEM and CAMPAIGN revisions of that bundle's Run `inputs`, the same two
+stamps every cached entry is keyed on. Every bundle request, including a movement stage, sends that
+stamp as `cachedSystem` (null when the room holds none or it expired). When it equals the stamp of the
+Run `inputs` Convex reads in the bundle transaction, `system` is `{ kind: 'UNCHANGED', stamp }` and
+the System is not serialized; otherwise it is `{ kind: 'SYSTEM', system }`, which the room keeps. The
+contract refuses an UNCHANGED stamp other than the Run `inputs` revisions, and the room refuses (409,
+fail closed) an UNCHANGED stamp that command did not offer; it restores the System it offered even if
+its cache was cleared meanwhile, since a stamp names one exact System. Nothing else changes: Convex
+still reads the System, every read checksum still covers it, and the commit fence still checks the
+SYSTEM and CAMPAIGN revisions. A reused System counts as a reused entry: a refused commit drops it
+and the replan reads it again. The cache generation bump and the 60 s age limit clear it with the
+other entries. Standalone `INPUTS` captures, which a planner makes only after a bundle stopped early,
+still carry the System.
+
+**Mutation read memo (CURRENT).** The movement stage and commit mutations
+(`liveSessions/encounterMovement.ts`) are `memoizedInternalMutation`s: the same memo
+(`memoizeMutationReads`) sits beneath the trigger wrapper, so every write, trigger writes included,
+passes through it. Invariant: a read is served from the memo only while nothing it covers has been
+written in the transaction. A write first drops the written document's reads and every query read of
+its table (of every table when the table is unknown), and drops them again when it settles, so a
+read overlapping the write is never kept. Convex transactions are serializable, so a memoized read
+from earlier in the same transaction is as fresh as a new one, and every fence still compares against
+a current read. Each mutation read, and each `deriveOnce` result, is a private copy, so callers may
+mutate what they read; the derivation itself runs once per stored document version.
 
 **Import visibility (CURRENT, D34).** Imported rows are readable only while their import job is
 `COMPLETED` (`imports/visibility.ts`). A trigger in `lib/mutations.ts` bumps the SYSTEM revision of
