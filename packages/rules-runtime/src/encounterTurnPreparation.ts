@@ -2,8 +2,12 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { defeatedEncounterActorIds } from './encounterActorDefeat.js'
+import { planEncounterInitiativeAdvance } from './encounterInitiativeStateSettlement.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
 import type { prepareEncounterTurnEffects } from './encounterTurnEffects.js'
 import type { prepareEncounterTurnInitiative } from './encounterTurnInitiative.js'
@@ -12,6 +16,32 @@ import type { prepareEncounterTurnRecharge } from './encounterTurnRecharge.js'
 
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
+
+/**
+ * The next turn for the actors as they stand. A turn advance is planned when the turn ends and
+ * planned again once its outgoing effects and Legendary Actions settle, so an actor they defeat
+ * loses its turn like any defeated actor (D63).
+ */
+export function planEncounterTurnAdvance(input: {
+  state: EncounterRunState
+  initiativeRound: EncounterInitiativeRoundStateDto
+  actors: readonly EncounterRunActorState[]
+}): Pick<TurnCoordinatorRootDto, 'initiativeAdvance' | 'proposedTerminalTransition'> {
+  if (input.state.currentActorId === null) throw new Error('Outgoing turn is unavailable.')
+  const advance = planEncounterInitiativeAdvance({
+    state: input.initiativeRound,
+    currentActorId: input.state.currentActorId,
+    defeatedActorIds: defeatedEncounterActorIds(input.actors)
+  })
+  return {
+    initiativeAdvance: advance,
+    proposedTerminalTransition: {
+      status: 'ACTIVE',
+      round: advance.kind === 'SAME_ROUND' ? input.state.round : advance.nextRound,
+      currentActorId: advance.kind === 'SAME_ROUND' ? advance.nextActorId : advance.firstActorId
+    }
+  }
+}
 
 /** Stages the complete turn in rules order. Every pause leaves aggregate state untouched. */
 export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCharacterFacts>(
@@ -28,6 +58,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     root: TurnCoordinatorRootDto
     occurrenceId: string
     actors: EncounterRunActorState[]
+    /** The normalized round an `ADVANCE_TURN` advances; null for `START`. */
+    initiativeRound: EncounterInitiativeRoundStateDto | null
     pending?: ServerRuleExecutionPendingSnapshotDto
     /** The response, with an app roll's recorded faces. */
     resolution?: EncounterResponseAnswer
@@ -114,10 +146,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   const startOutgoing = root.commandType === 'ADVANCE_TURN' && !root.outgoingTurn
   if (outgoing) root = { ...root, outgoingTurn: outgoing.phase }
   const outgoingActors = outgoing?.actors ?? input.actors
-  const needsInitiative =
-    root.initiativeAdvance?.kind === 'ROUND_WRAP' &&
-    root.initiativeAdvance.cadence === 'EACH_ROUND' &&
-    root.initiative === null
+  // Legendary windows first; the entering actor refreshes once the next turn is known.
   let legendary = await stages.legendary({
     state,
     userId: campaign.ownerUserId,
@@ -130,11 +159,30 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     pending,
     resolution: input.resolution,
     updatedAt: input.updatedAt,
-    refreshIncoming: !needsInitiative
+    refreshIncoming: false
   })
   if (legendary.kind === 'PENDING') return legendary
   root = legendary.root
-  if (needsInitiative) {
+  if (root.commandType === 'ADVANCE_TURN') {
+    if (!input.initiativeRound) throw new Error('The normalized initiative round is unavailable.')
+    const settled = planEncounterTurnAdvance({
+      state,
+      initiativeRound: input.initiativeRound,
+      actors: legendary.actors
+    })
+    // A rolled new round was already planned after this same settlement.
+    if (!root.initiative) root = { ...root, ...settled }
+    else if (
+      checksumCanonicalJson(settled.initiativeAdvance) !==
+      checksumCanonicalJson(root.initiativeAdvance)
+    )
+      throw new Error('Encounter turn advancement is stale.')
+  }
+  if (
+    root.initiativeAdvance?.kind === 'ROUND_WRAP' &&
+    root.initiativeAdvance.cadence === 'EACH_ROUND' &&
+    root.initiative === null
+  ) {
     const initiative = await stages.initiative({
       state,
       autoRoll,
@@ -145,19 +193,19 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     })
     if (initiative.kind === 'PENDING') return initiative
     root = initiative.root
-    legendary = await stages.legendary({
-      state,
-      userId: campaign.ownerUserId,
-      autoRollByActorId: input.autoRollByActorId,
-      root,
-      occurrenceId,
-      actors: outgoingActors,
-      movementTargets: outgoing?.movementTargets,
-      updatedAt: input.updatedAt
-    })
-    if (legendary.kind === 'PENDING') throw new Error('Outgoing Legendary Actions are incomplete.')
-    root = legendary.root
   }
+  legendary = await stages.legendary({
+    state,
+    userId: campaign.ownerUserId,
+    autoRollByActorId: input.autoRollByActorId,
+    root,
+    occurrenceId,
+    actors: outgoingActors,
+    movementTargets: outgoing?.movementTargets,
+    updatedAt: input.updatedAt
+  })
+  if (legendary.kind === 'PENDING') throw new Error('Outgoing Legendary Actions are incomplete.')
+  root = legendary.root
   // Recharge candidates all belong to the entering actor.
   const recharge = await stages.recharge({
     state,

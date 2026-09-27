@@ -177,16 +177,21 @@ terminal and pending receipt checks. A pending initiative retry reconstructs its
 decisions in the DO before returning its original result, without new initiative rolls.
 
 Defeated actors (D63, [rules runtime](rules-runtime.md#0-hit-points-d63-current)) keep their
-initiative place but lose their turns. The room plans `ADVANCE_TURN` with the Run's defeated actors:
-`planEncounterInitiativeAdvance` moves to the next actor that isn't defeated (wrapping the round when
-none remains), and the commit's `applyEncounterInitiativeAdvance` marks each skipped actor as having
-acted and completes each side it leaves, so the stored cursor stays contiguous. Convex replans with
-its durable actors and must reach the same plan. A new round (initiative at START or each round)
-opens with its first actor that isn't defeated, judged after the outgoing turn's effects and
-Legendary Actions; Convex checks only that the staged cursor is valid and names a settled actor.
-Known gap: within one `SAME_ROUND` or encounter-start round wrap, the next actor is chosen before
-outgoing effects and Legendary Actions run, so an actor they defeat still starts that turn. The GM
-ends it. `RESOLVE_ACTION` naming a Creature's Legendary Action option is refused in the room with
+initiative place but lose their turns. `planEncounterInitiativeAdvance` moves to the next actor that
+isn't defeated (wrapping the round when none remains), and the commit's
+`applyEncounterInitiativeAdvance` marks each skipped actor as having acted and completes each side it
+leaves, so the stored cursor stays contiguous. The next turn is chosen after the turn transition
+settles: `prepareEncounterTurn` runs the outgoing turn's effects and Legendary windows, then plans the
+advance again with the actors as they stand (`planEncounterTurnAdvance`, also used for the root's
+first plan), and only then rolls a new round's initiative when the plan wraps into one, refreshes the
+entering actor's resources, runs its Recharge and its start-of-turn effects. An actor defeated by the
+outgoing turn's effects or a Legendary Action therefore loses that turn, including a round's opener.
+Convex's pending and settlement reads accept a plan that also skips actors beyond those defeated when
+the turn ended (`isSettledEncounterInitiativeAdvance`); the terminal commit applies the advance only
+after the outgoing effects and Legendary Actions have committed, replanning with those actors, so a
+plan skipping a living actor is refused. A new round rolled at each round opens with its first
+actor that isn't defeated; Convex checks only that the staged cursor is valid and names a settled
+actor. `RESOLVE_ACTION` naming a Creature's Legendary Action option is refused in the room with
 `LEGENDARY_WINDOW_ONLY`; the option runs only in its window.
 
 Turn captures expose bounded maintained state and the Run's bound Scene geometry/spatial effects.

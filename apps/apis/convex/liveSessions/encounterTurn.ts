@@ -8,7 +8,7 @@ import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/p
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
-import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
+import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readRunActors } from '../encounters/documents'
@@ -115,12 +115,17 @@ export const commitPending = internalMutation({
         actorIds: state.actorIds,
         allowedSideIds: state.sides.map((side) => side.id)
       })
-      const advance = planEncounterInitiativeAdvance({
-        state: normalized,
-        currentActorId: state.currentActorId,
-        defeatedActorIds: defeatedEncounterActorIds(actors)
-      })
-      if (checksumCanonicalJson(root.initiativeAdvance) !== checksumCanonicalJson(advance))
+      const advance = root.initiativeAdvance
+      // The room may also skip actors its turn transition defeats; the commit checks them (D63).
+      if (
+        !advance ||
+        !isSettledEncounterInitiativeAdvance({
+          state: normalized,
+          currentActorId: state.currentActorId,
+          defeatedActorIds: defeatedEncounterActorIds(actors),
+          plan: advance
+        })
+      )
         throw new Error('Live Session pending initiative advance is stale.')
       if (
         context.kind === 'ENCOUNTER_INITIATIVE' ||

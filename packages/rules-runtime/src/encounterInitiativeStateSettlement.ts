@@ -243,6 +243,41 @@ export function planEncounterInitiativeAdvance(input: {
   })
 }
 
+/**
+ * Whether `plan` is the advance past the given defeated actors plus the ones it skips. The room
+ * chooses the next turn after the outgoing turn's effects and Legendary Actions settle, which may
+ * defeat more actors than were defeated when the turn ended (D63); the commit's
+ * `applyEncounterInitiativeAdvance` then checks the plan against the settled actors exactly.
+ */
+export function isSettledEncounterInitiativeAdvance(input: {
+  state: EncounterInitiativeRoundStateDto
+  currentActorId: string
+  defeatedActorIds: ReadonlySet<string>
+  plan: EncounterInitiativeAdvancePlanDto
+}): boolean {
+  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
+  const actorIds = ordered.map((participant) => participant.actorId)
+  const { plan } = input
+  const skipped =
+    plan.kind === 'SAME_ROUND'
+      ? actorIds.slice(
+          activeIndex + 1,
+          Math.max(activeIndex + 1, actorIds.indexOf(plan.nextActorId))
+        )
+      : [
+          ...actorIds.slice(activeIndex + 1),
+          ...(plan.firstActorId === null
+            ? []
+            : actorIds.slice(0, Math.max(0, actorIds.indexOf(plan.firstActorId))))
+        ]
+  const replanned = planEncounterInitiativeAdvance({
+    state: input.state,
+    currentActorId: input.currentActorId,
+    defeatedActorIds: new Set([...input.defeatedActorIds, ...skipped])
+  })
+  return checksumCanonicalJson(replanned) === checksumCanonicalJson(plan)
+}
+
 /** The round's opening actor: the first one that isn't defeated (D63). */
 export function firstUndefeatedActorId(
   orderedActorIds: readonly string[],

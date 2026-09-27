@@ -8,12 +8,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
-import { planEncounterInitiativeAdvance } from './encounterInitiativeStateSettlement.js'
-import { defeatedEncounterActorIds } from './encounterActorDefeat.js'
 import type { EncounterInitiativeOccurrenceRoot } from './encounterInitiativeOccurrence.js'
 import type { prepareEncounterTurnEffects } from './encounterTurnEffects.js'
 import type { prepareTurnLegendaryActions } from './encounterTurnLegendaryAction.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { planEncounterTurnAdvance } from './encounterTurnPreparation.js'
 
 /** Replays issued outgoing turn decisions before initiative consumes staged Creature facts. */
 export async function restoreEncounterInitiativeTurnActors<
@@ -99,16 +98,6 @@ export async function restoreEncounterInitiativeTurnActors<
     allowedSideIds: state.sides.map((side) => side.id)
   })
   const actors = await input.readActors()
-  if (
-    checksumCanonicalJson(
-      planEncounterInitiativeAdvance({
-        state: normalized,
-        currentActorId: state.currentActorId,
-        defeatedActorIds: defeatedEncounterActorIds(actors)
-      })
-    ) !== checksumCanonicalJson(advance)
-  )
-    throw new Error('Initiative outgoing advancement is stale.')
   const turnRoot: TurnCoordinatorRootDto = {
     rootCommandId: root.rootCommandId,
     commandFingerprint: root.commandFingerprint,
@@ -158,5 +147,13 @@ export async function restoreEncounterInitiativeTurnActors<
     root: turnRoot
   })
   if (prepared.kind !== 'COMPLETE') throw new Error('Outgoing Legendary Actions are incomplete.')
+  // The advance was planned after the outgoing turn settled (D63).
+  if (
+    checksumCanonicalJson(
+      planEncounterTurnAdvance({ state, initiativeRound: normalized, actors: prepared.actors })
+        .initiativeAdvance
+    ) !== checksumCanonicalJson(advance)
+  )
+    throw new Error('Initiative outgoing advancement is stale.')
   return { actors: prepared.actors, movementTargets: prepared.movementTargets }
 }

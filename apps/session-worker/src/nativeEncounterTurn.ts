@@ -6,12 +6,13 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
-import { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
+import {
+  planEncounterTurnAdvance,
+  prepareEncounterTurn
+} from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import { prepareEncounterTurnResponse } from '@artificer-toolkit/rules-runtime/encounterTurnResponse'
 import { restoreEncounterInitiativeTurnActors } from '@artificer-toolkit/rules-runtime/encounterTurnInitiativeReplay'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
-import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
-import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
@@ -227,11 +228,6 @@ export async function planNativeLiveEncounterTurn(
       actorIds: state.actorIds,
       allowedSideIds: state.sides.map((side) => side.id)
     })
-    const advance = planEncounterInitiativeAdvance({
-      state: normalized,
-      currentActorId: state.currentActorId,
-      defeatedActorIds: defeatedEncounterActorIds(actors)
-    })
     root = {
       rootCommandId: admission.command.commandId,
       commandFingerprint: admission.fingerprint,
@@ -246,13 +242,9 @@ export async function planNativeLiveEncounterTurn(
       frozenActorRuleRevisionChecksum: null,
       frozenActorRuleSnapshotChecksum: null,
       initiative: null,
-      initiativeAdvance: advance,
       resolutionCommands: [],
-      proposedTerminalTransition: {
-        status: 'ACTIVE',
-        round: advance.kind === 'SAME_ROUND' ? state.round : advance.nextRound,
-        currentActorId: advance.kind === 'SAME_ROUND' ? advance.nextActorId : advance.firstActorId
-      }
+      // Planned again once the outgoing turn's effects and Legendary Actions settle (D63).
+      ...planEncounterTurnAdvance({ state, initiativeRound: normalized, actors })
     }
     occurrenceId = crypto.randomUUID()
   } else {
@@ -381,6 +373,7 @@ export async function planNativeLiveEncounterTurn(
       root,
       occurrenceId,
       actors,
+      initiativeRound: root.commandType === 'ADVANCE_TURN' ? await readInitiativeRound() : null,
       updatedAt: occurredAt,
       ...(pending ? { pending } : {}),
       ...(resolution ? { resolution } : {}),

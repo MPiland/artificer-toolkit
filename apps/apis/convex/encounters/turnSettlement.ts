@@ -2,7 +2,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { hydrateStagedState } from '@artificer-toolkit/rules-runtime/encounterInitiativeStaging'
-import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
+import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { Doc } from '../_generated/dataModel'
@@ -80,12 +80,15 @@ export async function readNativeTurnSettlement(input: {
       actorIds: state.actorIds,
       allowedSideIds: state.sides.map((side) => side.id)
     })
-    const current = planEncounterInitiativeAdvance({
-      state: original,
-      currentActorId: state.currentActorId,
-      defeatedActorIds: defeatedEncounterActorIds(durableActors)
-    })
-    if (checksumCanonicalJson(current) !== checksumCanonicalJson(root.initiativeAdvance))
+    // The room may also skip actors its turn transition defeats; the commit checks them (D63).
+    if (
+      !isSettledEncounterInitiativeAdvance({
+        state: original,
+        currentActorId: state.currentActorId,
+        defeatedActorIds: defeatedEncounterActorIds(durableActors),
+        plan: root.initiativeAdvance
+      })
+    )
       throw new Error('Encounter initiative advancement is stale.')
   } else if (root.initiativeAdvance !== null || !root.initiative)
     throw new Error('Initial initiative settlement is unavailable.')

@@ -188,7 +188,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     * The room refuses Legendary options with `LEGENDARY_WINDOW_ONLY`.
     * Tokens and turn order show "Defeated" to everyone.
   * **Gaps:**
-    * An actor defeated during a turn transition, by the outgoing turn's effects or Legendary Actions, still starts its turn; only a new round's opener is judged after them.
+    * ~~An actor defeated during a turn transition, by the outgoing turn's effects or Legendary Actions, still starts its turn.~~ **Fixed:** the room plans the next turn again once the outgoing effects and Legendary Actions settle, and the commit applies the advance after they commit ([live sessions](../architecture/live-sessions.md)).
     * Unconscious's automatic Strength and Dexterity save failures, advantage on attacks against it, and melee critical hits within 5 feet are not modeled for any condition yet.
   * **Decisions on the D63 questions (2026-09-27):** defeated targets are left out of lists, and naming one gives an overridable warning (accepted). The GM may move defeated tokens and players may not (accepted). The turn-transition gap gets fixed before closed beta, not accepted as permanent.
 - **D62** Rulings on M8's questions, and slice M9:

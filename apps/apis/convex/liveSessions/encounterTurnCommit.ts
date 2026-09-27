@@ -104,28 +104,6 @@ export const commit = internalMutation({
       .unique()
     if (collision && collision._id !== admission.pending?.occurrence._id)
       throw new Error('Encounter rule occurrence ID was already used.')
-    if (staged)
-      await initiative.persistStagedInitiativeRound(
-        staged.stagedRoundState,
-        root.commandType === 'ADVANCE_TURN' ? { replaceExistingRound: true } : undefined
-      )
-    if (advance && original) {
-      if (advance.kind === 'ROUND_WRAP' && advance.cadence === 'ENCOUNTER_START')
-        await correctInitiativeCursor({
-          ctx,
-          encounterId: state.id,
-          sourceRound: state.round,
-          targetRound: advance.nextRound,
-          sourceCurrentActorId: state.currentActorId,
-          currentActorId: advance.firstActorId
-        })
-      await applyEncounterInitiativeAdvance({
-        repository: initiative,
-        state: original,
-        plan: advance,
-        defeatedActorIds: defeatedEncounterActorIds(durableActors)
-      })
-    }
     const effectCommit = {
       state,
       userId: input.expectedUserId,
@@ -148,6 +126,30 @@ export const commit = internalMutation({
       occurredAt: input.occurredAt,
       userId: input.expectedUserId
     })
+    if (staged)
+      await initiative.persistStagedInitiativeRound(
+        staged.stagedRoundState,
+        root.commandType === 'ADVANCE_TURN' ? { replaceExistingRound: true } : undefined
+      )
+    if (advance && original) {
+      if (advance.kind === 'ROUND_WRAP' && advance.cadence === 'ENCOUNTER_START')
+        await correctInitiativeCursor({
+          ctx,
+          encounterId: state.id,
+          sourceRound: state.round,
+          targetRound: advance.nextRound,
+          sourceCurrentActorId: state.currentActorId,
+          currentActorId: advance.firstActorId
+        })
+      // The next turn skips actors defeated by the outgoing turn's effects and Legendary Actions,
+      // which have just committed; the entering actor's refreshes leave hit points alone (D63).
+      await applyEncounterInitiativeAdvance({
+        repository: initiative,
+        state: original,
+        plan: advance,
+        defeatedActorIds: defeatedEncounterActorIds(await readRunActors(ctx, state))
+      })
+    }
     const incoming = await persistLiveTurnEffects(ctx, {
       ...effectCommit,
       boundary: {

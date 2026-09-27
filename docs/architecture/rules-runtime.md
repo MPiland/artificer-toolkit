@@ -132,7 +132,8 @@ band no longer has a defeated band.
 
 A defeated actor:
 
-- takes no turns: initiative skips it but keeps its place ([live sessions](live-sessions.md));
+- takes no turns: initiative skips it but keeps its place, including an actor the outgoing turn's
+  effects or a Legendary Action defeat during the turn transition ([live sessions](live-sessions.md));
 - takes no reactions or opportunity attacks (`encounterMovementReactionSources`) and no Legendary
   Actions, and is no Legendary target (`encounterTurnLegendaryDiscovery`);
 - is never a Cleaving continuation target (`buildEncounterCleavingCandidate`);

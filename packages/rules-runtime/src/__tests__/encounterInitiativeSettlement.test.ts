@@ -10,6 +10,7 @@ import {
 import {
   applyEncounterInitiativeAdvance,
   firstUndefeatedActorId,
+  isSettledEncounterInitiativeAdvance,
   planEncounterInitiativeAdvance,
   settleEncounterInitiativeRound,
   skipDefeatedOpeningTurns
@@ -462,5 +463,50 @@ describe('defeated actors keep their place but lose their turns (D63)', () => {
         defeatedActorIds: everyone
       })
     ).toBe(settled)
+  })
+
+  it('accepts a settled advance that also skips actors the turn transition defeated', async () => {
+    const settled = await settle({
+      state: preparingRound({ actors: ACTORS }),
+      orderedActorIds: [ACTOR_C, ACTOR_A, ACTOR_B]
+    })
+    const settles = (
+      state: EncounterInitiativeRoundStateDto,
+      currentActorId: string,
+      transitionDefeated: ReadonlySet<string>,
+      defeatedActorIds: ReadonlySet<string> = NONE
+    ) =>
+      isSettledEncounterInitiativeAdvance({
+        state,
+        currentActorId,
+        defeatedActorIds,
+        plan: planEncounterInitiativeAdvance({
+          state,
+          currentActorId,
+          defeatedActorIds: new Set([...defeatedActorIds, ...transitionDefeated])
+        })
+      })
+    // The next actor (A) fell during the transition: the turn goes to B.
+    expect(settles(settled, ACTOR_C, NONE)).toBe(true)
+    expect(settles(settled, ACTOR_C, new Set([ACTOR_A]))).toBe(true)
+    // Everyone after C fell: the round wraps.
+    expect(settles(settled, ACTOR_C, new Set([ACTOR_A, ACTOR_B]))).toBe(true)
+    // The new round's opener (C) fell at the end of B's turn: the round opens with A.
+    const last = (await advance((await advance(settled, ACTOR_C)).state, ACTOR_A)).state
+    expect(settles(last, ACTOR_B, new Set([ACTOR_C]))).toBe(true)
+    // An advance may not give the turn to an actor already defeated when the turn ended.
+    const skipped = planEncounterInitiativeAdvance({
+      state: settled,
+      currentActorId: ACTOR_C,
+      defeatedActorIds: NONE
+    })
+    expect(
+      isSettledEncounterInitiativeAdvance({
+        state: settled,
+        currentActorId: ACTOR_C,
+        defeatedActorIds: new Set([ACTOR_A]),
+        plan: skipped
+      })
+    ).toBe(false)
   })
 })

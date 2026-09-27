@@ -1083,7 +1083,86 @@ describe('native Encounter turn Legendary Actions', () => {
     await expect(replayInRoom(base.owner.caller, terminalInput)).resolves.toEqual(terminal)
     expect((await stored(base.t, base.run.id)).receipts).toHaveLength(before.receipts.length + 1)
   }, 30000)
+
+  it('skips the next Creature’s turn when a Legendary Action at the end of the turn defeats it (D63)', async () => {
+    const base = await setup('AUTO_ROLL', 3)
+    const started = await start(base)
+    const [current, next, after] = started.projection.actors.map((actor) => actor.id)
+    expect(started.projection.currentActorId).toBe(current)
+    const hurt = await setHitPoints(base, started.projection.version, next!, 1)
+    // The next Creature spends its Legendary Action on itself for 1 damage and falls.
+    const ended = await advanceTurn(base, hurt.projection.version, next!)
+    expect(ended.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    expect(ended.projection.actors.find((actor) => actor.id === next)).toMatchObject({
+      currentHitPoints: 0,
+      defeated: true
+    })
+    expect(ended.projection).toMatchObject({ round: 1, currentActorId: after })
+  }, 60000)
+
+  it('opens the new round past its opener when a Legendary Action at the end of the round defeats it (D63)', async () => {
+    const base = await setup('AUTO_ROLL', 2)
+    const started = await start(base)
+    const [opener, last] = started.projection.actors.map((actor) => actor.id)
+    const second = await advanceTurn(base, started.projection.version, null)
+    expect(second.projection.currentActorId).toBe(last)
+    const hurt = await setHitPoints(base, second.projection.version, opener!, 1)
+    const wrapped = await advanceTurn(base, hurt.projection.version, opener!)
+    expect(wrapped.projection.actors.find((actor) => actor.id === opener)).toMatchObject({
+      defeated: true
+    })
+    expect(wrapped.projection).toMatchObject({ round: 2, currentActorId: last })
+  }, 60000)
 })
+
+async function setHitPoints(
+  base: Awaited<ReturnType<typeof setup>>,
+  expectedVersion: number,
+  actorId: string,
+  currentHitPoints: number
+) {
+  return executeInRoom(base.owner.caller, {
+    command: {
+      type: 'UPDATE_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion,
+      actorId,
+      currentHitPoints
+    }
+  })
+}
+
+/** Ends the turn; only `userActorId` (when given) takes its Legendary Action, everyone else declines. */
+async function advanceTurn(
+  base: Awaited<ReturnType<typeof setup>>,
+  expectedVersion: number,
+  userActorId: string | null
+) {
+  let result = await executeInRoom(base.owner.caller, {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion
+    }
+  })
+  for (let responses = 0; result.occurrence?.status === 'PENDING'; responses += 1) {
+    expect(responses).toBeLessThan(4)
+    const pending = result.occurrence.pending
+    if (!pending || pending.kind !== 'LEGENDARY_ACTION_CHOICE')
+      throw new Error('Expected only Legendary owner choices.')
+    result = await executeInRoom(
+      base.owner.caller,
+      response(
+        base.run.id,
+        result,
+        pending.ownerActorId === userActorId ? legendaryOption(pending) : { kind: 'DECLINE' }
+      )
+    )
+  }
+  return result
+}
 
 describe('private DO turn Legendary Action response', () => {
   afterEach(() => {
