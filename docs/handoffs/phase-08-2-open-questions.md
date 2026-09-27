@@ -268,6 +268,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Dropped:** the blanket args/returns getters. They measured no gain.
   * **Sequencing:** roll out last, by re-running the codemod on the latest branch after M2, M6 and D58 merge, to avoid conflicts in schema files.
   * **Proof required:** the equivalence script against the merge base, the full suites and codegen, then the browserless re-run. The 6-browser V15 runs only when both budgets pass with margin.
+  * **Done (rolled out, 2026-09-27, [record](../validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md)).**
+    * The codemod (`scripts/lazySchemas.mjs`) re-ran on the current source and wrapped 2,321 initializers. That includes 17 calls to local schema builders, which the spike had left eager.
+    * Shared shapes and variant lists use `lazySchemaParts`. `yarn lint` runs the `--check`. `lazy-schemas.test.ts` builds every exported schema and fails on an eager one. Content tables are built on demand.
+    * **Module load:** 56–83% lower on five hot graphs. For example, the action commit falls from 159 to 28 ms and the router from 57 to 25 ms.
+    * **Equivalence against `1822085c8`:** 0 differences across 2,172 schemas (fingerprint, Convex validator, JSON Schema, parse results including 1,057 SRD documents), `schema.ts` `export()` and all 553 functions' args and returns.
+    * **Still open (user):** the local codegen push and backend reset, then the browserless re-run. The pattern is in [Transport](../architecture/transport.md#lazy-schema-construction).
 - **D58 (blocks closed beta) Critical hits must double every damage die.** Found by M2: on a critical hit, Creature attacks roll normal dice and add only an authored `ON_CRIT` result. So a critical Adult Red Dragon Bite deals 2d10+8 and 2d6 instead of 4d10+8 and 4d6. The one exception, the hit-then-save shape, already doubles.
   * **Rule (SRD 5.1):** a critical hit doubles every damage die of the attack's damage parts, including extra dice such as Sneak Attack or Divine Smite. Flat modifiers are not doubled.
   * **Fix:** apply this in one place for Creature and Character attacks alike, with pure tests.

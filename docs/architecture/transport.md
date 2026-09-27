@@ -45,6 +45,37 @@ local DTOs.
 Portable import, media upload/finalization, account lifecycle and durable cleanup use the same native
 boundary. Each owning guide defines its transaction, replay and privacy invariants.
 
+## Lazy schema construction
+
+Current (D59). Convex re-evaluates a function's module graph on every call, so a schema built at
+module load is paid on every call. `packages/schema` builds no schema at module load:
+
+- **Schemas.** Every module-level schema is `lazySchema(() => …)` from `packages/schema/src/zod.ts`.
+  It returns a proxy that builds the schema on first use and memoizes it. The static type,
+  `instanceof`, parsing, issues, `.shape`, composition, `zodToConvex` and JSON Schema output are the
+  built schema's.
+- **Shared parts.** A shape spread into several objects, or a variant list reused by several unions,
+  is `lazySchemaParts(() => …)`. It is called only inside lazy factories and returns one set of
+  instances, as the old module-level constant did.
+- **Module scope** may reference a schema. It must not call `z.*`, call or read a schema (such as
+  `fooSchema.shape` or `fooSchema._zod.def`), or call a local schema builder. A plain value that
+  mirrors an enum is a literal checked with `satisfies z.infer<typeof …>`.
+- **`z.json()` stays eager.** It references its own instance, so a proxy would give it two
+  identities and change `zodToConvex` and JSON Schema output.
+- **Late errors.** Construction errors move from import to first use.
+  `packages/schema/src/__tests__/lazy-schemas.test.ts` imports every module, builds and parses with
+  every exported schema, and fails if an exported schema other than `z.json()` is not lazy.
+- **Lint rule.** `yarn lint` runs `yarn lint:schemas` (`node scripts/lazySchemas.mjs --check`). It
+  fails on any schema built or forced at module load: `z.*` calls, calls or reads on a schema
+  binding, callbacks run at load, and calls to local builders. Without `--check` the script wraps
+  eager initializers mechanically and lists the sites that need a hand edit.
+- **Content tables.** `apps/apis/convex/content/schema.ts` exports `buildContentTables()`. Root
+  `schema.ts` spreads it, and `content/streams.ts` builds and memoizes the content schema on the
+  first `contentStream()` call, because a stream needs only index metadata.
+
+Evidence: [D59 rollout](../validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md) and the
+[D55 spike](../validation/phase-08-2/d55-lazy-schema-spike-2026-09-27.md).
+
 ## Historical transport record
 
 The remainder of this file preserves the phased native build notes and the retired request stack. It

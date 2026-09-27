@@ -18,6 +18,11 @@ One summary per gate gives each case's status, acceptance date, proof tier, crit
 - [R08 preparation, 2026-09-26](r08-prep-2026-09-26.md): drivers through the Session room, scripted container fixtures, the V14.4 real-backend reaction race, lifecycle tooling fixes, the lifecycle run (stopped at Storybook tests) and open findings
 - [V15 local workload, 2026-09-26](v15-local-2026-09-26.md): the updated workload and why no run completed
 
+## Module-load speed
+
+- [D55 lazy schema spike, 2026-09-27](d55-lazy-schema-spike-2026-09-27.md): where per-call module load goes, the patterns tried and the rollout plan
+- [D59 lazy schema rollout, 2026-09-27](d59-lazy-schema-rollout-2026-09-27.md): module load 56–83% lower on five hot function graphs, zero differences against the merge base, and the gates run
+
 ## Local checkpoints
 
 Complete output and manifests are retained under ignored `local-validation/phase82-goal-20260923/` in the regular checkout; the copy from the detached worktree completed successfully (robocopy exit 3). `local-validation/phase82-relocation-20260924/transfer-result.json` records the checkout transfer. This durable summary intentionally excludes raw logs, payloads and secrets.
