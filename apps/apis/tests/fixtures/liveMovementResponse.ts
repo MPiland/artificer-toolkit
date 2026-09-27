@@ -44,11 +44,6 @@ const capture = makeFunctionReference<
   LiveSessionEncounterRulesInput,
   LiveSessionEncounterRulesResponse
 >('liveSessions/encounterRulesCapture:capture')
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 export async function preparePrivateMovementResponse(input: {
   value: MovementFixture
@@ -67,8 +62,7 @@ export async function preparePrivateMovementResponse(input: {
       ![
         '/live-sessions/encounter-rules',
         '/live-sessions/character-rules',
-        '/live-sessions/encounter-movement-begin',
-        '/live-sessions/encounter-movement-prepare',
+        '/live-sessions/encounter-movement-stage',
         '/live-sessions/encounter-movement'
       ].includes(pathname)
     )
@@ -90,13 +84,16 @@ export async function preparePrivateMovementResponse(input: {
   const staged = await callLiveSessionRoute(
     privateMovementEnvironment,
     'fixture-access-token',
-    'encounterMovementBegin',
+    'encounterMovementStage',
     {
       ...common,
-      command
+      command,
+      characterRevisions: [],
+      tokenOrdinals: value.request.tokenOrdinals ?? [],
+      maintenanceDefinitionIds: []
     }
   )
-  if (staged.kind !== 'READY') throw new Error('Expected private movement response staging.')
+  if (staged.kind !== 'STAGED') throw new Error('Expected private movement response staging.')
   const scene = await caller.run(async (ctx): Promise<CampaignSceneState> => {
     const { header } = await readLiveScene(ctx, value.sceneId, 'MEMBER')
     if (
@@ -198,7 +195,7 @@ export async function preparePrivateMovementResponse(input: {
     occurredAt,
     outcome: planned.outcome
   }
-  const stageInput: LiveSessionMovementPrepareInput = {
+  const planInput: LiveSessionMovementPrepareInput = {
     ...common,
     movement: scope.movement,
     preparation,
@@ -207,22 +204,16 @@ export async function preparePrivateMovementResponse(input: {
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     )
   }
-  await callLiveSessionRoute(
-    privateMovementEnvironment,
-    'fixture-access-token',
-    'encounterMovementPrepare',
-    stageInput
-  )
-  await caller.mutation(observe, { saveId: staged.saveId, characterRevisions: [] })
   const commitInput: LiveSessionMovementCommitInput = {
-    ...stageInput,
+    ...planInput,
     finish: { ...value.request, saveId: staged.saveId },
     ...(await value.base.t.run(async (ctx) => ({
       authority: await nextExternalAuthority(ctx, value.base.campaign.id),
       expectedScene: await expectedMovementScene(ctx, staged.saveId, planned.outcome)
     }))),
     rules: planned.rules,
-    settlements: planned.settlementInputs
+    settlements: planned.settlementInputs,
+    fogLayers: []
   }
   return { planned, commitInput }
 }

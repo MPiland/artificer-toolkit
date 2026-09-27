@@ -16,6 +16,7 @@ import {
   liveSessionPublishInputSchema,
   type LiveSessionScenePublicationDto
 } from '@artificer-toolkit/schema/api/liveSessionState'
+import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
@@ -72,13 +73,16 @@ import {
 import {
   encounterCommandRefusal,
   executeLiveEncounterCommand,
-  sceneNotPresentedRejection
+  sceneNotPresentedRejection,
+  type LiveEncounterActor
 } from './nativeRoomEncounterCommand.js'
 import { LiveCaptureCache, type LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   commitExternalSceneCommit,
   prepareExternalSceneCommit,
-  type ExternalSceneCommand
+  stageExternalSceneCommand,
+  type ExternalSceneCommand,
+  type ExternalSceneContext
 } from './nativeExternalSceneCommit.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
@@ -141,6 +145,16 @@ function attachment(socket: WebSocket): SocketAttachment | null {
 
 function viewer(value: Pick<Admission, 'role' | 'userId'>): SceneViewer {
   return { role: value.role === 'OWNER' ? 'GM' : 'PLAYER', userId: value.userId }
+}
+
+/** The admitted member a private Encounter or Scene route acts for; Convex rechecks every field. */
+function liveActor(admission: Admission, value: SocketAttachment): LiveEncounterActor {
+  return {
+    campaignId: value.campaignId,
+    authorityEpoch: value.authorityEpoch,
+    expectedUserId: admission.userId,
+    expectedRole: admission.role
+  }
 }
 
 function send(socket: WebSocket, message: LiveSessionWebSocketServerMessageDto): void {
@@ -1110,17 +1124,28 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       result = await executeLiveEncounterCommand({
         environment: this.env,
         accessToken: admission.accessToken,
-        actor: {
-          campaignId: value.campaignId,
-          authorityEpoch: value.authorityEpoch,
-          expectedUserId: admission.userId,
-          expectedRole: admission.role
-        },
+        actor: liveActor(admission, value),
         command,
         runtime: await this.#liveRulesRuntime(),
         random: secureRandomInt,
         captureCache: this.#captureCache,
-        movement: async (decision, captures) => {
+        stageHeldMovement: async (decision) => {
+          const context = this.#externalSceneContext()
+          // Only a decision on the presented Scene's Encounter while it holds a movement decision.
+          if (
+            !context?.movementDecisionPending ||
+            context.encounterId !== decision.encounterId.toLowerCase()
+          )
+            return null
+          return stageExternalSceneCommand({
+            environment: this.env,
+            accessToken: admission.accessToken,
+            actor: liveActor(admission, value),
+            command: decision,
+            context
+          })
+        },
+        movement: async (decision, captures, staged) => {
           movementCommitted = true
           return this.#commitMovementDecision(
             socket,
@@ -1128,7 +1153,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             value,
             decision,
             fingerprint,
-            captures
+            captures,
+            staged
           )
         }
       })
@@ -1173,7 +1199,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     value: SocketAttachment,
     command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
     fingerprint: string,
-    captures: LiveCaptureReads | undefined
+    captures: LiveCaptureReads | undefined,
+    staged: LiveSessionMovementStage | undefined
   ): Promise<EncounterCommandResultDto> {
     if (this.#cache?.synchronized && this.#cache.encounterId !== command.encounterId.toLowerCase())
       throw sceneNotPresentedRejection()
@@ -1183,7 +1210,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       value,
       command,
       fingerprint,
-      captures
+      captures,
+      staged
     )
     if (!encounter) throw new Error('A movement decision commit returned no Encounter result.')
     return encounter
@@ -1203,32 +1231,24 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     value: SocketAttachment,
     command: ExternalSceneCommand,
     fingerprint: string,
-    captures: LiveCaptureReads | undefined
+    captures: LiveCaptureReads | undefined,
+    staged?: LiveSessionMovementStage
   ) {
     await this.#flushOutbox()
-    const synchronized = this.#cache?.synchronized ? this.#cache : null
-    const before = synchronized?.scene
-    if (!synchronized || !before || !synchronized.presentation) throw new LiveSessionRouteError(409)
-    const actor = {
-      campaignId: value.campaignId,
-      authorityEpoch: value.authorityEpoch,
-      expectedUserId: admission.userId,
-      expectedRole: admission.role
-    }
+    const context = this.#externalSceneContext()
+    if (!context) throw new LiveSessionRouteError(409)
+    const before = context.scene
+    const actor = liveActor(admission, value)
     const prepared = await prepareExternalSceneCommit({
       environment: this.env,
       accessToken: admission.accessToken,
       actor,
       command,
-      context: {
-        scene: before,
-        baseOrdinals: synchronized.baseOrdinals,
-        characterRevisions: synchronized.characterRevisions,
-        presentation: synchronized.presentation
-      },
+      context,
       runtime: await this.#liveRulesRuntime(),
       random: secureRandomInt,
-      captures
+      captures,
+      staged
     })
     const current = this.#journal.readCurrent()
     if (
@@ -1335,6 +1355,25 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     )
     if (prepared.fogChanged) this.#broadcastStateSync()
     return committed
+  }
+
+  /**
+   * The room's synchronized presented Scene that Convex-first commands plan against, with its bound
+   * Encounter and movement hold (D26); null until the Scene is synchronized.
+   */
+  #externalSceneContext():
+    | (ExternalSceneContext & Pick<TransientCache, 'encounterId' | 'movementDecisionPending'>)
+    | null {
+    const synchronized = this.#cache?.synchronized ? this.#cache : null
+    if (!synchronized?.scene || !synchronized.presentation) return null
+    return {
+      scene: synchronized.scene,
+      baseOrdinals: synchronized.baseOrdinals,
+      characterRevisions: synchronized.characterRevisions,
+      presentation: synchronized.presentation,
+      encounterId: synchronized.encounterId,
+      movementDecisionPending: synchronized.movementDecisionPending
+    }
   }
 
   /**

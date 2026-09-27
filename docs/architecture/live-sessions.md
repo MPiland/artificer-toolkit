@@ -218,9 +218,9 @@ assignment is required even for a completed response retry. The actual room call
 native routing remains current. Focused parity and rollback tests are implementation evidence, not
 release or frozen V15 acceptance.
 
-The movement integration in progress uses the existing staged Scene save. Private
-`/live-sessions/encounter-movement-begin` rechecks the DO authority epoch before staging a bound move
-or a response to its sealed pending occurrence;
+The movement integration in progress uses the existing staged Scene save. The private
+`/live-sessions/encounter-movement-stage` route rechecks the DO authority epoch before staging a bound
+move or a response to its sealed pending occurrence;
 public Scene staging remains fenced. Each movement capture checks the receiving save, current
 Session/presentation/Scene/Run, and the moving token's binding and control. A response instead requires
 authority over its issued decision. Character preparation pins a current actor's source and version.
@@ -234,15 +234,15 @@ move or issued response using shared spatial, reaction, passage and concentratio
 Uncommitted target and maintenance projections feed later contacts in order. Movement Character
 inputs include the original private row so existing maintenance checksums survive that projection;
 they stay inside the trusted Worker boundary. The planner serializes ordered, bounded
-spatial, reaction, passage-allowance and concentration outcomes and computes final actor rules in the DO. Private
-preparation checks captured revisions and freezes the existing Scene save without gameplay writes.
+spatial, reaction, passage-allowance and concentration outcomes and computes final actor rules in the DO. The
+commit checks captured revisions and freezes the plan on the existing Scene save before it publishes.
 The private movement commit coordinator reuses the Convex Scene, pending and terminal publication
 writers, applying those closed outcomes in their original order within one Convex transaction. Completed retries verify stored receipts before checking consumed source revisions.
 Pending publication settles only the explicit applied spatial prefix and completed reactions. A
 spatial dice pause may retain evaluated contacts that have not changed gameplay state; that evidence
 must remain unsettled. Pending and terminal publication take their evaluation, settlement and
 projection as callbacks, which the room's commit supplies from its frozen plan. The private
-`encounter-movement-prepare` and `encounter-movement` HTTP routes require both the Worker secret and
+`encounter-movement-stage` and `encounter-movement` HTTP routes require both the Worker secret and
 the initiating user's identity, then use the same epoch, membership, save and revision checks as the
 internal mutations. Initial pending, terminal and response publication share this commit route.
 Response publication preserves prior contact evidence and commits only newly applied contacts and
@@ -265,24 +265,30 @@ from `executeLiveEncounterCommand` (route `MOVEMENT`). Inside the command chain 
 1. checks its journal for a replay, then the session sequence and Scene version (a decision answer
    skips the session sequence, D28: its Scene version pin already fences it);
 2. publishes the outbox (it must be empty) and settles any unsettled record (below);
-3. calls `encounter-movement-begin` (a move or door change with its presentation fence, a decision
-   answer, or a GM void that `occurrenceVoid` turns into the decision's decline), then
-   `encounter-movement-observe` with the cached Scene vision's Character revisions;
-4. for a bound move, captures through the command's capture bundle (a `MOVEMENT_INPUTS` admission
-   now starts one) and the room cache, runs `prepareNativeLiveMovement` on its cached Scene and
-   freezes the outcome with `encounter-movement-prepare`;
-5. stages each fog owner's complete layer (`deriveSceneCommandFogLayer`) with
-   `encounter-movement-stage-fog`, following the walked segment (`preparedMovementSegment`);
+3. stages the command in one private call, `encounter-movement-stage`
+   (`liveSessions/encounterMovement:stage`, D52): in one transaction Convex routes a decision
+   (`routeEncounterDecision`, the `encounter-route` classification; another planner's occurrence
+   returns `ROUTED` and stages nothing), begins the save (a move or door change with its
+   presentation fence, a decision answer, or a GM void that `occurrenceVoid` turns into the
+   decision's decline), observes the cached Scene vision's Character revisions and, for a bound
+   move, reads the command's capture bundle (`MOVEMENT_INPUTS` admission) under the staged save,
+   taking the moving token's definition ordinal from the room's `tokenOrdinals`;
+4. for a bound move, hands the bundle to its captures (`bundleCaptures`) and runs
+   `prepareNativeLiveMovement` on its cached Scene with the room cache;
+5. derives each fog owner's complete layer (`deriveSceneCommandFogLayer`), following the walked
+   segment (`preparedMovementSegment`);
 6. predicts the published Scene (`preparedMovementSceneDelta`, the same function Convex publishes
    with) and the next state checksum, writes the SQLite write-ahead record
    (`durable_external_commit`, `beginExternalCommit`), and commits with
-   `authority {sequence: N+1, expectedStateChecksum, stateChecksum}` and `expectedScene`:
-   `encounter-movement` for bound moves and decisions, `scene-geometry` otherwise. In one Convex
-   transaction the commit publishes the Scene, compares it with `expectedScene`, and advances the
-   persisted authority, which must be at N (`publishWithAuthorityAdvance`,
-   `liveSessions/externalCommit.ts`). A replay of a published save does not advance. A decision
-   answer returns its member-presented Encounter result; a void also records the void and posts
-   "The GM skipped this decision." to TABLE chat, keyed by the void command ID;
+   `authority {sequence: N+1, expectedStateChecksum, stateChecksum}`, `expectedScene` and the fog
+   layers: `encounter-movement` for bound moves and decisions, `scene-geometry` otherwise. In one
+   Convex transaction the commit checks every captured owner, freezes the room's plan on the save
+   (`persistSpatialPreparation`), stages each fog layer, publishes the Scene, compares it with
+   `expectedScene`, and advances the persisted authority, which must be at N
+   (`publishWithAuthorityAdvance`, `liveSessions/externalCommit.ts`). A replay of a published save
+   stages nothing and does not advance. A decision answer returns its member-presented Encounter
+   result; a void also records the void and posts "The GM skipped this decision." to TABLE chat,
+   keyed by the void command ID;
 7. completes the record: new state, receipt, and sequence = published = N+1, with no outbox row;
 8. sends the Scene delta to every member (only the initiator sees the decision summary), then
    STATE_SYNC when fog changed, then the ENCOUNTER result to a decision's initiator. The browser
@@ -417,7 +423,12 @@ below); a decision answer or GM void asks the private `encounter-route` query
 (`liveSessions/encounterRoute:route`), which names the planner for the current pending occurrence —
 `ACTION`, `TURN`, `CONCENTRATION`, `CLEAVING`, `DISARM`, `MOVEMENT` or `VOID` — through the one shared
 classifier, `encounters/occurrenceOwner.ts`, and refuses an occurrence no planner owns. A PLAYER may
-classify only an occurrence that `encounters/pendingReads` already shows them. Only the GM tools in
+classify only an occurrence that `encounters/pendingReads` already shows them. While the room holds a
+movement decision for the Encounter bound to its synchronized presented Scene (the D26 hold), it
+skips this query and sends the decision straight to the movement stage (`stageHeldMovement`, D52),
+which routes it with the same classification in the same transaction and returns `ROUTED` with the
+planner when another planner owns it, so a held decision's answer takes two round trips (stage and
+commit). Only the GM tools in
 `CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` (`packages/schema/src/api/liveSessionEncounterCommand.ts`)
 go to Convex as they are (D41): no dice, and no derived mechanics beyond the deterministic actor
 recalculation every Convex commit runs anyway. The private `encounter-command` route
@@ -468,7 +479,7 @@ Run.
 admission capture (`ACTION_COMMAND`, `ACTION_RESPONSE`, `CLEAVING_RESPONSE`, `DISARM`, `TURN_COMMAND`,
 `CONCENTRATION_RESPONSE` or `MOVEMENT_INPUTS`),
 `captureEncounterRules` sends the bundle instead. In one transaction the bundle runs the existing
-capture builders for the admission, Run `INPUTS`, the `INITIATIVE_ROUND` of a turn, the `CLEAVING_BINDINGS` of a Cleaving answer, one `ACTOR`
+capture builders for the admission, Run `INPUTS`, the `INITIATIVE_ROUND` of a turn, the `CLEAVING_BINDINGS` of a Cleaving answer, the first `SCENE_SPATIAL_EFFECTS` page of a move at its admitted Scene version, one `ACTOR`
 (first effect page) per Run actor, the Concentration `MAINTENANCE_SLOT` per Run actor, and each
 Character actor's `INPUTS`. Each part is exactly the response its own capture returns, with its own
 read checksum and revisions, so commit fences are unchanged. The scope is admitted once for the
@@ -477,13 +488,16 @@ Encounter parts (`admitEncounterCaptureParts`) and once for the Character parts
 part still checks that the admitted command covers its Character. A movement scope names each
 Character's own actor, so there each Character part is admitted separately. The Run's System travels once, as
 the bundle's `system`; the Run `inputs` and each Character's `INPUTS` omit it (their read checksums
-still cover it) and `captureBundle` restores it before handing the parts out. Parity tests compare
+still cover it) and `bundleCaptures` restores it before handing the parts out. Parity tests compare
 every part of action, turn and movement bundles with its separate capture. The DO hands each part, once, to the
 capture with the same complete input; anything else (later effect pages, other maintenance, Scene
 reads, System-level content) is read as before. The bundle stops at the first failing part, and the
 planner then reads that part separately and meets the same refusal. `liveSessionCharacterRulesScope`
 derives a Character capture scope from an Encounter one for both sides. Warm commands now take two
-round trips (the bundle and the commit); a decision answer adds its `encounter-route` read.
+round trips (the bundle and the commit); a decision answer adds its `encounter-route` read, except a
+held movement decision. A Convex-first Scene command's stage reads its bundle in the same
+transaction (D52), so a warm bound move or held movement decision also takes two: the stage and the
+commit. A room planner takes a part the stage already bundled without reading the bundle again.
 Parts still repeat reads (actors, Characters, the System), so the bundle reads through a
 transaction-local memo (`lib/transactionReads.ts`): an identical `get`, or the same table, index
 range, order and read, is served once and deeply frozen, so no part can change another part's view;

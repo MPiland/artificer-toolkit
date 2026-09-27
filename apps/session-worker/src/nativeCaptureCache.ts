@@ -4,7 +4,8 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
 import {
   isLiveSessionCaptureBundleAdmission,
-  liveSessionCharacterRulesScope
+  liveSessionCharacterRulesScope,
+  type LiveSessionEncounterCaptureBundle
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import {
   liveSessionEncounterRulesInputSchema,
@@ -155,9 +156,19 @@ export async function captureEncounterRules(
   captures: LiveCaptureReads | undefined
 ): Promise<{ response: LiveSessionEncounterRulesResponse; revisions: LiveSessionRulesRevisions }> {
   const key = bundledCaptureKey('encounterRules', input)
-  if (captures && isLiveSessionCaptureBundleAdmission(input.request))
-    await captureBundle(environment, accessToken, input, captures)
-  const bundled = captures?.takeBundled(key)
+  // An admission the command's stage already bundled (a move, D52) takes its part without a read.
+  let bundled = captures?.takeBundled(key)
+  if (!bundled && captures && isLiveSessionCaptureBundleAdmission(input.request)) {
+    bundleCaptures(
+      input,
+      await callLiveSessionRoute(environment, accessToken, 'encounterBundle', {
+        ...input,
+        maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS
+      }),
+      captures
+    )
+    bundled = captures.takeBundled(key)
+  }
   if (bundled?.route === 'encounterRules')
     return { response: bundled.response, revisions: bundled.response.revisions }
   const cacheable =
@@ -229,17 +240,15 @@ export function liveEncounterCaptures(
   }
 }
 
-async function captureBundle(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
+/** Concentration checks read each damaged actor's Concentration slot, so every bundle reads it. */
+export const BUNDLED_MAINTENANCE_DEFINITION_IDS = [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID]
+
+/** Hands a command's capture bundle, read under `admission`, to the captures that take its parts. */
+export function bundleCaptures(
   admission: LiveSessionEncounterRulesInput,
+  bundle: LiveSessionEncounterCaptureBundle,
   captures: LiveCaptureReads
-): Promise<void> {
-  const bundle = await callLiveSessionRoute(environment, accessToken, 'encounterBundle', {
-    ...admission,
-    // Concentration checks read each damaged actor's Concentration slot.
-    maintenanceDefinitionIds: [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID]
-  })
+): void {
   // The Run's System travels once; its INPUTS responses get it back.
   const { system, inputs } = bundle
   const parts: Array<{

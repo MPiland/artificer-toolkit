@@ -32,7 +32,6 @@ import {
   liveSessionEncounterDisarmCommitInputSchema,
   liveSessionEncounterDisarmPendingInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
-import { liveSessionMovementBeginInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import {
   liveSessionEncounterRulesInputSchema,
   liveSessionEncounterRulesResponseSchema
@@ -47,12 +46,12 @@ import {
   liveSessionExternalCommitResolveResponseSchema,
   liveSessionMovementCommitInputSchema,
   liveSessionMovementCommitResponseSchema,
-  liveSessionMovementPrepareInputSchema,
-  liveSessionSceneGeometryCommitInputSchema,
-  liveSessionSceneGeometryObserveInputSchema,
-  liveSessionSceneGeometrySaveResponseSchema,
-  liveSessionSceneGeometryStageFogInputSchema
+  liveSessionSceneGeometryCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import {
+  liveSessionMovementStageInputSchema,
+  liveSessionMovementStageSchema
+} from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import {
   liveSessionActivationInputSchema,
@@ -74,15 +73,12 @@ import {
   liveSessionTransientHydrationResponseSchema
 } from '@artificer-toolkit/schema/api/liveSessionTransientHydration'
 import { liveSessionPresentationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessions'
-import {
-  sceneGeometryBeginResultSchema,
-  sceneGeometryCommandResultSchema
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import { sceneGeometryCommandResultSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
+
 import {
   bindEncounterToPresentedSceneResultDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { sceneSpatialPreparationSchema } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { z } from 'zod'
 
 export type NativeLiveSessionEnvironment = {
@@ -164,21 +160,9 @@ const liveSessionRoutes = {
     input: liveSessionEncounterCaptureBundleInputSchema,
     output: liveSessionEncounterCaptureBundleSchema
   },
-  encounterMovementBegin: {
-    input: liveSessionMovementBeginInputSchema,
-    output: sceneGeometryBeginResultSchema
-  },
-  encounterMovementPrepare: {
-    input: liveSessionMovementPrepareInputSchema,
-    output: sceneSpatialPreparationSchema
-  },
-  encounterMovementObserve: {
-    input: liveSessionSceneGeometryObserveInputSchema,
-    output: liveSessionSceneGeometrySaveResponseSchema
-  },
-  encounterMovementStageFog: {
-    input: liveSessionSceneGeometryStageFogInputSchema,
-    output: liveSessionSceneGeometrySaveResponseSchema
+  encounterMovementStage: {
+    input: liveSessionMovementStageInputSchema,
+    output: liveSessionMovementStageSchema
   },
   encounterMovementCommit: {
     input: liveSessionMovementCommitInputSchema,

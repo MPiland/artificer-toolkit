@@ -14,6 +14,7 @@ import {
   type LiveSessionCommandRejectionCodeDto
 } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
+import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import { liveSessionEncounterTurnPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 
@@ -50,7 +51,8 @@ export interface LiveEncounterActor {
  * The caller serializes commands and acknowledges only after this resolves.
  * Planners may reuse cached System-level captures; a refused commit (409) of a plan that reused any
  * drops those entries and replans once from fresh reads before the refusal surfaces. A movement
- * decision's answer or GM void goes back to the room (`movement`), which commits it with the Scene.
+ * decision's answer or GM void goes back to the room (`movement`), which commits it with the Scene;
+ * one the room holds is staged first (`stageHeldMovement`), and that stage also routes it.
  */
 export async function executeLiveEncounterCommand(input: {
   environment: NativeLiveSessionEnvironment
@@ -60,9 +62,17 @@ export async function executeLiveEncounterCommand(input: {
   runtime: RulesRuntimeService
   random(maximum: number): number
   captureCache?: LiveCaptureCache
+  /**
+   * Stages a movement decision the room holds on its presented Scene (D26); Convex routes it in the
+   * same call (D52). Null when the room holds no movement decision for it.
+   */
+  stageHeldMovement(
+    command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
+  ): Promise<LiveSessionMovementStage | null>
   movement(
     command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
-    captures: LiveCaptureReads | undefined
+    captures: LiveCaptureReads | undefined,
+    staged: LiveSessionMovementStage | undefined
   ): Promise<EncounterCommandResultDto>
 }): Promise<EncounterCommandResultDto> {
   const { environment, accessToken, actor, command, captureCache } = input
@@ -99,7 +109,13 @@ export async function executeLiveEncounterCommand(input: {
     const execution = { runtime: input.runtime, random: input.random, captures: reads }
     const planned = await plannerRoute()
     // A GM void that declines a decision plans the GM's decline, then records the void.
-    const result = await plan(planned.route, planned.decline ?? command, execution, reads)
+    const result = await plan(
+      planned.route,
+      planned.decline ?? command,
+      execution,
+      reads,
+      planned.staged
+    )
     if (!planned.decline || command.type !== 'VOID_RULE_OCCURRENCE') return result
     return callLiveSessionRoute(environment, accessToken, 'encounterVoidRecord', {
       ...actor,
@@ -115,7 +131,8 @@ export async function executeLiveEncounterCommand(input: {
       random(maximum: number): number
       captures?: LiveCaptureReads
     },
-    reads: LiveCaptureReads | undefined
+    reads: LiveCaptureReads | undefined,
+    staged: LiveSessionMovementStage | undefined
   ): Promise<EncounterCommandResultDto> {
     switch (planner) {
       case 'ACTION': {
@@ -234,7 +251,7 @@ export async function executeLiveEncounterCommand(input: {
       case 'MOVEMENT':
         if (decision.type !== 'RESOLVE_RULE_OCCURRENCE' && decision.type !== 'VOID_RULE_OCCURRENCE')
           throw new Error('Movement planning received a non-decision command.')
-        return input.movement(decision, reads)
+        return input.movement(decision, reads, staged)
       case 'VOID': {
         if (decision.type !== 'VOID_RULE_OCCURRENCE')
           throw new Error('Void recording received another command.')
@@ -277,11 +294,15 @@ export async function executeLiveEncounterCommand(input: {
   async function plannerRoute(): Promise<{
     route: RoomEncounterPlanner
     decline: ResolveRuleOccurrenceInputDto | null
+    staged?: LiveSessionMovementStage
   }> {
     const planner = roomEncounterPlanner(command)
     if (planner !== 'DECISION') return { route: planner, decline: null }
     if (command.type !== 'RESOLVE_RULE_OCCURRENCE' && command.type !== 'VOID_RULE_OCCURRENCE')
       throw new Error('Only decisions are routed by their pending occurrence.')
+    const staged = await input.stageHeldMovement(command)
+    if (staged?.kind === 'ROUTED') return staged.route
+    if (staged) return { route: 'MOVEMENT', decline: null, staged }
     return callLiveSessionRoute(environment, accessToken, 'encounterRoute', { ...actor, command })
   }
 }

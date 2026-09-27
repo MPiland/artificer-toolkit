@@ -52,11 +52,7 @@ import {
 const workerSecret = 'private-movement-worker-test-secret-at-least-32-bytes'
 const authSecret = 'private-movement-continuation-test-secret-at-least-32-bytes'
 const environment = workerEnvironment(workerSecret)
-const stage = makeFunctionReference<
-  'mutation',
-  LiveSessionMovementPrepareInput,
-  SceneSpatialPreparation
->('liveSessions/encounterMovement:prepare')
+
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -179,8 +175,7 @@ it.each([
         ![
           '/live-sessions/encounter-rules',
           '/live-sessions/character-rules',
-          '/live-sessions/encounter-movement-begin',
-          '/live-sessions/encounter-movement-prepare',
+          '/live-sessions/encounter-movement-stage',
           '/live-sessions/encounter-movement'
         ].includes(pathname)
       )
@@ -204,16 +199,19 @@ it.each([
     const staged = await callLiveSessionRoute(
       environment,
       'fixture-access-token',
-      'encounterMovementBegin',
+      'encounterMovementStage',
       {
         campaignId: value.base.campaign.id,
         authorityEpoch: epoch,
         expectedUserId: initiator.userId,
         expectedRole: asPlayer ? 'PLAYER' : 'OWNER',
-        command: useCommand
+        command: useCommand,
+        characterRevisions: [],
+        tokenOrdinals: value.request.tokenOrdinals,
+        maintenanceDefinitionIds: []
       }
     )
-    if (staged.kind !== 'READY') throw new Error('Expected a private receiving geometry save.')
+    if (staged.kind !== 'STAGED') throw new Error('Expected a private receiving geometry save.')
     const scene = await initiator.caller.run(async (ctx): Promise<CampaignSceneState> => {
       const { header } = await readLiveScene(ctx, value.sceneId, 'MEMBER')
       if (
@@ -460,82 +458,6 @@ it.each([
       }
       return identity ? initiator.caller.fetch(path, request) : value.base.t.fetch(path, request)
     }
-    if (!withSuffix && !asPlayer) {
-      const receivingSave = await geometrySave()
-      for (const denial of [
-        { secret: null, identity: true, input: stageInput, status: 401 },
-        { secret: 'wrong-worker-secret', identity: true, input: stageInput, status: 401 },
-        { secret: workerSecret, identity: false, input: stageInput, status: 401 },
-        {
-          secret: workerSecret,
-          identity: true,
-          input: { ...stageInput, expectedUserId: crypto.randomUUID() },
-          status: 409
-        },
-        {
-          secret: workerSecret,
-          identity: true,
-          input: { ...stageInput, authorityEpoch: crypto.randomUUID() },
-          status: 409
-        }
-      ]) {
-        expect(
-          (
-            await privatePost(
-              '/live-sessions/encounter-movement-prepare',
-              denial.input,
-              denial.secret,
-              denial.identity
-            )
-          ).status
-        ).toBe(denial.status)
-        expect(await records()).toEqual(before)
-        expect(await geometrySave()).toEqual(receivingSave)
-      }
-    }
-    expect(
-      await callLiveSessionRoute(
-        environment,
-        'fixture-access-token',
-        'encounterMovementPrepare',
-        stageInput
-      )
-    ).toEqual(preparation)
-    expect(await records()).toEqual(before)
-    expect(
-      await callLiveSessionRoute(
-        environment,
-        'fixture-access-token',
-        'encounterMovementPrepare',
-        stageInput
-      )
-    ).toEqual(preparation)
-    const frozen = await value.base.t.run((ctx) =>
-      ctx.db
-        .query('sceneGeometrySaves')
-        .withIndex('by_publicId', (q) => q.eq('id', staged.saveId))
-        .unique()
-    )
-    if (!frozen?.spatialPreparationJson)
-      throw new Error('Private movement preparation was not stored.')
-    expect(JSON.parse(frozen.spatialPreparationJson)).toEqual(preparation)
-    expect(frozen.spatialPreparationChecksum).toBe(checksumCanonicalJson(preparation))
-    await expect(
-      initiator.caller.mutation(stage, {
-        ...stageInput,
-        preparation: { ...preparation, occurredAt: '2026-09-24T00:00:01.000Z' }
-      })
-    ).rejects.toThrow('Spatial preparation cannot replace previously frozen evidence.')
-    const afterRejected = await value.base.t.run((ctx) =>
-      ctx.db
-        .query('sceneGeometrySaves')
-        .withIndex('by_publicId', (q) => q.eq('id', staged.saveId))
-        .unique()
-    )
-    expect(afterRejected?.spatialPreparationJson).toBe(frozen?.spatialPreparationJson)
-    expect(afterRejected?.spatialPreparationChecksum).toBe(frozen?.spatialPreparationChecksum)
-    expect(await records()).toEqual(before)
-
     const reactionStep = prepared.settlementInputs[0]
     const concentrationStep = prepared.settlementInputs[1]
     if (reactionStep?.kind !== 'REACTION' || concentrationStep?.kind !== 'CONCENTRATION')
@@ -618,7 +540,8 @@ it.each([
       authority,
       expectedScene,
       rules: prepared.rules,
-      settlements: prepared.settlementInputs
+      settlements: prepared.settlementInputs,
+      fogLayers: []
     }
     if (!withSuffix && !asPlayer) {
       for (const denial of [
@@ -746,6 +669,9 @@ it.each([
     expect(committed.sceneCommands).toHaveLength(before.sceneCommands.length + 1)
     const publishedSave = await geometrySave()
     expect(publishedSave?.status).toBe('PUBLISHED')
+    // The commit froze the room's plan on its save in the same transaction (D52).
+    expect(JSON.parse(publishedSave?.spatialPreparationJson ?? 'null')).toEqual(preparation)
+    expect(publishedSave?.spatialPreparationChecksum).toBe(checksumCanonicalJson(preparation))
     const sceneAfter = await initiator.caller.run((ctx) =>
       readLiveScene(ctx, value.sceneId, 'MEMBER')
     )
@@ -862,9 +788,12 @@ it('bundles exactly the parts of a Character mover response the separate capture
   const staged = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
-    'encounterMovementBegin',
+    'encounterMovementStage',
     {
       ...scope,
+      characterRevisions: [],
+      tokenOrdinals: value.request.tokenOrdinals,
+      maintenanceDefinitionIds: [],
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: crypto.randomUUID(),
@@ -877,7 +806,7 @@ it('bundles exactly the parts of a Character mover response the separate capture
       }
     }
   )
-  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  if (staged.kind !== 'STAGED') throw new Error('Expected a receiving geometry save.')
   const { bundle, separate } = await value.owner.caller.run((ctx) =>
     readBundleAndSeparateCaptures(
       ctx,

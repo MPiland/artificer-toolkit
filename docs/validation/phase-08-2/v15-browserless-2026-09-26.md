@@ -157,3 +157,32 @@ query limit. Fix these first, in this order:
    command p95 is clearly under 1 s and the durable p95 is clearly under 250 ms.
 
 Both fixes change backend or transport code and are outside this measurement slice.
+
+## D52 follow-up: per-call setup and the move chain (2026-09-26)
+
+Implementation evidence, measured in process only; the browserless re-run (D52 ruling 3) is still
+to do. Disposable harnesses and output are under ignored `local-validation/d52/`.
+
+- **Method.** `importCost.mjs` bundles every Convex function module together the way `convex deploy`
+  does (esbuild, ESM, code splitting into `_deps` chunks, the `convex` condition) and evaluates one
+  function's entry and chunk closure in fresh V8 contexts with compiled code cached, as the backend
+  does per call. The warm numbers track the measured fixed cost above (for example
+  `projectionReads:get` about 50–60 ms against 53–78 ms, the capture bundle about 120–145 ms against
+  147–184 ms).
+- **What dominates.** Zod schema construction in `packages/schema` contract modules (about
+  75–80% of each target's evaluation), then `packages/shared` domain modules. Zod itself, the
+  profanity list, polygon clipping and the zod locales are each a few ms or less.
+- **Why narrowing imports barely helps.** esbuild code splitting is file-level: a function loads
+  every file its import graph reaches, and each file carries the union of the parts any function
+  uses. Marking schema construction pure, or `sideEffects: false`, changed the loaded bytes by under
+  1% in the split build (single-function bundles would have dropped 30–45%). The targets' graphs are
+  the contracts they parse (stored Run, Character and Scene documents, route inputs), so cutting them
+  needs the schema package split into smaller files or lazy schema accessors, a cross-package change.
+- **Cut in D52.** The caller identity schema moved to its own module and `requireLiveMember` out of
+  the movement module: the Encounter binding commit fell 29% (146 to 104 ms, 3.1 to 1.8 MB) and small
+  functions about 13% (`campaigns/deletion` 16 to 14 ms); the target functions stayed within ±3%.
+- **Chain collapse.** A bound move now takes two Convex calls, the stage (route, begin, observe and
+  capture bundle, including the first Scene spatial effect page) and the commit (freeze, fog and
+  publish), down from six or more (begin, observe, bundle, spatial effects, prepare, one fog stage
+  per owner, commit). A held movement decision's answer or GM void also takes two, down from seven
+  (with the route). Each removed call saved its whole per-call setup, about 100–150 ms.

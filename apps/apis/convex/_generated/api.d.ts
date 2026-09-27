@@ -69621,12 +69621,9 @@ export declare const internal: {
       commitPending: FunctionReference<"mutation", "internal", any, any>;
     };
     encounterMovement: {
-      begin: FunctionReference<"mutation", "internal", any, any>;
       commit: FunctionReference<"mutation", "internal", any, any>;
       commitScene: FunctionReference<"mutation", "internal", any, any>;
-      observe: FunctionReference<"mutation", "internal", any, any>;
-      prepare: FunctionReference<"mutation", "internal", any, any>;
-      stageFog: FunctionReference<"mutation", "internal", any, any>;
+      stage: FunctionReference<"mutation", "internal", any, any>;
     };
     encounterRoll: {
       commit: FunctionReference<"mutation", "internal", any, any>;

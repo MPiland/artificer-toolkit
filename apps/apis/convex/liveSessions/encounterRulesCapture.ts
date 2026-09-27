@@ -367,9 +367,18 @@ type OrdinaryEncounterRequest = Exclude<
 >
 
 /** The request kinds a capture bundle reads after its admission, under the admission's scope. */
+/** A movement scope's Scene spatial effects pass the turn-read guard, so movement bundles read them. */
 type BundledEncounterRequest = Extract<
   LiveSessionEncounterRulesRequest,
-  { kind: 'INPUTS' | 'INITIATIVE_ROUND' | 'CLEAVING_BINDINGS' | 'ACTOR' | 'MAINTENANCE_SLOT' }
+  {
+    kind:
+      | 'INPUTS'
+      | 'INITIATIVE_ROUND'
+      | 'CLEAVING_BINDINGS'
+      | 'ACTOR'
+      | 'MAINTENANCE_SLOT'
+      | 'SCENE_SPATIAL_EFFECTS'
+  }
 >
 
 /**

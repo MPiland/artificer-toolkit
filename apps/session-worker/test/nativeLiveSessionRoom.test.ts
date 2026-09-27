@@ -17,7 +17,7 @@ import {
   liveSessionDrainReleaseInputSchema,
   liveSessionPublishInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
-import { liveSessionMovementBeginInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
+import { liveSessionMovementStageInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import {
   liveSessionEncounterBindingCommitInputSchema,
   liveSessionSceneGeometryCommitInputSchema
@@ -1468,12 +1468,12 @@ it.each([false, true])(
 type ExternalConvex = {
   calls: string[]
   commits: Array<ReturnType<typeof liveSessionSceneGeometryCommitInputSchema.parse>>
-  begins: Array<ReturnType<typeof liveSessionMovementBeginInputSchema.parse>>
+  stages: Array<ReturnType<typeof liveSessionMovementStageInputSchema.parse>>
   stagedOwners: Array<string | null>
   /** What the next commit does: answer, time out (no response) or refuse. */
   commit: 'COMMIT' | 'TIMEOUT' | 'REFUSE'
   resolve: 'COMMITTED' | 'ABANDONED'
-  begin?: (body: ReturnType<typeof liveSessionMovementBeginInputSchema.parse>) => Response | null
+  stage?: (body: ReturnType<typeof liveSessionMovementStageInputSchema.parse>) => Response | null
 }
 
 /** A fake Convex for the room's Convex-first pipeline (D27); it records each private route call. */
@@ -1481,53 +1481,46 @@ async function installExternalConvex(base: Awaited<ReturnType<typeof fixture>>) 
   const convex: ExternalConvex = {
     calls: [],
     commits: [],
-    begins: [],
+    stages: [],
     stagedOwners: [],
     commit: 'COMMIT',
     resolve: 'COMMITTED'
   }
   await routeEncounterRequests(base, async (pathname, request) => {
-    if (pathname === '/live-sessions/encounter-movement-begin') {
-      convex.calls.push('begin')
-      const body = liveSessionMovementBeginInputSchema.parse(await request.json())
-      convex.begins.push(body)
-      const custom = convex.begin?.(body)
+    if (pathname === '/live-sessions/encounter-movement-stage') {
+      convex.calls.push('stage')
+      const body = liveSessionMovementStageInputSchema.parse(await request.json())
+      convex.stages.push(body)
+      const custom = convex.stage?.(body)
       if (custom) return custom
       if (body.command.type !== 'MOVE_SCENE_TOKEN' && body.command.type !== 'SET_SCENE_DOOR_STATE')
         throw new Error('Unexpected external decision.')
+      const saveId = crypto.randomUUID()
       return Response.json({
-        kind: 'READY',
-        saveId: crypto.randomUUID(),
-        input: body.command,
-        header: base.capture.sceneHeader,
-        encounterId: base.capture.sceneEncounterId
+        kind: 'STAGED',
+        begun: {
+          kind: 'READY',
+          saveId,
+          input: body.command,
+          header: base.capture.sceneHeader,
+          encounterId: base.capture.sceneEncounterId
+        },
+        saveId,
+        capture: null
       })
-    }
-    if (pathname === '/live-sessions/encounter-movement-observe') {
-      convex.calls.push('observe')
-      const body = (await request.json()) as { saveId: string }
-      return Response.json({ saveId: body.saveId })
-    }
-    if (pathname === '/live-sessions/encounter-movement-stage-fog') {
-      convex.calls.push('stageFog')
-      const body = (await request.json()) as {
-        saveId: string
-        layer: { ownerUserId: string | null }
-      }
-      convex.stagedOwners.push(body.layer.ownerUserId)
-      return Response.json({ saveId: body.saveId })
     }
     if (pathname === '/live-sessions/scene-geometry') {
       convex.calls.push('commit')
       const body = liveSessionSceneGeometryCommitInputSchema.parse(await request.json())
       convex.commits.push(body)
+      convex.stagedOwners.push(...body.fogLayers.map((layer) => layer.ownerUserId))
       if (convex.commit === 'TIMEOUT') throw new TypeError('The Convex request timed out.')
       if (convex.commit === 'REFUSE')
         return new Response('Live Session Scene commit unavailable.', { status: 409 })
-      const begin = convex.begins.at(-1)!
+      const stage = convex.stages.at(-1)!
       return Response.json({
         sceneId: body.expectedScene.sceneId,
-        commandId: begin.command.commandId,
+        commandId: stage.command.commandId,
         version: body.expectedScene.version,
         occurrence: null,
         replayed: false,
@@ -1585,8 +1578,8 @@ it('commits a move on an Encounter-bound Scene Convex-first with the authority a
       expect.objectContaining({ commandId, sequence: 1, type: 'COMMAND_COMMITTED' })
     )
   )
-  // Fog is OFF, so the Scene vision is observed but no fog layer is staged.
-  expect(convex.calls).toEqual(['begin', 'observe', 'commit'])
+  // One stage (begin and observe the Scene vision) and one commit; fog is OFF, so no layer (D52).
+  expect(convex.calls).toEqual(['stage', 'commit'])
   const moved = {
     ...value.scene,
     tokens: value.scene.tokens.map((token) => ({ ...token, position: { x: 20, y: 10 } })),
@@ -1599,6 +1592,7 @@ it('commits a move on an Encounter-bound Scene Convex-first with the authority a
       expectedUserId: base.userId,
       expectedRole: 'OWNER',
       finish: { saveId: expect.any(String), baseOrdinal: 0 },
+      fogLayers: [],
       authority: {
         sequence: 1,
         expectedStateChecksum: initial.stateChecksum,
@@ -1646,7 +1640,7 @@ it('commits a move on an Encounter-bound Scene Convex-first with the authority a
       expect.objectContaining({ code: 'INVALID_COMMAND', commandId, type: 'COMMAND_REJECTED' })
     )
   )
-  expect(convex.calls).toEqual(['begin', 'observe', 'commit'])
+  expect(convex.calls).toEqual(['stage', 'commit'])
 })
 
 it('stages each fog owner on a fog-deriving move and resynchronizes the table', async () => {
@@ -1686,7 +1680,8 @@ it('stages each fog owner on a fog-deriving move and resynchronizes the table', 
       })
     )
   )
-  expect(convex.calls).toEqual(['begin', 'observe', 'stageFog', 'stageFog', 'commit'])
+  // Each owner's complete layer travels with the commit, which stages it in its transaction (D52).
+  expect(convex.calls).toEqual(['stage', 'commit'])
   expect(convex.stagedOwners.sort()).toEqual([first, second].sort())
 })
 
@@ -1900,7 +1895,7 @@ it('binds an Encounter to the presented Scene through the room, GM only, then mo
       expect.objectContaining({ commandId: moveId, sequence: 2, type: 'COMMAND_COMMITTED' })
     )
   )
-  expect(convex.calls).toEqual(['begin', 'observe', 'commit'])
+  expect(convex.calls).toEqual(['stage', 'commit'])
 })
 
 it('keeps the record of a binding whose commit timed out and settles it by its binding subject', async () => {
@@ -1961,7 +1956,7 @@ it('surfaces a player domain rejection from Convex with the Scene correction', a
     expect(player.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
   )
   const convex = await installExternalConvex(base)
-  convex.begin = () =>
+  convex.stage = () =>
     Response.json(
       {
         code: 'DOMAIN_REJECTED',
@@ -1993,7 +1988,7 @@ it('surfaces a player domain rejection from Convex with the Scene correction', a
     )
   )
   // The room never applies the token's own controller list to a bound token.
-  expect(convex.begins).toHaveLength(1)
+  expect(convex.stages).toHaveLength(1)
   expect(await journalEvidence(base)).toEqual({
     authority: { published_sequence: 0, sequence: 0 },
     outboxCount: 0,
@@ -2053,7 +2048,7 @@ it('holds moves and door changes on a Scene waiting on a movement decision, and 
   )
 })
 
-it('sends a GM void of a presented movement decision through the room (D26)', async () => {
+it('stages a GM void of a held movement decision without a route read (D26, D52)', async () => {
   const value = movementScene(crypto.randomUUID())
   const base = await fixture(value.scene)
   const encounterId = crypto.randomUUID()
@@ -2067,7 +2062,7 @@ it('sends a GM void of a presented movement decision through the room (D26)', as
     routes.push(await request.json())
     return Response.json({ route: 'MOVEMENT', decline: null })
   })
-  convex.begin = () =>
+  convex.stage = () =>
     Response.json(
       {
         code: 'DOMAIN_REJECTED',
@@ -2101,12 +2096,55 @@ it('sends a GM void of a presented movement decision through the room (D26)', as
       })
     )
   )
-  expect(routes).toEqual([
-    expect.objectContaining({
-      command: expect.objectContaining({ type: 'VOID_RULE_OCCURRENCE', encounterId })
+  // The room holds this Encounter's movement decision, so the stage routes it in the same call.
+  expect(routes).toEqual([])
+  expect(convex.stages).toEqual([expect.objectContaining({ command })])
+  expect(convex.calls).toEqual(['stage'])
+})
+
+it('plans a held decision on the planner its stage names when it is no longer a movement decision (D52)', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  const encounterId = crypto.randomUUID()
+  base.capture.sceneEncounterId = encounterId
+  base.capture.sceneMovementDecisionPending = true
+  await synchronizeScene(base, value.scene)
+  const convex = await installExternalConvex(base)
+  // The held occurrence was settled elsewhere: Convex routes the void to its own recording.
+  convex.stage = () => Response.json({ kind: 'ROUTED', route: { route: 'VOID', decline: null } })
+  const routed: string[] = []
+  await routeEncounterRequests(base, async (pathname) => {
+    if (pathname === '/live-sessions/encounter-route') routed.push(pathname)
+    if (pathname !== '/live-sessions/encounter-void-prepare') return undefined
+    routed.push(pathname)
+    return Response.json({
+      kind: 'COMPLETE',
+      result: encounterResult(base.capture.campaignId, encounterId)
     })
-  ])
-  expect(convex.begins).toEqual([expect.objectContaining({ command })])
+  })
+  const command = {
+    type: 'VOID_RULE_OCCURRENCE',
+    encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: 5,
+    occurrenceId: crypto.randomUUID(),
+    expectedOccurrenceVersion: 1
+  } as const
+  base.messages.length = 0
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: { scope: 'ENCOUNTER', command }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ commandId: command.commandId, type: 'COMMAND_COMMITTED' })
+    )
+  )
+  expect(convex.calls).toEqual(['stage'])
+  expect(routed).toEqual(['/live-sessions/encounter-void-prepare'])
 })
 
 it('refuses a movement decision off the presented Scene without staging it (D42)', async () => {
@@ -2149,7 +2187,7 @@ it('refuses a movement decision off the presented Scene without staging it (D42)
       })
     )
   )
-  expect(convex.begins).toEqual([])
+  expect(convex.stages).toEqual([])
 })
 
 it('settles an unsettled commit before the drain fence when the room closes', async () => {

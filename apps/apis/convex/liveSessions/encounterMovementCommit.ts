@@ -25,6 +25,8 @@ import {
   readSpatialPreparation
 } from '../scenes/geometryDocuments'
 import { publishSceneGeometry } from '../scenes/geometryPublication'
+import { stageSceneGeometryFog } from '../scenes/geometryStaging'
+import { persistSpatialPreparation } from '../scenes/spatialPreparationPersistence'
 import {
   publishSpatialTerminal,
   type SpatialTerminalPublicationCallbacks
@@ -119,7 +121,17 @@ export async function commitLiveMovement(
     campaignId: input.campaignId,
     epoch: input.authorityEpoch
   })
-  const current = await readGeometrySave(ctx, input.movement.saveId)
+  const { saveId } = input.movement
+  const staged = await readGeometrySave(ctx, saveId)
+  // The room's frozen plan and fog layers stage in this transaction, after every captured owner is
+  // checked (D52); a completed publication validates its receipt before the revisions it consumed.
+  const admission =
+    staged.save.status === 'PUBLISHED' ? null : await readLiveMovementWriteAdmission(ctx, input)
+  if (admission) {
+    await persistSpatialPreparation(ctx, saveId, input.preparation)
+    for (const layer of input.fogLayers) await stageSceneGeometryFog(ctx, { saveId, layer })
+  }
+  const current = admission ? await readGeometrySave(ctx, saveId) : staged
   const { save, campaign, membership } = current
   const preparation = readSpatialPreparation(save)
   if (
@@ -140,9 +152,6 @@ export async function commitLiveMovement(
       resolution.command.occurrenceId !== input.voidCommand.occurrenceId.toLowerCase())
   )
     throw new Error('Live movement void does not match its declined decision.')
-  // Completed publication validates its receipt before revisions consumed by that publication.
-  const admission =
-    save.status === 'PUBLISHED' ? null : await readLiveMovementWriteAdmission(ctx, input)
   let settled = false
   const settle = async () => {
     if (!admission || settled || preparation.outcome.kind === 'UNINTERRUPTED')

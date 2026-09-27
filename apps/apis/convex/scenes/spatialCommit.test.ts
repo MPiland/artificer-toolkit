@@ -462,7 +462,10 @@ it('refuses a commit whose frozen preparation differs from the room plan', async
     })
   })
   const before = await current(value)
-  await expect(finish(value)).rejects.toThrow('Live movement commit scope mismatch.')
+  // The commit freezes the room's plan first and never replaces different frozen evidence (D52).
+  await expect(finish(value)).rejects.toThrow(
+    'Spatial preparation cannot replace previously frozen evidence.'
+  )
   expect(await current(value)).toEqual(before)
 })
 

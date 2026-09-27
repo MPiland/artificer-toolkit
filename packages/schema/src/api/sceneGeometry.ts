@@ -95,18 +95,19 @@ export const sceneGeometryCommandResultSchema = z
         })
     })
   )
+export const sceneGeometryBeginReadySchema = z.strictObject({
+  kind: z.literal('READY'),
+  saveId: postgresUuidSchema,
+  input: sceneNativeGeometryCommandInputSchema,
+  header: sceneLiveStateHeaderSchema,
+  /** The Encounter bound to the Scene, if any; its token moves carry Encounter rules. */
+  encounterId: z.nullable(postgresUuidSchema),
+  movementStartDistance: z.optional(z.number().check(z.nonnegative())),
+  sessionVision: z.optional(sceneSessionVisionScopeSchema)
+})
 export const sceneGeometryBeginResultSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('REPLAY'), result: sceneGeometryCommandResultSchema }),
-  z.strictObject({
-    kind: z.literal('READY'),
-    saveId: postgresUuidSchema,
-    input: sceneNativeGeometryCommandInputSchema,
-    header: sceneLiveStateHeaderSchema,
-    /** The Encounter bound to the Scene, if any; its token moves carry Encounter rules. */
-    encounterId: z.nullable(postgresUuidSchema),
-    movementStartDistance: z.optional(z.number().check(z.nonnegative())),
-    sessionVision: z.optional(sceneSessionVisionScopeSchema)
-  })
+  sceneGeometryBeginReadySchema
 ])
 export const sceneGeometrySaveLookupSchema = z.strictObject({ saveId: postgresUuidSchema })
 export const sceneGeometryStageFogInputSchema = z.extend(sceneGeometrySaveLookupSchema, {

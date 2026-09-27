@@ -30,17 +30,8 @@ const encounterRules = makeFunctionReference<'query', JsonObject, unknown>(
 const encounterBundle = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/encounterCaptureBundle:capture'
 )
-const encounterMovementBegin = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterMovement:begin'
-)
-const encounterMovementPrepare = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterMovement:prepare'
-)
-const encounterMovementObserve = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterMovement:observe'
-)
-const encounterMovementStageFog = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterMovement:stageFog'
+const encounterMovementStage = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterMovement:stage'
 )
 const encounterMovementCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterMovement:commit'
@@ -123,25 +114,10 @@ export const encounterBundleHttp = liveStateHttp(
   'Live Session Encounter inputs unavailable.',
   (ctx, input) => ctx.runQuery(encounterBundle, input)
 )
-export const encounterMovementBeginHttp = liveStateHttp(
+export const encounterMovementStageHttp = liveStateHttp(
   true,
   'Live Session movement preparation unavailable.',
-  (ctx, input) => ctx.runMutation(encounterMovementBegin, input)
-)
-export const encounterMovementPrepareHttp = liveStateHttp(
-  true,
-  'Live Session movement evidence unavailable.',
-  (ctx, input) => ctx.runMutation(encounterMovementPrepare, input)
-)
-export const encounterMovementObserveHttp = liveStateHttp(
-  true,
-  'Live Session movement vision unavailable.',
-  (ctx, input) => ctx.runMutation(encounterMovementObserve, input)
-)
-export const encounterMovementStageFogHttp = liveStateHttp(
-  true,
-  'Live Session movement fog unavailable.',
-  (ctx, input) => ctx.runMutation(encounterMovementStageFog, input)
+  (ctx, input) => ctx.runMutation(encounterMovementStage, input)
 )
 export const encounterMovementCommitHttp = liveStateHttp(
   true,

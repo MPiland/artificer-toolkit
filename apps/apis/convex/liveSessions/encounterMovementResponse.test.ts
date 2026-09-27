@@ -1,8 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type { LiveSessionMovementBeginInput } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
-import type { SceneGeometryBeginResult } from '@artificer-toolkit/schema/api/sceneGeometry'
+import type {
+  LiveSessionMovementStage,
+  LiveSessionMovementStageInput
+} from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import {
@@ -17,11 +19,11 @@ const observe = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-const privateBegin = makeFunctionReference<
+const privateStage = makeFunctionReference<
   'mutation',
-  LiveSessionMovementBeginInput,
-  SceneGeometryBeginResult
->('liveSessions/encounterMovement:begin')
+  LiveSessionMovementStageInput,
+  LiveSessionMovementStage
+>('liveSessions/encounterMovement:stage')
 
 it('stages a current movement choice only for its live authority and actor, with exact replay and no gameplay writes', async () => {
   const value = await setupAutomaticSceneMovement({
@@ -57,12 +59,15 @@ it('stages a current movement choice only for its live authority and actor, with
       createdAt: value.base.campaign.createdAt
     })
   )
-  const input: LiveSessionMovementBeginInput = {
+  const input: LiveSessionMovementStageInput = {
     campaignId: value.base.campaign.id,
     authorityEpoch: epoch,
     expectedUserId: value.owner.userId,
     expectedRole: 'OWNER',
-    command
+    command,
+    characterRevisions: [],
+    tokenOrdinals: value.request.tokenOrdinals,
+    maintenanceDefinitionIds: []
   }
   const gameplay = () =>
     value.base.t.run(async (ctx) => ({
@@ -86,13 +91,13 @@ it('stages a current movement choice only for its live authority and actor, with
     { campaignId: crypto.randomUUID() }
   ])
     await expect(
-      value.owner.caller.mutation(privateBegin, { ...input, ...change })
+      value.owner.caller.mutation(privateStage, { ...input, ...change })
     ).rejects.toThrow()
   expect(await gameplay()).toEqual(before)
   expect(await saves()).toEqual(beforeSaves)
 
-  const staged = await value.owner.caller.mutation(privateBegin, input)
-  if (staged.kind !== 'READY') throw new Error('Expected private movement response staging.')
+  const staged = await value.owner.caller.mutation(privateStage, input)
+  if (staged.kind !== 'STAGED') throw new Error('Expected private movement response staging.')
   const afterSaves = await saves()
   expect(afterSaves).toHaveLength(beforeSaves.length + 1)
   const save = afterSaves.find((entry) => entry.id === staged.saveId)
@@ -110,15 +115,15 @@ it('stages a current movement choice only for its live authority and actor, with
   expect(save?.movementResolution?.pendingSnapshotChecksum).toBeTruthy()
   expect(await gameplay()).toEqual(before)
 
-  await expect(value.owner.caller.mutation(privateBegin, input)).resolves.toEqual(staged)
+  await expect(value.owner.caller.mutation(privateStage, input)).resolves.toEqual(staged)
   await expect(
-    value.owner.caller.mutation(privateBegin, {
+    value.owner.caller.mutation(privateStage, {
       ...input,
       command: { ...command, resolution: { kind: 'DECLINE' } }
     })
   ).rejects.toThrow('already used')
   await expect(
-    value.player.caller.mutation(privateBegin, {
+    value.player.caller.mutation(privateStage, {
       ...input,
       expectedUserId: value.player.userId,
       expectedRole: 'PLAYER'

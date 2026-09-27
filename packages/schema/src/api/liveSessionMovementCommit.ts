@@ -5,12 +5,13 @@ import { liveSessionMovementCaptureScopeSchema } from './liveSessionEncounterMov
 import {
   sceneGeometryCommandResultSchema,
   sceneGeometryFinishInputSchema,
-  sceneGeometryObserveInputSchema,
-  sceneGeometrySaveLookupSchema,
-  sceneGeometryStageFogInputSchema,
   scenePresentationFenceSchema
 } from './sceneGeometry.js'
-import { bindEncounterToPresentedSceneInputDtoSchema, sceneDeltaDtoSchema } from './vttScenes.js'
+import {
+  bindEncounterToPresentedSceneInputDtoSchema,
+  sceneDeltaDtoSchema,
+  sceneFogLayerDtoSchema
+} from './vttScenes.js'
 import { encounterCommandResultDtoSchema } from './encounterData.js'
 import { voidRuleOccurrenceInputDtoSchema } from './encounterRuleCommands.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
@@ -71,6 +72,10 @@ export const liveSessionMovementSettlementSchema = z.discriminatedUnion('kind', 
   })
 ])
 
+/**
+ * The room's frozen movement plan and the captured reads it rests on. The movement commit checks
+ * every captured owner and persists the plan on its save before it publishes, in one transaction.
+ */
 export const liveSessionMovementPrepareInputSchema = z.extend(liveSessionBootstrapInputSchema, {
   expectedRole: z.enum(['OWNER', 'PLAYER']),
   movement: liveSessionMovementCaptureScopeSchema,
@@ -98,9 +103,14 @@ export const liveSessionExpectedSceneSchema = z.strictObject({
   delta: z.nullable(sceneDeltaDtoSchema)
 })
 
+/**
+ * Every room Scene commit also stages each fog owner's complete layer on its save, in the commit's
+ * own transaction (D52); a retry of a published save stages nothing again.
+ */
 const externalCommit = {
   authority: liveSessionExternalAuthoritySchema,
-  expectedScene: liveSessionExpectedSceneSchema
+  expectedScene: liveSessionExpectedSceneSchema,
+  fogLayers: z.array(sceneFogLayerDtoSchema).check(z.maxLength(101))
 }
 
 /** A room Scene commit that carries no Encounter rules: a token move or a door change. */
@@ -108,18 +118,6 @@ export const liveSessionSceneGeometryCommitInputSchema = z.extend(liveSessionBoo
   finish: sceneGeometryFinishInputSchema,
   ...externalCommit
 })
-
-export const liveSessionSceneGeometryObserveInputSchema = z.extend(
-  liveSessionBootstrapInputSchema,
-  sceneGeometryObserveInputSchema.shape
-)
-
-/** Stages one complete fog layer; returns the geometry save, which is unchanged. */
-export const liveSessionSceneGeometryStageFogInputSchema = z.extend(
-  liveSessionBootstrapInputSchema,
-  sceneGeometryStageFogInputSchema.shape
-)
-export const liveSessionSceneGeometrySaveResponseSchema = sceneGeometrySaveLookupSchema
 
 /**
  * A room Encounter binding (D47): the GM binds an Encounter to the room's presented Scene. Convex

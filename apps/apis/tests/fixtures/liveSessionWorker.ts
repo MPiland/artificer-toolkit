@@ -4,6 +4,7 @@ import type {
   LiveSessionExternalAuthority,
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   preparedMovementCost,
@@ -34,6 +35,7 @@ import type { MutationCtx, QueryCtx } from '../../convex/_generated/server'
 import * as rollRandom from '../../convex/lib/rollRandom'
 import type schema from '../../convex/schema'
 import { parseGeometrySave } from '../../convex/scenes/geometryDocuments'
+import { persistSpatialPreparation } from '../../convex/scenes/spatialPreparationPersistence'
 import {
   callLiveSessionRoute,
   LiveSessionDomainRejectionError,
@@ -55,6 +57,7 @@ import { commitLiveMovement } from '../../convex/liveSessions/encounterMovementC
 import {
   commitExternalSceneCommit,
   prepareExternalSceneCommit,
+  stageExternalSceneCommand,
   type ExternalSceneContext,
   type ExternalSceneCommand
 } from '../../../session-worker/src/nativeExternalSceneCommit'
@@ -122,7 +125,7 @@ async function roomSceneContext(
   room: { environment: ReturnType<typeof workerEnvironment>; accessToken: string },
   actor: Omit<LiveEncounterActor, 'authorityEpoch'>,
   encounterId: string
-): Promise<ExternalSceneContext | null> {
+): Promise<(ExternalSceneContext & { movementDecisionPending: boolean }) | null> {
   const capture = await callLiveSessionRoute(room.environment, room.accessToken, 'capture', {
     campaignId: actor.campaignId,
     expectedUserId: actor.expectedUserId,
@@ -138,7 +141,8 @@ async function roomSceneContext(
     scene: hydrated.scene,
     baseOrdinals: hydrated.baseOrdinals,
     characterRevisions: hydrated.characterRevisions,
-    presentation: { expectedPresentationVersion: capture.presentation.version }
+    presentation: { expectedPresentationVersion: capture.presentation.version },
+    movementDecisionPending: capture.sceneMovementDecisionPending
   }
 }
 
@@ -157,6 +161,7 @@ async function stageRoomMovement(input: {
   command: ExternalSceneCommand
   random: (maximum: number) => number
   captures?: LiveCaptureReads
+  staged?: LiveSessionMovementStage
 }) {
   const { caller, room, actor } = input
   const context = await roomSceneContext(room, actor, input.encounterId)
@@ -167,7 +172,8 @@ async function stageRoomMovement(input: {
     command: input.command,
     context,
     random: input.random,
-    captures: input.captures
+    captures: input.captures,
+    staged: input.staged
   })
   if (prepared.kind !== 'MOVEMENT') throw new Error('Expected an Encounter movement commit.')
   return {
@@ -186,7 +192,8 @@ async function stageRoomMovement(input: {
 /**
  * Sends one Encounter command through the room's dispatcher (`executeLiveEncounterCommand`) as a
  * member. The Campaign needs an active live authority at `actor.authorityEpoch`. A movement decision
- * commits with the presented Scene (`stageRoomMovement`).
+ * commits with the presented Scene (`stageRoomMovement`); like the room, a decision on the presented
+ * Scene's Encounter while it holds a movement decision is staged first, which also routes it (D52).
  */
 export function executeRoomEncounterCommand(input: {
   caller: Pick<MemberCaller, 'fetch' | 'run'>
@@ -201,7 +208,13 @@ export function executeRoomEncounterCommand(input: {
       actor: input.actor,
       command: input.command,
       random,
-      movement: async (command, captures) => {
+      stageHeldMovement: async (command) => {
+        const context = await roomSceneContext(room, input.actor, command.encounterId)
+        return context?.movementDecisionPending
+          ? stageExternalSceneCommand({ ...room, actor: input.actor, command, context })
+          : null
+      },
+      movement: async (command, captures, held) => {
         const staged = await stageRoomMovement({
           caller: input.caller,
           room,
@@ -209,7 +222,8 @@ export function executeRoomEncounterCommand(input: {
           encounterId: command.encounterId,
           command,
           random,
-          captures
+          captures,
+          staged: held
         })
         const { encounter } = await staged.commit()
         if (!encounter) throw new Error('A movement decision commit returned no Encounter result.')
@@ -445,7 +459,8 @@ export function planMovementDecisionInRoom(
 
 /**
  * Stages and plans a new Encounter-bound move through the room, as a tabletop drag reaches it:
- * begin with the presented Scene's fence, observe, plan the rules, freeze them and stage fog.
+ * one stage (begin with the presented Scene's fence, observe, capture) and the rules plan; the
+ * commit freezes the plan and stages fog.
  * Returns the move's save, the planned outcome and `publish`, like `planMovementDecisionInRoom`.
  */
 export async function planMovementInRoom(
@@ -457,7 +472,7 @@ export async function planMovementInRoom(
 
 /**
  * Plans a staged Encounter-bound move (its save already begun, with observed Character revisions)
- * as the room does with its presented Scene: the DO plans the rules and Convex freezes them. Returns
+ * as the room does with its presented Scene: the DO plans the rules, frozen on the save. Returns
  * the planned outcome with `publish`, like `planMovementDecisionInRoom`, and the commit input for a
  * test that commits it itself under a Campaign authority it inserted.
  */
@@ -512,11 +527,10 @@ export async function planStagedMovementInRoom(caller: MemberCaller, saveId: str
           request.kind === 'MAINTENANCE_OWNER' ? [request] : []
         )
       }
-      await callLiveSessionRoute(
-        room.environment,
-        room.accessToken,
-        'encounterMovementPrepare',
-        prepareInput
+      // Freeze the plan now, as the commit would, so a test can inspect or disturb the frozen save
+      // before it publishes; the commit then finds the identical preparation.
+      await caller.run((ctx) =>
+        persistSpatialPreparation(ctx, movement.saveId, prepareInput.preparation)
       )
       const walk = { path: input.path, startDistance: 0, outcome: planned.outcome }
       return {
@@ -534,7 +548,8 @@ export async function planStagedMovementInRoom(caller: MemberCaller, saveId: str
             })
           },
           rules: planned.rules,
-          settlements: planned.settlementInputs
+          settlements: planned.settlementInputs,
+          fogLayers: []
         }
       }
     })

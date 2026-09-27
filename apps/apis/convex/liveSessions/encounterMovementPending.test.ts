@@ -132,6 +132,7 @@ async function preparePrivateCommit(value: Fixture) {
     revisions,
     maintenanceOwners: [],
     finish: value.request,
+    fogLayers: [],
     ...(await value.base.t.run(async (ctx) => ({
       authority: await nextExternalAuthority(ctx, value.base.campaign.id),
       expectedScene: await expectedMovementScene(ctx, value.saveId, preparation.outcome)

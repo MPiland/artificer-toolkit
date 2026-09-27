@@ -1,7 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import type { LiveSessionMovementBeginInput } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
+import type {
+  LiveSessionMovementStage,
+  LiveSessionMovementStageInput
+} from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import type {
   LiveSessionEncounterRulesInput,
   LiveSessionEncounterRulesResponse
@@ -41,11 +44,11 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-const begin = makeFunctionReference<
+const stage = makeFunctionReference<
   'mutation',
-  LiveSessionMovementBeginInput,
-  SceneGeometryBeginResult
->('liveSessions/encounterMovement:begin')
+  LiveSessionMovementStageInput,
+  LiveSessionMovementStage
+>('liveSessions/encounterMovement:stage')
 const nativeBegin = makeFunctionReference<
   'mutation',
   SceneGeometryExecuteInput,
@@ -84,13 +87,19 @@ async function setup() {
   const presentation = { expectedPresentationVersion: 0 }
 
   const command = { ...input, commandId: crypto.randomUUID() }
-  const ownerBegin: LiveSessionMovementBeginInput = {
+  const ownerStage: LiveSessionMovementStageInput = {
     campaignId: base.campaign.id,
     authorityEpoch: epoch,
     expectedUserId: base.other.userId,
     expectedRole: 'OWNER',
     command,
-    presentation
+    presentation,
+    characterRevisions: [],
+    tokenOrdinals: base.tokens.map((token, baseOrdinal) => ({
+      tokenId: token.id.toLowerCase(),
+      baseOrdinal
+    })),
+    maintenanceDefinitionIds: []
   }
   const ownerCapture: LiveSessionEncounterRulesInput = {
     campaignId: base.campaign.id,
@@ -110,7 +119,7 @@ async function setup() {
     tokenId,
     command,
     presentation,
-    ownerBegin,
+    ownerStage,
     ownerCapture
   }
 }
@@ -123,8 +132,8 @@ it('stages owner movement privately and captures its bound raw inputs', async ()
       presentation: base.presentation
     })
   ).rejects.toThrow()
-  const staged = await base.other.caller.mutation(begin, base.ownerBegin)
-  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  const staged = await base.other.caller.mutation(stage, base.ownerStage)
+  if (staged.kind !== 'STAGED') throw new Error('Expected a receiving geometry save.')
   const scope: LiveSessionEncounterRulesInput = {
     ...base.ownerCapture,
     movement: { ...base.ownerCapture.movement!, saveId: staged.saveId }
@@ -173,8 +182,8 @@ it('prepares Worker movement from current private captures and rejects stale roo
       projectionChecksum: checksumCanonicalJson(projection)
     })
   })
-  const staged = await base.other.caller.mutation(begin, base.ownerBegin)
-  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  const staged = await base.other.caller.mutation(stage, base.ownerStage)
+  if (staged.kind !== 'STAGED') throw new Error('Expected a receiving geometry save.')
   const scene = await base.other.caller.run(async (ctx): Promise<CampaignSceneState> => {
     const { header } = await readLiveScene(ctx, base.sceneId, 'MEMBER')
     const page = await readCurrentEntities(
@@ -279,13 +288,13 @@ it('allows a controlling player to stage and capture movement, while rejecting a
       controllerUserIds: [base.owner.userId]
     })
   })
-  const playerBegin: LiveSessionMovementBeginInput = {
-    ...base.ownerBegin,
+  const playerStage: LiveSessionMovementStageInput = {
+    ...base.ownerStage,
     expectedUserId: base.owner.userId,
     expectedRole: 'PLAYER'
   }
-  const staged = await base.owner.caller.mutation(begin, playerBegin)
-  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  const staged = await base.owner.caller.mutation(stage, playerStage)
+  if (staged.kind !== 'STAGED') throw new Error('Expected a receiving geometry save.')
   const scope: LiveSessionEncounterRulesInput = {
     ...base.ownerCapture,
     expectedUserId: base.owner.userId,
@@ -304,8 +313,8 @@ it('allows a controlling player to stage and capture movement, while rejecting a
   ).rejects.toThrow()
   // A token bound to an actor the player does not control is refused before anything is staged.
   await expect(
-    base.owner.caller.mutation(begin, {
-      ...playerBegin,
+    base.owner.caller.mutation(stage, {
+      ...playerStage,
       command: {
         ...base.command,
         commandId: crypto.randomUUID(),
@@ -328,32 +337,32 @@ it('allows a controlling player to stage and capture movement, while rejecting a
   await expect(base.owner.caller.query(capture, scope)).rejects.toThrow('unlocked token')
 })
 
-it('rejects a staged movement whose path starts away from the token', async () => {
+it('rejects a staged movement whose path starts away from the token, staging nothing', async () => {
   const base = await setup()
-  const staged = await base.other.caller.mutation(begin, {
-    ...base.ownerBegin,
-    command: {
-      ...base.command,
-      path: [
-        { x: 1, y: 0 },
-        { x: 10, y: 0 }
-      ]
-    }
-  })
-  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  const saves = () =>
+    base.t.run(async (ctx) => (await ctx.db.query('sceneGeometrySaves').collect()).length)
+  const before = await saves()
+  // The movement capture the stage reads refuses it, and the begun save rolls back with it (D52).
   await expect(
-    base.other.caller.query(capture, {
-      ...base.ownerCapture,
-      movement: { ...base.ownerCapture.movement!, saveId: staged.saveId }
+    base.other.caller.mutation(stage, {
+      ...base.ownerStage,
+      command: {
+        ...base.command,
+        path: [
+          { x: 1, y: 0 },
+          { x: 10, y: 0 }
+        ]
+      }
     })
   ).rejects.toThrow('position is stale')
+  expect(await saves()).toBe(before)
 })
 
 it('does not let movement scope read a Character through a custom Encounter actor', async () => {
   const base = await setup()
   const { character } = await base.createCharacter()
-  const staged = await base.other.caller.mutation(begin, base.ownerBegin)
-  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  const staged = await base.other.caller.mutation(stage, base.ownerStage)
+  if (staged.kind !== 'STAGED') throw new Error('Expected a receiving geometry save.')
   await expect(
     base.other.caller.query(characterCapture, {
       campaignId: base.campaign.id,
@@ -380,7 +389,7 @@ it('rejects identity, role, epoch, Encounter, and save ownership mismatches', as
     { campaignId: crypto.randomUUID() }
   ])
     await expect(
-      base.other.caller.mutation(begin, { ...base.ownerBegin, ...changed })
+      base.other.caller.mutation(stage, { ...base.ownerStage, ...changed })
     ).rejects.toThrow()
   for (const changed of [
     { expectedUserId: base.owner.userId },
@@ -405,14 +414,14 @@ it('rejects identity, role, epoch, Encounter, and save ownership mismatches', as
 it('rejects stale Scene, presentation, and Run snapshots', async () => {
   const base = await setup()
   await expect(
-    base.other.caller.mutation(begin, {
-      ...base.ownerBegin,
+    base.other.caller.mutation(stage, {
+      ...base.ownerStage,
       presentation: { expectedPresentationVersion: 1 }
     })
   ).rejects.toThrow()
   await expect(
-    base.other.caller.mutation(begin, {
-      ...base.ownerBegin,
+    base.other.caller.mutation(stage, {
+      ...base.ownerStage,
       command: { ...base.command, expectedSceneVersion: 1 }
     })
   ).rejects.toThrow()
@@ -494,8 +503,8 @@ it('rejects unbound movement and mixed concentration or turn command scopes', as
 
 it('bundles exactly the movement parts the separate captures return, with the System once', async () => {
   const base = await setup()
-  const staged = await base.other.caller.mutation(begin, base.ownerBegin)
-  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  const staged = await base.other.caller.mutation(stage, base.ownerStage)
+  if (staged.kind !== 'STAGED') throw new Error('Expected a receiving geometry save.')
   const { bundle, separate } = await base.other.caller.run((ctx) =>
     readBundleAndSeparateCaptures(
       ctx,
@@ -504,7 +513,9 @@ it('bundles exactly the movement parts the separate captures return, with the Sy
     )
   )
   expect(bundle.encounter[0]).toMatchObject({ kind: 'MOVEMENT_INPUTS' })
-  expect(bundle.encounter).toHaveLength(2 + 2 * base.run.actors.length)
+  // The admission, the first Scene spatial effect page, each actor and its Concentration slot, and
+  // the Run INPUTS.
+  expect(bundle.encounter).toHaveLength(3 + 2 * base.run.actors.length)
   expect(bundle.characters).toHaveLength(
     base.run.actors.filter((actor) => actor.kind === 'CHARACTER').length
   )

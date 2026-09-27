@@ -183,6 +183,7 @@ async function roomFixture(...setup: Parameters<typeof setupConcentration>) {
         runtime,
         random: () => 9,
         captureCache,
+        stageHeldMovement: async () => null,
         movement: async () => {
           throw new Error('This command sequence opens no movement decision.')
         }

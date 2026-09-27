@@ -720,7 +720,7 @@ it.each(['room', 'private'] as const)(
           createdAt: value.base.campaign.createdAt
         })
       )
-      const denied = await value.owner.caller.fetch('/live-sessions/encounter-movement-begin', {
+      const denied = await value.owner.caller.fetch('/live-sessions/encounter-movement-stage', {
         method: 'POST',
         headers: { 'x-artificer-live-session-secret': privateMovementWorkerSecret },
         body: JSON.stringify({
@@ -728,7 +728,10 @@ it.each(['room', 'private'] as const)(
           authorityEpoch: epoch,
           expectedUserId: value.player.userId,
           expectedRole: 'PLAYER',
-          command: concentration
+          command: concentration,
+          characterRevisions: [],
+          tokenOrdinals: [],
+          maintenanceDefinitionIds: []
         })
       })
       expect(denied.status).toBe(409)
@@ -743,7 +746,7 @@ it.each(['room', 'private'] as const)(
       )
       if (!assignment) throw new Error('Concentration controller assignment is unavailable.')
       await value.base.t.run((ctx) => ctx.db.delete(assignment._id))
-      const revoked = await value.player.caller.fetch('/live-sessions/encounter-movement-begin', {
+      const revoked = await value.player.caller.fetch('/live-sessions/encounter-movement-stage', {
         method: 'POST',
         headers: { 'x-artificer-live-session-secret': privateMovementWorkerSecret },
         body: JSON.stringify({
@@ -751,7 +754,10 @@ it.each(['room', 'private'] as const)(
           authorityEpoch: epoch,
           expectedUserId: value.player.userId,
           expectedRole: 'PLAYER',
-          command: concentration
+          command: concentration,
+          characterRevisions: [],
+          tokenOrdinals: [],
+          maintenanceDefinitionIds: []
         })
       })
       expect(revoked.status).toBe(422)

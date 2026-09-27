@@ -166,8 +166,7 @@ it('publishes a sealed movement response through the private DO path without rep
     if (
       ![
         '/live-sessions/encounter-rules',
-        '/live-sessions/encounter-movement-begin',
-        '/live-sessions/encounter-movement-prepare',
+        '/live-sessions/encounter-movement-stage',
         '/live-sessions/encounter-movement'
       ].includes(pathname)
     )
@@ -179,16 +178,19 @@ it('publishes a sealed movement response through the private DO path without rep
       throw new Error('Private movement response credentials are missing.')
     return value.owner.caller.fetch(pathname, init)
   })
+  const stageInput = {
+    ...common,
+    characterRevisions: [],
+    tokenOrdinals: value.request.tokenOrdinals,
+    maintenanceDefinitionIds: []
+  }
   const staged = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
-    'encounterMovementBegin',
-    {
-      ...common,
-      command
-    }
+    'encounterMovementStage',
+    { ...stageInput, command }
   )
-  if (staged.kind !== 'READY') throw new Error('Expected private response geometry staging.')
+  if (staged.kind !== 'STAGED') throw new Error('Expected private response geometry staging.')
   expect(await records()).toEqual(baseline)
   const loadScene = () =>
     value.owner.caller.run(async (ctx): Promise<CampaignSceneState> => {
@@ -263,8 +265,8 @@ it('publishes a sealed movement response through the private DO path without rep
   expect(planned.settlementInputs.some((entry) => entry.kind === 'SPATIAL')).toBe(false)
   expect(await records()).toEqual(baseline)
   await expect(
-    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementBegin', {
-      ...common,
+    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementStage', {
+      ...stageInput,
       command: { ...command, resolution: { kind: 'DECLINE' } }
     })
   ).rejects.toMatchObject({ status: 409 })
@@ -276,7 +278,7 @@ it('publishes a sealed movement response through the private DO path without rep
     occurredAt,
     outcome: planned.outcome
   }
-  const stageInput: LiveSessionMovementPrepareInput = {
+  const planInput: LiveSessionMovementPrepareInput = {
     ...common,
     movement: scope.movement,
     preparation,
@@ -285,25 +287,16 @@ it('publishes a sealed movement response through the private DO path without rep
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     )
   }
-  await expect(
-    callLiveSessionRoute(
-      environment,
-      'fixture-access-token',
-      'encounterMovementPrepare',
-      stageInput
-    )
-  ).resolves.toEqual(preparation)
-  expect(await records()).toEqual(baseline)
-  await value.owner.caller.mutation(observe, { saveId: staged.saveId, characterRevisions: [] })
   const commitInput: LiveSessionMovementCommitInput = {
-    ...stageInput,
+    ...planInput,
     finish: { ...value.request, saveId: staged.saveId },
     ...(await value.base.t.run(async (ctx) => ({
       authority: await nextExternalAuthority(ctx, value.base.campaign.id),
       expectedScene: await expectedMovementScene(ctx, staged.saveId, planned.outcome)
     }))),
     rules: planned.rules,
-    settlements: planned.settlementInputs
+    settlements: planned.settlementInputs,
+    fogLayers: []
   }
   await expect(
     callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementCommit', {
@@ -341,8 +334,8 @@ it('publishes a sealed movement response through the private DO path without rep
     )
   ).toMatchObject({ scene: { ...committed, replayed: true } })
   expect(
-    await callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementBegin', {
-      ...common,
+    await callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementStage', {
+      ...stageInput,
       command
     })
   ).toMatchObject({ kind: 'REPLAY' })
@@ -361,13 +354,10 @@ it('publishes a sealed movement response through the private DO path without rep
   const secondStaged = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
-    'encounterMovementBegin',
-    {
-      ...common,
-      command: secondCommand
-    }
+    'encounterMovementStage',
+    { ...stageInput, command: secondCommand }
   )
-  if (secondStaged.kind !== 'READY') throw new Error('Expected second response staging.')
+  if (secondStaged.kind !== 'STAGED') throw new Error('Expected second response staging.')
   const secondScope = {
     ...scope,
     expectedVersion: secondChoice.encounterVersion,
@@ -396,7 +386,7 @@ it('publishes a sealed movement response through the private DO path without rep
     occurredAt,
     outcome: secondPlanned.outcome
   }
-  const secondStageInput: LiveSessionMovementPrepareInput = {
+  const secondPlanInput: LiveSessionMovementPrepareInput = {
     ...common,
     movement: secondScope.movement,
     preparation: secondPreparation,
@@ -405,27 +395,16 @@ it('publishes a sealed movement response through the private DO path without rep
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     )
   }
-  await expect(
-    callLiveSessionRoute(
-      environment,
-      'fixture-access-token',
-      'encounterMovementPrepare',
-      secondStageInput
-    )
-  ).resolves.toEqual(secondPreparation)
-  await value.owner.caller.mutation(observe, {
-    saveId: secondStaged.saveId,
-    characterRevisions: []
-  })
   const secondCommitInput: LiveSessionMovementCommitInput = {
-    ...secondStageInput,
+    ...secondPlanInput,
     finish: { ...value.request, saveId: secondStaged.saveId },
     ...(await value.base.t.run(async (ctx) => ({
       authority: await nextExternalAuthority(ctx, value.base.campaign.id),
       expectedScene: await expectedMovementScene(ctx, secondStaged.saveId, secondPlanned.outcome)
     }))),
     rules: secondPlanned.rules,
-    settlements: secondPlanned.settlementInputs
+    settlements: secondPlanned.settlementInputs,
+    fogLayers: []
   }
   const { scene: terminal } = await callLiveSessionRoute(
     environment,

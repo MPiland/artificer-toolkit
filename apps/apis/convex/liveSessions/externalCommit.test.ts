@@ -19,7 +19,6 @@ import type {
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { createUniformSceneFogLayer } from '@artificer-toolkit/shared/vtt'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import { LiveCaptureCache } from '../../../session-worker/src/nativeCaptureCache'
 import {
@@ -240,19 +239,13 @@ it('runs a bound move, its answer and a GM skip through the room pipeline, advan
   })
   const second = await answered.commit()
   // Measured Convex round trips through the room: the first command also reads each System
-  // definition, which the room cache then serves; a warm command takes six.
-  const warm = [
-    '/live-sessions/encounter-movement-begin',
-    '/live-sessions/encounter-movement-observe',
-    '/live-sessions/encounter-bundle',
-    '/live-sessions/encounter-rules:SCENE_SPATIAL_EFFECTS',
-    '/live-sessions/encounter-movement-prepare',
-    '/live-sessions/encounter-movement'
-  ]
+  // definition, which the room cache then serves; a warm command takes two, the stage (route,
+  // begin, observe and capture bundle) and the commit (freeze, fog and publish) (D52).
+  const warm = ['/live-sessions/encounter-movement-stage', '/live-sessions/encounter-movement']
   expect(coldCalls).toEqual([
-    ...warm.slice(0, 4),
+    warm[0],
     ...Array(4).fill('/live-sessions/encounter-rules:DEFINITION'),
-    ...warm.slice(4)
+    warm[1]
   ])
   expect(calls).toEqual(warm)
   // A decision answer advances the room's sequence and returns its Encounter result.
@@ -364,7 +357,7 @@ it('resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit th
   ).rejects.toMatchObject({ status: 409 })
 }, 120_000)
 
-it('refuses private staging with a bad secret, identity or epoch, and a non-controller at begin', async () => {
+it('refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52)', async () => {
   const value = await setupAutomaticSceneMovement(twoChoices)
   const epoch = await activateRoom(value.base)
   routeRoom(value.owner)
@@ -374,21 +367,20 @@ it('refuses private staging with a bad secret, identity or epoch, and a non-cont
     expectedUserId: value.owner.userId,
     expectedRole: 'OWNER' as const
   }
-  const begun = await callLiveSessionRoute(
-    environment,
-    'fixture-access-token',
-    'encounterMovementBegin',
-    {
-      ...actor,
-      command: { ...value.rootInput, commandId: crypto.randomUUID() },
-      presentation: { expectedPresentationVersion: 0 }
-    }
-  )
-  if (begun.kind !== 'READY') throw new Error('Expected a receiving room save.')
-  expect(begun.encounterId).toBe(value.base.run.id)
-  const { scene } = await roomContext(actor)
-  const post = (path: string, body: unknown, secret: string | null) =>
-    value.owner.caller.fetch(path, {
+  const command = { ...value.rootInput, commandId: crypto.randomUUID() }
+  const stageInput = {
+    ...actor,
+    command,
+    presentation: { expectedPresentationVersion: 0 },
+    characterRevisions: [],
+    tokenOrdinals: value.request.tokenOrdinals,
+    maintenanceDefinitionIds: []
+  }
+  const saves = () =>
+    value.base.t.run(async (ctx) => (await ctx.db.query('sceneGeometrySaves').collect()).length)
+  const staged = await saves()
+  const post = (body: unknown, secret: string | null, caller = value.owner.caller) =>
+    caller.fetch('/live-sessions/encounter-movement-stage', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -396,44 +388,92 @@ it('refuses private staging with a bad secret, identity or epoch, and a non-cont
       },
       body: JSON.stringify(body)
     })
-  const observe = { ...actor, saveId: begun.saveId, characterRevisions: [] }
-  const stage = {
-    ...actor,
-    saveId: begun.saveId,
-    layer: createUniformSceneFogLayer(scene, { explored: true, ownerUserId: null })
-  }
-  for (const [path, body] of [
-    ['/live-sessions/encounter-movement-observe', observe],
-    ['/live-sessions/encounter-movement-stage-fog', stage]
+  for (const [body, secret, status] of [
+    [stageInput, null, 401],
+    [stageInput, 'wrong-worker-secret-that-is-long-enough', 401],
+    [{ ...stageInput, expectedUserId: value.player.userId }, workerSecret, 409],
+    [{ ...stageInput, authorityEpoch: crypto.randomUUID() }, workerSecret, 409],
+    // The presentation fence and the Scene version the begin checked.
+    [{ ...stageInput, presentation: { expectedPresentationVersion: 1 } }, workerSecret, 409],
+    [{ ...stageInput, command: { ...command, expectedSceneVersion: 1 } }, workerSecret, 409],
+    // The Encounter version the movement capture checked, after the begin and observe it follows.
+    [
+      {
+        ...stageInput,
+        command: { ...command, expectedEncounterVersion: command.expectedEncounterVersion + 1 }
+      },
+      workerSecret,
+      409
+    ]
   ] as const) {
-    expect((await post(path, body, null)).status).toBe(401)
-    expect((await post(path, body, 'wrong-worker-secret-that-is-long-enough')).status).toBe(401)
-    expect(
-      (await post(path, { ...body, expectedUserId: value.player.userId }, workerSecret)).status
-    ).toBe(409)
-    expect(
-      (await post(path, { ...body, authorityEpoch: crypto.randomUUID() }, workerSecret)).status
-    ).toBe(409)
+    expect((await post(body, secret)).status).toBe(status)
+    // The stage is one transaction: a refusal leaves no begun or observed save behind.
+    expect(await saves()).toBe(staged)
   }
 
   // The player controls only the mover; a reactor's token follows its actor's controllers.
   routeRoom(value.player)
+  const player = { ...actor, expectedUserId: value.player.userId, expectedRole: 'PLAYER' as const }
   await expect(
-    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementBegin', {
-      ...actor,
-      expectedUserId: value.player.userId,
-      expectedRole: 'PLAYER',
+    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementStage', {
+      ...stageInput,
+      ...player,
       command: {
         ...value.rootInput,
         commandId: crypto.randomUUID(),
         tokenId: value.reactorTokenIds[0]!,
         path: [value.tokens[0]!.position, { x: value.tokens[0]!.position.x, y: 450 }]
-      },
-      presentation: { expectedPresentationVersion: 0 }
+      }
     })
   ).rejects.toMatchObject({ status: 422, rejection: { reason: 'NOT_ACTOR_CONTROLLER' } })
-}, 120_000)
+  expect(await saves()).toBe(staged)
 
+  // A decision is routed first: another member's decision and a stale occurrence are refused as
+  // the route refused them, before anything is staged.
+  routeRoom(value.owner)
+  const moved = await runRoomCommit({
+    base: value.base,
+    member: value.owner,
+    role: 'OWNER',
+    epoch,
+    command
+  })
+  const choice = (await moved.commit()).scene.occurrence?.pending
+  if (choice?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected a reaction choice.')
+  const answer: ResolveRuleOccurrenceInputDto = {
+    type: 'RESOLVE_RULE_OCCURRENCE',
+    commandId: crypto.randomUUID(),
+    encounterId: value.base.run.id,
+    expectedVersion: choice.encounterVersion,
+    occurrenceId: choice.occurrenceId,
+    expectedOccurrenceVersion: choice.occurrenceVersion,
+    correlationId: null,
+    resolution: { kind: 'DECLINE' }
+  }
+  const decision = {
+    ...actor,
+    characterRevisions: [],
+    tokenOrdinals: [],
+    maintenanceDefinitionIds: []
+  }
+  const published = await saves()
+  routeRoom(value.player)
+  await expect(
+    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementStage', {
+      ...decision,
+      ...player,
+      command: answer
+    })
+  ).rejects.toMatchObject({ status: 422, rejection: { reason: 'NOT_ACTOR_CONTROLLER' } })
+  routeRoom(value.owner)
+  await expect(
+    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementStage', {
+      ...decision,
+      command: { ...answer, occurrenceId: crypto.randomUUID() }
+    })
+  ).rejects.toMatchObject({ status: 422, rejection: { reason: 'VERSION_STALE' } })
+  expect(await saves()).toBe(published)
+}, 120_000)
 it('commits an unbound fog-deriving move under live authority and stages its owner layer', async () => {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
@@ -487,10 +527,9 @@ it('commits an unbound fog-deriving move under live authority and stages its own
     }
   })
   const committed = await moved.commit()
+  // The owner's explored layer travels with the commit, which stages it in its transaction (D52).
   expect(calls).toEqual([
-    '/live-sessions/encounter-movement-begin',
-    '/live-sessions/encounter-movement-observe',
-    '/live-sessions/encounter-movement-stage-fog',
+    '/live-sessions/encounter-movement-stage',
     '/live-sessions/scene-geometry'
   ])
   expect(moved.prepared.fogChanged).toBe(true)
@@ -662,11 +701,9 @@ it("commits a player's door change on a fog-on Scene through the room, refusing 
   })
   const opened = await value.player(door(value.closed.id, value.version))
   const committed = await opened.commit()
-  // The player's opened door explores through it: the room stages the fog, then commits first.
+  // The player's opened door explores through it: the commit stages the fog as it publishes.
   expect(calls).toEqual([
-    '/live-sessions/encounter-movement-begin',
-    '/live-sessions/encounter-movement-observe',
-    '/live-sessions/encounter-movement-stage-fog',
+    '/live-sessions/encounter-movement-stage',
     '/live-sessions/scene-geometry'
   ])
   expect(opened.prepared.fogChanged).toBe(true)
