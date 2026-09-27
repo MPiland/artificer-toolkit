@@ -490,6 +490,46 @@ describe('encounter action rule warning gate', () => {
     expect(gate(2)).toEqual({ kind: 'UNACKNOWLEDGED', warnings: [rangeWarning] })
   })
 
+  it('treats a ranged single-target ON_USE action out of range as a warning, not a refusal', async () => {
+    const volley = quillVolley({ charges: 3, cost: 1 })
+    const [effect] = volley.effects ?? []
+    if (!effect || effect.invocation.kind !== 'ACTION') throw new Error('Expected an action.')
+    // Quill Volley simply happens to one target within 30 feet.
+    const ranged: typeof volley = {
+      ...volley,
+      effects: [
+        {
+          ...effect,
+          invocation: {
+            ...effect.invocation,
+            range: { id: effect.invocation.range.id, rangeKind: 'DISTANCE', amount: 30, unit: 'FEET' }
+          }
+        }
+      ]
+    }
+    const prepared = await prepareCreatureAction({
+      actor: creatureActor({ id: ACTOR_ID, label: 'Quill Beast', features: [ranged] }),
+      target: creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] }),
+      featureId: QUILL_VOLLEY_ID,
+      overridable: true
+    })
+    const gate = (targetColumn: number) =>
+      evaluateEncounterActionRuleWarnings({
+        preparedWarnings: prepared.ruleWarnings,
+        target: {
+          actor: prepared.actor,
+          target: prepared.target,
+          targetPolicy: prepared.targetPolicy,
+          sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
+        },
+        actionEconomy: null,
+        activationCode: 'ACTION',
+        acknowledged: []
+      })
+    expect(gate(6)).toEqual({ kind: 'ACCEPTED', overrides: [] })
+    expect(gate(7)).toEqual({ kind: 'UNACKNOWLEDGED', warnings: [rangeWarning] })
+  })
+
   it('accepts a clean action with no overrides and refuses an unsupported target policy', () => {
     const actor = { id: ACTOR_ID, disposition: 'HOSTILE' as const }
     const target = { id: TARGET_ID, disposition: 'FRIENDLY' as const }

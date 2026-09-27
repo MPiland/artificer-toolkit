@@ -1648,8 +1648,13 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const invocation = effect.invocation
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
+  // A DISTANCE or Touch range only warns when the target is out of range (D11).
   const supportsSingleTarget =
-    (invocation.range.rangeKind === 'UNLIMITED' || invocation.range.rangeKind === 'TOUCH') &&
+    (invocation.range.rangeKind === 'UNLIMITED' ||
+      invocation.range.rangeKind === 'TOUCH' ||
+      (invocation.range.rangeKind === 'DISTANCE' &&
+        Number.isSafeInteger(invocation.range.amount) &&
+        invocation.range.amount > 0)) &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
     invocation.targeting.dispositionKind === 'ANY' &&
     !invocation.targeting.excludedCreatureTypeIds?.length
