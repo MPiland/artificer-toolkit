@@ -5,12 +5,7 @@
 > Updated: 2026-09-27.
 
 ## Open
-
-- **M8 follow-ups (D61).** Each has a recommendation; nothing below blocks M8.
-  1. **Ranged range.** M8's new ranged attacks author their normal range as a `DISTANCE` range, so they run and warn beyond it (D11); long range with disadvantage has no model. 32 older ranged attacks author `SPECIAL` range, and most stay allowlisted (`SPECIAL_RANGE`). Options: (a) move every ranged and thrown attack to its normal range now, and model long range later (Phase 8.3); (b) keep `SPECIAL` until long range exists. **Recommendation:** (a); the room already warns and lets the GM override.
-  2. **A timed condition with no repeat save.** The Homunculus Bite poisons "for 1 minute" with no repeat save, and D57 ruling 3 lets only a repeating save carry a duration, so the condition lasts until the GM removes it. Options: (a) let a one-time save's condition carry a duration; (b) keep it GM-removed. **Recommendation:** (a).
-  3. **Size limits on hit riders.** "If the target is Medium or smaller" (the Tyrannosaurus Rex and Otyugh grapples, the Gibbering Mouther's prone) and the Behir's "one Large or smaller creature" are not checked, so the rider applies to any size. **Recommendation:** check the printed size limit with the target-owned grapple (D57 ruling 2 option b).
-  4. **Swarm member size.** A Creature still has no `swarmOf` field, so the six swarms keep their member-size exception. **Recommendation:** add it when a feature reads it (squeezing, or the stat block header), not before.
+(none)_
 
 ## Decisions to review
 
@@ -184,6 +179,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   - **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D62** Rulings on M8's questions, and slice M9:
+  1. **Ranged range.** Ranged attacks author normal and long range (SRD).
+     * Beyond normal and up to long range, the attack roll has disadvantage with the reason "Long range". This is derived automatically in Assisted mode, like other roll-mode reasons.
+     * Beyond long range, it warns (D11).
+     * The 32 older ranged attacks at SPECIAL range move to their printed normal and long range.
+  2. **Timed conditions on one-time saves.** A one-time save's condition may carry a duration (for example the Homunculus's "poisoned for 1 minute"). This extends D57 ruling 3.
+  3. **Size limits on hit riders** ("Medium or smaller", "Large or smaller") are checked together with the target-owned grapple work (D57 ruling 2, option b). Until then the rider applies to any size.
+  4. **Swarm member size (swarmOf).** Deferred until something reads it. The six exceptions stay.
+  * **M9 (blocks closed beta):**
+    * Items 1 and 2.
+    * Clear the remaining sweep categories wherever existing or small model extensions allow: OUTCOME_KIND (46, for example CLOSED_RULE riders such as Wight Life Drain and lycanthropy), SPECIAL_RANGE (55; the area parts wait on area targeting), and EQUIPMENT_BASE_DAMAGE (26 across 21 Creatures).
+    * Each category gets an explicit design note.
 * **D61** Rulings on the M7 model gaps, and slice M8:
   * **Flat skill bonus:** option (c). The four printed inconsistencies (Half-Red Dragon Veteran, Lich, Night Hag, Priest) stay allowlisted as probable SRD printing errors. No shared-grant field is added.
   * **Damage-defense conditions:** option (a) for spells, once damage carries its spell source, which is part of the spell-casting and area-targeting work. Option (b) for the Rakshasa (allowlisted; the GM sees the printed text) until alignment facts reach the damage pipeline.
