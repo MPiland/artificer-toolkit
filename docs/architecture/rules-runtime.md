@@ -1273,6 +1273,33 @@ System-resolved Feature pool, applies the outcome and aggregate-owned charge mut
 retains a separate closed Feature-resource transition in terminal receipt evidence. Generalized action
 transport and the durable `END_OF_OTHER_ACTOR_TURN` Legendary choice remain subsequent Gate 2 work.
 
+**CURRENT / Legendary options that run the Creature's own action (D51 option B):** a Feature option
+may author `actionReference: { featureId, chargeCost }` instead of effects ("The dragon makes a tail
+attack" names the Tail Feature). The Creature schema requires the named Feature to be another action
+Feature of the same Creature and the cost to fit the owner Feature's fixed pool. Feature capability
+discovery offers the named Feature's effects as the option's actions: the named Feature's Effect,
+ATTACK roll and Equipment binding make the action, the option keeps the action identity
+(`...:OPTION:<option>:EFFECT:<effect>`) and label, the owner Feature's pool pays `chargeCost`, and the
+descriptor records `actionFeatureId`. The action drawer leaves such options out; they are used in
+their Legendary window.
+
+`discoverTurnLegendaryWindows` pins each option to the execution plan the action runs
+(`actionSourceChecksum` is the plan checksum, from `compileEncounterFeatureActionPlan`, the same
+compile `prepareEncounterActionMechanics` uses) and to its targets: only its owner for a `SELF` range,
+else every other Encounter actor. It leaves out an option whose shape a turn cannot run (an area, or an
+action that starts an active effect). The controller answers `LEGENDARY_OPTION` with the option and a
+target from its list; a player sees and may pick only public actors. The turn then prepares the action
+exactly as `RESOLVE_ACTION` does and runs it through `advanceNativeActionGraphs`: the TEST and OUTCOME
+phases, critical doubling, a hit's forced save (rolled by the target's controllers, ADR 0034 decision
+3) and damage dice each pause as `ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE` for their roller unless
+that roller auto-rolls. Each window plans its mechanics against the actors earlier windows changed,
+with the Character event ordinal of its window, and hands the projected actor facts to the later turn
+stages. A settled window's evidence (`targetActorId`, terminal execution, phase receipts and the target
+mechanics batch, Encounter actor or Character) replays from its recorded dice on every later pause,
+and the terminal commit applies it to its target and spends the owner's pool. The turn's
+Concentration envelope orders damage as outgoing turn effects, Legendary Actions, then incoming turn
+effects (`legendaryActionDamage`), in the room plan, the Convex commit and the stored turn result.
+
 The cutover's native automatic action command loads current compiled Character sources and effective
 policy facts through the Campaign owner context. It uses the existing System plan and merges the
 Character's attack contributors with current relationship contributors. A self-targeted resource
