@@ -57,7 +57,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
-import { srdWolf } from '../../tests/fixtures/srdCreatures'
+import { seededSrdCreature, srdWolf } from '../../tests/fixtures/srdCreatures'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
@@ -462,7 +462,8 @@ async function setup({
   uppercaseTokens = false,
   condition = false,
   directRepeatSave = false,
-  conditionImmune = false
+  conditionImmune = false,
+  ranged = false
 }: {
   charged?: boolean
   self?: boolean
@@ -476,23 +477,27 @@ async function setup({
   condition?: boolean
   directRepeatSave?: boolean
   conditionImmune?: boolean
+  /** The seeded SRD Ape throws its Rock (range 25/50 ft.) in place of the Wolf's Bite. */
+  ranged?: boolean
 } = {}) {
   const base = await fixture()
   await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   // Scene-bound actions run the seeded SRD Wolf's own Bite: a +4 melee attack within 5 feet.
-  const actionCreature = distance
-    ? srdWolf
-    : nativeCreature(
-        charged,
-        self,
-        recurring,
-        phased,
-        nestedForced,
-        rolls === 'PROMPT',
-        condition,
-        directRepeatSave,
-        conditionImmune
-      )
+  const actionCreature = ranged
+    ? seededSrdCreature('Ape')
+    : distance
+      ? srdWolf
+      : nativeCreature(
+          charged,
+          self,
+          recurring,
+          phased,
+          nestedForced,
+          rolls === 'PROMPT',
+          condition,
+          directRepeatSave,
+          conditionImmune
+        )
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_RULE_STATE_DEFINITIONS.filter(
@@ -526,8 +531,8 @@ async function setup({
     name: 'Native action fixture',
     commandId: crypto.randomUUID(),
     enemies: [
-      { kind: 'CREATURE', sourceId: creature.id },
-      ...(targetCreature ? [{ kind: 'CREATURE' as const, sourceId: creature.id }] : []),
+      { kind: 'CREATURE', sourceId: actionCreature.id },
+      ...(targetCreature ? [{ kind: 'CREATURE' as const, sourceId: actionCreature.id }] : []),
       { kind: 'CUSTOM', label: 'Target', maxHitPoints: 100 }
     ]
   })
@@ -593,7 +598,13 @@ async function setup({
     }).find(
       (candidate) =>
         candidate.mechanicFacts.invocation.triggerCode ===
-        (directRepeatSave ? 'SAVING_THROW' : phased ? 'MELEE_WEAPON_ATTACK' : 'ACTIVATED')
+        (ranged
+          ? 'RANGED_WEAPON_ATTACK'
+          : directRepeatSave
+            ? 'SAVING_THROW'
+            : phased
+              ? 'MELEE_WEAPON_ATTACK'
+              : 'ACTIVATED')
     )
     if (!capability) throw new Error('Missing native action fixture capability.')
     return capability.actionId
@@ -631,7 +642,7 @@ async function setup({
           diagonalPolicy: 'EQUAL' as const,
           unit: 'FEET' as const
         },
-        map: { assetId: crypto.randomUUID(), width: 500, height: 500, tileManifestAssetId: null }
+        map: { assetId: crypto.randomUUID(), width: 2000, height: 500, tileManifestAssetId: null }
       }
       const materializationCommandId = crypto.randomUUID()
       await ctx.db.insert(
@@ -2076,6 +2087,63 @@ describe('Assisted soft enforcement', () => {
     })
     expect(result.projection.version).toBe(base.run.version + 1)
   }, 30000)
+
+  it('rolls a ranged attack beyond its normal range with disadvantage for "Long range" (D62)', async () => {
+    // The seeded Ape's Rock: range 25/50 ft. The target stands 7 squares (35 ft.) away.
+    const base = await distanceSetup({ ranged: true, rolls: 'PROMPT' })
+    await replaceTargetToken(base, { x: 750, y: 50 })
+    const sceneContext = {
+      sceneId: base.sceneId,
+      expectedSceneVersion: 1,
+      sourceTokenId: base.tokens[0]!.id,
+      targetTokenId: base.tokens[1]!.id
+    }
+    const input = command({
+      encounterId: base.run.id,
+      expectedVersion: base.run.version,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId,
+      sceneContext
+    })
+    const result = await executeInRoom(base.owner.caller, { command: input })
+    expect(result.occurrence).toMatchObject({
+      status: 'PENDING',
+      pending: { kind: 'D20_EVIDENCE', request: { rollMode: 'DISADVANTAGE' } }
+    })
+    // Assisted names the reason, like any other derived roll mode.
+    expect(
+      await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        encounterId: base.run.id
+      })
+    ).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      request: { rollMode: 'DISADVANTAGE', derivedRollModeReasons: ['Long range'] }
+    })
+
+    // Beyond its long range (13 squares, 65 ft.) the attack only warns (D11).
+    const far = await distanceSetup({ ranged: true, rolls: 'PROMPT' })
+    await replaceTargetToken(far, { x: 1350, y: 50 })
+    expect(
+      await rejection(
+        executeInRoom(far.owner.caller, {
+          command: command({
+            encounterId: far.run.id,
+            expectedVersion: far.run.version,
+            actorId: far.actor.id,
+            targetActorId: far.target.id,
+            actionId: far.actionId,
+            sceneContext: {
+              ...sceneContext,
+              sceneId: far.sceneId,
+              sourceTokenId: far.tokens[0]!.id,
+              targetTokenId: far.tokens[1]!.id
+            }
+          })
+        })
+      )
+    ).toMatchObject({ warnings: [{ code: 'TARGET_OUT_OF_RANGE' }] })
+  }, 60000)
 
   it('never overrides hard checks', async () => {
     const base = await setup({ targetCreature: true })

@@ -422,6 +422,66 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(batch.activeEffectTransitions).toMatchObject([{ kind: 'CREATE' }])
   }, 30000)
 
+  it('hits with the Ogre’s Greatclub for its printed damage through its held Equipment (D62, M9)', async () => {
+    const base = await setup({ creature: 'Ogre', feature: 'Greatclub', playerAutoRoll: true })
+    // A natural 19 hits; 2d8 + 4 bludgeoning (the Equipment alone deals 1d8) with both dice rolling 1.
+    const result = await executeInRoom(
+      base.owner.caller,
+      { command: base.command },
+      scripted([18, 0, 0])
+    )
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    expect((await settledBatch(base)).damage).toEqual([[6, damageTypeId('BLUDGEONING')]])
+  }, 30000)
+
+  it('grapples and restrains the Character with one hit of the Giant Toad’s Bite (D62, M9)', async () => {
+    const base = await setup({
+      creature: 'Giant Toad',
+      feature: 'Bite',
+      conditionCodes: ['GRAPPLED', 'RESTRAINED'],
+      playerAutoRoll: true
+    })
+    // A natural 19 hits; 1d10 + 2 piercing and 1d10 poison, both dice rolling 1.
+    const result = await executeInRoom(
+      base.owner.caller,
+      { command: base.command },
+      scripted([18, 0, 0])
+    )
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    const batch = await settledBatch(base)
+    expect(batch.damage).toEqual([
+      [3, damageTypeId('PIERCING')],
+      [1, damageTypeId('POISON')]
+    ])
+    expect(batch.targetTransition.after.conditionIds).toEqual(
+      expect.arrayContaining([conditionId('GRAPPLED'), conditionId('RESTRAINED')])
+    )
+  }, 30000)
+
+  it('poisons the Character for 1 minute when it fails its save against the Homunculus’s Bite (D62.2)', async () => {
+    const base = await setup({
+      creature: 'Homunculus',
+      feature: 'Bite',
+      conditionCodes: ['POISONED'],
+      playerAutoRoll: false
+    })
+    // A natural 19 hits for a fixed 1 piercing; the Character's save waits on its player.
+    const pending = await executeInRoom(
+      base.owner.caller,
+      { command: base.command },
+      scripted([18])
+    )
+    const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
+    expect(answered.occurrence?.status).toBe('COMPLETE')
+    const batch = await settledBatch(base)
+    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 10, resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.targetTransition.after.conditionIds).toContain(conditionId('POISONED'))
+    // One active effect times the poison: 10 of the Character's turns, with no repeated save.
+    expect(batch.activeEffectTransitions).toMatchObject([
+      { kind: 'CREATE', recurrenceStage: 'END_OF_TURN', remainingTicks: 10 }
+    ])
+  }, 30000)
+
   it('offers the Erinyes’ Longsword one- and two-handed and resolves the chosen grip', async () => {
     const base = await setup({
       creature: 'Erinyes',
