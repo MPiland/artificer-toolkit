@@ -148,6 +148,7 @@ export function srdCreatureActor(input: {
   conditionIds?: readonly string[]
   currentHitPoints?: number
   tempHitPoints?: number
+  defeated?: boolean
   initiative?: number | null
   manualOrder?: number | null
   sideId?: string
@@ -184,6 +185,7 @@ export function srdCreatureActor(input: {
     maxHitPoints: creature.hitPoints,
     tempHitPoints: input.tempHitPoints ?? 0,
     conditions: [...(input.conditionIds ?? [])],
+    defeated: input.defeated ?? false,
     resources: input.featureCharges ? { featureCharges: { ...input.featureCharges } } : {},
     snapshot: {
       kind: 'CREATURE',
@@ -230,6 +232,7 @@ export function creatureActor(input: {
   maxHitPoints?: number
   tempHitPoints?: number
   conditions?: unknown[]
+  defeated?: boolean
 }): EncounterRunActorState {
   return encounterRunActorStateSchema.parse({
     id: input.id,
@@ -250,6 +253,7 @@ export function creatureActor(input: {
     maxHitPoints: input.maxHitPoints ?? 11,
     tempHitPoints: input.tempHitPoints ?? 0,
     conditions: input.conditions ?? [],
+    defeated: input.defeated ?? false,
     resources: {},
     gmNotes: null,
     sideId: SIDE_ID,

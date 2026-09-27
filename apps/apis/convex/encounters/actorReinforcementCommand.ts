@@ -219,6 +219,7 @@ export async function reinforceEncounterActors(
     maxHitPoints: enemy.maxHitPoints,
     tempHitPoints: 0,
     conditions: [],
+    defeated: false,
     resources: {},
     gmNotes: null,
     initiative: input.initiative ?? null,

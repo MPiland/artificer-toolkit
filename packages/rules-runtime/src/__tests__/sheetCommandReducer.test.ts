@@ -8,6 +8,10 @@ import {
   getNoteGroups,
   summarizeCharacterSheetCommand
 } from '../character/sheetCommandReducer.js'
+import {
+  DND5E_SYSTEM_ID,
+  DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
+} from '../systems/dnd5e/identity.js'
 
 type Command = Parameters<typeof applyCharacterSheetCommand>[1]
 type SheetExtra = CharacterSheetResponseDto['extras']['items'][number]
@@ -636,5 +640,39 @@ describe('Character Sheet extras', () => {
       'Creature removed',
       'Vehicle removed'
     ])
+  })
+})
+
+describe('Character Sheet hit points at 0 (D63)', () => {
+  const dnd = { ...character(), systemId: DND5E_SYSTEM_ID }
+  const at = (current: number, conditions: { conditionTypeId: string }[] = []) => ({
+    ...dnd,
+    state: { ...dnd.state, hitpoints: { ...dnd.state.hitpoints, current }, conditions }
+  })
+  const unconscious = { conditionTypeId: DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID }
+
+  it('makes a D&D Character unconscious when damage or an edit drops it to 0', () => {
+    expect(
+      apply(at(5), { ...base, type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 9 }).state
+        .conditions
+    ).toEqual([unconscious])
+    expect(apply(at(5), { ...base, type: 'SET_HIT_POINTS', current: 0 }).state.conditions).toEqual([
+      unconscious
+    ])
+  })
+
+  it('wakes it when it regains hit points from 0', () => {
+    expect(
+      apply(at(0, [unconscious]), { ...base, type: 'ADJUST_HIT_POINTS', mode: 'HEAL', amount: 3 })
+        .state.conditions ?? []
+    ).toEqual([])
+  })
+
+  it('adds nothing for a System without a 0 hit point condition', () => {
+    const other = character({ hitpoints: { ...character().state.hitpoints, current: 5 } })
+    expect(
+      apply(other, { ...base, type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 9 }).state
+        .conditions ?? []
+    ).toEqual([])
   })
 })

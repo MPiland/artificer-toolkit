@@ -25,7 +25,8 @@ const actorCoreFields = z.omit(encounterGmActorDtoSchema, {
   currentHitPoints: true,
   maxHitPoints: true,
   tempHitPoints: true,
-  conditions: true
+  conditions: true,
+  defeated: true
 })
 const actorCoreSchema = actorCoreFields.clone({ ...actorCoreFields._zod.def, catchall: undefined })
 const runOwnedFields = z.pick(encounterGmActorDtoSchema, {
@@ -33,13 +34,15 @@ const runOwnedFields = z.pick(encounterGmActorDtoSchema, {
   currentHitPoints: true,
   maxHitPoints: true,
   tempHitPoints: true,
-  conditions: true
+  conditions: true,
+  defeated: true
 })
 const runOwnedSchema = runOwnedFields.clone({ ...runOwnedFields._zod.def, catchall: undefined })
 
 /**
  * The actor fields a stored projection repeats from its Run actor. Character hit points,
- * maximum, conditions and stream versions belong to the Character, so only other actors include them.
+ * maximum, conditions and stream versions belong to the Character, so only other actors include them
+ * (and their defeated state).
  */
 export function readEncounterActorCore(actor: unknown) {
   const core = actorCoreSchema.parse(actor)

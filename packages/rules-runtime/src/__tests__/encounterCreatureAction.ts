@@ -201,6 +201,7 @@ export function creatureActor(input: {
     currentHitPoints: hitPoints,
     maxHitPoints: hitPoints,
     tempHitPoints: 0,
+    defeated: false,
     conditions: [...(input.conditionIds ?? [])],
     resources: Object.entries(input.featureChargesUsed ?? {}).reduce<Record<string, unknown>>(
       (resources, [featureId, used]) => withFeatureChargeUsed({ resources }, featureId, used),

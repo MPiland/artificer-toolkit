@@ -569,7 +569,8 @@ describe('encounter contracts', () => {
           disposition: 'HOSTILE' as const,
           initiative: 12,
           manualOrder: null,
-          conditions: []
+          conditions: [],
+          defeated: false
         }
       ],
       createdAt: '2026-08-07T00:00:00.000Z',
@@ -614,6 +615,7 @@ describe('encounter contracts', () => {
             currentHitPoints: 4,
             maxHitPoints: 7,
             tempHitPoints: 0,
+            defeated: false,
             resources: {},
             gmNotes: 'Hidden',
             statBlock: null,
@@ -652,6 +654,7 @@ describe('encounter contracts', () => {
             currentHitPoints: 4,
             maxHitPoints: 7,
             tempHitPoints: 0,
+            defeated: false,
             resources: {},
             gmNotes: null,
             statBlock: null,

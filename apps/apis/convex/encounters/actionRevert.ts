@@ -25,6 +25,8 @@ import {
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
 import {
   encounterBasicActionEffects,
   withEncounterBasicActionEffects
@@ -229,7 +231,8 @@ export async function revertLastEncounterAction(
     updateActor(actorId, {
       currentHitPoints: transition.before.currentHitPoints,
       tempHitPoints: transition.before.temporaryHitPoints,
-      maxHitPoints: transition.before.maximumHitPoints
+      maxHitPoints: transition.before.maximumHitPoints,
+      defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
     })
   }
 
@@ -278,10 +281,28 @@ export async function revertLastEncounterAction(
       )
     )
       unavailable("Undo can't restore a reapplied condition; adjust manually.")
+    // D63: dropping to 0 added the System's 0 hit point condition, and healing from 0 removed it.
+    const { before, after } = action.targetTransition
+    const zeroHitPointsConditionId = characterZeroHitPointsConditionId(state.gameSystemId)
+    const droppedToZero = before.currentHitPoints > 0 && after.currentHitPoints === 0
+    if (
+      zeroHitPointsConditionId !== undefined &&
+      before.currentHitPoints === 0 &&
+      after.currentHitPoints > 0 &&
+      before.conditionIds.includes(zeroHitPointsConditionId)
+    )
+      unavailable("Undo can't restore a removed condition; adjust manually.")
     if (action.targetCharacterStreamVersion !== null) {
       const inverse = characterInverse(target.sourceId, action.targetCharacterStreamVersion)
-      inverse.hitPoints = action.targetTransition.before
-      inverse.removedConditionIds = addedConditionIds
+      inverse.hitPoints = before
+      inverse.removedConditionIds = new Set([
+        ...addedConditionIds,
+        ...(zeroHitPointsConditionId !== undefined &&
+        droppedToZero &&
+        !before.conditionIds.includes(zeroHitPointsConditionId)
+          ? [zeroHitPointsConditionId]
+          : [])
+      ])
     }
   } else {
     if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')

@@ -218,6 +218,7 @@ const actorBases = [
   {
     conditions: [],
     controllerUserIds: [],
+    defeated: false,
     disposition: 'FRIENDLY',
     encounterId: tabletopEncounterId,
     id: '99999999-9999-4999-8999-999999999901',
@@ -232,6 +233,7 @@ const actorBases = [
   {
     conditions: [],
     controllerUserIds: [],
+    defeated: false,
     disposition: 'HOSTILE',
     encounterId: tabletopEncounterId,
     id: '99999999-9999-4999-8999-999999999902',

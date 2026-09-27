@@ -16,6 +16,8 @@ import type { CharacterItemUseStateTransitionDto } from '@artificer-toolkit/sche
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import type { NativeCharacterActionResourceConsumption } from './character/characterNativeActionResources.js'
 import { unequipCharacterItem } from './character/sheetCommandReducer.js'
+import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
+import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
 
 type EncounterActor = EncounterRunActorState
 type LoadedCharacterSheetFacts = {
@@ -112,7 +114,8 @@ export function planEncounterMechanicsBatch(input: {
         currentHitPoints: folded.after.currentHitPoints,
         tempHitPoints: folded.after.temporaryHitPoints,
         maxHitPoints: folded.after.maximumHitPoints,
-        conditions: nextConditions
+        conditions: nextConditions,
+        defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints)
       }),
       receiptApplications: folded.applications,
       targetTransition: transition(actor.id, folded.before, folded.after),
@@ -212,6 +215,19 @@ export function planEncounterMechanicsBatch(input: {
   })
   const existingConditionIds = new Set(ownConditionIds)
   const nextConditionIds = new Set(folded.afterOwnConditionIds)
+  // D63: dropping to 0 adds the System's 0 hit point condition and regaining any removes it. It
+  // follows from the hit point transition, which the receipt records, so the applications don't list it.
+  const zeroHitPointsConditionId = characterZeroHitPointsConditionId(loaded.character.systemId)
+  if (zeroHitPointsConditionId !== undefined) {
+    if (folded.before.currentHitPoints > 0 && folded.after.currentHitPoints === 0)
+      nextConditionIds.add(zeroHitPointsConditionId)
+    else if (
+      folded.before.currentHitPoints === 0 &&
+      folded.after.currentHitPoints > 0 &&
+      !batch.retainedConditionIds?.includes(zeroHitPointsConditionId)
+    )
+      nextConditionIds.delete(zeroHitPointsConditionId)
+  }
   const conditionStateChanged =
     existingConditionIds.size !== nextConditionIds.size ||
     [...existingConditionIds].some((id) => !nextConditionIds.has(id))

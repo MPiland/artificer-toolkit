@@ -548,3 +548,173 @@ describe('Character mechanics batch plan', () => {
     ).toThrow('Encounter Character changed after the outcome was planned.')
   })
 })
+
+describe('0 hit points (D63)', () => {
+  const UNCONSCIOUS = conditionId('UNCONSCIOUS')
+  const heal = (input: { amount: number; before: number; maximum: number }) =>
+    ({
+      ...origin,
+      kind: 'HEAL',
+      targetActorId: ACTOR_ID,
+      requestedAmount: input.amount,
+      resolvedAmount: input.amount,
+      appliedAmount: Math.min(input.amount, input.maximum - input.before),
+      beforeCurrentHitPoints: input.before,
+      afterCurrentHitPoints: Math.min(input.before + input.amount, input.maximum),
+      beforeTemporaryHitPoints: 0,
+      afterTemporaryHitPoints: 0,
+      maximumHitPoints: input.maximum
+    }) as CharacterRuleActionApplication
+  const lethal = damage({
+    requested: 9,
+    before: { current: 4, temporary: 0 },
+    after: { current: 0, temporary: 0 },
+    maximum: 11
+  })
+
+  it('defeats a Creature in the batch whose damage takes it to 0', () => {
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([lethal]),
+      actor: creature({ current: 4, temporary: 0, max: 11 }),
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toMatchObject({ currentHitPoints: 0, defeated: true })
+  })
+
+  it('defeats a custom actor and one whose hit point maximum is drained to 0', () => {
+    const custom = creatureActor({
+      id: ACTOR_ID,
+      kind: 'CUSTOM',
+      currentHitPoints: 4,
+      maxHitPoints: 11,
+      snapshot: {}
+    })
+    expect(
+      planEncounterMechanicsBatch({ batch: batch([lethal]), actor: custom, userId: USER_ID })
+        .updatedActor
+    ).toMatchObject({ defeated: true })
+    const drained = planEncounterMechanicsBatch({
+      batch: batch(
+        [
+          {
+            ...origin,
+            kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+            targetActorId: ACTOR_ID,
+            sourceDamageNodeId: 'damage',
+            sourceDamageOperationKey: 'dnd5e.damage',
+            sourceDamageOutcomeId: DAMAGE_OUTCOME_ID,
+            reductionAmount: 20,
+            recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+          }
+        ],
+        { effectiveMaximumHitPoints: 6 }
+      ),
+      actor: creature({ current: 6, temporary: 0, max: 6 }),
+      userId: USER_ID
+    })
+    expect(drained.updatedActor).toMatchObject({ maxHitPoints: 0, defeated: true })
+  })
+
+  it('revives a defeated Creature that regains hit points', () => {
+    const actor = creatureActor({
+      id: ACTOR_ID,
+      currentHitPoints: 0,
+      maxHitPoints: 11,
+      defeated: true,
+      snapshot: {}
+    })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([heal({ amount: 3, before: 0, maximum: 11 })]),
+      actor,
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toMatchObject({ currentHitPoints: 3, defeated: false })
+  })
+
+  it('never defeats an actor that had no hit points to lose', () => {
+    const lair = creatureActor({
+      id: ACTOR_ID,
+      kind: 'CUSTOM',
+      currentHitPoints: 0,
+      maxHitPoints: 0,
+      snapshot: {}
+    })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([conditionApply(PRONE)], { effectiveMaximumHitPoints: 0 }),
+      actor: lair,
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toMatchObject({ defeated: false })
+  })
+
+  describe('Characters fall unconscious instead', () => {
+    const empty = createEmptyCharacterAuthored({
+      id: CHARACTER_ID,
+      systemId: SRD_SYSTEM_ID,
+      userId: USER_ID
+    })
+    const sheetState = characterSheetStateSchema.parse({
+      adjustments: [],
+      movementDisplayPreference: { mode: 'AUTO' },
+      partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY
+    })
+    const facts = (current: number, conditions: { conditionTypeId: string }[]) => ({
+      active: { id: CHARACTER_ID, streamVersion: STREAM_VERSION },
+      character: {
+        ...empty,
+        state: { ...empty.state, hitpoints: { current, temp: 0, hitDice: [] }, conditions }
+      },
+      sheetState,
+      campaignContext: { conditions: [] }
+    })
+    const actor = characterActor({ id: ACTOR_ID, characterId: CHARACTER_ID })
+    const characterBatch = (applications: CharacterRuleActionApplication[]) =>
+      batch(applications, { expectedCharacterStreamVersion: STREAM_VERSION })
+
+    it('adds Unconscious when damage drops a Character to 0, without defeating it', () => {
+      const plan = planEncounterMechanicsBatch({
+        batch: characterBatch([lethal]),
+        actor,
+        userId: USER_ID,
+        characterFacts: facts(4, [{ conditionTypeId: PRONE }])
+      })
+      expect(plan.updatedActor).toBe(actor)
+      expect(plan.characterUpdate?.character.state).toMatchObject({
+        hitpoints: { current: 0 },
+        conditions: [{ conditionTypeId: PRONE }, { conditionTypeId: UNCONSCIOUS }]
+      })
+      // The receipt records the hit point transition; Unconscious follows from it.
+      expect(plan.targetTransition.after.conditionIds).toEqual([PRONE])
+    })
+
+    it('removes Unconscious when a Character regains hit points from 0', () => {
+      const plan = planEncounterMechanicsBatch({
+        batch: characterBatch([heal({ amount: 2, before: 0, maximum: 11 })]),
+        actor,
+        userId: USER_ID,
+        characterFacts: facts(0, [{ conditionTypeId: UNCONSCIOUS }])
+      })
+      expect(plan.characterUpdate?.character.state).toMatchObject({
+        hitpoints: { current: 2 },
+        conditions: []
+      })
+    })
+
+    it('keeps a Character already at 0 unconscious when it takes more damage', () => {
+      const plan = planEncounterMechanicsBatch({
+        batch: characterBatch([
+          damage({
+            requested: 3,
+            before: { current: 0, temporary: 0 },
+            after: { current: 0, temporary: 0 },
+            maximum: 11
+          })
+        ]),
+        actor,
+        userId: USER_ID,
+        characterFacts: facts(0, [{ conditionTypeId: UNCONSCIOUS }])
+      })
+      expect(plan.targetTransition.after.conditionIds).toEqual([UNCONSCIOUS])
+    })
+  })
+})

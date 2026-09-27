@@ -41,6 +41,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { healthBand } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
@@ -431,9 +432,13 @@ export async function recordEncounterCommand(
           }
         : {
             ...actor,
-            ...(input.currentHitPoints === undefined
+            // A GM hit point edit revives a defeated actor above 0 and defeats one taken to 0 (D63).
+            ...(input.currentHitPoints === undefined || actor.kind === 'CHARACTER'
               ? {}
-              : { currentHitPoints: input.currentHitPoints }),
+              : {
+                  currentHitPoints: input.currentHitPoints,
+                  defeated: nextEncounterActorDefeated(actor, input.currentHitPoints)
+                }),
             ...(input.tempHitPoints === undefined ? {} : { tempHitPoints: input.tempHitPoints }),
             ...(input.conditions === undefined ? {} : { conditions: input.conditions }),
             ...(input.gmNotes === undefined ? {} : { gmNotes: input.gmNotes }),

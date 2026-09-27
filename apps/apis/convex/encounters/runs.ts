@@ -167,6 +167,7 @@ export async function createEncounterRun(
         maxHitPoints: enemy.maxHitPoints,
         tempHitPoints: 0,
         conditions: [],
+        defeated: false,
         resources: {},
         gmNotes: null,
         initiative: null,

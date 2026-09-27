@@ -20,6 +20,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characters'
 
 import type { CharacterSheetResponseDto as ReducerSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import { characterZeroHitPointsConditionId } from '../characterZeroHitPoints.js'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 export type SheetSpellSlot = ReducerSheetResponseDto['spells']['slots'][number]
@@ -470,6 +471,22 @@ function requireAcquirableCurrencyIdentity(
     `Currency "${command.currencyId}" is not available for this system.`
   )
 }
+
+/** D63: dropping to 0 hit points adds the System's 0 hit point condition; regaining any removes it. */
+function applyZeroHitPointsCondition(character: CharacterAuthored, beforeCurrentHitPoints: number) {
+  const conditionTypeId = characterZeroHitPointsConditionId(character.systemId)
+  if (conditionTypeId === undefined) return
+  const current = character.state.hitpoints.current
+  const conditions = character.state.conditions ?? []
+  const present = conditions.some((condition) => condition.conditionTypeId === conditionTypeId)
+  if (beforeCurrentHitPoints > 0 && current === 0 && !present)
+    character.state.conditions = [...conditions, { conditionTypeId }]
+  else if (beforeCurrentHitPoints === 0 && current > 0 && present)
+    character.state.conditions = conditions.filter(
+      (condition) => condition.conditionTypeId !== conditionTypeId
+    )
+}
+
 export function applyCharacterSheetCommand(
   character: CharacterAuthored,
   command: CharacterSheetStateCommand,
@@ -790,6 +807,7 @@ export function applyCharacterSheetCommand(
         0,
         maxHitPoints
       )
+      applyZeroHitPointsCondition(next, character.state.hitpoints.current)
       return clearEmptyStateArrays(next)
     }
 
@@ -801,18 +819,18 @@ export function applyCharacterSheetCommand(
           0,
           maxHitPoints
         )
-        return clearEmptyStateArrays(next)
+      } else {
+        const currentTemp = next.state.hitpoints.temp ?? 0
+        const absorbed = Math.min(currentTemp, command.amount)
+        const remainingDamage = command.amount - absorbed
+        next.state.hitpoints.temp = Math.max(currentTemp - absorbed, 0)
+        next.state.hitpoints.current = clamp(
+          next.state.hitpoints.current - remainingDamage,
+          0,
+          maxHitPoints
+        )
       }
-
-      const currentTemp = next.state.hitpoints.temp ?? 0
-      const absorbed = Math.min(currentTemp, command.amount)
-      const remainingDamage = command.amount - absorbed
-      next.state.hitpoints.temp = Math.max(currentTemp - absorbed, 0)
-      next.state.hitpoints.current = clamp(
-        next.state.hitpoints.current - remainingDamage,
-        0,
-        maxHitPoints
-      )
+      applyZeroHitPointsCondition(next, character.state.hitpoints.current)
       return clearEmptyStateArrays(next)
     }
 

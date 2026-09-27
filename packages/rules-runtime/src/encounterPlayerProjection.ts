@@ -10,8 +10,8 @@ import {
   type PlayerActorHealthDto
 } from '@artificer-toolkit/schema/api/healthDisplay'
 
+/** A coarse GM band; being defeated at 0 hit points is the actor's own `defeated` state (D63). */
 export function healthBand(current: number, maximum: number) {
-  if (current <= 0) return 'DEFEATED' as const
   if (maximum <= 0 || current >= maximum * 0.75) return 'HEALTHY' as const
   if (current >= maximum * 0.5) return 'WOUNDED' as const
   if (current >= maximum * 0.25) return 'BLOODIED' as const
@@ -115,6 +115,7 @@ export function projectPlayerEncounterProjection(
           initiative: actor.initiative,
           manualOrder: actor.manualOrder,
           conditions: actor.conditions,
+          defeated: actor.defeated,
           health: playerActorHealth(level, actor.currentHitPoints, actor.maxHitPoints)
         }
       }),

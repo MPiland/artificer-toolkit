@@ -17,7 +17,8 @@ const encounterRunActorStateBaseSchema = z.extend(
     currentHitPoints: true,
     maxHitPoints: true,
     tempHitPoints: true,
-    conditions: true
+    conditions: true,
+    defeated: true
   }),
   {
     sideId: postgresUuidSchema,
@@ -44,7 +45,9 @@ export const encounterRunActorStateSchema = z.discriminatedUnion('kind', [
     currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
     maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
     tempHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-    conditions: jsonValueSchema
+    conditions: jsonValueSchema,
+    /** Set in the commit whose damage reduces the actor to 0 hit points; cleared by regaining any. */
+    defeated: z.boolean()
   })
 ])
 

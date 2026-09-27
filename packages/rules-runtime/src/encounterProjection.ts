@@ -17,6 +17,7 @@ import { creatureQualifiedDamageDefenseDtoSchema } from '@artificer-toolkit/sche
 
 import { snapshotFeatures, stableActors } from './encounterActorState.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
+import { isEncounterActorDefeated } from './encounterActorDefeat.js'
 import { healthBand } from './encounterPlayerProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
 
@@ -183,6 +184,7 @@ export function projectGm(
         maxHitPoints: current.maximum,
         tempHitPoints: current.temporary,
         conditions: current.conditions,
+        defeated: isEncounterActorDefeated(actor),
         resources: actor.resources,
         gmNotes: actor.gmNotes,
         statBlock: snapshotStatBlock(actor),

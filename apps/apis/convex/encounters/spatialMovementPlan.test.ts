@@ -4,6 +4,7 @@ import type { FrozenMovementReactionRemainder } from '@artificer-toolkit/rules-r
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { loadMovementTargets } from './movementTargets'
 import { planNativeSpatialMovementPrefix } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
+import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID as UNCONSCIOUS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
 import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 
@@ -208,12 +209,16 @@ describe('planNativeSpatialMovementPrefix', () => {
         base.characterStreamVersion
       )
       expect(projected.characterFacts?.active.streamVersion).toBe(base.characterStreamVersion + 1)
+      // Dropping to 0 also makes the Character unconscious (D63).
       expect(projected.state).toEqual({
         current: 0,
         temporary: target.state.temporary,
-        conditions: [conditionId]
+        conditions: [conditionId, UNCONSCIOUS]
       })
-      expect(projected.characterReactionSource?.activeConditionDefinitionIds).toEqual([conditionId])
+      expect(projected.characterReactionSource?.activeConditionDefinitionIds).toEqual([
+        conditionId,
+        UNCONSCIOUS
+      ])
       expect(() => planNativeSpatialMovementPrefix({ ...input, targets: new Map() })).toThrow(
         'target is unavailable'
       )
@@ -231,14 +236,16 @@ describe('planNativeSpatialMovementPrefix', () => {
           ]
         })
       ).toThrow('state is stale')
+      const projectedAfter = { ...after, conditionIds: [conditionId, UNCONSCIOUS] }
       const secondExecution = {
         ...characterExecution,
         ordinal: 1,
         candidate: { ...characterExecution.candidate, ordinal: 1 },
+        // The next segment starts from the projected Character, now also unconscious.
         targetTransition: {
-          checksum: checksumRuleDocument({ targetActorId: base.actor.id, ...after }),
-          before: after,
-          after: { ...after, conditionIds: [] }
+          checksum: checksumRuleDocument({ targetActorId: base.actor.id, ...projectedAfter }),
+          before: projectedAfter,
+          after: { ...after, conditionIds: [UNCONSCIOUS] }
         },
         applications: [
           {
@@ -271,7 +278,7 @@ describe('planNativeSpatialMovementPrefix', () => {
       await applyEncounterMechanicsBatch(ctx, firstBatch)
       const secondWrite = await applyEncounterMechanicsBatch(ctx, secondBatch)
       expect(secondWrite.characterStreamVersion).toBe(base.characterStreamVersion + 2)
-      expect(secondWrite.targetTransition.after.conditionIds).toEqual([])
+      expect(secondWrite.targetTransition.after.conditionIds).toEqual([UNCONSCIOUS])
     })
   })
 })

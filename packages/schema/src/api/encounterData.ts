@@ -32,13 +32,7 @@ export {
 export const encounterStatusDtoSchema = z.enum(['PREPARED', 'ACTIVE', 'COMPLETED'])
 export const encounterActorKindDtoSchema = z.enum(['CHARACTER', 'CREATURE', 'CUSTOM'])
 export { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
-export const encounterHealthBandDtoSchema = z.enum([
-  'HEALTHY',
-  'WOUNDED',
-  'BLOODIED',
-  'CRITICAL',
-  'DEFEATED'
-])
+export const encounterHealthBandDtoSchema = z.enum(['HEALTHY', 'WOUNDED', 'BLOODIED', 'CRITICAL'])
 
 /** Foundry-style token disposition; target warnings and flanking relationships compare it. */
 export const encounterActorDispositionDtoSchema = z.enum(['FRIENDLY', 'NEUTRAL', 'HOSTILE'])
@@ -75,7 +69,13 @@ const encounterActorBaseDtoSchema = z.strictObject({
   disposition: encounterActorDispositionDtoSchema,
   initiative: z.nullable(z.number().check(z.int())),
   manualOrder: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-  conditions: jsonSchema
+  conditions: jsonSchema,
+  /**
+   * A Creature or custom actor reduced to 0 hit points (D63): it keeps its initiative place but takes
+   * no turns, actions or reactions until it regains hit points. Always false for a Character, which
+   * falls unconscious and dying instead.
+   */
+  defeated: z.boolean()
 })
 
 /**

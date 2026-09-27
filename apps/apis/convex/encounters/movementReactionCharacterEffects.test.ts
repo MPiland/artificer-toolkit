@@ -3,6 +3,7 @@ import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID as UNCONSCIOUS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { setupMovementReactionCharacterEffects } from '../../tests/fixtures/movementReactionCharacterEffects'
 import {
   planMovementDecisionInRoom,
@@ -221,7 +222,12 @@ it('projects the first used automatic Character reaction into the second reactio
     beforeRoot.characterReceipts.length + 2
   )
   expect(afterSecondReaction.run.version).toBe(afterFirstReaction.run.version + 1)
-  expect(conditionSources(afterSecondReaction)).toEqual(conditionSources(beforeRoot))
+  // The second hit drops the Character to 0, so it falls unconscious (D63).
+  const beforeSources = conditionSources(beforeRoot)
+  expect(conditionSources(afterSecondReaction)).toEqual({
+    ...beforeSources,
+    sheet: [...(beforeSources.sheet ?? []), { conditionTypeId: UNCONSCIOUS }]
+  })
   await expect(secondRequest.publish()).resolves.toEqual({
     ...settled,
     replayed: true
