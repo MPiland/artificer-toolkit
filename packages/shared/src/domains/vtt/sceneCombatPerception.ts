@@ -55,7 +55,9 @@ const SYSTEM_BASE_SQUARE = { amount: 5, unit: 'FEET' } as const
  * to the footprint edge gap makes adjacent 5 feet, so reach means the same on every Scene.
  */
 export function gridlessBaseSquare(grid: Extract<SceneGrid, { kind: 'GRIDLESS' }>): number {
-  return grid.unit === 'SQUARES' ? 1 : (lengthMeasurementInSceneUnits(SYSTEM_BASE_SQUARE, grid) ?? 0)
+  return grid.unit === 'SQUARES'
+    ? 1
+    : (lengthMeasurementInSceneUnits(SYSTEM_BASE_SQUARE, grid) ?? 0)
 }
 
 /**

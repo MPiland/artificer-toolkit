@@ -88,7 +88,8 @@ async function recordSide(input: {
   const evaluation =
     input.phase === 'PRIMARY' && input.pointer ? input.pointer : input.side.evaluation
   const tie = input.phase === 'TIE_RESOLUTION' && input.pointer ? input.pointer : input.side.tie
-  const score = input.phase === 'PRIMARY' && input.pointer ? input.score : input.side.initiativeScore
+  const score =
+    input.phase === 'PRIMARY' && input.pointer ? input.score : input.side.initiativeScore
   if (
     input.side.status === input.status &&
     input.side.initiativeScore === score &&
