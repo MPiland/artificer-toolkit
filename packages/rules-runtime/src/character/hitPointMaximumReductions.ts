@@ -1,0 +1,52 @@
+import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+
+type ReductionSourceEffect = Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>
+
+export type HitPointMaximumReduction = {
+  activeEffectId: string
+  amount: number
+  recoveryTags: HitPointMaximumReductionRecoveryTag[]
+}
+
+/** A Character's active hit point maximum reductions (Life Drain, Clay Golem), oldest first. */
+export function listHitPointMaximumReductions(
+  effects: readonly ReductionSourceEffect[]
+): HitPointMaximumReduction[] {
+  return [...effects]
+    .sort(
+      (left, right) => left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
+    )
+    .flatMap((effect) =>
+      effect.definition.schemaVersion === 2
+        ? effect.definition.stateContributions.flatMap((contribution) =>
+            contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION'
+              ? [
+                  {
+                    activeEffectId: effect.id,
+                    amount: contribution.amount,
+                    recoveryTags: contribution.recoveryTags
+                  }
+                ]
+              : []
+          )
+        : []
+    )
+}
+
+/**
+ * The effective maximum both the Sheet and the Encounter read: a maximum less every active
+ * reduction, never below 0.
+ */
+export function reduceHitPointMaximum(
+  maximum: number,
+  reductions: readonly Pick<HitPointMaximumReduction, 'amount'>[]
+): number {
+  let total = 0
+  for (const reduction of reductions) {
+    if (!Number.isSafeInteger(total + reduction.amount))
+      throw new Error('Active hit point maximum reductions exceed safe bounds.')
+    total += reduction.amount
+  }
+  return Math.max(0, maximum - total)
+}

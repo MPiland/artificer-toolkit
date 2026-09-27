@@ -13,6 +13,10 @@ import type { CharacterBuilderContext } from './character/builderTypes.js'
 import type { CharacterSheetCampaignContext } from './character/campaignCharacterSheet.js'
 import type { CharacterRuleEvaluationResult } from './character/characterRuleEvaluation.js'
 import { resolveCharacterEffectiveMaximumHitPoints } from '@artificer-toolkit/shared/character'
+import {
+  listHitPointMaximumReductions,
+  reduceHitPointMaximum
+} from './character/hitPointMaximumReductions.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   applyCharacterScalarValuesToFacts,
@@ -81,29 +85,15 @@ export type MovementTarget<
   basicActionAttackContributors: readonly EncounterRelationshipD20Contributor[]
 }
 
-function maximumReduction(effects: ActiveRuleEffectRecord[]) {
-  let total = 0
-  for (const effect of effects) {
-    if (effect.definition.schemaVersion !== 2) continue
-    for (const contribution of effect.definition.stateContributions) {
-      if (contribution.kind !== 'HIT_POINT_MAXIMUM_REDUCTION') continue
-      if (!Number.isSafeInteger(total + contribution.amount))
-        throw new Error('Active hit point maximum reductions exceed safe bounds.')
-      total += contribution.amount
-    }
-  }
-  return total
-}
-
 export function nativeCharacterMaximumHitPoints(
   characterFacts: CharacterMovementFacts,
   activeEffects: ActiveRuleEffectRecord[]
 ) {
-  return Math.max(
-    0,
+  return reduceHitPointMaximum(
     resolveCharacterEffectiveMaximumHitPoints(
       characterFacts.ruleEvaluation.output.derivedStats.maxHitPoints.effective
-    ) - maximumReduction(activeEffects)
+    ),
+    listHitPointMaximumReductions(activeEffects)
   )
 }
 

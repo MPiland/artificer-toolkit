@@ -16,6 +16,7 @@ import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/ch
 import type { CharacterCompletedRestResultDto } from '@artificer-toolkit/schema/api/characterSheet'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   CharacterSheetCommandError,
   clearEmptyStateArrays,
@@ -34,6 +35,26 @@ function getRestRecoveryTriggers(restKind: 'SHORT' | 'LONG') {
   return restKind === 'LONG'
     ? new Set(['SHORT_REST', 'LONG_REST'] as const)
     : new Set(['SHORT_REST'] as const)
+}
+
+/**
+ * Whether finishing a rest deletes this Character active effect: a scalar reduction whose recovery
+ * triggers match, or a hit point maximum reduction that ends on a long rest (Life Drain, D62).
+ */
+export function activeEffectEndsOnRest(
+  effect: Pick<ActiveRuleEffectRecord, 'definition'>,
+  restKind: 'SHORT' | 'LONG'
+): boolean {
+  if (effect.definition.schemaVersion !== 2) return false
+  const triggers = getRestRecoveryTriggers(restKind)
+  return effect.definition.stateContributions.some(
+    (contribution) =>
+      (contribution.kind === 'SCALAR_REDUCTION' &&
+        contribution.recoveryTriggers.some((trigger) => triggers.has(trigger))) ||
+      (contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
+        restKind === 'LONG' &&
+        contribution.recoveryTags.includes('LONG_REST'))
+  )
 }
 
 function recoverCharacterHitDice(
