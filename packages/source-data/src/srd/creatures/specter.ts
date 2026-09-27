@@ -129,18 +129,20 @@ export const specter: CreatureAuthored = {
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
-                    id: S.actionId(6522, 3),
+                    id: S.actionId(6522, 5),
                     effectKind: S.EFFECT_KIND.DAMAGE,
                     damageTypeId: S.damageTypeId('NECROTIC'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '3d6'
                   },
-                  {
+                  S.lifeDrainSave({
                     id: S.actionId(6522, 4),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPECTER_LIFE_DRAIN
-                  }
+                    savingThrowId: S.actionId(6522, 6),
+                    dc: 10,
+                    reductionOutcomeId: S.actionId(6522, 7),
+                    damageOutcomeId: S.actionId(6522, 5)
+                  })
                 ]
               }
             }

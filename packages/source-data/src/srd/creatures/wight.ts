@@ -102,11 +102,13 @@ export const wight: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d6+2'
                   },
-                  {
+                  S.lifeDrainSave({
                     id: S.actionId(293, 207),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WIGHT_LIFE_DRAIN
-                  }
+                    savingThrowId: S.actionId(293, 226),
+                    dc: 13,
+                    reductionOutcomeId: S.actionId(293, 227),
+                    damageOutcomeId: S.actionId(293, 206)
+                  })
                 ]
               }
             }

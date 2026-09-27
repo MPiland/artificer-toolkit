@@ -133,11 +133,13 @@ export const wraith: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '4d8+3'
                   },
-                  {
+                  S.lifeDrainSave({
                     id: S.actionId(298, 209),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WRAITH_LIFE_DRAIN
-                  }
+                    savingThrowId: S.actionId(298, 216),
+                    dc: 14,
+                    reductionOutcomeId: S.actionId(298, 217),
+                    damageOutcomeId: S.actionId(298, 208)
+                  })
                 ]
               }
             }

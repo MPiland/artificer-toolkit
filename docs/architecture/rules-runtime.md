@@ -1662,8 +1662,8 @@ Equipment has an action with the same trigger and the Feature deals every damage
 does. `REPLACE_CREATURE_EQUIPMENT` applies the same rule, so a Club cannot replace a Dagger. The
 compiled action is the Feature's own Effect; nothing from the Equipment's damage is merged into it.
 
-**M9 sweep categories (D62).** The SRD attack sweep's allowlist went from 126 entries to 44; each
-remaining entry keeps one reason, and the allowlist may only shrink:
+**M9 sweep categories (D62).** The SRD attack sweep's allowlist went from 126 entries to 44, and to
+41 with Life Drain (below); each remaining entry keeps one reason, and the allowlist may only shrink:
 
 - `SPECIAL_RANGE` (55, removed): every ranged weapon attack now authors its printed normal and long
   range; the 14 attack-triggered Multiattacks are `ACTIVATED` closed rules like every other
@@ -1674,20 +1674,34 @@ remaining entry keeps one reason, and the allowlist may only shrink:
   disease, the Horned Devil's infernal wound, the Couatl's 24-hour poison, longer than the
   active-effect tick bound), a push-and-prone save (Dragon Turtle Tail) and a hit that deals no
   damage before its save (Guardian Naga Spit Poison).
-- `OUTCOME_KIND` (45 → 37): the CLOSED_RULE riders that had a typed equivalent now author it:
+- `OUTCOME_KIND` (45 → 37 → 34): the CLOSED_RULE riders that had a typed equivalent now author it:
   save-or-prone (Tarrasque Tail), versatile grips (Veteran and Wight Longsword, Druid Quarterstaff),
   a bare poisoned condition (Erinyes Longbow), two conditions on one hit (Giant Toad, Remorhaz); the
   Goblin's long-range rule is the range itself; the Lich's duplicate Paralyzing Touch rule and the
   Horned Devil's object ignition are gone (description-only). What remains has no typed outcome yet:
   swallowing, attaching (Stirge, Darkmantle), curses (lycanthropy, Rakshasa, Lamia, mummy rot),
   regaining hit points from the damage dealt (Vampire), a grapple-or-damage choice, a Strength
-  contest pull (Merrow), armor corrosion and slaying. The Wight, Wraith and Specter Life Drains need
-  a hit point maximum reduction that ends on a long rest; the reduction contract recovers only
-  through restoration magic today (a persisted contract, escalated).
+  contest pull (Merrow), armor corrosion and slaying. The Wight, Wraith and Specter Life Drains now
+  author their save and hit point maximum reduction (below).
 - `EQUIPMENT_BASE_DAMAGE` (26 → `EQUIPMENT_DAMAGE_TYPE`, 1): a Creature's weapon dice no longer
   have to match its Equipment's (above). Only the Ogre Zombie's Morningstar remains: it prints
   bludgeoning damage, a morningstar deals piercing (a probable SRD printing error, like the D61
   exceptions).
+
+**CURRENT / Life Drain (D62, approved 2026-09-27).** A hit point maximum reduction's `recoveryTags`
+(`@artificer-toolkit/schema/effects/hitPointMaximumReduction`, one definition shared by the authored
+outcome, the active-effect contribution and the receipt) always include `RESTORE_HIT_POINT_MAXIMUM`
+and may add `LONG_REST`. The graph carries them as canonical JSON text. The Wight, Wraith and Specter
+Life Drains (`lifeDrainSave` in source data) author their Constitution save and a reduction by the
+damage taken that ends on a long rest; the Clay Golem's Slam still recovers only through
+restoration magic. A long `COMPLETE_REST` on the Character Sheet deletes the Character's reductions
+tagged `LONG_REST`, as it deletes scalar reductions whose triggers match; there is no Creature rest.
+A Character mechanics receipt binds a reduction to its proposal (result path, source damage and
+recovery tags), and a reduction whose damage dealt nothing has no application. The death clause
+("dies if this reduces its hit point maximum to 0"): a Creature at a 0 maximum has 0 hit points and
+is defeated (D63); a Character only drops to 0 and is unconscious, because Character death is not
+modeled yet. The Wight's zombie rising is description-only. Known gap: the Character Sheet's
+maximum hit points ignore active reductions, which only the Encounter reads.
 
 No unselected damage dice are requested. Each phase is independently acyclic and executes once with
 one evidence stage. Resource consumption, aggregate mutations, events, and terminal receipt changes

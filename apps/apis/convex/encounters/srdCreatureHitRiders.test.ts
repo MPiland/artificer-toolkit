@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { characterSheetCommandInputDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -25,6 +26,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
+import { createActiveRuleEffectStore } from '../rules/effectStore'
 
 function srdId(entries: readonly { id: string; code: string }[], code: string) {
   const entry = entries.find((candidate) => candidate.code === code)
@@ -480,6 +482,76 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(batch.activeEffectTransitions).toMatchObject([
       { kind: 'CREATE', recurrenceStage: 'END_OF_TURN', remainingTicks: 10 }
     ])
+  }, 30000)
+
+  it('drains the Character’s hit point maximum with the Wight’s Life Drain until a long rest (D62)', async () => {
+    const base = await setup({ creature: 'Wight', feature: 'Life Drain', playerAutoRoll: false })
+    // A natural 19 hits for 1d6 + 2 necrotic, the die rolling 4; the Character's save waits on its player.
+    const pending = await executeInRoom(
+      base.owner.caller,
+      { command: base.command },
+      scripted([18, 3])
+    )
+    const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
+    expect(answered.occurrence?.status).toBe('COMPLETE')
+    const batch = await settledBatch(base)
+    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 13, resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.damage).toEqual([[6, damageTypeId('NECROTIC')]])
+    const maximum = batch.targetTransition.before.maximumHitPoints
+    expect(batch.targetTransition.after.maximumHitPoints).toBe(maximum - 6)
+    expect(batch.applications).toContainEqual(
+      expect.objectContaining({
+        kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+        reductionAmount: 6,
+        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+      })
+    )
+    const reductions = () =>
+      base.t.run((ctx) =>
+        createActiveRuleEffectStore(ctx).list({
+          kind: 'CHARACTER',
+          characterId: base.character.id
+        })
+      )
+    expect(await reductions()).toHaveLength(1)
+
+    // A long rest ends the reduction and restores every hit point.
+    const streamVersion = await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('characters')
+        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
+        .unique()
+      if (!row) throw new Error('The Life Drain Character is missing.')
+      return row.streamVersion
+    })
+    const input = {
+      restKind: 'LONG' as const,
+      expectedVersion: streamVersion,
+      selectedHitDice: [],
+      resetMaximumHitPointModifier: false,
+      healingMode: 'AUTOMATIC' as const,
+      manualHealingAccepted: false,
+      selectedCompanionInstanceIds: [],
+      requestRoll: false as const
+    }
+    const preview = await base.player.caller.query(api.characters.rest.preview, {
+      id: base.character.id,
+      input
+    })
+    const rested = await base.player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: base.character.id,
+      command: characterSheetCommandInputDtoSchema.parse({
+        ...input,
+        type: 'COMPLETE_REST',
+        commandId: crypto.randomUUID(),
+        previewFingerprint: preview.previewFingerprint
+      })
+    })
+    expect(await reductions()).toEqual([])
+    expect(rested.sheet.overview).toMatchObject({
+      currentHitPoints: maximum,
+      maxHitPoints: maximum
+    })
   }, 30000)
 
   it('offers the Erinyes’ Longsword one- and two-handed and resolves the chosen grip', async () => {

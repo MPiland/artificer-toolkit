@@ -264,6 +264,46 @@ export function conditionSave(input: {
 }
 
 /**
+ * Life Drain's rider (Wight, Wraith, Specter): "the target must succeed on a DC N Constitution
+ * saving throw or its hit point maximum is reduced by an amount equal to the damage taken. This
+ * reduction lasts until the target finishes a long rest" (D62). Restoration magic also ends it.
+ */
+export function lifeDrainSave(input: {
+  id: string
+  savingThrowId: string
+  dc: number
+  reductionOutcomeId: string
+  damageOutcomeId: string
+}): FollowUpSaveAuthored {
+  return {
+    id: input.id,
+    effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+    timing: FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+    savingThrow: {
+      id: input.savingThrowId,
+      dcMethod: 'FIXED_DC',
+      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+      baseDc: input.dc
+    },
+    attempts: { kind: 'ONCE' },
+    onSuccess: { kind: 'END' },
+    onFailure: {
+      kind: 'OUTCOMES',
+      endCurrent: false,
+      resultKind: 'SINGLE',
+      outcomes: [
+        {
+          id: input.reductionOutcomeId,
+          effectKind: EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION,
+          amountSource: { kind: 'DAMAGE_TAKEN', damageOutcomeId: input.damageOutcomeId },
+          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+        }
+      ]
+    }
+  }
+}
+
+/**
  * A hit's poison rider: "the target must make a DC N Constitution saving throw, taking X poison
  * damage on a failed save, or half as much damage on a successful one", or, with a null
  * successDamageId, "must succeed on a DC N Constitution saving throw or take X poison damage".
