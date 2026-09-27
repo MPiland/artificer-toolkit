@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const mimic: CreatureAuthored = {
   id: S.CREATURE_IDS.MIMIC,
@@ -167,25 +166,6 @@ export const mimic: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(197, 7),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(197, 7) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(197, 7),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
                   }
                 ]
               }

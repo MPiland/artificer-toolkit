@@ -148,8 +148,13 @@ export const ghast: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(110, 7) + '__result',
+                id: S.actionId(110, 903),
                 resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(110, 904),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(110, 7),
@@ -166,31 +171,16 @@ export const ghast: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(110, 9),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(110, 9) + '__result',
-                resultKind: 'SINGLE' as const,
-                duration: {
-                  id: S.actionId(110, 10),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
+                  },
+                  S.conditionSave({
                     id: S.actionId(110, 9),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('PARALYZED')
-                  }
+                    savingThrowId: S.actionId(110, 901),
+                    ability: 'CONSTITUTION',
+                    dc: 10,
+                    conditionOutcomeId: S.actionId(110, 902),
+                    conditionId: conditionTypeId('PARALYZED'),
+                    repeatsAtTurnEnd: true
+                  })
                 ]
               }
             }

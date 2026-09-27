@@ -77,25 +77,56 @@ export const cockatrice: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d4+1'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(67, 4),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(67, 4) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
+                  },
                   {
                     id: S.actionId(67, 4),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('RESTRAINED')
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: S.actionId(67, 901),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 11
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SEQUENCE',
+                      outcomes: [
+                        {
+                          id: S.actionId(67, 902),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('RESTRAINED')
+                        },
+                        {
+                          id: S.actionId(67, 903),
+                          effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                          timing: S.FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+                          savingThrow: {
+                            id: S.actionId(67, 904),
+                            dcMethod: 'FIXED_DC',
+                            abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                            baseDc: 11
+                          },
+                          attempts: { kind: 'ONCE' },
+                          onSuccess: { kind: 'END' },
+                          onFailure: {
+                            kind: 'OUTCOMES',
+                            endCurrent: true,
+                            resultKind: 'SINGLE',
+                            outcomes: [
+                              {
+                                id: S.actionId(67, 905),
+                                effectKind: S.EFFECT_KIND.CONDITION,
+                                conditionId: conditionTypeId('PETRIFIED')
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   }
                 ]
               }

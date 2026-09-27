@@ -75,30 +75,15 @@ export const giantWasp: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d6+2'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(138, 4),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(138, 4) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
+                  },
+                  S.constitutionPoisonDamageSave({
                     id: S.actionId(138, 4),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '3d6',
-                    multiplier: 0.5
-                  }
+                    savingThrowId: S.actionId(138, 901),
+                    dc: 11,
+                    failureDamageId: S.actionId(138, 902),
+                    successDamageId: S.actionId(138, 903),
+                    diceConfig: '3d6'
+                  })
                 ]
               }
             }

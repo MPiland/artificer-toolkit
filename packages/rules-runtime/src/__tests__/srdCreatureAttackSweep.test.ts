@@ -28,7 +28,6 @@ import {
   TIMESTAMP
 } from './dnd5eSrdEncounter.js'
 import {
-  SRD_CREATURE_ATTACK_DAMAGE_MISMATCHES,
   SRD_CREATURE_ATTACK_UNSUPPORTED,
   type SrdCreatureAttackUnsupportedReason
 } from './srdCreatureAttackSweepAllowlist.js'
@@ -144,7 +143,7 @@ function unsupportedReason(
 }
 
 describe('SRD Creature attack sweep', () => {
-  it('resolves every SRD Creature attack to its printed hit damage, except the shrinking allowlist', () => {
+  it('resolves every SRD Creature attack to its printed hit damage', () => {
     const mismatches: Record<string, string> = {}
     const effectIds = new Set<string>()
     for (const creature of creatures) {
@@ -153,15 +152,13 @@ describe('SRD Creature attack sweep', () => {
         const resolved = resolvedHitDamage(creature, unit).sort()
         const printed = printedHitDamage(unit).sort()
         if (resolved.join(', ') === printed.join(', ')) continue
-        const known = SRD_CREATURE_ATTACK_DAMAGE_MISMATCHES[unit.effectId]
         mismatches[unit.effectId] =
-          known ??
           `UNEXPECTED ${unit.label}: resolves ${resolved.join(', ')}, prints ${printed.join(', ')}`
       }
     }
 
     expect(SRD_CREATURE_ATTACK_DAMAGE.size).toBe(effectIds.size)
-    expect(mismatches).toEqual(SRD_CREATURE_ATTACK_DAMAGE_MISMATCHES)
+    expect(mismatches).toEqual({})
   })
 
   it('prepares, executes and plans every SRD Creature attack, except the shrinking allowlist', async () => {

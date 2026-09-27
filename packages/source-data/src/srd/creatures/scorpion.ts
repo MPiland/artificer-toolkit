@@ -63,12 +63,12 @@ export const scorpion: CreatureAuthored = {
               id: S.actionId(246, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(246, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(246, 3),
@@ -77,30 +77,15 @@ export const scorpion: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(246, 4),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(246, 4) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
+                  },
+                  S.constitutionPoisonDamageSave({
                     id: S.actionId(246, 4),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d8',
-                    multiplier: 0.5
-                  }
+                    savingThrowId: S.actionId(246, 901),
+                    dc: 9,
+                    failureDamageId: S.actionId(246, 902),
+                    successDamageId: S.actionId(246, 903),
+                    diceConfig: '1d8'
+                  })
                 ]
               }
             }

@@ -106,30 +106,15 @@ export const phaseSpider: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(218, 5),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(218, 5) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
+                  },
+                  S.constitutionPoisonDamageSave({
                     id: S.actionId(218, 5),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '4d8',
-                    multiplier: 0.5
-                  }
+                    savingThrowId: S.actionId(218, 901),
+                    dc: 11,
+                    failureDamageId: S.actionId(218, 902),
+                    successDamageId: S.actionId(218, 903),
+                    diceConfig: '4d8'
+                  })
                 ]
               }
             }

@@ -101,12 +101,17 @@ export const beardedDevil: CreatureAuthored = {
               id: S.actionId(3602, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(3602, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                id: S.actionId(3602, 903),
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(3602, 6),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(3602, 3),
@@ -123,31 +128,16 @@ export const beardedDevil: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(3602, 5),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(3602, 5) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                duration: {
-                  id: S.actionId(3602, 6),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
+                  },
+                  S.conditionSave({
                     id: S.actionId(3602, 5),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('POISONED')
-                  }
+                    savingThrowId: S.actionId(3602, 901),
+                    ability: 'CONSTITUTION',
+                    dc: 12,
+                    conditionOutcomeId: S.actionId(3602, 902),
+                    conditionId: conditionTypeId('POISONED'),
+                    repeatsAtTurnEnd: true
+                  })
                 ]
               }
             }

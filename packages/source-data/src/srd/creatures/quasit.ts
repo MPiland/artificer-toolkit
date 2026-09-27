@@ -1,5 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const quasit: CreatureAuthored = {
@@ -116,6 +116,11 @@ export const quasit: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(228, 933),
                 resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(228, 934),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(2663, 3),

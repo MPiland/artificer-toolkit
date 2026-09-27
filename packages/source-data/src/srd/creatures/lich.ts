@@ -217,8 +217,13 @@ export const lich: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(2794, 3) + '__result',
+                id: S.actionId(2794, 903),
                 resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(2794, 904),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(2794, 3),
@@ -227,31 +232,16 @@ export const lich: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '3d6'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(2794, 4),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(2794, 4) + '__result',
-                resultKind: 'SINGLE' as const,
-                duration: {
-                  id: S.actionId(2794, 5),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
+                  },
+                  S.conditionSave({
                     id: S.actionId(2794, 4),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('PARALYZED')
-                  }
+                    savingThrowId: S.actionId(2794, 901),
+                    ability: 'CONSTITUTION',
+                    dc: 18,
+                    conditionOutcomeId: S.actionId(2794, 902),
+                    conditionId: conditionTypeId('PARALYZED'),
+                    repeatsAtTurnEnd: true
+                  })
                 ]
               }
             }

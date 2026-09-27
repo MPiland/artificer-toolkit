@@ -884,6 +884,8 @@ type ImmediateFollowUpSaveShape =
   | 'FULL_OR_HALF_DAMAGE'
   | 'STATE_ONLY_REDUCTION'
   | 'FORCED_MOVEMENT_ONLY'
+  | 'CONDITION_ON_FAILURE'
+  | 'DAMAGE_ON_FAILURE'
   | 'REPEATING_CONDITION'
 
 type ImmediatePrimaryDamageEntry = CompiledEffectGroup['entries'][number] & {
@@ -928,10 +930,7 @@ function immediateFollowUpSaveEntries(entries: readonly CompiledEffectGroup['ent
       entry.pathCode !== 'ON_HIT' ||
       entry.resultBlockId !== resultBlockId ||
       outcome.effectKind !== 'DAMAGE' ||
-      outcome.valueKind !== 'DICE' ||
-      outcome.scalingKind !== 'NONE' ||
-      typeof outcome.dice !== 'string' ||
-      !hasBoundedSingleDiceTerm(outcome.dice, 15) ||
+      primaryDamageDiceCount(outcome) === null ||
       !UUID.test(entry.entryId) ||
       !UUID.test(outcome.damageTypeId)
     ) {
@@ -987,9 +986,13 @@ function repeatingImmediateFollowUpSavePlan(
   }
   const firstEntry = action.compiledEffect.entries[0]
   const duration = firstEntry && 'duration' in firstEntry ? firstEntry.duration : undefined
+  // A condition that lasts "1 minute" ends after 10 of the target's turns (SRD 5.1).
+  const roundsPerUnit =
+    duration?.durationKind === 'ROUND' ? 1 : duration?.durationKind === 'MINUTE' ? 10 : null
   if (
     duration &&
-    (duration.durationKind !== 'ROUND' ||
+    (roundsPerUnit === null ||
+      !('amount' in duration) ||
       duration.scaling ||
       !Number.isSafeInteger(duration.amount) ||
       duration.amount < 1)
@@ -1002,7 +1005,10 @@ function repeatingImmediateFollowUpSavePlan(
     frozenGraphNodeId: 'repeat-save-test',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
-    initialRemaining: duration?.amount ?? null,
+    initialRemaining:
+      duration && 'amount' in duration && roundsPerUnit !== null
+        ? duration.amount * roundsPerUnit
+        : null,
     conditionContribution: { conditionId: condition.conditionId },
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
@@ -1215,10 +1221,7 @@ function exactImmediateFollowUpSaveShape(
   }
   const failure = failed.outcomes[0]
   const primaryDiceCount = primaryDamageEntries.reduce<number | null>((total, entry) => {
-    const count =
-      'dice' in entry.outcome && typeof entry.outcome.dice === 'string'
-        ? boundedSingleDiceCount(entry.outcome.dice)
-        : null
+    const count = primaryDamageDiceCount(entry.outcome)
     return total === null || count === null ? null : total + count
   }, 0)
   const commonBoundedSave =
@@ -1262,6 +1265,36 @@ function exactImmediateFollowUpSaveShape(
     return 'REPEATING_CONDITION'
   }
   if (save.attempts.repeatOnFailure === true || save.onDurationComplete) return null
+  const failureDiceCount =
+    failure?.effectKind === 'DAMAGE' && failure.valueKind === 'DICE'
+      ? boundedSingleDiceCount(failure.dice)
+      : null
+  if (
+    succeeded.kind === 'END' &&
+    failed.outcomes.length === 1 &&
+    failure?.effectKind === 'DAMAGE' &&
+    failure.valueKind === 'DICE' &&
+    failure.scalingKind === 'NONE' &&
+    failureDiceCount !== null &&
+    UUID.test(failure.damageTypeId) &&
+    failure.multiplier === undefined &&
+    !failure.bonuses?.length &&
+    commonBoundedSave &&
+    1 + primaryDiceCount! * 2 + 1 + failureDiceCount <=
+      MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS
+  ) {
+    return 'DAMAGE_ON_FAILURE'
+  }
+  if (
+    succeeded.kind === 'END' &&
+    failed.outcomes.length === 1 &&
+    failure?.effectKind === 'CONDITION' &&
+    UUID.test(failure.id) &&
+    UUID.test(failure.conditionId) &&
+    commonBoundedSave
+  ) {
+    return 'CONDITION_ON_FAILURE'
+  }
   if (
     succeeded.kind === 'END' &&
     failed.outcomes.length === 1 &&
@@ -1340,15 +1373,27 @@ function exactImmediateFollowUpSaveShape(
   return null
 }
 
-function hasExactImmediateFollowUpSave(
-  entries: readonly CompiledEffectGroup['entries'][number][]
-): boolean {
-  return exactImmediateFollowUpSaveShape(entries) !== null
-}
-
-function hasBoundedSingleDiceTerm(value: unknown, maximumCount: number): boolean {
-  const count = boundedSingleDiceCount(value)
-  return count !== null && count <= maximumCount
+/**
+ * The dice one primary hit-damage outcome requests before the nested save: its exact bounded
+ * term (a flat modifier or ability bonuses allowed, at most 15 dice) or none for a fixed amount.
+ */
+function primaryDamageDiceCount(outcome: ImmediatePrimaryDamageEntry['outcome']): number | null {
+  if (outcome.scalingKind !== 'NONE') return null
+  if (outcome.valueKind === 'FIXED')
+    return Number.isSafeInteger(outcome.amount) && outcome.amount > 0 && !outcome.bonuses?.length
+      ? 0
+      : null
+  if (outcome.valueKind !== 'DICE') return null
+  // A constant authored as dice ("1") rolls nothing, like a fixed amount.
+  if (/^[1-9]\d*$/.test(outcome.dice)) return outcome.bonuses?.length ? null : 0
+  try {
+    validateDamageBonuses(outcome.bonuses)
+    const count = parseBoundedDiceConfiguration(outcome.dice).terms[0]!.count
+    return count <= 15 ? count : null
+  } catch (error) {
+    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
+    throw error
+  }
 }
 
 function immediateFollowUpSaveMaximumReduction(
@@ -1378,10 +1423,25 @@ function boundedSingleDiceCount(value: unknown): number | null {
 }
 
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
+  const failure = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry.outcome
+    .onFailure
+  const shape = exactImmediateFollowUpSaveShape(action.compiledEffect.entries)
+  // A repeating save runs only with its active-effect plan; without one the condition would
+  // never be saved against again.
+  // Only the repeating save's condition may carry a duration.
+  const lasting = action.compiledEffect.entries.some(
+    (entry) => 'duration' in entry && (entry.duration || entry.lifecycle)
+  )
   return (
     testPhaseKindOrNull(action) === 'ATTACK' &&
-    (hasExactImmediateFollowUpSave(action.compiledEffect.entries) ||
-      repeatingImmediateFollowUpSavePlan(action) !== null)
+    ((shape !== null && shape !== 'REPEATING_CONDITION' && !lasting) ||
+      repeatingImmediateFollowUpSavePlan(action) !== null) &&
+    (failure?.kind !== 'OUTCOMES' ||
+      failure.outcomes.every(
+        (outcome) =>
+          outcome.effectKind !== 'CONDITION' ||
+          (action.conditionDefinitionIds ?? []).includes(outcome.conditionId)
+      ))
   )
 }
 
@@ -2649,12 +2709,14 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     unsupported('D&D test action has an unsupported bounded shape.')
   }
   const paths = new Set<string>()
+  const conditionPaths = new Set<string>()
   for (const entry of action.compiledEffect.entries) {
     if ('outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP') continue
+    // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
+    // specializes every outcome as its own group, exactly like separate paths.
     if (
       entry.resolutionKind !== 'DIRECT' ||
-      (entry.groupKind !== 'SINGLE' &&
-        !(relationshipEntries.length === 1 && entry.groupKind === 'SEQUENTIAL')) ||
+      (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
       entry.duration ||
       entry.lifecycle ||
       entry.maintenanceDefinitionId ||
@@ -2667,11 +2729,13 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     }
     paths.add(entry.pathCode)
     const outcome = specializedTestOutcome(entry)
-    if (
-      outcome.kind === 'CONDITION_APPLY' &&
-      !(action.conditionDefinitionIds ?? []).includes(outcome.conditionId)
-    ) {
-      unsupported('D&D test action condition is not in the pinned System vocabulary.')
+    if (outcome.kind === 'CONDITION_APPLY') {
+      if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
+        unsupported('D&D test action condition is not in the pinned System vocabulary.')
+      // Each result path binds one condition-immunity fact.
+      if (conditionPaths.has(entry.pathCode))
+        unsupported('D&D test action outcome is not supported: one path applies two conditions.')
+      conditionPaths.add(entry.pathCode)
     }
   }
   for (const pathCode of paths) {
@@ -3083,7 +3147,7 @@ function diceGraphDefinition(input: {
 }
 
 /**
- * The exact immediate/once nested save admitted by hasExactImmediateFollowUpSave.
+ * The exact immediate/once nested save admitted by isExactImmediateFollowUpSaveAction.
  * It either selects full or floor-half nested damage, or applies a state-only
  * maximum-hit-point reduction from the already-resolved primary damage.
  */
@@ -3108,16 +3172,18 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
   const reduction = immediateFollowUpSaveMaximumReduction(input.action)
   const forcedMovement =
     shape === 'FORCED_MOVEMENT_ONLY' && failure?.effectKind === 'FORCED_MOVEMENT' ? failure : null
+  // Damage only on a failed save is proposed against the save's own result path.
+  const failureOnlyDamage = shape === 'REPEATING_CONDITION' || shape === 'DAMAGE_ON_FAILURE'
   const nestedDamage =
-    (shape === 'FULL_OR_HALF_DAMAGE' || shape === 'REPEATING_CONDITION') &&
+    (shape === 'FULL_OR_HALF_DAMAGE' || failureOnlyDamage) &&
     failure &&
     failure.effectKind === 'DAMAGE' &&
     failure.valueKind === 'DICE' &&
     typeof failure.dice === 'string'
       ? failure
       : null
-  const repeatingCondition =
-    shape === 'REPEATING_CONDITION'
+  const failureCondition =
+    shape === 'REPEATING_CONDITION' || shape === 'CONDITION_ON_FAILURE'
       ? save.onFailure.outcomes.find(
           (outcome): outcome is Extract<typeof outcome, { effectKind: 'CONDITION' }> =>
             outcome.effectKind === 'CONDITION'
@@ -3224,7 +3290,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
         ? [
             ...diceNodes,
             ...sumNodes,
-            ...(shape === 'REPEATING_CONDITION'
+            ...(failureOnlyDamage
               ? []
               : [
                   {
@@ -3246,10 +3312,9 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
             {
               id: 'nested-save-proposal',
               operation: {
-                key:
-                  shape === 'REPEATING_CONDITION'
-                    ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
-                    : DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
+                key: failureOnlyDamage
+                  ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
+                  : DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
                 contractVersion: 1
               },
               inputs: {
@@ -3261,15 +3326,14 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
                   kind: 'FACT' as const,
                   factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
                 },
-                amount:
-                  shape === 'REPEATING_CONDITION'
-                    ? subtotal
-                    : {
-                        kind: 'NODE_OUTPUT' as const,
-                        nodeId: 'nested-save-damage-total',
-                        port: 'value'
-                      },
-                ...(shape === 'REPEATING_CONDITION'
+                amount: failureOnlyDamage
+                  ? subtotal
+                  : {
+                      kind: 'NODE_OUTPUT' as const,
+                      nodeId: 'nested-save-damage-total',
+                      port: 'value'
+                    },
+                ...(failureOnlyDamage
                   ? {
                       resolvedPath: {
                         kind: 'NODE_OUTPUT' as const,
@@ -3380,7 +3444,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
             }
           ]
         : []),
-      ...(repeatingCondition
+      ...(failureCondition
         ? [
             {
               id: 'nested-save-condition',
@@ -3404,7 +3468,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
                 },
                 conditionId: {
                   kind: 'LITERAL' as const,
-                  value: repeatingCondition.conditionId
+                  value: failureCondition.conditionId
                 },
                 conditionImmune: {
                   kind: 'FACT' as const,
@@ -3465,10 +3529,10 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
             }
           ]
         : []),
-      ...(repeatingCondition
+      ...(failureCondition
         ? [
             {
-              sourceEntryId: repeatingCondition.id,
+              sourceEntryId: failureCondition.id,
               nodeId: 'nested-save-condition'
             }
           ]
@@ -3683,8 +3747,18 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       if (!('outcome' in primaryDamageEntry))
         unsupported('D&D immediate follow-up save primary damage is unavailable.')
       const primaryDamage = specializedTestOutcome(primaryDamageEntry)
+      const nodePrefix =
+        immediate.primaryDamageEntries.length > 1 ? { nodePrefix: `primary-${index + 1}-` } : {}
+      // A fixed amount ("1 piercing damage") has no dice to double on a critical hit.
+      if (primaryDamage.kind === 'DAMAGE')
+        return fixedOutcomeGraphDefinition({
+          action: input.action,
+          entry: primaryDamageEntry,
+          outcome: primaryDamage,
+          ...nodePrefix
+        })
       if (primaryDamage.kind !== 'DICE_DAMAGE')
-        unsupported('D&D immediate follow-up save requires dice-backed primary damage.')
+        unsupported('D&D immediate follow-up save requires damage before the save.')
       const primaryDiceConfiguration = exactDiceConfiguration(
         [primaryDamageEntry.outcome as unknown as Record<string, unknown>],
         input.facts,
@@ -3698,9 +3772,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
           input.selectedPath === 'ON_CRIT'
             ? criticalDiceConfiguration(primaryDiceConfiguration)
             : primaryDiceConfiguration,
-        ...(immediate.primaryDamageEntries.length > 1
-          ? { nodePrefix: `primary-${index + 1}-` }
-          : {})
+        ...nodePrefix
       })
     })
     const definition = mergedOutcomeGraphDefinition({

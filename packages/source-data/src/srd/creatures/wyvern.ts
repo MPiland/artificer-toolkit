@@ -163,30 +163,15 @@ export const wyvern: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(299, 16),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(299, 16) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
+                  },
+                  S.constitutionPoisonDamageSave({
                     id: S.actionId(299, 16),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '7d6',
-                    multiplier: 0.5
-                  }
+                    savingThrowId: S.actionId(299, 901),
+                    dc: 15,
+                    failureDamageId: S.actionId(299, 902),
+                    successDamageId: S.actionId(299, 903),
+                    diceConfig: '7d6'
+                  })
                 ]
               }
             }

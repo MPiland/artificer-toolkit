@@ -31,12 +31,14 @@ import {
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
   type CreatureAuthored,
-  type FeatureAuthored
+  type FeatureAuthored,
+  type FollowUpSaveAuthored
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
 import { CREATURE_IDS } from '../ids.js'
 export { SPELL_IDS } from '../ids.js'
 import {
+  SRD_ABILITY_DEFINITION_IDS,
   SRD_CHALLENGE_RATINGS,
   SRD_CREATURE_TYPES,
   SRD_DAMAGE_TYPES,
@@ -216,6 +218,97 @@ export function damageTypeId(code: string) {
   const entry = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === code)
   if (!entry) throw new Error(`SRD damage type vocabulary entry for ${code} required.`)
   return entry.id
+}
+
+/**
+ * A hit's condition rider: "the target must succeed on a DC N saving throw or be <condition>",
+ * optionally repeating the save at the end of each of its turns to end the condition.
+ */
+export function conditionSave(input: {
+  id: string
+  savingThrowId: string
+  ability: 'CONSTITUTION' | 'STRENGTH'
+  dc: number
+  conditionOutcomeId: string
+  conditionId: string
+  repeatsAtTurnEnd: boolean
+}): FollowUpSaveAuthored {
+  return {
+    id: input.id,
+    effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+    timing: FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+    ...(input.repeatsAtTurnEnd ? { repeatTiming: FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END } : {}),
+    savingThrow: {
+      id: input.savingThrowId,
+      dcMethod: 'FIXED_DC',
+      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS[input.ability],
+      baseDc: input.dc
+    },
+    attempts: { kind: 'ONCE', ...(input.repeatsAtTurnEnd ? { repeatOnFailure: true } : {}) },
+    onSuccess: { kind: 'END' },
+    onFailure: {
+      kind: 'OUTCOMES',
+      endCurrent: false,
+      resultKind: 'SINGLE',
+      outcomes: [
+        {
+          id: input.conditionOutcomeId,
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: input.conditionId
+        }
+      ]
+    }
+  }
+}
+
+/**
+ * A hit's poison rider: "the target must make a DC N Constitution saving throw, taking X poison
+ * damage on a failed save, or half as much damage on a successful one", or, with a null
+ * successDamageId, "must succeed on a DC N Constitution saving throw or take X poison damage".
+ */
+export function constitutionPoisonDamageSave(input: {
+  id: string
+  savingThrowId: string
+  dc: number
+  failureDamageId: string
+  successDamageId: string | null
+  diceConfig: string
+}): FollowUpSaveAuthored {
+  const poisonDamage = (id: string) => ({
+    id,
+    effectKind: EFFECT_KIND.DAMAGE,
+    damageTypeId: damageTypeId('POISON'),
+    valueKind: DAMAGE_VALUE_KIND.DICE,
+    scalingKind: SCALING.NONE,
+    diceConfig: input.diceConfig
+  })
+  return {
+    id: input.id,
+    effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+    timing: FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+    savingThrow: {
+      id: input.savingThrowId,
+      dcMethod: 'FIXED_DC',
+      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+      baseDc: input.dc
+    },
+    attempts: { kind: 'ONCE' },
+    onFailure: {
+      kind: 'OUTCOMES',
+      endCurrent: false,
+      resultKind: 'SINGLE',
+      outcomes: [poisonDamage(input.failureDamageId)]
+    },
+    onSuccess:
+      input.successDamageId === null
+        ? { kind: 'END' }
+        : {
+            kind: 'OUTCOMES',
+            endCurrent: false,
+            resultKind: 'SINGLE',
+            outcomes: [{ ...poisonDamage(input.successDamageId), multiplier: 0.5 }]
+          }
+  }
 }
 
 export function grantedSkillProficiency(

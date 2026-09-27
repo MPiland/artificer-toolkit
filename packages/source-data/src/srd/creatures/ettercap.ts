@@ -92,12 +92,17 @@ export const ettercap: CreatureAuthored = {
               id: S.actionId(99, 6),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(99, 6) + '__result',
-                resultKind: 'SINGLE' as const,
+                id: S.actionId(99, 903),
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(99, 904),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(99, 6),
@@ -106,21 +111,7 @@ export const ettercap: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d8+2'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(99, 14),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(99, 14) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
+                  },
                   {
                     id: S.actionId(99, 14),
                     effectKind: S.EFFECT_KIND.DAMAGE,
@@ -128,31 +119,16 @@ export const ettercap: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d8'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(99, 7),
-              order: 3,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(99, 7) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                duration: {
-                  id: S.actionId(99, 8),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
+                  },
+                  S.conditionSave({
                     id: S.actionId(99, 7),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('POISONED')
-                  }
+                    savingThrowId: S.actionId(99, 901),
+                    ability: 'CONSTITUTION',
+                    dc: 11,
+                    conditionOutcomeId: S.actionId(99, 902),
+                    conditionId: conditionTypeId('POISONED'),
+                    repeatsAtTurnEnd: true
+                  })
                 ]
               }
             }

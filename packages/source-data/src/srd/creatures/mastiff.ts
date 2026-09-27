@@ -84,26 +84,16 @@ export const mastiff: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d6+1'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(193, 4),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(193, 4) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
+                  },
+                  S.conditionSave({
                     id: S.actionId(193, 4),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('PRONE')
-                  }
+                    savingThrowId: S.actionId(193, 901),
+                    ability: 'STRENGTH',
+                    dc: 11,
+                    conditionOutcomeId: S.actionId(193, 902),
+                    conditionId: conditionTypeId('PRONE'),
+                    repeatsAtTurnEnd: false
+                  })
                 ]
               }
             }

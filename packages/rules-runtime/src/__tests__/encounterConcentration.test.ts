@@ -665,34 +665,9 @@ describe('nativeConcentrationDamageApplications', () => {
   })
 
   it('makes one check per damage source, at the DC of that source’s total damage', async () => {
-    // The Ancient Red Dragon's Bite deals piercing and fire damage from one attack, authored as two
-    // single hit outcome groups (the SRD's sequential shape is not automated yet).
-    const srdBite = creatureFeature(ancientRedDragon, 'Bite')
-    const bite = {
-      ...srdBite,
-      rollDefinitions: [
-        {
-          id: '00000000-0000-4000-8000-0000000000a4',
-          label: 'Bite attack',
-          kind: 'ATTACK' as const,
-          expression: { count: 1, die: 20, modifier: 17 },
-          rollMode: 'NORMAL' as const,
-          chargeCost: null,
-          order: 1
-        }
-      ],
-      effects: srdBite.effects?.map((effect) => ({
-        ...effect,
-        paths: effect.paths.map((path) => {
-          if (!('resultBlock' in path)) throw new Error('Expected a Bite result block.')
-          return {
-            ...path,
-            groupType: 'SINGLE' as const,
-            resultBlock: { ...path.resultBlock, resultKind: 'SINGLE' as const }
-          }
-        })
-      }))
-    }
+    // The seeded Ancient Red Dragon's Bite deals piercing and fire damage from one attack, authored
+    // as sequential hit results.
+    const bite = creatureFeature(ancientRedDragon, 'Bite')
     const prepared = await prepareCreatureAction({
       actor: creatureActor({ id: DRAGON_ID, label: 'Dragon', features: [bite] }),
       target: creatureActor({ id: CASTER_ID, label: 'Caster', features: [], hitPoints: 100 }),

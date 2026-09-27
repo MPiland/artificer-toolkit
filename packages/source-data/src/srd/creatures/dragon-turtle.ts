@@ -230,25 +230,40 @@ export const dragonTurtle: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(85, 16),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(85, 16) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
+                  },
                   {
                     id: S.actionId(85, 16),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('PRONE')
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: S.actionId(85, 901),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
+                      baseDc: 20
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SEQUENCE',
+                      outcomes: [
+                        {
+                          id: S.actionId(85, 902),
+                          effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
+                          direction: 'AWAY_FROM_SOURCE',
+                          actionEconomy: 'NONE',
+                          distanceMode: 'FIXED_DISTANCE',
+                          amount: 10,
+                          unit: 'FEET'
+                        },
+                        {
+                          id: S.actionId(85, 903),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('PRONE')
+                        }
+                      ]
+                    }
                   }
                 ]
               }

@@ -98,26 +98,16 @@ export const giantCrocodile: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d8+5'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(120, 11),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(120, 11) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
+                  },
+                  S.conditionSave({
                     id: S.actionId(120, 11),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('PRONE')
-                  }
+                    savingThrowId: S.actionId(120, 901),
+                    ability: 'STRENGTH',
+                    dc: 16,
+                    conditionOutcomeId: S.actionId(120, 902),
+                    conditionId: conditionTypeId('PRONE'),
+                    repeatsAtTurnEnd: false
+                  })
                 ]
               }
             }
