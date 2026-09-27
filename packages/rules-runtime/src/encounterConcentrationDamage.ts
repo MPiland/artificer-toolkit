@@ -15,26 +15,34 @@ type DamageBatch = {
   sourceLabel?: string | null
 }
 
+/**
+ * Each batch is one damage source (an action, spell or turn effect against one target), so it makes
+ * one Concentration check at the DC of its total applied damage (SRD 5.1), identified by its first
+ * damage row.
+ */
 function collectConcentrationDamage(batches: readonly DamageBatch[], preserveOrdinals: boolean) {
-  const damage = batches.flatMap((batch) =>
-    batch.applications.flatMap((application) =>
-      application.kind === 'DAMAGE' && application.appliedAmount > 0
-        ? [
-            {
-              application: {
-                ordinal: application.ordinal,
-                sourceNodeId: application.sourceNodeId,
-                sourceOperationKey: application.sourceOperationKey,
-                targetActorId: batch.targetActorId,
-                appliedAmount: application.appliedAmount,
-                damageTypeId: application.damageTypeId
-              },
-              sourceLabel: batch.sourceLabel ?? null
-            }
-          ]
-        : []
+  const damage = batches.flatMap((batch) => {
+    const rows = batch.applications.flatMap((application) =>
+      application.kind === 'DAMAGE' && application.appliedAmount > 0 ? [application] : []
     )
-  )
+    const [first] = rows
+    if (!first) return []
+    return [
+      {
+        application: {
+          ordinal: first.ordinal,
+          sourceNodeId: first.sourceNodeId,
+          sourceOperationKey: first.sourceOperationKey,
+          targetActorId: batch.targetActorId,
+          appliedAmount: rows.reduce((total, row) => total + row.appliedAmount, 0),
+          damageTypeId: rows.every((row) => row.damageTypeId === first.damageTypeId)
+            ? first.damageTypeId
+            : null
+        },
+        sourceLabel: batch.sourceLabel ?? null
+      }
+    ]
+  })
   if (damage.length > MAX_CONCENTRATION_DAMAGE_APPLICATIONS)
     throw new Error('Finalized concentration damage exceeds the turn bound.')
   return damage.map(({ application, sourceLabel }, index) => ({

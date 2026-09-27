@@ -1325,8 +1325,10 @@ leaving it empty keeps an ordinary ability-save modifier.
 The maintenance identity is separate from the Kernel and binds concentration state/replacement and
 aggregate-owned application behavior. **CURRENT / auto-rolled and prompted
 execution:** a completed Encounter action stages one deterministic receipt-only child
-occurrence for each finalized positive damage application against an exact maintained concentration
-state. The parent receipt retains only base action evidence. In Assisted mode, the first child pauses
+occurrence for each damage source (one action, spell or turn effect against one target) with positive
+finalized damage against an exact maintained concentration state. Its DC comes from that source's
+total damage across all its damage rows (SRD 5.1), and a source that dealt several damage types
+records no single type. The parent receipt retains only base action evidence. In Assisted mode, the first child pauses
 and only the current Campaign GM or current assigned controller of the maintained Character may settle
 it; success is receipt-only and may atomically hand off to the next deterministic pending child, while
 failure records its own d20 and cleanup transition, advances the Encounter once, and publishes final

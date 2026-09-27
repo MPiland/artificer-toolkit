@@ -33,8 +33,9 @@ import {
   resolveDnd5eConcentrationSaveFacts
 } from '../systems/dnd5e/concentrationPolicy.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/concentrationIdentity.js'
-import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
-import { createSrdRulesRuntime } from './dnd5eSrdEncounter.js'
+import { SRD, evaluateSrdCharacter, srdByLabel } from './dnd5eSrdCharacter.js'
+import { createSrdRulesRuntime, creatureFeature } from './dnd5eSrdEncounter.js'
+import { creatureActor, prepareCreatureAction, settleCreatureAction } from './encounterCreatureAction.js'
 
 const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e001'
 const CASTER_ID = '00000000-0000-4000-8000-0000000000a1'
@@ -46,6 +47,8 @@ const TIMESTAMP = '2026-09-26T00:00:00.000Z'
 const FIRE = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'FIRE')!
 const SLASHING = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'SLASHING')!
 const CHECKSUM = (character: string) => character.repeat(64)
+const DRAGON_ID = '00000000-0000-4000-8000-0000000000a3'
+const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')
 
 type SaveDefinition = NonNullable<CharacterRulePolicyOutput['savingThrowDefinitions']>[number]
 
@@ -657,18 +660,59 @@ describe('nativeConcentrationDamageApplications', () => {
     ])
   })
 
-  it('refuses a damage envelope beyond the per-turn bound', () => {
-    // Receipt ordinals stop at 63, so the envelope spans several batches of 64 damage rows.
-    const within = Array.from(
-      { length: Math.ceil(MAX_CONCENTRATION_DAMAGE_APPLICATIONS / 64) },
-      (_, batchIndex) => ({
-        targetActorId: CASTER_ID,
-        applications: Array.from(
-          { length: Math.min(64, MAX_CONCENTRATION_DAMAGE_APPLICATIONS - batchIndex * 64) },
-          (_, ordinal) => damage({ ordinal, appliedAmount: 1 })
-        )
-      })
+  it('makes one check per damage source, at the DC of that source’s total damage', async () => {
+    // The Ancient Red Dragon's Bite deals piercing and fire damage from one attack, authored as two
+    // single hit outcome groups (the SRD's sequential shape is not automated yet).
+    const srdBite = creatureFeature(ancientRedDragon, 'Bite')
+    const bite = {
+      ...srdBite,
+      rollDefinitions: [
+        {
+          id: '00000000-0000-4000-8000-0000000000a4',
+          label: 'Bite attack',
+          kind: 'ATTACK' as const,
+          expression: { count: 1, die: 20, modifier: 17 },
+          rollMode: 'NORMAL' as const,
+          chargeCost: null,
+          order: 1
+        }
+      ],
+      effects: srdBite.effects?.map((effect) => ({
+        ...effect,
+        paths: effect.paths.map((path) => ({
+          ...path,
+          groupType: 'SINGLE' as const,
+          resultBlock: { ...path.resultBlock, resultKind: 'SINGLE' as const }
+        }))
+      }))
+    }
+    const prepared = await prepareCreatureAction({
+      actor: creatureActor({ id: DRAGON_ID, label: 'Dragon', features: [bite] }),
+      target: creatureActor({ id: CASTER_ID, label: 'Caster', features: [], hitPoints: 100 }),
+      featureId: bite.id,
+      overridable: true
+    })
+    // A natural 10 hits; every die rolls 1: piercing 2 + 1 (the fixture's Strength) and fire 4.
+    const { mechanics } = await settleCreatureAction({ prepared, rolls: [9, 0, 0, 0, 0, 0, 0] })
+    const rows = mechanics.mechanics.receiptApplications.filter(
+      (application) => application.kind === 'DAMAGE'
     )
+    expect(rows.map((row) => row.appliedAmount)).toEqual([3, 4])
+
+    const [check, ...others] = nativeConcentrationDamageApplications([
+      { targetActorId: CASTER_ID, applications: mechanics.mechanics.receiptApplications }
+    ])
+    expect(others).toEqual([])
+    expect(check).toMatchObject({ targetActorId: CASTER_ID, appliedAmount: 7, damageTypeId: null })
+    expect(dnd5eConcentrationDamageDc(check!.appliedAmount)).toBe(10)
+  })
+
+  it('refuses a damage envelope beyond the per-turn bound', () => {
+    // Each batch is one damage source, so the envelope holds that many single-source batches.
+    const within = Array.from({ length: MAX_CONCENTRATION_DAMAGE_APPLICATIONS }, () => ({
+      targetActorId: CASTER_ID,
+      applications: [damage({ ordinal: 0, appliedAmount: 1 })]
+    }))
     expect(nativeConcentrationDamageApplications(within)).toHaveLength(
       MAX_CONCENTRATION_DAMAGE_APPLICATIONS
     )
