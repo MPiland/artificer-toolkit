@@ -69695,9 +69695,13 @@ export declare const internal: {
       commitPending: FunctionReference<"mutation", "internal", any, any>;
     };
     encounterMovement: {
+      answer: FunctionReference<"mutation", "internal", any, any>;
       commit: FunctionReference<"mutation", "internal", any, any>;
       commitScene: FunctionReference<"mutation", "internal", any, any>;
       stage: FunctionReference<"mutation", "internal", any, any>;
+    };
+    encounterMovementPrefetch: {
+      prefetch: FunctionReference<"query", "internal", any, any>;
     };
     encounterRoll: {
       commit: FunctionReference<"mutation", "internal", any, any>;
