@@ -137,6 +137,7 @@ export const characterSheetOverviewDtoSchema = z.object({
   maxHitPointsReductions: z.array(
     z.strictObject({
       id: z.guid(),
+      label: stringSchema.check(z.minLength(1)),
       amount: integerSchema.check(z.positive()),
       recoveryTags: hitPointMaximumReductionRecoveryTagsSchema
     })

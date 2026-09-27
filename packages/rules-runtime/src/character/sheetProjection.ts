@@ -1479,6 +1479,7 @@ export function projectCharacterSheetBundle(
         )?.id ?? null,
       maxHitPointsReductions: hitPointMaximumReductions.map((reduction) => ({
         id: reduction.activeEffectId,
+        label: reduction.label,
         amount: reduction.amount,
         recoveryTags: reduction.recoveryTags
       })),

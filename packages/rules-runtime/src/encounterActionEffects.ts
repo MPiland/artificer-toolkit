@@ -76,6 +76,10 @@ export function prepareNativeActionEffectsPlan<
     occurrenceId: input.occurrenceId,
     commandId: input.commandId,
     sourceActorId: prepared.actor.id,
+    sourceLabel:
+      prepared.source.kind === 'CREATURE'
+        ? prepared.source.capability.label
+        : (prepared.source.candidate.label ?? null),
     target: {
       actorId: prepared.target.id,
       conditionIds: target.characterFacts

@@ -54,6 +54,7 @@ function reductionDefinition(
         kind: 'HIT_POINT_MAXIMUM_REDUCTION',
         amount,
         recoveryTags,
+        sourceLabel: 'Life Drain',
         sourceDamageOutcomeId: crypto.randomUUID(),
         sourceDamageNodeId: 'entry',
         sourceDamageOperationKey: 'comparison'
@@ -96,7 +97,12 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
       maxHitPoints: baseMaximum - 4,
       currentHitPoints: baseMaximum - 4,
       maxHitPointsReductions: [
-        { id: drainId, amount: 4, recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST'] }
+        {
+          id: drainId,
+          label: 'Life Drain',
+          amount: 4,
+          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+        }
       ]
     })
     // The stored column keeps the maximum before active-effect reductions.
@@ -141,7 +147,7 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
       healingMode: 'AUTOMATIC' as const,
       manualHealingAccepted: false,
       selectedCompanionInstanceIds: [],
-      requestRoll: false
+      requestRoll: false as const
     }
     const preview = await fixture.player.caller.query(api.characters.rest.preview, {
       id: fixture.character.id,

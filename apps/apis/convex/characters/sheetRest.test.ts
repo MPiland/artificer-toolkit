@@ -104,7 +104,8 @@ function hitPointMaximumReduction(
     sourceDamageOutcomeId: '00000000-0000-4000-8000-000000000108',
     sourceDamageNodeId: 'entry',
     sourceDamageOperationKey: 'comparison',
-    recoveryTags
+    recoveryTags,
+    sourceLabel: 'Life Drain'
   }
 }
 
@@ -565,7 +566,12 @@ describe('native Character rest preview and completion', () => {
       currentHitPoints: originalSheet.overview.maxHitPoints - 3,
       maxHitPoints: originalSheet.overview.maxHitPoints - 3,
       maxHitPointsReductions: [
-        { id: restorationOnlyEffectId, amount: 3, recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM'] }
+        {
+          id: restorationOnlyEffectId,
+          label: 'Life Drain',
+          amount: 3,
+          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+        }
       ],
       tempHitPoints: 0,
       exhaustion: { level: 1 }

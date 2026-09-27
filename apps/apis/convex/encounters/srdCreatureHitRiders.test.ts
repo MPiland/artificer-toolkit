@@ -59,6 +59,8 @@ async function setup(input: {
   playerAutoRoll: boolean
   /** The Creature's current hit points, when not its maximum. */
   creatureHitPoints?: number
+  /** Hides the Creature from players, as a hidden token. */
+  hidden?: boolean
 }) {
   const base = await setupCharacterRun()
   await setAutoRollDice(base.t, base.owner.userId, true)
@@ -107,12 +109,16 @@ async function setup(input: {
       round: 1,
       currentActorId: actor.id
     })
+    const stored = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
     const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
+      ...stored,
       status: 'ACTIVE',
       automationMode: 'ASSISTED',
       round: 1,
-      currentActorId: actor.id
+      currentActorId: actor.id,
+      actors: stored.actors.map((candidate) =>
+        candidate.id === actor.id ? { ...candidate, public: !input.hidden } : candidate
+      )
     })
     await ctx.db.patch(row._id, {
       status: 'ACTIVE',
@@ -128,11 +134,17 @@ async function setup(input: {
       .unique()
     if (!actorRow) throw new Error('The SRD attack fixture Creature is missing.')
     const actorState = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
-    if (input.creatureHitPoints !== undefined) {
-      const hurt = { ...actorState, currentHitPoints: input.creatureHitPoints }
+    if (input.creatureHitPoints !== undefined || input.hidden) {
+      const adjusted = {
+        ...actorState,
+        ...(input.creatureHitPoints === undefined
+          ? {}
+          : { currentHitPoints: input.creatureHitPoints }),
+        public: !input.hidden
+      }
       await ctx.db.patch(actorRow._id, {
-        stateJson: JSON.stringify(hurt),
-        stateChecksum: checksumCanonicalJson(hurt)
+        stateJson: JSON.stringify(adjusted),
+        stateChecksum: checksumCanonicalJson(adjusted)
       })
     }
     return discoverEncounterFeatureActionCapabilities({
@@ -485,7 +497,12 @@ describe('seeded SRD Creature hit riders in the room', () => {
   }, 30000)
 
   it('drains the Character’s hit point maximum with the Wight’s Life Drain until a long rest (D62)', async () => {
-    const base = await setup({ creature: 'Wight', feature: 'Life Drain', playerAutoRoll: false })
+    const base = await setup({
+      creature: 'Wight',
+      feature: 'Life Drain',
+      playerAutoRoll: false,
+      hidden: true
+    })
     // A natural 19 hits for 1d6 + 2 necrotic, the die rolling 4; the Character's save waits on its player.
     const pending = await executeInRoom(
       base.owner.caller,
@@ -514,6 +531,31 @@ describe('seeded SRD Creature hit riders in the room', () => {
         })
       )
     expect(await reductions()).toHaveLength(1)
+    const [drain] = await reductions()
+    // The attack's Feature label is frozen onto the reduction and read back by the Sheet.
+    expect(drain?.definition).toMatchObject({
+      stateContributions: [
+        expect.objectContaining({ kind: 'HIT_POINT_MAXIMUM_REDUCTION', sourceLabel: 'Life Drain' })
+      ]
+    })
+    const drained = await base.player.caller.query(api.characters.sheet.get, {
+      id: base.character.id
+    })
+    // A hidden Wight: the player's Sheet names the attack, never the Creature.
+    expect(JSON.stringify(drained)).not.toMatch(/Wight/i)
+    expect(JSON.stringify(drained)).not.toContain(base.command.actorId)
+    const playerEncounter = await base.player.caller.query(api.encounters.projectionReads.get, {
+      encounterId: base.run.id
+    })
+    expect(playerEncounter.actors.map((actor) => actor.id)).not.toContain(base.command.actorId)
+    expect(drained?.overview.maxHitPointsReductions).toEqual([
+      {
+        id: drain?.id,
+        label: 'Life Drain',
+        amount: 6,
+        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+      }
+    ])
 
     // A long rest ends the reduction and restores every hit point.
     const streamVersion = await base.t.run(async (ctx) => {

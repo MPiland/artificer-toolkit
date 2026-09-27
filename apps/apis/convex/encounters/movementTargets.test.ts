@@ -331,6 +331,7 @@ describe('native movement target facts', () => {
           kind: 'HIT_POINT_MAXIMUM_REDUCTION',
           amount: 1,
           recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM'],
+          sourceLabel: 'Slam',
           sourceDamageOutcomeId: crypto.randomUUID(),
           sourceDamageNodeId: 'entry',
           sourceDamageOperationKey: 'comparison'

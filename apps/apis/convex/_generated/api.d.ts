@@ -5574,6 +5574,7 @@ export declare const api: {
               maxHitPointsReductions: Array<{
                 amount: number;
                 id: string;
+                label: string;
                 recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
               }>;
               proficiencyBonus: number;
@@ -6817,6 +6818,7 @@ export declare const api: {
             maxHitPointsReductions: Array<{
               amount: number;
               id: string;
+              label: string;
               recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
             }>;
             proficiencyBonus: number;
@@ -24676,6 +24678,7 @@ export declare const api: {
             maxHitPointsReductions: Array<{
               amount: number;
               id: string;
+              label: string;
               recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
             }>;
             proficiencyBonus: number;
@@ -29257,6 +29260,7 @@ export declare const api: {
               maxHitPointsReductions: Array<{
                 amount: number;
                 id: string;
+                label: string;
                 recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
               }>;
               proficiencyBonus: number;

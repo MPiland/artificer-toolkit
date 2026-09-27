@@ -58,6 +58,8 @@ export function prepareEncounterActionEffectPlans(input: {
   occurrenceId: string
   commandId: string
   sourceActorId: string
+  /** The acting Feature or action label a target state contribution freezes, when it has one. */
+  sourceLabel: string | null
   target: {
     actorId: string
     conditionIds: readonly string[]
@@ -333,6 +335,11 @@ function prepareTargetStateEffect(
       'An action may create at most one target state contribution.'
     )
   const contribution = contributions[0]!
+  const sourceLabel = input.sourceLabel?.trim() ?? ''
+  if (contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION' && !sourceLabel)
+    throw new EncounterActionEffectPlanError(
+      'A hit point maximum reduction requires its action label.'
+    )
   const evidence = input.execution.evidence
   if (
     evidence.source.definitionId !== input.published.id ||
@@ -386,7 +393,8 @@ function prepareTargetStateEffect(
             sourceDamageOutcomeId: contribution.sourceDamageOutcomeId,
             sourceDamageNodeId: contribution.sourceDamageNodeId,
             sourceDamageOperationKey: contribution.sourceDamageOperationKey,
-            recoveryTags: contribution.recoveryTags
+            recoveryTags: contribution.recoveryTags,
+            sourceLabel
           }
         : {
             kind: 'SCALAR_REDUCTION' as const,

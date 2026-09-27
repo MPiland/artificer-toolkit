@@ -24,6 +24,7 @@ function reduction(
         kind: 'HIT_POINT_MAXIMUM_REDUCTION',
         amount,
         recoveryTags,
+        sourceLabel: 'Test reduction',
         sourceDamageOutcomeId: '00000000-0000-4000-8000-00000000d002',
         sourceDamageNodeId: 'entry',
         sourceDamageOperationKey: 'comparison'
@@ -45,10 +46,16 @@ describe('hit point maximum reductions', () => {
     expect(listHitPointMaximumReductions([golem, drain])).toEqual([
       {
         activeEffectId: drain.id,
+        label: 'Test reduction',
         amount: 3,
         recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
       },
-      { activeEffectId: golem.id, amount: 5, recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM'] }
+      {
+        activeEffectId: golem.id,
+        label: 'Test reduction',
+        amount: 5,
+        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+      }
     ])
   })
 

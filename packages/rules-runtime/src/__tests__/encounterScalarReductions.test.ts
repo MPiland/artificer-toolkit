@@ -74,7 +74,8 @@ describe('active scalar reduction fold', () => {
           sourceDamageOutcomeId: '00000000-0000-4000-8000-00000000c1a4',
           sourceDamageNodeId: 'damage',
           sourceDamageOperationKey: 'damage',
-          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM'],
+          sourceLabel: 'Slam'
         }
       ]
     })

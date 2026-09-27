@@ -259,6 +259,7 @@ function planWith(
     occurrenceId: ids.occurrence,
     commandId: ids.command,
     sourceActorId: ids.source,
+    sourceLabel: null,
     target: {
       actorId: ids.target,
       conditionIds,

@@ -117,7 +117,9 @@ export const activeRuleEffectStateContributionDtoSchema = z.strictObject({
   sourceDamageOutcomeId: uuidSchema,
   sourceDamageNodeId: identifierSchema,
   sourceDamageOperationKey: identifierSchema,
-  recoveryTags: hitPointMaximumReductionRecoveryTagsSchema
+  recoveryTags: hitPointMaximumReductionRecoveryTagsSchema,
+  /** The attacking Feature or action label ("Life Drain"), frozen when the reduction is created. */
+  sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
 })
 
 export const activeRuleEffectScalarReductionContributionDtoSchema = z.strictObject({
