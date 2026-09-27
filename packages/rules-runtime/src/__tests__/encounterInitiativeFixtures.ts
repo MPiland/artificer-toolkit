@@ -16,11 +16,10 @@ import {
   createStagedInitiativeRoundState,
   hydrateStagedState
 } from '../encounterInitiativeStaging.js'
-import { createPlatformRulesRuntime, deriveRulesContinuationKey } from '../platformRulesRuntime.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { DND5E_INITIATIVE_FACT_KEYS } from '../systems/dnd5e/initiativeFactAdapter.js'
+import { ENCOUNTER_ID } from './dnd5eSrdEncounter.js'
 
-export const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e001'
 /** Canonical ascending actor identities; A < B < C. */
 export const ACTOR_A = '00000000-0000-4000-8000-0000000000a1'
 export const ACTOR_B = '00000000-0000-4000-8000-0000000000a2'
@@ -205,17 +204,6 @@ export function customSource(actorId: string): InitiativeActorFactSource {
     actor: { id: actorId, sourceId: null, snapshot: null, sourceRevision: null },
     systemId: null
   }
-}
-
-export async function testRulesRuntime() {
-  return createPlatformRulesRuntime({
-    continuationIntegrityKey: await deriveRulesContinuationKey('initiative-test-secret'.repeat(2)),
-    definitions: {
-      async requireCurrent() {
-        throw new Error('Initiative graphs are read from the frozen policy snapshot.')
-      }
-    }
-  })
 }
 
 /** Scripted trusted dice: returns each queued value once, in order, and records each request. */

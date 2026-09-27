@@ -8,8 +8,6 @@ import { serverAggregateChoicePendingSnapshotDtoSchema } from '@artificer-toolki
 import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { ancientRedDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-red-dragon.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { SRD_DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -37,6 +35,10 @@ import {
   srdDefinitions,
   srdEncounterState
 } from './dnd5eSrdEncounter.js'
+import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+
+const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')
+const wolf = srdByLabel(SRD.creatures, 'Wolf')
 
 const DRAGON_ID = '00000000-0000-4000-8000-00000000b001'
 const WOLF_ID = '00000000-0000-4000-8000-00000000b002'

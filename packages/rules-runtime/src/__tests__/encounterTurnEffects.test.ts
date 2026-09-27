@@ -13,14 +13,16 @@ import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
 import { prepareEncounterTurnEffects } from '../encounterTurnEffects.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
-  creatureTarget,
+  createSrdRulesRuntime,
   ENCOUNTER_ID,
-  encounterRun,
-  frozenRulesRuntime,
-  GM_USER_ID,
+  srdCreatureActor,
+  srdCreatureTarget,
+  srdEncounterState,
+  testUuid
+} from './dnd5eSrdEncounter.js'
+import {
+  GOBLIN,
   GOBLIN_SCALARS,
-  goblinActor,
-  testUuid,
   turnSaveDamageEffect,
   type TurnSaveDamageEffectInput
 } from './encounterActiveEffectFixtures.js'
@@ -29,13 +31,14 @@ const GOBLIN_ID = testUuid(0x201)
 const OCCURRENCE_ID = testUuid(0x202)
 const ROOT_COMMAND_ID = testUuid(0x203)
 const APP_ROLL_ID = testUuid(0x204)
+const GM_USER_ID = testUuid(0x9a)
 const BOUNDARY = { ordinal: 1, stage: 'START_OF_TURN', actorId: GOBLIN_ID } as const
-const goblin = goblinActor(GOBLIN_ID)
+const goblin = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN })
 const OWNER = { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: GOBLIN_ID }
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
-  runtime = await frozenRulesRuntime()
+  runtime = await createSrdRulesRuntime()
 })
 
 function effect(seed: number, input: Partial<TurnSaveDamageEffectInput> = {}) {
@@ -146,7 +149,7 @@ function prepare(input: {
   pending?: ServerRuleExecutionPendingSnapshotDto
   resolution?: EncounterResponseAnswer
 }) {
-  const state = input.state ?? encounterRun([goblin])
+  const state = input.state ?? srdEncounterState({ actors: [goblin], currentActorId: GOBLIN_ID })
   const d20 = scriptedD20(input.faces ?? [])
   const calls = { listEffects: 0, createRuntime: 0 }
   const result = prepareEncounterTurnEffects({
@@ -159,7 +162,7 @@ function prepare(input: {
     loadMaintainedState: () => Promise.reject(new Error('No maintained state is loaded.')),
     loadTarget: async (actorId) => {
       expect(actorId).toBe(GOBLIN_ID)
-      return creatureTarget(goblin, [...input.effects])
+      return srdCreatureTarget(goblin, [...input.effects])
     },
     createRuntime: async () => {
       calls.createRuntime += 1
@@ -218,7 +221,11 @@ describe('prepareEncounterTurnEffects', () => {
     const [earlier, later] = await effectPair({})
     const run = prepare({
       effects: [later, earlier],
-      state: encounterRun([goblin], { automationMode: 'MANUAL' })
+      state: srdEncounterState({
+        actors: [goblin],
+        currentActorId: GOBLIN_ID,
+        automationMode: 'MANUAL'
+      })
     })
 
     const result = await complete(run)

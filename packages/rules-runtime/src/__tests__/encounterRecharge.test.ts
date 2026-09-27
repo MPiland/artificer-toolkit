@@ -4,8 +4,6 @@ import { DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID } from '@artificer-toolkit/sch
 import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { hellHound } from '@artificer-toolkit/source-data/srd/creatures/hell-hound.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { SRD_DND5E_RECHARGE_5_GRAPH_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 
 import { featureChargeUsed } from '../encounterActorState.js'
@@ -24,6 +22,10 @@ import {
   srdDefinitions,
   srdEncounterState
 } from './dnd5eSrdEncounter.js'
+import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+
+const hellHound = srdByLabel(SRD.creatures, 'Hell Hound')
+const wolf = srdByLabel(SRD.creatures, 'Wolf')
 
 const HOUND_ID = '00000000-0000-4000-8000-00000000a001'
 const WOLF_ID = '00000000-0000-4000-8000-00000000a002'

@@ -11,18 +11,21 @@ import {
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   CAMPAIGN_ID,
-  creatureTarget,
+  createSrdRulesRuntime,
   ENCOUNTER_ID,
+  SRD_SYSTEM_ID,
+  srdCreatureActor,
+  srdCreatureTarget,
+  testUuid,
+  TIMESTAMP
+} from './dnd5eSrdEncounter.js'
+import {
   FRIGHTENED_CONDITION_ID,
-  frozenRulesRuntime,
-  GAME_SYSTEM_ID,
+  GOBLIN,
   GOBLIN_SCALARS,
-  goblinActor,
-  OCCURRED_AT,
   POISONED_CONDITION_ID,
   PRONE_CONDITION_ID,
   RESTRAINED_CONDITION_ID,
-  testUuid,
   turnSaveDamageEffect
 } from './encounterActiveEffectFixtures.js'
 
@@ -50,19 +53,25 @@ const state = prepareMaintainedEffectStateRecord({
     replacementPolicy: 'REPLACE_SAME_DEFINITION',
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
   },
-  occurredAt: OCCURRED_AT
+  occurredAt: TIMESTAMP
 })
 
-const firstActor = goblinActor(FIRST_TARGET_ID, {
+const firstActor = srdCreatureActor({
+  id: FIRST_TARGET_ID,
+  creature: GOBLIN,
   currentHitPoints: 5,
-  conditions: [
+  conditionIds: [
     PRONE_CONDITION_ID,
     POISONED_CONDITION_ID,
     FRIGHTENED_CONDITION_ID,
     RESTRAINED_CONDITION_ID
   ]
 })
-const secondActor = goblinActor(SECOND_TARGET_ID, { conditions: [RESTRAINED_CONDITION_ID] })
+const secondActor = srdCreatureActor({
+  id: SECOND_TARGET_ID,
+  creature: GOBLIN,
+  conditionIds: [RESTRAINED_CONDITION_ID]
+})
 
 let runtime: RulesRuntimeService
 let firstRemoved: ActiveRuleEffectRecord
@@ -70,7 +79,7 @@ let firstKept: ActiveRuleEffectRecord
 let secondRemoved: ActiveRuleEffectRecord
 
 beforeAll(async () => {
-  runtime = await frozenRulesRuntime()
+  runtime = await createSrdRulesRuntime()
   // Dependent effects the caster's Concentration maintains; only the owned conditions matter here.
   firstRemoved = await turnSaveDamageEffect({
     runtime,
@@ -126,13 +135,13 @@ function concentrationEnd(owners: MovementMaintenanceOwner<MovementCharacterRow>
   return projectEncounterMovementConcentrationEnd(
     {
       targets: new Map([
-        [FIRST_TARGET_ID, creatureTarget(firstActor, [firstRemoved, firstKept])],
-        [SECOND_TARGET_ID, creatureTarget(secondActor, [secondRemoved])]
+        [FIRST_TARGET_ID, srdCreatureTarget(firstActor, [firstRemoved, firstKept])],
+        [SECOND_TARGET_ID, srdCreatureTarget(secondActor, [secondRemoved])]
       ]),
       projection: { slots: priorSlots, owners: new Map() },
       campaignId: CAMPAIGN_ID,
-      gameSystemId: GAME_SYSTEM_ID,
-      occurredAt: OCCURRED_AT,
+      gameSystemId: SRD_SYSTEM_ID,
+      occurredAt: TIMESTAMP,
       maintenance: {
         state,
         removed: [firstRemoved, secondRemoved],

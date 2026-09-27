@@ -1,16 +1,17 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 
 import { isTurnEffectEligible, turnEffectRetainedConditions } from '../encounterTurnEffectState.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
+  characterActor as runCharacterActor,
+  createSrdRulesRuntime,
   ENCOUNTER_ID,
-  encounterRun,
-  frozenRulesRuntime,
-  goblinActor,
-  OCCURRED_AT,
-  SIDE_ID,
-  testUuid,
+  srdCreatureActor,
+  srdEncounterState,
+  testUuid
+} from './dnd5eSrdEncounter.js'
+import {
+  GOBLIN,
   turnSaveDamageEffect,
   type TurnSaveDamageEffectInput
 } from './encounterActiveEffectFixtures.js'
@@ -23,32 +24,12 @@ const CONDITION_C = testUuid(0xc3)
 const CONDITION_B = testUuid(0xc2)
 const CONDITION_A = testUuid(0xc1)
 
-const goblin = goblinActor(GOBLIN_ID)
-const characterActor = encounterRunActorStateSchema.parse({
-  id: CHARACTER_ACTOR_ID,
-  encounterId: ENCOUNTER_ID,
-  kind: 'CHARACTER',
-  label: 'Ranger',
-  sourceId: CHARACTER_ID,
-  public: true,
-  controllerUserIds: [],
-  disposition: 'FRIENDLY',
-  initiative: 14,
-  manualOrder: null,
-  healthDisplay: null,
-  systemId: null,
-  stableTieKey: CHARACTER_ACTOR_ID,
-  resources: {},
-  gmNotes: null,
-  sideId: SIDE_ID,
-  snapshot: {},
-  createdAt: OCCURRED_AT,
-  updatedAt: OCCURRED_AT
-})
+const goblin = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN })
+const characterActor = runCharacterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
-  runtime = await frozenRulesRuntime()
+  runtime = await createSrdRulesRuntime()
 })
 
 function effect(seed: number, input: Partial<TurnSaveDamageEffectInput> = {}) {
@@ -119,7 +100,7 @@ describe('turnEffectRetainedConditions', () => {
 
 describe('isTurnEffectEligible', () => {
   it('selects only effects recurring at the boundary stage', async () => {
-    const state = encounterRun([goblin])
+    const state = srdEncounterState({ actors: [goblin], currentActorId: GOBLIN_ID })
     const start = await effect(1, { recurrenceStage: 'START_OF_TURN' })
     const end = await effect(2, { recurrenceStage: 'END_OF_TURN' })
     const none = await effect(3, { recurrenceStage: 'NONE' })
@@ -133,7 +114,7 @@ describe('isTurnEffectEligible', () => {
   })
 
   it('binds ENCOUNTER-lifetime Encounter-actor effects to their origin Encounter, but not OWNER-lifetime ones', async () => {
-    const state = encounterRun([goblin])
+    const state = srdEncounterState({ actors: [goblin], currentActorId: GOBLIN_ID })
     const otherRun = { ...state, id: testUuid(0xe2) }
     const encounterScoped = await effect(1, { lifetimeScope: 'ENCOUNTER' })
     const ownerScoped = await effect(2, { lifetimeScope: 'OWNER' })
@@ -146,7 +127,7 @@ describe('isTurnEffectEligible', () => {
   })
 
   it("binds ENCOUNTER-lifetime Character effects to their stored source Encounter, not the definition's origin", async () => {
-    const state = encounterRun([goblin, characterActor])
+    const state = srdEncounterState({ actors: [goblin, characterActor], currentActorId: GOBLIN_ID })
     const encounterScoped = await effect(1, { lifetimeScope: 'ENCOUNTER' })
 
     expect(

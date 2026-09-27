@@ -6,7 +6,8 @@ import {
   buildEncounterMaintenanceTransition,
   endedMaintenanceConditions
 } from '../encounterActionMaintenance.js'
-import { activeEffect, ENCOUNTER_ID, TIMESTAMP } from './encounterStateFixtures.js'
+import { ENCOUNTER_ID, TIMESTAMP } from './dnd5eSrdEncounter.js'
+import { activeEffect } from './encounterActiveEffectFixtures.js'
 
 const conditionId = (code: string) => SRD_CONDITION_TYPES.find((entry) => entry.code === code)!.id
 const CHARMED = conditionId('CHARMED')

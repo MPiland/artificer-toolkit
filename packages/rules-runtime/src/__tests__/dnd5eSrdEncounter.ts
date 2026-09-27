@@ -4,12 +4,16 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import type { EncounterInitiativePolicySnapshotDto } from '@artificer-toolkit/schema/shared/initiativePolicySnapshot'
 import {
   encounterOptionalCombatSnapshotDtoSchema,
   type Dnd5eOptionalCombatRuleKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
@@ -18,14 +22,18 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import {
+  SRD_ABILITY_DEFINITION_IDS,
   SRD_CONDITION_TYPES,
-  SRD_SYSTEM_ID
+  SRD_SYSTEM_ID,
+  srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
 import { buildEncounterActorRuleFacts } from '../encounterActorRuleFacts.js'
 import { reconcileEncounterActorRuleOutput } from '../encounterActorRuleOutput.js'
-import type { MovementTarget } from '../encounterMovementTargets.js'
+import { buildMovementTarget } from '../encounterMovementTargets.js'
 import {
+  compileInstalledCreatureRuleFacts,
   createPlatformRulesRuntime,
   deriveRulesContinuationKey,
   evaluateInstalledEncounterActors
@@ -34,11 +42,20 @@ import type { CurrentReusableDefinitionSource } from '../ruleCapabilityStateServ
 
 export { SRD_SYSTEM_ID }
 
-const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e000'
-const SIDE_ID = '00000000-0000-4000-8000-00000000e001'
+/** A canonical, deterministic UUID for test identities. */
+export function testUuid(value: number) {
+  return `00000000-0000-4000-8000-${value.toString(16).padStart(12, '0')}`
+}
+
+export const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e000'
+export const SIDE_ID = '00000000-0000-4000-8000-00000000e001'
+export const CAMPAIGN_ID = '00000000-0000-4000-8000-00000000e004'
+export const TIMESTAMP = '2026-09-26T00:00:00.000Z'
 const SOURCE_VERSION_ID = '00000000-0000-4000-8000-00000000e002'
 const PUBLISHER_ID = '00000000-0000-4000-8000-00000000e003'
-const AT = '2026-09-26T00:00:00.000Z'
+const VOCABULARY_SNAPSHOT_ID = '00000000-0000-4000-8000-00000000e005'
+
+type Ability = keyof typeof SRD_ABILITY_DEFINITION_IDS
 
 const seedsById = new Map(SRD_REUSABLE_DEFINITIONS.map((seed) => [seed.id, seed]))
 
@@ -53,13 +70,13 @@ export const srdDefinitions: CurrentReusableDefinitionSource = {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       contractVersion: 1,
       version: 1,
-      publishedAt: AT,
+      publishedAt: TIMESTAMP,
       publishedBy: PUBLISHER_ID
     })
   }
 }
 
-/** The installed platform runtime; resolved graphs are passed in, so its own source is unused. */
+/** The installed platform runtime; resolved or frozen graphs are passed in, so its source is unused. */
 export async function createSrdRulesRuntime() {
   return createPlatformRulesRuntime({
     continuationIntegrityKey: await deriveRulesContinuationKey(
@@ -73,6 +90,20 @@ export async function createSrdRulesRuntime() {
   })
 }
 
+const vocabularyIdentity = {
+  snapshotId: VOCABULARY_SNAPSHOT_ID,
+  systemId: srdSystemRecord.id,
+  snapshotVersion: 1,
+  schemaVersion: 1,
+  document: srdSystemRecord
+}
+
+/** The SRD vocabulary snapshot, built the way Convex pins the current System document. */
+export const SRD_VOCABULARY = systemVocabularySnapshotSchema.parse({
+  ...vocabularyIdentity,
+  checksum: checksumCanonicalJson(vocabularyIdentity)
+})
+
 export function srdCondition(label: string): string {
   const condition = SRD_CONDITION_TYPES.find((entry) => entry.label === label)
   if (!condition) throw new Error(`SRD condition "${label}" is missing.`)
@@ -85,7 +116,10 @@ export function creatureFeature(creature: CreatureAuthored, label: string) {
   return feature
 }
 
-/** An SRD Creature as a Run actor, snapshotted the way Blueprint creation freezes it. */
+/**
+ * An SRD Creature as a Run actor, snapshotted the way Blueprint creation freezes it: explicit empty
+ * defense lists and the installed System's compiled rule facts.
+ */
 export function srdCreatureActor(input: {
   id: string
   creature: CreatureAuthored
@@ -93,8 +127,17 @@ export function srdCreatureActor(input: {
   conditionIds?: readonly string[]
   currentHitPoints?: number
   tempHitPoints?: number
+  initiative?: number | null
+  manualOrder?: number | null
+  sideId?: string
 }): EncounterRunActorState {
-  const { creature } = input
+  const creature = {
+    ...input.creature,
+    damageVulnerabilities: input.creature.damageVulnerabilities ?? [],
+    damageResistances: input.creature.damageResistances ?? [],
+    damageImmunities: input.creature.damageImmunities ?? [],
+    conditionImmunities: input.creature.conditionImmunities ?? []
+  }
   return encounterRunActorStateSchema.parse({
     id: input.id,
     encounterId: ENCOUNTER_ID,
@@ -105,13 +148,13 @@ export function srdCreatureActor(input: {
     public: true,
     controllerUserIds: [],
     disposition: 'HOSTILE',
-    initiative: null,
-    manualOrder: null,
+    initiative: input.initiative ?? null,
+    manualOrder: input.manualOrder ?? null,
     healthDisplay: null,
     systemId: creature.systemId,
     stableTieKey: input.id,
     gmNotes: null,
-    sideId: SIDE_ID,
+    sideId: input.sideId ?? SIDE_ID,
     currentHitPoints: input.currentHitPoints ?? creature.hitPoints,
     maxHitPoints: creature.hitPoints,
     tempHitPoints: input.tempHitPoints ?? 0,
@@ -126,10 +169,92 @@ export function srdCreatureActor(input: {
       sourceVersionId: SOURCE_VERSION_ID,
       sourceChecksum: checksumRuleDocument(creature),
       maxHitPoints: creature.hitPoints,
-      payload: creature
+      payload: creature,
+      ruleFacts: compileInstalledCreatureRuleFacts({ creature, vocabulary: SRD_VOCABULARY })
     },
-    createdAt: AT,
-    updatedAt: AT
+    createdAt: TIMESTAMP,
+    updatedAt: TIMESTAMP
+  })
+}
+
+/** Hand-written normalized Creature rule facts, for scalar arithmetic independent of any stat block. */
+export function creatureRuleFacts(scores: Record<Ability, number>) {
+  return {
+    gameSystemId: SRD_SYSTEM_ID,
+    vocabularySnapshotId: VOCABULARY_SNAPSHOT_ID,
+    vocabularySnapshotVersion: 1,
+    vocabularySnapshotChecksum: 'b'.repeat(64),
+    abilityScores: Object.fromEntries(
+      Object.entries(scores).map(([code, score]) => [
+        SRD_ABILITY_DEFINITION_IDS[code as Ability],
+        score
+      ])
+    ),
+    resourceAbilityScores: {},
+    initiativeAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+  }
+}
+
+/** A Run-owned Creature or custom actor carrying exactly the given Blueprint snapshot. */
+export function creatureActor(input: {
+  id: string
+  kind?: 'CREATURE' | 'CUSTOM'
+  snapshot: Record<string, unknown>
+  currentHitPoints?: number
+  maxHitPoints?: number
+  tempHitPoints?: number
+  conditions?: unknown[]
+}): EncounterRunActorState {
+  return encounterRunActorStateSchema.parse({
+    id: input.id,
+    encounterId: ENCOUNTER_ID,
+    kind: input.kind ?? 'CREATURE',
+    label: 'Bandit',
+    sourceId: null,
+    sourceRevision: null,
+    public: true,
+    controllerUserIds: [],
+    disposition: 'HOSTILE',
+    initiative: null,
+    manualOrder: null,
+    healthDisplay: null,
+    systemId: SRD_SYSTEM_ID,
+    stableTieKey: input.id,
+    currentHitPoints: input.currentHitPoints ?? 11,
+    maxHitPoints: input.maxHitPoints ?? 11,
+    tempHitPoints: input.tempHitPoints ?? 0,
+    conditions: input.conditions ?? [],
+    resources: {},
+    gmNotes: null,
+    sideId: SIDE_ID,
+    snapshot: input.snapshot,
+    createdAt: TIMESTAMP,
+    updatedAt: TIMESTAMP
+  })
+}
+
+/** A Run actor for a Character; its hit points and conditions live on the Character (ADR 0034). */
+export function characterActor(input: { id: string; characterId: string }): EncounterRunActorState {
+  return encounterRunActorStateSchema.parse({
+    id: input.id,
+    encounterId: ENCOUNTER_ID,
+    kind: 'CHARACTER',
+    label: 'Aria',
+    sourceId: input.characterId,
+    public: true,
+    controllerUserIds: [],
+    disposition: 'FRIENDLY',
+    initiative: null,
+    manualOrder: null,
+    healthDisplay: null,
+    systemId: SRD_SYSTEM_ID,
+    stableTieKey: input.id,
+    resources: {},
+    gmNotes: null,
+    sideId: SIDE_ID,
+    snapshot: {},
+    createdAt: TIMESTAMP,
+    updatedAt: TIMESTAMP
   })
 }
 
@@ -164,62 +289,60 @@ export function srdOptionalCombat(kinds: readonly Dnd5eOptionalCombatRuleKindDto
   return { snapshot, checksum: checksumRuleDocument(snapshot) }
 }
 
+/** An SRD Encounter Run; active in round 1 unless a status and round are given. */
 export function srdEncounterState(input: {
   actors: readonly EncounterRunActorState[]
   currentActorId: string | null
+  status?: EncounterRunState['status']
+  round?: number
+  version?: number
+  turnSequence?: number
   automationMode?: AutomationModeDto
+  initiativePolicy?: { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string }
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
+  sides?: readonly { id: string; label: string }[]
 }): EncounterRunState {
   const optionalCombat = srdOptionalCombat(input.optionalCombatKinds ?? [])
   return encounterRunStateSchema.parse({
     id: ENCOUNTER_ID,
-    campaignId: '00000000-0000-4000-8000-00000000e004',
+    campaignId: CAMPAIGN_ID,
     gameSystemId: SRD_SYSTEM_ID,
-    blueprintId: '00000000-0000-4000-8000-00000000e005',
+    blueprintId: '00000000-0000-4000-8000-00000000e006',
     blueprintVersion: 1,
     blueprintChecksum: 'a'.repeat(64),
     name: 'Pure rules fixture',
-    status: 'ACTIVE',
+    status: input.status ?? 'ACTIVE',
     automationMode: input.automationMode ?? 'ASSISTED',
     manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
-    version: 7,
-    round: 1,
+    version: input.version ?? 7,
+    round: input.round ?? 1,
     currentActorId: input.currentActorId,
     actorIds: input.actors.map((actor) => actor.id),
-    initiativePolicySnapshot: null,
-    initiativePolicySnapshotChecksum: null,
+    initiativePolicySnapshot: input.initiativePolicy?.snapshot ?? null,
+    initiativePolicySnapshotChecksum: input.initiativePolicy?.checksum ?? null,
     optionalCombatSnapshot: optionalCombat.snapshot,
     optionalCombatSnapshotChecksum: optionalCombat.checksum,
-    turnSequence: 1,
-    sides: [{ id: SIDE_ID, label: 'Monsters', sortOrder: 0 }],
-    createdAt: AT,
-    updatedAt: AT
+    turnSequence: input.turnSequence ?? 1,
+    sides: (input.sides ?? [{ id: SIDE_ID, label: 'Monsters' }]).map((side, sortOrder) => ({
+      ...side,
+      sortOrder
+    })),
+    createdAt: TIMESTAMP,
+    updatedAt: TIMESTAMP
   })
 }
 
-/** A Creature's locked rules target with no active effects. */
-export function srdCreatureTarget(actor: EncounterRunActorState): MovementTarget {
-  if (actor.kind === 'CHARACTER') throw new Error('A Creature target needs a Creature actor.')
-  return {
-    characterFacts: null,
+/** A Creature's rules target, built from its snapshot and active effects as the Encounter builds it. */
+export function srdCreatureTarget(
+  actor: EncounterRunActorState,
+  activeEffects: ActiveRuleEffectRecord[] = []
+) {
+  return buildMovementTarget<ProjectableCharacterFacts>({
     actor,
-    activeEffects: [],
-    state: {
-      current: actor.currentHitPoints,
-      temporary: actor.tempHitPoints,
-      conditions: []
-    },
-    initialConditionRows: null,
-    effectiveMaximumHitPoints: actor.maxHitPoints,
-    baseScalarValues: {},
-    effectiveScalarValues: {},
-    baseRulePolicyOutput: null,
-    effectiveRulePolicyOutput: null,
-    targetDerivedFacts: {},
-    defenses: [],
-    qualifiedDefenses: [],
-    conditionImmunityIds: [],
-    characterCurrentness: null
-  }
+    activeEffects,
+    characterFacts: null,
+    campaignId: CAMPAIGN_ID,
+    gameSystemId: SRD_SYSTEM_ID
+  })
 }

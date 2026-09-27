@@ -24,9 +24,9 @@ import {
   customSource,
   initiativePolicySnapshot,
   preparingRound,
-  scriptedDice,
-  testRulesRuntime
+  scriptedDice
 } from './encounterInitiativeFixtures.js'
+import { createSrdRulesRuntime } from './dnd5eSrdEncounter.js'
 
 const OCCURRENCE_ID = '00000000-0000-4000-8000-00000000f001'
 const ACTORS = [
@@ -53,7 +53,7 @@ async function harness(input: {
   const state = input.state ?? preparingRound({ actors: ACTORS, policy: input.policy })
   const staged = inMemoryInitiativeRepository(state)
   const dice = scriptedDice(input.dice ?? [])
-  const runtime = await testRulesRuntime()
+  const runtime = await createSrdRulesRuntime()
   const shared = {
     repository: staged.repository,
     runtime,

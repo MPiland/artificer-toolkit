@@ -1,17 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema,
-  type EncounterRunActorState,
-  type EncounterRunState
-} from '@artificer-toolkit/schema/projections/encounterRunState'
-import { encounterOptionalCombatSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/optionalCombat'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
   turnCoordinatorRootDtoSchema,
   type TurnCoordinatorRootDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import {
   hydrateStagedState,
@@ -20,68 +13,35 @@ import {
 import { planEncounterInitiativeAdvance } from '../encounterInitiativeStateSettlement.js'
 import { prepareEncounterTurnInitiative } from '../encounterTurnInitiative.js'
 import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
-import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
+import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+import { createSrdRulesRuntime, srdCreatureActor, srdEncounterState } from './dnd5eSrdEncounter.js'
 import {
   ACTOR_A,
   ACTOR_B,
   ACTOR_C,
-  ENCOUNTER_ID,
   SIDE_FOES,
   SIDE_HEROES,
   creatureSource,
   initiativePolicySnapshot,
-  scriptedDice,
-  testRulesRuntime
+  scriptedDice
 } from './encounterInitiativeFixtures.js'
 
-const TIMESTAMP = '2026-09-26T00:00:00.000Z'
 const GM_USER_ID = '00000000-0000-4000-8000-00000000b001'
 const ROOT_COMMAND_ID = '00000000-0000-4000-8000-00000000b002'
 const OCCURRENCE_ID = '00000000-0000-4000-8000-00000000f001'
 const CHECKSUM = 'a'.repeat(64)
+const GOBLIN = srdByLabel(SRD.creatures, 'Goblin')
 
 type Policy = ReturnType<typeof initiativePolicySnapshot>
 
-function actor(input: {
-  id: string
-  sideId: string
-  initiative?: number | null
-  manualOrder?: number | null
-}): EncounterRunActorState {
-  return encounterRunActorStateSchema.parse({
-    id: input.id,
-    encounterId: ENCOUNTER_ID,
-    kind: 'CREATURE',
-    label: `Creature ${input.id.slice(-2)}`,
-    sourceId: null,
-    sourceRevision: null,
-    public: true,
-    controllerUserIds: [],
-    disposition: 'HOSTILE',
-    initiative: input.initiative ?? null,
-    manualOrder: input.manualOrder ?? null,
-    conditions: [],
-    healthDisplay: null,
-    systemId: DND5E_SYSTEM_ID,
-    stableTieKey: input.id,
-    currentHitPoints: 10,
-    maxHitPoints: 10,
-    tempHitPoints: 0,
-    resources: {},
-    gmNotes: null,
-    sideId: input.sideId,
-    snapshot: null,
-    createdAt: TIMESTAMP,
-    updatedAt: TIMESTAMP
-  })
-}
-
+/** Entered initiative: A 12, B 18, C none. */
 const ACTORS = [
-  actor({ id: ACTOR_A, sideId: SIDE_HEROES, initiative: 12 }),
-  actor({ id: ACTOR_B, sideId: SIDE_FOES, initiative: 18 }),
-  actor({ id: ACTOR_C, sideId: SIDE_FOES })
+  srdCreatureActor({ id: ACTOR_A, creature: GOBLIN, sideId: SIDE_HEROES, initiative: 12 }),
+  srdCreatureActor({ id: ACTOR_B, creature: GOBLIN, sideId: SIDE_FOES, initiative: 18 }),
+  srdCreatureActor({ id: ACTOR_C, creature: GOBLIN, sideId: SIDE_FOES })
 ]
 
+/** A prepared Run unless told otherwise; Manual without a policy, Assisted with one. */
 function runState(input: {
   policy: Policy | null
   status?: EncounterRunState['status']
@@ -90,41 +50,21 @@ function runState(input: {
   version?: number
   turnSequence?: number
 }): EncounterRunState {
-  const optionalCombatSnapshot = encounterOptionalCombatSnapshotDtoSchema.parse({
-    schemaVersion: 1,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitions: []
-  })
-  return encounterRunStateSchema.parse({
-    id: ENCOUNTER_ID,
-    campaignId: '00000000-0000-4000-8000-00000000b003',
-    gameSystemId: DND5E_SYSTEM_ID,
-    blueprintId: '00000000-0000-4000-8000-00000000b004',
-    blueprintVersion: 1,
-    blueprintChecksum: CHECKSUM,
-    name: 'Ambush',
-    status: input.status ?? 'PREPARED',
-    automationMode: input.policy ? 'ASSISTED' : 'MANUAL',
-    manualReminderMode: 'OFF',
-    healthDisplayDefault: 'HIDDEN',
-    version: input.version ?? 0,
-    round: input.round ?? 0,
+  return srdEncounterState({
+    actors: ACTORS,
     currentActorId: input.currentActorId ?? null,
-    createdAt: TIMESTAMP,
-    updatedAt: TIMESTAMP,
-    actorIds: ACTORS.map((candidate) => candidate.id),
-    initiativePolicySnapshot: input.policy?.snapshot ?? null,
-    initiativePolicySnapshotChecksum: input.policy?.checksum ?? null,
-    optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalCombatSnapshot),
+    status: input.status ?? 'PREPARED',
+    round: input.round ?? 0,
+    version: input.version ?? 0,
     turnSequence: input.turnSequence ?? 0,
+    automationMode: input.policy ? 'ASSISTED' : 'MANUAL',
+    ...(input.policy ? { initiativePolicy: input.policy } : {}),
     sides: [
-      { id: SIDE_HEROES, label: 'Heroes', sortOrder: 0 },
-      { id: SIDE_FOES, label: 'Foes', sortOrder: 1 }
+      { id: SIDE_HEROES, label: 'Heroes' },
+      { id: SIDE_FOES, label: 'Foes' }
     ]
   })
 }
-
 function coordinatorRoot(overrides: Partial<TurnCoordinatorRootDto> = {}): TurnCoordinatorRootDto {
   return turnCoordinatorRootDtoSchema.parse({
     rootCommandId: ROOT_COMMAND_ID,
@@ -161,7 +101,7 @@ async function prepare(input: {
     loadDeclarations: async () => {
       throw new Error('Actor-roll initiative has no declarations.')
     },
-    createRuntime: testRulesRuntime,
+    createRuntime: createSrdRulesRuntime,
     integerSource: (request) => dice.next(request),
     createRequestId: () => {
       throw new Error('Actor-roll initiative issues no declaration requests.')

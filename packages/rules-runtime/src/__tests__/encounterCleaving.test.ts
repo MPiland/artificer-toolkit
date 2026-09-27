@@ -6,9 +6,6 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { ancientRedDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-red-dragon.js'
-import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 
 import {
   createNativeCleavingChoice,
@@ -28,6 +25,11 @@ import {
   srdCreatureTarget,
   srdOptionalCombat
 } from './dnd5eSrdEncounter.js'
+import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+
+const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')
+const goblin = srdByLabel(SRD.creatures, 'Goblin')
+const wolf = srdByLabel(SRD.creatures, 'Wolf')
 
 const ATTACKER_ID = '00000000-0000-4000-8000-00000000c001'
 const FIRST_ID = '00000000-0000-4000-8000-00000000c002'

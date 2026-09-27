@@ -16,12 +16,12 @@ import {
   ACTOR_A,
   ACTOR_B,
   ACTOR_C,
-  ENCOUNTER_ID,
   SIDE_FOES,
   SIDE_HEROES,
   initiativePolicySnapshot,
   preparingRound
 } from './encounterInitiativeFixtures.js'
+import { ENCOUNTER_ID } from './dnd5eSrdEncounter.js'
 
 const ACTORS = [
   { id: ACTOR_A, sideId: SIDE_HEROES },

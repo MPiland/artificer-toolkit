@@ -34,7 +34,7 @@ import {
 } from '../systems/dnd5e/concentrationPolicy.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/concentrationIdentity.js'
 import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
-import { testRulesRuntime } from './encounterInitiativeFixtures.js'
+import { createSrdRulesRuntime } from './dnd5eSrdEncounter.js'
 
 const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e001'
 const CASTER_ID = '00000000-0000-4000-8000-0000000000a1'
@@ -285,7 +285,7 @@ async function startCheck(input: {
   remaining?: readonly (ConcentrationDamageApplicationDto & { maintainedStateId: string })[]
   rulePolicyOutput?: CharacterRulePolicyOutput
 }) {
-  const runtime = await testRulesRuntime()
+  const runtime = await createSrdRulesRuntime()
   const { context, facts } = createNativeConcentrationContext({
     current: {
       maintained,

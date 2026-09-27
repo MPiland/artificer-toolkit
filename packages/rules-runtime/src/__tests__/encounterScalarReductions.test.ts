@@ -15,13 +15,8 @@ import {
 } from '../encounterScalarReductions.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
-import {
-  activeEffect,
-  creatureActor,
-  creatureRuleFacts,
-  ENCOUNTER_ID,
-  scalarReduction
-} from './encounterStateFixtures.js'
+import { creatureActor, creatureRuleFacts, ENCOUNTER_ID } from './dnd5eSrdEncounter.js'
+import { activeEffect, scalarReduction } from './encounterActiveEffectFixtures.js'
 
 const { STRENGTH, DEXTERITY, CONSTITUTION } = SRD_ABILITY_DEFINITION_IDS
 const CREATURE_ID = '00000000-0000-4000-8000-00000000c101'
@@ -260,6 +255,7 @@ describe('Creature movement target', () => {
       baseRulePolicyOutput: null,
       effectiveRulePolicyOutput: null,
       characterCurrentness: null,
+      basicActionAttackContributors: [],
       targetDerivedFacts: {
         actorId: CREATURE_ID,
         // Dexterity 12 drained to 7: initiative +1 becomes -2.
