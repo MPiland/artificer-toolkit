@@ -1,6 +1,7 @@
 import { challengeRatings } from '@artificer-toolkit/shared/authored'
 import type { AbilityCode, CreatureAuthored } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
+import { SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS } from './creatureDescriptionOnlyActions.js'
 import { SRD_CREATURE_STAT_BLOCK_EXCEPTIONS } from './creatureStatBlockExceptions.js'
 import { SRD_CREATURE_STAT_BLOCKS, type SrdCreatureStatBlock } from './creatures/stat-blocks.js'
 import { srdBaselineContent } from './index.js'
@@ -251,7 +252,49 @@ const mismatches = new Map<string, string>(
   })
 )
 
+/**
+ * `Creature label|actions Name` (or `reactions`, `legendaryActions`) of every printed action whose
+ * authored Feature or legendary option has no Effect, on itself or on one of its options. A printed
+ * name with no authored source at all is a name difference above instead.
+ */
+const descriptionOnlyActions = new Set(
+  srdBaselineContent.subjects.creatures.flatMap((creature) => {
+    const block = SRD_CREATURE_STAT_BLOCKS.get(creature.id)
+    if (!block) return []
+    const features = creature.features ?? []
+    const legendary = features.find((feature) => feature.label === 'Legendary Actions')
+    const lists = {
+      actions: [block.actions, features],
+      reactions: [block.reactions ?? [], features],
+      legendaryActions: [block.legendaryActions ?? [], legendary?.options ?? []]
+    } as const
+    return Object.entries(lists).flatMap(([field, [printed, sources]]) =>
+      printed.flatMap((name) => {
+        const source = sources.find((candidate) => candidate.label === name)
+        const hasEffect =
+          source !== undefined &&
+          [source, ...(source.options ?? [])].some((entry) => (entry.effects ?? []).length > 0)
+        return source && !hasEffect ? [`${creature.label}|${field} ${name}`] : []
+      })
+    )
+  })
+)
+
 describe('SRD Creature stat blocks', () => {
+  it('authors an Effect for every printed action, except listed description-only ones', () => {
+    expect(
+      [...descriptionOnlyActions].filter((key) => !SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS.has(key))
+    ).toEqual([])
+  })
+
+  it('keeps only description-only actions that still lack an Effect', () => {
+    expect(
+      [...SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS.keys()].filter(
+        (key) => !descriptionOnlyActions.has(key)
+      )
+    ).toEqual([])
+  })
+
   it('holds every Creature to its printed stat block, except justified exceptions', () => {
     expect(
       [...mismatches]
