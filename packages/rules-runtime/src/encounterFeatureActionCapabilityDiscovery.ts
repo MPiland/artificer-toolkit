@@ -62,6 +62,7 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
 /** A Creature action whose authored mechanics cannot run; it is listed unavailable, not thrown. */
 export interface EncounterFeatureActionUnavailable {
   actionId: string
+  ownerFeatureId: string
   label: string
   reason: string
 }
@@ -762,6 +763,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           } catch (error) {
             unavailable.push({
               actionId: exactActionId,
+              ownerFeatureId,
               label,
               reason: error instanceof Error ? error.message : 'Its authored mechanics are invalid.'
             })

@@ -208,6 +208,20 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
     })
     // The Character's Sheet advances once for the damage.
     expect(executed.characterTransitions).toHaveLength(1)
+    // On its own turn the dragon's drawer offers its Tail, but no Legendary option (SRD 5.1).
+    expect(done.projection.currentActorId).toBe(base.dragonActor.id)
+    const choices = await base.owner.caller.query(api.encounters.actionChoices.get, {
+      encounterId: base.run.id,
+      expectedVersion: done.projection.version,
+      actorId: base.dragonActor.id
+    })
+    const labels = [
+      ...(choices?.actions ?? []).map((action) => action.label),
+      ...(choices?.unavailableActions ?? []).map((action) => action.label)
+    ]
+    expect(labels).toContain('Tail')
+    expect(labels).not.toContain('Tail Attack')
+    expect(labels).not.toContain('Wing Attack (Costs 2 Actions)')
   }, 60000)
 
   it('lets the granted controller pick its target and roll its dice, with GM override', async () => {

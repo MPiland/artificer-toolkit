@@ -141,6 +141,7 @@ describe('encounter action discovery: attack rolls', () => {
     expect(discovery.unavailable).toEqual([
       {
         actionId: expect.stringContaining(QUILL_VOLLEY_ID),
+        ownerFeatureId: QUILL_VOLLEY_ID,
         label: 'Quill Volley',
         reason: missingAttackRoll
       }

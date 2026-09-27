@@ -16,6 +16,7 @@ import {
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
+import { snapshotFeatureDefinitions } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 import { query, type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
@@ -220,15 +221,19 @@ export const get = query({
         abilityDefinitions:
           'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
       })
-      unavailableActions = discovered.unavailable.map(({ actionId, label, reason }) => ({
-        id: actionId,
-        label,
-        reason
-      }))
-      // A Legendary option that runs another action is used in its Legendary window, not here.
+      // A Legendary Action is taken only at the end of another creature's turn (SRD 5.1), in its
+      // Legendary window, never from the owner's own action drawer.
+      const legendaryFeatureIds = new Set(
+        snapshotFeatureDefinitions(actor)
+          .filter((feature) => feature.section === 'LEGENDARY_ACTION')
+          .map((feature) => feature.id)
+      )
+      unavailableActions = discovered.unavailable
+        .filter((action) => !legendaryFeatureIds.has(action.ownerFeatureId))
+        .map(({ actionId, label, reason }) => ({ id: actionId, label, reason }))
       actions = await Promise.all(
         discovered.available
-          .filter((action) => action.actionFeatureId === null)
+          .filter((action) => !legendaryFeatureIds.has(action.ownerFeatureId))
           .map(async (action) => ({
             id: action.actionId,
             label: action.label,
