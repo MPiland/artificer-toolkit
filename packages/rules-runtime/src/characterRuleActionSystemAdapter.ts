@@ -14,6 +14,7 @@ import type { SceneGrid, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { CombatPerceptionCapabilityInstance } from '@artificer-toolkit/shared/rules'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
+import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/authored'
 
@@ -134,7 +135,7 @@ export type CharacterHitPointOutcomeApplication =
   | (CharacterHitPointOutcomeApplicationBase & {
       kind: 'DAMAGE'
       damageTypeId: string
-      damageDisposition: 'NORMAL' | 'IMMUNE' | 'RESISTANT' | 'VULNERABLE' | 'CANCELLED'
+      damageDisposition: DamageDispositionDto
     })
 
 export interface CharacterConditionApplyOutcomeApplication {

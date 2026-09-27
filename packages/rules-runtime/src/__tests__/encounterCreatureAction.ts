@@ -147,6 +147,8 @@ export function creatureActor(input: {
   disposition?: EncounterRunActorState['disposition']
   conditionIds?: readonly string[]
   conditionImmunityIds?: readonly string[]
+  damageResistanceIds?: readonly string[]
+  damageVulnerabilityIds?: readonly string[]
   featureChargesUsed?: Readonly<Record<string, number>>
 }): EncounterRunActorState {
   const sourceId = crypto.randomUUID()
@@ -154,8 +156,8 @@ export function creatureActor(input: {
     ...wolf,
     id: sourceId,
     label: input.label,
-    damageVulnerabilities: [],
-    damageResistances: [],
+    damageVulnerabilities: [...(input.damageVulnerabilityIds ?? [])],
+    damageResistances: [...(input.damageResistanceIds ?? [])],
     damageImmunities: [],
     conditionImmunities: [...(input.conditionImmunityIds ?? [])],
     features: [...input.features]

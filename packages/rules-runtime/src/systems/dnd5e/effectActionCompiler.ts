@@ -4,6 +4,7 @@ import {
   type ServerPublishedRuleDefinitionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
+import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import type { CompiledDamageEffect, CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type {
@@ -4777,33 +4778,20 @@ function interpretDirectProposal(
   const immune = d.some((x) => x.kind === 'IMMUNITY')
   const resistant = d.some((x) => x.kind === 'RESISTANCE')
   const vulnerable = d.some((x) => x.kind === 'VULNERABILITY')
-  if (
-    vulnerable &&
-    !immune &&
-    resistant !== vulnerable &&
-    !Number.isSafeInteger(requestedAmount * 2)
-  )
-    throw new Dnd5eEffectActionCompilerError(
-      'D&D vulnerable damage exceeds the supported safe integer range.'
-    )
-  const resolvedAmount = immune
-    ? 0
-    : resistant === vulnerable
-      ? requestedAmount
-      : resistant
-        ? Math.floor(requestedAmount / 2)
-        : vulnerable
-          ? requestedAmount * 2
-          : requestedAmount
   const damageDisposition = immune
     ? 'IMMUNE'
     : resistant && vulnerable
-      ? 'CANCELLED'
+      ? 'RESISTANT_AND_VULNERABLE'
       : resistant
         ? 'RESISTANT'
         : vulnerable
           ? 'VULNERABLE'
           : 'NORMAL'
+  const resolvedAmount = resolveDispositionDamage(damageDisposition, requestedAmount)
+  if (!Number.isSafeInteger(resolvedAmount))
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D vulnerable damage exceeds the supported safe integer range.'
+    )
   const temporaryLost = Math.min(input.temporaryHitPoints, resolvedAmount)
   const currentLost = Math.min(input.currentHitPoints, resolvedAmount - temporaryLost)
   return [

@@ -24,6 +24,33 @@ const characterMechanicsApplicationTraceDtoSchema = z.strictObject({
   authoredPath: z.nullable(identifierSchema),
   resolvedPath: z.nullable(identifierSchema)
 })
+export const damageDispositionDtoSchema = z.enum([
+  'NORMAL',
+  'IMMUNE',
+  'RESISTANT',
+  'VULNERABLE',
+  'RESISTANT_AND_VULNERABLE'
+])
+export type DamageDispositionDto = z.infer<typeof damageDispositionDtoSchema>
+
+/**
+ * Damage after the target's defenses (SRD 5.1): immunity takes it to 0, resistance halves it
+ * rounding down, then vulnerability doubles it. Resistance and vulnerability do not cancel.
+ */
+export function resolveDispositionDamage(
+  disposition: DamageDispositionDto,
+  requestedAmount: number
+): number {
+  if (disposition === 'IMMUNE') return 0
+  const resisted =
+    disposition === 'RESISTANT' || disposition === 'RESISTANT_AND_VULNERABLE'
+      ? Math.floor(requestedAmount / 2)
+      : requestedAmount
+  return disposition === 'VULNERABLE' || disposition === 'RESISTANT_AND_VULNERABLE'
+    ? resisted * 2
+    : resisted
+}
+
 export const characterMechanicsApplicationDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     ordinal: receiptOrdinalSchema,
@@ -50,7 +77,7 @@ export const characterMechanicsApplicationDtoSchema = z.discriminatedUnion('kind
     afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
     maximumHitPoints: integerSchema.check(z.gte(0)),
     damageTypeId: uuidSchema,
-    damageDisposition: z.enum(['NORMAL', 'IMMUNE', 'RESISTANT', 'VULNERABLE', 'CANCELLED']),
+    damageDisposition: damageDispositionDtoSchema,
     ...characterMechanicsApplicationTraceDtoSchema.shape
   }),
   z.strictObject({

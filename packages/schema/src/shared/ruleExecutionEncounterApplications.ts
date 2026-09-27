@@ -22,6 +22,7 @@ import {
   encounterActorActiveEffectCreateReceiptDtoSchema,
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
+  resolveDispositionDamage,
   stateEffectCreateReceiptDtoSchema,
   validateMaintainedEffectCreation,
   validateStateEffectTransitions
@@ -454,14 +455,10 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
               message: 'Temporary hit-point receipt arithmetic is invalid.'
             })
         } else if (application.kind === 'DAMAGE') {
-          const resolved =
-            application.damageDisposition === 'IMMUNE'
-              ? 0
-              : application.damageDisposition === 'RESISTANT'
-                ? Math.floor(application.requestedAmount / 2)
-                : application.damageDisposition === 'VULNERABLE'
-                  ? application.requestedAmount * 2
-                  : application.requestedAmount
+          const resolved = resolveDispositionDamage(
+            application.damageDisposition,
+            application.requestedAmount
+          )
           const temporaryLost = Math.min(application.beforeTemporaryHitPoints, resolved)
           const currentLost = Math.min(application.beforeCurrentHitPoints, resolved - temporaryLost)
           if (

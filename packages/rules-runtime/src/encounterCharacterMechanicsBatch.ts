@@ -1,6 +1,7 @@
 import { v5 as uuidv5 } from 'uuid'
 
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
+import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 import { z } from 'zod'
 
@@ -304,14 +305,10 @@ export function foldCharacterMechanicsApplications(input: {
           'The Character temporary hit-point application is invalid.'
         )
     } else if (application.kind === 'DAMAGE') {
-      const resolvedAmount =
-        application.damageDisposition === 'IMMUNE'
-          ? 0
-          : application.damageDisposition === 'RESISTANT'
-            ? Math.floor(application.requestedAmount / 2)
-            : application.damageDisposition === 'VULNERABLE'
-              ? application.requestedAmount * 2
-              : application.requestedAmount
+      const resolvedAmount = resolveDispositionDamage(
+        application.damageDisposition,
+        application.requestedAmount
+      )
       const temporaryLost = Math.min(temporary, resolvedAmount)
       const currentLost = Math.min(current, resolvedAmount - temporaryLost)
       if (
