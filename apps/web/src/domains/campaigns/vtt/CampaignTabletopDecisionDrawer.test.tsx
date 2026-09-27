@@ -134,12 +134,23 @@ const legendaryPending = {
   options: [
     {
       optionId: 'c'.repeat(64),
-      actionId: 'tail-swipe',
+      actionId: 'shimmering-shield',
       ownerFeatureId: '77777777-7777-4777-8777-777777777799',
-      targetActorId: tabletopGmEncounter.actors[0]!.id
+      label: 'Shimmering Shield',
+      featureCost: 2,
+      targetActorIds: [tabletopGmEncounter.actors[0]!.id]
+    },
+    {
+      optionId: 'd'.repeat(64),
+      actionId: 'tail-attack',
+      ownerFeatureId: '77777777-7777-4777-8777-777777777799',
+      label: 'Tail Attack',
+      featureCost: 1,
+      // The second target is an actor this viewer cannot see.
+      targetActorIds: [tabletopGmEncounter.actors[1]!.id, '99999999-9999-4999-8999-999999999903']
     }
   ],
-  allowedResponses: ['DECLINE', 'OPTION']
+  allowedResponses: ['DECLINE', 'LEGENDARY_OPTION']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
 const cleavingPending = {
@@ -505,6 +516,38 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
 })
 
 describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => {
+  it('picks the target of a Legendary Action that runs an attack (D51)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    const target = tabletopGmEncounter.actors[1]!
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={legendaryPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(screen.getByRole('combobox', { name: 'Legendary Action' }))
+    await user.click(screen.getByRole('option', { name: 'Tail Attack · 1 action' }))
+    expect(screen.getByRole('button', { name: 'Use Legendary Action' })).toBeDisabled()
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    expect(screen.getByRole('option', { name: 'Hidden combatant' })).toBeVisible()
+    await user.click(screen.getByRole('option', { name: target.label }))
+    await user.click(screen.getByRole('button', { name: 'Use Legendary Action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: { kind: 'LEGENDARY_OPTION', optionId: 'd'.repeat(64), targetActorId: target.id }
+      })
+    )
+  })
+
   it('submits canonical option selections and disables Cleaving while closed', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn(async () => resolved())
@@ -522,9 +565,19 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
     )
 
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
-    await user.click(screen.getByRole('button', { name: /^tail-swipe · / }))
+    await user.click(screen.getByRole('combobox', { name: 'Legendary Action' }))
+    await user.click(screen.getByRole('option', { name: 'Shimmering Shield · 2 actions' }))
+    // A self action needs no target.
+    expect(screen.queryByRole('combobox', { name: 'Target' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Use Legendary Action' }))
     expect(onResolve).toHaveBeenCalledWith(
-      expect.objectContaining({ resolution: { kind: 'OPTION', optionId: 'c'.repeat(64) } })
+      expect.objectContaining({
+        resolution: {
+          kind: 'LEGENDARY_OPTION',
+          optionId: 'c'.repeat(64),
+          targetActorId: tabletopGmEncounter.actors[0]!.id
+        }
+      })
     )
 
     rerender(

@@ -276,26 +276,13 @@ export function CampaignTabletopDecisionDrawer({
               </Button>
             </Group>
           ) : pending.kind === 'LEGENDARY_ACTION_CHOICE' ? (
-            <Stack gap='xs'>
-              {pending.options.map((option) => (
-                <Button
-                  disabled={disabled}
-                  key={option.optionId}
-                  onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
-                >
-                  {option.actionId} ·{' '}
-                  {encounter.actors.find((actor) => actor.id === option.targetActorId)?.label ??
-                    'Target'}
-                </Button>
-              ))}
-              <Button
-                disabled={disabled}
-                variant='default'
-                onClick={() => void resolve({ kind: 'DECLINE' })}
-              >
-                Pass
-              </Button>
-            </Stack>
+            <LegendaryActionControls
+              actors={encounter.actors}
+              disabled={disabled}
+              key={`${pending.occurrenceId}:${pending.occurrenceVersion}`}
+              pending={pending}
+              onSubmit={(resolution) => void resolve(resolution)}
+            />
           ) : pending.kind === 'OPTIONAL_COMBAT_CLEAVING' ? (
             <Stack gap='xs'>
               {pending.options.map((option) => (
@@ -378,6 +365,73 @@ export function CampaignTabletopDecisionDrawer({
         </Stack>
       </Drawer>
     </>
+  )
+}
+
+/** Picks one Legendary Action option and, unless it only targets its user, its target (D51). */
+function LegendaryActionControls({
+  actors,
+  disabled,
+  pending,
+  onSubmit
+}: {
+  actors: readonly { id: string; label: string }[]
+  disabled: boolean
+  pending: Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'LEGENDARY_ACTION_CHOICE' }>
+  onSubmit: (resolution: ResolveRuleOccurrenceInputDto['resolution']) => void
+}) {
+  const [optionId, setOptionId] = useState<string | null>(null)
+  const [targetActorId, setTargetActorId] = useState<string | null>(null)
+  const option = pending.options.find((entry) => entry.optionId === optionId) ?? null
+  const targetIds = option?.targetActorIds ?? []
+  // A self action has exactly one target: its user.
+  const target = targetIds.length === 1 ? (targetIds[0] ?? null) : targetActorId
+
+  return (
+    <Stack gap='sm'>
+      <Select
+        comboboxProps={{ withinPortal: false }}
+        data={pending.options.map((entry) => ({
+          value: entry.optionId,
+          label: `${entry.label} · ${entry.featureCost === 1 ? '1 action' : `${entry.featureCost} actions`}`
+        }))}
+        disabled={disabled}
+        label='Legendary Action'
+        value={optionId}
+        onChange={(value) => {
+          setOptionId(value)
+          setTargetActorId(null)
+        }}
+      />
+      {option && targetIds.length > 1 ? (
+        <Select
+          comboboxProps={{ withinPortal: false }}
+          data={targetIds.map((actorId) => ({
+            value: actorId,
+            label: actors.find((actor) => actor.id === actorId)?.label ?? 'Hidden combatant'
+          }))}
+          disabled={disabled}
+          label='Target'
+          searchable
+          value={targetActorId}
+          onChange={setTargetActorId}
+        />
+      ) : null}
+      <Group>
+        <Button
+          disabled={disabled || !option || !target}
+          onClick={() => {
+            if (!option || !target) return
+            onSubmit({ kind: 'LEGENDARY_OPTION', optionId: option.optionId, targetActorId: target })
+          }}
+        >
+          Use Legendary Action
+        </Button>
+        <Button disabled={disabled} variant='default' onClick={() => onSubmit({ kind: 'DECLINE' })}>
+          Pass
+        </Button>
+      </Group>
+    </Stack>
   )
 }
 
