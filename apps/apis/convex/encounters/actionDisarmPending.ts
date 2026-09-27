@@ -59,7 +59,7 @@ export async function projectNativeDisarmPendingForMember(
 ) {
   const pending = readNativeDisarmPending(occurrence)
   const project = () =>
-    withEncounterRollModeReasons(ctx, run.gameSystemId, (reasons) =>
+    withEncounterRollModeReasons(ctx, run, membership, (reasons) =>
       projectNativeActionPending(occurrence, reasons)
     )
   if (membership.role === 'OWNER') return project()

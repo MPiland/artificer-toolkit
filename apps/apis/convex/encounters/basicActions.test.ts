@@ -280,6 +280,36 @@ describe('basic combat actions in the room (Q11)', () => {
     expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual([])
   })
 
+  it("a player's prompt keeps a hidden dodger's disadvantage but not its name", async () => {
+    const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
+    await setCurrentActor(base, base.enemy.id)
+    await base.gm(await useBasicAction(base, { actorId: base.enemy.id, definitionId: dodge!.id }))
+    await base.gm({
+      type: 'UPDATE_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await base.version(),
+      actorId: base.enemy.id,
+      public: false
+    })
+    await setActorControllers(base, base.companion.id, [base.player.userId])
+    await setCurrentActor(base, base.companion.id)
+    await base.gm(await base.bite(base.companion.id, base.enemy.id))
+
+    // The GM sees the source; the player keeps the mechanic under a generic reason.
+    expect((await d20Pending(base)).request).toMatchObject({
+      rollMode: 'DISADVANTAGE',
+      derivedRollModeReasons: ['Dodge']
+    })
+    const playerPending = await base.player.caller.query(pendingRuleOccurrence, {
+      encounterId: base.run.id
+    })
+    if (playerPending?.kind !== 'D20_EVIDENCE') throw new Error('Expected a player roll prompt.')
+    expect(playerPending.request).toMatchObject({
+      rollMode: 'DISADVANTAGE',
+      derivedRollModeReasons: ['Unseen source']
+    })
+  })
   it("Dodge gives the dodger's Dexterity saves advantage", async () => {
     const base = await basicActionFixture({ bite: 'SAVE', promptRolls: true })
     await setCurrentActor(base, base.enemy.id)

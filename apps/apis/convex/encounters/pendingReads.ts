@@ -143,7 +143,7 @@ export async function readPendingRunDecision(
   if (context.kind === 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK') {
     const actor = actors.find((entry) => entry.id === context.application.targetActorId)
     return actor && controlledActorIds.has(actor.id)
-      ? withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
+      ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
           projectNativeConcentrationPending(occurrence, reasons)
         )
       : null
@@ -162,7 +162,7 @@ export async function readPendingRunDecision(
     // A Creature's controllers pick and roll its Legendary Action; its target rolls its saves.
     const actorId = turnPendingActorId(pendingSnapshot)
     if (actorId === null || !controlledActorIds.has(actorId)) return null
-    return withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
+    return withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
       projectNativeLegendaryPending({
         snapshot: pendingSnapshot,
         occurrenceId: occurrence.id,
@@ -199,7 +199,8 @@ export async function readPendingRunDecision(
       throw new Error('Stored Encounter occurrence root is invalid.')
     return withEncounterRollModeReasons(
       ctx,
-      row.gameSystemId,
+      row,
+      membership,
       (reasons) =>
         projectEncounterSpatialOccurrenceSummary(
           {
@@ -240,7 +241,7 @@ export async function readPendingRunDecision(
       membership,
       occurrence
     }))
-      ? withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
+      ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
           projectNativeActionPending(occurrence, reasons)
         )
       : null
@@ -257,7 +258,7 @@ export async function readPendingRunDecision(
       context.root.initiatorUserId !== campaign.ownerUserId
     )
       throw new Error('Stored Encounter turn root is invalid.')
-    return withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
+    return withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
       projectNativeTurnPending({
         snapshot: pendingSnapshot,
         occurrenceId: occurrence.id,
