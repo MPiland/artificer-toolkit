@@ -289,17 +289,20 @@ from `executeLiveEncounterCommand` (route `MOVEMENT`). Inside the command chain 
    returns `ROUTED` and stages nothing), begins the save (a move or door change with its
    presentation fence, a decision answer, or a GM void that `occurrenceVoid` turns into the
    decision's decline), observes the cached Scene vision's Character revisions and, for a bound
-   move, reads the command's capture bundle (`MOVEMENT_INPUTS` admission) under the staged save,
-   taking the moving token's definition ordinal from the room's `tokenOrdinals`;
-4. for a bound move, hands the bundle to its captures (`bundleCaptures`) and runs
-   `prepareNativeLiveMovement` on its cached Scene with the room cache;
+   move or decision answer, reads the command's capture bundle (`MOVEMENT_INPUTS` admission) under
+   the staged save or, for an answer, its issued decision (D64), taking the moving token's definition
+   ordinal from the room's `tokenOrdinals`; an answer whose bundle the room prefetched skips this
+   call and stages in its commit (see "Held movement decision answers");
+4. for a bound move or answer, hands the bundle to its captures (`bundleCaptures`) and runs
+   `prepareNativeLiveMovement` on its cached Scene with the room cache and the room's answer;
 5. derives each fog owner's complete layer (`deriveSceneCommandFogLayer`), following the walked
    segment (`preparedMovementSegment`);
 6. predicts the published Scene (`preparedMovementSceneDelta`, the same function Convex publishes
    with) and the next state checksum, writes the SQLite write-ahead record
    (`durable_external_commit`, `beginExternalCommit`), and commits with
    `authority {sequence: N+1, expectedStateChecksum, stateChecksum}`, `expectedScene` and the fog
-   layers: `encounter-movement` for bound moves and decisions, `scene-geometry` otherwise. In one
+   layers: `encounter-movement` for bound moves and decisions, `encounter-movement-answer` for a
+   prefetched answer, `scene-geometry` otherwise. In one
    Convex transaction the commit checks every captured owner, freezes the room's plan on the save
    (`persistSpatialPreparation`), stages each fog layer, publishes the Scene, compares it with
    `expectedScene`, and advances the persisted authority, which must be at N
@@ -315,7 +318,8 @@ from `executeLiveEncounterCommand` (route `MOVEMENT`). Inside the command chain 
 A commit refused with a 4xx response rolled back, so the record is dropped. Without a response (or
 on a 5xx) the record stays, and the room settles it before the next command, while activating,
 before a presentation change and before the drain fence: the Worker-secret route
-`external-commit-resolve` takes the record's `subject` and answers COMMITTED (the change landed and
+`external-commit-resolve` takes the record's `subject` (a save, a binding, or a prefetched answer's
+Scene and command) and answers COMMITTED (the change landed and
 the authority reached N+1 with the predicted checksum) or ABANDONED (it did not land and the
 authority is at N, after a fence that makes a delayed commit fail: a still-receiving save expires);
 anything else fails closed. Only a retry of the same room commit replays in Convex; a replay whose
@@ -446,7 +450,8 @@ movement decision for the Encounter bound to its synchronized presented Scene (t
 skips this query and sends the decision straight to the movement stage (`stageHeldMovement`, D52),
 which routes it with the same classification in the same transaction and returns `ROUTED` with the
 planner when another planner owns it, so a held decision's answer takes two round trips (stage and
-commit). Only the GM tools in
+commit), or one when the room prefetched its inputs (see "Held movement decision answers", D64).
+Only the GM tools in
 `CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` (`packages/schema/src/api/liveSessionEncounterCommand.ts`)
 go to Convex as they are (D41): no dice, and no derived mechanics beyond the deterministic actor
 recalculation every Convex commit runs anyway. The private `encounter-command` route
@@ -515,7 +520,8 @@ derives a Character capture scope from an Encounter one for both sides. Warm com
 round trips (the bundle and the commit); a decision answer adds its `encounter-route` read, except a
 held movement decision. A Convex-first Scene command's stage reads its bundle in the same
 transaction (D52), so a warm bound move or held movement decision also takes two: the stage and the
-commit. A room planner takes a part the stage already bundled without reading the bundle again.
+commit; a held decision whose bundle the room prefetched takes one (D64). A room planner takes a
+part the stage already bundled without reading the bundle again.
 Parts still repeat reads (actors, Characters, the System), so the bundle reads through a
 transaction-local memo (`lib/transactionReads.ts`): an identical `get`, or the same table, index
 range, order and read, is served once and deeply frozen, so no part can change another part's view,
@@ -554,6 +560,46 @@ read overlapping the write is never kept. Convex transactions are serializable, 
 from earlier in the same transaction is as fresh as a new one, and every fence still compares against
 a current read. Each mutation read, and each `deriveOnce` result, is a private copy, so callers may
 mutate what they read; the derivation itself runs once per stored document version.
+
+**Held movement decision answers (CURRENT, D64).** A movement decision's answer reads its capture
+bundle under its issued decision, not under a staged save: the `MOVEMENT_INPUTS` scope's `subject`
+is `DECISION` (occurrence, occurrence and Run versions, and the app roll a `SYSTEM_ROLL` answer
+settles with; `movementDecisionSubject`) and its response carries the issued pending snapshot. The
+admission (`readLiveMovementAdmission`) requires the member to answer that occurrence
+(`readMovementResponseAuthority`; a player only one their pending reads show them), the Scene to be
+presented at the sealed root's version, and the same Run, binding and token checks a staged move
+gets. A new move keeps the `SAVE` subject. The room plans an answer from its own command
+(`movementResponseSceneCommand` rebuilds the move it continues); a GM void's decline comes from its
+stage (`STAGED.answer`). Nothing in the room reads the staged save's `movementResolution.commandJson`
+any more; Convex keeps it, because the two-call path's commit, publication and replay read the
+answer back from the save.
+
+- **Prefetch.** When the room's own movement commit leaves a decision PENDING, the room reads that
+  decision's bundle off the command chain for every admitted member, each with their own token
+  (`encounter-movement-prefetch`, `liveSessions/encounterMovementPrefetch:prefetch`, a query). Convex
+  refuses a member who may not answer (the route's classification, then the admission above), so
+  only responders hold one. The room keeps the latest decision's reads per member
+  (`MovementPrefetches`), resolves the Run System into each (the answer's capture view takes the
+  bundle), and drops them on the next issue, when the hold ends, and with the cache generation.
+- **Answer in one transaction.** An answer by a member holding a read for exactly that occurrence,
+  at the answer's versions and without an app roll, is taken once (an in-flight read is awaited) and
+  planned on the prefetched bundle. The private `encounter-movement-answer` route
+  (`liveSessions/encounterMovement:answer`, a memoized mutation) then, in one transaction: routes
+  the answer (`routeEncounterDecision`), rereads the bundle under the same scope as the answering
+  member and compares `captureBundleChecksum` (every part's read checksum in order), begins and
+  observes the save as the stage does, and runs the movement commit (`commitLiveMovement`) with every
+  existing fence and the authority advance. So an answer takes one Convex call instead of two.
+- **Fail closed.** Any change to a read, including ones no commit fence covers (an auto-roll
+  preference), refuses the answer with 409 and nothing written; the room has already taken the read,
+  so `executeLiveEncounterCommand` retries once through the stage and commit. A void or a settled
+  decision makes the answer itself stale (the route's domain refusal), as on the two-call path. No
+  read (a restart, eviction, another member, or a `SYSTEM_ROLL` answer, whose faces are rolled after
+  the issue) uses the two-call path.
+- **Write-ahead.** The answer stages its save inside its commit, so its record names
+  `{ kind: 'MOVEMENT_ANSWER', sceneId, commandId, expiresAt }`. Convex refuses the answer after
+  `expiresAt`; the resolve route reports COMMITTED when the save for that Scene and command published
+  and the authority advanced, and ABANDONED only after `expiresAt`, touching the authority so an
+  answer still in flight conflicts and reruns past its expiry, as a binding does (D47).
 
 **Import visibility (CURRENT, D34).** Imported rows are readable only while their import job is
 `COMPLETED` (`imports/visibility.ts`). A trigger in `lib/mutations.ts` bumps the SYSTEM revision of
