@@ -1,4 +1,5 @@
 import {
+  gridlessBaseSquare,
   measureSceneTokenFootprintDistance,
   sceneFootprintMeasureHalfExtent
 } from './sceneCombatPerception.js'
@@ -258,9 +259,16 @@ function pathBoundaryCandidates(
     const to = path[index]!
     const length = segmentLength(from, to)
     if (length <= EPSILON) continue
+    // A gridless measure adds the base square to the edge gap, so the gap may span the rest.
     const times =
       grid.kind === 'GRIDLESS'
-        ? gridlessBoundaryTimes(from, to, reactor, moving, reach * grid.pixelsPerUnit)
+        ? gridlessBoundaryTimes(
+            from,
+            to,
+            reactor,
+            moving,
+            (reach - gridlessBaseSquare(grid)) * grid.pixelsPerUnit
+          )
         : squareBoundaryTimes(from, to, reactor, moving, grid, reach)
     if (!times) return null
     for (const time of times)

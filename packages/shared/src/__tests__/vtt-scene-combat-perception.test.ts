@@ -105,13 +105,31 @@ describe('Scene combat-perception environment', () => {
       unit: 'FEET'
     } as const
 
+    // A 10-foot edge gap plus the 5-foot base square.
     expect(
       measureSceneTokenFootprintDistance(
         gridless,
         token({ x: 50, y: 50 }),
         token({ x: 100, y: 250 })
       )
-    ).toBe(10)
+    ).toBe(15)
+  })
+
+  it('measures a gridless Scene as the edge gap plus the base square, so adjacent is 5 feet', () => {
+    const gridless = { kind: 'GRIDLESS', pixelsPerUnit: 20, unit: 'FEET' } as const
+    const observer = token({ x: 50, y: 50 })
+
+    expect(measureSceneTokenFootprintDistance(gridless, observer, token({ x: 150, y: 50 }))).toBe(5)
+    expect(measureSceneTokenFootprintDistance(gridless, observer, token({ x: 250, y: 50 }))).toBe(
+      10
+    )
+    expect(
+      measureSceneTokenFootprintDistance(
+        { ...gridless, unit: 'METERS' },
+        observer,
+        token({ x: 150, y: 50 })
+      )
+    ).toBeCloseTo(1.524)
   })
 
   it('separates visual obstruction from physical line of effect', () => {

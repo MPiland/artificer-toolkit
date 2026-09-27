@@ -12,6 +12,7 @@ import {
   scenePointInPolygon
 } from './geometry.js'
 import type { CampaignSceneState, SceneGrid, SceneLight, ScenePoint, SceneToken } from './scene.js'
+import { lengthMeasurementInSceneUnits } from './sceneReducer.js'
 
 const illuminationRank: Readonly<Record<CombatPerceptionIllumination, number>> = {
   BRIGHT: 0,
@@ -46,11 +47,22 @@ function closestIntervalCoordinates(
   return [sharedCoordinate, sharedCoordinate]
 }
 
+/** The System's base square (SRD 5.1: 5 feet), which a gridless Scene adds to the edge gap. */
+const SYSTEM_BASE_SQUARE = { amount: 5, unit: 'FEET' } as const
+
+/**
+ * The base square in gridless Scene units: 5 feet, or one square on an uncalibrated Scene. Adding it
+ * to the footprint edge gap makes adjacent 5 feet, so reach means the same on every Scene.
+ */
+export function gridlessBaseSquare(grid: Extract<SceneGrid, { kind: 'GRIDLESS' }>): number {
+  return grid.unit === 'SQUARES' ? 1 : (lengthMeasurementInSceneUnits(SYSTEM_BASE_SQUARE, grid) ?? 0)
+}
+
 /**
  * Half the extent a footprint is measured from along one axis. On a square grid that is the span of
  * its occupied squares' centres, so counting squares includes the target's square (SRD: adjacent is
  * one square); a creature smaller than a square measures from its position. A gridless Scene has no
- * squares and measures from the footprint edge.
+ * squares and measures from the footprint edge, then adds the base square.
  */
 export function sceneFootprintMeasureHalfExtent(grid: SceneGrid, size: number): number {
   return grid.kind === 'SQUARE' ? Math.max(0, (size - grid.cellSize) / 2) : size / 2
@@ -97,7 +109,8 @@ export function measureSceneTokenFootprintDistance(
   subject: PerceptionSceneToken
 ): number {
   const [observerPoint, subjectPoint] = closestFootprintPoints(grid, observer, subject)
-  return measureSceneDistance(grid, observerPoint, subjectPoint)
+  const distance = measureSceneDistance(grid, observerPoint, subjectPoint)
+  return grid.kind === 'GRIDLESS' ? distance + gridlessBaseSquare(grid) : distance
 }
 
 function withinLightCone(light: SceneLight, point: ScenePoint): boolean {
