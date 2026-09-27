@@ -180,6 +180,23 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   * **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D52** Command speed, from the browserless V15 check ([v15-browserless-2026-09-26](../validation/phase-08-2/v15-browserless-2026-09-26.md)).
+  * **Findings:**
+    * The self-hosted backend re-evaluates each function's modules on every call, a fixed cost of about 55–150 ms that is 58–74% of each call.
+    * Command p95 is 2.5–2.8 s against a 1 s budget.
+    * A bound move makes about 7 serial Convex calls.
+    * Each commit re-runs `projectionReads:get` once per subscribed player, about 6 times.
+  * **Rulings:**
+    1. Shrink per-call setup for the capture bundle, the commits, `encounterMovement:*`, `projectionReads:get` and the rules capture. Use narrower or lazy imports, and build no large schemas at module load. Prove it with per-function user execution time on the backend.
+    2. Collapse the bound-move and reaction chain to at most 2 serial Convex calls per step. Fold route, begin, observe, capture and prepare into one call, and prepare into commit. This changes only the private room↔Convex routes, and keeps the write-ahead, fence and replay semantics.
+    3. Re-run the browserless check. The 6-browser V15 runs only when command p95 is comfortably under 1 s and convergence p95 is under 250 ms.
+  * **Caveat:** hosted Convex may cache modules differently, and the staging run (R09) will measure that. Both fixes help either way.
+
+* **D51** D50 follow-ups:
+  * **Legendary attack options.** Option B: a Legendary option names the creature's own action (Tail Attack runs the Tail action) and supports target selection. Area options wait on the area-targeting work. Until then, discovery skips options it can't execute instead of crashing.
+  * **Stored-format changes.** `CANCELLED` is renamed to `RESISTANT_AND_VULNERABLE`, and Concentration `damageTypeId` is now nullable. Local data is reset under the standing reset approval, with no migration.
+  * **E4, open: do SRD creature attacks work?** 381 of 471 SRD creature attack features have no attack-roll definition, and on the pure path they fail at execution ("dnd5e.attack-modifier is missing"). A read-only investigation is checking the room path. If it fails there too, it blocks closed beta and is fixed next.
+
 * **D50** Rules defects found by the T2 fast tests. All get fixed, each with a test that fails first:
   1. **HIGH: Legendary discovery throws on SRD dragon attack options.** `encounterTurnLegendaryDiscovery.ts:33` calls `adapter.compile`, which throws on anything that isn't a self action (`effectActionCompiler.ts:1646`). So ending a turn in an Assisted Encounter with an SRD dragon crashes. Legendary options that are attacks (Tail Attack, Wing Attack) must be offered and resolve as actions. Discovery must never throw on one option.
   2. **Initiative tie-break.** The tie-break roll only orders the tied creatures, and their initiative count stays the same (SRD 5.1). Today `encounterInitiativeStateEvaluation.ts:54` overwrites the score, which breaks reinforcement placement.
