@@ -423,8 +423,8 @@ describe('native phased action execution', () => {
 
     expect(result.phaseReceipts?.[0]?.execution.outputs.resultPath).toBe('ON_CRIT')
     expect(result.applications).toMatchObject([
-      { kind: 'DAMAGE', sourceNodeId: 'proposal-on_hit', appliedAmount: 1 },
-      { kind: 'DAMAGE', sourceNodeId: 'proposal-on_crit', appliedAmount: 2 }
+      { kind: 'DAMAGE', sourceNodeId: 'outcome1-proposal-on_hit', appliedAmount: 1 },
+      { kind: 'DAMAGE', sourceNodeId: 'outcome2-proposal-on_crit', appliedAmount: 2 }
     ])
   })
 
