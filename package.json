@@ -74,6 +74,7 @@
     "@chromatic-com/storybook": "^5.2.1"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.0",
     "@edge-runtime/vm": "5.0.0",
     "@types/node": "^25.6.1",
     "@typescript/analyze-trace": "^0.11.0",
