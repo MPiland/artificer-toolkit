@@ -23,8 +23,9 @@ export const concentrationDamageApplicationDtoSchema = z.strictObject({
   sourceNodeId: ruleExecutionIdentifierSchema,
   sourceOperationKey: ruleExecutionIdentifierSchema,
   targetActorId: ruleExecutionUuidSchema,
+  /** One source's total damage; a source that dealt several damage types has no single type. */
   appliedAmount: ruleExecutionPositiveIntegerSchema,
-  damageTypeId: ruleExecutionUuidSchema
+  damageTypeId: z.nullable(ruleExecutionUuidSchema)
 })
 
 export type ConcentrationDamageApplicationDto = z.infer<

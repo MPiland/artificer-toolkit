@@ -150,12 +150,15 @@ export function creatureActor(input: {
   damageResistanceIds?: readonly string[]
   damageVulnerabilityIds?: readonly string[]
   featureChargesUsed?: Readonly<Record<string, number>>
+  hitPoints?: number
 }): EncounterRunActorState {
   const sourceId = crypto.randomUUID()
+  const hitPoints = input.hitPoints ?? wolf.hitPoints
   const payload = {
     ...wolf,
     id: sourceId,
     label: input.label,
+    hitPoints,
     damageVulnerabilities: [...(input.damageVulnerabilityIds ?? [])],
     damageResistances: [...(input.damageResistanceIds ?? [])],
     damageImmunities: [],
@@ -179,8 +182,8 @@ export function creatureActor(input: {
     stableTieKey: input.id,
     gmNotes: null,
     sideId: SIDE_ID,
-    currentHitPoints: wolf.hitPoints,
-    maxHitPoints: wolf.hitPoints,
+    currentHitPoints: hitPoints,
+    maxHitPoints: hitPoints,
     tempHitPoints: 0,
     conditions: [...(input.conditionIds ?? [])],
     resources: Object.entries(input.featureChargesUsed ?? {}).reduce<Record<string, unknown>>(
@@ -197,7 +200,7 @@ export function creatureActor(input: {
       sourceRevision: 1,
       sourceVersionId: crypto.randomUUID(),
       sourceChecksum: 'a'.repeat(64),
-      maxHitPoints: wolf.hitPoints,
+      maxHitPoints: hitPoints,
       payload,
       ruleFacts: {
         gameSystemId: SRD_SYSTEM_ID,
