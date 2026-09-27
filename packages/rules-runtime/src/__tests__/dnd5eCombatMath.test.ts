@@ -37,6 +37,16 @@ import {
 
 const EB_EFFECT = '0b7e4c6a-1f2d-4e3b-9a8c-7d6e5f4a3b2c'
 const FB_EFFECT = '1c8f5d7b-2a3e-4f4c-8b9d-8e7f6a5b4c3d'
+/** The action-model inputs these spell-only cases leave empty. */
+const noActionSources = {
+  candidates: [],
+  abilityDefinitions: [],
+  spellCandidates: [],
+  spellSlots: [],
+  spellMechanics: [],
+  proficiencies: [],
+  itemAdjustments: []
+}
 
 const fighter = (level = 1) => ({ label: 'Fighter', level })
 const fightingStyle = (option: string) =>
@@ -813,7 +823,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
       ]
     })
     const output = evaluateDnd5e2014CharacterActions({
-      candidates: [],
+      ...noActionSources,
       spellEffects: [effect('eldritch-blast'), effect('fire-bolt')],
       activeSourceIds: [],
       activeEquipmentInstanceIds: [],
@@ -857,7 +867,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
 describe('D&D 5e healing', () => {
   it('rounds a per-level healing pool multiplier down, as damage multipliers are', () => {
     const output = evaluateDnd5e2014CharacterActions({
-      candidates: [],
+      ...noActionSources,
       spellEffects: [
         {
           spellId: 'mending-touch',

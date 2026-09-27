@@ -44,7 +44,18 @@ function evaluated(input: {
       choiceDefinitionId: input.selectionPolicy === 'CHOICE' ? AUTHORED_CHOICE_DEFINITION_ID : null,
       targetPolicy: 'MOVER'
     },
-    evidence: { inputs: {}, outputs: {} }
+    evidence: {
+      source: {
+        definitionId: '00000000-0000-4000-8000-0000000000e1',
+        gameSystemId: 'system',
+        definitionFamilyKey: 'rules-runtime-graph',
+        checksum: 'e'.repeat(64)
+      },
+      capabilityContractVersion: 1,
+      facts: {},
+      trace: [],
+      outputs: {}
+    }
   }
 }
 
