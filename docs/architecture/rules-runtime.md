@@ -848,7 +848,8 @@ The current Gate 2 Scene resolver measures range with the SRD grid rule: on a sq
 squares from the source's nearest occupied square to the target's nearest occupied square, counting
 the target's square, so an adjacent creature is one square (5 feet) away and diagonals follow the
 effective grid's diagonal policy. A creature smaller than a square measures from its position; a
-gridless Scene has no squares and measures between footprint edges. Action range and reach,
+gridless Scene has no squares and measures the gap between footprint edges plus the System's base
+square (5 feet), so adjacent is 5 feet and reach means the same on every Scene. Action range and reach,
 opportunity-attack reach, cleave reach and perception distance all use this one measure
 (`measureSceneTokenFootprintDistance`). A single-target Touch action is a 5-foot range that warns
 when out of reach, like any other range (D11), and so does the distance range of a single-target

@@ -36,7 +36,8 @@ function token(
 
 function source(overrides: Partial<ReactionReachSource> = {}): ReactionReachSource {
   return {
-    reach: 1,
+    // On the default gridless Scene: a 1-foot edge gap plus the 5-foot base square.
+    reach: 6,
     reactorTokenId: ids.reactorToken,
     sourceId: 'source-one',
     stage: 'ENTER_REACH',
