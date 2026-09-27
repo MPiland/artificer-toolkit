@@ -41,6 +41,7 @@ import {
   planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { grantFixtureActorControl } from '../../tests/fixtures/spatialPreparation'
 
 const importDefinitions = makeFunctionReference<
   'mutation',
@@ -832,6 +833,27 @@ describe('native Scene movement passage', () => {
     },
     30_000
   )
+
+  it("delivers a decision owed to the mover's player through their pending read, whatever the room acknowledged (D47)", async () => {
+    const value = await setupPassageScene()
+    await value.base.t.run((ctx) =>
+      grantFixtureActorControl(ctx, {
+        encounterId: value.base.run.id,
+        actorId: value.base.mover.id,
+        controllerUserIds: [value.player.userId]
+      })
+    )
+    const { choice } = await issuePassage(value)
+    // The room acknowledges a member who can't see a Scene change with its version only (D47);
+    // the pending read answers by who owes the decision, never by what the Scene showed them.
+    await expect(
+      value.player.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
+    ).resolves.toMatchObject({
+      kind: 'MOVEMENT_PASSAGE_CHOICE',
+      occurrenceId: choice.occurrenceId,
+      occurrenceVersion: choice.occurrenceVersion
+    })
+  }, 30_000)
 
   it('hides assisted Creature evidence from an unassigned player while the owner resolves both participants', async () => {
     const value = await setupPassageScene({ rolls: 'PROMPT' })
