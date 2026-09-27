@@ -4,7 +4,7 @@ import type { BindEncounterToPresentedSceneResultDto } from '@artificer-toolkit/
 import { internalMutation } from '../lib/mutations'
 import { bindEncounterToPresentedScene } from '../encounters/sceneBindings'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
-import { requireLiveMember } from './encounterMovement'
+import { requireLiveMember } from './liveMember'
 import { commitWithAuthorityAdvance } from './externalCommit'
 
 /**

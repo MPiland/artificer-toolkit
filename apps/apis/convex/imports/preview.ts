@@ -10,7 +10,10 @@ import {
   type ImportPreparationDependencies,
   type PreparedBatch
 } from '@artificer-toolkit/authoring/imports'
-import { authIdentityDtoSchema, type AuthIdentityDto } from '@artificer-toolkit/schema/api/auth'
+import {
+  authIdentityDtoSchema,
+  type AuthIdentityDto
+} from '@artificer-toolkit/schema/api/authIdentity'
 import {
   importClaimRefDtoSchema,
   importPreviewInputSchema,

@@ -1,12 +1,6 @@
 import { z } from '../zod.js'
 import { applicationFeatureFlagsDtoSchema } from './applicationConfig.js'
-
-export const authIdentityDtoSchema = z.strictObject({
-  userId: z.uuid(),
-  role: z.enum(['user', 'superadmin'])
-})
-
-export type AuthIdentityDto = z.infer<typeof authIdentityDtoSchema>
+import { authIdentityDtoSchema } from './authIdentity.js'
 
 // Server-to-server rate-limit context only; this is never an account credential.
 export const authProxyContextDtoSchema = z.strictObject({

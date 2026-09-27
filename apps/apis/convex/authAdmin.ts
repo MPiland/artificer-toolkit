@@ -1,4 +1,4 @@
-import { authIdentityDtoSchema } from '@artificer-toolkit/schema/api/auth'
+import { authIdentityDtoSchema } from '@artificer-toolkit/schema/api/authIdentity'
 import { v } from 'convex/values'
 import { components } from './_generated/api'
 import { internalMutation } from './lib/mutations'

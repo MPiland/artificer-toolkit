@@ -1,5 +1,6 @@
 export * from './applicationConfig.js'
 export * from './auth.js'
+export * from './authIdentity.js'
 export * from './common.js'
 export * from './characters.js'
 export * from './campaigns.js'

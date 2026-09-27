@@ -1,4 +1,4 @@
-import { authIdentityDtoSchema } from '@artificer-toolkit/schema/api/auth'
+import { authIdentityDtoSchema } from '@artificer-toolkit/schema/api/authIdentity'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { convexTest } from 'convex-test'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'

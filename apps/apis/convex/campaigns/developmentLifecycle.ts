@@ -13,7 +13,7 @@ import {
   type DevelopmentCampaignRemovedInput,
   type DevelopmentCampaignRollbackInput
 } from '@artificer-toolkit/schema/api/developmentCampaignLifecycle'
-import type { AuthIdentityDto } from '@artificer-toolkit/schema/api/auth'
+import type { AuthIdentityDto } from '@artificer-toolkit/schema/api/authIdentity'
 import { authoredSubjectKindSchema } from '@artificer-toolkit/schema/projections/identity'
 import { CHARACTER_DRAFT_PAYLOAD_CHUNK_MAX_BYTES } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { action, internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'

@@ -1,4 +1,7 @@
-import { authIdentityDtoSchema, type AuthIdentityDto } from '@artificer-toolkit/schema/api/auth'
+import {
+  authIdentityDtoSchema,
+  type AuthIdentityDto
+} from '@artificer-toolkit/schema/api/authIdentity'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { readAuthenticatedAuthUser } from './authUserReads'
 

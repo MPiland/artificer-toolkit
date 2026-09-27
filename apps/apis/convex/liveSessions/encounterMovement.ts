@@ -15,8 +15,6 @@ import {
 import { type SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
-import { requireIdentity } from '../lib/identity'
-import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRuleOccurrenceVoidDecline } from '../encounters/occurrenceVoid'
 import { finishSceneGeometry } from '../scenes/geometryCommands'
 import { readGeometrySave } from '../scenes/geometryDocuments'
@@ -27,23 +25,10 @@ import {
 } from '../scenes/geometryStaging'
 import { beginMovementResolution } from '../scenes/movementResolutionStaging'
 import { persistSpatialPreparation } from '../scenes/spatialPreparationPersistence'
-import { requireActiveCampaignLiveAuthority } from './authorityGuard'
+import { requireLiveMember } from './liveMember'
 import { readLiveMovementWriteAdmission } from './encounterMovementWriteAdmission'
 import { commitLiveMovement } from './encounterMovementCommit'
 import { publishWithAuthorityAdvance } from './externalCommit'
-
-/** The forwarded member, their current role and the room's active epoch. */
-export async function requireLiveMember(ctx: MutationCtx, input: LiveSessionBootstrapInput) {
-  const { userId } = await requireIdentity(ctx)
-  if (userId !== input.expectedUserId) throw new Error('Live movement identity mismatch.')
-  const { membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-  if (membership.role !== input.expectedRole) throw new Error('Live Session role mismatch.')
-  await requireActiveCampaignLiveAuthority(ctx, {
-    campaignId: input.campaignId,
-    epoch: input.authorityEpoch
-  })
-  return userId
-}
 
 /** The member's own receiving room save in this Campaign. */
 async function requireLiveSave(
