@@ -353,3 +353,26 @@ Per-function timings (run 2, execution p50 in ms, before → after):
 
 - **Before the 6-browser V15**, cut the movement stage and commit handler cost; this is option (d) from the D52 analysis. The target is `REACTION_RESPONSE` p95 clearly under 1 s.
 - **Everything else can run now.** Command p95 and durable convergence both pass with margin.
+
+## Re-run after D64 step 1 (2026-09-27)
+
+- **What was run.** Runs `v15bl-d64s1-r1` and `-r2` at `d9ad97b1b`, with the functions deployed and codegen run and no reset. The method was the same as before.
+- **Change under test.** The movement stage and commit now memoize their reads within each transaction, parse each document once, and stop resending the Run System.
+- **Outcome.** Run 1 completed the schedule, then failed the durable convergence p99 assertion (753 ms). The cause was a single stall of about 1 s that hit every function at once: `projectionReads:get` reached a maximum of 1,049 ms against a p95 of 75 ms. That points to the host, not the code. Run 2 passed every assertion.
+
+Values are run 1 / run 2, in ms.
+
+| Measure | p50 | p95 | After D59 p95 | Budget |
+| --- | --- | --- | --- | --- |
+| Gameplay command, all | 482 / 488 | 789 / 780 | 800 / 788 | p95 ≤ 1,000 |
+| `REACTION_RESPONSE` | 724 / 724 | **956 / 986** | 1,008 / 987 | ≤ 1,000 |
+| Warm durable convergence | | 107 / 106 (p99 753 / 130) | 103 / 104 | p95 ≤ 250, p99 ≤ 500 |
+
+**Reads halved; time did not change.**
+
+| Function | Documents p50 (D59 → D64 step 1) | KB p50 | User time p50 |
+| --- | --- | --- | --- |
+| `encounterMovement:stage` | 141 → 87 | 336 → 268 | 170 → 164 ms |
+| `encounterMovement:commit` | 145 → 73 | 473 → 186 | 167 → 164 ms |
+
+The movement handlers are bound by CPU (parsing, checksums, planning inputs), not by database reads. Step 1 still stands on its own merits: it cuts database load, cuts the stage payload, and cuts the room's parsing. But only removing a whole call (D64 step 2), or cutting handler CPU, will bring `REACTION_RESPONSE` clearly under 1 s.
