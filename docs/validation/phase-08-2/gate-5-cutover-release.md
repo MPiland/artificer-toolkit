@@ -56,7 +56,7 @@ Evidence:
 
 What was proven or remains to prove:
 
-- `R03.1` IN_PROGRESS: The DB workspace, SQL/Kysely runtime, migrations and consumers are removed, and every protected source-data corpus file matches its pre-removal hash. The removal half passes the static audit; the corpus-hash clause needs an architect ruling because user-approved SRD corrections have since changed the corpus (see the [fifth readiness pass](gate-readiness-2026-09-25.md#fifth-pass-2026-09-27-against-aa68fd681)).
+- `R03.1` IN_PROGRESS: The DB workspace, SQL/Kysely runtime, migrations and consumers are removed, and the protected SRD corpus matches the current SRD manifest checksum reported by the seed audit, with every corpus change tracing to a recorded ruling (Q13). The removal half passes the static audit; the corpus-hash clause needs an architect ruling because user-approved SRD corrections have since changed the corpus (see the [fifth readiness pass](gate-readiness-2026-09-25.md#fifth-pass-2026-09-27-against-aa68fd681)).
 - `R03.2` NOT_STARTED: Final native seed, import and audit and the same-source R08 lifecycle pass.
 
 Evidence:

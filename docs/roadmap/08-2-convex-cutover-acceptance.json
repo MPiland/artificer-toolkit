@@ -3479,12 +3479,12 @@
           "criteria": [
             {
               "id": "R03.1",
-              "text": "The DB workspace, SQL/Kysely runtime, migrations and consumers are removed, and every protected source-data corpus file matches its pre-removal hash.",
-              "status": "IN_PROGRESS",
+              "text": "The DB workspace, SQL/Kysely runtime, migrations and consumers are removed, and the protected SRD corpus matches the current SRD manifest checksum reported by the seed audit, with every corpus change since the removal tracing to a recorded ruling (Q13).",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "partial: node scripts/auditNativeBoundaries.mjs passes at aa68fd681 (packages/db absent, no .sql file, no kysely/pg/postgres import or sql template and no forbidden kysely/pg/postgres dependency in any workspace manifest; yarn.lock keeps only Better Auth's transitive kysely, pg and @better-auth/kysely-adapter)",
+                "node scripts/auditNativeBoundaries.mjs passes at aa68fd681 (packages/db absent, no .sql file, no kysely/pg/postgres import or sql template and no forbidden kysely/pg/postgres dependency in any workspace manifest; yarn.lock keeps only Better Auth's transitive kysely, pg and @better-auth/kysely-adapter)",
                 ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json (historical removal evidence)",
-                "missing: the corpus-hash clause no longer holds as written. User-approved rulings (Q11/D45 basic actions, D50-D61 SRD Creature corrections) changed 211 non-test files under packages/source-data/src/srd after 7bbc04287 alone (201 Creature files, the basic-action catalogue, two spells, the semantic ledger and import/audit modules). Needs an architect ruling (open question Q13) to restate the clause, for example against the current SRD manifest checksum the seed audit reports"
+                "local-validation/s6/m7-m8-d51b/summary.txt: seed=0 audit=0 at aa68fd681 — content/seed:audit verifies the seeded corpus against the current SRD manifest checksum (apps/apis/convex/content/srdManifest.generated.ts); apps/apis/convex/content/seed.test.ts and packages/source-data semantic audit pass", "git log 7bbc04287..HEAD -- packages/source-data/src/srd: all 21 corpus commits cite a recorded ruling (Q11/D45, D50, D53-D62) in their subject; Q13 restated the clause (option a, user 2026-09-27)"
               ]
             },
             {
