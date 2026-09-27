@@ -1,8 +1,14 @@
 import { FEATURE_ATTRIBUTE_OPTIONS, FEATURE_SECTION_OPTIONS } from '#core'
 import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 import type { FeatureAuthored, FeatureOptionChoice } from '#authored'
-import { CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP, DETAIL_NODE_MAP } from '#maps'
-import { OPTION_NODE_MAP } from './option.js'
+import {
+  EFFECT_NODE_MAP,
+  CHARGE_NODE_MAP,
+  FACET_NODE_MAP,
+  FEATURE_GRANTS_NODE_MAP,
+  DETAIL_NODE_MAP
+} from '#maps'
+import { CREATURE_OPTION_NODE_MAP, OPTION_NODE_MAP } from './option.js'
 import { FEATURE_EFFECT_NODE_MAP } from './effect.js'
 import { FEATURE_ROLL_DEFINITION_NODE_MAP } from './rollDefinition.js'
 
@@ -84,136 +90,151 @@ export const FEATURE_BASICS_NODE_MAP = feature.define('featureBasics', ({ map, n
     )
 })
 
-export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond, data }) => {
-  const { text, richText, selectMulti, selectSingle, groupArray, groupObject, number } = nodes
-  const local = cond.local()
-  const { table } = data
+/** The Feature editor; a Creature's also authors versatile grips and option action references. */
+function defineFeatureNodeMap(mapId: string, creature: boolean) {
+  return feature.define(mapId, ({ map, nodes, cond, data }) => {
+    const { text, richText, selectMulti, selectSingle, groupArray, groupObject, number } = nodes
+    const local = cond.local()
+    const { table } = data
 
-  map
-    .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Name', { section: FEATURE_SECTIONS.basics, order: 10 }))
-    .set(
-      'description',
-      richText(['description'], 'Description', { section: FEATURE_SECTIONS.basics, order: 20 })
-    )
-    .set(
-      'availableAtLevel',
-      number(['availableAtLevel'], 'Available At Level', {
-        section: FEATURE_SECTIONS.basics,
-        order: 30
-      })
-    )
-    .set(
-      'section',
-      selectSingle(
-        ['section'],
-        'Section',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: FEATURE_SECTION_OPTIONS
-        },
-        { section: FEATURE_SECTIONS.basics, order: 35 }
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('label', text(['label'], 'Name', { section: FEATURE_SECTIONS.basics, order: 10 }))
+      .set(
+        'description',
+        richText(['description'], 'Description', { section: FEATURE_SECTIONS.basics, order: 20 })
       )
-    )
-    .set(
-      'attributes',
-      selectMulti(
-        ['attributes'],
-        'Attributes',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: FEATURE_ATTRIBUTE_OPTIONS
-        },
-        { section: FEATURE_SECTIONS.basics, order: 40 }
+      .set(
+        'availableAtLevel',
+        number(['availableAtLevel'], 'Available At Level', {
+          section: FEATURE_SECTIONS.basics,
+          order: 30
+        })
       )
-    )
-    .set(
-      'details',
-      groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, {
-        presentation: 'inline',
-        section: FEATURE_SECTIONS.basics,
-        order: 50
-      })
-    )
-    .set('order', number(['order'], 'Order', { section: FEATURE_SECTIONS.basics, order: 60 }))
-    .set(
+      .set(
+        'section',
+        selectSingle(
+          ['section'],
+          'Section',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: FEATURE_SECTION_OPTIONS
+          },
+          { section: FEATURE_SECTIONS.basics, order: 35 }
+        )
+      )
+      .set(
+        'attributes',
+        selectMulti(
+          ['attributes'],
+          'Attributes',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: FEATURE_ATTRIBUTE_OPTIONS
+          },
+          { section: FEATURE_SECTIONS.basics, order: 40 }
+        )
+      )
+      .set(
+        'details',
+        groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, {
+          presentation: 'inline',
+          section: FEATURE_SECTIONS.basics,
+          order: 50
+        })
+      )
+      .set('order', number(['order'], 'Order', { section: FEATURE_SECTIONS.basics, order: 60 }))
+    const effects = {
+      presentation: 'branch',
+      section: FEATURE_SECTIONS.effects,
+      order: 10
+    } as const
+    map.set(
       'effects',
-      groupArray(['effects'], 'Effects', () => FEATURE_EFFECT_NODE_MAP, {
-        presentation: 'branch',
-        section: FEATURE_SECTIONS.effects,
-        order: 10
-      })
+      creature
+        ? groupArray(['effects'], 'Effects', () => FEATURE_EFFECT_NODE_MAP, effects)
+        : groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, effects)
     )
-    .set(
-      'rollDefinitions',
-      groupArray(['rollDefinitions'], 'Rolls', () => FEATURE_ROLL_DEFINITION_NODE_MAP, {
-        presentation: 'inline',
-        section: FEATURE_SECTIONS.usage,
-        order: 10
-      })
-    )
-    .set(
-      'charges',
-      groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
-        presentation: 'inline',
-        section: FEATURE_SECTIONS.usage,
-        order: 20,
-        showIf: local.field(['attributes']).contains(['LIMITED_USE'])
-      })
-    )
-    .set(
-      'ruleDefinitionIds',
-      selectMulti(
-        ['ruleDefinitionIds'],
-        'Rule Definitions',
-        {
-          kind: 'DATA',
-          relationship: table('reusable_definitions', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        { section: FEATURE_SECTIONS.usage, order: 25 }
+    map
+      .set(
+        'rollDefinitions',
+        groupArray(['rollDefinitions'], 'Rolls', () => FEATURE_ROLL_DEFINITION_NODE_MAP, {
+          presentation: 'inline',
+          section: FEATURE_SECTIONS.usage,
+          order: 10
+        })
       )
-    )
-    .set(
-      'restrictions',
-      groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, {
-        presentation: 'inline',
-        section: FEATURE_SECTIONS.restrictions,
-        order: 30,
-        authoring: {
-          actions: [
-            {
-              type: 'collection.add',
-              label: 'Add',
-              presentation: AUTHORING_ACTION_PRESENTATIONS.button
-            }
-          ]
-        }
-      })
-    )
-    .set(
-      'grants',
-      groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP, {
-        presentation: 'branch',
-        section: FEATURE_SECTIONS.grants,
-        order: 10
-      })
-    )
-    .set(
-      'optionChoices',
-      groupArray(['optionChoices'], 'Option Choices', () => FEATURE_OPTION_CHOICE_NODE_MAP, {
-        presentation: 'branch',
-        section: FEATURE_SECTIONS.options,
-        order: 10
-      })
-    )
-    .set(
-      'options',
-      groupArray(['options'], 'Options', () => OPTION_NODE_MAP, {
-        presentation: 'branch',
-        section: FEATURE_SECTIONS.options,
-        order: 20
-      })
-    )
-})
+      .set(
+        'charges',
+        groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
+          presentation: 'inline',
+          section: FEATURE_SECTIONS.usage,
+          order: 20,
+          showIf: local.field(['attributes']).contains(['LIMITED_USE'])
+        })
+      )
+      .set(
+        'ruleDefinitionIds',
+        selectMulti(
+          ['ruleDefinitionIds'],
+          'Rule Definitions',
+          {
+            kind: 'DATA',
+            relationship: table('reusable_definitions', {
+              selectColumns: ['id', 'label']
+            })
+          },
+          { section: FEATURE_SECTIONS.usage, order: 25 }
+        )
+      )
+      .set(
+        'restrictions',
+        groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, {
+          presentation: 'inline',
+          section: FEATURE_SECTIONS.restrictions,
+          order: 30,
+          authoring: {
+            actions: [
+              {
+                type: 'collection.add',
+                label: 'Add',
+                presentation: AUTHORING_ACTION_PRESENTATIONS.button
+              }
+            ]
+          }
+        })
+      )
+      .set(
+        'grants',
+        groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP, {
+          presentation: 'branch',
+          section: FEATURE_SECTIONS.grants,
+          order: 10
+        })
+      )
+      .set(
+        'optionChoices',
+        groupArray(['optionChoices'], 'Option Choices', () => FEATURE_OPTION_CHOICE_NODE_MAP, {
+          presentation: 'branch',
+          section: FEATURE_SECTIONS.options,
+          order: 10
+        })
+      )
+      .set(
+        'options',
+        groupArray(
+          ['options'],
+          'Options',
+          () => (creature ? CREATURE_OPTION_NODE_MAP : OPTION_NODE_MAP),
+          {
+            presentation: 'branch',
+            section: FEATURE_SECTIONS.options,
+            order: 20
+          }
+        )
+      )
+  })
+}
+
+export const FEATURE_NODE_MAP = defineFeatureNodeMap('feature', false)
+export const CREATURE_FEATURE_NODE_MAP = defineFeatureNodeMap('creatureFeature', true)

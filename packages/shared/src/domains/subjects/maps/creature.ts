@@ -8,7 +8,7 @@ import {
   SIZE_OPTIONS,
   type DiceExpression
 } from '#core'
-import { FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP, SPEED_NODE_MAP } from '#maps'
+import { CREATURE_FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP, SPEED_NODE_MAP } from '#maps'
 import { AUTHORED_LIMITS, buildNodeMap } from '#utils'
 import type {
   CapacityAuthored,
@@ -327,7 +327,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
       )
       .set(
         'features',
-        groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, {
+        groupArray(['features'], 'Features', () => CREATURE_FEATURE_NODE_MAP, {
           presentation: 'branch',
           section: CREATURE_SECTIONS.features,
           order: 10
