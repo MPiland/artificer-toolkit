@@ -63,19 +63,6 @@ export function getCharacterSheetDisplayAdjustments(
   ]
 }
 
-export function getVisibleCampaignConditions(
-  context: Pick<CharacterSheetCampaignContext, 'viewer' | 'conditions'>
-): Array<{ conditionTypeId: string; notes?: string }> {
-  return context.conditions
-    .filter(
-      (condition) => context.viewer === 'CAMPAIGN_OWNER' || condition.visibility === 'VISIBLE'
-    )
-    .map(({ conditionTypeId, notes }) => ({
-      conditionTypeId,
-      ...(notes ? { notes } : {})
-    }))
-}
-
 /** Player-private notes: item, extra and spell notes and the Sheet's own note book. */
 function withoutPlayerNotes(sheet: CharacterSheetResponseDto): CharacterSheetResponseDto {
   return {

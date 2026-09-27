@@ -1,8 +1,6 @@
 import { characterSheetResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetData'
-import {
-  getCharacterSheetDisplayAdjustments,
-  getVisibleCampaignConditions
-} from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { getCharacterSheetDisplayAdjustments } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import type { QueryCtx } from '../_generated/server'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'

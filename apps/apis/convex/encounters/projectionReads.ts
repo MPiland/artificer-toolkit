@@ -29,7 +29,7 @@ import {
 } from '../campaigns/characterState'
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
-import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { characterProjectionState } from './characterStates'
 import { readEncounterHealthViewer } from './healthViewer'
 import { readRunActors, readRunState, readValidatedRunProjection } from './documents'

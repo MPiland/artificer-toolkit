@@ -1,5 +1,5 @@
 import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { requireSystem } from './systemDocuments'
@@ -18,7 +18,7 @@ export async function readSystemVocabularySnapshot(ctx: QueryCtx, document: Syst
       throw new Error('Stored System vocabulary snapshot checksum mismatch.')
     }
     // System imports are immutable; changed vocabulary requires an explicit publication flow.
-    if (checksumCanonicalJson(document) !== checksumCanonicalJson(snapshot.document)) {
+    if (!equalCanonicalJson(document, snapshot.document)) {
       throw new Error('Stored System vocabulary snapshot does not match the current System.')
     }
     return snapshot
