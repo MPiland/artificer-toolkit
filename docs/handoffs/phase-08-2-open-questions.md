@@ -6,9 +6,7 @@
 
 ## Open
 
-- **D60 model gaps (M7).** Neither is small enough to add without a contract decision.
-  - **Flat skill bonus (Half-Red Dragon Veteran, Lich, Night Hag, Priest).** Creature check totals are computed in `compileDnd5eCreatureRuleFacts` from the shared proficiency grant, which classes, backgrounds and feats also use. A flat bonus on that grant would be ignored by the Character fold unless it learns it too. **Options:** (a) an optional integer `bonus` on SKILL proficiency grants, read by both the Creature compiler and the Character fold; (b) a Creature-only printed total per skill, which AUTHORING_PRINCIPLES rules out as a second proficiency shape; (c) keep the four printed inconsistencies allowlisted. **Recommendation:** (c) for closed beta. The four look like SRD printing errors (the Lich's Arcana +18 is neither proficiency nor expertise), so they don't justify a shared contract field.
-  - **Damage-defense conditions (Archmage "damage from spells", Rakshasa "piercing from magic weapons wielded by good creatures").** Qualified defenses only know bypass codes. Honouring these needs the damage pipeline to know whether the damage comes from a spell, and the attacker's alignment and whether its weapon is magical. **Options:** (a) extend the qualified defense with a source condition (`SPELL`, or `MAGIC_WEAPON` with wielder alignments), evaluated in `attackDamageDefenses.ts` from damage-source facts; (b) keep both allowlisted and show the printed text to the GM. **Recommendation:** (a) for spells once damage carries whether a spell caused it, and (b) for the Rakshasa until alignment facts reach the damage pipeline.
+_(none)_
 
 ## Decisions to review
 
@@ -182,6 +180,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   - **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D61** Rulings on the M7 model gaps, and slice M8:
+  * **Flat skill bonus:** option (c). The four printed inconsistencies (Half-Red Dragon Veteran, Lich, Night Hag, Priest) stay allowlisted as probable SRD printing errors. No shared-grant field is added.
+  * **Damage-defense conditions:** option (a) for spells, once damage carries its spell source, which is part of the spell-casting and area-targeting work. Option (b) for the Rakshasa (allowlisted; the GM sees the printed text) until alignment facts reach the damage pipeline.
+  * **M8 (blocks closed beta):**
+    * Author the 45 printed attacks on 31 Creatures that have no Effect at all (Ape, Behir, Polar Bear, Tyrannosaurus Rex, the Wyvern's Bite, the Young Brass and Young Green Dragon Bites, the Stone Giant's Rock and more), plus the Behir's Lightning Breath.
+    * Add a guard so no printed attack can lack an Effect again: the stat-block table's action names must map to an Effect or to a listed description-only Feature.
+    * Add a swarm model: attacks at 0 ft reach against creatures in the swarm's space, and half damage dice once the swarm is at or below half its hit points.
+    * Verify the Night Hag Etherealness rule reference.
 * **D60 (blocks closed beta) Monster completeness, following the M6 audit.** The audit fixed 388 of 457 stat-block differences. The printed content that is still missing is queued as slice M7:
   - **Breath weapons:**
     - The metallic dragons share one Breath Weapons action with one Recharge 5–6, per the SRD. Today each breath has its own charge.
