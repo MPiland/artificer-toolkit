@@ -4,6 +4,7 @@ import {
 } from './encounterLegendaryActionDiscovery.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
+import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
@@ -24,13 +25,20 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 
 type LegendaryActionChoiceGroupDto = z.infer<typeof legendaryActionChoiceGroupDtoSchema>
 
+/** The option for one candidate, or null when the System cannot execute its authored shape. */
 function optionForCandidate(
   candidate: EncounterLegendaryActionCandidate
-): LegendaryActionChoiceGroupDto['options'][number] {
+): LegendaryActionChoiceGroupDto['options'][number] | null {
   const resource = candidate.action.featureResourceUse
   const adapter = characterRuleActionSystemAdapterRegistry.get(candidate.gameSystemId)
   if (!resource || !adapter) throw new Error('The Legendary Action source cannot be executed.')
-  const published = adapter.compile({ action: candidate.action })
+  let published: ReturnType<typeof adapter.compile>
+  try {
+    published = adapter.compile({ action: candidate.action })
+  } catch (error) {
+    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
+    throw error
+  }
   const optionWithoutId = {
     ownerActorId: candidate.ownerActorId,
     ownerFeatureId: candidate.ownerFeatureId,
@@ -140,20 +148,26 @@ export async function discoverTurnLegendaryWindows(input: {
     runtime: await input.createRuntime()
   })
   const ownerActorIds = [...new Set(candidates.map((candidate) => candidate.ownerActorId))]
-  return ownerActorIds.map((ownerActorId) => {
+  return ownerActorIds.flatMap((ownerActorId) => {
     const candidatesByOptionId = new Map<string, EncounterLegendaryActionCandidate>()
+    // An option the System cannot execute yet is left out; it never fails the whole window.
     const options = candidates
       .filter((candidate) => candidate.ownerActorId === ownerActorId)
-      .map((candidate) => {
+      .flatMap((candidate) => {
         const option = optionForCandidate(candidate)
+        if (!option) return []
         if (candidatesByOptionId.has(option.optionId))
           throw new Error('Legendary Action choice identity is ambiguous.')
         candidatesByOptionId.set(option.optionId, candidate)
-        return option
+        return [option]
       })
-    return {
-      choice: legendaryActionChoiceGroupDtoSchema.parse({ ownerActorId, options }),
-      candidatesByOptionId
-    }
+    return options.length === 0
+      ? []
+      : [
+          {
+            choice: legendaryActionChoiceGroupDtoSchema.parse({ ownerActorId, options }),
+            candidatesByOptionId
+          }
+        ]
   })
 }
