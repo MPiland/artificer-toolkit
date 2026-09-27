@@ -120,7 +120,7 @@ describe('encounter action discovery: attack rolls', () => {
 
     expect(featureActionId(withRoll, QUILL_VOLLEY_ID)).toEqual(expect.any(String))
     expect(() => featureActionId(withoutRoll, QUILL_VOLLEY_ID)).toThrow(
-      'Encounter feature attack action "Quill Volley" must author one ATTACK roll definition.'
+      'Encounter feature attack action "Quill Volley" must author exactly one ATTACK roll definition.'
     )
   })
 

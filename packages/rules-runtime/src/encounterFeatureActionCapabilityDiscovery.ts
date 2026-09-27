@@ -41,7 +41,7 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
     sourceVersionId: string
     sourceChecksum: string
   } | null
-  /** Exact authored attack roll for this Feature/option; attack-triggered actions require one. */
+  /** The Feature/option's one authored ATTACK roll for an attack-triggered action, else null. */
   attackMechanic: {
     rollDefinitionId: string
     attackBonus: number
@@ -80,26 +80,18 @@ function featureAttackMechanic(input: {
   featureOption: FeatureDto | null
   compiledEffect: CompiledEffectGroup
 }): EncounterFeatureActionCapabilityDescriptor['attackMechanic'] {
+  const invocation = input.compiledEffect.invocation
+  if (invocation.kind !== 'ACTION' || dnd5eAttackKind(invocation.triggerCode) === null) return null
   const source = input.featureOption ?? input.ownerFeature
   const definitions = (source.rollDefinitions ?? []).filter(
     (definition) => definition.kind === 'ATTACK'
   )
-  const invocation = input.compiledEffect.invocation
-  if (
-    definitions.length === 0 &&
-    invocation.kind === 'ACTION' &&
-    dnd5eAttackKind(invocation.triggerCode) !== null
-  ) {
+  const [definition] = definitions
+  if (!definition || definitions.length !== 1) {
     throw new Error(
-      `Encounter feature attack action "${source.label}" must author one ATTACK roll definition.`
+      `Encounter feature attack action "${source.label}" must author exactly one ATTACK roll definition.`
     )
   }
-  if (definitions.length === 0) return null
-  if (definitions.length !== 1) {
-    throw new Error('Encounter feature action must bind at most one authored attack roll.')
-  }
-  const [definition] = definitions
-  if (!definition) return null
   requireCanonicalUuid(definition.id, 'Encounter feature attack roll identity')
   if (
     definition.expression.count !== 1 ||
