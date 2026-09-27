@@ -78,6 +78,36 @@ describe('CampaignTabletopEncounterDrawer', () => {
     if (!health) expect(within(warden).queryByText(/HP|Hurt|Bloodied|Unhurt|Near death/)).toBeNull()
     expect(within(warden).queryByText(/\d+\/\d+/) !== null).toBe(health?.level === 'EXACT')
   })
+  it('keeps a defeated creature in the turn order, marked defeated', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine={false}
+        encounter={{
+          ...tabletopPlayerEncounter,
+          actors: [
+            tabletopPlayerEncounter.actors[0],
+            { ...tabletopPlayerEncounter.actors[1], defeated: true }
+          ]
+        }}
+        memberships={createTabletopCampaign('PLAYER').memberships}
+        pending={false}
+        role='PLAYER'
+        scene={tabletopLiveScene}
+        onCommand={() => undefined}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    const [hero, warden] = [
+      ...screen.getByLabelText('Encounter turn order').children
+    ] as HTMLElement[]
+    expect(warden).toHaveAttribute('data-defeated', 'true')
+    expect(within(warden!).getByText('Defeated')).toBeInTheDocument()
+    expect(hero).not.toHaveAttribute('data-defeated')
+  })
+
   it('always shows the GM exact hit points instead of a band', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(

@@ -61,6 +61,25 @@ export const currentTurn = style({
   }
 })
 
+/** A defeated actor keeps its initiative place; its turns are skipped (D63). */
+export const defeatedName = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      textDecorationLine: 'line-through'
+    }
+  }
+})
+
+export const defeatedState = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.status.danger,
+      fontWeight: foundationVars.fontWeight.semibold
+    }
+  }
+})
+
 export const healthBar = style({
   '@layer': {
     [app]: {

@@ -96,6 +96,43 @@ describe('VTT token presentation model', () => {
     expect(result.fillColor).toBe(deterministicTokenColour(actor.id))
   })
 
+  it('marks a defeated creature for the GM and players alike, in place of its health band', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const enemyId = tabletopGmEncounter.actors[1]!.id
+    const present = (encounter: Parameters<typeof buildVttTokenPresentations>[0]['encounter']) =>
+      buildVttTokenPresentations({
+        boundTokenControl: new Map(),
+        actorIdByTokenId: new Map([[token.id, enemyId]]),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter,
+        pending: null,
+        scene
+      })[token.id]!
+    const gm = present({
+      ...tabletopGmEncounter,
+      currentActorId: null,
+      actors: tabletopGmEncounter.actors.map((actor) =>
+        actor.id === enemyId ? { ...actor, defeated: true } : actor
+      )
+    })
+    const player = present({
+      ...tabletopPlayerEncounter,
+      currentActorId: null,
+      actors: tabletopPlayerEncounter.actors.map((actor) =>
+        actor.id === enemyId ? { ...actor, defeated: true } : actor
+      )
+    })
+
+    for (const result of [gm, player]) {
+      expect(result.statuses.filter((status) => status.kind === 'HEALTH')).toEqual([
+        { id: 'health:defeated', kind: 'HEALTH', label: 'Defeated', shortLabel: '×' }
+      ])
+      expect(result.fillColor).toBe(0x495057)
+      expect(result.accessibleDescription).toContain('Defeated')
+    }
+  })
+
   it('outlines bound tokens by actor control, not Scene token controllers', () => {
     const scene = sceneForActor()
     const token = scene.tokens[0]!

@@ -431,7 +431,10 @@ export function CampaignTabletopActionDrawer({
               ) : null}
               <Select
                 comboboxProps={{ withinPortal: false }}
-                data={encounter.actors.map((actor) => ({ label: actor.label, value: actor.id }))}
+                // A defeated creature isn't a target (D63); the server still warns if one is named.
+                data={encounter.actors
+                  .filter((actor) => !actor.defeated)
+                  .map((actor) => ({ label: actor.label, value: actor.id }))}
                 disabled={selectionControlsDisabled}
                 label='Target'
                 searchable
@@ -569,7 +572,7 @@ export function CampaignTabletopActionDrawer({
             <CampaignTabletopBasicActions
               actorId={currentActor.id}
               allies={encounter.actors
-                .filter((actor) => actor.id !== currentActor.id)
+                .filter((actor) => actor.id !== currentActor.id && !actor.defeated)
                 .map((actor) => ({ id: actor.id, label: actor.label }))}
               basicActions={basicActions}
               disabled={selectionControlsDisabled}

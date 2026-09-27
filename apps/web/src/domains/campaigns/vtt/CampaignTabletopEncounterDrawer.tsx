@@ -131,21 +131,36 @@ export function CampaignTabletopEncounterDrawer({
                   aria-current={current ? 'true' : undefined}
                   className={styles.actor}
                   data-current={current || undefined}
+                  data-defeated={actor.defeated || undefined}
                   key={actor.id}
                 >
                   <span className={styles.initiative} title='Initiative'>
                     {actor.initiative ?? '—'}
                   </span>
                   <div>
-                    <Text fw={current ? 700 : 600} lineClamp={1}>
+                    <Text
+                      className={actor.defeated ? styles.defeatedName : undefined}
+                      fw={current ? 700 : 600}
+                      lineClamp={1}
+                    >
                       {actor.label}
                     </Text>
                     <Text
-                      className={current ? styles.currentTurn : undefined}
-                      c={current ? undefined : 'dimmed'}
+                      className={
+                        actor.defeated
+                          ? styles.defeatedState
+                          : current
+                            ? styles.currentTurn
+                            : undefined
+                      }
+                      c={current || actor.defeated ? undefined : 'dimmed'}
                       size='xs'
                     >
-                      {current ? 'Current turn' : actor.kind.toLowerCase()}
+                      {actor.defeated
+                        ? 'Defeated'
+                        : current
+                          ? 'Current turn'
+                          : actor.kind.toLowerCase()}
                     </Text>
                   </div>
                   {/* Players see health only at each actor's display level; the GM always sees exact. */}

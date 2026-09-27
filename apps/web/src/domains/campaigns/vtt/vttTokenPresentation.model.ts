@@ -9,10 +9,10 @@ import type { VttTokenPresentation } from './vttSceneRenderer.model'
 const healthColours = {
   BLOODIED: 0xe8590c,
   CRITICAL: 0xc92a2a,
-  DEFEATED: 0x495057,
   HEALTHY: null,
   WOUNDED: 0xf08c00
 } as const
+const DEFEATED_COLOUR = 0x495057
 
 const fallbackColours = [0x1971c2, 0x2f9e44, 0x6741d9, 0x0b7285, 0x9c36b5, 0xc2255c] as const
 
@@ -39,12 +39,16 @@ export function buildVttTokenPresentations(input: {
     const actor = actorId ? actors.get(actorId) : undefined
     const statuses = actor ? actorConditionStatuses(actor.conditions) : []
     const healthBand = actor ? healthBands.get(actor.id) : undefined
-    if (healthBand && healthBand !== 'HEALTHY') {
+    // Everyone sees a defeated creature fall (D63); the GM also sees how hurt the rest are.
+    const defeated = actor?.defeated === true
+    if (defeated)
+      statuses.push({ id: 'health:defeated', kind: 'HEALTH', label: 'Defeated', shortLabel: '×' })
+    else if (healthBand && healthBand !== 'HEALTHY') {
       statuses.push({
         id: `health:${healthBand}`,
         kind: 'HEALTH',
         label: titleCase(healthBand),
-        shortLabel: healthBand === 'DEFEATED' ? '×' : '!'
+        shortLabel: '!'
       })
     }
     const pendingReaction = input.pending?.kind === 'MOVEMENT_REACTION' ? input.pending : null
@@ -59,7 +63,7 @@ export function buildVttTokenPresentations(input: {
     }
     statuses.sort(compareStatuses)
 
-    const healthColour = healthBand ? healthColours[healthBand] : null
+    const healthColour = defeated ? DEFEATED_COLOUR : healthBand ? healthColours[healthBand] : null
     const isCurrent = actor?.id === input.encounter.currentActorId
     const controlled =
       input.boundTokenControl.get(token.id) ??

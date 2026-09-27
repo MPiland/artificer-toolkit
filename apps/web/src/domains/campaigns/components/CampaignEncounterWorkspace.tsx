@@ -363,6 +363,11 @@ export function CampaignEncounterWorkspace({
                         Current turn
                       </Badge>
                     ) : null}
+                    {actor.defeated ? (
+                      <Badge color='red' variant='light'>
+                        Defeated
+                      </Badge>
+                    ) : null}
                   </Group>
                   <Text c='dimmed' size='sm'>
                     {actor.initiative === null

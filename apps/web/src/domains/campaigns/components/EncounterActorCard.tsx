@@ -150,6 +150,8 @@ export function EncounterActorCard({
             <NumberInput
               className={encounterStyles.encounterNumericField}
               classNames={{ input: sharedStyles.input }}
+              // Reviving is a hit point edit above 0 (D63).
+              description={actor.defeated ? 'Defeated. Set above 0 to revive.' : undefined}
               disabled={disabled}
               label='Current HP'
               min={0}
