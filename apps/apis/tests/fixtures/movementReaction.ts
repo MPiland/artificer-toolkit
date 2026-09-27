@@ -22,7 +22,6 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { adultBlackDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-black-dragon.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -34,6 +33,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { fixture } from './characters'
 import { reactionBinding } from './reactionBinding'
+import { srdWolf } from './srdCreatures'
 import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
 import { importedSubject } from './publication'
 import { maintenanceDefinitionFixture } from './maintenanceDefinition'
@@ -54,8 +54,8 @@ const createRun = makeFunctionReference<
 >('encounters/runs:create')
 
 const reactionCreature = {
-  ...wolf,
-  features: wolf.features?.map((feature) => ({
+  ...srdWolf,
+  features: srdWolf.features?.map((feature) => ({
     ...feature,
     effects: feature.effects?.map((effect) => ({
       ...effect,

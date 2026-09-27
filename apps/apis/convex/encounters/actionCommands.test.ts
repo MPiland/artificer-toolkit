@@ -57,6 +57,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
@@ -79,6 +80,10 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
+/**
+ * The Wolf with its Bite rewritten to a one-damage ACTIVATED action at any range, for tests of
+ * charges, self targeting, recurring effects, saves and undo that need no attack roll or Scene.
+ */
 const creature = {
   ...wolf,
   features: wolf.features?.map((feature) =>
@@ -134,7 +139,6 @@ function nativeCreature(
   phased = false,
   nestedForced = false,
   outcomeDice = false,
-  distance = false,
   condition = false,
   directRepeatSave = false,
   conditionImmune = false
@@ -210,17 +214,10 @@ function nativeCreature(
                   ? {
                       ...effect.invocation,
                       triggerCode: 'MELEE_WEAPON_ATTACK' as const,
-                      range: distance
-                        ? {
-                            id: effect.invocation.range.id,
-                            rangeKind: 'DISTANCE' as const,
-                            amount: 10,
-                            unit: 'FEET' as const
-                          }
-                        : {
-                            id: effect.invocation.range.id,
-                            rangeKind: 'UNLIMITED' as const
-                          },
+                      range: {
+                        id: effect.invocation.range.id,
+                        rangeKind: 'UNLIMITED' as const
+                      },
                       targeting: {
                         selectionKind: 'SINGLE_TARGET' as const,
                         dispositionKind: 'ANY' as const
@@ -234,47 +231,33 @@ function nativeCreature(
                           }
                         : {})
                     }
-                  : distance
+                  : charged
                     ? {
                         ...effect.invocation,
-                        range: {
-                          id: effect.invocation.range.id,
-                          rangeKind: 'DISTANCE' as const,
-                          amount: 10,
-                          unit: 'FEET' as const
-                        },
-                        targeting: {
-                          selectionKind: 'SINGLE_TARGET' as const,
-                          dispositionKind: 'ANY' as const
+                        ...(self
+                          ? {
+                              range: {
+                                id: effect.invocation.range.id,
+                                rangeKind: 'SELF' as const
+                              },
+                              targeting: { selectionKind: 'SELF' as const }
+                            }
+                          : {}),
+                        resourceUse: {
+                          chargeId: '00000000-0000-4000-8000-000000000099',
+                          cost: 1
                         }
                       }
-                    : charged
+                    : self
                       ? {
                           ...effect.invocation,
-                          ...(self
-                            ? {
-                                range: {
-                                  id: effect.invocation.range.id,
-                                  rangeKind: 'SELF' as const
-                                },
-                                targeting: { selectionKind: 'SELF' as const }
-                              }
-                            : {}),
-                          resourceUse: {
-                            chargeId: '00000000-0000-4000-8000-000000000099',
-                            cost: 1
-                          }
+                          range: {
+                            id: effect.invocation.range.id,
+                            rangeKind: 'SELF' as const
+                          },
+                          targeting: { selectionKind: 'SELF' as const }
                         }
-                      : self
-                        ? {
-                            ...effect.invocation,
-                            range: {
-                              id: effect.invocation.range.id,
-                              rangeKind: 'SELF' as const
-                            },
-                            targeting: { selectionKind: 'SELF' as const }
-                          }
-                        : effect.invocation,
+                      : effect.invocation,
               ...(directRepeatSave
                 ? {
                     paths: [
@@ -496,18 +479,20 @@ async function setup({
 } = {}) {
   const base = await fixture()
   await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
-  const actionCreature = nativeCreature(
-    charged,
-    self,
-    recurring,
-    phased,
-    nestedForced,
-    rolls === 'PROMPT',
-    distance,
-    condition,
-    directRepeatSave,
-    conditionImmune
-  )
+  // Scene-bound actions run the seeded SRD Wolf's own Bite: a +4 melee attack within 5 feet.
+  const actionCreature = distance
+    ? srdWolf
+    : nativeCreature(
+        charged,
+        self,
+        recurring,
+        phased,
+        nestedForced,
+        rolls === 'PROMPT',
+        condition,
+        directRepeatSave,
+        conditionImmune
+      )
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_RULE_STATE_DEFINITIONS.filter(
@@ -1201,7 +1186,7 @@ describe('native encounter actions', () => {
   it.each([false, true])(
     'settles and rolls back distance actions, then replays after movement (uppercase token IDs: %s)',
     async (uppercaseTokens) => {
-      const base = await distanceSetup({ uppercaseTokens, charged: true })
+      const base = await distanceSetup({ uppercaseTokens })
       const input = command({
         encounterId: base.run.id,
         expectedVersion: base.run.version,
@@ -1232,17 +1217,18 @@ describe('native encounter actions', () => {
       const settled = await records(base.t, base.run.id)
       expect(settled.run?.version).toBe(base.run.version + 1)
       expect(settled.commands).toHaveLength(before.commands.length + 1)
-      const source = settled.actors.find((actor) => actor.id === base.actor.id)!
-      const target = settled.actors.find((actor) => actor.id === base.target.id)!
-      expect(
-        featureChargeUsed(
-          encounterRunActorStateSchema.parse(JSON.parse(source.stateJson)),
-          creature.features!.find((feature) => feature.label === 'Bite')!.id
-        )
-      ).toBe(1)
-      expect(creatureActorState(target.stateJson).currentHitPoints).toBeLessThan(
-        base.target.currentHitPoints
+      const target = creatureActorState(
+        settled.actors.find((actor) => actor.id === base.target.id)!.stateJson
       )
+      expect(target.currentHitPoints).toBeLessThan(base.target.currentHitPoints)
+      // The seeded Bite's second hit path knocks the target prone.
+      expect(target.conditions).toEqual([
+        {
+          conditionTypeId: srdSystemRecord.conditionTypes.find(
+            (condition) => condition.code === 'PRONE'
+          )?.id
+        }
+      ])
       await replaceTargetToken(base, { x: 450, y: 450 })
       await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
       expect(await records(base.t, base.run.id)).toEqual(settled)
@@ -1447,7 +1433,7 @@ describe('native encounter actions', () => {
   }, 30000)
 
   it('completes Assisted distance evidence atomically and replays every response once', async () => {
-    const base = await distanceSetup({ rolls: 'PROMPT', charged: true })
+    const base = await distanceSetup({ rolls: 'PROMPT' })
     const input = command({
       encounterId: base.run.id,
       expectedVersion: base.run.version,

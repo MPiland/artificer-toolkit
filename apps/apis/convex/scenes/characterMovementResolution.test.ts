@@ -33,7 +33,6 @@ import {
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -53,6 +52,7 @@ import { readSessionVisionScope } from './sessionVisionDocuments'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { reactionBinding } from '../../tests/fixtures/reactionBinding'
+import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import {
   planMovementDecisionInRoom,
   planStagedMovementInRoom
@@ -122,7 +122,9 @@ async function addPlayer(base: Awaited<ReturnType<typeof readyCharacterFixture>>
 
 async function setup(replacement = false, futureReactor = false, assisted = false, stop = false) {
   const chargeId = crypto.randomUUID()
-  const sourceFeature = structuredClone(wolf.features?.find((feature) => feature.label === 'Bite'))
+  const sourceFeature = structuredClone(
+    srdWolf.features?.find((feature) => feature.label === 'Bite')
+  )
   const sourceEffect = structuredClone(sourceFeature?.effects?.[0])
   if (!sourceFeature || !sourceEffect) throw new Error('Missing Character reaction source.')
   sourceEffect.invocation = {
@@ -295,7 +297,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     await setAutoRollDice(base.t, player.userId, false)
     await base.t.mutation(internal.content.import.importSubjects, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
+      subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
     })
   }
   const blueprint = await gm.caller.mutation(createBlueprint, {
@@ -303,7 +305,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     name: 'Character movement authority fixture',
     commandId: crypto.randomUUID(),
     enemies: assisted
-      ? [{ kind: 'CREATURE', sourceId: wolf.id }]
+      ? [{ kind: 'CREATURE', sourceId: srdWolf.id }]
       : [{ kind: 'CUSTOM', label: 'Mover', maxHitPoints: 10 }]
   })
   const run = await gm.caller.mutation(createRun, {
@@ -321,7 +323,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
         )
       : null
   const mover = run.actors.find((actor) =>
-    assisted ? actor.kind === 'CREATURE' && actor.sourceId === wolf.id : actor.kind === 'CUSTOM'
+    assisted ? actor.kind === 'CREATURE' && actor.sourceId === srdWolf.id : actor.kind === 'CUSTOM'
   )
   if (!reactor || !mover || (futurePlayer && !futureReactorActor))
     throw new Error('Missing Character reaction actors.')
