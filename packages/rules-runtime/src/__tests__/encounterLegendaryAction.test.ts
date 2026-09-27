@@ -831,6 +831,70 @@ describe('Legendary Action turn window', () => {
       }
     })
   })
+  it('checks each owner again before its window, after earlier windows this turn (D51)', async () => {
+    // A first owner whose Legendary option runs a Tail that stuns on a hit, and the dragon after it.
+    const tail = creatureFeature(ancientRedDragon, 'Tail')
+    const [tailEffect] = tail.effects ?? []
+    const [hitPath] = tailEffect?.paths ?? []
+    if (!tailEffect || !hitPath || !('resultBlock' in hitPath) || !hitPath.resultBlock)
+      throw new Error('Expected the Tail hit path.')
+    const { resultBlock } = hitPath
+    const stunningTail = {
+      ...tail,
+      effects: [
+        {
+          ...tailEffect,
+          paths: [
+            {
+              ...hitPath,
+              resultBlock: {
+                ...resultBlock,
+                outcomes: [
+                  {
+                    id: '00000000-0000-4000-8000-00000000b031',
+                    effectKind: 'CONDITION' as const,
+                    conditionId: srdCondition('Stunned')
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+    const stunner = srdCreatureActor({
+      id: '00000000-0000-4000-8000-00000000a001',
+      creature: {
+        ...legendaryDragon,
+        features: legendaryDragon.features?.map((feature) =>
+          feature.id === tail.id ? stunningTail : feature
+        )
+      },
+      featureCharges: { [legendaryActions.id]: 0 }
+    })
+    const actors = [stunner, dragon(), wolfActor]
+    const first = await prepare({ actors, turnRoot: root({ currentActorId: WOLF_ID }) })
+    if (first.kind !== 'PENDING') throw new Error('Expected the first owner’s choice.')
+    const context = first.snapshot.applicationContext
+    if (context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE')
+      throw new Error('Expected a Legendary Action choice context.')
+    expect(context.root.legendaryActionQueue?.ownerActorIds).toEqual([stunner.id, DRAGON_ID])
+    const option = context.choice.options.find((entry) => entry.label === 'Tail Attack')
+    if (!option) throw new Error('Expected the stunning Tail Attack.')
+    // A natural 19 hits and stuns the dragon, so its window is never offered.
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: first.snapshot,
+      resolution: { kind: 'LEGENDARY_OPTION', optionId: option.optionId, targetActorId: DRAGON_ID },
+      autoRollByActorId: { [stunner.id]: true },
+      faces: [18]
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The stunned dragon gets no window.')
+    expect(done.root.completedLegendaryActions?.map((entry) => entry.choice.ownerActorId)).toEqual([
+      stunner.id
+    ])
+  })
   it('refuses a target the option does not offer', async () => {
     const actors = [dragon(), wolfActor]
     const { snapshot, context, tailAttack } = await pausedChoice(actors)

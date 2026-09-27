@@ -103,24 +103,41 @@ export async function prepareTurnLegendaryActions<
       throw new Error('Manual turns cannot contain Legendary Actions.')
     return { kind: 'COMPLETE' as const, root, actors, movementTargets: targets }
   }
+  const discover = (current: {
+    actors: readonly EncounterRunActorState[]
+    movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+  }) =>
+    input.discoverWindows({
+      state,
+      occurrenceId,
+      ...current,
+      outgoingActorId:
+        state.currentActorId ??
+        (() => {
+          throw new Error('Outgoing turn is unavailable.')
+        })()
+    })
   const windows =
     root.commandType === 'ADVANCE_TURN' &&
     (input.startOutgoing ||
       !root.outgoingTurn ||
       root.legendaryActionQueue ||
       root.completedLegendaryActions?.length)
-      ? await input.discoverWindows({
-          state,
-          occurrenceId,
-          actors: input.actors,
-          movementTargets: input.movementTargets,
-          outgoingActorId:
-            state.currentActorId ??
-            (() => {
-              throw new Error('Outgoing turn is unavailable.')
-            })()
-        })
+      ? await discover({ actors: input.actors, movementTargets: input.movementTargets })
       : []
+  /**
+   * Each owner's window as of now: an earlier window this turn may have incapacitated the owner
+   * or changed its pool, so eligibility is checked again before every window.
+   */
+  let current = windows
+  let currentIsStale = false
+  async function windowFor(ownerActorId: string) {
+    if (currentIsStale) {
+      current = await discover({ actors, movementTargets: targets })
+      currentIsStale = false
+    }
+    return current.find((entry) => entry.choice.ownerActorId === ownerActorId)
+  }
   let runtimePromise: Promise<RulesRuntimeService> | undefined
   const completed = [...(root.completedLegendaryActions ?? [])]
   const seen = new Set<string>()
@@ -131,7 +148,7 @@ export async function prepareTurnLegendaryActions<
     ordinal: number,
     retained?: LegendaryEvidence
   ) {
-    const window = windows.find((entry) => entry.choice.ownerActorId === choice.ownerActorId)
+    const window = await windowFor(choice.ownerActorId)
     const option = choice.options.find((entry) => entry.optionId === selection.optionId)
     const candidate = window?.candidatesByOptionId.get(selection.optionId)
     if (!window || !same(window.choice, choice) || !option || !candidate)
@@ -334,6 +351,7 @@ export async function prepareTurnLegendaryActions<
     actors = actors.map((entry) =>
       entry.id === actor.id ? plan.settledSource : entry.id === target.id ? settledTarget : entry
     )
+    currentIsStale = true
     for (const [settled, characterPlan] of [
       [plan.settledSource, target.id === actor.id ? plan.targetPlan : null],
       ...(target.id === actor.id ? [] : [[settledTarget, plan.targetPlan] as const])
@@ -357,10 +375,7 @@ export async function prepareTurnLegendaryActions<
 
   for (const [ordinal, evidence] of completed.entries()) {
     const ownerId = evidence.choice.ownerActorId
-    if (
-      seen.has(ownerId) ||
-      !same(windows.find((entry) => entry.choice.ownerActorId === ownerId)?.choice, evidence.choice)
-    )
+    if (seen.has(ownerId) || !same((await windowFor(ownerId))?.choice, evidence.choice))
       throw new Error('Retained Legendary Action owner is stale.')
     seen.add(ownerId)
     const decision = root.resolutionCommands.find(
@@ -428,12 +443,7 @@ export async function prepareTurnLegendaryActions<
         input.resolution?.kind === 'DECLINE' &&
         context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE'
       ) {
-        if (
-          !same(
-            windows.find((entry) => entry.choice.ownerActorId === choice.ownerActorId)?.choice,
-            choice
-          )
-        )
+        if (!same((await windowFor(choice.ownerActorId))?.choice, choice))
           throw new Error('Legendary Action choice is stale.')
         completed.push({
           choice,
@@ -459,9 +469,8 @@ export async function prepareTurnLegendaryActions<
     }
     root = { ...root, completedLegendaryActions: completed }
     for (; index < queue.ownerActorIds.length; index += 1) {
-      const window = windows.find(
-        (entry) => entry.choice.ownerActorId === queue.ownerActorIds[index]
-      )
+      const ownerActorId = queue.ownerActorIds[index]
+      const window = ownerActorId === undefined ? undefined : await windowFor(ownerActorId)
       if (!window) continue
       root = { ...root, legendaryActionQueue: { ...queue, nextOwnerIndex: index } }
       return {

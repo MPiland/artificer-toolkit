@@ -1280,8 +1280,10 @@ Feature of the same Creature and the cost to fit the owner Feature's fixed pool.
 discovery offers the named Feature's effects as the option's actions: the named Feature's Effect,
 ATTACK roll and Equipment binding make the action, the option keeps the action identity
 (`...:OPTION:<option>:EFFECT:<effect>`) and label, the owner Feature's pool pays `chargeCost`, and the
-descriptor records `actionFeatureId`. The action drawer leaves such options out; they are used in
-their Legendary window.
+descriptor records `actionFeatureId`. The action drawer leaves out every option of a
+`LEGENDARY_ACTION` Feature: a Legendary Action is taken only at the end of another creature's turn,
+in its Legendary window. Only Creature editors (`CREATURE_FEATURE_NODE_MAP`/`CREATURE_OPTION_NODE_MAP`)
+offer the versatile grip and `actionReference` fields.
 
 `discoverTurnLegendaryWindows` pins each option to the execution plan the action runs
 (`actionSourceChecksum` is the plan checksum, from `compileEncounterFeatureActionPlan`, the same
@@ -1294,7 +1296,8 @@ phases, critical doubling, a hit's forced save (rolled by the target's controlle
 3) and damage dice each pause as `ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE` for their roller unless
 that roller auto-rolls. Each window plans its mechanics against the actors earlier windows changed,
 with the Character event ordinal of its window, and hands the projected actor facts to the later turn
-stages. A settled window's evidence (`targetActorId`, terminal execution, phase receipts and the target
+stages. Eligibility is checked again before each window against those changed actors, so an owner an
+earlier window incapacitated (or whose pool changed) is not offered one. A settled window's evidence (`targetActorId`, terminal execution, phase receipts and the target
 mechanics batch, Encounter actor or Character) replays from its recorded dice on every later pause,
 and the terminal commit applies it to its target and spends the owner's pool. The turn's
 Concentration envelope orders damage as outgoing turn effects, Legendary Actions, then incoming turn
