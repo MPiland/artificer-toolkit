@@ -120,28 +120,6 @@ export const arcaneSword: SpellAuthored = {
                             }
                           ]
                         }
-                      },
-                      {
-                        id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1),
-                        order: 2,
-                        pathCode: PATH_CODE.ON_CRIT,
-                        groupType: PATH_GROUP_TYPE.SINGLE,
-                        originKind: 'SOURCE' as const,
-                        selectionKind: 'FIXED' as const,
-                        resultBlock: {
-                          id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1) + '__result',
-                          resultKind: 'SINGLE' as const,
-                          outcomes: [
-                            {
-                              id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1),
-                              effectKind: EFFECT_KIND.DAMAGE,
-                              damageTypeId: damageTypeId('FORCE'),
-                              valueKind: 'DICE',
-                              scalingKind: SCALING.NONE,
-                              diceConfig: '6d10'
-                            }
-                          ]
-                        }
                       }
                     ]
                   }

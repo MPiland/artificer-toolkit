@@ -26,7 +26,7 @@ import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from
 const manifestId = spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x214, 1)
 const initialAttackBehaviorId = spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x220, 1)
 
-function createDamageOutcome(scope: number, critical: boolean): NonManifestOutcomeAuthored {
+function createDamageOutcome(scope: number): NonManifestOutcomeAuthored {
   return {
     id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope, 1),
     effectKind: EFFECT_KIND.DAMAGE,
@@ -35,7 +35,7 @@ function createDamageOutcome(scope: number, critical: boolean): NonManifestOutco
     scalingKind: SCALING.PER_LEVEL,
     scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
     levels: Array.from({ length: 8 }, (_, index) => {
-      const diceCount = (1 + Math.floor(index / 2)) * (critical ? 2 : 1)
+      const diceCount = 1 + Math.floor(index / 2)
       return {
         id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 1, index + 1),
         level: index + 2,
@@ -117,20 +117,7 @@ function createAttackBehavior(
         resultBlock: {
           id: `${spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 4, 1)}__result`,
           resultKind: 'SINGLE',
-          outcomes: [createDamageOutcome(scope + 5, false)]
-        }
-      },
-      {
-        id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 8, 1),
-        order: canMove ? 3 : 2,
-        pathCode: PATH_CODE.ON_CRIT,
-        groupType: PATH_GROUP_TYPE.SINGLE,
-        originKind: 'SOURCE',
-        selectionKind: 'FIXED',
-        resultBlock: {
-          id: `${spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 8, 1)}__result`,
-          resultKind: 'SINGLE',
-          outcomes: [createDamageOutcome(scope + 9, true)]
+          outcomes: [createDamageOutcome(scope + 5)]
         }
       }
     ]
