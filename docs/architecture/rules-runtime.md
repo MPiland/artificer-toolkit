@@ -844,7 +844,13 @@ Scene grid calibration and its authored diagonal policy remain factual Scene pre
 locked Encounter command boundary, the System adapter derives a separate effective mechanics grid from
 the checksum-pinned optional-combat snapshot; range, reach, and perception receive that view without
 mutating or repinning the authored Scene.
-The current Gate 2 Scene resolver measures range between complete occupied rectangles, separates visual
+The current Gate 2 Scene resolver measures range with the SRD grid rule: on a square grid it counts
+squares from the source's nearest occupied square to the target's nearest occupied square, counting
+the target's square, so an adjacent creature is one square (5 feet) away and diagonals follow the
+effective grid's diagonal policy. A creature smaller than a square measures from its position; a
+gridless Scene has no squares and measures between footprint edges. Action range and reach,
+opportunity-attack reach, cleave reach and perception distance all use this one measure
+(`measureSceneTokenFootprintDistance`). The resolver also separates visual
 obstruction from physical line of effect, applies barrier-aware lights before mechanical zone severity,
 and requires `sharedSurface` as an explicit authoritative fact. Light cones and zones currently sample
 the token anchor; only range uses the full footprint. Token vision remains presentation data and is not

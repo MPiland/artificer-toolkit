@@ -65,14 +65,37 @@ function resolve(observer: SceneToken, subject: SceneToken, environment = scene(
 }
 
 describe('Scene combat-perception environment', () => {
-  it('measures range between occupied footprints rather than token centers', () => {
+  it('counts grid squares to the nearest occupied square, so adjacent is 5 feet', () => {
     const observer = token({ x: 50, y: 50 })
 
-    expect(measureSceneTokenFootprintDistance(grid, observer, token({ x: 150, y: 50 }))).toBe(0)
-    expect(measureSceneTokenFootprintDistance(grid, observer, token({ x: 250, y: 50 }))).toBe(5)
-    expect(measureSceneTokenFootprintDistance(grid, observer, token({ x: 350, y: 50 }, 300))).toBe(
-      5
-    )
+    expect(measureSceneTokenFootprintDistance(grid, observer, token({ x: 50, y: 50 }))).toBe(0)
+    expect(measureSceneTokenFootprintDistance(grid, observer, token({ x: 150, y: 50 }))).toBe(5)
+    expect(measureSceneTokenFootprintDistance(grid, observer, token({ x: 150, y: 150 }))).toBe(5)
+    expect(measureSceneTokenFootprintDistance(grid, observer, token({ x: 250, y: 50 }))).toBe(10)
+  })
+
+  it('measures a multi-square creature from its nearest occupied square', () => {
+    const observer = token({ x: 50, y: 50 })
+    // A Large creature occupying the 2x2 squares from (200, 0) to (400, 200).
+    const large = token({ x: 300, y: 100 }, 200)
+
+    expect(measureSceneTokenFootprintDistance(grid, observer, large)).toBe(10)
+    expect(measureSceneTokenFootprintDistance(grid, large, observer)).toBe(10)
+    expect(measureSceneTokenFootprintDistance(grid, token({ x: 150, y: 150 }), large)).toBe(5)
+  })
+
+  it("counts diagonals by the grid's diagonal rule", () => {
+    const observer = token({ x: 50, y: 50 })
+    const diagonal = token({ x: 250, y: 250 })
+
+    expect(measureSceneTokenFootprintDistance(grid, observer, diagonal)).toBe(10)
+    expect(
+      measureSceneTokenFootprintDistance(
+        { ...grid, diagonalPolicy: 'ALTERNATING' },
+        observer,
+        diagonal
+      )
+    ).toBe(15)
   })
 
   it('uses zero gap on an overlapping footprint axis', () => {

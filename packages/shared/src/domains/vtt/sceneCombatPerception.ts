@@ -46,14 +46,25 @@ function closestIntervalCoordinates(
   return [sharedCoordinate, sharedCoordinate]
 }
 
+/**
+ * Half the extent a footprint is measured from along one axis. On a square grid that is the span of
+ * its occupied squares' centres, so counting squares includes the target's square (SRD: adjacent is
+ * one square); a creature smaller than a square measures from its position. A gridless Scene has no
+ * squares and measures from the footprint edge.
+ */
+export function sceneFootprintMeasureHalfExtent(grid: SceneGrid, size: number): number {
+  return grid.kind === 'SQUARE' ? Math.max(0, (size - grid.cellSize) / 2) : size / 2
+}
+
 function closestFootprintPoints(
+  grid: SceneGrid,
   observer: PerceptionSceneToken,
   subject: PerceptionSceneToken
 ): readonly [ScenePoint, ScenePoint] {
-  const observerHalfWidth = observer.width / 2
-  const observerHalfHeight = observer.height / 2
-  const subjectHalfWidth = subject.width / 2
-  const subjectHalfHeight = subject.height / 2
+  const observerHalfWidth = sceneFootprintMeasureHalfExtent(grid, observer.width)
+  const observerHalfHeight = sceneFootprintMeasureHalfExtent(grid, observer.height)
+  const subjectHalfWidth = sceneFootprintMeasureHalfExtent(grid, subject.width)
+  const subjectHalfHeight = sceneFootprintMeasureHalfExtent(grid, subject.height)
   const observerLeft = observer.position.x - observerHalfWidth
   const observerRight = observer.position.x + observerHalfWidth
   const observerTop = observer.position.y - observerHalfHeight
@@ -85,7 +96,7 @@ export function measureSceneTokenFootprintDistance(
   observer: PerceptionSceneToken,
   subject: PerceptionSceneToken
 ): number {
-  const [observerPoint, subjectPoint] = closestFootprintPoints(observer, subject)
+  const [observerPoint, subjectPoint] = closestFootprintPoints(grid, observer, subject)
   return measureSceneDistance(grid, observerPoint, subjectPoint)
 }
 

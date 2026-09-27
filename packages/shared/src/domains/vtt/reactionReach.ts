@@ -1,4 +1,7 @@
-import { measureSceneTokenFootprintDistance } from './sceneCombatPerception.js'
+import {
+  measureSceneTokenFootprintDistance,
+  sceneFootprintMeasureHalfExtent
+} from './sceneCombatPerception.js'
 import { VTT_SCENE_LIMITS, type SceneGrid, type ScenePoint, type SceneToken } from './scene.js'
 import type { SpatialMovementKind } from './spatial.js'
 
@@ -192,8 +195,11 @@ function squareBoundaryTimes(
   ): boolean => {
     const delta = toCoordinate - fromCoordinate
     if (Math.abs(delta) <= EPSILON) return true
-    const leftBoundary = reactorCoordinate - (reactorSize + movingSize) / 2
-    const rightBoundary = reactorCoordinate + (reactorSize + movingSize) / 2
+    const halfExtent =
+      sceneFootprintMeasureHalfExtent(grid, reactorSize) +
+      sceneFootprintMeasureHalfExtent(grid, movingSize)
+    const leftBoundary = reactorCoordinate - halfExtent
+    const rightBoundary = reactorCoordinate + halfExtent
     const minimumCoordinate = Math.min(fromCoordinate, toCoordinate)
     const maximumCoordinate = Math.max(fromCoordinate, toCoordinate)
     const addThresholdRange = (

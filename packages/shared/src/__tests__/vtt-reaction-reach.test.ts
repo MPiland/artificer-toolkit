@@ -127,9 +127,9 @@ describe('reaction reach contact collection', () => {
   })
 
   it.each([
-    { diagonalPolicy: 'EQUAL' as const, expected: { x: -47, y: -42.3 } },
-    { diagonalPolicy: 'ALTERNATING' as const, expected: { x: -37, y: -33.3 } },
-    { diagonalPolicy: 'EUCLIDEAN' as const, expected: { x: -30, y: -27 } }
+    { diagonalPolicy: 'EQUAL' as const, expected: { x: -45, y: -40.5 } },
+    { diagonalPolicy: 'ALTERNATING' as const, expected: { x: -35, y: -31.5 } },
+    { diagonalPolicy: 'EUCLIDEAN' as const, expected: { x: -250 / 9, y: -25 } }
   ])(
     'uses exact $diagonalPolicy square-grid reach transition points while preserving geometric path ordering',
     ({ diagonalPolicy, expected }) => {
@@ -149,6 +149,44 @@ describe('reaction reach contact collection', () => {
       expect(candidates[0]?.pathDistance).toBeCloseTo(Math.hypot(expected.x + 60, expected.y + 54))
     }
   )
+
+  it('leaves a square-grid reach by counting squares to the nearest occupied square', () => {
+    const leave = (input: {
+      readonly reach: number
+      readonly from: ScenePoint
+      readonly reactorCells?: number
+    }) => {
+      const reactorSize = (input.reactorCells ?? 1) * 10
+      return collect({
+        grid: square('EQUAL'),
+        path: [input.from, { x: input.from.x + 30, y: input.from.y }],
+        sources: [source({ reach: input.reach, stage: 'BEFORE_LEAVE_REACH' })],
+        tokens: [
+          token(ids.moverToken, input.from, 10, 10),
+          token(
+            ids.reactorToken,
+            { x: reactorSize / 2, y: reactorSize / 2 },
+            reactorSize,
+            reactorSize
+          )
+        ]
+      })
+    }
+
+    // A 5-foot reach holds an adjacent mover until it steps two squares away.
+    expect(leave({ reach: 5, from: { x: 15, y: 5 } })).toMatchObject([
+      { contact: { x: 20, y: 5 }, pathDistance: 5 }
+    ])
+    // A mover two squares away is outside a 5-foot reach but inside a 10-foot one.
+    expect(leave({ reach: 5, from: { x: 25, y: 5 } })).toEqual([])
+    expect(leave({ reach: 10, from: { x: 25, y: 5 } })).toMatchObject([
+      { contact: { x: 30, y: 5 }, pathDistance: 5 }
+    ])
+    // A Large reactor reaches from its nearest occupied square.
+    expect(leave({ reach: 5, from: { x: 25, y: 5 }, reactorCells: 2 })).toMatchObject([
+      { contact: { x: 30, y: 5 }, pathDistance: 5 }
+    ])
+  })
 
   it('does not duplicate a contact at a shared waypoint and treats forced movement identically', () => {
     const path = [
@@ -334,7 +372,7 @@ describe('reaction reach contact collection', () => {
       sources: [source({ reach: 256 })]
     })
 
-    expect(atCap).toMatchObject([{ contact: { x: -257.5, y: 0 }, pathDistance: 0.5 }])
+    expect(atCap).toMatchObject([{ contact: { x: -256.5, y: 0 }, pathDistance: 1.5 }])
     expect(overCap).toEqual([])
   })
 })

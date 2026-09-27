@@ -162,6 +162,39 @@ describe('encounter action target range', () => {
     ).toEqual([OUT_OF_RANGE])
   })
 
+  it('counts the target square, so a 5-foot reach reaches only an adjacent target', () => {
+    const range = { id: 'range', rangeKind: 'DISTANCE' as const, amount: 5, unit: 'FEET' as const }
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(1, 0) } })).toEqual(
+      []
+    )
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(1, 1) } })).toEqual(
+      []
+    )
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(2, 0) } })).toEqual([
+      OUT_OF_RANGE
+    ])
+  })
+
+  it('lets a 10-foot reach reach a target two squares away', () => {
+    const range = { id: 'range', rangeKind: 'DISTANCE' as const, amount: 10, unit: 'FEET' as const }
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(2, 0) } })).toEqual(
+      []
+    )
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(3, 0) } })).toEqual([
+      OUT_OF_RANGE
+    ])
+  })
+
+  it('reaches a Large target from any square adjacent to one of its squares', () => {
+    const range = { id: 'range', rangeKind: 'DISTANCE' as const, amount: 5, unit: 'FEET' as const }
+    const large = token(1, 1, 2)
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: large } })).toEqual([])
+    expect(rangeWarnings({ range, scene: { source: token(3, 2), target: large } })).toEqual([])
+    expect(rangeWarnings({ range, scene: { source: token(4, 1), target: large } })).toEqual([
+      OUT_OF_RANGE
+    ])
+  })
+
   it('measures the token positions it is given, so a moved token changes the verdict', () => {
     const target = token(12, 0)
     expect(rangeWarnings({ scene: { source: token(0, 0), target } })).toEqual([OUT_OF_RANGE])
@@ -170,7 +203,7 @@ describe('encounter action target range', () => {
 
   it('converts a feet range onto a meters grid', () => {
     const grid: SceneGrid = { ...FEET_GRID, distancePerCell: 1.5, unit: 'METERS' }
-    // 30 feet is 9.144 meters: 5 empty squares (7.5 m) are in range, 7 (10.5 m) are not.
+    // 30 feet is 9.144 meters: 6 squares away (9 m) is in range, 8 (12 m) is not.
     expect(rangeWarnings({ scene: { grid, source: token(0, 0), target: token(6, 0) } })).toEqual([])
     expect(rangeWarnings({ scene: { grid, source: token(0, 0), target: token(8, 0) } })).toEqual([
       OUT_OF_RANGE
