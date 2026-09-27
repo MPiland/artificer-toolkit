@@ -34,7 +34,7 @@ import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
 
-type CreatureFeature = NonNullable<CreatureAuthored['features']>[number]
+export type CreatureFeature = NonNullable<CreatureAuthored['features']>[number]
 type ActionCharacterFacts = NonNullable<
   NativeEncounterActionMechanicsInput['prepared']['sourceFacts']['characterFacts']
 >
@@ -243,6 +243,7 @@ export function creatureEncounter(
     healthDisplayDefault: 'HIDDEN',
     version: 3,
     round: 1,
+    turnSequence: 1,
     currentActorId: actors[0]?.id ?? null,
     actorIds: actors.map((actor) => actor.id),
     initiativePolicySnapshot: null,
