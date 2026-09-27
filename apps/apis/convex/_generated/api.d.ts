@@ -69601,6 +69601,9 @@ export declare const internal: {
     encounterBasicAction: {
       commit: FunctionReference<"mutation", "internal", any, any>;
     };
+    encounterBinding: {
+      commit: FunctionReference<"mutation", "internal", any, any>;
+    };
     encounterCaptureBundle: {
       capture: FunctionReference<"query", "internal", any, any>;
     };
