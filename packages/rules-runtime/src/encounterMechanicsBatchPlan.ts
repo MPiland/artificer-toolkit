@@ -198,33 +198,20 @@ export function planEncounterMechanicsBatch(input: {
   const campaignConditionIds = loaded.campaignContext.conditions.map(
     (condition) => condition.conditionTypeId
   )
+  const ownConditionIds = rawConditions.map((condition) => condition.conditionTypeId)
   const folded = foldCharacterMechanicsApplications({
     targetActorId: actor.id,
     currentHitPoints: loaded.character.state.hitpoints.current,
     temporaryHitPoints: loaded.character.state.hitpoints.temp ?? 0,
     maximumHitPoints: batch.effectiveMaximumHitPoints,
-    conditionIds: [
-      ...new Set([
-        ...rawConditions.map((condition) => condition.conditionTypeId),
-        ...campaignConditionIds
-      ])
-    ],
+    conditionIds: [...new Set([...ownConditionIds, ...campaignConditionIds])],
     scalarValues: batch.effectiveScalarValues,
-    retainedConditionIds: [
-      ...new Set([...(batch.retainedConditionIds ?? []), ...campaignConditionIds])
-    ],
+    retainedConditionIds: batch.retainedConditionIds,
+    layers: { ownConditionIds, campaignConditionIds },
     applications: batch.applications
   })
-  const existingConditionIds = new Set(rawConditions.map((condition) => condition.conditionTypeId))
-  const nextConditionIds = new Set(existingConditionIds)
-  for (const application of batch.applications) {
-    if (application.kind === 'CONDITION_APPLY') nextConditionIds.add(application.conditionId)
-    else if (
-      application.kind === 'CONDITION_REMOVE' &&
-      !batch.retainedConditionIds?.includes(application.conditionId)
-    )
-      nextConditionIds.delete(application.conditionId)
-  }
+  const existingConditionIds = new Set(ownConditionIds)
+  const nextConditionIds = new Set(folded.afterOwnConditionIds)
   const conditionStateChanged =
     existingConditionIds.size !== nextConditionIds.size ||
     [...existingConditionIds].some((id) => !nextConditionIds.has(id))
