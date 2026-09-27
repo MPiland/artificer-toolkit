@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
 
 /** Closed source facts consumed by the shared Authoring Schema resolver. */
@@ -61,9 +61,11 @@ export const nodeRuntimeSourceManifest = {
 export type NodeRuntimeSourceTable = keyof typeof nodeRuntimeSourceManifest
 
 /** Request-only read set checked atomically before committing prepared authoring. */
-export const nodeRuntimeSourceChecksumsSchema = z.partialRecord(
-  z.enum(Object.keys(nodeRuntimeSourceManifest) as NodeRuntimeSourceTable[]),
-  projectionChecksumSchema
+export const nodeRuntimeSourceChecksumsSchema = lazySchema(() =>
+  z.partialRecord(
+    z.enum(Object.keys(nodeRuntimeSourceManifest) as NodeRuntimeSourceTable[]),
+    projectionChecksumSchema
+  )
 )
 
 export function isNodeRuntimeSourceTable(table: string): table is NodeRuntimeSourceTable {
@@ -76,33 +78,35 @@ export function isNodeRuntimeSourceColumn(table: NodeRuntimeSourceTable, column:
 
 // Server-derived, checksum-bound option metadata on a cohesive authored root. These
 // source keys adapt the existing resolver, not independent editable SQL-style tables.
-export const authoredNodeRuntimeSourceFactsSchema = z.strictObject({
-  checksum: projectionChecksumSchema,
-  rows: z
-    .partialRecord(
-      z.enum(Object.keys(nodeRuntimeSourceManifest) as NodeRuntimeSourceTable[]),
-      z.array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])))
-    )
-    .check(
-      z.superRefine((tables, context) => {
-        for (const [table, rows] of Object.entries(tables)) {
-          if (!isNodeRuntimeSourceTable(table) || !rows) continue
-          const columns = nodeRuntimeSourceManifest[table]
-          for (const [index, row] of rows.entries()) {
-            if (
-              Object.keys(row).length !== columns.length ||
-              !columns.every((column) => Object.hasOwn(row, column))
-            ) {
-              context.addIssue({
-                code: 'custom',
-                path: [table, index],
-                message: 'Authoring source columns must match the closed manifest.'
-              })
+export const authoredNodeRuntimeSourceFactsSchema = lazySchema(() =>
+  z.strictObject({
+    checksum: projectionChecksumSchema,
+    rows: z
+      .partialRecord(
+        z.enum(Object.keys(nodeRuntimeSourceManifest) as NodeRuntimeSourceTable[]),
+        z.array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])))
+      )
+      .check(
+        z.superRefine((tables, context) => {
+          for (const [table, rows] of Object.entries(tables)) {
+            if (!isNodeRuntimeSourceTable(table) || !rows) continue
+            const columns = nodeRuntimeSourceManifest[table]
+            for (const [index, row] of rows.entries()) {
+              if (
+                Object.keys(row).length !== columns.length ||
+                !columns.every((column) => Object.hasOwn(row, column))
+              ) {
+                context.addIssue({
+                  code: 'custom',
+                  path: [table, index],
+                  message: 'Authoring source columns must match the closed manifest.'
+                })
+              }
             }
           }
-        }
-      })
-    )
-})
+        })
+      )
+  })
+)
 
 export type AuthoredNodeRuntimeSourceFacts = z.infer<typeof authoredNodeRuntimeSourceFactsSchema>

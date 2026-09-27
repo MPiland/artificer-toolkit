@@ -1,3 +1,3 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
-export const entitlementTierDtoSchema = z.enum(['FREE', 'PLAYER', 'GM', 'PRO_GM'])
+export const entitlementTierDtoSchema = lazySchema(() => z.enum(['FREE', 'PLAYER', 'GM', 'PRO_GM']))

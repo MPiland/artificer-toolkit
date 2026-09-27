@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
@@ -51,33 +51,35 @@ export type ServerKernelRuleExecutionPendingSnapshotDto = ServerRuleExecutionCon
  * same frozen Encounter root/staged participant snapshot as subsequent score
  * evaluation, but intentionally carries no executable graph or dice evidence.
  */
-const initiativeDeclarationAggregateChoicePendingContextDtoSchema = z
-  .strictObject({
-    kind: z.literal('ENCOUNTER_INITIATIVE_DECLARATION'),
-    schemaVersion: z.literal(1),
-    root: encounterInitiativePendingContextDtoSchema.shape.root,
-    request: serverInitiativeDeclarationRequestDtoSchema
-  })
-  .check(
-    z.superRefine((value, context) => {
-      const participant = value.root.stagedInitiativeRoundState.participants.find(
-        (candidate) => candidate.actorId === value.request.actorId
-      )
-      if (
-        value.request.encounterId !== value.root.stagedInitiativeRoundState.round.encounterId ||
-        value.request.round !== value.root.round ||
-        !participant ||
-        participant.version !== value.request.participantExpectedVersion
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['request'],
-          message:
-            'Initiative declaration request must bind its exact staged Encounter participant.'
-        })
-      }
+const initiativeDeclarationAggregateChoicePendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_INITIATIVE_DECLARATION'),
+      schemaVersion: z.literal(1),
+      root: encounterInitiativePendingContextDtoSchema.shape.root,
+      request: serverInitiativeDeclarationRequestDtoSchema
     })
-  )
+    .check(
+      z.superRefine((value, context) => {
+        const participant = value.root.stagedInitiativeRoundState.participants.find(
+          (candidate) => candidate.actorId === value.request.actorId
+        )
+        if (
+          value.request.encounterId !== value.root.stagedInitiativeRoundState.round.encounterId ||
+          value.request.round !== value.root.round ||
+          !participant ||
+          participant.version !== value.request.participantExpectedVersion
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['request'],
+            message:
+              'Initiative declaration request must bind its exact staged Encounter participant.'
+          })
+        }
+      })
+    )
+)
 
 /**
  * A completed action may expose one bounded, human-confirmed Cleaving step.
@@ -151,295 +153,303 @@ type OptionalCombatCleavingChoicePendingContextDto = {
   }[]
 }
 
-const optionalCombatCleavingChoicePendingContextDtoSchema = z
-  .strictObject({
-    kind: z.literal('ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'),
-    schemaVersion: z.literal(1),
-    parentOccurrenceId: uuidSchema,
-    parentResultChecksum: checksumSchema,
-    sourceActorId: uuidSchema,
-    sourceControllerCharacterId: z.nullable(uuidSchema),
-    /** Exact authored action facts revalidated before a Cleaving choice applies. */
-    action: z.strictObject({
-      actionId: identifierSchema,
-      publishedDefinitionId: uuidSchema,
-      publishedDefinitionChecksum: checksumSchema,
-      attackKind: z.enum(['MELEE', 'RANGED', 'OTHER']),
-      range: z.custom<RangeDto>((value) => rangeDtoSchema.safeParse(value).success)
-    }),
-    /**
-     * Source facts are deliberately separate from the offered target options:
-     * an old choice can never authorize a changed Character or Creature action.
-     */
-    sourceCurrentness: z.discriminatedUnion('kind', [
-      z.strictObject({
-        kind: z.literal('CHARACTER'),
-        actorId: uuidSchema,
-        characterId: uuidSchema,
-        streamVersion: nonNegativeIntegerSchema,
-        projectionChecksum: checksumSchema,
-        mechanicalContextChecksum: checksumSchema
+const optionalCombatCleavingChoicePendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'),
+      schemaVersion: z.literal(1),
+      parentOccurrenceId: uuidSchema,
+      parentResultChecksum: checksumSchema,
+      sourceActorId: uuidSchema,
+      sourceControllerCharacterId: z.nullable(uuidSchema),
+      /** Exact authored action facts revalidated before a Cleaving choice applies. */
+      action: z.strictObject({
+        actionId: identifierSchema,
+        publishedDefinitionId: uuidSchema,
+        publishedDefinitionChecksum: checksumSchema,
+        attackKind: z.enum(['MELEE', 'RANGED', 'OTHER']),
+        range: z.custom<RangeDto>((value) => rangeDtoSchema.safeParse(value).success)
       }),
-      z.strictObject({
-        kind: z.literal('ENCOUNTER_ACTOR'),
-        actorId: uuidSchema,
-        sourceRevision: positiveIntegerSchema,
-        sourceVersionId: uuidSchema,
-        sourceChecksum: checksumSchema,
-        stateChecksum: checksumSchema
-      })
-    ]),
-    initialTargetActorId: uuidSchema,
-    chainStep: z
-      .number()
-      .check(z.int())
-      .check(z.gte(1))
-      .check(z.lte(MAX_ENCOUNTER_ACTORS - 1)),
-    optionalCombat: z.strictObject({
-      definitionId: uuidSchema,
-      definitionVersion: positiveIntegerSchema,
-      definitionChecksum: checksumSchema
-    }),
-    scene: z.strictObject({
-      sceneId: uuidSchema,
-      sceneVersion: nonNegativeIntegerSchema,
-      effectiveGridChecksum: checksumSchema,
-      sourceTokenId: uuidSchema
-    }),
-    originalAttack: z.strictObject({
-      total: integerSchema,
-      naturalRoll: integerSchema.check(z.gte(1)).check(z.lte(20))
-    }),
-    damage: z
-      .strictObject({
-        sourceNodeId: localNodeIdSchema,
-        sourceOperationKey: capabilityKeySchema,
-        damageTypeId: uuidSchema,
-        resolvedAmount: positiveIntegerSchema,
-        appliedAmount: nonNegativeIntegerSchema,
-        remainingAmount: positiveIntegerSchema,
-        envelopeChecksum: checksumSchema
-      })
-      .check(
-        z.superRefine((damage, context) => {
-          if (damage.resolvedAmount - damage.appliedAmount !== damage.remainingAmount) {
-            context.addIssue({
-              code: 'custom',
-              path: ['remainingAmount'],
-              message: 'Cleaving must retain the exact finalized excess damage.'
-            })
-          }
-        })
-      ),
-    visitedTargetActorIds: z
-      .array(uuidSchema)
-      .check(z.minLength(1))
-      .check(z.maxLength(MAX_ENCOUNTER_ACTORS - 1)),
-    options: z
-      .array(
+      /**
+       * Source facts are deliberately separate from the offered target options:
+       * an old choice can never authorize a changed Character or Creature action.
+       */
+      sourceCurrentness: z.discriminatedUnion('kind', [
         z.strictObject({
-          optionId: checksumSchema,
-          targetActorId: uuidSchema,
-          targetTokenId: uuidSchema,
-          targetActorVersion: nonNegativeIntegerSchema,
-          targetStateChecksum: checksumSchema,
-          armorClass: nonNegativeIntegerSchema,
-          footprintChecksum: checksumSchema
+          kind: z.literal('CHARACTER'),
+          actorId: uuidSchema,
+          characterId: uuidSchema,
+          streamVersion: nonNegativeIntegerSchema,
+          projectionChecksum: checksumSchema,
+          mechanicalContextChecksum: checksumSchema
+        }),
+        z.strictObject({
+          kind: z.literal('ENCOUNTER_ACTOR'),
+          actorId: uuidSchema,
+          sourceRevision: positiveIntegerSchema,
+          sourceVersionId: uuidSchema,
+          sourceChecksum: checksumSchema,
+          stateChecksum: checksumSchema
         })
-      )
-      .check(z.minLength(1))
-      .check(z.maxLength(MAX_ENCOUNTER_ACTORS - 1))
-  })
-  .check(
-    z.superRefine((value, context) => {
-      if (
-        value.sourceCurrentness.actorId !== value.sourceActorId ||
-        value.action.attackKind !== 'MELEE'
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['sourceCurrentness'],
-          message: 'Cleaving must retain the exact melee action source currentness.'
+      ]),
+      initialTargetActorId: uuidSchema,
+      chainStep: z
+        .number()
+        .check(z.int())
+        .check(z.gte(1))
+        .check(z.lte(MAX_ENCOUNTER_ACTORS - 1)),
+      optionalCombat: z.strictObject({
+        definitionId: uuidSchema,
+        definitionVersion: positiveIntegerSchema,
+        definitionChecksum: checksumSchema
+      }),
+      scene: z.strictObject({
+        sceneId: uuidSchema,
+        sceneVersion: nonNegativeIntegerSchema,
+        effectiveGridChecksum: checksumSchema,
+        sourceTokenId: uuidSchema
+      }),
+      originalAttack: z.strictObject({
+        total: integerSchema,
+        naturalRoll: integerSchema.check(z.gte(1)).check(z.lte(20))
+      }),
+      damage: z
+        .strictObject({
+          sourceNodeId: localNodeIdSchema,
+          sourceOperationKey: capabilityKeySchema,
+          damageTypeId: uuidSchema,
+          resolvedAmount: positiveIntegerSchema,
+          appliedAmount: nonNegativeIntegerSchema,
+          remainingAmount: positiveIntegerSchema,
+          envelopeChecksum: checksumSchema
         })
-      }
-      const visited = new Set<string>()
-      for (const [index, actorId] of value.visitedTargetActorIds.entries()) {
-        if (visited.has(actorId)) {
-          context.addIssue({
-            code: 'custom',
-            path: ['visitedTargetActorIds', index],
-            message: 'Cleaving visited targets must be unique.'
+        .check(
+          z.superRefine((damage, context) => {
+            if (damage.resolvedAmount - damage.appliedAmount !== damage.remainingAmount) {
+              context.addIssue({
+                code: 'custom',
+                path: ['remainingAmount'],
+                message: 'Cleaving must retain the exact finalized excess damage.'
+              })
+            }
           })
-        }
-        visited.add(actorId)
-      }
-      if (value.visitedTargetActorIds[0] !== value.initialTargetActorId) {
-        context.addIssue({
-          code: 'custom',
-          path: ['visitedTargetActorIds', 0],
-          message: 'Cleaving must retain its original defeated target as the chain root.'
-        })
-      }
-      const options = new Set<string>()
-      for (const [index, option] of value.options.entries()) {
+        ),
+      visitedTargetActorIds: z
+        .array(uuidSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS - 1)),
+      options: z
+        .array(
+          z.strictObject({
+            optionId: checksumSchema,
+            targetActorId: uuidSchema,
+            targetTokenId: uuidSchema,
+            targetActorVersion: nonNegativeIntegerSchema,
+            targetStateChecksum: checksumSchema,
+            armorClass: nonNegativeIntegerSchema,
+            footprintChecksum: checksumSchema
+          })
+        )
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS - 1))
+    })
+    .check(
+      z.superRefine((value, context) => {
         if (
-          options.has(option.optionId) ||
-          visited.has(option.targetActorId) ||
-          option.targetActorId === value.sourceActorId
+          value.sourceCurrentness.actorId !== value.sourceActorId ||
+          value.action.attackKind !== 'MELEE'
         ) {
           context.addIssue({
             code: 'custom',
-            path: ['options', index],
-            message: 'Cleaving options must be unique, unvisited, and non-self targets.'
+            path: ['sourceCurrentness'],
+            message: 'Cleaving must retain the exact melee action source currentness.'
           })
         }
-        options.add(option.optionId)
-      }
-    })
-  )
-
-const serverKernelRuleExecutionPendingSnapshotObjectSchema = z
-  .extend(serverRuleExecutionContinuationDtoSchema, {
-    snapshotKind: z.literal('KERNEL_EVIDENCE'),
-    optionalCombatSnapshotChecksum: z.optional(z.nullable(checksumSchema)),
-    applicationContext: serverRuleExecutionPendingApplicationContextDtoSchema,
-    deferredCleaving: z.optional(optionalCombatCleavingChoicePendingContextDtoSchema),
-    /**
-     * Completed TEST evidence retained only while the bounded OUTCOME phase is
-     * pending. This is receipt material, never an executable graph.
-     */
-    phaseReceipts: z.optional(z.lazy(() => ruleExecutionPhaseReceiptsDtoSchema))
-  })
-  .check(
-    z.superRefine((snapshot, context) => {
-      const concentration =
-        snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-        snapshot.applicationContext.phase.kind === 'CONCENTRATION_EVIDENCE'
-          ? snapshot.applicationContext.phase.concentration
-          : null
-      if (
-        concentration &&
-        (snapshot.occurrenceId === concentration.parentOccurrenceId ||
-          snapshot.graph.source.definitionId !== concentration.concentrationDefinition.id ||
-          snapshot.graph.source.checksum !== concentration.concentrationDefinition.checksum ||
-          snapshot.request.kind !== 'INTEGER_RANGE' ||
-          snapshot.request.min !== 1 ||
-          snapshot.request.max !== 20)
-      )
-        context.addIssue({
-          code: 'custom',
-          path: ['applicationContext', 'phase'],
-          message:
-            'Concentration movement evidence must retain its child continuation identity, exact graph, and d20 request.'
-        })
-      if (
-        snapshot.deferredCleaving &&
-        (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
-          snapshot.deferredCleaving.parentOccurrenceId !==
-            snapshot.applicationContext.parentOccurrenceId ||
-          snapshot.optionalCombatSnapshotChecksum == null)
-      )
-        context.addIssue({
-          code: 'custom',
-          path: ['deferredCleaving'],
-          message:
-            'Deferred Cleaving requires its concentration parent and pinned optional-combat policy.'
-        })
-      if (
-        snapshot.phaseReceipts &&
-        (snapshot.phaseReceipts.length !== 1 || snapshot.phaseReceipts[0]?.phase !== 'TEST')
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['phaseReceipts'],
-          message: 'A pending phased occurrence may retain only its completed TEST receipt.'
-        })
-      }
-      const twoPhase =
-        (snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' ||
-          snapshot.applicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
-          snapshot.applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
-          snapshot.applicationContext.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
-        snapshot.applicationContext.twoPhase?.phase === 'OUTCOME'
-          ? snapshot.applicationContext.twoPhase
-          : snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-              snapshot.applicationContext.phase.kind === 'ACTION_EVIDENCE' &&
-              snapshot.applicationContext.phase.twoPhase?.phase === 'OUTCOME'
-            ? snapshot.applicationContext.phase.twoPhase
-            : null
-      if (!twoPhase) return
-      const receipt = snapshot.phaseReceipts?.[0]
-      if (
-        !receipt ||
-        receipt.phase !== 'TEST' ||
-        checksumRuleDocument(receipt.execution) !== twoPhase.testExecutionChecksum ||
-        checksumRuleDocument(twoPhase.testExecution) !== twoPhase.testExecutionChecksum ||
-        receipt.template.checksum !== twoPhase.testTemplateChecksum ||
-        receipt.specializedChecksum !== receipt.execution.evidence.source.checksum ||
-        checksumRuleDocument(receipt.execution) !== checksumRuleDocument(twoPhase.testExecution)
-      )
-        context.addIssue({
-          code: 'custom',
-          path: ['phaseReceipts'],
-          message: 'Pending OUTCOME must retain its exact sealed TEST receipt.'
-        })
-    })
-  )
-
-const optionalCombatPassageChoiceOptionDtoSchema = z.strictObject({
-  optionId: checksumSchema,
-  ruleKind: z.enum(['OVERRUN', 'TUMBLE']),
-  economy: z.enum(['ACTION', 'BONUS_ACTION']),
-  definitionId: uuidSchema,
-  definitionVersion: positiveIntegerSchema,
-  definitionChecksum: checksumSchema,
-  moduleKey: capabilityKeySchema,
-  moduleContractVersion: contractVersionSchema
-})
-
-const optionalCombatPassageChoicePendingContextDtoSchema = z
-  .strictObject({
-    kind: z.literal('ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'),
-    schemaVersion: z.literal(1),
-    movement: optionalCombatPassageContinuationDtoSchema,
-    sourceActorId: uuidSchema,
-    sourceTokenId: uuidSchema,
-    sourceControllerCharacterId: z.nullable(uuidSchema),
-    options: z
-      .array(optionalCombatPassageChoiceOptionDtoSchema)
-      .check(z.minLength(1))
-      .check(z.maxLength(4)),
-    optionsChecksum: checksumSchema
-  })
-  .check(
-    z.superRefine((value, context) => {
-      if (value.movement.root.tokenId !== value.sourceTokenId) {
-        context.addIssue({
-          code: 'custom',
-          path: ['sourceTokenId'],
-          message: 'Passage choice source token must own the sealed movement root.'
-        })
-      }
-      const ids = new Set<string>()
-      for (const [index, option] of value.options.entries()) {
-        if (ids.has(option.optionId)) {
+        const visited = new Set<string>()
+        for (const [index, actorId] of value.visitedTargetActorIds.entries()) {
+          if (visited.has(actorId)) {
+            context.addIssue({
+              code: 'custom',
+              path: ['visitedTargetActorIds', index],
+              message: 'Cleaving visited targets must be unique.'
+            })
+          }
+          visited.add(actorId)
+        }
+        if (value.visitedTargetActorIds[0] !== value.initialTargetActorId) {
           context.addIssue({
             code: 'custom',
-            path: ['options', index, 'optionId'],
-            message: 'Passage choice options must have unique deterministic identities.'
+            path: ['visitedTargetActorIds', 0],
+            message: 'Cleaving must retain its original defeated target as the chain root.'
           })
         }
-        ids.add(option.optionId)
-      }
-      if (checksumRuleDocument(value.options) !== value.optionsChecksum) {
-        context.addIssue({
-          code: 'custom',
-          path: ['optionsChecksum'],
-          message: 'Passage choice options checksum must bind the complete issued option set.'
-        })
-      }
+        const options = new Set<string>()
+        for (const [index, option] of value.options.entries()) {
+          if (
+            options.has(option.optionId) ||
+            visited.has(option.targetActorId) ||
+            option.targetActorId === value.sourceActorId
+          ) {
+            context.addIssue({
+              code: 'custom',
+              path: ['options', index],
+              message: 'Cleaving options must be unique, unvisited, and non-self targets.'
+            })
+          }
+          options.add(option.optionId)
+        }
+      })
+    )
+)
+
+const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
+  z
+    .extend(serverRuleExecutionContinuationDtoSchema, {
+      snapshotKind: z.literal('KERNEL_EVIDENCE'),
+      optionalCombatSnapshotChecksum: z.optional(z.nullable(checksumSchema)),
+      applicationContext: serverRuleExecutionPendingApplicationContextDtoSchema,
+      deferredCleaving: z.optional(optionalCombatCleavingChoicePendingContextDtoSchema),
+      /**
+       * Completed TEST evidence retained only while the bounded OUTCOME phase is
+       * pending. This is receipt material, never an executable graph.
+       */
+      phaseReceipts: z.optional(z.lazy(() => ruleExecutionPhaseReceiptsDtoSchema))
     })
-  )
+    .check(
+      z.superRefine((snapshot, context) => {
+        const concentration =
+          snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+          snapshot.applicationContext.phase.kind === 'CONCENTRATION_EVIDENCE'
+            ? snapshot.applicationContext.phase.concentration
+            : null
+        if (
+          concentration &&
+          (snapshot.occurrenceId === concentration.parentOccurrenceId ||
+            snapshot.graph.source.definitionId !== concentration.concentrationDefinition.id ||
+            snapshot.graph.source.checksum !== concentration.concentrationDefinition.checksum ||
+            snapshot.request.kind !== 'INTEGER_RANGE' ||
+            snapshot.request.min !== 1 ||
+            snapshot.request.max !== 20)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['applicationContext', 'phase'],
+            message:
+              'Concentration movement evidence must retain its child continuation identity, exact graph, and d20 request.'
+          })
+        if (
+          snapshot.deferredCleaving &&
+          (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
+            snapshot.deferredCleaving.parentOccurrenceId !==
+              snapshot.applicationContext.parentOccurrenceId ||
+            snapshot.optionalCombatSnapshotChecksum == null)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['deferredCleaving'],
+            message:
+              'Deferred Cleaving requires its concentration parent and pinned optional-combat policy.'
+          })
+        if (
+          snapshot.phaseReceipts &&
+          (snapshot.phaseReceipts.length !== 1 || snapshot.phaseReceipts[0]?.phase !== 'TEST')
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['phaseReceipts'],
+            message: 'A pending phased occurrence may retain only its completed TEST receipt.'
+          })
+        }
+        const twoPhase =
+          (snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' ||
+            snapshot.applicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
+            snapshot.applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+            snapshot.applicationContext.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
+          snapshot.applicationContext.twoPhase?.phase === 'OUTCOME'
+            ? snapshot.applicationContext.twoPhase
+            : snapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+                snapshot.applicationContext.phase.kind === 'ACTION_EVIDENCE' &&
+                snapshot.applicationContext.phase.twoPhase?.phase === 'OUTCOME'
+              ? snapshot.applicationContext.phase.twoPhase
+              : null
+        if (!twoPhase) return
+        const receipt = snapshot.phaseReceipts?.[0]
+        if (
+          !receipt ||
+          receipt.phase !== 'TEST' ||
+          checksumRuleDocument(receipt.execution) !== twoPhase.testExecutionChecksum ||
+          checksumRuleDocument(twoPhase.testExecution) !== twoPhase.testExecutionChecksum ||
+          receipt.template.checksum !== twoPhase.testTemplateChecksum ||
+          receipt.specializedChecksum !== receipt.execution.evidence.source.checksum ||
+          checksumRuleDocument(receipt.execution) !== checksumRuleDocument(twoPhase.testExecution)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['phaseReceipts'],
+            message: 'Pending OUTCOME must retain its exact sealed TEST receipt.'
+          })
+      })
+    )
+)
+
+const optionalCombatPassageChoiceOptionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    optionId: checksumSchema,
+    ruleKind: z.enum(['OVERRUN', 'TUMBLE']),
+    economy: z.enum(['ACTION', 'BONUS_ACTION']),
+    definitionId: uuidSchema,
+    definitionVersion: positiveIntegerSchema,
+    definitionChecksum: checksumSchema,
+    moduleKey: capabilityKeySchema,
+    moduleContractVersion: contractVersionSchema
+  })
+)
+
+const optionalCombatPassageChoicePendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'),
+      schemaVersion: z.literal(1),
+      movement: optionalCombatPassageContinuationDtoSchema,
+      sourceActorId: uuidSchema,
+      sourceTokenId: uuidSchema,
+      sourceControllerCharacterId: z.nullable(uuidSchema),
+      options: z
+        .array(optionalCombatPassageChoiceOptionDtoSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(4)),
+      optionsChecksum: checksumSchema
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.movement.root.tokenId !== value.sourceTokenId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceTokenId'],
+            message: 'Passage choice source token must own the sealed movement root.'
+          })
+        }
+        const ids = new Set<string>()
+        for (const [index, option] of value.options.entries()) {
+          if (ids.has(option.optionId)) {
+            context.addIssue({
+              code: 'custom',
+              path: ['options', index, 'optionId'],
+              message: 'Passage choice options must have unique deterministic identities.'
+            })
+          }
+          ids.add(option.optionId)
+        }
+        if (checksumRuleDocument(value.options) !== value.optionsChecksum) {
+          context.addIssue({
+            code: 'custom',
+            path: ['optionsChecksum'],
+            message: 'Passage choice options checksum must bind the complete issued option set.'
+          })
+        }
+      })
+    )
+)
 
 export type OptionalCombatPassageChoicePendingContextDto = z.infer<
   typeof optionalCombatPassageChoicePendingContextDtoSchema
@@ -457,18 +467,20 @@ export type ServerAggregateChoicePendingSnapshotDto = {
     | OptionalCombatPassageChoicePendingContextDto
 }
 
-const serverAggregateChoicePendingSnapshotObjectSchema = z.strictObject({
-  snapshotKind: z.literal('AGGREGATE_CHOICE'),
-  schemaVersion: z.literal(1),
-  occurrenceId: uuidSchema,
-  optionalCombatSnapshotChecksum: z.optional(z.nullable(checksumSchema)),
-  applicationContext: z.discriminatedUnion('kind', [
-    legendaryActionChoicePendingContextDtoSchema,
-    initiativeDeclarationAggregateChoicePendingContextDtoSchema,
-    optionalCombatCleavingChoicePendingContextDtoSchema,
-    optionalCombatPassageChoicePendingContextDtoSchema
-  ])
-})
+const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
+  z.strictObject({
+    snapshotKind: z.literal('AGGREGATE_CHOICE'),
+    schemaVersion: z.literal(1),
+    occurrenceId: uuidSchema,
+    optionalCombatSnapshotChecksum: z.optional(z.nullable(checksumSchema)),
+    applicationContext: z.discriminatedUnion('kind', [
+      legendaryActionChoicePendingContextDtoSchema,
+      initiativeDeclarationAggregateChoicePendingContextDtoSchema,
+      optionalCombatCleavingChoicePendingContextDtoSchema,
+      optionalCombatPassageChoicePendingContextDtoSchema
+    ])
+  })
+)
 export type ServerRuleExecutionPendingSnapshotDto =
   | ServerKernelRuleExecutionPendingSnapshotDto
   | ServerAggregateChoicePendingSnapshotDto
@@ -481,25 +493,29 @@ export const serverAggregateChoicePendingSnapshotDtoSchema: z.ZodMiniType<Server
 
 /** Reuses snapshot integrity checks while excluding unrelated Scene transport branches. */
 export const serverMovementRuleExecutionPendingSnapshotDtoSchema: z.ZodMiniType<ServerRuleExecutionPendingSnapshotDto> =
-  z.discriminatedUnion('snapshotKind', [
-    z.safeExtend(serverKernelRuleExecutionPendingSnapshotObjectSchema, {
-      applicationContext: z.discriminatedUnion('kind', [
-        spatialPendingContextDtoSchema,
-        movementReactionPendingContextDtoSchema,
-        serverOptionalCombatContestPendingContextDtoSchema
-      ])
-    }),
-    z.safeExtend(serverAggregateChoicePendingSnapshotObjectSchema, {
-      applicationContext: optionalCombatPassageChoicePendingContextDtoSchema
-    })
-  ])
+  lazySchema(() =>
+    z.discriminatedUnion('snapshotKind', [
+      z.safeExtend(serverKernelRuleExecutionPendingSnapshotObjectSchema, {
+        applicationContext: z.discriminatedUnion('kind', [
+          spatialPendingContextDtoSchema,
+          movementReactionPendingContextDtoSchema,
+          serverOptionalCombatContestPendingContextDtoSchema
+        ])
+      }),
+      z.safeExtend(serverAggregateChoicePendingSnapshotObjectSchema, {
+        applicationContext: optionalCombatPassageChoicePendingContextDtoSchema
+      })
+    ])
+  )
 
 /** Persisted occurrence snapshots are either sealed kernel evidence or an aggregate tactical choice. */
 export const serverRuleExecutionPendingSnapshotDtoSchema: z.ZodMiniType<ServerRuleExecutionPendingSnapshotDto> =
-  z.discriminatedUnion('snapshotKind', [
-    serverKernelRuleExecutionPendingSnapshotObjectSchema,
-    serverAggregateChoicePendingSnapshotObjectSchema
-  ])
+  lazySchema(() =>
+    z.discriminatedUnion('snapshotKind', [
+      serverKernelRuleExecutionPendingSnapshotObjectSchema,
+      serverAggregateChoicePendingSnapshotObjectSchema
+    ])
+  )
 
 export function isServerKernelRuleExecutionPendingSnapshot(
   snapshot: ServerRuleExecutionPendingSnapshotDto

@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import {
   authoredIdentifierSchema,
@@ -64,61 +64,69 @@ export function validateChosenGrantSelectionFields(
   }
 }
 
-export const staticGrantBaseDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  order: z.number().check(z.int()),
-  restrictions: z.optional(facetDtoSchema)
-})
-
-export const grantPayloadDtoSchema = z.discriminatedUnion('authoringModeKind', [
+export const staticGrantBaseDtoSchema = lazySchema(() =>
   z.object({
-    authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
-  }),
-  z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED)
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    restrictions: z.optional(facetDtoSchema)
   })
-])
+)
 
-export const scalingLevelDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  level: z.number().check(z.int()),
-  order: z.number().check(z.int()),
-  count: z.optional(z.number().check(z.int())),
-  selectionDuplicatePolicy: z.optional(authoringSelectionDuplicatePolicySchema)
-})
+export const grantPayloadDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('authoringModeKind', [
+    z.object({
+      authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+    }),
+    z.object({
+      authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED)
+    })
+  ])
+)
 
-export const scalingGrantBaseDtoSchema = z
-  .extend(staticGrantBaseDtoSchema, {
-    selectionKind: authoringSelectionKindSchema,
-    scalingKind: scalingKindSchema,
+export const scalingLevelDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    level: z.number().check(z.int()),
+    order: z.number().check(z.int()),
     count: z.optional(z.number().check(z.int())),
     selectionDuplicatePolicy: z.optional(authoringSelectionDuplicatePolicySchema)
   })
-  .check(
-    z.superRefine((value, ctx) => {
-      if (value.scalingKind === 'NONE') {
-        validateChosenGrantSelectionFields(value, ctx)
-        return
-      }
+)
 
-      if (value.count !== undefined) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['count'],
-          message: 'count belongs to progression levels when scalingKind is PER_LEVEL'
-        })
-      }
-
-      if (value.selectionDuplicatePolicy !== undefined) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['selectionDuplicatePolicy'],
-          message:
-            'selectionDuplicatePolicy belongs to progression levels when scalingKind is PER_LEVEL'
-        })
-      }
+export const scalingGrantBaseDtoSchema = lazySchema(() =>
+  z
+    .extend(staticGrantBaseDtoSchema, {
+      selectionKind: authoringSelectionKindSchema,
+      scalingKind: scalingKindSchema,
+      count: z.optional(z.number().check(z.int())),
+      selectionDuplicatePolicy: z.optional(authoringSelectionDuplicatePolicySchema)
     })
-  )
+    .check(
+      z.superRefine((value, ctx) => {
+        if (value.scalingKind === 'NONE') {
+          validateChosenGrantSelectionFields(value, ctx)
+          return
+        }
+
+        if (value.count !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['count'],
+            message: 'count belongs to progression levels when scalingKind is PER_LEVEL'
+          })
+        }
+
+        if (value.selectionDuplicatePolicy !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['selectionDuplicatePolicy'],
+            message:
+              'selectionDuplicatePolicy belongs to progression levels when scalingKind is PER_LEVEL'
+          })
+        }
+      })
+    )
+)
 
 export const grantProgressionLevelDtoSchema = scalingLevelDtoSchema
 

@@ -1,6 +1,6 @@
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   sceneBarrierDtoSchema,
   sceneTokenDtoSchema,
@@ -25,126 +25,158 @@ import {
   sceneSessionVisionCharacterRevisionsSchema
 } from './sceneSessionVision.js'
 
-const collection = z.enum(['tokens', 'barriers'])
-const phase = z.enum(['BASE', 'APPENDED'])
-const version = z.number().check(z.int()).check(z.nonnegative())
+const collection = lazySchema(() => z.enum(['tokens', 'barriers']))
+const phase = lazySchema(() => z.enum(['BASE', 'APPENDED']))
+const version = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 
 /** Fences a command to the Campaign presentation that selected its Scene. */
-export const scenePresentationFenceSchema = z.pick(sceneSessionVisionCaptureInputSchema, {
-  expectedPresentationVersion: true
-})
-export const sceneNativeGeometryCommandInputSchema = z.union([
-  sceneGeometryCommandInputDtoSchema,
-  sceneTokenMovementCommandInputDtoSchema
-])
-export const sceneGeometryExecuteInputSchema = z.strictObject({
-  input: sceneNativeGeometryCommandInputSchema,
-  presentation: z.optional(scenePresentationFenceSchema)
-})
+export const scenePresentationFenceSchema = lazySchema(() =>
+  z.pick(sceneSessionVisionCaptureInputSchema, {
+    expectedPresentationVersion: true
+  })
+)
+export const sceneNativeGeometryCommandInputSchema = lazySchema(() =>
+  z.union([sceneGeometryCommandInputDtoSchema, sceneTokenMovementCommandInputDtoSchema])
+)
+export const sceneGeometryExecuteInputSchema = lazySchema(() =>
+  z.strictObject({
+    input: sceneNativeGeometryCommandInputSchema,
+    presentation: z.optional(scenePresentationFenceSchema)
+  })
+)
 export type SceneGeometryExecuteInput = z.infer<typeof sceneGeometryExecuteInputSchema>
 export type SceneNativeGeometryCommandInput = z.infer<typeof sceneNativeGeometryCommandInputSchema>
 export const SCENE_GEOMETRY_STAGED_REQUIRED = 'SCENE_GEOMETRY_STAGED_REQUIRED' as const
 
-export const sceneGeometryEntitySchema = z.discriminatedUnion('collection', [
-  z.strictObject({ collection: z.literal('tokens'), entity: sceneTokenDtoSchema }),
-  z.strictObject({ collection: z.literal('barriers'), entity: sceneBarrierDtoSchema })
-])
-export const sceneGeometryPageInputSchema = z.extend(
-  z.omit(sceneLiveStateEntityPageInputSchema, { paginationOpts: true }),
-  {
+export const sceneGeometryEntitySchema = lazySchema(() =>
+  z.discriminatedUnion('collection', [
+    z.strictObject({ collection: z.literal('tokens'), entity: sceneTokenDtoSchema }),
+    z.strictObject({ collection: z.literal('barriers'), entity: sceneBarrierDtoSchema })
+  ])
+)
+export const sceneGeometryPageInputSchema = lazySchema(() =>
+  z.extend(z.omit(sceneLiveStateEntityPageInputSchema, { paginationOpts: true }), {
     collection,
     phase,
     afterOrdinal: z.nullable(version),
     numItems: sceneLiveStateEntityPageInputSchema.shape.paginationOpts.shape.numItems
-  }
+  })
 )
-export const sceneGeometryPageEntrySchema = z.strictObject({
-  ordinal: version,
-  value: sceneGeometryEntitySchema,
-  doorState: z.nullable(z.enum(['OPEN', 'CLOSED', 'LOCKED']))
-})
-export const sceneGeometryPageSchema = z.strictObject({
-  version,
-  collection,
-  page: z.array(sceneGeometryPageEntrySchema).check(z.maxLength(8)),
-  // Follow this continuation even after an empty page; every request pins the same version.
-  next: z.nullable(z.strictObject({ phase, afterOrdinal: z.nullable(version) }))
-})
+export const sceneGeometryPageEntrySchema = lazySchema(() =>
+  z.strictObject({
+    ordinal: version,
+    value: sceneGeometryEntitySchema,
+    doorState: z.nullable(z.enum(['OPEN', 'CLOSED', 'LOCKED']))
+  })
+)
+export const sceneGeometryPageSchema = lazySchema(() =>
+  z.strictObject({
+    version,
+    collection,
+    page: z.array(sceneGeometryPageEntrySchema).check(z.maxLength(8)),
+    // Follow this continuation even after an empty page; every request pins the same version.
+    next: z.nullable(z.strictObject({ phase, afterOrdinal: z.nullable(version) }))
+  })
+)
 
 export type SceneGeometryEntity = z.infer<typeof sceneGeometryEntitySchema>
 export type SceneGeometryPageInput = z.infer<typeof sceneGeometryPageInputSchema>
 export type SceneGeometryPage = z.infer<typeof sceneGeometryPageSchema>
 
-const fogReplacement = z.extend(sceneFogCommandResultSchema.shape.patch, {
-  mode: z.literal('REPLACE')
-})
-export const sceneGeometryCommandResultSchema = z
-  .extend(z.omit(sceneFogCommandResultSchema, { patch: true }), {
-    version,
-    occurrence: z.nullable(encounterRuleOccurrenceSummaryDtoSchema),
-    delta: z.nullable(sceneDeltaDtoSchema),
-    fogPatches: z.array(fogReplacement).check(z.maxLength(101))
+const fogReplacement = lazySchema(() =>
+  z.extend(sceneFogCommandResultSchema.shape.patch, {
+    mode: z.literal('REPLACE')
   })
-  .check(
-    z.superRefine((result, ctx) => {
-      if (result.delta === null && result.occurrence === null)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['delta'],
-          message: 'Only an Encounter occurrence may own movement without a Scene delta.'
-        })
+)
+export const sceneGeometryCommandResultSchema = lazySchema(() =>
+  z
+    .extend(z.omit(sceneFogCommandResultSchema, { patch: true }), {
+      version,
+      occurrence: z.nullable(encounterRuleOccurrenceSummaryDtoSchema),
+      delta: z.nullable(sceneDeltaDtoSchema),
+      fogPatches: z.array(fogReplacement).check(z.maxLength(101))
     })
-  )
-export const sceneGeometryBeginReadySchema = z.strictObject({
-  kind: z.literal('READY'),
-  saveId: postgresUuidSchema,
-  input: sceneNativeGeometryCommandInputSchema,
-  header: sceneLiveStateHeaderSchema,
-  /** The Encounter bound to the Scene, if any; its token moves carry Encounter rules. */
-  encounterId: z.nullable(postgresUuidSchema),
-  movementStartDistance: z.optional(z.number().check(z.nonnegative())),
-  sessionVision: z.optional(sceneSessionVisionScopeSchema)
-})
-export const sceneGeometryBeginResultSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('REPLAY'), result: sceneGeometryCommandResultSchema }),
-  sceneGeometryBeginReadySchema
-])
-export const sceneGeometrySaveLookupSchema = z.strictObject({ saveId: postgresUuidSchema })
-export const sceneGeometryStageFogInputSchema = z.extend(sceneGeometrySaveLookupSchema, {
-  layer: sceneFogLayerDtoSchema
-})
+    .check(
+      z.superRefine((result, ctx) => {
+        if (result.delta === null && result.occurrence === null)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['delta'],
+            message: 'Only an Encounter occurrence may own movement without a Scene delta.'
+          })
+      })
+    )
+)
+export const sceneGeometryBeginReadySchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('READY'),
+    saveId: postgresUuidSchema,
+    input: sceneNativeGeometryCommandInputSchema,
+    header: sceneLiveStateHeaderSchema,
+    /** The Encounter bound to the Scene, if any; its token moves carry Encounter rules. */
+    encounterId: z.nullable(postgresUuidSchema),
+    movementStartDistance: z.optional(z.number().check(z.nonnegative())),
+    sessionVision: z.optional(sceneSessionVisionScopeSchema)
+  })
+)
+export const sceneGeometryBeginResultSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('REPLAY'), result: sceneGeometryCommandResultSchema }),
+    sceneGeometryBeginReadySchema
+  ])
+)
+export const sceneGeometrySaveLookupSchema = lazySchema(() =>
+  z.strictObject({ saveId: postgresUuidSchema })
+)
+export const sceneGeometryStageFogInputSchema = lazySchema(() =>
+  z.extend(sceneGeometrySaveLookupSchema, {
+    layer: sceneFogLayerDtoSchema
+  })
+)
 /** Each entity's ordinal in the Scene definition save; null for an entity added during play. */
-export const sceneTokenOrdinalsSchema = z
-  .array(z.strictObject({ tokenId: postgresUuidSchema, baseOrdinal: z.nullable(version) }))
-  .check(z.maxLength(VTT_SCENE_LIMITS.tokens))
-export const sceneBaseOrdinalsSchema = z.strictObject({
-  tokens: sceneTokenOrdinalsSchema,
-  barriers: z
-    .array(z.strictObject({ barrierId: postgresUuidSchema, baseOrdinal: z.nullable(version) }))
-    .check(z.maxLength(VTT_SCENE_LIMITS.barriers))
-})
-export const sceneGeometryFinishInputSchema = z.extend(sceneGeometrySaveLookupSchema, {
-  baseOrdinal: z.nullable(version),
-  tokenOrdinals: z.optional(sceneTokenOrdinalsSchema),
-  /**
-   * An Encounter-bound move's walked segment cost in Scene units, terrain included, measured by the
-   * caller that holds the whole Scene (the room or the geometry action). Publication requires it for
-   * a voluntary move and records it as the actor's turn movement (D38).
-   */
-  movementCost: z.optional(z.number().check(z.nonnegative()))
-})
-export const sceneGeometryObserveInputSchema = z.extend(sceneGeometrySaveLookupSchema, {
-  characterRevisions: sceneSessionVisionCharacterRevisionsSchema
-})
+export const sceneTokenOrdinalsSchema = lazySchema(() =>
+  z
+    .array(z.strictObject({ tokenId: postgresUuidSchema, baseOrdinal: z.nullable(version) }))
+    .check(z.maxLength(VTT_SCENE_LIMITS.tokens))
+)
+export const sceneBaseOrdinalsSchema = lazySchema(() =>
+  z.strictObject({
+    tokens: sceneTokenOrdinalsSchema,
+    barriers: z
+      .array(z.strictObject({ barrierId: postgresUuidSchema, baseOrdinal: z.nullable(version) }))
+      .check(z.maxLength(VTT_SCENE_LIMITS.barriers))
+  })
+)
+export const sceneGeometryFinishInputSchema = lazySchema(() =>
+  z.extend(sceneGeometrySaveLookupSchema, {
+    baseOrdinal: z.nullable(version),
+    tokenOrdinals: z.optional(sceneTokenOrdinalsSchema),
+    /**
+     * An Encounter-bound move's walked segment cost in Scene units, terrain included, measured by the
+     * caller that holds the whole Scene (the room or the geometry action). Publication requires it for
+     * a voluntary move and records it as the actor's turn movement (D38).
+     */
+    movementCost: z.optional(z.number().check(z.nonnegative()))
+  })
+)
+export const sceneGeometryObserveInputSchema = lazySchema(() =>
+  z.extend(sceneGeometrySaveLookupSchema, {
+    characterRevisions: sceneSessionVisionCharacterRevisionsSchema
+  })
+)
 
 export type SceneGeometryCommandResult = z.infer<typeof sceneGeometryCommandResultSchema>
 export type SceneGeometryBeginResult = z.infer<typeof sceneGeometryBeginResultSchema>
 export type SceneBaseOrdinals = z.infer<typeof sceneBaseOrdinalsSchema>
 
-export const sceneGeometryCommandChunksInputSchema = z.extend(sceneFogCommandChunksInputSchema, {
-  ownerUserId: z.nullable(postgresUuidSchema)
-})
-export const sceneGeometryCommandChunksPageSchema = z.extend(sceneFogCommandChunksPageSchema, {
-  result: sceneGeometryCommandResultSchema,
-  patch: fogReplacement
-})
+export const sceneGeometryCommandChunksInputSchema = lazySchema(() =>
+  z.extend(sceneFogCommandChunksInputSchema, {
+    ownerUserId: z.nullable(postgresUuidSchema)
+  })
+)
+export const sceneGeometryCommandChunksPageSchema = lazySchema(() =>
+  z.extend(sceneFogCommandChunksPageSchema, {
+    result: sceneGeometryCommandResultSchema,
+    patch: fogReplacement
+  })
+)

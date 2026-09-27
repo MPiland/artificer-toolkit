@@ -1,5 +1,5 @@
 import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared/subjects/core'
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { capacityDtoSchema, containsDtoSchema, costDtoSchema, weightDtoSchema } from './shared.js'
 import {
@@ -20,63 +20,70 @@ import { equipmentEffectDtoSchema } from '../effects/effect.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 
-const equipmentBaseDtoSchema = z.object({
-  kind: z.literal('EQUIPMENT'),
-  id: authoredIdentifierSchema,
-  label: authoredShortTextSchema,
-  description: z.nullable(authoredRichTextSchema),
-  status: z.optional(authoredRecordStatusSchema),
-  quote: z.optional(authoredRichTextSchema),
-  rarityId: authoredIdentifierSchema,
-  userId: authoredIdentifierSchema,
-  systemId: authoredIdentifierSchema
-})
+const equipmentBaseDtoSchema = lazySchema(() =>
+  z.object({
+    kind: z.literal('EQUIPMENT'),
+    id: authoredIdentifierSchema,
+    label: authoredShortTextSchema,
+    description: z.nullable(authoredRichTextSchema),
+    status: z.optional(authoredRecordStatusSchema),
+    quote: z.optional(authoredRichTextSchema),
+    rarityId: authoredIdentifierSchema,
+    userId: authoredIdentifierSchema,
+    systemId: authoredIdentifierSchema
+  })
+)
 
-const baseEquipmentAuthoredDtoSchemaBase = z.extend(equipmentBaseDtoSchema, {
-  attributes: z.optional(authoredReferenceCollectionSchema(equipmentAttributeCodeSchema)),
-  cost: z.optional(costDtoSchema),
-  weight: z.optional(weightDtoSchema),
-  effects: z.optional(authoredNestedCollectionSchema(equipmentEffectDtoSchema)),
-  charges: z.optional(chargeDtoSchema),
-  capacity: z.optional(capacityDtoSchema),
-  modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
-  maxStack: z.optional(z.number().check(z.int())),
-  armorClass: z.optional(z.number().check(z.int())),
-  contains: z.optional(authoredNestedCollectionSchema(containsDtoSchema)),
-  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
-  restrictions: z.optional(characterFacetDtoSchema),
-  requiresAttunement: z.optional(z.boolean()),
-  properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema),
-  category: z.enum([
-    EQUIPMENT_CATEGORY_CODE.WEAPON,
-    EQUIPMENT_CATEGORY_CODE.ARMOR,
-    EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    EQUIPMENT_CATEGORY_CODE.TOOL,
-    EQUIPMENT_CATEGORY_CODE.SHIELD
-  ])
-})
+const baseEquipmentAuthoredDtoSchemaBase = lazySchema(() =>
+  z.extend(equipmentBaseDtoSchema, {
+    attributes: z.optional(authoredReferenceCollectionSchema(equipmentAttributeCodeSchema)),
+    cost: z.optional(costDtoSchema),
+    weight: z.optional(weightDtoSchema),
+    effects: z.optional(authoredNestedCollectionSchema(equipmentEffectDtoSchema)),
+    charges: z.optional(chargeDtoSchema),
+    capacity: z.optional(capacityDtoSchema),
+    modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
+    maxStack: z.optional(z.number().check(z.int())),
+    armorClass: z.optional(z.number().check(z.int())),
+    contains: z.optional(authoredNestedCollectionSchema(containsDtoSchema)),
+    features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
+    restrictions: z.optional(characterFacetDtoSchema),
+    requiresAttunement: z.optional(z.boolean()),
+    properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema),
+    category: z.enum([
+      EQUIPMENT_CATEGORY_CODE.WEAPON,
+      EQUIPMENT_CATEGORY_CODE.ARMOR,
+      EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
+      EQUIPMENT_CATEGORY_CODE.TOOL,
+      EQUIPMENT_CATEGORY_CODE.SHIELD
+    ])
+  })
+)
 
-const equipmentVariantAuthoredDtoSchemaBase = z.extend(equipmentBaseDtoSchema, {
-  category: z.literal(EQUIPMENT_CATEGORY_CODE.VARIANT),
-  parentEquipmentId: authoredIdentifierSchema,
-  properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
-  effects: z.optional(authoredNestedCollectionSchema(equipmentEffectDtoSchema)),
-  charges: z.optional(chargeDtoSchema),
-  modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
-  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
-  restrictions: z.optional(characterFacetDtoSchema),
-  requiresAttunement: z.optional(z.boolean())
-})
+const equipmentVariantAuthoredDtoSchemaBase = lazySchema(() =>
+  z.extend(equipmentBaseDtoSchema, {
+    category: z.literal(EQUIPMENT_CATEGORY_CODE.VARIANT),
+    parentEquipmentId: authoredIdentifierSchema,
+    properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+    effects: z.optional(authoredNestedCollectionSchema(equipmentEffectDtoSchema)),
+    charges: z.optional(chargeDtoSchema),
+    modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
+    features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
+    restrictions: z.optional(characterFacetDtoSchema),
+    requiresAttunement: z.optional(z.boolean())
+  })
+)
 
-const baseEquipmentAuthoringInputDtoSchemaBase = z.extend(baseEquipmentAuthoredDtoSchemaBase, {
-  userId: z.optional(authoredIdentifierSchema)
-})
-
-const equipmentVariantAuthoringInputDtoSchemaBase = z.extend(
-  equipmentVariantAuthoredDtoSchemaBase,
-  {
+const baseEquipmentAuthoringInputDtoSchemaBase = lazySchema(() =>
+  z.extend(baseEquipmentAuthoredDtoSchemaBase, {
     userId: z.optional(authoredIdentifierSchema)
-  }
+  })
+)
+
+const equipmentVariantAuthoringInputDtoSchemaBase = lazySchema(() =>
+  z.extend(equipmentVariantAuthoredDtoSchemaBase, {
+    userId: z.optional(authoredIdentifierSchema)
+  })
 )
 
 export type BaseEquipmentAuthoredDto = z.infer<typeof baseEquipmentAuthoredDtoSchemaBase>
@@ -104,8 +111,8 @@ export const equipmentVariantAuthoringInputDtoSchema: z.ZodMiniType<EquipmentVar
  * and only a VERSATILE or TWO_HANDED weapon may. A variant inherits its parent's properties, so
  * its grips are checked when it is resolved against that parent.
  */
-const weaponGripsMatchHandedness = z.superRefine(
-  (equipment: EquipmentAuthoredDto | EquipmentAuthoringInputDto, context) => {
+const weaponGripsMatchHandedness = lazySchema(() =>
+  z.superRefine((equipment: EquipmentAuthoredDto | EquipmentAuthoringInputDto, context) => {
     if (equipment.category === EQUIPMENT_CATEGORY_CODE.VARIANT) return
     const twoHanded = equipment.properties.includes('TWO_HANDED')
     const versatile = equipment.properties.includes('VERSATILE')
@@ -120,18 +127,23 @@ const weaponGripsMatchHandedness = z.superRefine(
           : 'Only a versatile or two-handed weapon attacks with two hands.'
       })
     }
-  }
+  })
 )
 
-export const equipmentAuthoredDtoSchema: z.ZodMiniType<EquipmentAuthoredDto> = z
-  .discriminatedUnion('category', [
-    baseEquipmentAuthoredDtoSchemaBase,
-    equipmentVariantAuthoredDtoSchemaBase
-  ])
-  .check(weaponGripsMatchHandedness)
-export const equipmentAuthoringInputDtoSchema: z.ZodMiniType<EquipmentAuthoringInputDto> = z
-  .discriminatedUnion('category', [
-    baseEquipmentAuthoringInputDtoSchemaBase,
-    equipmentVariantAuthoringInputDtoSchemaBase
-  ])
-  .check(weaponGripsMatchHandedness)
+export const equipmentAuthoredDtoSchema: z.ZodMiniType<EquipmentAuthoredDto> = lazySchema(() =>
+  z
+    .discriminatedUnion('category', [
+      baseEquipmentAuthoredDtoSchemaBase,
+      equipmentVariantAuthoredDtoSchemaBase
+    ])
+    .check(weaponGripsMatchHandedness)
+)
+export const equipmentAuthoringInputDtoSchema: z.ZodMiniType<EquipmentAuthoringInputDto> =
+  lazySchema(() =>
+    z
+      .discriminatedUnion('category', [
+        baseEquipmentAuthoringInputDtoSchemaBase,
+        equipmentVariantAuthoringInputDtoSchemaBase
+      ])
+      .check(weaponGripsMatchHandedness)
+  )

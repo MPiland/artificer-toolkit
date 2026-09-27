@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   authoringModeKindSchema,
   authoringSelectionKindSchema,
@@ -12,89 +12,109 @@ import {
   authoredReferenceCollectionSchema
 } from './authoredLimits.js'
 
-export const startingEquipmentCurrencyDtoSchema = z.object({
-  currencyId: authoredIdentifierSchema,
-  amount: z.number().check(z.int())
-})
+export const startingEquipmentCurrencyDtoSchema = lazySchema(() =>
+  z.object({
+    currencyId: authoredIdentifierSchema,
+    amount: z.number().check(z.int())
+  })
+)
 
-const startingEquipmentEquipmentItemBaseDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  order: z.number().check(z.int()),
-  startingEquipmentKind: z.literal('EQUIPMENT'),
-  category: z.optional(equipmentCategoryCodeSchema),
-  properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
-  selectionKind: authoringSelectionKindSchema
-})
+const startingEquipmentEquipmentItemBaseDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    startingEquipmentKind: z.literal('EQUIPMENT'),
+    category: z.optional(equipmentCategoryCodeSchema),
+    properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+    selectionKind: authoringSelectionKindSchema
+  })
+)
 
-const grantedEquipmentItemDtoSchema = z.intersection(
-  z.extend(startingEquipmentEquipmentItemBaseDtoSchema, {
-    selectionKind: z.literal(authoringSelectionKindSchema._zod.def.entries.GRANTED),
-    quantity: z.number().check(z.int()),
-    authoringModeKind: z.optional(authoringModeKindSchema)
-  }),
-  z.union([
-    z.object({
-      authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+const grantedEquipmentItemDtoSchema = lazySchema(() =>
+  z.intersection(
+    z.extend(startingEquipmentEquipmentItemBaseDtoSchema, {
+      selectionKind: z.literal(authoringSelectionKindSchema._zod.def.entries.GRANTED),
+      quantity: z.number().check(z.int()),
+      authoringModeKind: z.optional(authoringModeKindSchema)
     }),
-    z.object({
-      authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
-      equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-    })
+    z.union([
+      z.object({
+        authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+      }),
+      z.object({
+        authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
+        equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    ])
+  )
+)
+
+const chosenEquipmentItemDtoSchema = lazySchema(() =>
+  z.intersection(
+    z.extend(startingEquipmentEquipmentItemBaseDtoSchema, {
+      selectionKind: z.literal(authoringSelectionKindSchema._zod.def.entries.CHOSEN),
+      count: z.number().check(z.int()),
+      authoringModeKind: z.optional(authoringModeKindSchema)
+    }),
+    z.union([
+      z.object({
+        authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+      }),
+      z.object({
+        authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
+        equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    ])
+  )
+)
+
+const startingEquipmentCurrencyItemDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    startingEquipmentKind: z.literal('CURRENCY'),
+    currencies: authoredNestedCollectionSchema(startingEquipmentCurrencyDtoSchema)
+  })
+)
+
+export const startingEquipmentItemDtoSchema = lazySchema(() =>
+  z.union([
+    startingEquipmentCurrencyItemDtoSchema,
+    grantedEquipmentItemDtoSchema,
+    chosenEquipmentItemDtoSchema
   ])
 )
 
-const chosenEquipmentItemDtoSchema = z.intersection(
-  z.extend(startingEquipmentEquipmentItemBaseDtoSchema, {
-    selectionKind: z.literal(authoringSelectionKindSchema._zod.def.entries.CHOSEN),
-    count: z.number().check(z.int()),
-    authoringModeKind: z.optional(authoringModeKindSchema)
-  }),
-  z.union([
-    z.object({
-      authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
-    }),
-    z.object({
-      authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
-      equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-    })
-  ])
+export const startingEquipmentOptionDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    eligibility: z.optional(characterFacetDtoSchema),
+    items: authoredNestedCollectionSchema(startingEquipmentItemDtoSchema)
+  })
 )
 
-const startingEquipmentCurrencyItemDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  order: z.number().check(z.int()),
-  startingEquipmentKind: z.literal('CURRENCY'),
-  currencies: authoredNestedCollectionSchema(startingEquipmentCurrencyDtoSchema)
-})
+export const startingEquipmentGroupDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    options: authoredNestedCollectionSchema(startingEquipmentOptionDtoSchema)
+  })
+)
 
-export const startingEquipmentItemDtoSchema = z.union([
-  startingEquipmentCurrencyItemDtoSchema,
-  grantedEquipmentItemDtoSchema,
-  chosenEquipmentItemDtoSchema
-])
+export const startingEquipmentSetDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    groups: authoredNestedCollectionSchema(startingEquipmentGroupDtoSchema)
+  })
+)
 
-export const startingEquipmentOptionDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  order: z.number().check(z.int()),
-  eligibility: z.optional(characterFacetDtoSchema),
-  items: authoredNestedCollectionSchema(startingEquipmentItemDtoSchema)
-})
-
-export const startingEquipmentGroupDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  order: z.number().check(z.int()),
-  options: authoredNestedCollectionSchema(startingEquipmentOptionDtoSchema)
-})
-
-export const startingEquipmentSetDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  order: z.number().check(z.int()),
-  groups: authoredNestedCollectionSchema(startingEquipmentGroupDtoSchema)
-})
-
-export const startingEquipmentDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  sets: authoredNestedCollectionSchema(startingEquipmentSetDtoSchema)
-})
+export const startingEquipmentDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    sets: authoredNestedCollectionSchema(startingEquipmentSetDtoSchema)
+  })
+)
 
 export type StartingEquipmentDto = z.infer<typeof startingEquipmentDtoSchema>

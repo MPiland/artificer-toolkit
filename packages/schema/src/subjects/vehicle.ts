@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -16,33 +16,37 @@ import {
   vehicleCategoryCodeSchema
 } from '../shared/enums.js'
 
-export const vehicleAuthoredDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  label: authoredShortTextSchema,
-  description: z.optional(authoredRichTextSchema),
-  status: z.optional(authoredRecordStatusSchema),
-  details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
-  userId: authoredIdentifierSchema,
-  systemId: authoredIdentifierSchema,
-  category: vehicleCategoryCodeSchema,
-  size: z.optional(sizeCodeSchema),
-  armorClass: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-  hitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-  speed: z.optional(z.number().check(z.nonnegative())),
-  speedNote: z.optional(authoredPlainTextSchema),
-  crewMin: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-  crewMax: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-  passengerCapacity: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-  cargoCapacity: z.optional(authoredPlainTextSchema),
-  weight: z.optional(weightDtoSchema),
-  cost: z.optional(costDtoSchema),
-  properties: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema))
-})
+export const vehicleAuthoredDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    label: authoredShortTextSchema,
+    description: z.optional(authoredRichTextSchema),
+    status: z.optional(authoredRecordStatusSchema),
+    details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
+    userId: authoredIdentifierSchema,
+    systemId: authoredIdentifierSchema,
+    category: vehicleCategoryCodeSchema,
+    size: z.optional(sizeCodeSchema),
+    armorClass: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+    hitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+    speed: z.optional(z.number().check(z.nonnegative())),
+    speedNote: z.optional(authoredPlainTextSchema),
+    crewMin: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+    crewMax: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+    passengerCapacity: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+    cargoCapacity: z.optional(authoredPlainTextSchema),
+    weight: z.optional(weightDtoSchema),
+    cost: z.optional(costDtoSchema),
+    properties: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    features: z.optional(authoredNestedCollectionSchema(featureDtoSchema))
+  })
+)
 
-export const vehicleAuthoringInputDtoSchema = z.extend(vehicleAuthoredDtoSchema, {
-  userId: z.optional(authoredIdentifierSchema)
-})
+export const vehicleAuthoringInputDtoSchema = lazySchema(() =>
+  z.extend(vehicleAuthoredDtoSchema, {
+    userId: z.optional(authoredIdentifierSchema)
+  })
+)
 
 export type VehicleAuthoredDto = z.infer<typeof vehicleAuthoredDtoSchema>
 export type VehicleAuthoringInputDto = z.infer<typeof vehicleAuthoringInputDtoSchema>

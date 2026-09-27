@@ -1,9 +1,11 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
-export const stabilizeDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  effectKind: z.literal('STABILIZE'),
-  requiresZeroHitPoints: z.literal(true)
-})
+export const stabilizeDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    effectKind: z.literal('STABILIZE'),
+    requiresZeroHitPoints: z.literal(true)
+  })
+)

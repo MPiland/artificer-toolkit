@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { automationModeDtoSchema, manualReminderModeDtoSchema } from './campaignSettings.js'
 import { featureReferenceDtoSchema } from '../features/reference.js'
@@ -19,9 +19,9 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 import { rollRecordDtoSchema } from './rolls.js'
 import { healthDisplayLevelDtoSchema, playerActorHealthDtoSchema } from './healthDisplay.js'
 
-const uuidSchema = z.string().check(z.uuid())
-const versionSchema = z.number().check(z.int()).check(z.nonnegative())
-const timestampSchema = z.iso.datetime()
+const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
+const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
+const timestampSchema = lazySchema(() => z.iso.datetime())
 const jsonSchema = z.json()
 
 export {
@@ -29,13 +29,21 @@ export {
   manualReminderModeDtoSchema as encounterManualReminderModeDtoSchema
 }
 
-export const encounterStatusDtoSchema = z.enum(['PREPARED', 'ACTIVE', 'COMPLETED'])
-export const encounterActorKindDtoSchema = z.enum(['CHARACTER', 'CREATURE', 'CUSTOM'])
+export const encounterStatusDtoSchema = lazySchema(() =>
+  z.enum(['PREPARED', 'ACTIVE', 'COMPLETED'])
+)
+export const encounterActorKindDtoSchema = lazySchema(() =>
+  z.enum(['CHARACTER', 'CREATURE', 'CUSTOM'])
+)
 export { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
-export const encounterHealthBandDtoSchema = z.enum(['HEALTHY', 'WOUNDED', 'BLOODIED', 'CRITICAL'])
+export const encounterHealthBandDtoSchema = lazySchema(() =>
+  z.enum(['HEALTHY', 'WOUNDED', 'BLOODIED', 'CRITICAL'])
+)
 
 /** Foundry-style token disposition; target warnings and flanking relationships compare it. */
-export const encounterActorDispositionDtoSchema = z.enum(['FRIENDLY', 'NEUTRAL', 'HOSTILE'])
+export const encounterActorDispositionDtoSchema = lazySchema(() =>
+  z.enum(['FRIENDLY', 'NEUTRAL', 'HOSTILE'])
+)
 export type EncounterActorDispositionDto = z.infer<typeof encounterActorDispositionDtoSchema>
 
 export const MAX_ENCOUNTER_ACTOR_CONTROLLERS = 8
@@ -44,371 +52,434 @@ export const MAX_ENCOUNTER_ACTOR_CONTROLLERS = 8
  * GM-granted controllers of one Run actor (ADR 0034 decision 1). A Character actor's assigned player
  * is always a controller too; that derived control is never stored here.
  */
-export const encounterActorControllerUserIdsDtoSchema = z
-  .array(uuidSchema)
-  .check(z.maxLength(MAX_ENCOUNTER_ACTOR_CONTROLLERS))
-  .check(
-    z.superRefine((userIds, context) => {
-      if (userIds.some((userId, index) => index > 0 && userIds[index - 1]! >= userId))
-        context.addIssue({
-          code: 'custom',
-          message: 'Actor controllers must be unique and sorted.'
-        })
-    })
-  )
+export const encounterActorControllerUserIdsDtoSchema = lazySchema(() =>
+  z
+    .array(uuidSchema)
+    .check(z.maxLength(MAX_ENCOUNTER_ACTOR_CONTROLLERS))
+    .check(
+      z.superRefine((userIds, context) => {
+        if (userIds.some((userId, index) => index > 0 && userIds[index - 1]! >= userId))
+          context.addIssue({
+            code: 'custom',
+            message: 'Actor controllers must be unique and sorted.'
+          })
+      })
+    )
+)
 
-const encounterActorBaseDtoSchema = z.strictObject({
-  id: uuidSchema,
-  encounterId: uuidSchema,
-  kind: encounterActorKindDtoSchema,
-  label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-  sourceId: z.nullable(postgresUuidSchema),
-  sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
-  public: z.boolean(),
-  controllerUserIds: encounterActorControllerUserIdsDtoSchema,
-  disposition: encounterActorDispositionDtoSchema,
-  initiative: z.nullable(z.number().check(z.int())),
-  manualOrder: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-  conditions: jsonSchema,
-  /**
-   * A Creature or custom actor reduced to 0 hit points (D63): it keeps its initiative place but takes
-   * no turns, actions or reactions until it regains hit points. Always false for a Character, which
-   * falls unconscious and dying instead.
-   */
-  defeated: z.boolean()
-})
+const encounterActorBaseDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    encounterId: uuidSchema,
+    kind: encounterActorKindDtoSchema,
+    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    sourceId: z.nullable(postgresUuidSchema),
+    sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
+    public: z.boolean(),
+    controllerUserIds: encounterActorControllerUserIdsDtoSchema,
+    disposition: encounterActorDispositionDtoSchema,
+    initiative: z.nullable(z.number().check(z.int())),
+    manualOrder: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+    conditions: jsonSchema,
+    /**
+     * A Creature or custom actor reduced to 0 hit points (D63): it keeps its initiative place but takes
+     * no turns, actions or reactions until it regains hit points. Always false for a Character, which
+     * falls unconscious and dying instead.
+     */
+    defeated: z.boolean()
+  })
+)
 
 /**
  * A player sees another actor's health only at its display level (ADR 0034 decision 5): a
  * Character's level is its player's "Show my health to the party", an enemy's or NPC's is its GM
  * override or the Encounter default. `null` is Hidden.
  */
-export const encounterPlayerActorDtoSchema = z.extend(encounterActorBaseDtoSchema, {
-  health: z.nullable(playerActorHealthDtoSchema)
-})
-
-export const encounterFeatureReferenceDtoSchema = z.extend(
-  z.pick(featureReferenceDtoSchema, {
-    id: true,
-    label: true,
-    description: true,
-    section: true,
-    rollDefinitions: true
-  }),
-  {
-    resource: z._default(
-      z.nullable(
-        z.strictObject({
-          used: z.number().check(z.int()).check(z.nonnegative()),
-          maximum: z.number().check(z.int()).check(z.nonnegative()),
-          remaining: z.number().check(z.int()).check(z.nonnegative()),
-          resetKind: z.enum(['DAILY', 'DAWN', 'DUSK', 'LONG_REST', 'SHORT_REST', 'MANUAL'])
-        })
-      ),
-      null
-    )
-  }
+export const encounterPlayerActorDtoSchema = lazySchema(() =>
+  z.extend(encounterActorBaseDtoSchema, {
+    health: z.nullable(playerActorHealthDtoSchema)
+  })
 )
 
-export const encounterGmActorDtoSchema = z.extend(encounterActorBaseDtoSchema, {
-  healthBand: encounterHealthBandDtoSchema,
-  /** GM override of the Encounter's health display default; Character actors use their Sheet's. */
-  healthDisplay: z.nullable(healthDisplayLevelDtoSchema),
-  systemId: z.nullable(postgresUuidSchema),
-  stableTieKey: z.string().check(z.minLength(1)),
-  currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-  maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-  tempHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-  resources: jsonSchema,
-  gmNotes: z.nullable(z.string().check(z.maxLength(4000))),
-  statBlock: z.nullable(
-    z.strictObject({
-      armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-      abilityScores: z.nullable(z.record(z.string(), z.number())),
-      speeds: z.array(z.unknown()),
-      senses: z.array(z.string()),
-      damageVulnerabilities: z.array(z.string()),
-      damageResistances: z.array(z.string()),
-      damageImmunities: z.array(z.string()),
-      /** "From nonmagical attacks" defenses, kept apart from the unconditional ones. */
-      qualifiedDamageDefenses: z.array(creatureQualifiedDamageDefenseDtoSchema),
-      conditionImmunities: z.array(z.string())
-    })
-  ),
-  features: z._default(z.array(encounterFeatureReferenceDtoSchema), [])
-})
+export const encounterFeatureReferenceDtoSchema = lazySchema(() =>
+  z.extend(
+    z.pick(featureReferenceDtoSchema, {
+      id: true,
+      label: true,
+      description: true,
+      section: true,
+      rollDefinitions: true
+    }),
+    {
+      resource: z._default(
+        z.nullable(
+          z.strictObject({
+            used: z.number().check(z.int()).check(z.nonnegative()),
+            maximum: z.number().check(z.int()).check(z.nonnegative()),
+            remaining: z.number().check(z.int()).check(z.nonnegative()),
+            resetKind: z.enum(['DAILY', 'DAWN', 'DUSK', 'LONG_REST', 'SHORT_REST', 'MANUAL'])
+          })
+        ),
+        null
+      )
+    }
+  )
+)
 
-export const encounterPlayerProjectionDtoSchema = z.strictObject({
-  id: uuidSchema,
-  campaignId: uuidSchema,
-  gameSystemId: postgresUuidSchema,
-  blueprintId: postgresUuidSchema,
-  blueprintVersion: z.number().check(z.int()).check(z.positive()),
-  blueprintChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-  name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-  status: encounterStatusDtoSchema,
-  automationMode: automationModeDtoSchema,
-  initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),
-  optionalCombatRules: z._default(
-    z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
-    []
-  ),
-  version: z.number().check(z.int()).check(z.nonnegative()),
-  round: z.number().check(z.int()).check(z.nonnegative()),
-  currentActorId: z.nullable(uuidSchema),
-  actors: z.array(encounterPlayerActorDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-  createdAt: timestampSchema,
-  updatedAt: timestampSchema
-})
-
-export const encounterGmProjectionDtoSchema = z.strictObject({
-  id: uuidSchema,
-  campaignId: uuidSchema,
-  gameSystemId: postgresUuidSchema,
-  blueprintId: postgresUuidSchema,
-  blueprintVersion: z.number().check(z.int()).check(z.positive()),
-  blueprintChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-  name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-  status: encounterStatusDtoSchema,
-  automationMode: automationModeDtoSchema,
-  manualReminderMode: manualReminderModeDtoSchema,
-  /** What players see of enemies' and NPCs' health unless an actor overrides it. */
-  healthDisplayDefault: healthDisplayLevelDtoSchema,
-  initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),
-  optionalCombatRules: z._default(
-    z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
-    []
-  ),
-  version: z.number().check(z.int()).check(z.nonnegative()),
-  round: z.number().check(z.int()).check(z.nonnegative()),
-  currentActorId: z.nullable(uuidSchema),
-  actors: z.array(encounterGmActorDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-  reminders: z._default(
-    z.array(
+export const encounterGmActorDtoSchema = lazySchema(() =>
+  z.extend(encounterActorBaseDtoSchema, {
+    healthBand: encounterHealthBandDtoSchema,
+    /** GM override of the Encounter's health display default; Character actors use their Sheet's. */
+    healthDisplay: z.nullable(healthDisplayLevelDtoSchema),
+    systemId: z.nullable(postgresUuidSchema),
+    stableTieKey: z.string().check(z.minLength(1)),
+    currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    tempHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    resources: jsonSchema,
+    gmNotes: z.nullable(z.string().check(z.maxLength(4000))),
+    statBlock: z.nullable(
       z.strictObject({
-        id: uuidSchema,
-        label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-        timing: z.enum(['ROUND_START', 'ROUND_END', 'ROUND_NUMBER', 'TURN_START', 'TURN_END']),
-        round: z.nullable(z.number().check(z.int()).check(z.positive())),
-        actorId: z.nullable(uuidSchema),
-        public: z.boolean(),
-        notes: z.nullable(z.string().check(z.maxLength(4000))),
-        order: z.number().check(z.int()).check(z.nonnegative())
+        armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+        abilityScores: z.nullable(z.record(z.string(), z.number())),
+        speeds: z.array(z.unknown()),
+        senses: z.array(z.string()),
+        damageVulnerabilities: z.array(z.string()),
+        damageResistances: z.array(z.string()),
+        damageImmunities: z.array(z.string()),
+        /** "From nonmagical attacks" defenses, kept apart from the unconditional ones. */
+        qualifiedDamageDefenses: z.array(creatureQualifiedDamageDefenseDtoSchema),
+        conditionImmunities: z.array(z.string())
       })
     ),
-    []
-  ),
-  createdAt: timestampSchema,
-  updatedAt: timestampSchema
-})
+    features: z._default(z.array(encounterFeatureReferenceDtoSchema), [])
+  })
+)
+
+export const encounterPlayerProjectionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    campaignId: uuidSchema,
+    gameSystemId: postgresUuidSchema,
+    blueprintId: postgresUuidSchema,
+    blueprintVersion: z.number().check(z.int()).check(z.positive()),
+    blueprintChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+    name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    status: encounterStatusDtoSchema,
+    automationMode: automationModeDtoSchema,
+    initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),
+    optionalCombatRules: z._default(
+      z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
+      []
+    ),
+    version: z.number().check(z.int()).check(z.nonnegative()),
+    round: z.number().check(z.int()).check(z.nonnegative()),
+    currentActorId: z.nullable(uuidSchema),
+    actors: z.array(encounterPlayerActorDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema
+  })
+)
+
+export const encounterGmProjectionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    campaignId: uuidSchema,
+    gameSystemId: postgresUuidSchema,
+    blueprintId: postgresUuidSchema,
+    blueprintVersion: z.number().check(z.int()).check(z.positive()),
+    blueprintChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+    name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    status: encounterStatusDtoSchema,
+    automationMode: automationModeDtoSchema,
+    manualReminderMode: manualReminderModeDtoSchema,
+    /** What players see of enemies' and NPCs' health unless an actor overrides it. */
+    healthDisplayDefault: healthDisplayLevelDtoSchema,
+    initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),
+    optionalCombatRules: z._default(
+      z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
+      []
+    ),
+    version: z.number().check(z.int()).check(z.nonnegative()),
+    round: z.number().check(z.int()).check(z.nonnegative()),
+    currentActorId: z.nullable(uuidSchema),
+    actors: z.array(encounterGmActorDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    reminders: z._default(
+      z.array(
+        z.strictObject({
+          id: uuidSchema,
+          label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+          timing: z.enum(['ROUND_START', 'ROUND_END', 'ROUND_NUMBER', 'TURN_START', 'TURN_END']),
+          round: z.nullable(z.number().check(z.int()).check(z.positive())),
+          actorId: z.nullable(uuidSchema),
+          public: z.boolean(),
+          notes: z.nullable(z.string().check(z.maxLength(4000))),
+          order: z.number().check(z.int()).check(z.nonnegative())
+        })
+      ),
+      []
+    ),
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema
+  })
+)
 
 export { encounterRuleOccurrenceSummaryDtoSchema, pendingEncounterRuleOccurrenceSummaryDtoSchema }
 
-const d20RollModeSchema = z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
+const d20RollModeSchema = lazySchema(() => z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']))
 
 /**
  * One "Roll dice" attempt for a prompt row, recorded by the server and settled later only by its
  * `rollId` (ADR 0034 decision 3). Advantage and disadvantage keep two faces; `value` is the kept one.
  */
-export const encounterEvidenceRollDtoSchema = z
-  .strictObject({
-    rollId: uuidSchema,
-    occurrenceId: uuidSchema,
-    occurrenceVersion: versionSchema,
-    requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
-    attempt: z.number().check(z.int()).check(z.positive()),
-    faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
-    value: z.number().check(z.int()),
-    /** The mode the d20 was rolled with; null for any other roll. */
-    rollMode: z.nullable(d20RollModeSchema),
-    /** The rules-derived mode the row recommended; differs from `rollMode` when overridden. */
-    derivedRollMode: z.nullable(d20RollModeSchema)
-  })
-  .check(
-    z.superRefine((value, context) => {
-      if ((value.rollMode === null) !== (value.derivedRollMode === null))
-        context.addIssue({ code: 'custom', message: 'Only d20 rolls carry roll modes.' })
-      if (value.faces.length !== (value.rollMode && value.rollMode !== 'NORMAL' ? 2 : 1))
-        context.addIssue({ code: 'custom', path: ['faces'], message: 'Roll faces are invalid.' })
+export const encounterEvidenceRollDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      rollId: uuidSchema,
+      occurrenceId: uuidSchema,
+      occurrenceVersion: versionSchema,
+      requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+      attempt: z.number().check(z.int()).check(z.positive()),
+      faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
+      value: z.number().check(z.int()),
+      /** The mode the d20 was rolled with; null for any other roll. */
+      rollMode: z.nullable(d20RollModeSchema),
+      /** The rules-derived mode the row recommended; differs from `rollMode` when overridden. */
+      derivedRollMode: z.nullable(d20RollModeSchema)
     })
-  )
+    .check(
+      z.superRefine((value, context) => {
+        if ((value.rollMode === null) !== (value.derivedRollMode === null))
+          context.addIssue({ code: 'custom', message: 'Only d20 rolls carry roll modes.' })
+        if (value.faces.length !== (value.rollMode && value.rollMode !== 'NORMAL' ? 2 : 1))
+          context.addIssue({ code: 'custom', path: ['faces'], message: 'Roll faces are invalid.' })
+      })
+    )
+)
 export type EncounterEvidenceRollDto = z.infer<typeof encounterEvidenceRollDtoSchema>
 
 /**
  * The recorded faces a `SYSTEM_ROLL` response settles with, read by the server from its roll id.
  * Server-to-planner only; a client never supplies these values.
  */
-export const encounterSettledAppRollDtoSchema = z.strictObject({
-  rollId: uuidSchema,
-  faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
-  rollMode: z.nullable(d20RollModeSchema)
-})
+export const encounterSettledAppRollDtoSchema = lazySchema(() =>
+  z.strictObject({
+    rollId: uuidSchema,
+    faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
+    rollMode: z.nullable(d20RollModeSchema)
+  })
+)
 export type EncounterSettledAppRollDto = z.infer<typeof encounterSettledAppRollDtoSchema>
 
-export const encounterCommandResultDtoSchema = z.strictObject({
-  projection: z.union([encounterGmProjectionDtoSchema, encounterPlayerProjectionDtoSchema]),
-  roll: z.nullable(rollRecordDtoSchema),
-  occurrence: z._default(z.nullable(encounterRuleOccurrenceSummaryDtoSchema), null),
-  /** Present only for `ROLL_RULE_EVIDENCE`: the attempt the row now shows. */
-  evidenceRoll: z._default(z.nullable(encounterEvidenceRollDtoSchema), null)
-})
-
-export const encounterTimelineEntryDtoSchema = z.strictObject({
-  id: uuidSchema,
-  version: versionSchema,
-  commandType: z.string().check(z.minLength(1)).check(z.maxLength(80)),
-  visibility: z.enum(['PRIVATE', 'TABLE']),
-  actorUserId: uuidSchema,
-  createdAt: timestampSchema,
-  roll: z.nullable(rollRecordDtoSchema),
-  /** The named basic action a `USE_BASIC_ACTION` entry took; null for every other command. */
-  label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-  /** Rule warnings the action overrode; the GM log badges each one. */
-  ruleOverrides: encounterRuleWarningsDtoSchema
-})
-export const encounterTimelineDtoSchema = z.strictObject({
-  entries: z.array(encounterTimelineEntryDtoSchema),
-  nextCursor: z.nullable(z.string())
-})
-
-const encounterEnemySnapshotDtoSchema = z.strictObject({
-  kind: z.enum(['CREATURE', 'CUSTOM']),
-  sourceId: z.nullable(postgresUuidSchema),
-  sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
-  label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-  systemId: z.nullable(postgresUuidSchema),
-  maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-  snapshot: jsonValueSchema
-})
-
-export const encounterBlueprintEnemyInputDtoSchema = z.discriminatedUnion('kind', [
+export const encounterCommandResultDtoSchema = lazySchema(() =>
   z.strictObject({
-    kind: z.literal('CREATURE'),
-    sourceId: postgresUuidSchema
-  }),
-  z.strictObject({
-    kind: z.literal('CUSTOM'),
-    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-    maxHitPoints: z.number().check(z.int()).check(z.nonnegative())
+    projection: z.union([encounterGmProjectionDtoSchema, encounterPlayerProjectionDtoSchema]),
+    roll: z.nullable(rollRecordDtoSchema),
+    occurrence: z._default(z.nullable(encounterRuleOccurrenceSummaryDtoSchema), null),
+    /** Present only for `ROLL_RULE_EVIDENCE`: the attempt the row now shows. */
+    evidenceRoll: z._default(z.nullable(encounterEvidenceRollDtoSchema), null)
   })
-])
+)
 
-export const encounterBlueprintDtoSchema = z.extend(encounterBlueprintMetadataDtoSchema, {
-  enemies: z.array(encounterEnemySnapshotDtoSchema)
-})
-export const encounterBlueprintListDtoSchema = z.array(encounterBlueprintDtoSchema)
-export const createEncounterBlueprintInputDtoSchema = z.strictObject({
-  gameSystemId: postgresUuidSchema,
-  name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-  enemies: z
-    .array(encounterBlueprintEnemyInputDtoSchema)
-    .check(z.minLength(1))
-    .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-  commandId: postgresUuidSchema
-})
-export const updateEncounterBlueprintInputDtoSchema = z.strictObject({
-  blueprintId: postgresUuidSchema,
-  expectedVersion: z.number().check(z.int()).check(z.positive()),
-  name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-  enemies: z
-    .array(encounterBlueprintEnemyInputDtoSchema)
-    .check(z.minLength(1))
-    .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-  commandId: postgresUuidSchema
-})
+export const encounterTimelineEntryDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    version: versionSchema,
+    commandType: z.string().check(z.minLength(1)).check(z.maxLength(80)),
+    visibility: z.enum(['PRIVATE', 'TABLE']),
+    actorUserId: uuidSchema,
+    createdAt: timestampSchema,
+    roll: z.nullable(rollRecordDtoSchema),
+    /** The named basic action a `USE_BASIC_ACTION` entry took; null for every other command. */
+    label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+    /** Rule warnings the action overrode; the GM log badges each one. */
+    ruleOverrides: encounterRuleWarningsDtoSchema
+  })
+)
+export const encounterTimelineDtoSchema = lazySchema(() =>
+  z.strictObject({
+    entries: z.array(encounterTimelineEntryDtoSchema),
+    nextCursor: z.nullable(z.string())
+  })
+)
 
-export const getEncounterInputDtoSchema = z.strictObject({
-  encounterId: uuidSchema
-})
+const encounterEnemySnapshotDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.enum(['CREATURE', 'CUSTOM']),
+    sourceId: z.nullable(postgresUuidSchema),
+    sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
+    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    systemId: z.nullable(postgresUuidSchema),
+    maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    snapshot: jsonValueSchema
+  })
+)
+
+export const encounterBlueprintEnemyInputDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('CREATURE'),
+      sourceId: postgresUuidSchema
+    }),
+    z.strictObject({
+      kind: z.literal('CUSTOM'),
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      maxHitPoints: z.number().check(z.int()).check(z.nonnegative())
+    })
+  ])
+)
+
+export const encounterBlueprintDtoSchema = lazySchema(() =>
+  z.extend(encounterBlueprintMetadataDtoSchema, {
+    enemies: z.array(encounterEnemySnapshotDtoSchema)
+  })
+)
+export const encounterBlueprintListDtoSchema = lazySchema(() =>
+  z.array(encounterBlueprintDtoSchema)
+)
+export const createEncounterBlueprintInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    gameSystemId: postgresUuidSchema,
+    name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    enemies: z
+      .array(encounterBlueprintEnemyInputDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    commandId: postgresUuidSchema
+  })
+)
+export const updateEncounterBlueprintInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    blueprintId: postgresUuidSchema,
+    expectedVersion: z.number().check(z.int()).check(z.positive()),
+    name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    enemies: z
+      .array(encounterBlueprintEnemyInputDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    commandId: postgresUuidSchema
+  })
+)
+
+export const getEncounterInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: uuidSchema
+  })
+)
 /** Current GM-only side bindings; historical Run projections keep their existing shape. */
-export const getEncounterActorSidesInputDtoSchema = z.extend(getEncounterInputDtoSchema, {
-  expectedVersion: versionSchema
-})
-export const encounterActorSidesDtoSchema = z.strictObject({
-  encounterId: uuidSchema,
-  version: versionSchema,
-  sides: z
-    .array(
-      z.strictObject({
-        id: uuidSchema,
-        label: z.string(),
-        sortOrder: z.number().check(z.int()).check(z.nonnegative())
-      })
-    )
-    .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-  actors: z
-    .array(z.strictObject({ id: uuidSchema, sideId: uuidSchema }))
-    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-})
+export const getEncounterActorSidesInputDtoSchema = lazySchema(() =>
+  z.extend(getEncounterInputDtoSchema, {
+    expectedVersion: versionSchema
+  })
+)
+export const encounterActorSidesDtoSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: uuidSchema,
+    version: versionSchema,
+    sides: z
+      .array(
+        z.strictObject({
+          id: uuidSchema,
+          label: z.string(),
+          sortOrder: z.number().check(z.int()).check(z.nonnegative())
+        })
+      )
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    actors: z
+      .array(z.strictObject({ id: uuidSchema, sideId: uuidSchema }))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  })
+)
 export type EncounterActorSidesDto = z.infer<typeof encounterActorSidesDtoSchema>
 
-export const getPendingEncounterRuleOccurrenceInputDtoSchema = z.strictObject({
-  encounterId: uuidSchema
-})
-export const getCampaignEncounterInputDtoSchema = z.strictObject({
-  campaignId: uuidSchema
-})
-export const createEncounterInputDtoSchema = z.strictObject({
-  campaignId: uuidSchema,
-  blueprintId: postgresUuidSchema,
-  commandId: uuidSchema
-})
-export const deletePreparedEncounterInputDtoSchema = z.strictObject({
-  campaignId: uuidSchema,
-  encounterId: uuidSchema,
-  commandId: uuidSchema,
-  expectedVersion: z.number().check(z.int()).check(z.nonnegative())
-})
-export const deletePreparedEncounterResultDtoSchema = z.strictObject({
-  campaignId: uuidSchema,
-  encounterId: uuidSchema
-})
-export const getEncounterBlueprintsInputDtoSchema = z.strictObject({
-  gameSystemId: postgresUuidSchema
-})
-export const getEncounterTimelineInputDtoSchema = z.strictObject({
-  encounterId: uuidSchema,
-  cursor: z.optional(z.string().check(z.uuid())),
-  limit: z._default(z.number().check(z.int()).check(z.positive()).check(z.lte(100)), 50)
-})
-export const encounterProjectionDtoSchema = z.union([
-  encounterGmProjectionDtoSchema,
-  encounterPlayerProjectionDtoSchema
-])
-export const encounterProjectionListDtoSchema = z.array(encounterProjectionDtoSchema)
-export const encounterSessionStateDtoSchema = z.strictObject({
-  encounter: z.nullable(encounterProjectionDtoSchema),
-  pending: z.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema),
-  /**
-   * Who the table waits on when a decision is pending that this member can't answer: the GM, or
-   * another player. Null when nothing is pending or the decision is this member's own.
-   */
-  waitingOn: z.nullable(z.enum(['GM', 'PLAYER'])),
-  /**
-   * Movement spent this turn, in feet, for each actor the viewer controls (every actor for the GM).
-   * The budget is the walking speed (null when the actor has none); it is shown, never enforced.
-   */
-  turnMovement: z
-    .array(
-      z.strictObject({
-        actorId: postgresUuidSchema,
-        used: z.number().check(z.nonnegative()),
-        budget: z.nullable(z.number().check(z.nonnegative()))
-      })
-    )
-    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-})
+export const getPendingEncounterRuleOccurrenceInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: uuidSchema
+  })
+)
+export const getCampaignEncounterInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema
+  })
+)
+export const createEncounterInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    blueprintId: postgresUuidSchema,
+    commandId: uuidSchema
+  })
+)
+export const deletePreparedEncounterInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    encounterId: uuidSchema,
+    commandId: uuidSchema,
+    expectedVersion: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+export const deletePreparedEncounterResultDtoSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    encounterId: uuidSchema
+  })
+)
+export const getEncounterBlueprintsInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    gameSystemId: postgresUuidSchema
+  })
+)
+export const getEncounterTimelineInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: uuidSchema,
+    cursor: z.optional(z.string().check(z.uuid())),
+    limit: z._default(z.number().check(z.int()).check(z.positive()).check(z.lte(100)), 50)
+  })
+)
+export const encounterProjectionDtoSchema = lazySchema(() =>
+  z.union([encounterGmProjectionDtoSchema, encounterPlayerProjectionDtoSchema])
+)
+export const encounterProjectionListDtoSchema = lazySchema(() =>
+  z.array(encounterProjectionDtoSchema)
+)
+export const encounterSessionStateDtoSchema = lazySchema(() =>
+  z.strictObject({
+    encounter: z.nullable(encounterProjectionDtoSchema),
+    pending: z.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema),
+    /**
+     * Who the table waits on when a decision is pending that this member can't answer: the GM, or
+     * another player. Null when nothing is pending or the decision is this member's own.
+     */
+    waitingOn: z.nullable(z.enum(['GM', 'PLAYER'])),
+    /**
+     * Movement spent this turn, in feet, for each actor the viewer controls (every actor for the GM).
+     * The budget is the walking speed (null when the actor has none); it is shown, never enforced.
+     */
+    turnMovement: z
+      .array(
+        z.strictObject({
+          actorId: postgresUuidSchema,
+          used: z.number().check(z.nonnegative()),
+          budget: z.nullable(z.number().check(z.nonnegative()))
+        })
+      )
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  })
+)
 export type EncounterSessionStateDto = z.infer<typeof encounterSessionStateDtoSchema>
-export const getEncounterDecisionSettlementInputDtoSchema = z.strictObject({
-  encounterId: uuidSchema,
-  occurrenceId: uuidSchema,
-  occurrenceVersion: versionSchema
-})
+export const getEncounterDecisionSettlementInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: uuidSchema,
+    occurrenceId: uuidSchema,
+    occurrenceVersion: versionSchema
+  })
+)
 export type GetEncounterDecisionSettlementInputDto = z.infer<
   typeof getEncounterDecisionSettlementInputDtoSchema
 >
 /** Who settled a decision the viewer was shown (D39); null while it is still pending. */
-export const encounterDecisionSettlementDtoSchema = z.nullable(z.enum(['ANSWER', 'GM_SKIP']))
+export const encounterDecisionSettlementDtoSchema = lazySchema(() =>
+  z.nullable(z.enum(['ANSWER', 'GM_SKIP']))
+)
 export type EncounterDecisionSettlementDto = z.infer<typeof encounterDecisionSettlementDtoSchema>
 
 export type EncounterPlayerProjectionDto = z.infer<typeof encounterPlayerProjectionDtoSchema>

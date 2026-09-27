@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   encounterCommandResultDtoSchema,
   encounterCommandInputDtoSchema,
@@ -16,32 +16,30 @@ import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
  * Which room planner owns a pending occurrence. Convex derives it with the native resume
  * precedence; `VOID` means Convex records a GM void that declines nothing (a cancel or a refusal).
  */
-export const liveSessionEncounterRouteSchema = z.enum([
-  'ACTION',
-  'TURN',
-  'CONCENTRATION',
-  'CLEAVING',
-  'DISARM',
-  'MOVEMENT',
-  'VOID'
-])
+export const liveSessionEncounterRouteSchema = lazySchema(() =>
+  z.enum(['ACTION', 'TURN', 'CONCENTRATION', 'CLEAVING', 'DISARM', 'MOVEMENT', 'VOID'])
+)
 
-export const liveSessionEncounterRouteInputSchema = z.extend(liveSessionBootstrapInputSchema, {
-  command: z.discriminatedUnion('type', [
-    resolveRuleOccurrenceInputDtoSchema,
-    voidRuleOccurrenceInputDtoSchema
-  ])
-})
+export const liveSessionEncounterRouteInputSchema = lazySchema(() =>
+  z.extend(liveSessionBootstrapInputSchema, {
+    command: z.discriminatedUnion('type', [
+      resolveRuleOccurrenceInputDtoSchema,
+      voidRuleOccurrenceInputDtoSchema
+    ])
+  })
+)
 
 /**
  * A GM void that declines a turn or Cleaving choice names the decline the room plans on `route`,
  * the same answer a GM decline would give (ADR 0034 decision 2). A movement decline settles
  * through the room's movement path (D26) and carries none.
  */
-export const liveSessionEncounterRouteResponseSchema = z.strictObject({
-  route: liveSessionEncounterRouteSchema,
-  decline: z.nullable(resolveRuleOccurrenceInputDtoSchema)
-})
+export const liveSessionEncounterRouteResponseSchema = lazySchema(() =>
+  z.strictObject({
+    route: liveSessionEncounterRouteSchema,
+    decline: z.nullable(resolveRuleOccurrenceInputDtoSchema)
+  })
+)
 
 type EncounterCommandType = z.infer<typeof encounterCommandInputDtoSchema>['type']
 
@@ -71,42 +69,53 @@ export const CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES = [
 ] as const satisfies readonly EncounterCommandType[]
 
 /** A dice command the room rolls with its secure random source (D41); Convex records it. */
-export const liveSessionEncounterRollInputSchema = z.extend(liveSessionBootstrapInputSchema, {
-  command: z.discriminatedUnion('type', [
-    rollRuleEvidenceInputDtoSchema,
-    rollEncounterActorInitiativeInputDtoSchema,
-    rollEncounterEnemyActionInputDtoSchema
-  ])
-})
+export const liveSessionEncounterRollInputSchema = lazySchema(() =>
+  z.extend(liveSessionBootstrapInputSchema, {
+    command: z.discriminatedUnion('type', [
+      rollRuleEvidenceInputDtoSchema,
+      rollEncounterActorInitiativeInputDtoSchema,
+      rollEncounterEnemyActionInputDtoSchema
+    ])
+  })
+)
 
 /** The dice a roll command draws, in draw order, as each die's size; the room draws each once. */
-export const liveSessionEncounterRollDiceSchema = z.strictObject({
-  dice: z.array(z.number().check(z.int()).check(z.positive()))
-})
+export const liveSessionEncounterRollDiceSchema = lazySchema(() =>
+  z.strictObject({
+    dice: z.array(z.number().check(z.int()).check(z.positive()))
+  })
+)
 
 /** A roll command with the room's draws: each in `[0, size)` for the die at its position. */
-export const liveSessionEncounterRollCommitInputSchema = z.extend(
-  liveSessionEncounterRollInputSchema,
-  { draws: z.array(z.number().check(z.int()).check(z.nonnegative())) }
+export const liveSessionEncounterRollCommitInputSchema = lazySchema(() =>
+  z.extend(liveSessionEncounterRollInputSchema, {
+    draws: z.array(z.number().check(z.int()).check(z.nonnegative()))
+  })
 )
 
 /**
  * An Encounter command the room sends to Convex in room order: a recorded GM tool, or a
  * movement decision on a Scene the room does not own (D29).
  */
-export const liveSessionEncounterCommandInputSchema = z.extend(liveSessionBootstrapInputSchema, {
-  command: encounterCommandInputDtoSchema
-})
+export const liveSessionEncounterCommandInputSchema = lazySchema(() =>
+  z.extend(liveSessionBootstrapInputSchema, {
+    command: encounterCommandInputDtoSchema
+  })
+)
 
 /** A GM void Convex settles without a planner: its stored result, or a decline to record. */
-export const liveSessionEncounterVoidInputSchema = z.extend(liveSessionBootstrapInputSchema, {
-  command: voidRuleOccurrenceInputDtoSchema
-})
+export const liveSessionEncounterVoidInputSchema = lazySchema(() =>
+  z.extend(liveSessionBootstrapInputSchema, {
+    command: voidRuleOccurrenceInputDtoSchema
+  })
+)
 
-export const liveSessionEncounterVoidPreparedSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('COMPLETE'), result: encounterCommandResultDtoSchema }),
-  z.strictObject({ kind: z.literal('RECORD') })
-])
+export const liveSessionEncounterVoidPreparedSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('COMPLETE'), result: encounterCommandResultDtoSchema }),
+    z.strictObject({ kind: z.literal('RECORD') })
+  ])
+)
 
 export type LiveSessionEncounterRoute = z.infer<typeof liveSessionEncounterRouteSchema>
 export type LiveSessionEncounterRouteInput = z.infer<typeof liveSessionEncounterRouteInputSchema>

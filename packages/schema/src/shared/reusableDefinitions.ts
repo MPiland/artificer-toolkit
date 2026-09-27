@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { ruleGraphDefinitionDtoSchema } from '../api/rulesRuntime.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from './basicActions.js'
@@ -16,24 +16,28 @@ import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUui
 import { reusableDefinitionFamilyKeyDtoSchema } from './reusableDefinitionIdentity.js'
 export { reusableDefinitionFamilyKeyDtoSchema } from './reusableDefinitionIdentity.js'
 
-const boundedLabelSchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
-const boundedDescriptionSchema = z.nullable(z.string().check(z.maxLength(4_000)))
-const checksumSchema = z.string().check(z.regex(/^[a-f0-9]{64}$/))
-const versionSchema = z.number().check(z.int()).check(z.gte(0))
+const boundedLabelSchema = lazySchema(() =>
+  z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+)
+const boundedDescriptionSchema = lazySchema(() => z.nullable(z.string().check(z.maxLength(4_000))))
+const checksumSchema = lazySchema(() => z.string().check(z.regex(/^[a-f0-9]{64}$/)))
+const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.gte(0)))
 
-export const contentSourceKindDtoSchema = z.enum(['PLATFORM', 'USER'])
+export const contentSourceKindDtoSchema = lazySchema(() => z.enum(['PLATFORM', 'USER']))
 
-export const reusableDefinitionDocumentDtoSchema = z.union([
-  ruleGraphDefinitionDtoSchema,
-  initiativePolicyReusableDefinitionDocumentDtoSchema,
-  dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema,
-  dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
-  senseReusableDefinitionDocumentDtoSchema,
-  ruleCapabilityReusableDefinitionDocumentDtoSchema,
-  conditionRuleStateReusableDefinitionDocumentDtoSchema,
-  ruleMaintenanceReusableDefinitionDocumentDtoSchema,
-  basicActionReusableDefinitionDocumentDtoSchema
-])
+export const reusableDefinitionDocumentDtoSchema = lazySchema(() =>
+  z.union([
+    ruleGraphDefinitionDtoSchema,
+    initiativePolicyReusableDefinitionDocumentDtoSchema,
+    dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema,
+    dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
+    senseReusableDefinitionDocumentDtoSchema,
+    ruleCapabilityReusableDefinitionDocumentDtoSchema,
+    conditionRuleStateReusableDefinitionDocumentDtoSchema,
+    ruleMaintenanceReusableDefinitionDocumentDtoSchema,
+    basicActionReusableDefinitionDocumentDtoSchema
+  ])
+)
 
 export function reusableDefinitionDocumentFamilyKey(
   document: z.infer<typeof reusableDefinitionDocumentDtoSchema>
@@ -72,78 +76,82 @@ export function reusableDefinitionDocumentFamilyKey(
   return 'condition-rule-state'
 }
 
-export const reusableDefinitionCurrentDtoSchema = z
-  .strictObject({
-    id: serverUuidIdentityDtoSchema,
-    gameSystemId: serverUuidIdentityDtoSchema,
-    contentSourceId: serverUuidIdentityDtoSchema,
-    definitionFamilyKey: reusableDefinitionFamilyKeyDtoSchema,
-    label: boundedLabelSchema,
-    description: boundedDescriptionSchema,
-    document: reusableDefinitionDocumentDtoSchema,
-    checksum: checksumSchema,
-    contractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
-    version: versionSchema,
-    publishedAt: z.iso.datetime(),
-    publishedBy: serverUuidIdentityDtoSchema
-  })
-  .check(
-    z.superRefine((current, context) => {
-      const documentFamilyKey = reusableDefinitionDocumentFamilyKey(current.document)
-      if (current.definitionFamilyKey !== documentFamilyKey) {
-        context.addIssue({
-          code: 'custom',
-          path: ['definitionFamilyKey'],
-          message: 'Reusable definition family must match its document family.'
-        })
-      }
-      if (current.id !== current.document.id) {
-        context.addIssue({
-          code: 'custom',
-          path: ['document', 'id'],
-          message: 'Reusable definition ID must match its document ID.'
-        })
-      }
-      if (current.gameSystemId !== current.document.gameSystemId) {
-        context.addIssue({
-          code: 'custom',
-          path: ['document', 'gameSystemId'],
-          message: 'Reusable definition Game System must match its document Game System.'
-        })
-      }
+export const reusableDefinitionCurrentDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      id: serverUuidIdentityDtoSchema,
+      gameSystemId: serverUuidIdentityDtoSchema,
+      contentSourceId: serverUuidIdentityDtoSchema,
+      definitionFamilyKey: reusableDefinitionFamilyKeyDtoSchema,
+      label: boundedLabelSchema,
+      description: boundedDescriptionSchema,
+      document: reusableDefinitionDocumentDtoSchema,
+      checksum: checksumSchema,
+      contractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
+      version: versionSchema,
+      publishedAt: z.iso.datetime(),
+      publishedBy: serverUuidIdentityDtoSchema
     })
-  )
+    .check(
+      z.superRefine((current, context) => {
+        const documentFamilyKey = reusableDefinitionDocumentFamilyKey(current.document)
+        if (current.definitionFamilyKey !== documentFamilyKey) {
+          context.addIssue({
+            code: 'custom',
+            path: ['definitionFamilyKey'],
+            message: 'Reusable definition family must match its document family.'
+          })
+        }
+        if (current.id !== current.document.id) {
+          context.addIssue({
+            code: 'custom',
+            path: ['document', 'id'],
+            message: 'Reusable definition ID must match its document ID.'
+          })
+        }
+        if (current.gameSystemId !== current.document.gameSystemId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['document', 'gameSystemId'],
+            message: 'Reusable definition Game System must match its document Game System.'
+          })
+        }
+      })
+    )
+)
 
-export const reusableDefinitionDraftDtoSchema = z
-  .strictObject({
-    definitionId: serverUuidIdentityDtoSchema,
-    gameSystemId: serverUuidIdentityDtoSchema,
-    authorUserId: serverUuidIdentityDtoSchema,
-    document: reusableDefinitionDocumentDtoSchema,
-    checksum: checksumSchema,
-    baseDefinitionVersion: versionSchema,
-    version: versionSchema,
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
-  })
-  .check(
-    z.superRefine((draft, context) => {
-      if (draft.definitionId !== draft.document.id) {
-        context.addIssue({
-          code: 'custom',
-          path: ['document', 'id'],
-          message: 'Reusable definition draft ID must match its document ID.'
-        })
-      }
-      if (draft.gameSystemId !== draft.document.gameSystemId) {
-        context.addIssue({
-          code: 'custom',
-          path: ['document', 'gameSystemId'],
-          message: 'Reusable definition draft Game System must match its document Game System.'
-        })
-      }
+export const reusableDefinitionDraftDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      definitionId: serverUuidIdentityDtoSchema,
+      gameSystemId: serverUuidIdentityDtoSchema,
+      authorUserId: serverUuidIdentityDtoSchema,
+      document: reusableDefinitionDocumentDtoSchema,
+      checksum: checksumSchema,
+      baseDefinitionVersion: versionSchema,
+      version: versionSchema,
+      createdAt: z.iso.datetime(),
+      updatedAt: z.iso.datetime()
     })
-  )
+    .check(
+      z.superRefine((draft, context) => {
+        if (draft.definitionId !== draft.document.id) {
+          context.addIssue({
+            code: 'custom',
+            path: ['document', 'id'],
+            message: 'Reusable definition draft ID must match its document ID.'
+          })
+        }
+        if (draft.gameSystemId !== draft.document.gameSystemId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['document', 'gameSystemId'],
+            message: 'Reusable definition draft Game System must match its document Game System.'
+          })
+        }
+      })
+    )
+)
 
 export type ContentSourceKindDto = z.infer<typeof contentSourceKindDtoSchema>
 export type ReusableDefinitionCurrentDto = z.infer<typeof reusableDefinitionCurrentDtoSchema>

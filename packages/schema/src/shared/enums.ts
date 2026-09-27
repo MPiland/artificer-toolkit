@@ -1,461 +1,465 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
-export const abilityCodeSchema = z.enum([
-  'CHARISMA',
-  'CONSTITUTION',
-  'DEXTERITY',
-  'INTELLIGENCE',
-  'STRENGTH',
-  'WISDOM'
-])
+export const abilityCodeSchema = lazySchema(() =>
+  z.enum(['CHARISMA', 'CONSTITUTION', 'DEXTERITY', 'INTELLIGENCE', 'STRENGTH', 'WISDOM'])
+)
 
-export const abilityModifierReferenceSchema = z.union([
-  abilityCodeSchema,
-  z.literal('SPELLCASTING')
-])
+export const abilityModifierReferenceSchema = lazySchema(() =>
+  z.union([abilityCodeSchema, z.literal('SPELLCASTING')])
+)
 
-export const activationCodeSchema = z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE'])
+export const activationCodeSchema = lazySchema(() =>
+  z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE'])
+)
 
-export const authoredRecordStatusSchema = z.enum(['DRAFT', 'ACTIVE'])
+export const authoredRecordStatusSchema = lazySchema(() => z.enum(['DRAFT', 'ACTIVE']))
 
-export const sizeCodeSchema = z.enum([
-  'COLOSSAL',
-  'DIMUNITIVE',
-  'FINE',
-  'GARGANTUAN',
-  'GIANT',
-  'HUGE',
-  'LARGE',
-  'MEDIUM',
-  'SMALL',
-  'TINY'
-])
+export const sizeCodeSchema = lazySchema(() =>
+  z.enum([
+    'COLOSSAL',
+    'DIMUNITIVE',
+    'FINE',
+    'GARGANTUAN',
+    'GIANT',
+    'HUGE',
+    'LARGE',
+    'MEDIUM',
+    'SMALL',
+    'TINY'
+  ])
+)
 
-export const creatureCategoryCodeSchema = z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON'])
+export const creatureCategoryCodeSchema = lazySchema(() =>
+  z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON'])
+)
 
 /** Attack traits that ignore a qualified damage defense. */
-export const damageDefenseBypassCodeSchema = z.enum(['MAGICAL', 'SILVERED', 'ADAMANTINE'])
+export const damageDefenseBypassCodeSchema = lazySchema(() =>
+  z.enum(['MAGICAL', 'SILVERED', 'ADAMANTINE'])
+)
 
-export const vehicleCategoryCodeSchema = z.enum(['LAND', 'WATER', 'AIR', 'SPELLJAMMER'])
+export const vehicleCategoryCodeSchema = lazySchema(() =>
+  z.enum(['LAND', 'WATER', 'AIR', 'SPELLJAMMER'])
+)
 
-export const classAttributeSchema = z.enum(['SPELLCASTER', 'RESOURCE'])
+export const classAttributeSchema = lazySchema(() => z.enum(['SPELLCASTER', 'RESOURCE']))
 
-export const subclassAttributeSchema = z.enum(['SPELLCASTER', 'RESOURCE', 'SPECIALIZATION'])
+export const subclassAttributeSchema = lazySchema(() =>
+  z.enum(['SPELLCASTER', 'RESOURCE', 'SPECIALIZATION'])
+)
 
-export const spellcastingAttributeSchema = z.enum([
-  'LIMIT_KNOWN_SPELL_AMOUNT',
-  'PREPARES_SPELLS',
-  'CUSTOM_MAGIC_NAME',
-  'USES_SPELLBOOK',
-  'RITUAL_CASTER'
-])
+export const spellcastingAttributeSchema = lazySchema(() =>
+  z.enum([
+    'LIMIT_KNOWN_SPELL_AMOUNT',
+    'PREPARES_SPELLS',
+    'CUSTOM_MAGIC_NAME',
+    'USES_SPELLBOOK',
+    'RITUAL_CASTER'
+  ])
+)
 
-export const featureAttributeSchema = z.enum([
-  'LIMITED_USE',
-  'HIDDEN_ON_SHEET',
-  'SUBCLASS_SELECTION'
-])
+export const featureAttributeSchema = lazySchema(() =>
+  z.enum(['LIMITED_USE', 'HIDDEN_ON_SHEET', 'SUBCLASS_SELECTION'])
+)
 
-export const invocationKindSchema = z.enum(['ACTION', 'PASSIVE'])
+export const invocationKindSchema = lazySchema(() => z.enum(['ACTION', 'PASSIVE']))
 
-export const triggerCodeSchema = z.enum([
-  'ACTIVATED',
-  'MELEE_WEAPON_ATTACK',
-  'RANGED_WEAPON_ATTACK',
-  'UNARMED_ATTACK',
-  'MELEE_SPELL_ATTACK',
-  'RANGED_SPELL_ATTACK',
-  'INCOMING_SAVING_THROW',
-  'SAVING_THROW',
-  'ENTER_AREA'
-])
+export const triggerCodeSchema = lazySchema(() =>
+  z.enum([
+    'ACTIVATED',
+    'MELEE_WEAPON_ATTACK',
+    'RANGED_WEAPON_ATTACK',
+    'UNARMED_ATTACK',
+    'MELEE_SPELL_ATTACK',
+    'RANGED_SPELL_ATTACK',
+    'INCOMING_SAVING_THROW',
+    'SAVING_THROW',
+    'ENTER_AREA'
+  ])
+)
 
-export const nodeSubjectCodeSchema = z.enum([
-  'CLASS',
-  'FEATURE',
-  'SPELL',
-  'EQUIPMENT',
-  'FEAT',
-  'RACE',
-  'BACKGROUND',
-  'CREATURE',
-  'VEHICLE',
-  'PROFICIENCY_GRANT',
-  'OPTION',
-  'SUBRACE',
-  'SUBCLASS',
-  'RESOURCE',
-  'RACE_ANCESTRY_OPTION',
-  'CHARACTER'
-])
+export const nodeSubjectCodeSchema = lazySchema(() =>
+  z.enum([
+    'CLASS',
+    'FEATURE',
+    'SPELL',
+    'EQUIPMENT',
+    'FEAT',
+    'RACE',
+    'BACKGROUND',
+    'CREATURE',
+    'VEHICLE',
+    'PROFICIENCY_GRANT',
+    'OPTION',
+    'SUBRACE',
+    'SUBCLASS',
+    'RESOURCE',
+    'RACE_ANCESTRY_OPTION',
+    'CHARACTER'
+  ])
+)
 
-export const relationCodeSchema = z.enum([
-  'FEATURE',
-  'SUBCLASS',
-  'RESOURCE',
-  'PROFICIENCY_GRANT',
-  'OPTION',
-  'SUBRACE',
-  'RACE_ANCESTRY_OPTION',
-  'CREATURE',
-  'VEHICLE'
-])
+export const relationCodeSchema = lazySchema(() =>
+  z.enum([
+    'FEATURE',
+    'SUBCLASS',
+    'RESOURCE',
+    'PROFICIENCY_GRANT',
+    'OPTION',
+    'SUBRACE',
+    'RACE_ANCESTRY_OPTION',
+    'CREATURE',
+    'VEHICLE'
+  ])
+)
 
-export const predicateCodeSchema = z.enum([
-  'SUBCLASS_SPECIALIZATION',
-  'SPELLCASTING',
-  'RANGE',
-  'DURATION',
-  'CONCENTRATION',
-  'RITUAL',
-  'SIZE',
-  'MAGIC_SCHOOL',
-  'SPELLCASTING_ABILITY',
-  'SPELL_LEVEL',
-  'SAVING_THROW_ABILITY',
-  'SAVING_THROW_DC',
-  'EQUIPMENT_CATEGORY',
-  'EQUIPMENT_PROPERTY',
-  'SOLE_WIELDED_WEAPON',
-  'ARMOR_CLASS',
-  'DAMAGE_TYPE',
-  'CONDITION_TYPE',
-  'CHARGE_LIMIT_KIND',
-  'CHARGE_RESET_KIND',
-  'CAN_CAST_SPELL',
-  'CHARACTER_LEVEL',
-  'CLASS_LEVEL',
-  'SPELL_OBTAINED',
-  'FEAT_OBTAINED',
-  'HERITAGE',
-  'FEATURE_OBTAINED',
-  'OPTION_OBTAINED',
-  'EQUIPMENT_PROFICIENCY',
-  'EQUIPMENT_PROPERTY_PROFICIENCY',
-  'LANGUAGE_PROFICIENCY',
-  'SAVE_ABILITY_PROFICIENCY',
-  'SKILL_PROFICIENCY',
-  'EQUIPMENT_EQUIPPED',
-  'SKILL_SCORE',
-  'ABILITY_SCORE',
-  'SAVING_THROW_ABILITY_BONUS',
-  'WHILE_SOURCE_CARRIED',
-  'WHILE_SOURCE_EQUIPPED',
-  'WHILE_SOURCE_ATTUNED',
-  'CREATURE_CATEGORY',
-  'CREATURE_TYPE',
-  'CREATURE_SIZE',
-  'CREATURE_IS_MOUNT',
-  'CREATURE_IS_COMPANION',
-  'VEHICLE_CATEGORY',
-  'VEHICLE_SIZE'
-])
+export const predicateCodeSchema = lazySchema(() =>
+  z.enum([
+    'SUBCLASS_SPECIALIZATION',
+    'SPELLCASTING',
+    'RANGE',
+    'DURATION',
+    'CONCENTRATION',
+    'RITUAL',
+    'SIZE',
+    'MAGIC_SCHOOL',
+    'SPELLCASTING_ABILITY',
+    'SPELL_LEVEL',
+    'SAVING_THROW_ABILITY',
+    'SAVING_THROW_DC',
+    'EQUIPMENT_CATEGORY',
+    'EQUIPMENT_PROPERTY',
+    'SOLE_WIELDED_WEAPON',
+    'ARMOR_CLASS',
+    'DAMAGE_TYPE',
+    'CONDITION_TYPE',
+    'CHARGE_LIMIT_KIND',
+    'CHARGE_RESET_KIND',
+    'CAN_CAST_SPELL',
+    'CHARACTER_LEVEL',
+    'CLASS_LEVEL',
+    'SPELL_OBTAINED',
+    'FEAT_OBTAINED',
+    'HERITAGE',
+    'FEATURE_OBTAINED',
+    'OPTION_OBTAINED',
+    'EQUIPMENT_PROFICIENCY',
+    'EQUIPMENT_PROPERTY_PROFICIENCY',
+    'LANGUAGE_PROFICIENCY',
+    'SAVE_ABILITY_PROFICIENCY',
+    'SKILL_PROFICIENCY',
+    'EQUIPMENT_EQUIPPED',
+    'SKILL_SCORE',
+    'ABILITY_SCORE',
+    'SAVING_THROW_ABILITY_BONUS',
+    'WHILE_SOURCE_CARRIED',
+    'WHILE_SOURCE_EQUIPPED',
+    'WHILE_SOURCE_ATTUNED',
+    'CREATURE_CATEGORY',
+    'CREATURE_TYPE',
+    'CREATURE_SIZE',
+    'CREATURE_IS_MOUNT',
+    'CREATURE_IS_COMPANION',
+    'VEHICLE_CATEGORY',
+    'VEHICLE_SIZE'
+  ])
+)
 
-export const rangeKindSchema = z.enum([
-  'SELF',
-  'TOUCH',
-  'SIGHT',
-  'SPECIAL',
-  'UNLIMITED',
-  'DISTANCE'
-])
+export const rangeKindSchema = lazySchema(() =>
+  z.enum(['SELF', 'TOUCH', 'SIGHT', 'SPECIAL', 'UNLIMITED', 'DISTANCE'])
+)
 
-export const durationKindSchema = z.enum([
-  'INSTANTANEOUS',
-  'UNTIL_DISPELLED',
-  'TURN',
-  'ROUND',
-  'MINUTE',
-  'HOUR',
-  'DAY',
-  'WEEK',
-  'MONTH',
-  'YEAR'
-])
+export const durationKindSchema = lazySchema(() =>
+  z.enum([
+    'INSTANTANEOUS',
+    'UNTIL_DISPELLED',
+    'TURN',
+    'ROUND',
+    'MINUTE',
+    'HOUR',
+    'DAY',
+    'WEEK',
+    'MONTH',
+    'YEAR'
+  ])
+)
 
-export const shapeKindSchema = z.enum([
-  'LINE',
-  'CONE',
-  'CUBE',
-  'CYLINDER',
-  'SPHERE',
-  'WALL',
-  'CIRCLE',
-  'DOME'
-])
+export const shapeKindSchema = lazySchema(() =>
+  z.enum(['LINE', 'CONE', 'CUBE', 'CYLINDER', 'SPHERE', 'WALL', 'CIRCLE', 'DOME'])
+)
 
-export const measurementUnitCodeSchema = z.enum([
-  'POUNDS',
-  'GALLONS',
-  'INCHES',
-  'FEET',
-  'YARDS',
-  'MILES',
-  'OUNCES',
-  'CUPS',
-  'TABLESPOONS',
-  'TEASPOONS',
-  'LITERS',
-  'QUARTS'
-])
+export const measurementUnitCodeSchema = lazySchema(() =>
+  z.enum([
+    'POUNDS',
+    'GALLONS',
+    'INCHES',
+    'FEET',
+    'YARDS',
+    'MILES',
+    'OUNCES',
+    'CUPS',
+    'TABLESPOONS',
+    'TEASPOONS',
+    'LITERS',
+    'QUARTS'
+  ])
+)
 
-export const scalingKindSchema = z.enum(['NONE', 'PER_LEVEL'])
-export const scalingSourceSchema = z.enum([
-  'CHARACTER_LEVEL',
-  'CLASS_LEVEL',
-  'PARENT_CLASS_LEVEL',
-  'SPELL_CAST_LEVEL'
-])
-export const scalingAmountKindSchema = z.enum(['FULL', 'HALF', 'DOUBLE'])
+export const scalingKindSchema = lazySchema(() => z.enum(['NONE', 'PER_LEVEL']))
+export const scalingSourceSchema = lazySchema(() =>
+  z.enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])
+)
+export const scalingAmountKindSchema = lazySchema(() => z.enum(['FULL', 'HALF', 'DOUBLE']))
 
-export const chargeResetKindSchema = z.enum([
-  'DAILY',
-  'DAWN',
-  'DUSK',
-  'LONG_REST',
-  'SHORT_REST',
-  'MANUAL'
-])
-export const chargeLimitKindSchema = z.enum([
-  'FIXED_AMOUNT',
-  'CHARACTER_LEVEL',
-  'CLASS_LEVEL',
-  'PARENT_CLASS_LEVEL',
-  'SPELL_CAST_LEVEL',
-  'ABILITY_MODIFIER',
-  'SOURCE_CHARGES'
-])
-export const chargeBonusKindSchema = z.enum([
-  'PROFICIENCY_BONUS',
-  'ABILITY_MODIFIER',
-  'SKILL_BONUS'
-])
-export const attackDomainCodeSchema = z.enum(['MELEE', 'RANGED', 'SPELL', 'UNARMED'])
+export const chargeResetKindSchema = lazySchema(() =>
+  z.enum(['DAILY', 'DAWN', 'DUSK', 'LONG_REST', 'SHORT_REST', 'MANUAL'])
+)
+export const chargeLimitKindSchema = lazySchema(() =>
+  z.enum([
+    'FIXED_AMOUNT',
+    'CHARACTER_LEVEL',
+    'CLASS_LEVEL',
+    'PARENT_CLASS_LEVEL',
+    'SPELL_CAST_LEVEL',
+    'ABILITY_MODIFIER',
+    'SOURCE_CHARGES'
+  ])
+)
+export const chargeBonusKindSchema = lazySchema(() =>
+  z.enum(['PROFICIENCY_BONUS', 'ABILITY_MODIFIER', 'SKILL_BONUS'])
+)
+export const attackDomainCodeSchema = lazySchema(() =>
+  z.enum(['MELEE', 'RANGED', 'SPELL', 'UNARMED'])
+)
 /** An attack's kind: melee and ranged spell attacks both read SPELL modifiers. */
-export const attackKindSchema = z.enum([
-  'MELEE',
-  'RANGED',
-  'UNARMED',
-  'MELEE_SPELL',
-  'RANGED_SPELL'
-])
+export const attackKindSchema = lazySchema(() =>
+  z.enum(['MELEE', 'RANGED', 'UNARMED', 'MELEE_SPELL', 'RANGED_SPELL'])
+)
 export type AttackKind = z.infer<typeof attackKindSchema>
 
-export const savingThrowDcMethodSchema = z.enum(['SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC'])
-export const savingThrowDcBonusKindSchema = z.enum([
-  'ABILITY_MODIFIER',
-  'PROFICIENCY_BONUS',
-  'STATIC_BONUS'
-])
+export const savingThrowDcMethodSchema = lazySchema(() =>
+  z.enum(['SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC'])
+)
+export const savingThrowDcBonusKindSchema = lazySchema(() =>
+  z.enum(['ABILITY_MODIFIER', 'PROFICIENCY_BONUS', 'STATIC_BONUS'])
+)
 
-export const grantKindSchema = z.enum([
-  'MODIFIER_GRANT',
-  'PROFICIENCY_GRANT',
-  'SENSE_GRANT',
-  'FEAT_GRANT',
-  'SPELL_GRANT'
-])
+export const grantKindSchema = lazySchema(() =>
+  z.enum(['MODIFIER_GRANT', 'PROFICIENCY_GRANT', 'SENSE_GRANT', 'FEAT_GRANT', 'SPELL_GRANT'])
+)
 
-export const authoringModeKindSchema = z.enum(['ALL', 'SELECTED'])
-export const authoringSelectionKindSchema = z.enum(['GRANTED', 'CHOSEN'])
-export const authoringSelectionDuplicatePolicySchema = z.enum(['UNIQUE', 'REPEATABLE'])
-export const authoringConstraintCodeSchema = z.enum(['INCLUDE', 'EXCLUDE'])
+export const authoringModeKindSchema = lazySchema(() => z.enum(['ALL', 'SELECTED']))
+export const authoringSelectionKindSchema = lazySchema(() => z.enum(['GRANTED', 'CHOSEN']))
+export const authoringSelectionDuplicatePolicySchema = lazySchema(() =>
+  z.enum(['UNIQUE', 'REPEATABLE'])
+)
+export const authoringConstraintCodeSchema = lazySchema(() => z.enum(['INCLUDE', 'EXCLUDE']))
 
-export const proficiencyKindSchema = z.enum([
-  'SKILL',
-  'SAVE_ABILITY',
-  'EQUIPMENT',
-  'EQUIPMENT_PROPERTY',
-  'LANGUAGE'
-])
+export const proficiencyKindSchema = lazySchema(() =>
+  z.enum(['SKILL', 'SAVE_ABILITY', 'EQUIPMENT', 'EQUIPMENT_PROPERTY', 'LANGUAGE'])
+)
 
-export const roundingCodeSchema = z.enum(['UP', 'DOWN', 'NEAREST'])
+export const roundingCodeSchema = lazySchema(() => z.enum(['UP', 'DOWN', 'NEAREST']))
 
-export const spellGrantAttributeSchema = z.enum([
-  'CONCENTRATION',
-  'RITUAL',
-  'LIMITED_USE',
-  'PREPARED',
-  'KNOWN',
-  'CAST_AT_WILL',
-  'CAST_AT_LEVEL',
-  'SELF_ONLY'
-])
+export const spellGrantAttributeSchema = lazySchema(() =>
+  z.enum([
+    'CONCENTRATION',
+    'RITUAL',
+    'LIMITED_USE',
+    'PREPARED',
+    'KNOWN',
+    'CAST_AT_WILL',
+    'CAST_AT_LEVEL',
+    'SELF_ONLY'
+  ])
+)
 
-export const effectKindSchema = z.enum([
-  'DAMAGE',
-  'HIT_POINT_MAXIMUM_REDUCTION',
-  'SCALAR_REDUCTION',
-  'CONDITION',
-  'HEAL',
-  'APPLY_GRANT',
-  'FORCED_MOVEMENT',
-  'TELEPORT',
-  'MANIFEST',
-  'MOVE_MANIFEST',
-  'COMMAND_MANIFEST',
-  'FOLLOW_UP_SAVE',
-  'FOLLOW_UP_CHECK',
-  'MOVEMENT_RULE',
-  'ACTION_ECONOMY_RULE',
-  'STABILIZE',
-  'MANUAL_ADJUDICATION'
-])
-export const pathCodeSchema = z.enum([
-  'PASSIVE',
-  'ON_USE',
-  'ON_CAST',
-  'ON_ATTACK',
-  'ON_HIT',
-  'ON_CRIT',
-  'ON_SAVE_FAIL',
-  'ON_SAVE_SUCCESS',
-  'START_OF_TURN',
-  'END_OF_TURN',
-  'ON_MOVE',
-  'ON_HP_ZERO',
-  'ON_MISS'
-])
-export const pathGroupTypeSchema = z.enum(['SINGLE', 'CHOICE', 'SEQUENTIAL'])
-export const pathOriginKindSchema = z.enum(['SOURCE', 'PRIMARY_TARGET', 'PREVIOUS_ENTRY_TARGET'])
-export const pathResolutionKindSchema = z.enum(['DIRECT', 'ROLL_TABLE'])
-export const pathRollTableKindSchema = z.enum(['RANGE', 'EXACT'])
-export const pathLifecycleRecurringKindSchema = z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN'])
-export const pathLifecycleConsumeEventSchema = z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
-export const pathLifecycleEndEventSchema = z.enum([
-  'ON_ATTACK_ROLL',
-  'ON_CAST_SPELL',
-  'ON_HIT_POINTS_REGAINED'
-])
-export const forcedMovementDirectionSchema = z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'CHOICE'])
-export const forcedMovementDistanceModeSchema = z.enum(['UP_TO_SPEED', 'FIXED_DISTANCE'])
-export const forcedMovementActionEconomySchema = z.enum(['NONE', 'REACTION'])
+export const effectKindSchema = lazySchema(() =>
+  z.enum([
+    'DAMAGE',
+    'HIT_POINT_MAXIMUM_REDUCTION',
+    'SCALAR_REDUCTION',
+    'CONDITION',
+    'HEAL',
+    'APPLY_GRANT',
+    'FORCED_MOVEMENT',
+    'TELEPORT',
+    'MANIFEST',
+    'MOVE_MANIFEST',
+    'COMMAND_MANIFEST',
+    'FOLLOW_UP_SAVE',
+    'FOLLOW_UP_CHECK',
+    'MOVEMENT_RULE',
+    'ACTION_ECONOMY_RULE',
+    'STABILIZE',
+    'MANUAL_ADJUDICATION'
+  ])
+)
+export const pathCodeSchema = lazySchema(() =>
+  z.enum([
+    'PASSIVE',
+    'ON_USE',
+    'ON_CAST',
+    'ON_ATTACK',
+    'ON_HIT',
+    'ON_CRIT',
+    'ON_SAVE_FAIL',
+    'ON_SAVE_SUCCESS',
+    'START_OF_TURN',
+    'END_OF_TURN',
+    'ON_MOVE',
+    'ON_HP_ZERO',
+    'ON_MISS'
+  ])
+)
+export const pathGroupTypeSchema = lazySchema(() => z.enum(['SINGLE', 'CHOICE', 'SEQUENTIAL']))
+export const pathOriginKindSchema = lazySchema(() =>
+  z.enum(['SOURCE', 'PRIMARY_TARGET', 'PREVIOUS_ENTRY_TARGET'])
+)
+export const pathResolutionKindSchema = lazySchema(() => z.enum(['DIRECT', 'ROLL_TABLE']))
+export const pathRollTableKindSchema = lazySchema(() => z.enum(['RANGE', 'EXACT']))
+export const pathLifecycleRecurringKindSchema = lazySchema(() =>
+  z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN'])
+)
+export const pathLifecycleConsumeEventSchema = lazySchema(() =>
+  z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
+)
+export const pathLifecycleEndEventSchema = lazySchema(() =>
+  z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL', 'ON_HIT_POINTS_REGAINED'])
+)
+export const forcedMovementDirectionSchema = lazySchema(() =>
+  z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'CHOICE'])
+)
+export const forcedMovementDistanceModeSchema = lazySchema(() =>
+  z.enum(['UP_TO_SPEED', 'FIXED_DISTANCE'])
+)
+export const forcedMovementActionEconomySchema = lazySchema(() => z.enum(['NONE', 'REACTION']))
 
-export const valueDomainCodeSchema = z.enum([
-  'SPEED',
-  'ATTACK_ROLL',
-  'ARMOR_CLASS',
-  'SAVE_DC',
-  'SAVING_THROW_MODIFIER',
-  'DAMAGE',
-  'CONDITION',
-  'HIT_POINTS_MAX',
-  'TEMPORARY_HIT_POINTS',
-  'RANGE',
-  'DURATION',
-  'SHAPE',
-  'CHARGE_LIMIT',
-  'CHARGE_RESET',
-  'INITIATIVE',
-  'ABILITY_CHECK',
-  'ABILITY_SCORE',
-  'SKILL_MODIFIER',
-  'PROFICIENCY_BONUS',
-  'MOVEMENT_MODE',
-  'SENSE_RANGE',
-  'SPELL_SLOT_COUNT',
-  'SPELL_SLOT_LEVEL_MAX',
-  'SPELLS_KNOWN',
-  'SPELLS_PREPARED',
-  'ACTION_COUNT',
-  'BONUS_ACTION_COUNT',
-  'REACTION_COUNT',
-  'DAMAGE_RESISTANCE',
-  'DAMAGE_IMMUNITY',
-  'DAMAGE_VULNERABILITY',
-  'ATTRIBUTE'
-])
+export const valueDomainCodeSchema = lazySchema(() =>
+  z.enum([
+    'SPEED',
+    'ATTACK_ROLL',
+    'ARMOR_CLASS',
+    'SAVE_DC',
+    'SAVING_THROW_MODIFIER',
+    'DAMAGE',
+    'CONDITION',
+    'HIT_POINTS_MAX',
+    'TEMPORARY_HIT_POINTS',
+    'RANGE',
+    'DURATION',
+    'SHAPE',
+    'CHARGE_LIMIT',
+    'CHARGE_RESET',
+    'INITIATIVE',
+    'ABILITY_CHECK',
+    'ABILITY_SCORE',
+    'SKILL_MODIFIER',
+    'PROFICIENCY_BONUS',
+    'MOVEMENT_MODE',
+    'SENSE_RANGE',
+    'SPELL_SLOT_COUNT',
+    'SPELL_SLOT_LEVEL_MAX',
+    'SPELLS_KNOWN',
+    'SPELLS_PREPARED',
+    'ACTION_COUNT',
+    'BONUS_ACTION_COUNT',
+    'REACTION_COUNT',
+    'DAMAGE_RESISTANCE',
+    'DAMAGE_IMMUNITY',
+    'DAMAGE_VULNERABILITY',
+    'ATTRIBUTE'
+  ])
+)
 
-export const modifierKindSchema = z.enum([
-  'BONUS',
-  'PENALTY',
-  'SET_VALUE',
-  'ABILITY_MODIFIER_BONUS',
-  'ADD_BONUS_DIE',
-  'REPLACE_DAMAGE_TYPE',
-  'ADVANTAGE',
-  'DISADVANTAGE',
-  'ADD_OPTION',
-  'REMOVE_OPTION',
-  'REPLACE_RANGE_KIND',
-  'REPLACE_DURATION_KIND',
-  'REPLACE_SHAPE_KIND',
-  'REPLACE_CHARGE_RESET_KIND',
-  'MODIFY_CHARGE_LIMIT',
-  'OPTIONAL_ABILITY_MODIFIER_BONUS'
-])
+export const modifierKindSchema = lazySchema(() =>
+  z.enum([
+    'BONUS',
+    'PENALTY',
+    'SET_VALUE',
+    'ABILITY_MODIFIER_BONUS',
+    'ADD_BONUS_DIE',
+    'REPLACE_DAMAGE_TYPE',
+    'ADVANTAGE',
+    'DISADVANTAGE',
+    'ADD_OPTION',
+    'REMOVE_OPTION',
+    'REPLACE_RANGE_KIND',
+    'REPLACE_DURATION_KIND',
+    'REPLACE_SHAPE_KIND',
+    'REPLACE_CHARGE_RESET_KIND',
+    'MODIFY_CHARGE_LIMIT',
+    'OPTIONAL_ABILITY_MODIFIER_BONUS'
+  ])
+)
 
-export const modifierScopeKindSchema = z.enum(['GLOBAL', 'SOURCE'])
-export const modifierValueKindSchema = z.enum([
-  'FIXED',
-  'PROFICIENCY_BONUS',
-  'SKILL_BONUS',
-  'CHARACTER_LEVEL',
-  'CLASS_LEVEL',
-  'SPELL_SLOT_LEVEL'
-])
-export const operationCodeSchema = z.enum([
-  'ADD',
-  'SUBTRACT',
-  'MULTIPLY',
-  'DIVIDE',
-  'SET',
-  'REPLACE'
-])
+export const modifierScopeKindSchema = lazySchema(() => z.enum(['GLOBAL', 'SOURCE']))
+export const modifierValueKindSchema = lazySchema(() =>
+  z.enum([
+    'FIXED',
+    'PROFICIENCY_BONUS',
+    'SKILL_BONUS',
+    'CHARACTER_LEVEL',
+    'CLASS_LEVEL',
+    'SPELL_SLOT_LEVEL'
+  ])
+)
+export const operationCodeSchema = lazySchema(() =>
+  z.enum(['ADD', 'SUBTRACT', 'MULTIPLY', 'DIVIDE', 'SET', 'REPLACE'])
+)
 
-export const equipmentCategoryCodeSchema = z.enum([
-  'WEAPON',
-  'ARMOR',
-  'ADVENTURING_GEAR',
-  'TOOL',
-  'SHIELD',
-  'VARIANT'
-])
+export const equipmentCategoryCodeSchema = lazySchema(() =>
+  z.enum(['WEAPON', 'ARMOR', 'ADVENTURING_GEAR', 'TOOL', 'SHIELD', 'VARIANT'])
+)
 
-export const equipmentPropertyCodeSchema = z.enum([
-  'LIGHT',
-  'ONE_HANDED',
-  'TWO_HANDED',
-  'FINESSE',
-  'RANGED',
-  'THROWN',
-  'HEAVY',
-  'LOADING',
-  'AMMUNITION',
-  'REACH',
-  'SPECIAL',
-  'VERSATILE',
-  'MEDIUM',
-  'SIMPLE',
-  'MARTIAL',
-  'MELEE',
-  'FLASK',
-  'VIAL',
-  'POISON',
-  'CONTAINER',
-  'POTION',
-  'SCROLL',
-  'WONDEROUS_ITEM',
-  'ARCANE_FOCUS',
-  'HOLY_SYMBOL',
-  'DRINK',
-  'FOOD',
-  'ARTISANAL_TOOL',
-  'MUSICAL_INSTRUMENT',
-  'GAMING_SET',
-  'DRUIDIC_FOCUS',
-  'PROFESSIONAL_TOOL',
-  'WOOD',
-  'METAL',
-  'MAGIC',
-  'VEX',
-  'CLOTHING'
-])
+export const equipmentPropertyCodeSchema = lazySchema(() =>
+  z.enum([
+    'LIGHT',
+    'ONE_HANDED',
+    'TWO_HANDED',
+    'FINESSE',
+    'RANGED',
+    'THROWN',
+    'HEAVY',
+    'LOADING',
+    'AMMUNITION',
+    'REACH',
+    'SPECIAL',
+    'VERSATILE',
+    'MEDIUM',
+    'SIMPLE',
+    'MARTIAL',
+    'MELEE',
+    'FLASK',
+    'VIAL',
+    'POISON',
+    'CONTAINER',
+    'POTION',
+    'SCROLL',
+    'WONDEROUS_ITEM',
+    'ARCANE_FOCUS',
+    'HOLY_SYMBOL',
+    'DRINK',
+    'FOOD',
+    'ARTISANAL_TOOL',
+    'MUSICAL_INSTRUMENT',
+    'GAMING_SET',
+    'DRUIDIC_FOCUS',
+    'PROFESSIONAL_TOOL',
+    'WOOD',
+    'METAL',
+    'MAGIC',
+    'VEX',
+    'CLOTHING'
+  ])
+)
 
-export const equipmentAttributeCodeSchema = z.enum(['LIMITED_USE', 'STACKABLE'])
+export const equipmentAttributeCodeSchema = lazySchema(() => z.enum(['LIMITED_USE', 'STACKABLE']))
 
-export const equipmentGripSchema = z.enum(['ONE_HANDED', 'TWO_HANDED'])
+export const equipmentGripSchema = lazySchema(() => z.enum(['ONE_HANDED', 'TWO_HANDED']))
 
-export const spellAttributeSchema = z.enum(['CONCENTRATION', 'RITUAL', 'ADDS_TO_WEAPON_ATTACK'])
+export const spellAttributeSchema = lazySchema(() =>
+  z.enum(['CONCENTRATION', 'RITUAL', 'ADDS_TO_WEAPON_ATTACK'])
+)
 
-export const spellComponentSchema = z.enum(['VERBAL', 'SOMATIC', 'MATERIAL'])
+export const spellComponentSchema = lazySchema(() => z.enum(['VERBAL', 'SOMATIC', 'MATERIAL']))

@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
@@ -36,18 +36,20 @@ export function isLiveSessionCaptureBundleAdmission(request: { kind: string }): 
  * One private capture of a room Encounter command's volatile inputs. `request` is the command's
  * admission capture; the bundle adds the reads its planner makes next under the same scope.
  */
-export const liveSessionEncounterCaptureBundleInputSchema = z
-  .extend(liveSessionEncounterRulesInputSchema, {
-    maintenanceDefinitionIds: z
-      .array(postgresUuidSchema)
-      .check(z.maxLength(MAX_BUNDLED_MAINTENANCE_DEFINITIONS))
-  })
-  .check(
-    z.refine(
-      (input) => isLiveSessionCaptureBundleAdmission(input.request),
-      'A capture bundle starts with a command admission.'
+export const liveSessionEncounterCaptureBundleInputSchema = lazySchema(() =>
+  z
+    .extend(liveSessionEncounterRulesInputSchema, {
+      maintenanceDefinitionIds: z
+        .array(postgresUuidSchema)
+        .check(z.maxLength(MAX_BUNDLED_MAINTENANCE_DEFINITIONS))
+    })
+    .check(
+      z.refine(
+        (input) => isLiveSessionCaptureBundleAdmission(input.request),
+        'A capture bundle starts with a command admission.'
+      )
     )
-  )
+)
 
 /**
  * Each part is exactly the response its own capture returns, with its own read checksum and
@@ -56,37 +58,39 @@ export const liveSessionEncounterCaptureBundleInputSchema = z
  * stops before the first part that would fail; the planner then reads that part separately and
  * meets the same refusal.
  */
-export const liveSessionEncounterCaptureBundleSchema = z
-  .strictObject({
-    /** Every part except the Run INPUTS, in read order. */
-    encounter: z
-      .array(
-        z.strictObject({
-          request: liveSessionEncounterRulesRequestSchema,
-          response: liveSessionEncounterRulesResponseSchema
-        })
+export const liveSessionEncounterCaptureBundleSchema = lazySchema(() =>
+  z
+    .strictObject({
+      /** Every part except the Run INPUTS, in read order. */
+      encounter: z
+        .array(
+          z.strictObject({
+            request: liveSessionEncounterRulesRequestSchema,
+            response: liveSessionEncounterRulesResponseSchema
+          })
+        )
+        .check(z.maxLength(2 + MAX_ENCOUNTER_ACTORS * (1 + MAX_BUNDLED_MAINTENANCE_DEFINITIONS))),
+      /** The Run's System; null only when the bundle stopped before the Run INPUTS. */
+      system: z.nullable(systemAuthoredDtoSchema),
+      inputs: z.nullable(z.omit(liveSessionEncounterInputsResponseSchema, { system: true })),
+      characters: z
+        .array(
+          z.strictObject({
+            actorId: postgresUuidSchema,
+            response: z.omit(liveSessionCharacterInputsResponseSchema, { system: true })
+          })
+        )
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+    })
+    .check(
+      z.refine(
+        (bundle) =>
+          (bundle.system === null) === (bundle.inputs === null) &&
+          (bundle.system !== null || bundle.characters.length === 0),
+        'A bundle carries its System exactly when it carries Run inputs.'
       )
-      .check(z.maxLength(2 + MAX_ENCOUNTER_ACTORS * (1 + MAX_BUNDLED_MAINTENANCE_DEFINITIONS))),
-    /** The Run's System; null only when the bundle stopped before the Run INPUTS. */
-    system: z.nullable(systemAuthoredDtoSchema),
-    inputs: z.nullable(z.omit(liveSessionEncounterInputsResponseSchema, { system: true })),
-    characters: z
-      .array(
-        z.strictObject({
-          actorId: postgresUuidSchema,
-          response: z.omit(liveSessionCharacterInputsResponseSchema, { system: true })
-        })
-      )
-      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-  })
-  .check(
-    z.refine(
-      (bundle) =>
-        (bundle.system === null) === (bundle.inputs === null) &&
-        (bundle.system !== null || bundle.characters.length === 0),
-      'A bundle carries its System exactly when it carries Run inputs.'
     )
-  )
+)
 
 export type LiveSessionEncounterCaptureBundleInput = z.infer<
   typeof liveSessionEncounterCaptureBundleInputSchema

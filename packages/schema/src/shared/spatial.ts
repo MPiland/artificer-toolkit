@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 
@@ -48,239 +48,258 @@ function sortedUniqueEnum<T extends string>(values: readonly T[], order: readonl
   )
 }
 
-const spatialPolygonDtoSchema = z
-  .strictObject({
-    kind: z.literal('POLYGON'),
-    points: z.array(pointSchema).check(z.minLength(3)).check(z.maxLength(MAX_SPATIAL_POINTS))
-  })
-  .check(
-    z.superRefine((polygon, context) => {
-      const identities = new Set(polygon.points.map((point) => `${point.x}:${point.y}`))
-      const doubledArea = polygon.points.reduce((area, point, index) => {
-        const next = polygon.points[(index + 1) % polygon.points.length]!
-        return area + point.x * next.y - next.x * point.y
-      }, 0)
-      if (identities.size !== polygon.points.length || Math.abs(doubledArea) <= Number.EPSILON)
-        context.addIssue({
-          code: 'custom',
-          path: ['points'],
-          message: 'Spatial polygons must have distinct non-collinear points.'
-        })
-      for (let left = 0; left < polygon.points.length; left += 1)
-        for (let right = left + 1; right < polygon.points.length; right += 1) {
-          const adjacent = right === left + 1 || (left === 0 && right === polygon.points.length - 1)
-          if (adjacent) continue
-          if (
-            segmentsIntersect(
-              polygon.points[left]!,
-              polygon.points[(left + 1) % polygon.points.length]!,
-              polygon.points[right]!,
-              polygon.points[(right + 1) % polygon.points.length]!
-            )
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['points'],
-              message: 'Spatial polygons may not self-intersect.'
-            })
-        }
+const spatialPolygonDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('POLYGON'),
+      points: z.array(pointSchema).check(z.minLength(3)).check(z.maxLength(MAX_SPATIAL_POINTS))
     })
-  )
+    .check(
+      z.superRefine((polygon, context) => {
+        const identities = new Set(polygon.points.map((point) => `${point.x}:${point.y}`))
+        const doubledArea = polygon.points.reduce((area, point, index) => {
+          const next = polygon.points[(index + 1) % polygon.points.length]!
+          return area + point.x * next.y - next.x * point.y
+        }, 0)
+        if (identities.size !== polygon.points.length || Math.abs(doubledArea) <= Number.EPSILON)
+          context.addIssue({
+            code: 'custom',
+            path: ['points'],
+            message: 'Spatial polygons must have distinct non-collinear points.'
+          })
+        for (let left = 0; left < polygon.points.length; left += 1)
+          for (let right = left + 1; right < polygon.points.length; right += 1) {
+            const adjacent =
+              right === left + 1 || (left === 0 && right === polygon.points.length - 1)
+            if (adjacent) continue
+            if (
+              segmentsIntersect(
+                polygon.points[left]!,
+                polygon.points[(left + 1) % polygon.points.length]!,
+                polygon.points[right]!,
+                polygon.points[(right + 1) % polygon.points.length]!
+              )
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['points'],
+                message: 'Spatial polygons may not self-intersect.'
+              })
+          }
+      })
+    )
+)
 
-export const spatialGeometryDtoSchema = z.discriminatedUnion('kind', [
+export const spatialGeometryDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('CIRCLE'),
+      center: pointSchema,
+      radius: positiveDistanceSchema
+    }),
+    spatialPolygonDtoSchema
+  ])
+)
+
+export const spatialPersistedGeometryDtoSchema = lazySchema(() =>
   z.strictObject({
-    kind: z.literal('CIRCLE'),
-    center: pointSchema,
-    radius: positiveDistanceSchema
-  }),
-  spatialPolygonDtoSchema
-])
-
-export const spatialPersistedGeometryDtoSchema = z.strictObject({
-  frame: z.enum(['SCENE_ABSOLUTE', 'TOKEN_LOCAL']),
-  shape: spatialGeometryDtoSchema
-})
+    frame: z.enum(['SCENE_ABSOLUTE', 'TOKEN_LOCAL']),
+    shape: spatialGeometryDtoSchema
+  })
+)
 
 /**
  * Immutable Encounter/Scene placement. Trigger and movement arrays are already
  * canonical when persisted; parsing never silently changes execution order.
  */
-export const spatialRuleEffectPlacementDtoSchema = z
-  .strictObject({
-    schemaVersion: z.literal(1),
-    anchorKind: z.enum(['FIXED', 'TOKEN']),
-    sourceTokenId: z.nullable(uuidSchema),
-    geometry: spatialPersistedGeometryDtoSchema,
-    triggerModes: z
-      .array(triggerSchema)
-      .check(z.minLength(1))
-      .check(z.maxLength(triggerOrder.length)),
-    movementKinds: z
-      .array(movementSchema)
-      .check(z.minLength(1))
-      .check(z.maxLength(movementOrder.length)),
-    activation: z.enum(['ONE_SHOT', 'REPEATABLE']),
-    visibility: z.enum(['PUBLIC', 'HIDDEN']),
-    revealOnTrigger: z.boolean()
-  })
-  .check(
-    z.superRefine((placement, context) => {
-      if (!sortedUniqueEnum(placement.triggerModes, triggerOrder))
-        context.addIssue({
-          code: 'custom',
-          path: ['triggerModes'],
-          message:
-            'Spatial trigger modes must be unique and use canonical ENTER, EXIT, CROSS order.'
-        })
-      if (!sortedUniqueEnum(placement.movementKinds, movementOrder))
-        context.addIssue({
-          code: 'custom',
-          path: ['movementKinds'],
-          message:
-            'Spatial movement kinds must be unique and use canonical VOLUNTARY, FORCED, TELEPORT order.'
-        })
-      if (
-        (placement.anchorKind === 'FIXED' &&
-          (placement.sourceTokenId !== null || placement.geometry.frame !== 'SCENE_ABSOLUTE')) ||
-        (placement.anchorKind === 'TOKEN' &&
-          (placement.sourceTokenId === null || placement.geometry.frame !== 'TOKEN_LOCAL'))
-      )
-        context.addIssue({
-          code: 'custom',
-          path: ['geometry'],
-          message: 'Spatial anchor, source token, and geometry frame must agree.'
-        })
-      // A public effect is already visible; reveal-on-trigger only applies to hidden effects.
-      if (placement.visibility === 'PUBLIC' && placement.revealOnTrigger)
-        context.addIssue({
-          code: 'custom',
-          path: ['revealOnTrigger'],
-          message: 'Public spatial effects cannot use hidden-only reveal-on-trigger behavior.'
-        })
+export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      schemaVersion: z.literal(1),
+      anchorKind: z.enum(['FIXED', 'TOKEN']),
+      sourceTokenId: z.nullable(uuidSchema),
+      geometry: spatialPersistedGeometryDtoSchema,
+      triggerModes: z
+        .array(triggerSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(triggerOrder.length)),
+      movementKinds: z
+        .array(movementSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(movementOrder.length)),
+      activation: z.enum(['ONE_SHOT', 'REPEATABLE']),
+      visibility: z.enum(['PUBLIC', 'HIDDEN']),
+      revealOnTrigger: z.boolean()
     })
-  )
+    .check(
+      z.superRefine((placement, context) => {
+        if (!sortedUniqueEnum(placement.triggerModes, triggerOrder))
+          context.addIssue({
+            code: 'custom',
+            path: ['triggerModes'],
+            message:
+              'Spatial trigger modes must be unique and use canonical ENTER, EXIT, CROSS order.'
+          })
+        if (!sortedUniqueEnum(placement.movementKinds, movementOrder))
+          context.addIssue({
+            code: 'custom',
+            path: ['movementKinds'],
+            message:
+              'Spatial movement kinds must be unique and use canonical VOLUNTARY, FORCED, TELEPORT order.'
+          })
+        if (
+          (placement.anchorKind === 'FIXED' &&
+            (placement.sourceTokenId !== null || placement.geometry.frame !== 'SCENE_ABSOLUTE')) ||
+          (placement.anchorKind === 'TOKEN' &&
+            (placement.sourceTokenId === null || placement.geometry.frame !== 'TOKEN_LOCAL'))
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['geometry'],
+            message: 'Spatial anchor, source token, and geometry frame must agree.'
+          })
+        // A public effect is already visible; reveal-on-trigger only applies to hidden effects.
+        if (placement.visibility === 'PUBLIC' && placement.revealOnTrigger)
+          context.addIssue({
+            code: 'custom',
+            path: ['revealOnTrigger'],
+            message: 'Public spatial effects cannot use hidden-only reveal-on-trigger behavior.'
+          })
+      })
+    )
+)
 
 /** Mutable presentation state; execution lifecycle remains separately frozen. */
-export const spatialRuleEffectStateDtoSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  revealed: z.boolean()
-})
+export const spatialRuleEffectStateDtoSchema = lazySchema(() =>
+  z.strictObject({
+    schemaVersion: z.literal(1),
+    revealed: z.boolean()
+  })
+)
 
 /**
  * Aggregate-owned spatial root state. A target actor is intentionally absent
  * until a contact candidate is evaluated by the shared effect executor.
  */
-export const spatialRuleEffectCurrentStateDtoSchema = z
-  .strictObject({
-    definition: activeRuleEffectDefinitionDtoSchema,
-    lifecycle: activeRuleEffectLifecycleDtoSchema,
-    placement: spatialRuleEffectPlacementDtoSchema,
-    spatialState: spatialRuleEffectStateDtoSchema
-  })
-  .check(
-    z.superRefine((current, context) => {
-      if (current.placement.visibility === 'PUBLIC' && !current.spatialState.revealed)
-        context.addIssue({
-          code: 'custom',
-          path: ['spatialState', 'revealed'],
-          message: 'Public spatial effects must remain revealed.'
-        })
+export const spatialRuleEffectCurrentStateDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      definition: activeRuleEffectDefinitionDtoSchema,
+      lifecycle: activeRuleEffectLifecycleDtoSchema,
+      placement: spatialRuleEffectPlacementDtoSchema,
+      spatialState: spatialRuleEffectStateDtoSchema
     })
-  )
-
-export const spatialEffectInstanceDtoSchema = z
-  .strictObject({
-    effectId: uuidSchema,
-    sourceActorId: z.nullable(uuidSchema),
-    sourceTokenId: z.nullable(uuidSchema),
-    anchorKind: z.enum(['FIXED', 'TOKEN']),
-    geometry: spatialPersistedGeometryDtoSchema,
-    triggerModes: z.array(triggerSchema).check(z.minLength(1)).check(z.maxLength(3)),
-    movementKinds: z.array(movementSchema).check(z.minLength(1)).check(z.maxLength(3))
-  })
-  .check(
-    z.superRefine((effect, context) => {
-      if (new Set(effect.triggerModes).size !== effect.triggerModes.length)
-        context.addIssue({
-          code: 'custom',
-          path: ['triggerModes'],
-          message: 'Spatial trigger modes must be unique.'
-        })
-      if (new Set(effect.movementKinds).size !== effect.movementKinds.length)
-        context.addIssue({
-          code: 'custom',
-          path: ['movementKinds'],
-          message: 'Spatial movement kinds must be unique.'
-        })
-      if (
-        (effect.anchorKind === 'FIXED' &&
-          (effect.sourceTokenId !== null || effect.geometry.frame !== 'SCENE_ABSOLUTE')) ||
-        (effect.anchorKind === 'TOKEN' &&
-          (effect.sourceTokenId === null || effect.geometry.frame !== 'TOKEN_LOCAL'))
-      )
-        context.addIssue({
-          code: 'custom',
-          path: ['geometry'],
-          message: 'Spatial anchor, source token, and geometry frame must agree.'
-        })
-    })
-  )
-
-export const spatialSceneTokenDtoSchema = z.strictObject({
-  id: uuidSchema,
-  actorId: z.nullable(uuidSchema),
-  position: pointSchema,
-  width: positiveDistanceSchema,
-  height: positiveDistanceSchema
-})
-
-export const spatialMovementCandidateInputDtoSchema = z
-  .strictObject({
-    effects: z.array(spatialEffectInstanceDtoSchema).check(z.maxLength(MAX_SPATIAL_CANDIDATES)),
-    movementKind: movementSchema,
-    path: z.array(pointSchema).check(z.minLength(2)).check(z.maxLength(MAX_SPATIAL_PATH_POINTS)),
-    tokens: z
-      .array(spatialSceneTokenDtoSchema)
-      .check(z.minLength(1))
-      .check(z.maxLength(MAX_SPATIAL_CANDIDATES)),
-    movingTokenId: uuidSchema
-  })
-  .check(
-    z.superRefine((input, context) => {
-      if (new Set(input.effects.map((effect) => effect.effectId)).size !== input.effects.length)
-        context.addIssue({
-          code: 'custom',
-          path: ['effects'],
-          message: 'Spatial effect IDs must be unique.'
-        })
-      if (new Set(input.tokens.map((token) => token.id)).size !== input.tokens.length)
-        context.addIssue({
-          code: 'custom',
-          path: ['tokens'],
-          message: 'Spatial token IDs must be unique.'
-        })
-      const tokenIds = new Set(input.tokens.map((token) => token.id))
-      if (!tokenIds.has(input.movingTokenId))
-        context.addIssue({
-          code: 'custom',
-          path: ['movingTokenId'],
-          message: 'Spatial movement must identify a supplied scene token.'
-        })
-      for (const [index, effect] of input.effects.entries())
-        if (effect.sourceTokenId !== null && !tokenIds.has(effect.sourceTokenId))
+    .check(
+      z.superRefine((current, context) => {
+        if (current.placement.visibility === 'PUBLIC' && !current.spatialState.revealed)
           context.addIssue({
             code: 'custom',
-            path: ['effects', index, 'sourceTokenId'],
-            message: 'Token-anchored spatial effects must reference a supplied scene token.'
+            path: ['spatialState', 'revealed'],
+            message: 'Public spatial effects must remain revealed.'
           })
-      if (input.movementKind === 'TELEPORT' && input.path.length !== 2)
-        context.addIssue({
-          code: 'custom',
-          path: ['path'],
-          message: 'Teleport movement requires exactly its origin and destination.'
-        })
+      })
+    )
+)
+
+export const spatialEffectInstanceDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      effectId: uuidSchema,
+      sourceActorId: z.nullable(uuidSchema),
+      sourceTokenId: z.nullable(uuidSchema),
+      anchorKind: z.enum(['FIXED', 'TOKEN']),
+      geometry: spatialPersistedGeometryDtoSchema,
+      triggerModes: z.array(triggerSchema).check(z.minLength(1)).check(z.maxLength(3)),
+      movementKinds: z.array(movementSchema).check(z.minLength(1)).check(z.maxLength(3))
     })
-  )
+    .check(
+      z.superRefine((effect, context) => {
+        if (new Set(effect.triggerModes).size !== effect.triggerModes.length)
+          context.addIssue({
+            code: 'custom',
+            path: ['triggerModes'],
+            message: 'Spatial trigger modes must be unique.'
+          })
+        if (new Set(effect.movementKinds).size !== effect.movementKinds.length)
+          context.addIssue({
+            code: 'custom',
+            path: ['movementKinds'],
+            message: 'Spatial movement kinds must be unique.'
+          })
+        if (
+          (effect.anchorKind === 'FIXED' &&
+            (effect.sourceTokenId !== null || effect.geometry.frame !== 'SCENE_ABSOLUTE')) ||
+          (effect.anchorKind === 'TOKEN' &&
+            (effect.sourceTokenId === null || effect.geometry.frame !== 'TOKEN_LOCAL'))
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['geometry'],
+            message: 'Spatial anchor, source token, and geometry frame must agree.'
+          })
+      })
+    )
+)
+
+export const spatialSceneTokenDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    actorId: z.nullable(uuidSchema),
+    position: pointSchema,
+    width: positiveDistanceSchema,
+    height: positiveDistanceSchema
+  })
+)
+
+export const spatialMovementCandidateInputDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      effects: z.array(spatialEffectInstanceDtoSchema).check(z.maxLength(MAX_SPATIAL_CANDIDATES)),
+      movementKind: movementSchema,
+      path: z.array(pointSchema).check(z.minLength(2)).check(z.maxLength(MAX_SPATIAL_PATH_POINTS)),
+      tokens: z
+        .array(spatialSceneTokenDtoSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_SPATIAL_CANDIDATES)),
+      movingTokenId: uuidSchema
+    })
+    .check(
+      z.superRefine((input, context) => {
+        if (new Set(input.effects.map((effect) => effect.effectId)).size !== input.effects.length)
+          context.addIssue({
+            code: 'custom',
+            path: ['effects'],
+            message: 'Spatial effect IDs must be unique.'
+          })
+        if (new Set(input.tokens.map((token) => token.id)).size !== input.tokens.length)
+          context.addIssue({
+            code: 'custom',
+            path: ['tokens'],
+            message: 'Spatial token IDs must be unique.'
+          })
+        const tokenIds = new Set(input.tokens.map((token) => token.id))
+        if (!tokenIds.has(input.movingTokenId))
+          context.addIssue({
+            code: 'custom',
+            path: ['movingTokenId'],
+            message: 'Spatial movement must identify a supplied scene token.'
+          })
+        for (const [index, effect] of input.effects.entries())
+          if (effect.sourceTokenId !== null && !tokenIds.has(effect.sourceTokenId))
+            context.addIssue({
+              code: 'custom',
+              path: ['effects', index, 'sourceTokenId'],
+              message: 'Token-anchored spatial effects must reference a supplied scene token.'
+            })
+        if (input.movementKind === 'TELEPORT' && input.path.length !== 2)
+          context.addIssue({
+            code: 'custom',
+            path: ['path'],
+            message: 'Teleport movement requires exactly its origin and destination.'
+          })
+      })
+    )
+)
 
 export type SpatialGeometryDto = z.infer<typeof spatialGeometryDtoSchema>
 export type SpatialPersistedGeometryDto = z.infer<typeof spatialPersistedGeometryDtoSchema>

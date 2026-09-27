@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import {
   activeRuleEffectDefinitionDtoSchema,
@@ -14,41 +14,45 @@ import {
   activeRuleEffectTimestampSchema
 } from './activeRuleEffectStorage.js'
 
-export const encounterSpatialRuleEffectStoredSchema = z.strictObject({
-  id: postgresUuidSchema,
-  encounterId: postgresUuidSchema,
-  sceneId: postgresUuidSchema,
-  createdOrdinal: z.number().check(z.int()).check(z.positive()),
-  version: z.number().check(z.int()).check(z.positive()),
-  definitionJson: z.string(),
-  definitionChecksum: activeRuleEffectChecksumSchema,
-  lifecycle: activeRuleEffectLifecycleDtoSchema,
-  lifecycleChecksum: activeRuleEffectChecksumSchema,
-  placement: spatialRuleEffectPlacementDtoSchema,
-  placementChecksum: activeRuleEffectChecksumSchema,
-  spatialState: spatialRuleEffectStateDtoSchema,
-  spatialStateChecksum: activeRuleEffectChecksumSchema,
-  createdAt: activeRuleEffectTimestampSchema,
-  updatedAt: activeRuleEffectTimestampSchema
-})
+export const encounterSpatialRuleEffectStoredSchema = lazySchema(() =>
+  z.strictObject({
+    id: postgresUuidSchema,
+    encounterId: postgresUuidSchema,
+    sceneId: postgresUuidSchema,
+    createdOrdinal: z.number().check(z.int()).check(z.positive()),
+    version: z.number().check(z.int()).check(z.positive()),
+    definitionJson: z.string(),
+    definitionChecksum: activeRuleEffectChecksumSchema,
+    lifecycle: activeRuleEffectLifecycleDtoSchema,
+    lifecycleChecksum: activeRuleEffectChecksumSchema,
+    placement: spatialRuleEffectPlacementDtoSchema,
+    placementChecksum: activeRuleEffectChecksumSchema,
+    spatialState: spatialRuleEffectStateDtoSchema,
+    spatialStateChecksum: activeRuleEffectChecksumSchema,
+    createdAt: activeRuleEffectTimestampSchema,
+    updatedAt: activeRuleEffectTimestampSchema
+  })
+)
 
-export const encounterSpatialRuleEffectRecordSchema = z.strictObject({
-  id: postgresUuidSchema,
-  encounterId: postgresUuidSchema,
-  sceneId: postgresUuidSchema,
-  createdOrdinal: z.number().check(z.int()).check(z.positive()),
-  version: z.number().check(z.int()).check(z.positive()),
-  definition: activeRuleEffectDefinitionDtoSchema,
-  definitionChecksum: activeRuleEffectChecksumSchema,
-  lifecycle: activeRuleEffectLifecycleDtoSchema,
-  lifecycleChecksum: activeRuleEffectChecksumSchema,
-  placement: spatialRuleEffectPlacementDtoSchema,
-  placementChecksum: activeRuleEffectChecksumSchema,
-  spatialState: spatialRuleEffectStateDtoSchema,
-  spatialStateChecksum: activeRuleEffectChecksumSchema,
-  createdAt: activeRuleEffectTimestampSchema,
-  updatedAt: activeRuleEffectTimestampSchema
-})
+export const encounterSpatialRuleEffectRecordSchema = lazySchema(() =>
+  z.strictObject({
+    id: postgresUuidSchema,
+    encounterId: postgresUuidSchema,
+    sceneId: postgresUuidSchema,
+    createdOrdinal: z.number().check(z.int()).check(z.positive()),
+    version: z.number().check(z.int()).check(z.positive()),
+    definition: activeRuleEffectDefinitionDtoSchema,
+    definitionChecksum: activeRuleEffectChecksumSchema,
+    lifecycle: activeRuleEffectLifecycleDtoSchema,
+    lifecycleChecksum: activeRuleEffectChecksumSchema,
+    placement: spatialRuleEffectPlacementDtoSchema,
+    placementChecksum: activeRuleEffectChecksumSchema,
+    spatialState: spatialRuleEffectStateDtoSchema,
+    spatialStateChecksum: activeRuleEffectChecksumSchema,
+    createdAt: activeRuleEffectTimestampSchema,
+    updatedAt: activeRuleEffectTimestampSchema
+  })
+)
 
 export type EncounterSpatialRuleEffectStored = z.infer<
   typeof encounterSpatialRuleEffectStoredSchema

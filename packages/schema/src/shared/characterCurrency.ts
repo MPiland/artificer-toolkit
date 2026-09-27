@@ -1,29 +1,32 @@
 import type { CharacterSheetCurrencyOptionDto } from '../api/characterSheetData.js'
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 /** Absent qualification preserves legacy holdings; new acquisition producers supply an explicit kind. */
-export const characterCurrencyQualificationDtoSchema = z
-  .object({
-    kind: z.optional(z.enum(['RULESET', 'CAMPAIGN'])),
-    campaignCurrencySystemId: z.optional(z.string().check(z.uuid()))
-  })
-  .check(
-    z.refine(
-      ({ kind, campaignCurrencySystemId }) =>
-        kind === 'CAMPAIGN'
-          ? campaignCurrencySystemId !== undefined
-          : campaignCurrencySystemId === undefined,
-      { message: 'Campaign currency requires its system; other currency cannot carry one.' }
+export const characterCurrencyQualificationDtoSchema = lazySchema(() =>
+  z
+    .object({
+      kind: z.optional(z.enum(['RULESET', 'CAMPAIGN'])),
+      campaignCurrencySystemId: z.optional(z.string().check(z.uuid()))
+    })
+    .check(
+      z.refine(
+        ({ kind, campaignCurrencySystemId }) =>
+          kind === 'CAMPAIGN'
+            ? campaignCurrencySystemId !== undefined
+            : campaignCurrencySystemId === undefined,
+        { message: 'Campaign currency requires its system; other currency cannot carry one.' }
+      )
     )
-  )
-
-export const characterCurrencyIdentityDtoSchema = z.extend(
-  characterCurrencyQualificationDtoSchema,
-  { currencyId: z.string() }
 )
-export const characterCurrencyAmountDtoSchema = z.extend(characterCurrencyIdentityDtoSchema, {
-  amount: z.number().check(z.int()).check(z.nonnegative())
-})
+
+export const characterCurrencyIdentityDtoSchema = lazySchema(() =>
+  z.extend(characterCurrencyQualificationDtoSchema, { currencyId: z.string() })
+)
+export const characterCurrencyAmountDtoSchema = lazySchema(() =>
+  z.extend(characterCurrencyIdentityDtoSchema, {
+    amount: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
 export type CharacterCurrencyIdentityDto = z.infer<typeof characterCurrencyIdentityDtoSchema>
 
 type CharacterCurrencyIdentityInput = Pick<CharacterCurrencyIdentityDto, 'currencyId'> &

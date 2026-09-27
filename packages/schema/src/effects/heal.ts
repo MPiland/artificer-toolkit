@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   abilityModifierReferenceSchema,
   scalingKindSchema,
@@ -11,171 +11,181 @@ import {
   authoredNonnegativeNumberSchema
 } from '../shared/authoredLimits.js'
 
-const healBonusDtoSchema = z.discriminatedUnion('bonusKind', [
-  z.object({
-    id: authoredIdentifierSchema,
-    bonusKind: z.literal('ABILITY_BONUS'),
-    ability: abilityModifierReferenceSchema,
-    min: z.optional(authoredNonnegativeNumberSchema),
-    max: z.optional(authoredNonnegativeNumberSchema),
-    multiplier: z.optional(authoredNonnegativeNumberSchema),
-    order: z.number().check(z.int())
-  }),
-  z.object({
-    id: authoredIdentifierSchema,
-    bonusKind: z.literal('PROFICIENCY_BONUS'),
-    min: z.optional(authoredNonnegativeNumberSchema),
-    max: z.optional(authoredNonnegativeNumberSchema),
-    multiplier: z.optional(authoredNonnegativeNumberSchema),
-    order: z.number().check(z.int())
-  }),
-  z.object({
-    id: authoredIdentifierSchema,
-    bonusKind: z.literal('CLASS_LEVEL'),
-    classId: authoredIdentifierSchema,
-    min: z.optional(authoredNonnegativeNumberSchema),
-    max: z.optional(authoredNonnegativeNumberSchema),
-    multiplier: z.optional(authoredNonnegativeNumberSchema),
-    order: z.number().check(z.int())
-  })
-])
+const healBonusDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('bonusKind', [
+    z.object({
+      id: authoredIdentifierSchema,
+      bonusKind: z.literal('ABILITY_BONUS'),
+      ability: abilityModifierReferenceSchema,
+      min: z.optional(authoredNonnegativeNumberSchema),
+      max: z.optional(authoredNonnegativeNumberSchema),
+      multiplier: z.optional(authoredNonnegativeNumberSchema),
+      order: z.number().check(z.int())
+    }),
+    z.object({
+      id: authoredIdentifierSchema,
+      bonusKind: z.literal('PROFICIENCY_BONUS'),
+      min: z.optional(authoredNonnegativeNumberSchema),
+      max: z.optional(authoredNonnegativeNumberSchema),
+      multiplier: z.optional(authoredNonnegativeNumberSchema),
+      order: z.number().check(z.int())
+    }),
+    z.object({
+      id: authoredIdentifierSchema,
+      bonusKind: z.literal('CLASS_LEVEL'),
+      classId: authoredIdentifierSchema,
+      min: z.optional(authoredNonnegativeNumberSchema),
+      max: z.optional(authoredNonnegativeNumberSchema),
+      multiplier: z.optional(authoredNonnegativeNumberSchema),
+      order: z.number().check(z.int())
+    })
+  ])
+)
 
-const healFixedDtoSchema = z.union([
-  z.object({
-    amount: z.number(),
-    valueKind: z.literal('FIXED'),
-    scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
-  }),
-  z
-    .object({
+const healFixedDtoSchema = lazySchema(() =>
+  z.union([
+    z.object({
+      amount: z.number(),
       valueKind: z.literal('FIXED'),
-      scalingKind: z.literal(scalingKindSchema._zod.def.entries.PER_LEVEL),
-      levels: authoredNestedCollectionSchema(
-        z.extend(levelScaledValueLevelDtoSchema, { amount: z.number() })
-      ),
-      scalingSource: scalingSourceSchema,
-      classId: z.optional(authoredIdentifierSchema)
-    })
-    .check(
-      z.superRefine((value, ctx) => {
-        if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'classId is required for CLASS_LEVEL scaling'
-          })
-        }
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
+    }),
+    z
+      .object({
+        valueKind: z.literal('FIXED'),
+        scalingKind: z.literal(scalingKindSchema._zod.def.entries.PER_LEVEL),
+        levels: authoredNestedCollectionSchema(
+          z.extend(levelScaledValueLevelDtoSchema, { amount: z.number() })
+        ),
+        scalingSource: scalingSourceSchema,
+        classId: z.optional(authoredIdentifierSchema)
       })
-    ),
-  z
-    .object({
-      valueKind: z.literal('FIXED'),
-      scalingKind: z.literal('BREAKPOINTS'),
-      breakpoints: authoredNestedCollectionSchema(
-        z.extend(levelScaledValueLevelDtoSchema, { value: z.object({ amount: z.number() }) })
-      ),
-      scalingSource: scalingSourceSchema,
-      classId: z.optional(authoredIdentifierSchema)
-    })
-    .check(
-      z.superRefine((value, ctx) => {
-        if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'classId is required for CLASS_LEVEL scaling'
-          })
-        }
-      })
-    )
-])
-
-const healDiceDtoSchema = z.union([
-  z.object({
-    diceConfig: authoredIdentifierSchema,
-    valueKind: z.literal('DICE'),
-    scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
-  }),
-  z
-    .object({
-      valueKind: z.literal('DICE'),
-      scalingKind: z.literal(scalingKindSchema._zod.def.entries.PER_LEVEL),
-      levels: authoredNestedCollectionSchema(
-        z.extend(levelScaledValueLevelDtoSchema, { diceConfig: authoredIdentifierSchema })
-      ),
-      scalingSource: scalingSourceSchema,
-      classId: z.optional(authoredIdentifierSchema)
-    })
-    .check(
-      z.superRefine((value, ctx) => {
-        if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'classId is required for CLASS_LEVEL scaling'
-          })
-        }
-      })
-    ),
-  z
-    .object({
-      valueKind: z.literal('DICE'),
-      scalingKind: z.literal('BREAKPOINTS'),
-      breakpoints: authoredNestedCollectionSchema(
-        z.extend(levelScaledValueLevelDtoSchema, {
-          value: z.object({ diceConfig: authoredIdentifierSchema })
+      .check(
+        z.superRefine((value, ctx) => {
+          if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'classId is required for CLASS_LEVEL scaling'
+            })
+          }
         })
       ),
-      scalingSource: scalingSourceSchema,
-      classId: z.optional(authoredIdentifierSchema)
-    })
-    .check(
-      z.superRefine((value, ctx) => {
-        if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'classId is required for CLASS_LEVEL scaling'
-          })
-        }
+    z
+      .object({
+        valueKind: z.literal('FIXED'),
+        scalingKind: z.literal('BREAKPOINTS'),
+        breakpoints: authoredNestedCollectionSchema(
+          z.extend(levelScaledValueLevelDtoSchema, { value: z.object({ amount: z.number() }) })
+        ),
+        scalingSource: scalingSourceSchema,
+        classId: z.optional(authoredIdentifierSchema)
       })
-    )
-])
+      .check(
+        z.superRefine((value, ctx) => {
+          if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'classId is required for CLASS_LEVEL scaling'
+            })
+          }
+        })
+      )
+  ])
+)
 
-const healPoolDtoSchema = z.union([
-  z.object({
-    amount: z.number(),
-    valueKind: z.literal('POOL'),
-    scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
-  }),
-  z
-    .object({
+const healDiceDtoSchema = lazySchema(() =>
+  z.union([
+    z.object({
+      diceConfig: authoredIdentifierSchema,
+      valueKind: z.literal('DICE'),
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
+    }),
+    z
+      .object({
+        valueKind: z.literal('DICE'),
+        scalingKind: z.literal(scalingKindSchema._zod.def.entries.PER_LEVEL),
+        levels: authoredNestedCollectionSchema(
+          z.extend(levelScaledValueLevelDtoSchema, { diceConfig: authoredIdentifierSchema })
+        ),
+        scalingSource: scalingSourceSchema,
+        classId: z.optional(authoredIdentifierSchema)
+      })
+      .check(
+        z.superRefine((value, ctx) => {
+          if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'classId is required for CLASS_LEVEL scaling'
+            })
+          }
+        })
+      ),
+    z
+      .object({
+        valueKind: z.literal('DICE'),
+        scalingKind: z.literal('BREAKPOINTS'),
+        breakpoints: authoredNestedCollectionSchema(
+          z.extend(levelScaledValueLevelDtoSchema, {
+            value: z.object({ diceConfig: authoredIdentifierSchema })
+          })
+        ),
+        scalingSource: scalingSourceSchema,
+        classId: z.optional(authoredIdentifierSchema)
+      })
+      .check(
+        z.superRefine((value, ctx) => {
+          if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'classId is required for CLASS_LEVEL scaling'
+            })
+          }
+        })
+      )
+  ])
+)
+
+const healPoolDtoSchema = lazySchema(() =>
+  z.union([
+    z.object({
+      amount: z.number(),
       valueKind: z.literal('POOL'),
-      scalingKind: z.literal(scalingKindSchema._zod.def.entries.PER_LEVEL),
-      scalingSource: scalingSourceSchema,
-      classId: z.optional(authoredIdentifierSchema),
-      amount: z.optional(z.number()),
-      multiplier: z.optional(z.number()),
-      min: z.optional(z.number()),
-      max: z.optional(z.number()),
-      temporary: z.optional(z.boolean())
-    })
-    .check(
-      z.superRefine((value, ctx) => {
-        if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'classId is required for CLASS_LEVEL scaling'
-          })
-        }
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
+    }),
+    z
+      .object({
+        valueKind: z.literal('POOL'),
+        scalingKind: z.literal(scalingKindSchema._zod.def.entries.PER_LEVEL),
+        scalingSource: scalingSourceSchema,
+        classId: z.optional(authoredIdentifierSchema),
+        amount: z.optional(z.number()),
+        multiplier: z.optional(z.number()),
+        min: z.optional(z.number()),
+        max: z.optional(z.number()),
+        temporary: z.optional(z.boolean())
       })
-    )
-])
+      .check(
+        z.superRefine((value, ctx) => {
+          if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'classId is required for CLASS_LEVEL scaling'
+            })
+          }
+        })
+      )
+  ])
+)
 
-export const healDtoSchema = z.intersection(
-  z.object({
-    id: authoredIdentifierSchema,
-    effectKind: z.literal('HEAL'),
-    temporary: z.optional(z.boolean()),
-    bonuses: z.optional(authoredNestedCollectionSchema(healBonusDtoSchema))
-  }),
-  z.union([healFixedDtoSchema, healDiceDtoSchema, healPoolDtoSchema])
+export const healDtoSchema = lazySchema(() =>
+  z.intersection(
+    z.object({
+      id: authoredIdentifierSchema,
+      effectKind: z.literal('HEAL'),
+      temporary: z.optional(z.boolean()),
+      bonuses: z.optional(authoredNestedCollectionSchema(healBonusDtoSchema))
+    }),
+    z.union([healFixedDtoSchema, healDiceDtoSchema, healPoolDtoSchema])
+  )
 )
 
 export type HealDto = z.infer<typeof healDtoSchema>

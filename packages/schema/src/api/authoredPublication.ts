@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import { authoredSubjectKindSchema, projectionChecksumSchema } from '../projections/identity.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { authoredDraftLookupInputSchema } from './authoredDrafts.js'
@@ -21,78 +21,94 @@ export type AuthoredPublicationDocument =
   | { subjectKind: 'SPELL'; document: SpellAuthoredDto }
   | { subjectKind: 'VEHICLE'; document: VehicleAuthoredDto }
 
-export const authoredPublishDraftInputSchema = z.strictObject({
-  subjectKind: z.enum([
-    'BACKGROUND',
-    'CLASS',
-    'CREATURE',
-    'EQUIPMENT',
-    'FEAT',
-    'RACE',
-    'SPELL',
-    'VEHICLE'
-  ]),
-  subjectId: z.pipe(
-    z.uuid(),
-    z.transform((value) => value.toLowerCase())
-  ),
-  expectedDraftUpdatedAt: z.iso.datetime()
-})
-
-export const authoredDeleteActiveInputSchema = z.extend(authoredDraftLookupInputSchema, {
-  subjectKind: authoredPublishDraftInputSchema.shape.subjectKind
-})
-
-export const authoredPublicationNameErrorSchema = z.discriminatedUnion('code', [
+export const authoredPublishDraftInputSchema = lazySchema(() =>
   z.strictObject({
-    code: z.literal('ACTIVE_NAME_CONFLICT'),
-    scope: z.enum(['DOMAIN', 'PARENT_CLASS'])
-  }),
-  z.strictObject({ code: z.literal('ACTIVE_NAME_INDEX_INCOMPLETE') })
-])
+    subjectKind: z.enum([
+      'BACKGROUND',
+      'CLASS',
+      'CREATURE',
+      'EQUIPMENT',
+      'FEAT',
+      'RACE',
+      'SPELL',
+      'VEHICLE'
+    ]),
+    subjectId: z.pipe(
+      z.uuid(),
+      z.transform((value) => value.toLowerCase())
+    ),
+    expectedDraftUpdatedAt: z.iso.datetime()
+  })
+)
 
-export const authoredPublicationNameBackfillInputSchema = z.strictObject({
-  ownerUserId: z.pipe(
-    z.uuid(),
-    z.transform((value) => value.toLowerCase())
-  ),
-  systemId: postgresUuidSchema,
-  subjectKind: authoredPublishDraftInputSchema.shape.subjectKind,
-  cursor: z.nullable(z.string())
-})
+export const authoredDeleteActiveInputSchema = lazySchema(() =>
+  z.extend(authoredDraftLookupInputSchema, {
+    subjectKind: authoredPublishDraftInputSchema.shape.subjectKind
+  })
+)
 
-export const authoredPublicationNameBackfillResultSchema = z.strictObject({
-  processed: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2)),
-  continueCursor: z.string(),
-  isDone: z.boolean()
-})
+export const authoredPublicationNameErrorSchema = lazySchema(() =>
+  z.discriminatedUnion('code', [
+    z.strictObject({
+      code: z.literal('ACTIVE_NAME_CONFLICT'),
+      scope: z.enum(['DOMAIN', 'PARENT_CLASS'])
+    }),
+    z.strictObject({ code: z.literal('ACTIVE_NAME_INDEX_INCOMPLETE') })
+  ])
+)
 
-export const authoredPublicationResultSchema = z.strictObject({
-  subjectKind: authoredSubjectKindSchema,
-  subjectId: z.uuid(),
-  publicId: z.string().check(z.minLength(1)),
-  checksum: projectionChecksumSchema,
-  activeUpdatedAt: z.iso.datetime()
-})
+export const authoredPublicationNameBackfillInputSchema = lazySchema(() =>
+  z.strictObject({
+    ownerUserId: z.pipe(
+      z.uuid(),
+      z.transform((value) => value.toLowerCase())
+    ),
+    systemId: postgresUuidSchema,
+    subjectKind: authoredPublishDraftInputSchema.shape.subjectKind,
+    cursor: z.nullable(z.string())
+  })
+)
+
+export const authoredPublicationNameBackfillResultSchema = lazySchema(() =>
+  z.strictObject({
+    processed: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2)),
+    continueCursor: z.string(),
+    isDone: z.boolean()
+  })
+)
+
+export const authoredPublicationResultSchema = lazySchema(() =>
+  z.strictObject({
+    subjectKind: authoredSubjectKindSchema,
+    subjectId: z.uuid(),
+    publicId: z.string().check(z.minLength(1)),
+    checksum: projectionChecksumSchema,
+    activeUpdatedAt: z.iso.datetime()
+  })
+)
 
 // Server-produced current compilation, not source history or a client-editable plan.
-export const authoredStoredCompilationSchema = z.strictObject({
-  compilerVersion: z.literal('subject-compiler-v1'),
-  projectionSchemaVersion: z.literal(1),
-  authoredChecksum: projectionChecksumSchema,
-  projectionChecksum: projectionChecksumSchema,
-  projectionJson: z.string()
-})
+export const authoredStoredCompilationSchema = lazySchema(() =>
+  z.strictObject({
+    compilerVersion: z.literal('subject-compiler-v1'),
+    projectionSchemaVersion: z.literal(1),
+    authoredChecksum: projectionChecksumSchema,
+    projectionChecksum: projectionChecksumSchema,
+    projectionJson: z.string()
+  })
+)
 
 /** Current read dependency; this does not pin future Character invocations to a publication. */
-export const authoredCurrentSourceIdentitySchema = z.strictObject({
-  subjectKind: authoredPublishDraftInputSchema.shape.subjectKind,
-  subjectId: postgresUuidSchema,
-  systemId: postgresUuidSchema,
-  contentSourceId: postgresUuidSchema,
-  versionId: z.string().check(z.minLength(1)),
-  checksum: projectionChecksumSchema
-})
+export const authoredCurrentSourceIdentitySchema = lazySchema(() =>
+  z.strictObject({
+    subjectKind: authoredPublishDraftInputSchema.shape.subjectKind,
+    subjectId: postgresUuidSchema,
+    systemId: postgresUuidSchema,
+    contentSourceId: postgresUuidSchema,
+    versionId: z.string().check(z.minLength(1)),
+    checksum: projectionChecksumSchema
+  })
+)
 
 export type AuthoredCurrentSourceIdentity = z.infer<typeof authoredCurrentSourceIdentitySchema>
 

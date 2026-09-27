@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { chargeUseDtoSchema } from '../shared/charge.js'
 import {
@@ -13,40 +13,45 @@ import {
   validateGrantProgressionSelectionFields
 } from './grant.js'
 
-const senseGrantTargetDtoSchema = z.union([
-  z.object({
-    authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
-  }),
-  z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
-    senseIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-  })
-])
-const senseGrantProgressionFieldsDtoSchema =
+const senseGrantTargetDtoSchema = lazySchema(() =>
+  z.union([
+    z.object({
+      authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+    }),
+    z.object({
+      authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
+      senseIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+    })
+  ])
+)
+const senseGrantProgressionFieldsDtoSchema = lazySchema(() =>
   createGrantProgressionFieldsDtoSchema(senseGrantTargetDtoSchema)
+)
 
-export const senseGrantDtoSchema = z
-  .intersection(
-    z.intersection(
-      z.extend(scalingGrantBaseDtoSchema, {
-        grantKind: z.literal('SENSE_GRANT'),
-        charges: z.optional(chargeUseDtoSchema),
-        range: z.optional(rangeDtoSchema)
-      }),
-      senseGrantTargetDtoSchema
-    ),
-    z.union([
-      z.object({
-        scalingKind: z.literal('NONE')
-      }),
+export const senseGrantDtoSchema = lazySchema(() =>
+  z
+    .intersection(
       z.intersection(
-        z.object({
-          scalingKind: z.literal('PER_LEVEL')
+        z.extend(scalingGrantBaseDtoSchema, {
+          grantKind: z.literal('SENSE_GRANT'),
+          charges: z.optional(chargeUseDtoSchema),
+          range: z.optional(rangeDtoSchema)
         }),
-        senseGrantProgressionFieldsDtoSchema
-      )
-    ])
-  )
-  .check(z.superRefine(validateGrantProgressionSelectionFields))
+        senseGrantTargetDtoSchema
+      ),
+      z.union([
+        z.object({
+          scalingKind: z.literal('NONE')
+        }),
+        z.intersection(
+          z.object({
+            scalingKind: z.literal('PER_LEVEL')
+          }),
+          senseGrantProgressionFieldsDtoSchema
+        )
+      ])
+    )
+    .check(z.superRefine(validateGrantProgressionSelectionFields))
+)
 
 export type SenseGrantDto = z.infer<typeof senseGrantDtoSchema>

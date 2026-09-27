@@ -7,51 +7,54 @@ import {
   semanticTextStyles,
   semanticTextTones
 } from '@artificer-toolkit/design-system'
-import { z } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 
-export const nodeRuntimePathSegmentDtoSchema = z.union([
-  z.string(),
-  z.number().check(z.int()).check(z.nonnegative())
-])
-export const nodeRuntimePathDtoSchema = z.readonly(z.array(nodeRuntimePathSegmentDtoSchema))
+export const nodeRuntimePathSegmentDtoSchema = lazySchema(() =>
+  z.union([z.string(), z.number().check(z.int()).check(z.nonnegative())])
+)
+export const nodeRuntimePathDtoSchema = lazySchema(() =>
+  z.readonly(z.array(nodeRuntimePathSegmentDtoSchema))
+)
 
-export const nodeRuntimeValuesDtoSchema = z.record(z.string(), z.unknown())
+export const nodeRuntimeValuesDtoSchema = lazySchema(() => z.record(z.string(), z.unknown()))
 
-export const nodeRuntimeContextDtoSchema = z
-  .strictObject({
-    mapId: z.string().check(z.minLength(1)),
-    values: z._default(nodeRuntimeValuesDtoSchema, {}),
-    parentValues: z.optional(nodeRuntimeValuesDtoSchema),
-    ancestors: z.optional(
-      z.array(nodeRuntimeValuesDtoSchema).check(z.maxLength(AUTHORED_LIMITS.jsonNestingDepth))
-    ),
-    systemId: z.string().check(z.minLength(1))
-  })
-  .check(
-    z.superRefine((request, context) => {
-      const roots = [request.values, request.parentValues, ...(request.ancestors ?? [])]
-      for (const root of roots) {
-        if (root && exceedsNodeRuntimeStructureLimits(root)) {
+export const nodeRuntimeContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      mapId: z.string().check(z.minLength(1)),
+      values: z._default(nodeRuntimeValuesDtoSchema, {}),
+      parentValues: z.optional(nodeRuntimeValuesDtoSchema),
+      ancestors: z.optional(
+        z.array(nodeRuntimeValuesDtoSchema).check(z.maxLength(AUTHORED_LIMITS.jsonNestingDepth))
+      ),
+      systemId: z.string().check(z.minLength(1))
+    })
+    .check(
+      z.superRefine((request, context) => {
+        const roots = [request.values, request.parentValues, ...(request.ancestors ?? [])]
+        for (const root of roots) {
+          if (root && exceedsNodeRuntimeStructureLimits(root)) {
+            context.addIssue({
+              code: 'custom',
+              message: `Node runtime values may nest at most ${AUTHORED_LIMITS.jsonNestingDepth} levels and arrays may contain at most ${AUTHORED_LIMITS.referenceCollectionItems} items.`
+            })
+            return
+          }
+        }
+
+        if (
+          new TextEncoder().encode(JSON.stringify(request)).byteLength >
+          AUTHORED_LIMITS.mutationPayloadBytes
+        ) {
           context.addIssue({
             code: 'custom',
-            message: `Node runtime values may nest at most ${AUTHORED_LIMITS.jsonNestingDepth} levels and arrays may contain at most ${AUTHORED_LIMITS.referenceCollectionItems} items.`
+            message: `Node runtime requests must be at most ${AUTHORED_LIMITS.mutationPayloadBytes} bytes.`
           })
-          return
         }
-      }
-
-      if (
-        new TextEncoder().encode(JSON.stringify(request)).byteLength >
-        AUTHORED_LIMITS.mutationPayloadBytes
-      ) {
-        context.addIssue({
-          code: 'custom',
-          message: `Node runtime requests must be at most ${AUTHORED_LIMITS.mutationPayloadBytes} bytes.`
-        })
-      }
-    })
-  )
+      })
+    )
+)
 
 function exceedsNodeRuntimeStructureLimits(value: unknown): boolean {
   const pending: Array<{ depth: number; value: unknown }> = [{ depth: 0, value }]
@@ -74,103 +77,135 @@ function exceedsNodeRuntimeStructureLimits(value: unknown): boolean {
 export const nodeRuntimeResolveRequestDtoSchema = nodeRuntimeContextDtoSchema
 export const nodeRuntimeNormalizeValuesRequestDtoSchema = nodeRuntimeContextDtoSchema
 
-export const nodeRuntimeOptionDtoSchema = z.strictObject({
-  value: z.string(),
-  label: z.string(),
-  description: z.optional(z.string()),
-  disabled: z.optional(z.boolean()),
-  group: z.optional(z.string()),
-  metadata: z.optional(z.record(z.string(), z.unknown()))
-})
+export const nodeRuntimeOptionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    value: z.string(),
+    label: z.string(),
+    description: z.optional(z.string()),
+    disabled: z.optional(z.boolean()),
+    group: z.optional(z.string()),
+    metadata: z.optional(z.record(z.string(), z.unknown()))
+  })
+)
 
-const nodeRuntimeActionAppearanceBaseShape = {
+const nodeRuntimeActionAppearanceBaseShape = lazySchemaParts(() => ({
   emphasis: z.enum(actionEmphasis),
   density: z.enum(controlDensity)
-}
+}))
 
-const nodeRuntimeActionAppearanceDtoSchema = z.discriminatedUnion('display', [
+const nodeRuntimeActionAppearanceDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('display', [
+    z.strictObject({
+      ...nodeRuntimeActionAppearanceBaseShape(),
+      display: z.literal(actionDisplay[0]),
+      width: z.literal(actionWidth[0])
+    }),
+    z.strictObject({
+      ...nodeRuntimeActionAppearanceBaseShape(),
+      display: z.enum([actionDisplay[1], actionDisplay[2]]),
+      width: z.enum(actionWidth)
+    })
+  ])
+)
+
+const nodeRuntimeActionPresentationDtoSchema = lazySchema(() =>
   z.strictObject({
-    ...nodeRuntimeActionAppearanceBaseShape,
-    display: z.literal(actionDisplay[0]),
-    width: z.literal(actionWidth[0])
-  }),
-  z.strictObject({
-    ...nodeRuntimeActionAppearanceBaseShape,
-    display: z.enum([actionDisplay[1], actionDisplay[2]]),
-    width: z.enum(actionWidth)
+    default: nodeRuntimeActionAppearanceDtoSchema,
+    compact: z.optional(nodeRuntimeActionAppearanceDtoSchema),
+    wide: z.optional(nodeRuntimeActionAppearanceDtoSchema)
   })
-])
+)
 
-const nodeRuntimeActionPresentationDtoSchema = z.strictObject({
-  default: nodeRuntimeActionAppearanceDtoSchema,
-  compact: z.optional(nodeRuntimeActionAppearanceDtoSchema),
-  wide: z.optional(nodeRuntimeActionAppearanceDtoSchema)
-})
-
-const nodeRuntimeTextAppearanceDtoSchema = z.strictObject({
-  style: z.enum(semanticTextStyles),
-  tone: z.enum(semanticTextTones)
-})
-
-const nodeRuntimeTextPresentationDtoSchema = z.strictObject({
-  default: nodeRuntimeTextAppearanceDtoSchema,
-  compact: z.optional(nodeRuntimeTextAppearanceDtoSchema),
-  wide: z.optional(nodeRuntimeTextAppearanceDtoSchema)
-})
-
-const nodeRuntimeSurfaceAppearanceDtoSchema = z.strictObject({
-  role: z.enum(semanticSurfaceRoles)
-})
-
-const nodeRuntimeSurfacePresentationDtoSchema = z.strictObject({
-  default: nodeRuntimeSurfaceAppearanceDtoSchema,
-  compact: z.optional(nodeRuntimeSurfaceAppearanceDtoSchema),
-  wide: z.optional(nodeRuntimeSurfaceAppearanceDtoSchema)
-})
-
-const nodeRuntimeGroupAppearanceDtoSchema = z.strictObject({
-  heading: z.optional(nodeRuntimeTextPresentationDtoSchema),
-  surface: z.optional(nodeRuntimeSurfacePresentationDtoSchema)
-})
-
-const nodeRuntimeActionBaseDtoSchema = z.strictObject({
-  label: z.string().check(z.minLength(1)),
-  presentation: nodeRuntimeActionPresentationDtoSchema
-})
-
-const nodeRuntimeCollectionAddActionDtoSchema = z.extend(nodeRuntimeActionBaseDtoSchema, {
-  type: z.literal('collection.add')
-})
-const nodeRuntimeCollectionEditActionDtoSchema = z.extend(nodeRuntimeActionBaseDtoSchema, {
-  type: z.literal('collection.edit')
-})
-const nodeRuntimeCollectionDuplicateActionDtoSchema = z.extend(nodeRuntimeActionBaseDtoSchema, {
-  type: z.literal('collection.duplicate')
-})
-const nodeRuntimeCollectionRemoveActionDtoSchema = z.extend(nodeRuntimeActionBaseDtoSchema, {
-  type: z.literal('collection.remove')
-})
-
-export const nodeRuntimeCollectionActionDtoSchema = z.discriminatedUnion('type', [
-  nodeRuntimeCollectionAddActionDtoSchema,
-  nodeRuntimeCollectionEditActionDtoSchema,
-  nodeRuntimeCollectionDuplicateActionDtoSchema,
-  nodeRuntimeCollectionRemoveActionDtoSchema
-])
-
-const nodeRuntimeObjectActionDtoSchema = z.discriminatedUnion('type', [
-  nodeRuntimeCollectionAddActionDtoSchema,
-  nodeRuntimeCollectionRemoveActionDtoSchema
-])
-
-const nodeRuntimeCollectionOrderingDtoSchema = z.discriminatedUnion('mode', [
-  z.strictObject({ mode: z.literal('derived') }),
+const nodeRuntimeTextAppearanceDtoSchema = lazySchema(() =>
   z.strictObject({
-    mode: z.literal('manual'),
-    identityPath: z.readonly(z.tuple([z.string().check(z.minLength(1))])),
-    orderPath: z.optional(z.readonly(z.tuple([z.string().check(z.minLength(1))])))
+    style: z.enum(semanticTextStyles),
+    tone: z.enum(semanticTextTones)
   })
-])
+)
+
+const nodeRuntimeTextPresentationDtoSchema = lazySchema(() =>
+  z.strictObject({
+    default: nodeRuntimeTextAppearanceDtoSchema,
+    compact: z.optional(nodeRuntimeTextAppearanceDtoSchema),
+    wide: z.optional(nodeRuntimeTextAppearanceDtoSchema)
+  })
+)
+
+const nodeRuntimeSurfaceAppearanceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    role: z.enum(semanticSurfaceRoles)
+  })
+)
+
+const nodeRuntimeSurfacePresentationDtoSchema = lazySchema(() =>
+  z.strictObject({
+    default: nodeRuntimeSurfaceAppearanceDtoSchema,
+    compact: z.optional(nodeRuntimeSurfaceAppearanceDtoSchema),
+    wide: z.optional(nodeRuntimeSurfaceAppearanceDtoSchema)
+  })
+)
+
+const nodeRuntimeGroupAppearanceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    heading: z.optional(nodeRuntimeTextPresentationDtoSchema),
+    surface: z.optional(nodeRuntimeSurfacePresentationDtoSchema)
+  })
+)
+
+const nodeRuntimeActionBaseDtoSchema = lazySchema(() =>
+  z.strictObject({
+    label: z.string().check(z.minLength(1)),
+    presentation: nodeRuntimeActionPresentationDtoSchema
+  })
+)
+
+const nodeRuntimeCollectionAddActionDtoSchema = lazySchema(() =>
+  z.extend(nodeRuntimeActionBaseDtoSchema, {
+    type: z.literal('collection.add')
+  })
+)
+const nodeRuntimeCollectionEditActionDtoSchema = lazySchema(() =>
+  z.extend(nodeRuntimeActionBaseDtoSchema, {
+    type: z.literal('collection.edit')
+  })
+)
+const nodeRuntimeCollectionDuplicateActionDtoSchema = lazySchema(() =>
+  z.extend(nodeRuntimeActionBaseDtoSchema, {
+    type: z.literal('collection.duplicate')
+  })
+)
+const nodeRuntimeCollectionRemoveActionDtoSchema = lazySchema(() =>
+  z.extend(nodeRuntimeActionBaseDtoSchema, {
+    type: z.literal('collection.remove')
+  })
+)
+
+export const nodeRuntimeCollectionActionDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('type', [
+    nodeRuntimeCollectionAddActionDtoSchema,
+    nodeRuntimeCollectionEditActionDtoSchema,
+    nodeRuntimeCollectionDuplicateActionDtoSchema,
+    nodeRuntimeCollectionRemoveActionDtoSchema
+  ])
+)
+
+const nodeRuntimeObjectActionDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('type', [
+    nodeRuntimeCollectionAddActionDtoSchema,
+    nodeRuntimeCollectionRemoveActionDtoSchema
+  ])
+)
+
+const nodeRuntimeCollectionOrderingDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('mode', [
+    z.strictObject({ mode: z.literal('derived') }),
+    z.strictObject({
+      mode: z.literal('manual'),
+      identityPath: z.readonly(z.tuple([z.string().check(z.minLength(1))])),
+      orderPath: z.optional(z.readonly(z.tuple([z.string().check(z.minLength(1))])))
+    })
+  ])
+)
 
 function rejectDuplicateActionTypes(
   actions: readonly { type: string }[],
@@ -189,51 +224,59 @@ function rejectDuplicateActionTypes(
   })
 }
 
-export const nodeRuntimeCollectionAuthoringDtoSchema = z.strictObject({
-  actions: z.readonly(
-    z.array(nodeRuntimeCollectionActionDtoSchema).check(z.superRefine(rejectDuplicateActionTypes))
-  ),
-  ordering: nodeRuntimeCollectionOrderingDtoSchema,
-  itemLabel: z.optional(z.string().check(z.minLength(1))),
-  emptyLabel: z.optional(z.string().check(z.minLength(1))),
-  showHeading: z.optional(z.boolean()),
-  join: z.optional(z.enum(['AND', 'OR'])),
-  rowLayout: z.optional(z.enum(['default', 'card', 'flat', 'compact'])),
-  rowExpansion: z.optional(z.enum(['collapsible', 'expanded'])),
-  rowSummary: z.optional(
-    z.enum([
-      'default',
-      'facet-context',
-      'facet-condition',
-      'modifier',
-      'effect',
-      'effect-path',
-      'outcome',
-      'speed'
-    ])
-  )
-})
+export const nodeRuntimeCollectionAuthoringDtoSchema = lazySchema(() =>
+  z.strictObject({
+    actions: z.readonly(
+      z.array(nodeRuntimeCollectionActionDtoSchema).check(z.superRefine(rejectDuplicateActionTypes))
+    ),
+    ordering: nodeRuntimeCollectionOrderingDtoSchema,
+    itemLabel: z.optional(z.string().check(z.minLength(1))),
+    emptyLabel: z.optional(z.string().check(z.minLength(1))),
+    showHeading: z.optional(z.boolean()),
+    join: z.optional(z.enum(['AND', 'OR'])),
+    rowLayout: z.optional(z.enum(['default', 'card', 'flat', 'compact'])),
+    rowExpansion: z.optional(z.enum(['collapsible', 'expanded'])),
+    rowSummary: z.optional(
+      z.enum([
+        'default',
+        'facet-context',
+        'facet-condition',
+        'modifier',
+        'effect',
+        'effect-path',
+        'outcome',
+        'speed'
+      ])
+    )
+  })
+)
 
-const nodeRuntimeInputAuthoringDtoSchema = z.strictObject({
-  exposure: z.enum(['author', 'system'])
-})
+const nodeRuntimeInputAuthoringDtoSchema = lazySchema(() =>
+  z.strictObject({
+    exposure: z.enum(['author', 'system'])
+  })
+)
 
-const nodeRuntimeObjectAuthoringDtoSchema = z.strictObject({
-  exposure: z.enum(['author', 'system']),
-  actions: z.readonly(
-    z.array(nodeRuntimeObjectActionDtoSchema).check(z.superRefine(rejectDuplicateActionTypes))
-  ),
-  appearance: z.optional(nodeRuntimeGroupAppearanceDtoSchema),
-  emptyLabel: z.optional(z.string().check(z.minLength(1)))
-})
+const nodeRuntimeObjectAuthoringDtoSchema = lazySchema(() =>
+  z.strictObject({
+    exposure: z.enum(['author', 'system']),
+    actions: z.readonly(
+      z.array(nodeRuntimeObjectActionDtoSchema).check(z.superRefine(rejectDuplicateActionTypes))
+    ),
+    appearance: z.optional(nodeRuntimeGroupAppearanceDtoSchema),
+    emptyLabel: z.optional(z.string().check(z.minLength(1)))
+  })
+)
 
-export const nodeRuntimeAuthoringDtoSchema = z.strictObject({
-  exposure: z.enum(['author', 'system']),
-  appearance: z.optional(nodeRuntimeGroupAppearanceDtoSchema),
-  collection: nodeRuntimeCollectionAuthoringDtoSchema
-})
+export const nodeRuntimeAuthoringDtoSchema = lazySchema(() =>
+  z.strictObject({
+    exposure: z.enum(['author', 'system']),
+    appearance: z.optional(nodeRuntimeGroupAppearanceDtoSchema),
+    collection: nodeRuntimeCollectionAuthoringDtoSchema
+  })
+)
 
-const nodeRuntimeNodeBaseShape = {
+const nodeRuntimeNodeBaseShape = lazySchemaParts(() => ({
   id: z.string().check(z.minLength(1)),
   path: nodeRuntimePathDtoSchema,
   label: z.string().check(z.minLength(1)),
@@ -241,30 +284,34 @@ const nodeRuntimeNodeBaseShape = {
   required: z.boolean(),
   hiddenBehavior: z.enum(['KEEP', 'CLEAR']),
   clearPaths: z.array(nodeRuntimePathDtoSchema)
-}
+}))
 
-const nodeRuntimeInputConstraintsDtoSchema = z.strictObject({
-  maximum: z.optional(z.number()),
-  maximumLength: z.optional(z.number().check(z.int()).check(z.positive())),
-  minimum: z.optional(z.number())
-})
-
-const nodeRuntimeScalarInputDtoSchemas = ['TEXT', 'NUMBER', 'RICH_TEXT', 'TOGGLE'] as const
-
-const scalarInputSchemas = nodeRuntimeScalarInputDtoSchemas.map((type) =>
+const nodeRuntimeInputConstraintsDtoSchema = lazySchema(() =>
   z.strictObject({
-    ...nodeRuntimeNodeBaseShape,
-    kind: z.literal('INPUT'),
-    type: z.literal(type),
-    constraints: z.optional(nodeRuntimeInputConstraintsDtoSchema),
-    authoring: nodeRuntimeInputAuthoringDtoSchema
+    maximum: z.optional(z.number()),
+    maximumLength: z.optional(z.number().check(z.int()).check(z.positive())),
+    minimum: z.optional(z.number())
   })
 )
 
-const selectInputSchemas = (['SELECT_SINGLE', 'SELECT_NUMBER', 'SELECT_MULTI'] as const).map(
-  (type) =>
+const nodeRuntimeScalarInputDtoSchemas = ['TEXT', 'NUMBER', 'RICH_TEXT', 'TOGGLE'] as const
+
+const scalarInputSchemas = lazySchemaParts(() =>
+  nodeRuntimeScalarInputDtoSchemas.map((type) =>
     z.strictObject({
-      ...nodeRuntimeNodeBaseShape,
+      ...nodeRuntimeNodeBaseShape(),
+      kind: z.literal('INPUT'),
+      type: z.literal(type),
+      constraints: z.optional(nodeRuntimeInputConstraintsDtoSchema),
+      authoring: nodeRuntimeInputAuthoringDtoSchema
+    })
+  )
+)
+
+const selectInputSchemas = lazySchemaParts(() =>
+  (['SELECT_SINGLE', 'SELECT_NUMBER', 'SELECT_MULTI'] as const).map((type) =>
+    z.strictObject({
+      ...nodeRuntimeNodeBaseShape(),
       kind: z.literal('INPUT'),
       type: z.literal(type),
       options: z.array(nodeRuntimeOptionDtoSchema),
@@ -272,66 +319,83 @@ const selectInputSchemas = (['SELECT_SINGLE', 'SELECT_NUMBER', 'SELECT_MULTI'] a
       constraints: z.optional(nodeRuntimeInputConstraintsDtoSchema),
       authoring: nodeRuntimeInputAuthoringDtoSchema
     })
+  )
 )
 
-const nodeRuntimeObjectGroupDtoSchema = z.strictObject({
-  ...nodeRuntimeNodeBaseShape,
-  kind: z.literal('GROUP'),
-  groupKind: z.literal('OBJECT'),
-  presentation: z.enum(['inline', 'branch']),
-  childMapId: z.string().check(z.minLength(1)),
-  authoring: nodeRuntimeObjectAuthoringDtoSchema
-})
+const nodeRuntimeObjectGroupDtoSchema = lazySchema(() =>
+  z.strictObject({
+    ...nodeRuntimeNodeBaseShape(),
+    kind: z.literal('GROUP'),
+    groupKind: z.literal('OBJECT'),
+    presentation: z.enum(['inline', 'branch']),
+    childMapId: z.string().check(z.minLength(1)),
+    authoring: nodeRuntimeObjectAuthoringDtoSchema
+  })
+)
 
-const nodeRuntimeArrayGroupDtoSchema = z.strictObject({
-  ...nodeRuntimeNodeBaseShape,
-  kind: z.literal('GROUP'),
-  groupKind: z.literal('ARRAY'),
-  presentation: z.enum(['inline', 'table', 'summary', 'branch', 'focused']),
-  childMapId: z.string().check(z.minLength(1)),
-  authoring: nodeRuntimeAuthoringDtoSchema
-})
+const nodeRuntimeArrayGroupDtoSchema = lazySchema(() =>
+  z.strictObject({
+    ...nodeRuntimeNodeBaseShape(),
+    kind: z.literal('GROUP'),
+    groupKind: z.literal('ARRAY'),
+    presentation: z.enum(['inline', 'table', 'summary', 'branch', 'focused']),
+    childMapId: z.string().check(z.minLength(1)),
+    authoring: nodeRuntimeAuthoringDtoSchema
+  })
+)
 
-export const nodeRuntimeNodeDtoSchema = z.union([
-  ...scalarInputSchemas,
-  ...selectInputSchemas,
-  nodeRuntimeObjectGroupDtoSchema,
-  nodeRuntimeArrayGroupDtoSchema
-])
+export const nodeRuntimeNodeDtoSchema = lazySchema(() =>
+  z.union([
+    ...scalarInputSchemas(),
+    ...selectInputSchemas(),
+    nodeRuntimeObjectGroupDtoSchema,
+    nodeRuntimeArrayGroupDtoSchema
+  ])
+)
 
-export const nodeRuntimeSectionDtoSchema = z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  order: z.number(),
-  nodes: z.array(nodeRuntimeNodeDtoSchema)
-})
+export const nodeRuntimeSectionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: z.string(),
+    label: z.string(),
+    order: z.number(),
+    nodes: z.array(nodeRuntimeNodeDtoSchema)
+  })
+)
 
-export const nodeRuntimeStepDtoSchema = z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  description: z.optional(z.string()),
-  order: z.number(),
-  sections: z.array(nodeRuntimeSectionDtoSchema)
-})
+export const nodeRuntimeStepDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: z.string(),
+    label: z.string(),
+    description: z.optional(z.string()),
+    order: z.number(),
+    sections: z.array(nodeRuntimeSectionDtoSchema)
+  })
+)
 
-export const nodeRuntimeResolvedScopeDtoSchema = z.strictObject({
-  mapId: z.string(),
-  path: nodeRuntimePathDtoSchema,
-  steps: z.array(nodeRuntimeStepDtoSchema),
-  clearPaths: z.array(nodeRuntimePathDtoSchema)
-})
+export const nodeRuntimeResolvedScopeDtoSchema = lazySchema(() =>
+  z.strictObject({
+    mapId: z.string(),
+    path: nodeRuntimePathDtoSchema,
+    steps: z.array(nodeRuntimeStepDtoSchema),
+    clearPaths: z.array(nodeRuntimePathDtoSchema)
+  })
+)
 
-export const nodeRuntimeResolveResponseDtoSchema = z.strictObject({
-  mapId: z.string(),
-  steps: z.array(nodeRuntimeStepDtoSchema),
-  clearPaths: z.array(nodeRuntimePathDtoSchema),
-  scopes: z.array(nodeRuntimeResolvedScopeDtoSchema)
-})
+export const nodeRuntimeResolveResponseDtoSchema = lazySchema(() =>
+  z.strictObject({
+    mapId: z.string(),
+    steps: z.array(nodeRuntimeStepDtoSchema),
+    clearPaths: z.array(nodeRuntimePathDtoSchema),
+    scopes: z.array(nodeRuntimeResolvedScopeDtoSchema)
+  })
+)
 
-export const nodeRuntimeNormalizeValuesResponseDtoSchema = z.strictObject({
-  values: z.unknown(),
-  clearedPaths: z.array(nodeRuntimePathDtoSchema)
-})
+export const nodeRuntimeNormalizeValuesResponseDtoSchema = lazySchema(() =>
+  z.strictObject({
+    values: z.unknown(),
+    clearedPaths: z.array(nodeRuntimePathDtoSchema)
+  })
+)
 
 export type NodeRuntimePathSegmentDto = z.infer<typeof nodeRuntimePathSegmentDtoSchema>
 export type NodeRuntimePathDto = z.infer<typeof nodeRuntimePathDtoSchema>

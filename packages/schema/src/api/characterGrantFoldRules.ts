@@ -1,20 +1,199 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import { sizeCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
 export const CHARACTER_GRANT_FOLD_MODEL_KEY = 'character-grant-fold'
 
-const identitySchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
-const codeSchema = z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,79}$/))
-const boundedJsonSchema = z
-  .json()
-  .check(
-    z.refine((value) => JSON.stringify(value).length <= 8_192, 'Mechanic facts are too large.')
-  )
+const identitySchema = lazySchema(() =>
+  z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+)
+const codeSchema = lazySchema(() => z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,79}$/)))
+const boundedJsonSchema = lazySchema(() =>
+  z
+    .json()
+    .check(
+      z.refine((value) => JSON.stringify(value).length <= 8_192, 'Mechanic facts are too large.')
+    )
+)
 
-export const characterMechanicSourceSchema = z.discriminatedUnion('kind', [
+export const characterMechanicSourceSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('AUTHORED'),
+      sourceKind: z.enum([
+        'ANCESTRY',
+        'BACKGROUND',
+        'CLASS',
+        'FEAT',
+        'FEATURE',
+        'OPTION',
+        'RACE',
+        'SPELL',
+        'SUBRACE',
+        'SUBCLASS'
+      ]),
+      definitionId: identitySchema,
+      sourceInstanceId: identitySchema
+    }),
+    z.strictObject({
+      kind: z.literal('EQUIPMENT_INSTANCE'),
+      equipmentId: identitySchema,
+      itemInstanceId: identitySchema
+    }),
+    z.strictObject({ kind: z.literal('SYSTEM'), systemId: identitySchema }),
+    z.strictObject({
+      kind: z.literal('COMPANION_INSTANCE'),
+      creatureId: identitySchema,
+      companionInstanceId: identitySchema
+    }),
+    z.strictObject({ kind: z.literal('MANUAL_ADJUSTMENT'), adjustmentId: identitySchema })
+  ])
+)
+
+const restrictionConditionSchema = lazySchema(() =>
   z.strictObject({
-    kind: z.literal('AUTHORED'),
+    conditionId: identitySchema,
+    constraint: z.enum(['INCLUDE', 'EXCLUDE']),
+    kind: z.enum([
+      'ABILITY_SCORE',
+      'HERITAGE',
+      'CHARACTER_LEVEL',
+      'CLASS_LEVEL',
+      'FEAT_OBTAINED',
+      'FEATURE_OBTAINED',
+      'OPTION_OBTAINED',
+      'SPELL_OBTAINED',
+      'CAN_CAST_SPELL',
+      'PROFICIENCY',
+      'EQUIPMENT_EQUIPPED',
+      'SOURCE_STATE',
+      'SIZE',
+      /** Item conditions are evaluated against the attacking item, never Character-wide. */
+      'ITEM_IDENTITY',
+      'ITEM_CATEGORY',
+      'ITEM_PROPERTY',
+      /** The attacking item is the only weapon wielded: no other weapon is equipped. */
+      'ITEM_SOLE_WEAPON',
+      'UNAVAILABLE',
+      'UNSUPPORTED'
+    ]),
+    mode: z.nullable(z.enum(['ALL', 'SELECTED'])),
+    abilityId: z.nullable(identitySchema),
+    classIds: z.array(identitySchema).check(z.maxLength(20)),
+    requiredIds: z.array(identitySchema).check(z.maxLength(200)),
+    secondaryRequiredIds: z.array(identitySchema).check(z.maxLength(200)),
+    min: z.nullable(z.number()),
+    max: z.nullable(z.number()),
+    proficiencyKind: z.nullable(codeSchema),
+    minimumRank: z.nullable(z.enum(['HALF', 'FULL', 'DOUBLE'])),
+    category: z.nullable(codeSchema),
+    requiredProperties: z.array(codeSchema).check(z.maxLength(100)),
+    sourceState: z.nullable(z.enum(['CARRIED', 'EQUIPPED', 'ATTUNED']))
+  })
+)
+
+export const characterGrantFoldRestrictionSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        conditions: z.array(restrictionConditionSchema).check(z.maxLength(100))
+      })
+    )
+    .check(z.maxLength(50))
+)
+
+const proficiencyOperationSchema = lazySchema(() =>
+  z
+    .strictObject({
+      grantId: identitySchema,
+      proficiencyKind: codeSchema,
+      targetIds: z.array(identitySchema).check(z.maxLength(200)),
+      matchIds: z.array(identitySchema).check(z.maxLength(200)),
+      category: z.nullable(codeSchema),
+      scaling: z.enum(['HALF', 'FULL', 'DOUBLE'])
+    })
+    .check(
+      z.refine(
+        ({ targetIds, matchIds }) => targetIds.length === matchIds.length,
+        'Proficiency targets and match identities must align.'
+      )
+    )
+)
+
+const scalingTargetsSchema = lazySchema(() =>
+  z.strictObject({
+    level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+    targetIds: z.array(identitySchema).check(z.maxLength(200))
+  })
+)
+
+const scalingOperationSchema = lazySchema(() =>
+  z.strictObject({
+    grantId: identitySchema,
+    scalingKind: z.enum(['NONE', 'PER_LEVEL']),
+    targetIds: z.array(identitySchema).check(z.maxLength(200)),
+    levels: z.array(scalingTargetsSchema).check(z.maxLength(20))
+  })
+)
+
+const senseOperationSchema = lazySchema(() =>
+  z.extend(scalingOperationSchema, {
+    grantId: identitySchema,
+    range: z.nullable(boundedJsonSchema)
+  })
+)
+
+const modifierOperationSchema = lazySchema(() =>
+  z.strictObject({
+    grantId: identitySchema,
+    valueDomainCode: codeSchema,
+    modifierKind: codeSchema,
+    domain: boundedJsonSchema,
+    grant: boundedJsonSchema,
+    restrictions: characterGrantFoldRestrictionSchema,
+    scopeSpellIds: z.array(identitySchema).check(z.maxLength(500))
+  })
+)
+
+export const characterGrantFoldSourceSchema = lazySchema(() =>
+  z.strictObject({
+    sourceId: identitySchema,
+    mechanicSource: characterMechanicSourceSchema,
+    sourceState: z.nullable(
+      z.strictObject({ carried: z.boolean(), equipped: z.boolean(), attuned: z.boolean() })
+    ),
+    restrictions: characterGrantFoldRestrictionSchema,
+    proficiencies: z.array(proficiencyOperationSchema).check(z.maxLength(200)),
+    senses: z.array(senseOperationSchema).check(z.maxLength(200)),
+    modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
+    feats: z.array(scalingOperationSchema).check(z.maxLength(200)),
+    spells: z.array(scalingOperationSchema).check(z.maxLength(200))
+  })
+)
+
+const classSourceSchema = lazySchema(() =>
+  z.strictObject({
+    classId: identitySchema,
+    level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+    base: z.nullable(
+      z.strictObject({
+        category: z.enum(['BASE', 'SUBCLASS']),
+        source: characterGrantFoldSourceSchema,
+        multiclassProficiencies: z.array(proficiencyOperationSchema).check(z.maxLength(200))
+      })
+    ),
+    subclass: z.nullable(
+      z.strictObject({
+        category: z.enum(['BASE', 'SUBCLASS']),
+        parentClassId: z.nullable(identitySchema),
+        source: characterGrantFoldSourceSchema
+      })
+    )
+  })
+)
+
+const featureSourceSchema = lazySchema(() =>
+  z.strictObject({
     sourceKind: z.enum([
       'ANCESTRY',
       'BACKGROUND',
@@ -23,323 +202,190 @@ export const characterMechanicSourceSchema = z.discriminatedUnion('kind', [
       'FEATURE',
       'OPTION',
       'RACE',
-      'SPELL',
       'SUBRACE',
-      'SUBCLASS'
+      'SUBCLASS',
+      'MANUAL'
     ]),
-    definitionId: identitySchema,
-    sourceInstanceId: identitySchema
-  }),
+    sourceClassLevel: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))),
+    timingLevel: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))),
+    definition: z.nullable(characterGrantFoldSourceSchema),
+    selectedOptions: z.array(characterGrantFoldSourceSchema).check(z.maxLength(100)),
+    featDefinition: z.nullable(characterGrantFoldSourceSchema)
+  })
+)
+
+const equipmentItemSchema = lazySchema(() =>
   z.strictObject({
-    kind: z.literal('EQUIPMENT_INSTANCE'),
+    instanceId: identitySchema,
     equipmentId: identitySchema,
-    itemInstanceId: identitySchema
-  }),
-  z.strictObject({ kind: z.literal('SYSTEM'), systemId: identitySchema }),
-  z.strictObject({
-    kind: z.literal('COMPANION_INSTANCE'),
-    creatureId: identitySchema,
-    companionInstanceId: identitySchema
-  }),
-  z.strictObject({ kind: z.literal('MANUAL_ADJUSTMENT'), adjustmentId: identitySchema })
-])
-
-const restrictionConditionSchema = z.strictObject({
-  conditionId: identitySchema,
-  constraint: z.enum(['INCLUDE', 'EXCLUDE']),
-  kind: z.enum([
-    'ABILITY_SCORE',
-    'HERITAGE',
-    'CHARACTER_LEVEL',
-    'CLASS_LEVEL',
-    'FEAT_OBTAINED',
-    'FEATURE_OBTAINED',
-    'OPTION_OBTAINED',
-    'SPELL_OBTAINED',
-    'CAN_CAST_SPELL',
-    'PROFICIENCY',
-    'EQUIPMENT_EQUIPPED',
-    'SOURCE_STATE',
-    'SIZE',
-    /** Item conditions are evaluated against the attacking item, never Character-wide. */
-    'ITEM_IDENTITY',
-    'ITEM_CATEGORY',
-    'ITEM_PROPERTY',
-    /** The attacking item is the only weapon wielded: no other weapon is equipped. */
-    'ITEM_SOLE_WEAPON',
-    'UNAVAILABLE',
-    'UNSUPPORTED'
-  ]),
-  mode: z.nullable(z.enum(['ALL', 'SELECTED'])),
-  abilityId: z.nullable(identitySchema),
-  classIds: z.array(identitySchema).check(z.maxLength(20)),
-  requiredIds: z.array(identitySchema).check(z.maxLength(200)),
-  secondaryRequiredIds: z.array(identitySchema).check(z.maxLength(200)),
-  min: z.nullable(z.number()),
-  max: z.nullable(z.number()),
-  proficiencyKind: z.nullable(codeSchema),
-  minimumRank: z.nullable(z.enum(['HALF', 'FULL', 'DOUBLE'])),
-  category: z.nullable(codeSchema),
-  requiredProperties: z.array(codeSchema).check(z.maxLength(100)),
-  sourceState: z.nullable(z.enum(['CARRIED', 'EQUIPPED', 'ATTUNED']))
-})
-
-export const characterGrantFoldRestrictionSchema = z
-  .array(
-    z.strictObject({
-      conditions: z.array(restrictionConditionSchema).check(z.maxLength(100))
-    })
-  )
-  .check(z.maxLength(50))
-
-const proficiencyOperationSchema = z
-  .strictObject({
-    grantId: identitySchema,
-    proficiencyKind: codeSchema,
-    targetIds: z.array(identitySchema).check(z.maxLength(200)),
-    matchIds: z.array(identitySchema).check(z.maxLength(200)),
-    category: z.nullable(codeSchema),
-    scaling: z.enum(['HALF', 'FULL', 'DOUBLE'])
-  })
-  .check(
-    z.refine(
-      ({ targetIds, matchIds }) => targetIds.length === matchIds.length,
-      'Proficiency targets and match identities must align.'
-    )
-  )
-
-const scalingTargetsSchema = z.strictObject({
-  level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
-  targetIds: z.array(identitySchema).check(z.maxLength(200))
-})
-
-const scalingOperationSchema = z.strictObject({
-  grantId: identitySchema,
-  scalingKind: z.enum(['NONE', 'PER_LEVEL']),
-  targetIds: z.array(identitySchema).check(z.maxLength(200)),
-  levels: z.array(scalingTargetsSchema).check(z.maxLength(20))
-})
-
-const senseOperationSchema = z.extend(scalingOperationSchema, {
-  grantId: identitySchema,
-  range: z.nullable(boundedJsonSchema)
-})
-
-const modifierOperationSchema = z.strictObject({
-  grantId: identitySchema,
-  valueDomainCode: codeSchema,
-  modifierKind: codeSchema,
-  domain: boundedJsonSchema,
-  grant: boundedJsonSchema,
-  restrictions: characterGrantFoldRestrictionSchema,
-  scopeSpellIds: z.array(identitySchema).check(z.maxLength(500))
-})
-
-export const characterGrantFoldSourceSchema = z.strictObject({
-  sourceId: identitySchema,
-  mechanicSource: characterMechanicSourceSchema,
-  sourceState: z.nullable(
-    z.strictObject({ carried: z.boolean(), equipped: z.boolean(), attuned: z.boolean() })
-  ),
-  restrictions: characterGrantFoldRestrictionSchema,
-  proficiencies: z.array(proficiencyOperationSchema).check(z.maxLength(200)),
-  senses: z.array(senseOperationSchema).check(z.maxLength(200)),
-  modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
-  feats: z.array(scalingOperationSchema).check(z.maxLength(200)),
-  spells: z.array(scalingOperationSchema).check(z.maxLength(200))
-})
-
-const classSourceSchema = z.strictObject({
-  classId: identitySchema,
-  level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
-  base: z.nullable(
-    z.strictObject({
-      category: z.enum(['BASE', 'SUBCLASS']),
-      source: characterGrantFoldSourceSchema,
-      multiclassProficiencies: z.array(proficiencyOperationSchema).check(z.maxLength(200))
-    })
-  ),
-  subclass: z.nullable(
-    z.strictObject({
-      category: z.enum(['BASE', 'SUBCLASS']),
-      parentClassId: z.nullable(identitySchema),
-      source: characterGrantFoldSourceSchema
-    })
-  )
-})
-
-const featureSourceSchema = z.strictObject({
-  sourceKind: z.enum([
-    'ANCESTRY',
-    'BACKGROUND',
-    'CLASS',
-    'FEAT',
-    'FEATURE',
-    'OPTION',
-    'RACE',
-    'SUBRACE',
-    'SUBCLASS',
-    'MANUAL'
-  ]),
-  sourceClassLevel: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))),
-  timingLevel: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))),
-  definition: z.nullable(characterGrantFoldSourceSchema),
-  selectedOptions: z.array(characterGrantFoldSourceSchema).check(z.maxLength(100)),
-  featDefinition: z.nullable(characterGrantFoldSourceSchema)
-})
-
-const equipmentItemSchema = z.strictObject({
-  instanceId: identitySchema,
-  equipmentId: identitySchema,
-  requiresAttunement: z.boolean(),
-  equipped: z.boolean(),
-  attuned: z.boolean(),
-  restrictions: characterGrantFoldRestrictionSchema,
-  rootSourceId: identitySchema,
-  rootModifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
-  chargeId: z.nullable(identitySchema),
-  features: z
-    .array(
-      z.strictObject({
-        source: characterGrantFoldSourceSchema,
-        sourceChargeUse: z.nullable(
-          z.strictObject({
-            featureId: identitySchema,
-            limitKind: codeSchema,
-            cost: z.number()
-          })
-        )
-      })
-    )
-    .check(z.maxLength(100))
-})
-
-export const characterGrantFoldInputSchema = z
-  .strictObject({
-    contractVersion: z.literal(1),
-    base: z.strictObject({
-      systemId: identitySchema,
-      totalLevel: z.number().check(z.int()).check(z.gte(0)).check(z.lte(20)),
-      raceId: z.nullable(identitySchema),
-      subraceId: z.nullable(identitySchema),
-      size: z.nullable(sizeCodeSchema),
-      abilities: z.record(identitySchema, z.number()),
-      heritageIds: z.array(identitySchema).check(z.maxLength(200)),
-      featureIds: z.array(identitySchema).check(z.maxLength(500)),
-      optionIds: z.array(identitySchema).check(z.maxLength(500)),
-      featIds: z.array(identitySchema).check(z.maxLength(500)),
-      classes: z
-        .array(
-          z.strictObject({
-            classId: identitySchema,
-            level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
-            spellcasting: z.boolean()
-          })
-        )
-        .check(z.maxLength(20)),
-      equipment: z
-        .array(
-          z.strictObject({
-            equipmentId: identitySchema,
-            /** Variant ancestry, nearest parent first. */
-            parentEquipmentIds: z.array(identitySchema).check(z.maxLength(20)),
-            category: z.nullable(codeSchema),
-            properties: z.array(codeSchema).check(z.maxLength(100)),
-            equipped: z.boolean(),
-            attuned: z.boolean()
-          })
-        )
-        .check(z.maxLength(500))
-    }),
-    upstreamSpellIds: z.array(identitySchema).check(z.maxLength(5000)),
-    classes: z.array(classSourceSchema).check(z.maxLength(20)),
-    background: z.nullable(characterGrantFoldSourceSchema),
-    features: z.array(featureSourceSchema).check(z.maxLength(500)),
-    equipmentItems: z.array(equipmentItemSchema).check(z.maxLength(500))
-  })
-  .check(
-    z.refine((value) => JSON.stringify(value).length <= 240_000, 'Grant-fold facts are too large.')
-  )
-
-const proficiencyResultSchema = z.strictObject({
-  acceptedProficiencyIndex: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
-  kind: codeSchema,
-  subjectId: identitySchema,
-  matchId: identitySchema,
-  category: z.optional(codeSchema),
-  scaling: z.enum(['HALF', 'FULL', 'DOUBLE']),
-  source: characterMechanicSourceSchema,
-  grantId: identitySchema
-})
-
-const senseResultSchema = z.strictObject({
-  senseDefinitionId: serverUuidIdentityDtoSchema,
-  range: z.optional(boundedJsonSchema),
-  acceptedSenseIndex: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
-  grantId: identitySchema,
-  source: characterMechanicSourceSchema
-})
-
-const modifierResultSchema = z.strictObject({
-  domainKey: identitySchema,
-  modifierKind: codeSchema,
-  grant: boundedJsonSchema,
-  /** The granting source; a SOURCE-scoped modifier applies only while it is evaluated. */
-  sourceId: identitySchema,
-  source: characterMechanicSourceSchema,
-  scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
-  /**
-   * Item conditions still to be met by the attacking item, as OR-of-AND groups. Empty means the
-   * modifier is unconditional; a Character-wide value never satisfies a non-empty requirement.
-   */
-  itemRequirements: characterGrantFoldRestrictionSchema
-})
-
-const equipmentChargeUseSchema = z.strictObject({
-  featureId: identitySchema,
-  equipmentId: identitySchema,
-  itemInstanceId: identitySchema,
-  chargeId: identitySchema,
-  cost: z.number()
-})
-
-export const characterGrantFoldOutputSchema = z
-  .strictObject({
-    proficiencies: z.array(proficiencyResultSchema).check(z.maxLength(10_000)),
-    senses: z.array(senseResultSchema).check(z.maxLength(10_000)),
-    modifiers: z.array(modifierResultSchema).check(z.maxLength(10_000)),
-    unlockedFeatIds: z.array(identitySchema).check(z.maxLength(10_000)),
-    unlockedSpellIds: z.array(identitySchema).check(z.maxLength(10_000)),
-    activeSourceIds: z.array(identitySchema).check(z.maxLength(10_000)),
-    activeEquipmentInstanceIds: z.array(identitySchema).check(z.maxLength(500)),
-    equipmentFeatureChargeUses: z.array(equipmentChargeUseSchema).check(z.maxLength(10_000)),
-    modifierGroups: z
+    requiresAttunement: z.boolean(),
+    equipped: z.boolean(),
+    attuned: z.boolean(),
+    restrictions: characterGrantFoldRestrictionSchema,
+    rootSourceId: identitySchema,
+    rootModifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
+    chargeId: z.nullable(identitySchema),
+    features: z
       .array(
         z.strictObject({
-          domainKey: identitySchema,
-          valueDomainCode: codeSchema,
-          modifierKind: codeSchema,
-          contributions: z
-            .array(
-              z.strictObject({
-                acceptedModifierIndex: z
-                  .number()
-                  .check(z.int())
-                  .check(z.gte(0))
-                  .check(z.lte(9_999)),
-                sourceId: identitySchema,
-                grantId: identitySchema,
-                grant: boundedJsonSchema
-              })
-            )
-            .check(z.maxLength(10_000))
+          source: characterGrantFoldSourceSchema,
+          sourceChargeUse: z.nullable(
+            z.strictObject({
+              featureId: identitySchema,
+              limitKind: codeSchema,
+              cost: z.number()
+            })
+          )
         })
       )
-      .check(z.maxLength(10_000))
+      .check(z.maxLength(100))
   })
-  .check(
-    z.refine((value) => JSON.stringify(value).length <= 240_000, 'Grant-fold result is too large.')
-  )
+)
+
+export const characterGrantFoldInputSchema = lazySchema(() =>
+  z
+    .strictObject({
+      contractVersion: z.literal(1),
+      base: z.strictObject({
+        systemId: identitySchema,
+        totalLevel: z.number().check(z.int()).check(z.gte(0)).check(z.lte(20)),
+        raceId: z.nullable(identitySchema),
+        subraceId: z.nullable(identitySchema),
+        size: z.nullable(sizeCodeSchema),
+        abilities: z.record(identitySchema, z.number()),
+        heritageIds: z.array(identitySchema).check(z.maxLength(200)),
+        featureIds: z.array(identitySchema).check(z.maxLength(500)),
+        optionIds: z.array(identitySchema).check(z.maxLength(500)),
+        featIds: z.array(identitySchema).check(z.maxLength(500)),
+        classes: z
+          .array(
+            z.strictObject({
+              classId: identitySchema,
+              level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+              spellcasting: z.boolean()
+            })
+          )
+          .check(z.maxLength(20)),
+        equipment: z
+          .array(
+            z.strictObject({
+              equipmentId: identitySchema,
+              /** Variant ancestry, nearest parent first. */
+              parentEquipmentIds: z.array(identitySchema).check(z.maxLength(20)),
+              category: z.nullable(codeSchema),
+              properties: z.array(codeSchema).check(z.maxLength(100)),
+              equipped: z.boolean(),
+              attuned: z.boolean()
+            })
+          )
+          .check(z.maxLength(500))
+      }),
+      upstreamSpellIds: z.array(identitySchema).check(z.maxLength(5000)),
+      classes: z.array(classSourceSchema).check(z.maxLength(20)),
+      background: z.nullable(characterGrantFoldSourceSchema),
+      features: z.array(featureSourceSchema).check(z.maxLength(500)),
+      equipmentItems: z.array(equipmentItemSchema).check(z.maxLength(500))
+    })
+    .check(
+      z.refine(
+        (value) => JSON.stringify(value).length <= 240_000,
+        'Grant-fold facts are too large.'
+      )
+    )
+)
+
+const proficiencyResultSchema = lazySchema(() =>
+  z.strictObject({
+    acceptedProficiencyIndex: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
+    kind: codeSchema,
+    subjectId: identitySchema,
+    matchId: identitySchema,
+    category: z.optional(codeSchema),
+    scaling: z.enum(['HALF', 'FULL', 'DOUBLE']),
+    source: characterMechanicSourceSchema,
+    grantId: identitySchema
+  })
+)
+
+const senseResultSchema = lazySchema(() =>
+  z.strictObject({
+    senseDefinitionId: serverUuidIdentityDtoSchema,
+    range: z.optional(boundedJsonSchema),
+    acceptedSenseIndex: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
+    grantId: identitySchema,
+    source: characterMechanicSourceSchema
+  })
+)
+
+const modifierResultSchema = lazySchema(() =>
+  z.strictObject({
+    domainKey: identitySchema,
+    modifierKind: codeSchema,
+    grant: boundedJsonSchema,
+    /** The granting source; a SOURCE-scoped modifier applies only while it is evaluated. */
+    sourceId: identitySchema,
+    source: characterMechanicSourceSchema,
+    scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
+    /**
+     * Item conditions still to be met by the attacking item, as OR-of-AND groups. Empty means the
+     * modifier is unconditional; a Character-wide value never satisfies a non-empty requirement.
+     */
+    itemRequirements: characterGrantFoldRestrictionSchema
+  })
+)
+
+const equipmentChargeUseSchema = lazySchema(() =>
+  z.strictObject({
+    featureId: identitySchema,
+    equipmentId: identitySchema,
+    itemInstanceId: identitySchema,
+    chargeId: identitySchema,
+    cost: z.number()
+  })
+)
+
+export const characterGrantFoldOutputSchema = lazySchema(() =>
+  z
+    .strictObject({
+      proficiencies: z.array(proficiencyResultSchema).check(z.maxLength(10_000)),
+      senses: z.array(senseResultSchema).check(z.maxLength(10_000)),
+      modifiers: z.array(modifierResultSchema).check(z.maxLength(10_000)),
+      unlockedFeatIds: z.array(identitySchema).check(z.maxLength(10_000)),
+      unlockedSpellIds: z.array(identitySchema).check(z.maxLength(10_000)),
+      activeSourceIds: z.array(identitySchema).check(z.maxLength(10_000)),
+      activeEquipmentInstanceIds: z.array(identitySchema).check(z.maxLength(500)),
+      equipmentFeatureChargeUses: z.array(equipmentChargeUseSchema).check(z.maxLength(10_000)),
+      modifierGroups: z
+        .array(
+          z.strictObject({
+            domainKey: identitySchema,
+            valueDomainCode: codeSchema,
+            modifierKind: codeSchema,
+            contributions: z
+              .array(
+                z.strictObject({
+                  acceptedModifierIndex: z
+                    .number()
+                    .check(z.int())
+                    .check(z.gte(0))
+                    .check(z.lte(9_999)),
+                  sourceId: identitySchema,
+                  grantId: identitySchema,
+                  grant: boundedJsonSchema
+                })
+              )
+              .check(z.maxLength(10_000))
+          })
+        )
+        .check(z.maxLength(10_000))
+    })
+    .check(
+      z.refine(
+        (value) => JSON.stringify(value).length <= 240_000,
+        'Grant-fold result is too large.'
+      )
+    )
+)
 
 export type CharacterGrantFoldInput = z.infer<typeof characterGrantFoldInputSchema>
 export type CharacterGrantFoldOutput = z.infer<typeof characterGrantFoldOutputSchema>

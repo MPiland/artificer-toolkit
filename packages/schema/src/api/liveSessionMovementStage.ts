@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
 import {
@@ -37,30 +37,32 @@ import {
  * vision `characterRevisions` and, for an Encounter-bound move, reads the planner's capture bundle.
  * `tokenOrdinals` are the room's definition ordinals, from which Convex takes the moving token's.
  */
-export const liveSessionMovementStageInputSchema = z
-  .extend(liveSessionBootstrapInputSchema, {
-    expectedRole: z.enum(['OWNER', 'PLAYER']),
-    command: z.union([
-      sceneTokenMovementCommandInputDtoSchema,
-      sceneDoorStateCommandInputDtoSchema,
-      resolveRuleOccurrenceInputDtoSchema,
-      voidRuleOccurrenceInputDtoSchema
-    ]),
-    presentation: z.optional(scenePresentationFenceSchema),
-    characterRevisions: sceneGeometryObserveInputSchema.shape.characterRevisions,
-    tokenOrdinals: sceneTokenOrdinalsSchema,
-    maintenanceDefinitionIds:
-      liveSessionEncounterCaptureBundleInputSchema.shape.maintenanceDefinitionIds
-  })
-  .check(
-    z.refine(
-      (input) =>
-        (input.command.type === 'MOVE_SCENE_TOKEN' ||
-          input.command.type === 'SET_SCENE_DOOR_STATE') ===
-        (input.presentation !== undefined),
-      'A Scene change requires its presentation fence and a decision answer must not carry one.'
+export const liveSessionMovementStageInputSchema = lazySchema(() =>
+  z
+    .extend(liveSessionBootstrapInputSchema, {
+      expectedRole: z.enum(['OWNER', 'PLAYER']),
+      command: z.union([
+        sceneTokenMovementCommandInputDtoSchema,
+        sceneDoorStateCommandInputDtoSchema,
+        resolveRuleOccurrenceInputDtoSchema,
+        voidRuleOccurrenceInputDtoSchema
+      ]),
+      presentation: z.optional(scenePresentationFenceSchema),
+      characterRevisions: sceneGeometryObserveInputSchema.shape.characterRevisions,
+      tokenOrdinals: sceneTokenOrdinalsSchema,
+      maintenanceDefinitionIds:
+        liveSessionEncounterCaptureBundleInputSchema.shape.maintenanceDefinitionIds
+    })
+    .check(
+      z.refine(
+        (input) =>
+          (input.command.type === 'MOVE_SCENE_TOKEN' ||
+            input.command.type === 'SET_SCENE_DOOR_STATE') ===
+          (input.presentation !== undefined),
+        'A Scene change requires its presentation fence and a decision answer must not carry one.'
+      )
     )
-  )
+)
 
 /**
  * ROUTED: the decision's pending occurrence belongs to another room planner, and nothing was
@@ -68,22 +70,24 @@ export const liveSessionMovementStageInputSchema = z
  * observed save (a rebase may have replaced the begun one) and, for an Encounter-bound move, the
  * capture scope with the bundle read under it.
  */
-export const liveSessionMovementStageSchema: z.ZodMiniType<LiveSessionMovementStage> =
-  z.discriminatedUnion('kind', [
-    z.strictObject({ kind: z.literal('ROUTED'), route: liveSessionEncounterRouteResponseSchema }),
-    z.strictObject({ kind: z.literal('REPLAY') }),
-    z.strictObject({
-      kind: z.literal('STAGED'),
-      begun: sceneGeometryBeginReadySchema,
-      saveId: postgresUuidSchema,
-      capture: z.nullable(
-        z.strictObject({
-          movement: liveSessionMovementCaptureScopeSchema,
-          bundle: liveSessionEncounterCaptureBundleSchema
-        })
-      )
-    })
-  ])
+export const liveSessionMovementStageSchema: z.ZodMiniType<LiveSessionMovementStage> = lazySchema(
+  () =>
+    z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('ROUTED'), route: liveSessionEncounterRouteResponseSchema }),
+      z.strictObject({ kind: z.literal('REPLAY') }),
+      z.strictObject({
+        kind: z.literal('STAGED'),
+        begun: sceneGeometryBeginReadySchema,
+        saveId: postgresUuidSchema,
+        capture: z.nullable(
+          z.strictObject({
+            movement: liveSessionMovementCaptureScopeSchema,
+            bundle: liveSessionEncounterCaptureBundleSchema
+          })
+        )
+      })
+    ])
+)
 
 export type LiveSessionMovementStageInput = z.infer<typeof liveSessionMovementStageInputSchema>
 /** Declared, so a bound move's bundle keeps the capture bundle's own type through the union. */

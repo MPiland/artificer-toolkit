@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
@@ -19,19 +19,17 @@ import {
   ruleExecutionReceiptOrdinalSchema as receiptOrdinalSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
-const characterMechanicsApplicationTraceDtoSchema = z.strictObject({
-  sourceNodeId: identifierSchema,
-  sourceOperationKey: identifierSchema,
-  authoredPath: z.nullable(identifierSchema),
-  resolvedPath: z.nullable(identifierSchema)
-})
-export const damageDispositionDtoSchema = z.enum([
-  'NORMAL',
-  'IMMUNE',
-  'RESISTANT',
-  'VULNERABLE',
-  'RESISTANT_AND_VULNERABLE'
-])
+const characterMechanicsApplicationTraceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    sourceNodeId: identifierSchema,
+    sourceOperationKey: identifierSchema,
+    authoredPath: z.nullable(identifierSchema),
+    resolvedPath: z.nullable(identifierSchema)
+  })
+)
+export const damageDispositionDtoSchema = lazySchema(() =>
+  z.enum(['NORMAL', 'IMMUNE', 'RESISTANT', 'VULNERABLE', 'RESISTANT_AND_VULNERABLE'])
+)
 export type DamageDispositionDto = z.infer<typeof damageDispositionDtoSchema>
 
 /**
@@ -52,197 +50,211 @@ export function resolveDispositionDamage(
     : resisted
 }
 
-export const characterMechanicsApplicationDtoSchema = z.discriminatedUnion('kind', [
-  z.strictObject({
-    ordinal: receiptOrdinalSchema,
-    kind: z.enum(['HEAL', 'TEMPORARY_HIT_POINTS']),
-    requestedAmount: integerSchema.check(z.gte(1)),
-    resolvedAmount: integerSchema.check(z.gte(0)),
-    appliedAmount: integerSchema.check(z.gte(0)),
-    beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
-    afterCurrentHitPoints: integerSchema.check(z.gte(0)),
-    beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
-    afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
-    maximumHitPoints: integerSchema.check(z.gte(0)),
-    ...characterMechanicsApplicationTraceDtoSchema.shape
-  }),
-  z.strictObject({
-    ordinal: receiptOrdinalSchema,
-    kind: z.literal('DAMAGE'),
-    requestedAmount: integerSchema.check(z.gte(1)),
-    resolvedAmount: integerSchema.check(z.gte(0)),
-    appliedAmount: integerSchema.check(z.gte(0)),
-    beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
-    afterCurrentHitPoints: integerSchema.check(z.gte(0)),
-    beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
-    afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
-    maximumHitPoints: integerSchema.check(z.gte(0)),
-    damageTypeId: uuidSchema,
-    damageDisposition: damageDispositionDtoSchema,
-    ...characterMechanicsApplicationTraceDtoSchema.shape
-  }),
-  z.strictObject({
-    ordinal: receiptOrdinalSchema,
-    kind: z.literal('CONDITION_APPLY'),
-    conditionId: uuidSchema,
-    beforePresent: z.boolean(),
-    afterPresent: z.literal(true),
-    applied: z.boolean(),
-    ...characterMechanicsApplicationTraceDtoSchema.shape
-  }),
-  z.strictObject({
-    ordinal: receiptOrdinalSchema,
-    kind: z.literal('CONDITION_REMOVE'),
-    conditionId: uuidSchema,
-    sourceActiveEffectId: uuidSchema,
-    beforePresent: z.boolean(),
-    /** A source-bound removal can be retained by another active contribution. */
-    afterPresent: z.boolean(),
-    applied: z.boolean(),
-    ...characterMechanicsApplicationTraceDtoSchema.shape
-  }),
-  z.strictObject({
-    ordinal: receiptOrdinalSchema,
-    kind: z.literal('HIT_POINT_MAXIMUM_REDUCTION'),
-    reductionAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
-    sourceDamageOutcomeId: uuidSchema,
-    sourceDamageNodeId: identifierSchema,
-    sourceDamageOperationKey: identifierSchema,
-    recoveryTags: hitPointMaximumReductionRecoveryTagsSchema,
-    requestedAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
-    resolvedAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
-    appliedAmount: integerSchema.check(z.gte(0)).check(z.lte(Number.MAX_SAFE_INTEGER)),
-    beforeMaximumHitPoints: integerSchema.check(z.gte(0)),
-    afterMaximumHitPoints: integerSchema.check(z.gte(0)),
-    beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
-    afterCurrentHitPoints: integerSchema.check(z.gte(0)),
-    beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
-    afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
-    maximumHitPoints: integerSchema.check(z.gte(0)),
-    ...characterMechanicsApplicationTraceDtoSchema.shape
-  }),
-  z.strictObject({
-    ordinal: receiptOrdinalSchema,
-    kind: z.literal('SCALAR_REDUCTION'),
-    valueDefinitionId: uuidSchema,
-    reductionAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
-    stacking: z.literal('ADDITIVE'),
-    floor: z.literal(0),
-    recoveryTriggers: z
-      .array(z.enum(['SHORT_REST', 'LONG_REST']))
-      .check(z.minLength(1))
-      .check(z.maxLength(2)),
-    terminalConsequence: z.literal('TARGET_DIED'),
-    sourceOutcomeId: uuidSchema,
-    beforeValue: integerSchema.check(z.gte(0)),
-    afterValue: integerSchema.check(z.gte(0)),
-    targetDied: z.boolean(),
-    ...characterMechanicsApplicationTraceDtoSchema.shape
-  })
-])
-export const characterMechanicsTargetStateDtoSchema = z
-  .strictObject({
-    currentHitPoints: integerSchema.check(z.gte(0)),
-    temporaryHitPoints: integerSchema.check(z.gte(0)),
-    maximumHitPoints: integerSchema.check(z.gte(0)),
-    scalarValues: z._default(z.record(uuidSchema, integerSchema.check(z.gte(0))), {}),
-    conditionIds: z.array(uuidSchema).check(z.maxLength(200))
-  })
-  .check(
-    z.superRefine((value, context) => {
-      if (value.currentHitPoints > value.maximumHitPoints)
-        context.addIssue({
-          code: 'custom',
-          message: 'Target hit points exceed maximum.'
-        })
-      if (new Set(value.conditionIds).size !== value.conditionIds.length)
-        context.addIssue({
-          code: 'custom',
-          message: 'Target condition identities must be unique.'
-        })
-    })
-  )
-export const characterMechanicsResourceReceiptDtoSchema = z.strictObject({
-  poolId: characterResourcePoolIdentitySchema,
-  chargeId: identifierSchema,
-  cost: integerSchema.check(z.gte(1)),
-  beforeUsed: integerSchema.check(z.gte(0)),
-  afterUsed: integerSchema.check(z.gte(0)),
-  beforeRemaining: integerSchema.check(z.gte(0)),
-  afterRemaining: integerSchema.check(z.gte(0))
-})
-export const encounterFeatureResourceReceiptDtoSchema = z.strictObject({
-  ownerActorId: uuidSchema,
-  ownerFeatureId: authoredIdentifierSchema,
-  chargeId: authoredIdentifierSchema,
-  cost: integerSchema.check(z.gte(1)),
-  beforeUsed: integerSchema.check(z.gte(0)),
-  afterUsed: integerSchema.check(z.gte(0)),
-  beforeRemaining: integerSchema.check(z.gte(0)),
-  afterRemaining: integerSchema.check(z.gte(0))
-})
-export const characterActiveEffectCreateReceiptDtoSchema = z.strictObject({
-  kind: z.literal('CREATE'),
-  activeEffectId: uuidSchema,
-  characterId: uuidSchema,
-  sourceEncounterId: uuidSchema,
-  createdOrdinal: positiveIntegerSchema,
-  afterVersion: aggregateVersionSchema,
-  authoredEffectId: uuidSchema,
-  compiledEntryId: uuidSchema,
-  frozenGraphNodeId: localNodeIdSchema,
-  definitionChecksum: checksumSchema,
-  lifecycleChecksum: checksumSchema,
-  frozenSourceChecksum: checksumSchema,
-  capabilityContractVersion: contractVersionSchema,
-  recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-  remainingTicks: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(10_000))),
-  maintainedEffectStateId: z.nullable(uuidSchema)
-})
-/** One target-owned recurring effect created by an Encounter Feature settlement. */
-export const encounterActorActiveEffectCreateReceiptDtoSchema = z.strictObject({
-  kind: z.literal('CREATE'),
-  activeEffectId: uuidSchema,
-  targetActorId: uuidSchema,
-  createdOrdinal: positiveIntegerSchema,
-  afterVersion: aggregateVersionSchema,
-  authoredEffectId: uuidSchema,
-  compiledEntryId: uuidSchema,
-  frozenGraphNodeId: localNodeIdSchema,
-  definitionChecksum: checksumSchema,
-  lifecycleChecksum: checksumSchema,
-  frozenSourceChecksum: checksumSchema,
-  capabilityContractVersion: contractVersionSchema,
-  recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-  remainingTicks: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(10_000))),
-  maintainedEffectStateId: z.optional(z.nullable(uuidSchema))
-})
-/** Immutable receipt for a target-owned state contribution created by an immediate outcome. */
-export const stateEffectCreateReceiptDtoSchema = z.strictObject({
-  kind: z.literal('CREATE'),
-  owner: z.discriminatedUnion('kind', [
-    z.strictObject({ kind: z.literal('CHARACTER'), characterId: uuidSchema }),
+export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
     z.strictObject({
-      kind: z.literal('ENCOUNTER_ACTOR'),
-      encounterId: uuidSchema,
-      targetActorId: uuidSchema
+      ordinal: receiptOrdinalSchema,
+      kind: z.enum(['HEAL', 'TEMPORARY_HIT_POINTS']),
+      requestedAmount: integerSchema.check(z.gte(1)),
+      resolvedAmount: integerSchema.check(z.gte(0)),
+      appliedAmount: integerSchema.check(z.gte(0)),
+      beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
+      afterCurrentHitPoints: integerSchema.check(z.gte(0)),
+      beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
+      afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
+      maximumHitPoints: integerSchema.check(z.gte(0)),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('DAMAGE'),
+      requestedAmount: integerSchema.check(z.gte(1)),
+      resolvedAmount: integerSchema.check(z.gte(0)),
+      appliedAmount: integerSchema.check(z.gte(0)),
+      beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
+      afterCurrentHitPoints: integerSchema.check(z.gte(0)),
+      beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
+      afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
+      maximumHitPoints: integerSchema.check(z.gte(0)),
+      damageTypeId: uuidSchema,
+      damageDisposition: damageDispositionDtoSchema,
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('CONDITION_APPLY'),
+      conditionId: uuidSchema,
+      beforePresent: z.boolean(),
+      afterPresent: z.literal(true),
+      applied: z.boolean(),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('CONDITION_REMOVE'),
+      conditionId: uuidSchema,
+      sourceActiveEffectId: uuidSchema,
+      beforePresent: z.boolean(),
+      /** A source-bound removal can be retained by another active contribution. */
+      afterPresent: z.boolean(),
+      applied: z.boolean(),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('HIT_POINT_MAXIMUM_REDUCTION'),
+      reductionAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
+      sourceDamageOutcomeId: uuidSchema,
+      sourceDamageNodeId: identifierSchema,
+      sourceDamageOperationKey: identifierSchema,
+      recoveryTags: hitPointMaximumReductionRecoveryTagsSchema,
+      requestedAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
+      resolvedAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
+      appliedAmount: integerSchema.check(z.gte(0)).check(z.lte(Number.MAX_SAFE_INTEGER)),
+      beforeMaximumHitPoints: integerSchema.check(z.gte(0)),
+      afterMaximumHitPoints: integerSchema.check(z.gte(0)),
+      beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
+      afterCurrentHitPoints: integerSchema.check(z.gte(0)),
+      beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
+      afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
+      maximumHitPoints: integerSchema.check(z.gte(0)),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('SCALAR_REDUCTION'),
+      valueDefinitionId: uuidSchema,
+      reductionAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
+      stacking: z.literal('ADDITIVE'),
+      floor: z.literal(0),
+      recoveryTriggers: z
+        .array(z.enum(['SHORT_REST', 'LONG_REST']))
+        .check(z.minLength(1))
+        .check(z.maxLength(2)),
+      terminalConsequence: z.literal('TARGET_DIED'),
+      sourceOutcomeId: uuidSchema,
+      beforeValue: integerSchema.check(z.gte(0)),
+      afterValue: integerSchema.check(z.gte(0)),
+      targetDied: z.boolean(),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
     })
-  ]),
-  activeEffectId: uuidSchema,
-  createdOrdinal: positiveIntegerSchema,
-  afterVersion: aggregateVersionSchema,
-  authoredEffectId: uuidSchema,
-  compiledEntryId: uuidSchema,
-  frozenGraphNodeId: localNodeIdSchema,
-  definitionChecksum: checksumSchema,
-  lifecycleChecksum: checksumSchema,
-  frozenSourceChecksum: checksumSchema,
-  capabilityContractVersion: contractVersionSchema,
-  contribution: z.discriminatedUnion('kind', [
-    activeRuleEffectStateContributionDtoSchema,
-    activeRuleEffectScalarReductionContributionDtoSchema
   ])
-})
+)
+export const characterMechanicsTargetStateDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      currentHitPoints: integerSchema.check(z.gte(0)),
+      temporaryHitPoints: integerSchema.check(z.gte(0)),
+      maximumHitPoints: integerSchema.check(z.gte(0)),
+      scalarValues: z._default(z.record(uuidSchema, integerSchema.check(z.gte(0))), {}),
+      conditionIds: z.array(uuidSchema).check(z.maxLength(200))
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.currentHitPoints > value.maximumHitPoints)
+          context.addIssue({
+            code: 'custom',
+            message: 'Target hit points exceed maximum.'
+          })
+        if (new Set(value.conditionIds).size !== value.conditionIds.length)
+          context.addIssue({
+            code: 'custom',
+            message: 'Target condition identities must be unique.'
+          })
+      })
+    )
+)
+export const characterMechanicsResourceReceiptDtoSchema = lazySchema(() =>
+  z.strictObject({
+    poolId: characterResourcePoolIdentitySchema,
+    chargeId: identifierSchema,
+    cost: integerSchema.check(z.gte(1)),
+    beforeUsed: integerSchema.check(z.gte(0)),
+    afterUsed: integerSchema.check(z.gte(0)),
+    beforeRemaining: integerSchema.check(z.gte(0)),
+    afterRemaining: integerSchema.check(z.gte(0))
+  })
+)
+export const encounterFeatureResourceReceiptDtoSchema = lazySchema(() =>
+  z.strictObject({
+    ownerActorId: uuidSchema,
+    ownerFeatureId: authoredIdentifierSchema,
+    chargeId: authoredIdentifierSchema,
+    cost: integerSchema.check(z.gte(1)),
+    beforeUsed: integerSchema.check(z.gte(0)),
+    afterUsed: integerSchema.check(z.gte(0)),
+    beforeRemaining: integerSchema.check(z.gte(0)),
+    afterRemaining: integerSchema.check(z.gte(0))
+  })
+)
+export const characterActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('CREATE'),
+    activeEffectId: uuidSchema,
+    characterId: uuidSchema,
+    sourceEncounterId: uuidSchema,
+    createdOrdinal: positiveIntegerSchema,
+    afterVersion: aggregateVersionSchema,
+    authoredEffectId: uuidSchema,
+    compiledEntryId: uuidSchema,
+    frozenGraphNodeId: localNodeIdSchema,
+    definitionChecksum: checksumSchema,
+    lifecycleChecksum: checksumSchema,
+    frozenSourceChecksum: checksumSchema,
+    capabilityContractVersion: contractVersionSchema,
+    recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
+    remainingTicks: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(10_000))),
+    maintainedEffectStateId: z.nullable(uuidSchema)
+  })
+)
+/** One target-owned recurring effect created by an Encounter Feature settlement. */
+export const encounterActorActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('CREATE'),
+    activeEffectId: uuidSchema,
+    targetActorId: uuidSchema,
+    createdOrdinal: positiveIntegerSchema,
+    afterVersion: aggregateVersionSchema,
+    authoredEffectId: uuidSchema,
+    compiledEntryId: uuidSchema,
+    frozenGraphNodeId: localNodeIdSchema,
+    definitionChecksum: checksumSchema,
+    lifecycleChecksum: checksumSchema,
+    frozenSourceChecksum: checksumSchema,
+    capabilityContractVersion: contractVersionSchema,
+    recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
+    remainingTicks: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(10_000))),
+    maintainedEffectStateId: z.optional(z.nullable(uuidSchema))
+  })
+)
+/** Immutable receipt for a target-owned state contribution created by an immediate outcome. */
+export const stateEffectCreateReceiptDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('CREATE'),
+    owner: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('CHARACTER'), characterId: uuidSchema }),
+      z.strictObject({
+        kind: z.literal('ENCOUNTER_ACTOR'),
+        encounterId: uuidSchema,
+        targetActorId: uuidSchema
+      })
+    ]),
+    activeEffectId: uuidSchema,
+    createdOrdinal: positiveIntegerSchema,
+    afterVersion: aggregateVersionSchema,
+    authoredEffectId: uuidSchema,
+    compiledEntryId: uuidSchema,
+    frozenGraphNodeId: localNodeIdSchema,
+    definitionChecksum: checksumSchema,
+    lifecycleChecksum: checksumSchema,
+    frozenSourceChecksum: checksumSchema,
+    capabilityContractVersion: contractVersionSchema,
+    contribution: z.discriminatedUnion('kind', [
+      activeRuleEffectStateContributionDtoSchema,
+      activeRuleEffectScalarReductionContributionDtoSchema
+    ])
+  })
+)
 
 export function validateStateEffectTransitions(input: {
   applications: readonly z.infer<typeof characterMechanicsApplicationDtoSchema>[]
@@ -298,131 +310,136 @@ export function validateStateEffectTransitions(input: {
       })
   }
 }
-export const maintainedEffectTransitionDtoSchema = z
-  .strictObject({
-    kind: z.literal('REPLACE_SAME_DEFINITION'),
-    priorState: z.nullable(
-      z.strictObject({
+export const maintainedEffectTransitionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('REPLACE_SAME_DEFINITION'),
+      priorState: z.nullable(
+        z.strictObject({
+          id: uuidSchema,
+          version: aggregateVersionSchema,
+          maintenanceDefinitionId: uuidSchema,
+          descriptorChecksum: checksumSchema,
+          sourceActionId: z.string().check(z.minLength(1)).check(z.maxLength(240)),
+          sourceOccurrenceId: uuidSchema,
+          sourceActorId: uuidSchema
+        })
+      ),
+      removedDependentEffects: z
+        .array(
+          z.discriminatedUnion('kind', [
+            z.strictObject({
+              kind: z.literal('CHARACTER'),
+              characterId: uuidSchema,
+              activeEffectId: uuidSchema,
+              createdOrdinal: positiveIntegerSchema,
+              expectedVersion: aggregateVersionSchema,
+              definitionChecksum: checksumSchema,
+              lifecycleChecksum: checksumSchema
+            }),
+            z.strictObject({
+              kind: z.literal('ENCOUNTER_ACTOR'),
+              targetActorId: uuidSchema,
+              activeEffectId: uuidSchema,
+              createdOrdinal: positiveIntegerSchema,
+              expectedVersion: aggregateVersionSchema,
+              definitionChecksum: checksumSchema,
+              lifecycleChecksum: checksumSchema
+            })
+          ])
+        )
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
+      createdState: z.strictObject({
         id: uuidSchema,
         version: aggregateVersionSchema,
         maintenanceDefinitionId: uuidSchema,
         descriptorChecksum: checksumSchema,
+        definitionChecksum: checksumSchema,
         sourceActionId: z.string().check(z.minLength(1)).check(z.maxLength(240)),
         sourceOccurrenceId: uuidSchema,
         sourceActorId: uuidSchema
-      })
-    ),
-    removedDependentEffects: z
-      .array(
-        z.discriminatedUnion('kind', [
+      }),
+      characterOwnerTransitions: z
+        .array(
           z.strictObject({
-            kind: z.literal('CHARACTER'),
             characterId: uuidSchema,
-            activeEffectId: uuidSchema,
-            createdOrdinal: positiveIntegerSchema,
-            expectedVersion: aggregateVersionSchema,
-            definitionChecksum: checksumSchema,
-            lifecycleChecksum: checksumSchema
-          }),
-          z.strictObject({
-            kind: z.literal('ENCOUNTER_ACTOR'),
-            targetActorId: uuidSchema,
-            activeEffectId: uuidSchema,
-            createdOrdinal: positiveIntegerSchema,
-            expectedVersion: aggregateVersionSchema,
-            definitionChecksum: checksumSchema,
-            lifecycleChecksum: checksumSchema
+            beforeStreamVersion: aggregateVersionSchema,
+            afterStreamVersion: aggregateVersionSchema
           })
-        ])
-      )
-      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
-    createdState: z.strictObject({
-      id: uuidSchema,
-      version: aggregateVersionSchema,
-      maintenanceDefinitionId: uuidSchema,
-      descriptorChecksum: checksumSchema,
-      definitionChecksum: checksumSchema,
-      sourceActionId: z.string().check(z.minLength(1)).check(z.maxLength(240)),
-      sourceOccurrenceId: uuidSchema,
-      sourceActorId: uuidSchema
-    }),
-    characterOwnerTransitions: z
-      .array(
-        z.strictObject({
-          characterId: uuidSchema,
-          beforeStreamVersion: aggregateVersionSchema,
-          afterStreamVersion: aggregateVersionSchema
-        })
-      )
-      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
-    createdDependentEffectIds: z
-      .array(uuidSchema)
-      .check(z.minLength(1))
-      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
-  })
-  .check(
-    z.superRefine((value, context) => {
-      const removed = new Set<string>()
-      let previousTuple = ''
-      for (const [index, effect] of value.removedDependentEffects.entries()) {
-        const owner =
-          effect.kind === 'CHARACTER' ? `0:${effect.characterId}` : `1:${effect.targetActorId}`
-        if (removed.has(effect.activeEffectId))
-          context.addIssue({
-            code: 'custom',
-            message: 'Removed maintained dependent effects must be unique.'
-          })
-        const tuple = `${owner}:${effect.createdOrdinal.toString().padStart(10, '0')}:${effect.activeEffectId}`
-        if (tuple <= previousTuple)
-          context.addIssue({
-            code: 'custom',
-            path: ['removedDependentEffects', index],
-            message: 'Removed maintained dependent effects must use canonical owner order.'
-          })
-        previousTuple = tuple
-        removed.add(effect.activeEffectId)
-      }
-      if (new Set(value.createdDependentEffectIds).size !== value.createdDependentEffectIds.length)
-        context.addIssue({
-          code: 'custom',
-          message: 'Created maintained dependent effects must be unique.'
-        })
-      if (value.priorState === null && value.removedDependentEffects.length > 0)
-        context.addIssue({
-          code: 'custom',
-          message: 'Maintained replacement prior state and removals are inconsistent.'
-        })
-      if (
-        value.priorState &&
-        (value.priorState.maintenanceDefinitionId !== value.createdState.maintenanceDefinitionId ||
-          value.priorState.sourceActorId !== value.createdState.sourceActorId)
-      )
-        context.addIssue({
-          code: 'custom',
-          message: 'Maintained replacement state identity is invalid.'
-        })
-      const characterOwners = [
-        ...new Set(
-          value.removedDependentEffects
-            .filter((effect) => effect.kind === 'CHARACTER')
-            .map((effect) => effect.characterId)
         )
-      ].sort()
-      const transitions = value.characterOwnerTransitions
-      if (
-        transitions.length !== characterOwners.length ||
-        transitions.some(
-          (transition, index) =>
-            transition.characterId !== characterOwners[index] ||
-            transition.afterStreamVersion !== transition.beforeStreamVersion + 1
-        )
-      )
-        context.addIssue({
-          code: 'custom',
-          message: 'Maintained Character owner transitions are invalid.'
-        })
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
+      createdDependentEffectIds: z
+        .array(uuidSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     })
-  )
+    .check(
+      z.superRefine((value, context) => {
+        const removed = new Set<string>()
+        let previousTuple = ''
+        for (const [index, effect] of value.removedDependentEffects.entries()) {
+          const owner =
+            effect.kind === 'CHARACTER' ? `0:${effect.characterId}` : `1:${effect.targetActorId}`
+          if (removed.has(effect.activeEffectId))
+            context.addIssue({
+              code: 'custom',
+              message: 'Removed maintained dependent effects must be unique.'
+            })
+          const tuple = `${owner}:${effect.createdOrdinal.toString().padStart(10, '0')}:${effect.activeEffectId}`
+          if (tuple <= previousTuple)
+            context.addIssue({
+              code: 'custom',
+              path: ['removedDependentEffects', index],
+              message: 'Removed maintained dependent effects must use canonical owner order.'
+            })
+          previousTuple = tuple
+          removed.add(effect.activeEffectId)
+        }
+        if (
+          new Set(value.createdDependentEffectIds).size !== value.createdDependentEffectIds.length
+        )
+          context.addIssue({
+            code: 'custom',
+            message: 'Created maintained dependent effects must be unique.'
+          })
+        if (value.priorState === null && value.removedDependentEffects.length > 0)
+          context.addIssue({
+            code: 'custom',
+            message: 'Maintained replacement prior state and removals are inconsistent.'
+          })
+        if (
+          value.priorState &&
+          (value.priorState.maintenanceDefinitionId !==
+            value.createdState.maintenanceDefinitionId ||
+            value.priorState.sourceActorId !== value.createdState.sourceActorId)
+        )
+          context.addIssue({
+            code: 'custom',
+            message: 'Maintained replacement state identity is invalid.'
+          })
+        const characterOwners = [
+          ...new Set(
+            value.removedDependentEffects
+              .filter((effect) => effect.kind === 'CHARACTER')
+              .map((effect) => effect.characterId)
+          )
+        ].sort()
+        const transitions = value.characterOwnerTransitions
+        if (
+          transitions.length !== characterOwners.length ||
+          transitions.some(
+            (transition, index) =>
+              transition.characterId !== characterOwners[index] ||
+              transition.afterStreamVersion !== transition.beforeStreamVersion + 1
+          )
+        )
+          context.addIssue({
+            code: 'custom',
+            message: 'Maintained Character owner transitions are invalid.'
+          })
+      })
+    )
+)
 
 export function validateMaintainedEffectCreation(input: {
   occurrenceId: string

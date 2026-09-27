@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import {
   characterRestHealingModeDtoSchema,
@@ -28,117 +28,127 @@ export type {
   CharacterSheetExecuteInput
 } from './characterSheetCommandInputs.js'
 
-const stringSchema = z.string()
-const integerSchema = z.number().check(z.int())
-const booleanSchema = z.boolean()
+const stringSchema = lazySchema(() => z.string())
+const integerSchema = lazySchema(() => z.number().check(z.int()))
+const booleanSchema = lazySchema(() => z.boolean())
 
-export const characterRestPreviewRequestDtoSchema = z
-  .strictObject({
+export const characterRestPreviewRequestDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      restKind: characterRestKindDtoSchema,
+      expectedVersion: integerSchema.check(z.nonnegative()),
+      selectedHitDice: characterRestHitDieSelectionsDtoSchema,
+      resetMaximumHitPointModifier: booleanSchema,
+      healingMode: characterRestHealingModeDtoSchema,
+      manualHealingAccepted: booleanSchema,
+      selectedCompanionInstanceIds: z.array(z.guid()),
+      rollId: z.optional(stringSchema.check(z.uuid())),
+      rollEvidence: z.optional(characterRestHitDiceRollEvidenceDtoSchema),
+      requestRoll: z.literal(false)
+    })
+    .check(
+      z.superRefine((request, context) => {
+        if (
+          new Set(request.selectedCompanionInstanceIds).size !==
+          request.selectedCompanionInstanceIds.length
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['selectedCompanionInstanceIds'],
+            message: 'A companion may be selected only once.'
+          })
+        }
+        if (Boolean(request.rollId) !== Boolean(request.rollEvidence)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['rollId'],
+            message: 'Hit-die evidence must reference its authoritative roll.'
+          })
+        }
+      })
+    )
+)
+
+const characterRestRecoveryPreviewDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: stringSchema.check(z.trim()).check(z.minLength(1)),
+    label: stringSchema.check(z.trim()).check(z.minLength(1)),
+    recovered: integerSchema.check(z.nonnegative())
+  })
+)
+
+export const characterRestPreviewResponseDtoSchema = lazySchema(() =>
+  z.strictObject({
     restKind: characterRestKindDtoSchema,
-    expectedVersion: integerSchema.check(z.nonnegative()),
-    selectedHitDice: characterRestHitDieSelectionsDtoSchema,
-    resetMaximumHitPointModifier: booleanSchema,
+    streamVersion: integerSchema.check(z.nonnegative()),
+    previewFingerprint: stringSchema.check(z.trim()).check(z.minLength(1)),
+    hitPoints: z.strictObject({
+      current: integerSchema.check(z.nonnegative()),
+      maximum: integerSchema.check(z.nonnegative()),
+      temporary: integerSchema.check(z.nonnegative()),
+      missing: integerSchema.check(z.nonnegative()),
+      maximumHitPointModifier: integerSchema,
+      canResetMaximumHitPointModifier: booleanSchema
+    }),
+    hitDice: z.array(
+      z.strictObject({
+        die: integerSchema.check(z.gte(2)),
+        classLabels: z
+          .array(stringSchema.check(z.trim()).check(z.minLength(1)))
+          .check(z.minLength(1)),
+        total: integerSchema.check(z.nonnegative()),
+        used: integerSchema.check(z.nonnegative()),
+        remaining: integerSchema.check(z.nonnegative()),
+        selected: integerSchema.check(z.nonnegative()),
+        constitutionModifier: integerSchema
+      })
+    ),
     healingMode: characterRestHealingModeDtoSchema,
     manualHealingAccepted: booleanSchema,
-    selectedCompanionInstanceIds: z.array(z.guid()),
-    rollId: z.optional(stringSchema.check(z.uuid())),
+    canonicalExpression: z.optional(stringSchema.check(z.trim()).check(z.minLength(1))),
     rollEvidence: z.optional(characterRestHitDiceRollEvidenceDtoSchema),
-    requestRoll: z.literal(false)
+    stagedHealing: integerSchema.check(z.nonnegative()),
+    automaticRecoveries: z.strictObject({
+      resources: z.array(characterRestRecoveryPreviewDtoSchema),
+      spellSlots: z.array(characterRestRecoveryPreviewDtoSchema)
+    }),
+    eligibleCompanions: z.array(
+      z.strictObject({
+        companionInstanceId: z.guid(),
+        label: stringSchema.check(z.trim()).check(z.minLength(1)),
+        selected: booleanSchema,
+        hitDice: z.array(
+          z.strictObject({
+            die: integerSchema.check(z.gte(2)),
+            total: integerSchema.check(z.nonnegative()),
+            used: integerSchema.check(z.nonnegative()),
+            remaining: integerSchema.check(z.nonnegative()),
+            recovered: integerSchema.check(z.nonnegative())
+          })
+        ),
+        resources: z.array(characterRestRecoveryPreviewDtoSchema)
+      })
+    ),
+    canApply: booleanSchema
   })
-  .check(
-    z.superRefine((request, context) => {
-      if (
-        new Set(request.selectedCompanionInstanceIds).size !==
-        request.selectedCompanionInstanceIds.length
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['selectedCompanionInstanceIds'],
-          message: 'A companion may be selected only once.'
-        })
-      }
-      if (Boolean(request.rollId) !== Boolean(request.rollEvidence)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['rollId'],
-          message: 'Hit-die evidence must reference its authoritative roll.'
-        })
-      }
-    })
-  )
+)
 
-const characterRestRecoveryPreviewDtoSchema = z.strictObject({
-  id: stringSchema.check(z.trim()).check(z.minLength(1)),
-  label: stringSchema.check(z.trim()).check(z.minLength(1)),
-  recovered: integerSchema.check(z.nonnegative())
-})
+export const characterSheetCommandResponseDtoSchema = lazySchema(() =>
+  z.object({
+    characterId: stringSchema,
+    streamVersion: integerSchema,
+    sheet: characterSheetResponseDtoSchema,
+    panels: z.optional(z.array(characterSheetPanelDtoSchema)),
+    historyEntry: z.optional(characterHistoryEntryDtoSchema),
+    result: z.optional(characterSheetCommandResultDtoSchema)
+  })
+)
 
-export const characterRestPreviewResponseDtoSchema = z.strictObject({
-  restKind: characterRestKindDtoSchema,
-  streamVersion: integerSchema.check(z.nonnegative()),
-  previewFingerprint: stringSchema.check(z.trim()).check(z.minLength(1)),
-  hitPoints: z.strictObject({
-    current: integerSchema.check(z.nonnegative()),
-    maximum: integerSchema.check(z.nonnegative()),
-    temporary: integerSchema.check(z.nonnegative()),
-    missing: integerSchema.check(z.nonnegative()),
-    maximumHitPointModifier: integerSchema,
-    canResetMaximumHitPointModifier: booleanSchema
-  }),
-  hitDice: z.array(
-    z.strictObject({
-      die: integerSchema.check(z.gte(2)),
-      classLabels: z
-        .array(stringSchema.check(z.trim()).check(z.minLength(1)))
-        .check(z.minLength(1)),
-      total: integerSchema.check(z.nonnegative()),
-      used: integerSchema.check(z.nonnegative()),
-      remaining: integerSchema.check(z.nonnegative()),
-      selected: integerSchema.check(z.nonnegative()),
-      constitutionModifier: integerSchema
-    })
-  ),
-  healingMode: characterRestHealingModeDtoSchema,
-  manualHealingAccepted: booleanSchema,
-  canonicalExpression: z.optional(stringSchema.check(z.trim()).check(z.minLength(1))),
-  rollEvidence: z.optional(characterRestHitDiceRollEvidenceDtoSchema),
-  stagedHealing: integerSchema.check(z.nonnegative()),
-  automaticRecoveries: z.strictObject({
-    resources: z.array(characterRestRecoveryPreviewDtoSchema),
-    spellSlots: z.array(characterRestRecoveryPreviewDtoSchema)
-  }),
-  eligibleCompanions: z.array(
-    z.strictObject({
-      companionInstanceId: z.guid(),
-      label: stringSchema.check(z.trim()).check(z.minLength(1)),
-      selected: booleanSchema,
-      hitDice: z.array(
-        z.strictObject({
-          die: integerSchema.check(z.gte(2)),
-          total: integerSchema.check(z.nonnegative()),
-          used: integerSchema.check(z.nonnegative()),
-          remaining: integerSchema.check(z.nonnegative()),
-          recovered: integerSchema.check(z.nonnegative())
-        })
-      ),
-      resources: z.array(characterRestRecoveryPreviewDtoSchema)
-    })
-  ),
-  canApply: booleanSchema
-})
-
-export const characterSheetCommandResponseDtoSchema = z.object({
-  characterId: stringSchema,
-  streamVersion: integerSchema,
-  sheet: characterSheetResponseDtoSchema,
-  panels: z.optional(z.array(characterSheetPanelDtoSchema)),
-  historyEntry: z.optional(characterHistoryEntryDtoSchema),
-  result: z.optional(characterSheetCommandResultDtoSchema)
-})
-
-export const characterRestPreviewInputSchema = z.extend(characterSheetReadInputSchema, {
-  input: characterRestPreviewRequestDtoSchema
-})
+export const characterRestPreviewInputSchema = lazySchema(() =>
+  z.extend(characterSheetReadInputSchema, {
+    input: characterRestPreviewRequestDtoSchema
+  })
+)
 
 export type CharacterRestPreviewRequestDto = z.infer<typeof characterRestPreviewRequestDtoSchema>
 export type CharacterRestPreviewInput = z.infer<typeof characterRestPreviewInputSchema>

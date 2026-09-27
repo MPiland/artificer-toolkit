@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from '../shared/activeRuleEffects.js'
 import {
   serverAggregateChoicePendingSnapshotDtoSchema,
@@ -35,24 +35,26 @@ export type LiveSessionEncounterCleavingCommitInput = Omit<
 } & Pick<LiveSessionEncounterActionCommitInput, 'concentration' | 'pendingConcentration'>
 
 export const liveSessionEncounterCleavingCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCleavingCommitInput> =
-  z.extend(
-    z.omit(liveSessionEncounterRulesInputSchema, {
-      request: true,
-      concentrationResponse: true,
-      turnCommand: true,
-      action: true,
-      movement: true
-    }),
-    {
-      response: resolveRuleOccurrenceInputDtoSchema,
-      revisions: liveSessionRulesRevisionsSchema,
-      occurredAt: z.iso.datetime(),
-      execution: storedRuleExecutionResultDtoSchema,
-      rules: encounterActorRuleOutputSchema,
-      maintenanceOwners: z
-        .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
-        .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)),
-      ...liveSessionEncounterConcentrationFields,
-      cleaving: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema)
-    }
+  lazySchema(() =>
+    z.extend(
+      z.omit(liveSessionEncounterRulesInputSchema, {
+        request: true,
+        concentrationResponse: true,
+        turnCommand: true,
+        action: true,
+        movement: true
+      }),
+      {
+        response: resolveRuleOccurrenceInputDtoSchema,
+        revisions: liveSessionRulesRevisionsSchema,
+        occurredAt: z.iso.datetime(),
+        execution: storedRuleExecutionResultDtoSchema,
+        rules: encounterActorRuleOutputSchema,
+        maintenanceOwners: z
+          .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
+          .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)),
+        ...liveSessionEncounterConcentrationFields(),
+        cleaving: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema)
+      }
+    )
   )

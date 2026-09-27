@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import {
   backgroundAuthoredDtoSchema,
@@ -32,160 +32,199 @@ export {
   authoredDraftSaveRequestDtoSchema
 }
 
-export const authoredSubjectKindDtoSchema = z.enum([
-  'BACKGROUND',
-  'CLASS',
-  'CREATURE',
-  'EQUIPMENT',
-  'FEAT',
-  'RACE',
-  'SPELL',
-  'VEHICLE'
-])
+export const authoredSubjectKindDtoSchema = lazySchema(() =>
+  z.enum(['BACKGROUND', 'CLASS', 'CREATURE', 'EQUIPMENT', 'FEAT', 'RACE', 'SPELL', 'VEHICLE'])
+)
 
-const authoredCatalogCursorValueDtoSchema = z.union([
-  z.string().check(z.minLength(1)).check(z.maxLength(256)),
-  z.number().check(z.int()).check(z.gte(Number.MIN_SAFE_INTEGER), z.lte(Number.MAX_SAFE_INTEGER))
-])
+const authoredCatalogCursorValueDtoSchema = lazySchema(() =>
+  z.union([
+    z.string().check(z.minLength(1)).check(z.maxLength(256)),
+    z.number().check(z.int()).check(z.gte(Number.MIN_SAFE_INTEGER), z.lte(Number.MAX_SAFE_INTEGER))
+  ])
+)
 
-export const authoredCatalogCursorDtoSchema = z.object({
-  id: z.string().check(z.minLength(1)),
-  values: z.array(authoredCatalogCursorValueDtoSchema).check(z.minLength(1)).check(z.maxLength(4))
-})
-
-const authoredCatalogPageInputBaseDtoSchema = z.object({
-  cursor: z.optional(authoredCatalogCursorDtoSchema),
-  direction: z._default(z.enum(['FORWARD', 'BACKWARD']), 'FORWARD'),
-  limit: z._default(z.number().check(z.int()).check(z.gte(1)).check(z.lte(48)), 48),
-  query: z.optional(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
-})
-
-const authoredCatalogSourceFilterDtoSchema = z.enum(['MASTER', 'OWNED'])
-
-export const backgroundListRequestDtoSchema = z.extend(authoredCatalogPageInputBaseDtoSchema, {
-  sort: z._default(z.literal('name'), 'name'),
-  source: z.optional(authoredCatalogSourceFilterDtoSchema)
-})
-
-export const classListRequestDtoSchema = z.extend(authoredCatalogPageInputBaseDtoSchema, {
-  category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
-  sort: z._default(z.enum(['name', 'category']), 'name'),
-  source: z.optional(authoredCatalogSourceFilterDtoSchema)
-})
-
-export const creatureListRequestDtoSchema = z.extend(authoredCatalogPageInputBaseDtoSchema, {
-  category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
-  sort: z._default(z.enum(['name', 'category']), 'name'),
-  source: z.optional(authoredCatalogSourceFilterDtoSchema)
-})
-
-export const equipmentListRequestDtoSchema = z.extend(authoredCatalogPageInputBaseDtoSchema, {
-  category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
-  sort: z._default(z.enum(['name', 'category']), 'name'),
-  source: z.optional(authoredCatalogSourceFilterDtoSchema)
-})
-
-export const featListRequestDtoSchema = z.extend(authoredCatalogPageInputBaseDtoSchema, {
-  sort: z._default(z.literal('name'), 'name'),
-  source: z.optional(authoredCatalogSourceFilterDtoSchema)
-})
-
-export const raceListRequestDtoSchema = z.extend(authoredCatalogPageInputBaseDtoSchema, {
-  category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
-  sort: z._default(z.enum(['name', 'category']), 'name'),
-  source: z.optional(authoredCatalogSourceFilterDtoSchema)
-})
-
-export const spellListRequestDtoSchema = z.extend(authoredCatalogPageInputBaseDtoSchema, {
-  classId: z.optional(z.string().check(z.minLength(1))),
-  level: z.optional(z.number().check(z.int()).check(z.gte(0)).check(z.lte(9))),
-  magicSchoolId: z.optional(z.string().check(z.minLength(1))),
-  sort: z._default(z.enum(['name', 'level', 'school']), 'name')
-})
-
-export const vehicleListRequestDtoSchema = z.extend(authoredCatalogPageInputBaseDtoSchema, {
-  category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
-  sort: z._default(z.enum(['name', 'category']), 'name'),
-  source: z.optional(authoredCatalogSourceFilterDtoSchema)
-})
-
-export const authoredDetailViewDtoSchema = z.enum(['active', 'draft'])
-
-export const authoredValidationIssueDtoSchema = z.object({
-  code: z.string(),
-  message: z.string(),
-  path: z.array(z.union([z.string(), z.number()]))
-})
-
-export const authoredDetailRequestDtoSchema = z.object({
-  id: z.string().check(z.minLength(1)),
-  view: z.optional(authoredDetailViewDtoSchema),
-  meta: z.optional(z.array(z.string().check(z.minLength(1))))
-})
-
-export const authoredDraftActivateRequestDtoSchema = z.object({
-  subjectKind: authoredSubjectKindDtoSchema,
-  subjectId: z.string()
-})
-
-const authoredContentListItemBaseDtoSchema = z.extend(
+export const authoredCatalogCursorDtoSchema = lazySchema(() =>
   z.object({
-    id: z.string(),
-    publicId: z.string(),
-    activeUpdatedAt: z.string(),
-    label: z.string(),
-    status: authoredRecordStatusSchema,
-    description: z.optional(z.nullable(z.string())),
-    draft: z.optional(z.nullable(authoredDraftSummaryDtoSchema)),
-    provenance: authoredContentProvenanceDtoSchema,
-    permissions: authoredContentPermissionsDtoSchema
-  }),
-  ownerContextDtoSchema.shape
+    id: z.string().check(z.minLength(1)),
+    values: z.array(authoredCatalogCursorValueDtoSchema).check(z.minLength(1)).check(z.maxLength(4))
+  })
+)
+
+const authoredCatalogPageInputBaseDtoSchema = lazySchema(() =>
+  z.object({
+    cursor: z.optional(authoredCatalogCursorDtoSchema),
+    direction: z._default(z.enum(['FORWARD', 'BACKWARD']), 'FORWARD'),
+    limit: z._default(z.number().check(z.int()).check(z.gte(1)).check(z.lte(48)), 48),
+    query: z.optional(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+  })
+)
+
+const authoredCatalogSourceFilterDtoSchema = lazySchema(() => z.enum(['MASTER', 'OWNED']))
+
+export const backgroundListRequestDtoSchema = lazySchema(() =>
+  z.extend(authoredCatalogPageInputBaseDtoSchema, {
+    sort: z._default(z.literal('name'), 'name'),
+    source: z.optional(authoredCatalogSourceFilterDtoSchema)
+  })
+)
+
+export const classListRequestDtoSchema = lazySchema(() =>
+  z.extend(authoredCatalogPageInputBaseDtoSchema, {
+    category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
+    sort: z._default(z.enum(['name', 'category']), 'name'),
+    source: z.optional(authoredCatalogSourceFilterDtoSchema)
+  })
+)
+
+export const creatureListRequestDtoSchema = lazySchema(() =>
+  z.extend(authoredCatalogPageInputBaseDtoSchema, {
+    category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
+    sort: z._default(z.enum(['name', 'category']), 'name'),
+    source: z.optional(authoredCatalogSourceFilterDtoSchema)
+  })
+)
+
+export const equipmentListRequestDtoSchema = lazySchema(() =>
+  z.extend(authoredCatalogPageInputBaseDtoSchema, {
+    category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
+    sort: z._default(z.enum(['name', 'category']), 'name'),
+    source: z.optional(authoredCatalogSourceFilterDtoSchema)
+  })
+)
+
+export const featListRequestDtoSchema = lazySchema(() =>
+  z.extend(authoredCatalogPageInputBaseDtoSchema, {
+    sort: z._default(z.literal('name'), 'name'),
+    source: z.optional(authoredCatalogSourceFilterDtoSchema)
+  })
+)
+
+export const raceListRequestDtoSchema = lazySchema(() =>
+  z.extend(authoredCatalogPageInputBaseDtoSchema, {
+    category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
+    sort: z._default(z.enum(['name', 'category']), 'name'),
+    source: z.optional(authoredCatalogSourceFilterDtoSchema)
+  })
+)
+
+export const spellListRequestDtoSchema = lazySchema(() =>
+  z.extend(authoredCatalogPageInputBaseDtoSchema, {
+    classId: z.optional(z.string().check(z.minLength(1))),
+    level: z.optional(z.number().check(z.int()).check(z.gte(0)).check(z.lte(9))),
+    magicSchoolId: z.optional(z.string().check(z.minLength(1))),
+    sort: z._default(z.enum(['name', 'level', 'school']), 'name')
+  })
+)
+
+export const vehicleListRequestDtoSchema = lazySchema(() =>
+  z.extend(authoredCatalogPageInputBaseDtoSchema, {
+    category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
+    sort: z._default(z.enum(['name', 'category']), 'name'),
+    source: z.optional(authoredCatalogSourceFilterDtoSchema)
+  })
+)
+
+export const authoredDetailViewDtoSchema = lazySchema(() => z.enum(['active', 'draft']))
+
+export const authoredValidationIssueDtoSchema = lazySchema(() =>
+  z.object({
+    code: z.string(),
+    message: z.string(),
+    path: z.array(z.union([z.string(), z.number()]))
+  })
+)
+
+export const authoredDetailRequestDtoSchema = lazySchema(() =>
+  z.object({
+    id: z.string().check(z.minLength(1)),
+    view: z.optional(authoredDetailViewDtoSchema),
+    meta: z.optional(z.array(z.string().check(z.minLength(1))))
+  })
+)
+
+export const authoredDraftActivateRequestDtoSchema = lazySchema(() =>
+  z.object({
+    subjectKind: authoredSubjectKindDtoSchema,
+    subjectId: z.string()
+  })
+)
+
+const authoredContentListItemBaseDtoSchema = lazySchema(() =>
+  z.extend(
+    z.object({
+      id: z.string(),
+      publicId: z.string(),
+      activeUpdatedAt: z.string(),
+      label: z.string(),
+      status: authoredRecordStatusSchema,
+      description: z.optional(z.nullable(z.string())),
+      draft: z.optional(z.nullable(authoredDraftSummaryDtoSchema)),
+      provenance: authoredContentProvenanceDtoSchema,
+      permissions: authoredContentPermissionsDtoSchema
+    }),
+    ownerContextDtoSchema.shape
+  )
 )
 
 export const backgroundListItemDtoSchema = authoredContentListItemBaseDtoSchema
-export const classListItemDtoSchema = z.extend(authoredContentListItemBaseDtoSchema, {
-  category: z.optional(z.string()),
-  parentClassId: z.optional(z.nullable(z.string())),
-  parentClassLabel: z.optional(z.nullable(z.string()))
-})
-export const equipmentListItemDtoSchema = z.extend(authoredContentListItemBaseDtoSchema, {
-  category: z.optional(z.string())
-})
+export const classListItemDtoSchema = lazySchema(() =>
+  z.extend(authoredContentListItemBaseDtoSchema, {
+    category: z.optional(z.string()),
+    parentClassId: z.optional(z.nullable(z.string())),
+    parentClassLabel: z.optional(z.nullable(z.string()))
+  })
+)
+export const equipmentListItemDtoSchema = lazySchema(() =>
+  z.extend(authoredContentListItemBaseDtoSchema, {
+    category: z.optional(z.string())
+  })
+)
 export const featListItemDtoSchema = authoredContentListItemBaseDtoSchema
-export const raceListItemDtoSchema = z.extend(authoredContentListItemBaseDtoSchema, {
-  category: z.optional(z.string()),
-  parentRaceId: z.optional(z.nullable(z.string())),
-  parentRaceLabel: z.optional(z.nullable(z.string())),
-  selectionMode: z.optional(z.nullable(z.string()))
-})
-export const spellListItemDtoSchema = z.extend(authoredContentListItemBaseDtoSchema, {
-  classIds: z.optional(z.array(z.string())),
-  classLabels: z.optional(z.array(z.string())),
-  level: z.optional(z.number().check(z.int())),
-  magicSchoolId: z.optional(z.nullable(z.string())),
-  magicSchoolLabel: z.optional(z.nullable(z.string())),
-  castingTimeUnit: z.optional(z.string()),
-  castingTimeAmount: z.optional(z.number().check(z.int()))
-})
-export const creatureListItemDtoSchema = z.extend(authoredContentListItemBaseDtoSchema, {
-  category: z.optional(z.string())
-})
-export const vehicleListItemDtoSchema = z.extend(authoredContentListItemBaseDtoSchema, {
-  category: z.optional(z.string())
-})
+export const raceListItemDtoSchema = lazySchema(() =>
+  z.extend(authoredContentListItemBaseDtoSchema, {
+    category: z.optional(z.string()),
+    parentRaceId: z.optional(z.nullable(z.string())),
+    parentRaceLabel: z.optional(z.nullable(z.string())),
+    selectionMode: z.optional(z.nullable(z.string()))
+  })
+)
+export const spellListItemDtoSchema = lazySchema(() =>
+  z.extend(authoredContentListItemBaseDtoSchema, {
+    classIds: z.optional(z.array(z.string())),
+    classLabels: z.optional(z.array(z.string())),
+    level: z.optional(z.number().check(z.int())),
+    magicSchoolId: z.optional(z.nullable(z.string())),
+    magicSchoolLabel: z.optional(z.nullable(z.string())),
+    castingTimeUnit: z.optional(z.string()),
+    castingTimeAmount: z.optional(z.number().check(z.int()))
+  })
+)
+export const creatureListItemDtoSchema = lazySchema(() =>
+  z.extend(authoredContentListItemBaseDtoSchema, {
+    category: z.optional(z.string())
+  })
+)
+export const vehicleListItemDtoSchema = lazySchema(() =>
+  z.extend(authoredContentListItemBaseDtoSchema, {
+    category: z.optional(z.string())
+  })
+)
 
-const authoredCatalogSummaryDtoSchema = z.object({
-  activeCount: z.number().check(z.int()).check(z.nonnegative()),
-  masterCount: z.number().check(z.int()).check(z.nonnegative()),
-  ownedCount: z.number().check(z.int()).check(z.nonnegative())
-})
+const authoredCatalogSummaryDtoSchema = lazySchema(() =>
+  z.object({
+    activeCount: z.number().check(z.int()).check(z.nonnegative()),
+    masterCount: z.number().check(z.int()).check(z.nonnegative()),
+    ownedCount: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
 
-const authoredCatalogPageDtoSchema = z.object({
-  nextCursor: z.nullable(authoredCatalogCursorDtoSchema),
-  previousCursor: z.nullable(authoredCatalogCursorDtoSchema),
-  totalCount: z.number().check(z.int()).check(z.nonnegative())
-})
+const authoredCatalogPageDtoSchema = lazySchema(() =>
+  z.object({
+    nextCursor: z.nullable(authoredCatalogCursorDtoSchema),
+    previousCursor: z.nullable(authoredCatalogCursorDtoSchema),
+    totalCount: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
 
 function authoredContentListResponseDtoSchema<TSchema extends z.ZodMiniType>(itemSchema: TSchema) {
   return z.extend(listResponseDtoSchema(itemSchema), {
@@ -195,27 +234,37 @@ function authoredContentListResponseDtoSchema<TSchema extends z.ZodMiniType>(ite
   })
 }
 
-export const backgroundListResponseDtoSchema = authoredContentListResponseDtoSchema(
-  backgroundListItemDtoSchema
+export const backgroundListResponseDtoSchema = lazySchema(() =>
+  authoredContentListResponseDtoSchema(backgroundListItemDtoSchema)
 )
-export const classListResponseDtoSchema =
+export const classListResponseDtoSchema = lazySchema(() =>
   authoredContentListResponseDtoSchema(classListItemDtoSchema)
-export const equipmentListResponseDtoSchema = authoredContentListResponseDtoSchema(
-  equipmentListItemDtoSchema
 )
-export const featListResponseDtoSchema = authoredContentListResponseDtoSchema(featListItemDtoSchema)
-export const raceListResponseDtoSchema = authoredContentListResponseDtoSchema(raceListItemDtoSchema)
-export const spellListResponseDtoSchema =
+export const equipmentListResponseDtoSchema = lazySchema(() =>
+  authoredContentListResponseDtoSchema(equipmentListItemDtoSchema)
+)
+export const featListResponseDtoSchema = lazySchema(() =>
+  authoredContentListResponseDtoSchema(featListItemDtoSchema)
+)
+export const raceListResponseDtoSchema = lazySchema(() =>
+  authoredContentListResponseDtoSchema(raceListItemDtoSchema)
+)
+export const spellListResponseDtoSchema = lazySchema(() =>
   authoredContentListResponseDtoSchema(spellListItemDtoSchema)
-export const creatureListResponseDtoSchema =
+)
+export const creatureListResponseDtoSchema = lazySchema(() =>
   authoredContentListResponseDtoSchema(creatureListItemDtoSchema)
-export const vehicleListResponseDtoSchema =
+)
+export const vehicleListResponseDtoSchema = lazySchema(() =>
   authoredContentListResponseDtoSchema(vehicleListItemDtoSchema)
+)
 
-const detailReferenceOptionDtoSchema = z.object({
-  value: z.string(),
-  label: z.string()
-})
+const detailReferenceOptionDtoSchema = lazySchema(() =>
+  z.object({
+    value: z.string(),
+    label: z.string()
+  })
+)
 
 const detailResponseExtrasDtoSchema = <TSchema extends z.ZodMiniType>(metaSchema: TSchema) =>
   z.object({
@@ -243,123 +292,155 @@ type AuthoredDetailResponseDtoSchema<
   }>
 >
 
-export const emptyDetailMetaDtoSchema = z.object({})
+export const emptyDetailMetaDtoSchema = lazySchema(() => z.object({}))
 
-export const backgroundDetailMetaDtoSchema = z.object({
-  currencies: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  equipment: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  languages: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  skills: z.optional(z.array(detailReferenceOptionDtoSchema))
-})
+export const backgroundDetailMetaDtoSchema = lazySchema(() =>
+  z.object({
+    currencies: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    equipment: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    languages: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    skills: z.optional(z.array(detailReferenceOptionDtoSchema))
+  })
+)
 
-export const classDetailMetaDtoSchema = z.object({
-  classes: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  currencies: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  equipment: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  languages: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  skills: z.optional(z.array(detailReferenceOptionDtoSchema))
-})
+export const classDetailMetaDtoSchema = lazySchema(() =>
+  z.object({
+    classes: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    currencies: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    equipment: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    languages: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    skills: z.optional(z.array(detailReferenceOptionDtoSchema))
+  })
+)
 
-export const equipmentDetailMetaDtoSchema = z.object({
-  classes: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  currencies: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  equipment: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  heritages: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  rarities: z.optional(z.array(detailReferenceOptionDtoSchema))
-})
+export const equipmentDetailMetaDtoSchema = lazySchema(() =>
+  z.object({
+    classes: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    currencies: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    equipment: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    heritages: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    rarities: z.optional(z.array(detailReferenceOptionDtoSchema))
+  })
+)
 
-export const raceDetailMetaDtoSchema = z.object({
-  heritages: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  races: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  speeds: z.optional(z.array(detailReferenceOptionDtoSchema))
-})
+export const raceDetailMetaDtoSchema = lazySchema(() =>
+  z.object({
+    heritages: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    races: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    speeds: z.optional(z.array(detailReferenceOptionDtoSchema))
+  })
+)
 
-export const spellDetailMetaDtoSchema = z.object({
-  classes: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  conditionTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  damageTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  magicSchools: z.optional(z.array(detailReferenceOptionDtoSchema))
-})
+export const spellDetailMetaDtoSchema = lazySchema(() =>
+  z.object({
+    classes: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    conditionTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    damageTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    magicSchools: z.optional(z.array(detailReferenceOptionDtoSchema))
+  })
+)
 
-export const creatureDetailMetaDtoSchema = z.object({
-  challengeRatings: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  conditionTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  creatureTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  damageTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  equipment: z.optional(z.array(detailReferenceOptionDtoSchema)),
-  speeds: z.optional(z.array(detailReferenceOptionDtoSchema))
-})
+export const creatureDetailMetaDtoSchema = lazySchema(() =>
+  z.object({
+    challengeRatings: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    conditionTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    creatureTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    damageTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    equipment: z.optional(z.array(detailReferenceOptionDtoSchema)),
+    speeds: z.optional(z.array(detailReferenceOptionDtoSchema))
+  })
+)
 
-export const vehicleDetailMetaDtoSchema = z.object({
-  currencies: z.optional(z.array(detailReferenceOptionDtoSchema))
-})
+export const vehicleDetailMetaDtoSchema = lazySchema(() =>
+  z.object({
+    currencies: z.optional(z.array(detailReferenceOptionDtoSchema))
+  })
+)
 
 export const backgroundResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof backgroundAuthoredDtoSchema,
   typeof backgroundDetailMetaDtoSchema
-> = authoredResourceResponseDtoSchema(
-  backgroundAuthoredDtoSchema,
-  detailResponseExtrasDtoSchema(backgroundDetailMetaDtoSchema)
+> = lazySchema(() =>
+  authoredResourceResponseDtoSchema(
+    backgroundAuthoredDtoSchema,
+    detailResponseExtrasDtoSchema(backgroundDetailMetaDtoSchema)
+  )
 )
 export const classResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof classAuthoredDtoSchema,
   typeof classDetailMetaDtoSchema
-> = authoredResourceResponseDtoSchema(
-  classAuthoredDtoSchema,
-  detailResponseExtrasDtoSchema(classDetailMetaDtoSchema)
+> = lazySchema(() =>
+  authoredResourceResponseDtoSchema(
+    classAuthoredDtoSchema,
+    detailResponseExtrasDtoSchema(classDetailMetaDtoSchema)
+  )
 )
 export const equipmentResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof equipmentAuthoredDtoSchema,
   typeof equipmentDetailMetaDtoSchema
-> = authoredResourceResponseDtoSchema(
-  equipmentAuthoredDtoSchema,
-  detailResponseExtrasDtoSchema(equipmentDetailMetaDtoSchema)
+> = lazySchema(() =>
+  authoredResourceResponseDtoSchema(
+    equipmentAuthoredDtoSchema,
+    detailResponseExtrasDtoSchema(equipmentDetailMetaDtoSchema)
+  )
 )
 export const featResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof featAuthoredDtoSchema,
   typeof emptyDetailMetaDtoSchema
-> = authoredResourceResponseDtoSchema(
-  featAuthoredDtoSchema,
-  detailResponseExtrasDtoSchema(emptyDetailMetaDtoSchema)
+> = lazySchema(() =>
+  authoredResourceResponseDtoSchema(
+    featAuthoredDtoSchema,
+    detailResponseExtrasDtoSchema(emptyDetailMetaDtoSchema)
+  )
 )
 export const raceResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof raceAuthoredDtoSchema,
   typeof raceDetailMetaDtoSchema
-> = authoredResourceResponseDtoSchema(
-  raceAuthoredDtoSchema,
-  detailResponseExtrasDtoSchema(raceDetailMetaDtoSchema)
+> = lazySchema(() =>
+  authoredResourceResponseDtoSchema(
+    raceAuthoredDtoSchema,
+    detailResponseExtrasDtoSchema(raceDetailMetaDtoSchema)
+  )
 )
 export const spellResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof spellAuthoredDtoSchema,
   typeof spellDetailMetaDtoSchema
-> = authoredResourceResponseDtoSchema(
-  spellAuthoredDtoSchema,
-  detailResponseExtrasDtoSchema(spellDetailMetaDtoSchema)
+> = lazySchema(() =>
+  authoredResourceResponseDtoSchema(
+    spellAuthoredDtoSchema,
+    detailResponseExtrasDtoSchema(spellDetailMetaDtoSchema)
+  )
 )
 export const creatureResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof creatureAuthoredDtoSchema,
   typeof creatureDetailMetaDtoSchema
-> = authoredResourceResponseDtoSchema(
-  creatureAuthoredDtoSchema,
-  detailResponseExtrasDtoSchema(creatureDetailMetaDtoSchema)
+> = lazySchema(() =>
+  authoredResourceResponseDtoSchema(
+    creatureAuthoredDtoSchema,
+    detailResponseExtrasDtoSchema(creatureDetailMetaDtoSchema)
+  )
 )
 export const vehicleResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof vehicleAuthoredDtoSchema,
   typeof vehicleDetailMetaDtoSchema
-> = authoredResourceResponseDtoSchema(
-  vehicleAuthoredDtoSchema,
-  detailResponseExtrasDtoSchema(vehicleDetailMetaDtoSchema)
+> = lazySchema(() =>
+  authoredResourceResponseDtoSchema(
+    vehicleAuthoredDtoSchema,
+    detailResponseExtrasDtoSchema(vehicleDetailMetaDtoSchema)
+  )
 )
 
 /** Native authored reads share the existing domain detail contracts. */
-export const authoredDetailReadInputSchema = z.strictObject(
-  z.extend(authoredDetailRequestDtoSchema, {
-    subjectKind: authoredSubjectKindDtoSchema,
-    id: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(64)),
-    meta: z.optional(
-      z.array(z.string().check(z.minLength(1)).check(z.maxLength(64))).check(z.maxLength(16))
-    )
-  }).shape
+export const authoredDetailReadInputSchema = lazySchema(() =>
+  z.strictObject(
+    z.extend(authoredDetailRequestDtoSchema, {
+      subjectKind: authoredSubjectKindDtoSchema,
+      id: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(64)),
+      meta: z.optional(
+        z.array(z.string().check(z.minLength(1)).check(z.maxLength(64))).check(z.maxLength(16))
+      )
+    }).shape
+  )
 )
 
 export const authoredDetailResponseSchemas = {
@@ -376,11 +457,13 @@ export const authoredDetailResponseSchemas = {
 // Convex cannot translate all authored Zod arms (for example forbidden/undefined
 // fields). Validate the JSON envelope there, then parse the exact domain response
 // in the handler before returning it; this does not replace domain validation.
-export const authoredDetailReadEnvelopeSchema = z.nullable(
-  z.extend(z.omit(backgroundResponseDtoSchema._zod.def.innerType, { item: true, meta: true }), {
-    item: z.nullable(unknownObjectSchema),
-    meta: z.optional(z.record(z.string(), z.array(detailReferenceOptionDtoSchema)))
-  })
+export const authoredDetailReadEnvelopeSchema = lazySchema(() =>
+  z.nullable(
+    z.extend(z.omit(backgroundResponseDtoSchema._zod.def.innerType, { item: true, meta: true }), {
+      item: z.nullable(unknownObjectSchema),
+      meta: z.optional(z.record(z.string(), z.array(detailReferenceOptionDtoSchema)))
+    })
+  )
 )
 
 export type AuthoredDetailReadInput = z.infer<typeof authoredDetailReadInputSchema>

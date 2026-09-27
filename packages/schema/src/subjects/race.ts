@@ -1,5 +1,5 @@
 import { RACE_SELECTION_MODE } from '@artificer-toolkit/shared/core'
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { raceAncestryDtoSchema } from './shared.js'
 import {
@@ -14,36 +14,42 @@ import { speedDtoSchema } from '../shared/speed.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { authoredRecordStatusSchema, sizeCodeSchema } from '../shared/enums.js'
 
-const raceBaseDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  label: authoredShortTextSchema,
-  quote: z.optional(authoredRichTextSchema),
-  description: z.optional(authoredRichTextSchema),
-  status: z.optional(authoredRecordStatusSchema),
-  userId: authoredIdentifierSchema,
-  systemId: authoredIdentifierSchema
-})
+const raceBaseDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    label: authoredShortTextSchema,
+    quote: z.optional(authoredRichTextSchema),
+    description: z.optional(authoredRichTextSchema),
+    status: z.optional(authoredRecordStatusSchema),
+    userId: authoredIdentifierSchema,
+    systemId: authoredIdentifierSchema
+  })
+)
 
-const baseRaceAuthoredDtoSchemaInternal = z.extend(raceBaseDtoSchema, {
-  category: z.literal('BASE'),
-  selectionMode: z.union([
-    z.literal(RACE_SELECTION_MODE.DIRECT),
-    z.literal(RACE_SELECTION_MODE.REQUIRES_SUBRACE)
-  ]),
-  ancestry: z.optional(raceAncestryDtoSchema),
-  heritageIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-  details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
-  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
-  size: sizeCodeSchema,
-  speeds: authoredNestedCollectionSchema(speedDtoSchema)
-})
+const baseRaceAuthoredDtoSchemaInternal = lazySchema(() =>
+  z.extend(raceBaseDtoSchema, {
+    category: z.literal('BASE'),
+    selectionMode: z.union([
+      z.literal(RACE_SELECTION_MODE.DIRECT),
+      z.literal(RACE_SELECTION_MODE.REQUIRES_SUBRACE)
+    ]),
+    ancestry: z.optional(raceAncestryDtoSchema),
+    heritageIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+    details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
+    features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
+    size: sizeCodeSchema,
+    speeds: authoredNestedCollectionSchema(speedDtoSchema)
+  })
+)
 
-const subraceAuthoredDtoSchemaInternal = z.extend(raceBaseDtoSchema, {
-  category: z.literal('SUBRACE'),
-  parentRaceId: authoredIdentifierSchema,
-  details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
-  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema))
-})
+const subraceAuthoredDtoSchemaInternal = lazySchema(() =>
+  z.extend(raceBaseDtoSchema, {
+    category: z.literal('SUBRACE'),
+    parentRaceId: authoredIdentifierSchema,
+    details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
+    features: z.optional(authoredNestedCollectionSchema(featureDtoSchema))
+  })
+)
 
 export const baseRaceAuthoredDtoSchema: typeof baseRaceAuthoredDtoSchemaInternal =
   baseRaceAuthoredDtoSchemaInternal
@@ -54,17 +60,20 @@ export type BaseRaceAuthoredDto = z.infer<typeof baseRaceAuthoredDtoSchema>
 export type SubraceAuthoredDto = z.infer<typeof subraceAuthoredDtoSchema>
 export type RaceAuthoredDto = BaseRaceAuthoredDto | SubraceAuthoredDto
 
-export const raceAuthoredDtoSchema: z.ZodMiniType<RaceAuthoredDto> = z.discriminatedUnion(
-  'category',
-  [baseRaceAuthoredDtoSchema, subraceAuthoredDtoSchema]
+export const raceAuthoredDtoSchema: z.ZodMiniType<RaceAuthoredDto> = lazySchema(() =>
+  z.discriminatedUnion('category', [baseRaceAuthoredDtoSchema, subraceAuthoredDtoSchema])
 )
 
-const baseRaceAuthoringInputDtoSchemaInternal = z.extend(baseRaceAuthoredDtoSchema, {
-  userId: z.optional(authoredIdentifierSchema)
-})
-const subraceAuthoringInputDtoSchemaInternal = z.extend(subraceAuthoredDtoSchema, {
-  userId: z.optional(authoredIdentifierSchema)
-})
+const baseRaceAuthoringInputDtoSchemaInternal = lazySchema(() =>
+  z.extend(baseRaceAuthoredDtoSchema, {
+    userId: z.optional(authoredIdentifierSchema)
+  })
+)
+const subraceAuthoringInputDtoSchemaInternal = lazySchema(() =>
+  z.extend(subraceAuthoredDtoSchema, {
+    userId: z.optional(authoredIdentifierSchema)
+  })
+)
 
 export const baseRaceAuthoringInputDtoSchema: typeof baseRaceAuthoringInputDtoSchemaInternal =
   baseRaceAuthoringInputDtoSchemaInternal
@@ -75,8 +84,9 @@ export type BaseRaceAuthoringInputDto = z.infer<typeof baseRaceAuthoringInputDto
 export type SubraceAuthoringInputDto = z.infer<typeof subraceAuthoringInputDtoSchema>
 export type RaceAuthoringInputDto = BaseRaceAuthoringInputDto | SubraceAuthoringInputDto
 
-export const raceAuthoringInputDtoSchema: z.ZodMiniType<RaceAuthoringInputDto> =
+export const raceAuthoringInputDtoSchema: z.ZodMiniType<RaceAuthoringInputDto> = lazySchema(() =>
   z.discriminatedUnion('category', [
     baseRaceAuthoringInputDtoSchema,
     subraceAuthoringInputDtoSchema
   ])
+)

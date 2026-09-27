@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { applyGrantDtoSchema } from './applyGrant.js'
 import { commandManifestDtoSchema } from './commandManifest.js'
@@ -104,16 +104,20 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
   return outcomePayloadDtoSchema
 }
 
-export const pathLifecycleDtoSchema = z.object({
-  recurringKind: z.optional(pathLifecycleRecurringKindSchema),
-  consumeOnFirstEvent: z.optional(pathLifecycleConsumeEventSchema),
-  endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema))
-})
+export const pathLifecycleDtoSchema = lazySchema(() =>
+  z.object({
+    recurringKind: z.optional(pathLifecycleRecurringKindSchema),
+    consumeOnFirstEvent: z.optional(pathLifecycleConsumeEventSchema),
+    endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema))
+  })
+)
 
-const choiceOptionMetadataDtoSchema = z.object({
-  label: authoredShortTextSchema,
-  description: authoredRichTextSchema
-})
+const choiceOptionMetadataDtoSchema = lazySchema(() =>
+  z.object({
+    label: authoredShortTextSchema,
+    description: authoredRichTextSchema
+  })
+)
 
 const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
   z.object({
@@ -211,15 +215,21 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
   )
 }
 
-const outcomePayloadDtoSchema = createOutcomePayloadDtoSchema({
-  includeManifest: true
-})
+const outcomePayloadDtoSchema = lazySchema(() =>
+  createOutcomePayloadDtoSchema({
+    includeManifest: true
+  })
+)
 
-const nonManifestOutcomePayloadDtoSchema = createOutcomePayloadDtoSchema({
-  includeManifest: false
-})
+const nonManifestOutcomePayloadDtoSchema = lazySchema(() =>
+  createOutcomePayloadDtoSchema({
+    includeManifest: false
+  })
+)
 
-export const pathDtoSchema = createPathDtoSchema(outcomePayloadDtoSchema)
-export const manifestBehaviorPathDtoSchema = createPathDtoSchema(nonManifestOutcomePayloadDtoSchema)
+export const pathDtoSchema = lazySchema(() => createPathDtoSchema(outcomePayloadDtoSchema))
+export const manifestBehaviorPathDtoSchema = lazySchema(() =>
+  createPathDtoSchema(nonManifestOutcomePayloadDtoSchema)
+)
 
 export type PathDto = z.infer<typeof pathDtoSchema>

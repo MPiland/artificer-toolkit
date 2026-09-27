@@ -1,25 +1,33 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
-export const resourceIdParamsDtoSchema = z.object({
-  id: z.string().check(z.minLength(1))
-})
+export const resourceIdParamsDtoSchema = lazySchema(() =>
+  z.object({
+    id: z.string().check(z.minLength(1))
+  })
+)
 
-export const ownerContextDtoSchema = z.object({
-  userId: z.string(),
-  systemId: z.string()
-})
+export const ownerContextDtoSchema = lazySchema(() =>
+  z.object({
+    userId: z.string(),
+    systemId: z.string()
+  })
+)
 
-export const authoredContentProvenanceDtoSchema = z.object({
-  kind: z.enum(['MASTER', 'OWNED']),
-  ownerUserId: z.nullable(z.string())
-})
+export const authoredContentProvenanceDtoSchema = lazySchema(() =>
+  z.object({
+    kind: z.enum(['MASTER', 'OWNED']),
+    ownerUserId: z.nullable(z.string())
+  })
+)
 
-export const authoredContentPermissionsDtoSchema = z.object({
-  canView: z.boolean(),
-  canEdit: z.boolean(),
-  canCopy: z.boolean(),
-  canDelete: z.boolean()
-})
+export const authoredContentPermissionsDtoSchema = lazySchema(() =>
+  z.object({
+    canView: z.boolean(),
+    canEdit: z.boolean(),
+    canCopy: z.boolean(),
+    canDelete: z.boolean()
+  })
+)
 
 export function authoredResourceResponseDtoSchema<
   TSchema extends z.ZodMiniType,

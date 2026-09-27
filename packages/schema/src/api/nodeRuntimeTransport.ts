@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   nodeRuntimePathDtoSchema,
   nodeRuntimeResolvedScopeDtoSchema,
@@ -6,36 +6,40 @@ import {
   type NodeRuntimeResolveResponseDto
 } from './nodeRuntime.js'
 
-const nodeRuntimeCompactModelDtoSchema = z.strictObject(
-  z.omit(nodeRuntimeResolvedScopeDtoSchema, { path: true }).shape
+const nodeRuntimeCompactModelDtoSchema = lazySchema(() =>
+  z.strictObject(z.omit(nodeRuntimeResolvedScopeDtoSchema, { path: true }).shape)
 )
 
-const nodeRuntimeCompactScopeDtoSchema = z.strictObject({
-  path: nodeRuntimePathDtoSchema,
-  modelIndex: z.number().check(z.int()).check(z.nonnegative())
-})
+const nodeRuntimeCompactScopeDtoSchema = lazySchema(() =>
+  z.strictObject({
+    path: nodeRuntimePathDtoSchema,
+    modelIndex: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
 
-export const nodeRuntimeCompactResolveResponseDtoSchema = z
-  .extend(
-    z.pick(nodeRuntimeResolveResponseDtoSchema, { mapId: true, steps: true, clearPaths: true }),
-    {
-      models: z.array(nodeRuntimeCompactModelDtoSchema),
-      scopes: z.array(nodeRuntimeCompactScopeDtoSchema)
-    }
-  )
-  .check(
-    z.superRefine((response, context) => {
-      response.scopes.forEach((scope, index) => {
-        if (scope.modelIndex >= response.models.length) {
-          context.addIssue({
-            code: 'custom',
-            message: 'Scope modelIndex must refer to a response model.',
-            path: ['scopes', index, 'modelIndex']
-          })
-        }
+export const nodeRuntimeCompactResolveResponseDtoSchema = lazySchema(() =>
+  z
+    .extend(
+      z.pick(nodeRuntimeResolveResponseDtoSchema, { mapId: true, steps: true, clearPaths: true }),
+      {
+        models: z.array(nodeRuntimeCompactModelDtoSchema),
+        scopes: z.array(nodeRuntimeCompactScopeDtoSchema)
+      }
+    )
+    .check(
+      z.superRefine((response, context) => {
+        response.scopes.forEach((scope, index) => {
+          if (scope.modelIndex >= response.models.length) {
+            context.addIssue({
+              code: 'custom',
+              message: 'Scope modelIndex must refer to a response model.',
+              path: ['scopes', index, 'modelIndex']
+            })
+          }
+        })
       })
-    })
-  )
+    )
+)
 
 export type NodeRuntimeCompactResolveResponseDto = z.infer<
   typeof nodeRuntimeCompactResolveResponseDtoSchema

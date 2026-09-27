@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { chargeUseDtoSchema } from '../shared/charge.js'
 import {
@@ -17,43 +17,48 @@ import {
   validateGrantProgressionSelectionFields
 } from './grant.js'
 
-const spellGrantTargetDtoSchema = z.union([
-  z.object({
-    authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
-  }),
-  z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
-    spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-  })
-])
-const spellGrantProgressionFieldsDtoSchema =
+const spellGrantTargetDtoSchema = lazySchema(() =>
+  z.union([
+    z.object({
+      authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+    }),
+    z.object({
+      authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
+      spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+    })
+  ])
+)
+const spellGrantProgressionFieldsDtoSchema = lazySchema(() =>
   createGrantProgressionFieldsDtoSchema(spellGrantTargetDtoSchema)
+)
 
-export const spellGrantDtoSchema = z
-  .intersection(
-    z.intersection(
-      z.extend(scalingGrantBaseDtoSchema, {
-        grantKind: z.literal('SPELL_GRANT'),
-        castAtLevel: z.optional(z.number().check(z.int()).check(z.positive())),
-        castingAbility: z.optional(abilityCodeSchema),
-        attributes: z.optional(authoredReferenceCollectionSchema(spellGrantAttributeSchema)),
-        filters: z.optional(facetDtoSchema),
-        charges: z.optional(chargeUseDtoSchema)
-      }),
-      spellGrantTargetDtoSchema
-    ),
-    z.union([
-      z.object({
-        scalingKind: z.literal('NONE')
-      }),
+export const spellGrantDtoSchema = lazySchema(() =>
+  z
+    .intersection(
       z.intersection(
-        z.object({
-          scalingKind: z.literal('PER_LEVEL')
+        z.extend(scalingGrantBaseDtoSchema, {
+          grantKind: z.literal('SPELL_GRANT'),
+          castAtLevel: z.optional(z.number().check(z.int()).check(z.positive())),
+          castingAbility: z.optional(abilityCodeSchema),
+          attributes: z.optional(authoredReferenceCollectionSchema(spellGrantAttributeSchema)),
+          filters: z.optional(facetDtoSchema),
+          charges: z.optional(chargeUseDtoSchema)
         }),
-        spellGrantProgressionFieldsDtoSchema
-      )
-    ])
-  )
-  .check(z.superRefine(validateGrantProgressionSelectionFields))
+        spellGrantTargetDtoSchema
+      ),
+      z.union([
+        z.object({
+          scalingKind: z.literal('NONE')
+        }),
+        z.intersection(
+          z.object({
+            scalingKind: z.literal('PER_LEVEL')
+          }),
+          spellGrantProgressionFieldsDtoSchema
+        )
+      ])
+    )
+    .check(z.superRefine(validateGrantProgressionSelectionFields))
+)
 
 export type SpellGrantDto = z.infer<typeof spellGrantDtoSchema>

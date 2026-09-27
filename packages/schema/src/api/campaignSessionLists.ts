@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import { campaignListInputSchema, campaignListPageSchema } from './campaignList.js'
 import {
   campaignSessionsDtoSchema,
@@ -13,41 +13,46 @@ import {
   listCampaignSessionReferencePinsInputSchema
 } from './campaignSessions.js'
 
-export const campaignSessionListInputSchema = z.extend(
-  listCampaignSessionsInputSchema,
-  campaignListInputSchema.shape
+export const campaignSessionListInputSchema = lazySchema(() =>
+  z.extend(listCampaignSessionsInputSchema, campaignListInputSchema.shape)
 )
-export const campaignSessionListPageSchema = z.extend(campaignListPageSchema, {
-  page: campaignSessionsDtoSchema
-})
-export const campaignSessionAttendanceListInputSchema = z.extend(
-  listCampaignSessionAttendanceInputSchema,
-  campaignListInputSchema.shape
+export const campaignSessionListPageSchema = lazySchema(() =>
+  z.extend(campaignListPageSchema, {
+    page: campaignSessionsDtoSchema
+  })
 )
-export const campaignSessionAttendanceListPageSchema = z.extend(campaignListPageSchema, {
-  page: campaignSessionAttendanceDtoListSchema
-})
-export const campaignSessionRsvpListInputSchema = z.extend(
-  listCampaignSessionRsvpsInputSchema,
-  campaignListInputSchema.shape
+export const campaignSessionAttendanceListInputSchema = lazySchema(() =>
+  z.extend(listCampaignSessionAttendanceInputSchema, campaignListInputSchema.shape)
 )
-export const campaignSessionRsvpListPageSchema = z.extend(campaignListPageSchema, {
-  page: campaignSessionRsvpDtoListSchema
-})
-export const campaignSessionNoteListInputSchema = z.extend(
-  listCampaignSessionNoteSectionsInputSchema,
-  campaignListInputSchema.shape
+export const campaignSessionAttendanceListPageSchema = lazySchema(() =>
+  z.extend(campaignListPageSchema, {
+    page: campaignSessionAttendanceDtoListSchema
+  })
 )
-export const campaignSessionNoteListPageSchema = z.extend(campaignListPageSchema, {
-  page: campaignSessionNoteSectionsDtoSchema
-})
-export const campaignSessionReferenceListInputSchema = z.extend(
-  listCampaignSessionReferencePinsInputSchema,
-  campaignListInputSchema.shape
+export const campaignSessionRsvpListInputSchema = lazySchema(() =>
+  z.extend(listCampaignSessionRsvpsInputSchema, campaignListInputSchema.shape)
 )
-export const campaignSessionReferenceListPageSchema = z.extend(campaignListPageSchema, {
-  page: campaignSessionReferencePinsDtoSchema
-})
+export const campaignSessionRsvpListPageSchema = lazySchema(() =>
+  z.extend(campaignListPageSchema, {
+    page: campaignSessionRsvpDtoListSchema
+  })
+)
+export const campaignSessionNoteListInputSchema = lazySchema(() =>
+  z.extend(listCampaignSessionNoteSectionsInputSchema, campaignListInputSchema.shape)
+)
+export const campaignSessionNoteListPageSchema = lazySchema(() =>
+  z.extend(campaignListPageSchema, {
+    page: campaignSessionNoteSectionsDtoSchema
+  })
+)
+export const campaignSessionReferenceListInputSchema = lazySchema(() =>
+  z.extend(listCampaignSessionReferencePinsInputSchema, campaignListInputSchema.shape)
+)
+export const campaignSessionReferenceListPageSchema = lazySchema(() =>
+  z.extend(campaignListPageSchema, {
+    page: campaignSessionReferencePinsDtoSchema
+  })
+)
 
 export type CampaignSessionListInput = z.infer<typeof campaignSessionListInputSchema>
 export type CampaignSessionListPage = z.infer<typeof campaignSessionListPageSchema>

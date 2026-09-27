@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -23,103 +23,119 @@ import {
   sizeCodeSchema
 } from '../shared/enums.js'
 
-export const creatureQualifiedDamageDefenseDtoSchema = z.strictObject({
-  kind: z.enum(['RESISTANCE', 'IMMUNITY']),
-  damageTypeIds: authoredReferenceCollectionSchema(postgresUuidSchema).check(z.minLength(1)),
-  bypassedBy: authoredReferenceCollectionSchema(damageDefenseBypassCodeSchema).check(z.minLength(1))
-})
-
-export const creatureMountProfileDtoSchema = z.object({
-  mountType: z.enum(['CONTROLLED', 'INDEPENDENT']),
-  capacity: z.optional(z.number()),
-  riderCount: z.optional(z.number()),
-  notes: z.optional(authoredPlainTextSchema)
-})
-
-export const creatureCompanionProfileDtoSchema = z.object({
-  bondType: z.enum(['FAMILIAR', 'ANIMAL_COMPANION', 'SUMMON']),
-  initiativeMode: z.enum(['USES_PC_INITIATIVE', 'OWN_INITIATIVE']),
-  notes: z.optional(authoredPlainTextSchema)
-})
-
-export const creatureNpcProfileDtoSchema = z.object({
-  bonds: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema)),
-  flaws: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema)),
-  ideals: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema)),
-  personalityTraits: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema))
-})
-
-export const creatureAbilityScoresDtoSchema = z.object({
-  STRENGTH: z.number(),
-  DEXTERITY: z.number(),
-  CONSTITUTION: z.number(),
-  INTELLIGENCE: z.number(),
-  WISDOM: z.number(),
-  CHARISMA: z.number()
-})
-
-export const creatureEquipmentLoadoutEntryDtoSchema = z
-  .strictObject({
-    id: postgresUuidSchema,
-    equipmentId: postgresUuidSchema,
-    quantity: z.number().check(z.int()).check(z.positive()),
-    useState: z.enum(['CARRIED', 'HELD', 'WORN']),
-    attuned: z.boolean(),
-    actionFeatureIds: authoredReferenceCollectionSchema(postgresUuidSchema)
+export const creatureQualifiedDamageDefenseDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.enum(['RESISTANCE', 'IMMUNITY']),
+    damageTypeIds: authoredReferenceCollectionSchema(postgresUuidSchema).check(z.minLength(1)),
+    bypassedBy: authoredReferenceCollectionSchema(damageDefenseBypassCodeSchema).check(
+      z.minLength(1)
+    )
   })
-  .check(
-    z.superRefine((entry, context) => {
-      if (entry.useState !== 'CARRIED' && entry.quantity !== 1) {
-        context.addIssue({
-          code: 'custom',
-          path: ['quantity'],
-          message: 'Held and worn equipment loadout entries must have quantity 1.'
-        })
-      }
+)
+
+export const creatureMountProfileDtoSchema = lazySchema(() =>
+  z.object({
+    mountType: z.enum(['CONTROLLED', 'INDEPENDENT']),
+    capacity: z.optional(z.number()),
+    riderCount: z.optional(z.number()),
+    notes: z.optional(authoredPlainTextSchema)
+  })
+)
+
+export const creatureCompanionProfileDtoSchema = lazySchema(() =>
+  z.object({
+    bondType: z.enum(['FAMILIAR', 'ANIMAL_COMPANION', 'SUMMON']),
+    initiativeMode: z.enum(['USES_PC_INITIATIVE', 'OWN_INITIATIVE']),
+    notes: z.optional(authoredPlainTextSchema)
+  })
+)
+
+export const creatureNpcProfileDtoSchema = lazySchema(() =>
+  z.object({
+    bonds: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema)),
+    flaws: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema)),
+    ideals: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema)),
+    personalityTraits: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema))
+  })
+)
+
+export const creatureAbilityScoresDtoSchema = lazySchema(() =>
+  z.object({
+    STRENGTH: z.number(),
+    DEXTERITY: z.number(),
+    CONSTITUTION: z.number(),
+    INTELLIGENCE: z.number(),
+    WISDOM: z.number(),
+    CHARISMA: z.number()
+  })
+)
+
+export const creatureEquipmentLoadoutEntryDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      id: postgresUuidSchema,
+      equipmentId: postgresUuidSchema,
+      quantity: z.number().check(z.int()).check(z.positive()),
+      useState: z.enum(['CARRIED', 'HELD', 'WORN']),
+      attuned: z.boolean(),
+      actionFeatureIds: authoredReferenceCollectionSchema(postgresUuidSchema)
     })
-  )
+    .check(
+      z.superRefine((entry, context) => {
+        if (entry.useState !== 'CARRIED' && entry.quantity !== 1) {
+          context.addIssue({
+            code: 'custom',
+            path: ['quantity'],
+            message: 'Held and worn equipment loadout entries must have quantity 1.'
+          })
+        }
+      })
+    )
+)
 
 export type CreatureEquipmentLoadoutEntryDto = z.infer<
   typeof creatureEquipmentLoadoutEntryDtoSchema
 >
 
-export const creatureEquipmentLoadoutDtoSchema = authoredNestedCollectionSchema(
-  creatureEquipmentLoadoutEntryDtoSchema
-).check(
-  z.superRefine((loadout, context) => {
-    const occurrenceIds = new Set<string>()
-    const actionFeatureIds = new Set<string>()
+export const creatureEquipmentLoadoutDtoSchema = lazySchema(() =>
+  authoredNestedCollectionSchema(creatureEquipmentLoadoutEntryDtoSchema).check(
+    z.superRefine((loadout, context) => {
+      const occurrenceIds = new Set<string>()
+      const actionFeatureIds = new Set<string>()
 
-    for (const [entryIndex, entry] of loadout.entries()) {
-      if (occurrenceIds.has(entry.id)) {
-        context.addIssue({
-          code: 'custom',
-          path: [entryIndex, 'id'],
-          message: 'Creature equipment loadout entry IDs must be unique.'
-        })
-      }
-      occurrenceIds.add(entry.id)
-
-      for (const [featureIndex, featureId] of entry.actionFeatureIds.entries()) {
-        if (actionFeatureIds.has(featureId)) {
+      for (const [entryIndex, entry] of loadout.entries()) {
+        if (occurrenceIds.has(entry.id)) {
           context.addIssue({
             code: 'custom',
-            path: [entryIndex, 'actionFeatureIds', featureIndex],
-            message: 'An action Feature can be bound to only one equipment loadout entry.'
+            path: [entryIndex, 'id'],
+            message: 'Creature equipment loadout entry IDs must be unique.'
           })
         }
-        actionFeatureIds.add(featureId)
+        occurrenceIds.add(entry.id)
+
+        for (const [featureIndex, featureId] of entry.actionFeatureIds.entries()) {
+          if (actionFeatureIds.has(featureId)) {
+            context.addIssue({
+              code: 'custom',
+              path: [entryIndex, 'actionFeatureIds', featureIndex],
+              message: 'An action Feature can be bound to only one equipment loadout entry.'
+            })
+          }
+          actionFeatureIds.add(featureId)
+        }
       }
-    }
-  })
+    })
+  )
 )
 
 // Primitive-array group editors stage rows as `{ value }`. Normalize that
 // authoring shape at the contract boundary so persisted and response DTOs stay
 // the canonical `string[]` used by the compiler and repository.
-const creatureLogisticsNoteDtoSchema = z.pipe(
-  z.union([authoredPlainTextSchema, z.object({ value: authoredPlainTextSchema })]),
-  z.transform((note) => (typeof note === 'string' ? note : note.value))
+const creatureLogisticsNoteDtoSchema = lazySchema(() =>
+  z.pipe(
+    z.union([authoredPlainTextSchema, z.object({ value: authoredPlainTextSchema })]),
+    z.transform((note) => (typeof note === 'string' ? note : note.value))
+  )
 )
 
 function validateCreatureEquipmentLoadout(
@@ -280,73 +296,79 @@ function validateCreatureActionReferences(
   }
 }
 
-const creatureAuthoredDtoObject = z.object({
-  id: authoredIdentifierSchema,
-  label: authoredShortTextSchema,
-  quote: z.optional(authoredRichTextSchema),
-  description: z.optional(authoredRichTextSchema),
-  status: z.optional(authoredRecordStatusSchema),
-  details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
-  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
-  proficiencies: z.optional(authoredNestedCollectionSchema(proficiencyGrantDtoSchema)),
-  userId: authoredIdentifierSchema,
-  systemId: authoredIdentifierSchema,
-  category: creatureCategoryCodeSchema,
-  creatureTypeId: authoredIdentifierSchema,
-  size: sizeCodeSchema,
-  alignmentId: z.optional(authoredIdentifierSchema),
-  tags: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-  abilityScores: creatureAbilityScoresDtoSchema,
-  armorClass: z.number().check(z.int()).check(z.nonnegative()),
-  armorClassNote: z.optional(authoredPlainTextSchema),
-  hitPoints: z.number().check(z.int()).check(z.nonnegative()),
-  hitDice: z.optional(diceExpressionDtoSchema),
-  speeds: authoredNestedCollectionSchema(speedDtoSchema),
-  senses: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-  passivePerception: z.optional(z.number()),
-  damageVulnerabilities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-  damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-  damageImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-  qualifiedDamageDefenses: z.optional(
-    authoredNestedCollectionSchema(creatureQualifiedDamageDefenseDtoSchema)
-  ),
-  conditionImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-  challengeRatingId: z.optional(authoredIdentifierSchema),
-  xp: z.optional(z.number()),
-  npcProfile: z.optional(creatureNpcProfileDtoSchema),
-  cost: z.optional(costDtoSchema),
-  carryingCapacity: z.optional(
-    z.object({
-      amount: z.number(),
-      unit: measurementUnitCodeSchema
-    })
-  ),
-  equipmentLoadout: z.optional(creatureEquipmentLoadoutDtoSchema),
-  logisticsNotes: z.optional(authoredReferenceCollectionSchema(creatureLogisticsNoteDtoSchema)),
-  mountProfile: z.optional(creatureMountProfileDtoSchema),
-  companionProfile: z.optional(creatureCompanionProfileDtoSchema)
-})
+const creatureAuthoredDtoObject = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    label: authoredShortTextSchema,
+    quote: z.optional(authoredRichTextSchema),
+    description: z.optional(authoredRichTextSchema),
+    status: z.optional(authoredRecordStatusSchema),
+    details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
+    features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
+    proficiencies: z.optional(authoredNestedCollectionSchema(proficiencyGrantDtoSchema)),
+    userId: authoredIdentifierSchema,
+    systemId: authoredIdentifierSchema,
+    category: creatureCategoryCodeSchema,
+    creatureTypeId: authoredIdentifierSchema,
+    size: sizeCodeSchema,
+    alignmentId: z.optional(authoredIdentifierSchema),
+    tags: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    abilityScores: creatureAbilityScoresDtoSchema,
+    armorClass: z.number().check(z.int()).check(z.nonnegative()),
+    armorClassNote: z.optional(authoredPlainTextSchema),
+    hitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    hitDice: z.optional(diceExpressionDtoSchema),
+    speeds: authoredNestedCollectionSchema(speedDtoSchema),
+    senses: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    passivePerception: z.optional(z.number()),
+    damageVulnerabilities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    damageImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    qualifiedDamageDefenses: z.optional(
+      authoredNestedCollectionSchema(creatureQualifiedDamageDefenseDtoSchema)
+    ),
+    conditionImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    challengeRatingId: z.optional(authoredIdentifierSchema),
+    xp: z.optional(z.number()),
+    npcProfile: z.optional(creatureNpcProfileDtoSchema),
+    cost: z.optional(costDtoSchema),
+    carryingCapacity: z.optional(
+      z.object({
+        amount: z.number(),
+        unit: measurementUnitCodeSchema
+      })
+    ),
+    equipmentLoadout: z.optional(creatureEquipmentLoadoutDtoSchema),
+    logisticsNotes: z.optional(authoredReferenceCollectionSchema(creatureLogisticsNoteDtoSchema)),
+    mountProfile: z.optional(creatureMountProfileDtoSchema),
+    companionProfile: z.optional(creatureCompanionProfileDtoSchema)
+  })
+)
 
-const creatureAuthoredDtoSchemaBase = creatureAuthoredDtoObject.check(
-  z.superRefine(validateCreatureEquipmentLoadout),
-  z.superRefine(validateCreatureVersatileAttacks),
-  z.superRefine(validateCreatureActionReferences)
+const creatureAuthoredDtoSchemaBase = lazySchema(() =>
+  creatureAuthoredDtoObject.check(
+    z.superRefine(validateCreatureEquipmentLoadout),
+    z.superRefine(validateCreatureVersatileAttacks),
+    z.superRefine(validateCreatureActionReferences)
+  )
 )
 
 export type CreatureAuthoredDto = z.infer<typeof creatureAuthoredDtoSchemaBase>
 export const creatureAuthoredDtoSchema = creatureAuthoredDtoSchemaBase
 
 /** The Creature a publication (platform seed or owner publish) may commit. */
-export const creaturePublicationDtoSchema = creatureAuthoredDtoSchemaBase.check(
-  z.superRefine(validateCreatureAttackRolls)
+export const creaturePublicationDtoSchema = lazySchema(() =>
+  creatureAuthoredDtoSchemaBase.check(z.superRefine(validateCreatureAttackRolls))
 )
 
-export const creatureAuthoringInputDtoSchema = z
-  .extend(creatureAuthoredDtoObject, { userId: z.optional(authoredIdentifierSchema) })
-  .check(
-    z.superRefine(validateCreatureEquipmentLoadout),
-    z.superRefine(validateCreatureVersatileAttacks),
-    z.superRefine(validateCreatureActionReferences)
-  )
+export const creatureAuthoringInputDtoSchema = lazySchema(() =>
+  z
+    .extend(creatureAuthoredDtoObject, { userId: z.optional(authoredIdentifierSchema) })
+    .check(
+      z.superRefine(validateCreatureEquipmentLoadout),
+      z.superRefine(validateCreatureVersatileAttacks),
+      z.superRefine(validateCreatureActionReferences)
+    )
+)
 
 export type CreatureAuthoringInputDto = z.infer<typeof creatureAuthoringInputDtoSchema>

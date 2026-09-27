@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from '../shared/activeRuleEffects.js'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import {
@@ -31,39 +31,40 @@ import {
 } from '../shared/basicActions.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
-export const liveSessionEncounterActionPendingInputSchema = z.extend(
-  z.omit(liveSessionEncounterRulesInputSchema, {
-    request: true,
-    concentrationResponse: true,
-    turnCommand: true,
-    action: true,
-    movement: true
-  }),
-  {
-    /** The GM, or a player acting for an actor they control (ADR 0034 decision 1). */
-    expectedRole: z.enum(['OWNER', 'PLAYER']),
-    command: resolveEncounterActionInputDtoSchema,
-    response: z.optional(z.nullable(resolveRuleOccurrenceInputDtoSchema)),
-    revisions: liveSessionRulesRevisionsSchema,
-    maintenanceOwners: z
-      .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
-      .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)),
-    snapshot: serverRuleExecutionPendingSnapshotDtoSchema
-  }
+export const liveSessionEncounterActionPendingInputSchema = lazySchema(() =>
+  z.extend(
+    z.omit(liveSessionEncounterRulesInputSchema, {
+      request: true,
+      concentrationResponse: true,
+      turnCommand: true,
+      action: true,
+      movement: true
+    }),
+    {
+      /** The GM, or a player acting for an actor they control (ADR 0034 decision 1). */
+      expectedRole: z.enum(['OWNER', 'PLAYER']),
+      command: resolveEncounterActionInputDtoSchema,
+      response: z.optional(z.nullable(resolveRuleOccurrenceInputDtoSchema)),
+      revisions: liveSessionRulesRevisionsSchema,
+      maintenanceOwners: z
+        .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
+        .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)),
+      snapshot: serverRuleExecutionPendingSnapshotDtoSchema
+    }
+  )
 )
 
 export type LiveSessionEncounterActionPendingInput = z.infer<
   typeof liveSessionEncounterActionPendingInputSchema
 >
 
-export const liveSessionCharacterResourceConsumptionSchema = z.extend(
-  characterMechanicsResourceReceiptDtoSchema,
-  {
+export const liveSessionCharacterResourceConsumptionSchema = lazySchema(() =>
+  z.extend(characterMechanicsResourceReceiptDtoSchema, {
     owner: characterResourceUsageOwnerSchema,
     usageId: postgresUuidSchema,
     characterId: postgresUuidSchema,
     expectedStreamVersion: z.number().check(z.int()).check(z.nonnegative())
-  }
+  })
 )
 
 /** Bounded domain outcomes from the private DO; no Character or Run document patches. */
@@ -99,7 +100,7 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   /** The helpers' ally advantages (Help, Q11) this attack used; its commit removes them. */
   allyAdvantageUses: EncounterAllyAdvantageUseDto[]
 }
-export const liveSessionEncounterConcentrationFields = {
+export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
   concentration: z
     .array(
       z.strictObject({
@@ -112,22 +113,24 @@ export const liveSessionEncounterConcentrationFields = {
     )
     .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
   pendingConcentration: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema)
-}
+}))
 
 export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSessionEncounterActionCommitInput> =
-  z.extend(z.omit(liveSessionEncounterActionPendingInputSchema, { snapshot: true }), {
-    occurredAt: z.iso.datetime(),
-    maintenanceOwners: z
-      .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
-      .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * 2)),
-    initialDefinitionId: postgresUuidSchema,
-    execution: storedRuleExecutionResultDtoSchema,
-    rules: encounterActorRuleOutputSchema,
-    resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
-    ruleOverrides: encounterRuleWarningsDtoSchema,
-    createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
-    maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
-    ...liveSessionEncounterConcentrationFields,
-    cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
-    allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
-  })
+  lazySchema(() =>
+    z.extend(z.omit(liveSessionEncounterActionPendingInputSchema, { snapshot: true }), {
+      occurredAt: z.iso.datetime(),
+      maintenanceOwners: z
+        .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
+        .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * 2)),
+      initialDefinitionId: postgresUuidSchema,
+      execution: storedRuleExecutionResultDtoSchema,
+      rules: encounterActorRuleOutputSchema,
+      resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
+      maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
+      ...liveSessionEncounterConcentrationFields(),
+      cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
+      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
+    })
+  )

@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   liveSessionEncounterRulesInputSchema,
   liveSessionEncounterMaintenanceOwnerRequestSchema
@@ -32,22 +32,24 @@ export type LiveSessionEncounterConcentrationCommitInput = Omit<
 } & Pick<LiveSessionEncounterActionCommitInput, 'concentration' | 'pendingConcentration'>
 
 export const liveSessionEncounterConcentrationCommitInputSchema: z.ZodMiniType<LiveSessionEncounterConcentrationCommitInput> =
-  z.extend(
-    z.omit(liveSessionEncounterRulesInputSchema, {
-      request: true,
-      action: true,
-      movement: true
-    }),
-    {
-      concentrationResponse: resolveRuleOccurrenceInputDtoSchema,
-      revisions: liveSessionRulesRevisionsSchema,
-      occurredAt: z.iso.datetime(),
-      execution: storedRuleExecutionResultDtoSchema,
-      rules: z.nullable(encounterActorRuleOutputSchema),
-      maintenanceOwners: z
-        .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
-        .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * 2)),
-      ...liveSessionEncounterConcentrationFields,
-      cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema)
-    }
+  lazySchema(() =>
+    z.extend(
+      z.omit(liveSessionEncounterRulesInputSchema, {
+        request: true,
+        action: true,
+        movement: true
+      }),
+      {
+        concentrationResponse: resolveRuleOccurrenceInputDtoSchema,
+        revisions: liveSessionRulesRevisionsSchema,
+        occurredAt: z.iso.datetime(),
+        execution: storedRuleExecutionResultDtoSchema,
+        rules: z.nullable(encounterActorRuleOutputSchema),
+        maintenanceOwners: z
+          .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
+          .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * 2)),
+        ...liveSessionEncounterConcentrationFields(),
+        cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema)
+      }
+    )
   )

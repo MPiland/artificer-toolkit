@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { liveSessionSequenceDtoSchema } from './liveSessionCommands.js'
@@ -10,58 +10,70 @@ import {
   sceneUndoLastMoveCommandInputDtoSchema
 } from './vttScenes.js'
 
-export const liveSessionScenePublicationDtoSchema = z.strictObject({
-  scope: z.literal('SCENE'),
-  command: z.union([
-    sceneDoorStateCommandInputDtoSchema,
-    sceneTokenMovementCommandInputDtoSchema,
-    sceneUndoLastMoveCommandInputDtoSchema
-  ]),
-  presentation: scenePresentationFenceSchema
-})
+export const liveSessionScenePublicationDtoSchema = lazySchema(() =>
+  z.strictObject({
+    scope: z.literal('SCENE'),
+    command: z.union([
+      sceneDoorStateCommandInputDtoSchema,
+      sceneTokenMovementCommandInputDtoSchema,
+      sceneUndoLastMoveCommandInputDtoSchema
+    ]),
+    presentation: scenePresentationFenceSchema
+  })
+)
 
-export const liveSessionBootstrapInputSchema = z.strictObject({
-  campaignId: postgresUuidSchema,
-  authorityEpoch: postgresUuidSchema,
-  expectedUserId: postgresUuidSchema,
-  expectedRole: z.enum(['OWNER', 'PLAYER'])
-})
+export const liveSessionBootstrapInputSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: postgresUuidSchema,
+    authorityEpoch: postgresUuidSchema,
+    expectedUserId: postgresUuidSchema,
+    expectedRole: z.enum(['OWNER', 'PLAYER'])
+  })
+)
 
-export const liveSessionBootstrapResponseSchema = z.strictObject({
-  activationFingerprint: projectionChecksumSchema,
-  persistedSequence: liveSessionSequenceDtoSchema,
-  persistedStateChecksum: projectionChecksumSchema
-})
+export const liveSessionBootstrapResponseSchema = lazySchema(() =>
+  z.strictObject({
+    activationFingerprint: projectionChecksumSchema,
+    persistedSequence: liveSessionSequenceDtoSchema,
+    persistedStateChecksum: projectionChecksumSchema
+  })
+)
 
-export const liveSessionActivationInputSchema = z.strictObject({
-  campaignId: postgresUuidSchema,
-  epoch: postgresUuidSchema,
-  activationFingerprint: projectionChecksumSchema,
-  stateChecksum: projectionChecksumSchema
-})
+export const liveSessionActivationInputSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: postgresUuidSchema,
+    epoch: postgresUuidSchema,
+    activationFingerprint: projectionChecksumSchema,
+    stateChecksum: projectionChecksumSchema
+  })
+)
 
-export const liveSessionDrainReleaseInputSchema = z.strictObject({
-  campaignId: postgresUuidSchema,
-  epoch: postgresUuidSchema,
-  finalSequence: liveSessionSequenceDtoSchema,
-  finalStateChecksum: projectionChecksumSchema
-})
+export const liveSessionDrainReleaseInputSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: postgresUuidSchema,
+    epoch: postgresUuidSchema,
+    finalSequence: liveSessionSequenceDtoSchema,
+    finalStateChecksum: projectionChecksumSchema
+  })
+)
 
-export const liveSessionAuthorityDtoSchema = z.strictObject({
-  campaignId: postgresUuidSchema,
-  epoch: postgresUuidSchema,
-  phase: z.enum(['ACTIVATING', 'DO_ACTIVE', 'DRAINING']),
-  activationFingerprint: projectionChecksumSchema,
-  activationExpiresAt: z.optional(z.number().check(z.int()).check(z.positive())),
-  persistedSequence: liveSessionSequenceDtoSchema,
-  persistedStateChecksum: projectionChecksumSchema,
-  finalSequence: z.optional(liveSessionSequenceDtoSchema),
-  finalStateChecksum: z.optional(projectionChecksumSchema),
-  createdAt: z.iso.datetime({ offset: true }),
-  updatedAt: z.iso.datetime({ offset: true })
-})
+export const liveSessionAuthorityDtoSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: postgresUuidSchema,
+    epoch: postgresUuidSchema,
+    phase: z.enum(['ACTIVATING', 'DO_ACTIVE', 'DRAINING']),
+    activationFingerprint: projectionChecksumSchema,
+    activationExpiresAt: z.optional(z.number().check(z.int()).check(z.positive())),
+    persistedSequence: liveSessionSequenceDtoSchema,
+    persistedStateChecksum: projectionChecksumSchema,
+    finalSequence: z.optional(liveSessionSequenceDtoSchema),
+    finalStateChecksum: z.optional(projectionChecksumSchema),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
+  })
+)
 
-const liveSessionPublishBase = {
+const liveSessionPublishBase = lazySchemaParts(() => ({
   campaignId: postgresUuidSchema,
   epoch: postgresUuidSchema,
   sequence: liveSessionSequenceDtoSchema,
@@ -71,19 +83,23 @@ const liveSessionPublishBase = {
   actorRole: z.enum(['OWNER', 'PLAYER']),
   occurredAt: z.iso.datetime({ offset: true }),
   receiptId: postgresUuidSchema
-}
+}))
 
-export const liveSessionPublishInputSchema = z.strictObject({
-  ...liveSessionPublishBase,
-  command: liveSessionScenePublicationDtoSchema,
-  expectedSceneResult: sceneCommandResultDtoSchema
-})
+export const liveSessionPublishInputSchema = lazySchema(() =>
+  z.strictObject({
+    ...liveSessionPublishBase(),
+    command: liveSessionScenePublicationDtoSchema,
+    expectedSceneResult: sceneCommandResultDtoSchema
+  })
+)
 
-export const liveSessionPublishResponseSchema = z.strictObject({
-  scope: z.literal('SCENE'),
-  authority: liveSessionAuthorityDtoSchema,
-  sceneResult: sceneCommandResultDtoSchema
-})
+export const liveSessionPublishResponseSchema = lazySchema(() =>
+  z.strictObject({
+    scope: z.literal('SCENE'),
+    authority: liveSessionAuthorityDtoSchema,
+    sceneResult: sceneCommandResultDtoSchema
+  })
+)
 
 export type LiveSessionScenePublicationDto = z.infer<typeof liveSessionScenePublicationDtoSchema>
 export type LiveSessionBootstrapInput = z.infer<typeof liveSessionBootstrapInputSchema>

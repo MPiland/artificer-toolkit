@@ -1,6 +1,8 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
-export const castingTimeDtoSchema = z.object({
-  unit: z.enum(['ROUND', 'MINUTE', 'HOUR']),
-  amount: z.number()
-})
+export const castingTimeDtoSchema = lazySchema(() =>
+  z.object({
+    unit: z.enum(['ROUND', 'MINUTE', 'HOUR']),
+    amount: z.number()
+  })
+)

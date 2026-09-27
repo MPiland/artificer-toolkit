@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import { serverOptionalCombatContestPendingContextDtoSchema } from '../shared/ruleExecutionOptionalCombatPending.js'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
@@ -14,28 +14,32 @@ import {
   type EncounterAllyAdvantageUseDto
 } from '../shared/basicActions.js'
 
-const disarmScope = z.extend(
-  z.omit(liveSessionEncounterRulesInputSchema, {
-    request: true,
-    concentrationResponse: true,
-    turnCommand: true,
-    action: true,
-    movement: true
-  }),
-  {
-    /** The Disarm itself, or a participant's d20 answer to it. */
-    command: z.discriminatedUnion('type', [
-      resolveEncounterActionInputDtoSchema,
-      resolveRuleOccurrenceInputDtoSchema
-    ]),
-    revisions: liveSessionRulesRevisionsSchema
-  }
+const disarmScope = lazySchema(() =>
+  z.extend(
+    z.omit(liveSessionEncounterRulesInputSchema, {
+      request: true,
+      concentrationResponse: true,
+      turnCommand: true,
+      action: true,
+      movement: true
+    }),
+    {
+      /** The Disarm itself, or a participant's d20 answer to it. */
+      command: z.discriminatedUnion('type', [
+        resolveEncounterActionInputDtoSchema,
+        resolveRuleOccurrenceInputDtoSchema
+      ]),
+      revisions: liveSessionRulesRevisionsSchema
+    }
+  )
 )
 
 /** A room-planned Disarm waiting on a participant's d20: the sealed contest, nothing applied. */
-export const liveSessionEncounterDisarmPendingInputSchema = z.extend(disarmScope, {
-  snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema
-})
+export const liveSessionEncounterDisarmPendingInputSchema = lazySchema(() =>
+  z.extend(disarmScope, {
+    snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema
+  })
+)
 
 export type LiveSessionEncounterDisarmPendingInput = z.infer<
   typeof liveSessionEncounterDisarmPendingInputSchema
@@ -58,10 +62,12 @@ export type LiveSessionEncounterDisarmCommitInput = Omit<
 }
 
 export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSessionEncounterDisarmCommitInput> =
-  z.extend(disarmScope, {
-    occurredAt: z.iso.datetime(),
-    contest: serverOptionalCombatContestPendingContextDtoSchema,
-    execution: storedRuleExecutionResultDtoSchema,
-    rules: encounterActorRuleOutputSchema,
-    allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
-  })
+  lazySchema(() =>
+    z.extend(disarmScope, {
+      occurredAt: z.iso.datetime(),
+      contest: serverOptionalCombatContestPendingContextDtoSchema,
+      execution: storedRuleExecutionResultDtoSchema,
+      rules: encounterActorRuleOutputSchema,
+      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
+    })
+  )

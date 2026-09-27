@@ -1,5 +1,5 @@
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
@@ -30,313 +30,320 @@ import {
 } from './ruleExecutionPrimitives.js'
 
 /** Server-only interstitial control evidence retained when a failed TEST uses Legendary Resistance. */
-export const directActionLegendaryResistanceOutcomeAuditDtoSchema = z.strictObject({
-  choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-  selection: z.enum(['DECLINE', 'USE']),
-  originalExecutionChecksum: checksumSchema,
-  targetStateChecksum: checksumSchema,
-  resistance: z.strictObject({
-    targetActorId: uuidSchema,
-    ownerFeatureId: authoredIdentifierSchema,
-    chargeId: authoredIdentifierSchema,
-    featureCost: positiveIntegerSchema,
-    poolBefore: nonNegativeIntegerSchema,
-    poolRemaining: nonNegativeIntegerSchema,
-    definitionId: uuidSchema,
-    definitionVersion: positiveIntegerSchema,
-    definitionChecksum: checksumSchema,
-    choiceGraphDefinitionId: uuidSchema,
-    choiceGraphDefinitionVersion: positiveIntegerSchema,
-    choiceGraphDefinitionChecksum: checksumSchema,
-    useOutput: portNameSchema,
-    useOptionId: checksumSchema,
-    selectionChecksum: checksumSchema
-  }),
-  d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)
-})
+export const directActionLegendaryResistanceOutcomeAuditDtoSchema = lazySchema(() =>
+  z.strictObject({
+    choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+    selection: z.enum(['DECLINE', 'USE']),
+    originalExecutionChecksum: checksumSchema,
+    targetStateChecksum: checksumSchema,
+    resistance: z.strictObject({
+      targetActorId: uuidSchema,
+      ownerFeatureId: authoredIdentifierSchema,
+      chargeId: authoredIdentifierSchema,
+      featureCost: positiveIntegerSchema,
+      poolBefore: nonNegativeIntegerSchema,
+      poolRemaining: nonNegativeIntegerSchema,
+      definitionId: uuidSchema,
+      definitionVersion: positiveIntegerSchema,
+      definitionChecksum: checksumSchema,
+      choiceGraphDefinitionId: uuidSchema,
+      choiceGraphDefinitionVersion: positiveIntegerSchema,
+      choiceGraphDefinitionChecksum: checksumSchema,
+      useOutput: portNameSchema,
+      useOptionId: checksumSchema,
+      selectionChecksum: checksumSchema
+    }),
+    d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)
+  })
+)
 
 /** Server-sealed direct-action phase identity. Legacy pending actions retain null. */
-export const directActionTwoPhaseDtoSchema = z
-  .discriminatedUnion('phase', [
-    z.strictObject({
-      phase: z.literal('TEST'),
-      compilerSourceChecksum: checksumSchema,
-      testTemplateChecksum: checksumSchema,
-      boundFactsChecksum: checksumSchema
-    }),
-    z.strictObject({
-      phase: z.literal('OUTCOME'),
-      compilerSourceChecksum: checksumSchema,
-      testTemplateChecksum: checksumSchema,
-      outcomeTemplateChecksum: checksumSchema,
-      boundFactsChecksum: checksumSchema,
-      testExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      testExecutionChecksum: checksumSchema,
-      /**
-       * The one exact nested save request allowed inside a direct-action OUTCOME.
-       * Dice evidence remains ungoverned by this d20 policy.
-       */
-      nestedOutcomeD20: z._default(
-        z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
-        null
-      ),
-      /** Server-sealed evidence for the nested OUTCOME d20, retained through terminal replay. */
-      nestedOutcomeD20Evidence: z._default(
-        z.nullable(z.lazy(() => serverRuleExecutionNestedD20EvidenceDtoSchema)),
-        null
-      ),
-      /** Null unless an interstitial Legendary Resistance choice preceded this OUTCOME. */
-      legendaryResistance: z._default(
-        z.nullable(directActionLegendaryResistanceOutcomeAuditDtoSchema),
-        null
-      ),
-      /** Server-sealed d20 evidence from the completed TEST phase. */
-      testRollEvidence: z
-        .strictObject({
-          requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-          rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-          derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-          rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
-          selectedNatural: pendingD20FaceSchema
-        })
-        .check(
-          z.superRefine((value, context) => {
-            const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
-            const expectedSelected =
-              value.rollMode === 'ADVANTAGE'
-                ? Math.max(...value.rawFaces)
-                : value.rollMode === 'DISADVANTAGE'
-                  ? Math.min(...value.rawFaces)
-                  : value.rawFaces[0]
-            if (
-              value.rawFaces.length !== expectedFaces ||
-              value.selectedNatural !== expectedSelected
-            )
-              context.addIssue({
-                code: 'custom',
-                message: 'TEST roll evidence does not match its pinned roll mode.'
-              })
-          })
-        )
-    })
-  ])
-  .check(
-    z.superRefine((value, context) => {
-      if (value.phase !== 'OUTCOME') return
-      const policy = value.nestedOutcomeD20
-      const evidence = value.nestedOutcomeD20Evidence
-      if (policy === null && evidence !== null) {
-        context.addIssue({
-          code: 'custom',
-          path: ['nestedOutcomeD20Evidence'],
-          message: 'Nested OUTCOME d20 evidence requires a sealed policy.'
-        })
-        return
-      }
-      if (
-        policy !== null &&
-        evidence !== null &&
-        (evidence.requestNodeId !== policy.requestNodeId ||
-          evidence.rollMode !== policy.rollMode ||
-          evidence.contributorChecksum !== policy.contributorChecksum ||
-          evidence.modifier !== policy.modifier ||
-          evidence.defenseOrDc !== policy.dc)
-      )
-        context.addIssue({
-          code: 'custom',
-          path: ['nestedOutcomeD20Evidence'],
-          message: 'Nested OUTCOME d20 evidence does not match its sealed policy.'
-        })
-    })
-  )
-
-export const encounterCharacterRuleActionPendingContextDtoSchema = z.strictObject({
-  kind: z.literal('ENCOUNTER_CHARACTER_RULE_ACTION'),
-  schemaVersion: z.literal(1),
-  actionId: identifierSchema,
-  /** Exact frozen Scene dependency when this action was positional. */
-  sceneContext: z._default(
-    z.optional(
-      z.nullable(
-        z.strictObject({
-          sceneId: uuidSchema,
-          sceneVersion: nonNegativeIntegerSchema,
-          sourceTokenId: uuidSchema,
-          targetTokenId: uuidSchema
-        })
-      )
-    ),
-    null
-  ),
-  /** Server-derived bounded positional currentness for a paused action. */
-  positionalDependencyChecksum: z._default(z.optional(z.nullable(checksumSchema)), null),
-  sourceActorId: uuidSchema,
-  targetActorId: uuidSchema,
-  sourceCharacterId: uuidSchema,
-  targetCharacterId: uuidSchema,
-  sourceCharacterStreamVersion: integerSchema.check(z.gte(0)),
-  targetCharacterStreamVersion: integerSchema.check(z.gte(0)),
-  sourceProjectionChecksum: checksumSchema,
-  targetProjectionChecksum: checksumSchema,
-  sourceMechanicalContextChecksum: checksumSchema,
-  targetMechanicalContextChecksum: checksumSchema,
-  publishedDefinitionId: uuidSchema,
-  publishedDefinitionChecksum: checksumSchema,
-  /**
-   * Exact authored attack/range facts retained for post-action rules such
-   * as Cleaving. Legacy paused actions deliberately retain null.
-   */
-  postActionTriggerFacts: z._default(
-    z.optional(
-      z.nullable(
-        z.strictObject({
-          attackKind: z.enum(['MELEE', 'RANGED', 'OTHER']),
-          range: rangeDtoSchema
-        })
-      )
-    ),
-    null
-  ),
-  actionEconomy: z._default(
-    z.nullable(
+export const directActionTwoPhaseDtoSchema = lazySchema(() =>
+  z
+    .discriminatedUnion('phase', [
       z.strictObject({
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        maximum: positiveIntegerSchema,
-        beforeUsed: nonNegativeIntegerSchema
+        phase: z.literal('TEST'),
+        compilerSourceChecksum: checksumSchema,
+        testTemplateChecksum: checksumSchema,
+        boundFactsChecksum: checksumSchema
+      }),
+      z.strictObject({
+        phase: z.literal('OUTCOME'),
+        compilerSourceChecksum: checksumSchema,
+        testTemplateChecksum: checksumSchema,
+        outcomeTemplateChecksum: checksumSchema,
+        boundFactsChecksum: checksumSchema,
+        testExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+        testExecutionChecksum: checksumSchema,
+        /**
+         * The one exact nested save request allowed inside a direct-action OUTCOME.
+         * Dice evidence remains ungoverned by this d20 policy.
+         */
+        nestedOutcomeD20: z._default(
+          z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
+          null
+        ),
+        /** Server-sealed evidence for the nested OUTCOME d20, retained through terminal replay. */
+        nestedOutcomeD20Evidence: z._default(
+          z.nullable(z.lazy(() => serverRuleExecutionNestedD20EvidenceDtoSchema)),
+          null
+        ),
+        /** Null unless an interstitial Legendary Resistance choice preceded this OUTCOME. */
+        legendaryResistance: z._default(
+          z.nullable(directActionLegendaryResistanceOutcomeAuditDtoSchema),
+          null
+        ),
+        /** Server-sealed d20 evidence from the completed TEST phase. */
+        testRollEvidence: z
+          .strictObject({
+            requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+            rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+            derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+            rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
+            selectedNatural: pendingD20FaceSchema
+          })
+          .check(
+            z.superRefine((value, context) => {
+              const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
+              const expectedSelected =
+                value.rollMode === 'ADVANTAGE'
+                  ? Math.max(...value.rawFaces)
+                  : value.rollMode === 'DISADVANTAGE'
+                    ? Math.min(...value.rawFaces)
+                    : value.rawFaces[0]
+              if (
+                value.rawFaces.length !== expectedFaces ||
+                value.selectedNatural !== expectedSelected
+              )
+                context.addIssue({
+                  code: 'custom',
+                  message: 'TEST roll evidence does not match its pinned roll mode.'
+                })
+            })
+          )
       })
-    ),
-    null
-  ),
-  /** Sealed TEST/OUTCOME identity for a v3 Character action; legacy actions retain null. */
-  twoPhase: z._default(z.optional(z.nullable(directActionTwoPhaseDtoSchema)), null),
-  targetStateChecksum: checksumSchema,
-  d20: z.nullable(
-    z.strictObject({
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-      contributors: z
-        .array(
+    ])
+    .check(
+      z.superRefine((value, context) => {
+        if (value.phase !== 'OUTCOME') return
+        const policy = value.nestedOutcomeD20
+        const evidence = value.nestedOutcomeD20Evidence
+        if (policy === null && evidence !== null) {
+          context.addIssue({
+            code: 'custom',
+            path: ['nestedOutcomeD20Evidence'],
+            message: 'Nested OUTCOME d20 evidence requires a sealed policy.'
+          })
+          return
+        }
+        if (
+          policy !== null &&
+          evidence !== null &&
+          (evidence.requestNodeId !== policy.requestNodeId ||
+            evidence.rollMode !== policy.rollMode ||
+            evidence.contributorChecksum !== policy.contributorChecksum ||
+            evidence.modifier !== policy.modifier ||
+            evidence.defenseOrDc !== policy.dc)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['nestedOutcomeD20Evidence'],
+            message: 'Nested OUTCOME d20 evidence does not match its sealed policy.'
+          })
+      })
+    )
+)
+
+export const encounterCharacterRuleActionPendingContextDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_CHARACTER_RULE_ACTION'),
+    schemaVersion: z.literal(1),
+    actionId: identifierSchema,
+    /** Exact frozen Scene dependency when this action was positional. */
+    sceneContext: z._default(
+      z.optional(
+        z.nullable(
           z.strictObject({
-            sourceId: identifierSchema,
-            grantId: z.nullable(identifierSchema),
-            domainKey: z.nullable(identifierSchema),
-            influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+            sceneId: uuidSchema,
+            sceneVersion: nonNegativeIntegerSchema,
+            sourceTokenId: uuidSchema,
+            targetTokenId: uuidSchema
           })
         )
-        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
-      contributorChecksum: checksumSchema,
-      modifier: integerSchema,
-      defenseOrDc: integerSchema
-    })
-  )
-})
+      ),
+      null
+    ),
+    /** Server-derived bounded positional currentness for a paused action. */
+    positionalDependencyChecksum: z._default(z.optional(z.nullable(checksumSchema)), null),
+    sourceActorId: uuidSchema,
+    targetActorId: uuidSchema,
+    sourceCharacterId: uuidSchema,
+    targetCharacterId: uuidSchema,
+    sourceCharacterStreamVersion: integerSchema.check(z.gte(0)),
+    targetCharacterStreamVersion: integerSchema.check(z.gte(0)),
+    sourceProjectionChecksum: checksumSchema,
+    targetProjectionChecksum: checksumSchema,
+    sourceMechanicalContextChecksum: checksumSchema,
+    targetMechanicalContextChecksum: checksumSchema,
+    publishedDefinitionId: uuidSchema,
+    publishedDefinitionChecksum: checksumSchema,
+    /**
+     * Exact authored attack/range facts retained for post-action rules such
+     * as Cleaving. Legacy paused actions deliberately retain null.
+     */
+    postActionTriggerFacts: z._default(
+      z.optional(
+        z.nullable(
+          z.strictObject({
+            attackKind: z.enum(['MELEE', 'RANGED', 'OTHER']),
+            range: rangeDtoSchema
+          })
+        )
+      ),
+      null
+    ),
+    actionEconomy: z._default(
+      z.nullable(
+        z.strictObject({
+          definitionId: uuidSchema,
+          definitionVersion: positiveIntegerSchema,
+          definitionChecksum: checksumSchema,
+          maximum: positiveIntegerSchema,
+          beforeUsed: nonNegativeIntegerSchema
+        })
+      ),
+      null
+    ),
+    /** Sealed TEST/OUTCOME identity for a v3 Character action; legacy actions retain null. */
+    twoPhase: z._default(z.optional(z.nullable(directActionTwoPhaseDtoSchema)), null),
+    targetStateChecksum: checksumSchema,
+    d20: z.nullable(
+      z.strictObject({
+        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+        contributors: z
+          .array(
+            z.strictObject({
+              sourceId: identifierSchema,
+              grantId: z.nullable(identifierSchema),
+              domainKey: z.nullable(identifierSchema),
+              influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+            })
+          )
+          .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+        contributorChecksum: checksumSchema,
+        modifier: integerSchema,
+        defenseOrDc: integerSchema
+      })
+    )
+  })
+)
 
 /**
  * Character-authored direct action against a mutable Creature or Custom
  * Encounter actor. Character targets retain the established Character lane.
  */
-export const encounterActorRuleActionPendingContextDtoSchema = z.strictObject({
-  kind: z.literal('ENCOUNTER_ACTOR_RULE_ACTION'),
-  schemaVersion: z.literal(1),
-  actionId: identifierSchema,
-  /** Exact frozen Scene dependency when this action was positional. */
-  sceneContext: z._default(
-    z.optional(
+export const encounterActorRuleActionPendingContextDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_ACTOR_RULE_ACTION'),
+    schemaVersion: z.literal(1),
+    actionId: identifierSchema,
+    /** Exact frozen Scene dependency when this action was positional. */
+    sceneContext: z._default(
+      z.optional(
+        z.nullable(
+          z.strictObject({
+            sceneId: uuidSchema,
+            sceneVersion: nonNegativeIntegerSchema,
+            sourceTokenId: uuidSchema,
+            targetTokenId: uuidSchema
+          })
+        )
+      ),
+      null
+    ),
+    /** Server-derived bounded positional currentness for a paused action. */
+    positionalDependencyChecksum: z._default(z.optional(z.nullable(checksumSchema)), null),
+    sourceActorId: uuidSchema,
+    targetActorId: uuidSchema,
+    sourceCharacterId: uuidSchema,
+    sourceCharacterStreamVersion: integerSchema.check(z.gte(0)),
+    sourceProjectionChecksum: checksumSchema,
+    sourceMechanicalContextChecksum: checksumSchema,
+    targetCurrentnessChecksum: checksumSchema,
+    publishedDefinitionId: uuidSchema,
+    publishedDefinitionChecksum: checksumSchema,
+    actionEconomy: z._default(
       z.nullable(
         z.strictObject({
-          sceneId: uuidSchema,
-          sceneVersion: nonNegativeIntegerSchema,
-          sourceTokenId: uuidSchema,
-          targetTokenId: uuidSchema
+          definitionId: uuidSchema,
+          definitionVersion: positiveIntegerSchema,
+          definitionChecksum: checksumSchema,
+          maximum: positiveIntegerSchema,
+          beforeUsed: nonNegativeIntegerSchema
         })
-      )
+      ),
+      null
     ),
-    null
-  ),
-  /** Server-derived bounded positional currentness for a paused action. */
-  positionalDependencyChecksum: z._default(z.optional(z.nullable(checksumSchema)), null),
-  sourceActorId: uuidSchema,
-  targetActorId: uuidSchema,
-  sourceCharacterId: uuidSchema,
-  sourceCharacterStreamVersion: integerSchema.check(z.gte(0)),
-  sourceProjectionChecksum: checksumSchema,
-  sourceMechanicalContextChecksum: checksumSchema,
-  targetCurrentnessChecksum: checksumSchema,
-  publishedDefinitionId: uuidSchema,
-  publishedDefinitionChecksum: checksumSchema,
-  actionEconomy: z._default(
-    z.nullable(
+    twoPhase: z._default(z.optional(z.nullable(directActionTwoPhaseDtoSchema)), null),
+    phase: z.discriminatedUnion('kind', [
       z.strictObject({
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        maximum: positiveIntegerSchema,
-        beforeUsed: nonNegativeIntegerSchema
-      })
-    ),
-    null
-  ),
-  twoPhase: z._default(z.optional(z.nullable(directActionTwoPhaseDtoSchema)), null),
-  phase: z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('ACTION_EVIDENCE'),
-      d20: z.nullable(
-        z.strictObject({
-          rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-          contributors: z
-            .array(
-              z.strictObject({
-                sourceId: identifierSchema,
-                grantId: z.nullable(identifierSchema),
-                domainKey: z.nullable(identifierSchema),
-                influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
-              })
-            )
-            .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
-          contributorChecksum: checksumSchema,
-          modifier: integerSchema,
-          defenseOrDc: integerSchema
+        kind: z.literal('ACTION_EVIDENCE'),
+        d20: z.nullable(
+          z.strictObject({
+            rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+            contributors: z
+              .array(
+                z.strictObject({
+                  sourceId: identifierSchema,
+                  grantId: z.nullable(identifierSchema),
+                  domainKey: z.nullable(identifierSchema),
+                  influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+                })
+              )
+              .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+            contributorChecksum: checksumSchema,
+            modifier: integerSchema,
+            defenseOrDc: integerSchema
+          })
+        )
+      }),
+      z.strictObject({
+        kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
+        originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+        originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
+        /** Exact TEST policy retained for a later sealed OUTCOME continuation. */
+        d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+        originalExecutionChecksum: checksumSchema,
+        targetStateChecksum: checksumSchema,
+        resistance: z.strictObject({
+          targetActorId: uuidSchema,
+          ownerFeatureId: authoredIdentifierSchema,
+          chargeId: authoredIdentifierSchema,
+          featureCost: positiveIntegerSchema,
+          poolBefore: nonNegativeIntegerSchema,
+          poolRemaining: nonNegativeIntegerSchema,
+          definitionId: uuidSchema,
+          definitionVersion: positiveIntegerSchema,
+          definitionChecksum: checksumSchema,
+          choiceGraphDefinitionId: uuidSchema,
+          choiceGraphDefinitionVersion: positiveIntegerSchema,
+          choiceGraphDefinitionChecksum: checksumSchema,
+          useOutput: portNameSchema,
+          useOptionId: checksumSchema,
+          selectionChecksum: checksumSchema
         })
-      )
-    }),
-    z.strictObject({
-      kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
-      originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
-      /** Exact TEST policy retained for a later sealed OUTCOME continuation. */
-      d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-      originalExecutionChecksum: checksumSchema,
-      targetStateChecksum: checksumSchema,
-      resistance: z.strictObject({
-        targetActorId: uuidSchema,
-        ownerFeatureId: authoredIdentifierSchema,
-        chargeId: authoredIdentifierSchema,
-        featureCost: positiveIntegerSchema,
-        poolBefore: nonNegativeIntegerSchema,
-        poolRemaining: nonNegativeIntegerSchema,
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        choiceGraphDefinitionId: uuidSchema,
-        choiceGraphDefinitionVersion: positiveIntegerSchema,
-        choiceGraphDefinitionChecksum: checksumSchema,
-        useOutput: portNameSchema,
-        useOptionId: checksumSchema,
-        selectionChecksum: checksumSchema
       })
-    })
-  ])
-})
+    ])
+  })
+)
 
 /**
  * Sealed Character spell-cast source.  It deliberately does not reuse the
  * Character-action arm: spell provenance and CAST_SPELL economy must survive
  * an Assisted pause without becoming optional action fields.
  */
-export const encounterActorSpellCastPendingContextDtoSchema = z.extend(
-  encounterActorRuleActionPendingContextDtoSchema,
-  {
+export const encounterActorSpellCastPendingContextDtoSchema = lazySchema(() =>
+  z.extend(encounterActorRuleActionPendingContextDtoSchema, {
     kind: z.literal('ENCOUNTER_ACTOR_SPELL_CAST'),
     spell: z.strictObject({
       spellId: uuidSchema,
@@ -364,7 +371,7 @@ export const encounterActorSpellCastPendingContextDtoSchema = z.extend(
       ),
       effectId: uuidSchema
     })
-  }
+  })
 )
 
 /**
@@ -372,156 +379,160 @@ export const encounterActorSpellCastPendingContextDtoSchema = z.extend(
  * ENCOUNTER_ACTOR_RULE_ACTION so existing Character occurrences retain
  * their byte-compatible source/currentness contract.
  */
-export const encounterCreatureRuleActionPendingContextDtoSchema = z.strictObject({
-  kind: z.literal('ENCOUNTER_CREATURE_RULE_ACTION'),
-  schemaVersion: z.literal(1),
-  actionId: identifierSchema,
-  sceneContext: z._default(
-    z.optional(
+export const encounterCreatureRuleActionPendingContextDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_CREATURE_RULE_ACTION'),
+    schemaVersion: z.literal(1),
+    actionId: identifierSchema,
+    sceneContext: z._default(
+      z.optional(
+        z.nullable(
+          z.strictObject({
+            sceneId: uuidSchema,
+            sceneVersion: nonNegativeIntegerSchema,
+            sourceTokenId: uuidSchema,
+            targetTokenId: uuidSchema
+          })
+        )
+      ),
+      null
+    ),
+    positionalDependencyChecksum: z._default(z.optional(z.nullable(checksumSchema)), null),
+    sourceActorId: uuidSchema,
+    targetActorId: uuidSchema,
+    creatureSourceId: uuidSchema,
+    sourceRevision: positiveIntegerSchema,
+    sourceVersionId: uuidSchema,
+    sourceChecksum: checksumSchema,
+    ownerFeatureId: uuidSchema,
+    featureOptionId: z.nullable(uuidSchema),
+    effectId: uuidSchema,
+    authoredEffectChecksum: checksumSchema,
+    compiledEffectChecksum: checksumSchema,
+    targetCurrentnessChecksum: checksumSchema,
+    publishedDefinitionId: uuidSchema,
+    publishedDefinitionChecksum: checksumSchema,
+    actionEconomy: z._default(
       z.nullable(
         z.strictObject({
-          sceneId: uuidSchema,
-          sceneVersion: nonNegativeIntegerSchema,
-          sourceTokenId: uuidSchema,
-          targetTokenId: uuidSchema
+          definitionId: uuidSchema,
+          definitionVersion: positiveIntegerSchema,
+          definitionChecksum: checksumSchema,
+          maximum: positiveIntegerSchema,
+          beforeUsed: nonNegativeIntegerSchema
         })
-      )
+      ),
+      null
     ),
-    null
-  ),
-  positionalDependencyChecksum: z._default(z.optional(z.nullable(checksumSchema)), null),
-  sourceActorId: uuidSchema,
-  targetActorId: uuidSchema,
-  creatureSourceId: uuidSchema,
-  sourceRevision: positiveIntegerSchema,
-  sourceVersionId: uuidSchema,
-  sourceChecksum: checksumSchema,
-  ownerFeatureId: uuidSchema,
-  featureOptionId: z.nullable(uuidSchema),
-  effectId: uuidSchema,
-  authoredEffectChecksum: checksumSchema,
-  compiledEffectChecksum: checksumSchema,
-  targetCurrentnessChecksum: checksumSchema,
-  publishedDefinitionId: uuidSchema,
-  publishedDefinitionChecksum: checksumSchema,
-  actionEconomy: z._default(
-    z.nullable(
+    twoPhase: z._default(z.optional(z.nullable(directActionTwoPhaseDtoSchema)), null),
+    phase: z.discriminatedUnion('kind', [
       z.strictObject({
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        maximum: positiveIntegerSchema,
-        beforeUsed: nonNegativeIntegerSchema
-      })
-    ),
-    null
-  ),
-  twoPhase: z._default(z.optional(z.nullable(directActionTwoPhaseDtoSchema)), null),
-  phase: z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('ACTION_EVIDENCE'),
-      d20: z.nullable(
-        z.strictObject({
-          rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-          contributors: z
-            .array(
-              z.strictObject({
-                sourceId: identifierSchema,
-                grantId: z.nullable(identifierSchema),
-                domainKey: z.nullable(identifierSchema),
-                influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
-              })
-            )
-            .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
-          contributorChecksum: checksumSchema,
-          modifier: integerSchema,
-          defenseOrDc: integerSchema
-        })
-      )
-    }),
-    z.strictObject({
-      kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
-      originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
-      d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-      originalExecutionChecksum: checksumSchema,
-      targetStateChecksum: checksumSchema,
-      resistance: z.strictObject({
-        targetActorId: uuidSchema,
-        ownerFeatureId: authoredIdentifierSchema,
-        chargeId: authoredIdentifierSchema,
-        featureCost: positiveIntegerSchema,
-        poolBefore: nonNegativeIntegerSchema,
-        poolRemaining: nonNegativeIntegerSchema,
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        choiceGraphDefinitionId: uuidSchema,
-        choiceGraphDefinitionVersion: positiveIntegerSchema,
-        choiceGraphDefinitionChecksum: checksumSchema,
-        useOutput: portNameSchema,
-        useOptionId: checksumSchema,
-        selectionChecksum: checksumSchema
-      })
-    })
-  ])
-})
-
-export const encounterConcentrationDamageCheckPendingContextDtoSchema = z
-  .strictObject({
-    kind: z.literal('ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'),
-    schemaVersion: z.literal(1),
-    parentOccurrenceId: uuidSchema,
-    parentCommandFingerprint: checksumSchema,
-    finalizedDamageEnvelopeChecksum: checksumSchema,
-    application: concentrationDamageApplicationDtoSchema,
-    /** Display names for the whole envelope, so each later check can name its own trigger. */
-    sourceLabels: concentrationDamageSourceLabelsDtoSchema,
-    trigger: concentrationCheckTriggerDtoSchema,
-    maintainedState: z.strictObject({
-      id: uuidSchema,
-      version: integerSchema.check(z.gte(0)),
-      maintenanceDefinitionId: uuidSchema,
-      descriptorChecksum: checksumSchema
-    }),
-    concentrationDefinition: z.strictObject({
-      id: uuidSchema,
-      checksum: checksumSchema
-    }),
-    save: z.strictObject({
-      savingThrowAbilityDefinitionId: uuidSchema,
-      modifier: integerSchema,
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-      contributors: canonicalConcentrationContributorsDtoSchema,
-      contributorChecksum: checksumSchema
-    }),
-    targetCharacter: z.strictObject({
-      streamVersion: integerSchema.check(z.gte(0)),
-      baseProjectionChecksum: checksumSchema,
-      campaignOverlayChecksum: checksumSchema,
-      mechanicalContextChecksum: checksumSchema
-    }),
-    systemVocabularySnapshot: z.strictObject({
-      id: uuidSchema,
-      version: integerSchema.check(z.gte(1)),
-      checksum: checksumSchema
-    }),
-    contextChecksum: checksumSchema,
-    remaining: z
-      .array(concentrationMaintainedDamageApplicationDtoSchema)
-      .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS - 1))
-  })
-  .check(
-    z.superRefine((value, context) => {
-      let prior = value.application
-      for (const [index, remaining] of value.remaining.entries()) {
-        if (compareConcentrationDamageApplications(remaining, prior) <= 0)
-          context.addIssue({
-            code: 'custom',
-            path: ['remaining', index],
-            message: 'Remaining concentration checks must use canonical application order.'
+        kind: z.literal('ACTION_EVIDENCE'),
+        d20: z.nullable(
+          z.strictObject({
+            rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+            contributors: z
+              .array(
+                z.strictObject({
+                  sourceId: identifierSchema,
+                  grantId: z.nullable(identifierSchema),
+                  domainKey: z.nullable(identifierSchema),
+                  influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+                })
+              )
+              .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+            contributorChecksum: checksumSchema,
+            modifier: integerSchema,
+            defenseOrDc: integerSchema
           })
-        prior = remaining
-      }
+        )
+      }),
+      z.strictObject({
+        kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
+        originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+        originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
+        d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+        originalExecutionChecksum: checksumSchema,
+        targetStateChecksum: checksumSchema,
+        resistance: z.strictObject({
+          targetActorId: uuidSchema,
+          ownerFeatureId: authoredIdentifierSchema,
+          chargeId: authoredIdentifierSchema,
+          featureCost: positiveIntegerSchema,
+          poolBefore: nonNegativeIntegerSchema,
+          poolRemaining: nonNegativeIntegerSchema,
+          definitionId: uuidSchema,
+          definitionVersion: positiveIntegerSchema,
+          definitionChecksum: checksumSchema,
+          choiceGraphDefinitionId: uuidSchema,
+          choiceGraphDefinitionVersion: positiveIntegerSchema,
+          choiceGraphDefinitionChecksum: checksumSchema,
+          useOutput: portNameSchema,
+          useOptionId: checksumSchema,
+          selectionChecksum: checksumSchema
+        })
+      })
+    ])
+  })
+)
+
+export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'),
+      schemaVersion: z.literal(1),
+      parentOccurrenceId: uuidSchema,
+      parentCommandFingerprint: checksumSchema,
+      finalizedDamageEnvelopeChecksum: checksumSchema,
+      application: concentrationDamageApplicationDtoSchema,
+      /** Display names for the whole envelope, so each later check can name its own trigger. */
+      sourceLabels: concentrationDamageSourceLabelsDtoSchema,
+      trigger: concentrationCheckTriggerDtoSchema,
+      maintainedState: z.strictObject({
+        id: uuidSchema,
+        version: integerSchema.check(z.gte(0)),
+        maintenanceDefinitionId: uuidSchema,
+        descriptorChecksum: checksumSchema
+      }),
+      concentrationDefinition: z.strictObject({
+        id: uuidSchema,
+        checksum: checksumSchema
+      }),
+      save: z.strictObject({
+        savingThrowAbilityDefinitionId: uuidSchema,
+        modifier: integerSchema,
+        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+        contributors: canonicalConcentrationContributorsDtoSchema,
+        contributorChecksum: checksumSchema
+      }),
+      targetCharacter: z.strictObject({
+        streamVersion: integerSchema.check(z.gte(0)),
+        baseProjectionChecksum: checksumSchema,
+        campaignOverlayChecksum: checksumSchema,
+        mechanicalContextChecksum: checksumSchema
+      }),
+      systemVocabularySnapshot: z.strictObject({
+        id: uuidSchema,
+        version: integerSchema.check(z.gte(1)),
+        checksum: checksumSchema
+      }),
+      contextChecksum: checksumSchema,
+      remaining: z
+        .array(concentrationMaintainedDamageApplicationDtoSchema)
+        .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS - 1))
     })
-  )
+    .check(
+      z.superRefine((value, context) => {
+        let prior = value.application
+        for (const [index, remaining] of value.remaining.entries()) {
+          if (compareConcentrationDamageApplications(remaining, prior) <= 0)
+            context.addIssue({
+              code: 'custom',
+              path: ['remaining', index],
+              message: 'Remaining concentration checks must use canonical application order.'
+            })
+          prior = remaining
+        }
+      })
+    )
+)

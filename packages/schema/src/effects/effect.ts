@@ -4,7 +4,7 @@ import type {
   EquipmentEffectAuthored,
   FeatureEffectAuthored
 } from '@artificer-toolkit/shared/authored'
-import { z } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { manifestBehaviorPathDtoSchema, pathDtoSchema } from './path.js'
 import {
@@ -27,91 +27,99 @@ import {
 
 export { activationDtoSchema }
 
-const reactionActivationDtoSchema = z.object({
-  code: z.literal(activationCodeSchema._zod.def.entries.REACTION),
-  amount: z.number()
-})
+const reactionActivationDtoSchema = lazySchema(() =>
+  z.object({
+    code: z.literal(activationCodeSchema._zod.def.entries.REACTION),
+    amount: z.number()
+  })
+)
 
-const resourceUseDtoSchema = z.object({
-  chargeId: authoredIdentifierSchema,
-  cost: z.number().check(z.int()).check(z.positive())
-})
+const resourceUseDtoSchema = lazySchema(() =>
+  z.object({
+    chargeId: authoredIdentifierSchema,
+    cost: z.number().check(z.int()).check(z.positive())
+  })
+)
 
-const actionInvocationShape = {
+const actionInvocationShape = lazySchemaParts(() => ({
   kind: z.optional(z.literal(invocationKindSchema._zod.def.entries.ACTION)),
   range: rangeDtoSchema,
   shape: z.optional(shapeDtoSchema),
   targeting: z.optional(targetingDtoSchema),
   resourceUse: z.optional(resourceUseDtoSchema)
-}
+}))
 
-const nonSavingThrowTriggerDtoSchema = z.enum([
-  triggerCodeSchema._zod.def.entries.ACTIVATED,
-  triggerCodeSchema._zod.def.entries.MELEE_WEAPON_ATTACK,
-  triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK,
-  triggerCodeSchema._zod.def.entries.UNARMED_ATTACK,
-  triggerCodeSchema._zod.def.entries.MELEE_SPELL_ATTACK,
-  triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK,
-  triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
-  triggerCodeSchema._zod.def.entries.ENTER_AREA
-])
+const nonSavingThrowTriggerDtoSchema = lazySchema(() =>
+  z.enum([
+    triggerCodeSchema._zod.def.entries.ACTIVATED,
+    triggerCodeSchema._zod.def.entries.MELEE_WEAPON_ATTACK,
+    triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK,
+    triggerCodeSchema._zod.def.entries.UNARMED_ATTACK,
+    triggerCodeSchema._zod.def.entries.MELEE_SPELL_ATTACK,
+    triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK,
+    triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
+    triggerCodeSchema._zod.def.entries.ENTER_AREA
+  ])
+)
 
-export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = z.union([
-  z.object({
-    kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
-    triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
-    savingThrow: savingThrowDtoSchema,
-    range: rangeDtoSchema,
-    shape: z.optional(shapeDtoSchema),
-    targeting: z.optional(targetingDtoSchema),
-    resourceUse: z.optional(z.never()),
-    reactionMovementTrigger: z.optional(z.never())
-  }),
-  z.object({
-    kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
-    triggerCode: z.enum([
-      triggerCodeSchema._zod.def.entries.ACTIVATED,
-      triggerCodeSchema._zod.def.entries.MELEE_WEAPON_ATTACK,
-      triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK,
-      triggerCodeSchema._zod.def.entries.UNARMED_ATTACK,
-      triggerCodeSchema._zod.def.entries.MELEE_SPELL_ATTACK,
-      triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK,
-      triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
-      triggerCodeSchema._zod.def.entries.ENTER_AREA
-    ]),
-    range: rangeDtoSchema,
-    shape: z.optional(shapeDtoSchema),
-    targeting: z.optional(targetingDtoSchema),
-    resourceUse: z.optional(z.never()),
-    reactionMovementTrigger: z.optional(z.never())
-  }),
-  z.object({
-    ...actionInvocationShape,
-    triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
-    savingThrow: savingThrowDtoSchema,
-    activation: activationDtoSchema,
-    reactionMovementTrigger: z.optional(z.never())
-  }),
-  z.object({
-    ...actionInvocationShape,
-    triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
-    savingThrow: savingThrowDtoSchema,
-    activation: reactionActivationDtoSchema,
-    reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema
-  }),
-  z.object({
-    ...actionInvocationShape,
-    triggerCode: nonSavingThrowTriggerDtoSchema,
-    activation: activationDtoSchema,
-    reactionMovementTrigger: z.optional(z.never())
-  }),
-  z.object({
-    ...actionInvocationShape,
-    triggerCode: nonSavingThrowTriggerDtoSchema,
-    activation: reactionActivationDtoSchema,
-    reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema
-  })
-])
+export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazySchema(() =>
+  z.union([
+    z.object({
+      kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
+      triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
+      savingThrow: savingThrowDtoSchema,
+      range: rangeDtoSchema,
+      shape: z.optional(shapeDtoSchema),
+      targeting: z.optional(targetingDtoSchema),
+      resourceUse: z.optional(z.never()),
+      reactionMovementTrigger: z.optional(z.never())
+    }),
+    z.object({
+      kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
+      triggerCode: z.enum([
+        triggerCodeSchema._zod.def.entries.ACTIVATED,
+        triggerCodeSchema._zod.def.entries.MELEE_WEAPON_ATTACK,
+        triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK,
+        triggerCodeSchema._zod.def.entries.UNARMED_ATTACK,
+        triggerCodeSchema._zod.def.entries.MELEE_SPELL_ATTACK,
+        triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK,
+        triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
+        triggerCodeSchema._zod.def.entries.ENTER_AREA
+      ]),
+      range: rangeDtoSchema,
+      shape: z.optional(shapeDtoSchema),
+      targeting: z.optional(targetingDtoSchema),
+      resourceUse: z.optional(z.never()),
+      reactionMovementTrigger: z.optional(z.never())
+    }),
+    z.object({
+      ...actionInvocationShape(),
+      triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
+      savingThrow: savingThrowDtoSchema,
+      activation: activationDtoSchema,
+      reactionMovementTrigger: z.optional(z.never())
+    }),
+    z.object({
+      ...actionInvocationShape(),
+      triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
+      savingThrow: savingThrowDtoSchema,
+      activation: reactionActivationDtoSchema,
+      reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema
+    }),
+    z.object({
+      ...actionInvocationShape(),
+      triggerCode: nonSavingThrowTriggerDtoSchema,
+      activation: activationDtoSchema,
+      reactionMovementTrigger: z.optional(z.never())
+    }),
+    z.object({
+      ...actionInvocationShape(),
+      triggerCode: nonSavingThrowTriggerDtoSchema,
+      activation: reactionActivationDtoSchema,
+      reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema
+    })
+  ])
+)
 
 const createEffectDtoSchema = <TPathSchema extends z.ZodMiniType>(pathSchema: TPathSchema) =>
   z.object({
@@ -121,19 +129,22 @@ const createEffectDtoSchema = <TPathSchema extends z.ZodMiniType>(pathSchema: TP
     paths: authoredNestedCollectionSchema(pathSchema).check(z.minLength(1))
   })
 
-export const effectDtoSchema = createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>
+export const effectDtoSchema = lazySchema(
+  () => createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>
+)
 
+// Literal codes, checked against the trigger enum, so module load does not build the enum schema.
 const weaponAttackTriggerCodes: readonly string[] = [
-  triggerCodeSchema._zod.def.entries.MELEE_WEAPON_ATTACK,
-  triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK
-]
+  'MELEE_WEAPON_ATTACK',
+  'RANGED_WEAPON_ATTACK'
+] satisfies z.infer<typeof triggerCodeSchema>[]
 
 /** Triggers resolved by an attack roll, so the Feature or option invoking one defines its ATTACK roll. */
 export const ATTACK_TRIGGER_CODES: ReadonlySet<string> = new Set([
   ...weaponAttackTriggerCodes,
-  triggerCodeSchema._zod.def.entries.UNARMED_ATTACK,
-  triggerCodeSchema._zod.def.entries.MELEE_SPELL_ATTACK,
-  triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK
+  ...(['UNARMED_ATTACK', 'MELEE_SPELL_ATTACK', 'RANGED_SPELL_ATTACK'] satisfies z.infer<
+    typeof triggerCodeSchema
+  >[])
 ])
 
 function isWeaponAttack(effect: { invocation: EffectInvocationAuthored }) {
@@ -147,36 +158,40 @@ function isWeaponAttack(effect: { invocation: EffectInvocationAuthored }) {
  * Feature effects name a grip only for a versatile weapon attack, which authors one effect per grip
  * so each grip is its own action (D57 ruling 1).
  */
-export const featureEffectDtoSchema = z
-  .extend(createEffectDtoSchema(pathDtoSchema), { grip: z.optional(equipmentGripSchema) })
-  .check(
-    z.superRefine((effect, context) => {
-      if (effect.grip !== undefined && !isWeaponAttack(effect))
-        context.addIssue({
-          code: 'custom',
-          path: ['grip'],
-          message: 'Only weapon attack effects have a grip.'
-        })
-    })
-  ) as z.ZodMiniType<FeatureEffectAuthored>
+export const featureEffectDtoSchema = lazySchema(
+  () =>
+    z.extend(createEffectDtoSchema(pathDtoSchema), { grip: z.optional(equipmentGripSchema) }).check(
+      z.superRefine((effect, context) => {
+        if (effect.grip !== undefined && !isWeaponAttack(effect))
+          context.addIssue({
+            code: 'custom',
+            path: ['grip'],
+            message: 'Only weapon attack effects have a grip.'
+          })
+      })
+    ) as z.ZodMiniType<FeatureEffectAuthored>
+)
 
 /** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
-export const equipmentEffectDtoSchema = z
-  .extend(createEffectDtoSchema(pathDtoSchema), { grip: z.nullable(equipmentGripSchema) })
-  .check(
-    z.superRefine((effect, context) => {
-      const weaponAttack = isWeaponAttack(effect)
-      if ((effect.grip !== null) !== weaponAttack)
-        context.addIssue({
-          code: 'custom',
-          path: ['grip'],
-          message:
-            effect.grip === null
-              ? 'A weapon attack effect requires a grip.'
-              : 'Only weapon attack effects have a grip.'
-        })
-    })
-  ) as z.ZodMiniType<EquipmentEffectAuthored>
-export const manifestNestedBehaviorDtoSchema = createEffectDtoSchema(manifestBehaviorPathDtoSchema)
+export const equipmentEffectDtoSchema = lazySchema(
+  () =>
+    z.extend(createEffectDtoSchema(pathDtoSchema), { grip: z.nullable(equipmentGripSchema) }).check(
+      z.superRefine((effect, context) => {
+        const weaponAttack = isWeaponAttack(effect)
+        if ((effect.grip !== null) !== weaponAttack)
+          context.addIssue({
+            code: 'custom',
+            path: ['grip'],
+            message:
+              effect.grip === null
+                ? 'A weapon attack effect requires a grip.'
+                : 'Only weapon attack effects have a grip.'
+          })
+      })
+    ) as z.ZodMiniType<EquipmentEffectAuthored>
+)
+export const manifestNestedBehaviorDtoSchema = lazySchema(() =>
+  createEffectDtoSchema(manifestBehaviorPathDtoSchema)
+)
 
 export type EffectDto = z.infer<typeof effectDtoSchema>

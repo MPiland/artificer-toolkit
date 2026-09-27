@@ -1,24 +1,28 @@
-import { z } from '../zod.js'
+import { z, lazySchema } from '../zod.js'
 
 import { measurementUnitCodeSchema } from '../shared/enums.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
-const positiveMeasurementDtoSchema = z.object({
-  amount: z.number().check(z.positive()),
-  unit: measurementUnitCodeSchema
-})
+const positiveMeasurementDtoSchema = lazySchema(() =>
+  z.object({
+    amount: z.number().check(z.positive()),
+    unit: measurementUnitCodeSchema
+  })
+)
 
-export const treeStrideDtoSchema = z.object({
-  id: authoredIdentifierSchema,
-  effectKind: z.literal('TREE_STRIDE'),
-  destinationDistance: positiveMeasurementDtoSchema,
-  entryMovementCost: positiveMeasurementDtoSchema,
-  exitMovementCost: positiveMeasurementDtoSchema,
-  sameTreeKind: z.boolean(),
-  livingTreesOnly: z.boolean(),
-  minimumTreeSizeRelativeToTraveler: z.boolean(),
-  usesPerRound: z.number().check(z.int()).check(z.positive()),
-  mustEndTurnOutside: z.boolean()
-})
+export const treeStrideDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    effectKind: z.literal('TREE_STRIDE'),
+    destinationDistance: positiveMeasurementDtoSchema,
+    entryMovementCost: positiveMeasurementDtoSchema,
+    exitMovementCost: positiveMeasurementDtoSchema,
+    sameTreeKind: z.boolean(),
+    livingTreesOnly: z.boolean(),
+    minimumTreeSizeRelativeToTraveler: z.boolean(),
+    usesPerRound: z.number().check(z.int()).check(z.positive()),
+    mustEndTurnOutside: z.boolean()
+  })
+)
 
 export type TreeStrideDto = z.infer<typeof treeStrideDtoSchema>
