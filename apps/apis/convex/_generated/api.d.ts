@@ -5687,6 +5687,7 @@ export declare const api: {
                   | {
                       amount: number;
                       id: string;
+                      longAmount?: number;
                       rangeKind: "DISTANCE";
                       scaling?:
                         | {
@@ -6916,6 +6917,7 @@ export declare const api: {
                 | {
                     amount: number;
                     id: string;
+                    longAmount?: number;
                     rangeKind: "DISTANCE";
                     scaling?:
                       | {
@@ -24769,6 +24771,7 @@ export declare const api: {
                 | {
                     amount: number;
                     id: string;
+                    longAmount?: number;
                     rangeKind: "DISTANCE";
                     scaling?:
                       | {
@@ -29352,6 +29355,7 @@ export declare const api: {
                   | {
                       amount: number;
                       id: string;
+                      longAmount?: number;
                       rangeKind: "DISTANCE";
                       scaling?:
                         | {
@@ -45609,6 +45613,7 @@ export declare const api: {
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
+                | "TARGET_DEFEATED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_RANGE_UNCHECKED";
@@ -45632,6 +45637,7 @@ export declare const api: {
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
+                | "TARGET_DEFEATED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_RANGE_UNCHECKED";
@@ -45697,6 +45703,7 @@ export declare const api: {
                     | Record<string, any>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
+                  defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   features?: Array<{
@@ -45744,12 +45751,7 @@ export declare const api: {
                       | "OTHER";
                   }>;
                   gmNotes: string | null;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
+                  healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
                   healthDisplay:
                     "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                   id: string;
@@ -45861,6 +45863,7 @@ export declare const api: {
                     | Array<any>
                     | Record<string, any>;
                   controllerUserIds: Array<string>;
+                  defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   health:
@@ -46353,6 +46356,7 @@ export declare const api: {
                     | Record<string, any>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
+                  defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   features?: Array<{
@@ -46400,12 +46404,7 @@ export declare const api: {
                       | "OTHER";
                   }>;
                   gmNotes: string | null;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
+                  healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
                   healthDisplay:
                     "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                   id: string;
@@ -46517,6 +46516,7 @@ export declare const api: {
                     | Array<any>
                     | Record<string, any>;
                   controllerUserIds: Array<string>;
+                  defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   health:
@@ -48107,6 +48107,7 @@ export declare const api: {
                           | "ACTION_ECONOMY_UNAVAILABLE"
                           | "RESOURCE_UNAVAILABLE"
                           | "SOURCE_NOT_EQUIPPED"
+                          | "TARGET_DEFEATED"
                           | "TARGET_DISPOSITION"
                           | "TARGET_OUT_OF_RANGE"
                           | "TARGET_RANGE_UNCHECKED"
@@ -48144,6 +48145,7 @@ export declare const api: {
                           | "ACTION_ECONOMY_UNAVAILABLE"
                           | "RESOURCE_UNAVAILABLE"
                           | "SOURCE_NOT_EQUIPPED"
+                          | "TARGET_DEFEATED"
                           | "TARGET_DISPOSITION"
                           | "TARGET_OUT_OF_RANGE"
                           | "TARGET_RANGE_UNCHECKED"
@@ -48617,6 +48619,7 @@ export declare const api: {
                 | Record<string, any>;
               controllerUserIds: Array<string>;
               currentHitPoints: number;
+              defeated: boolean;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
               features?: Array<{
@@ -48660,8 +48663,7 @@ export declare const api: {
                   | "OTHER";
               }>;
               gmNotes: string | null;
-              healthBand:
-                "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+              healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
               healthDisplay: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
               id: string;
               initiative: number | null;
@@ -48771,6 +48773,7 @@ export declare const api: {
                 | Array<any>
                 | Record<string, any>;
               controllerUserIds: Array<string>;
+              defeated: boolean;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
               health:
@@ -48864,6 +48867,7 @@ export declare const api: {
                 | Record<string, any>;
               controllerUserIds: Array<string>;
               currentHitPoints: number;
+              defeated: boolean;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
               features?: Array<{
@@ -48907,8 +48911,7 @@ export declare const api: {
                   | "OTHER";
               }>;
               gmNotes: string | null;
-              healthBand:
-                "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+              healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
               healthDisplay: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
               id: string;
               initiative: number | null;
@@ -49018,6 +49021,7 @@ export declare const api: {
                 | Array<any>
                 | Record<string, any>;
               controllerUserIds: Array<string>;
+              defeated: boolean;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
               health:
@@ -49100,6 +49104,7 @@ export declare const api: {
                   | Record<string, any>;
                 controllerUserIds: Array<string>;
                 currentHitPoints: number;
+                defeated: boolean;
                 disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
                 features?: Array<{
@@ -49147,8 +49152,7 @@ export declare const api: {
                     | "OTHER";
                 }>;
                 gmNotes: string | null;
-                healthBand:
-                  "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+                healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
                 healthDisplay:
                   "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 id: string;
@@ -49259,6 +49263,7 @@ export declare const api: {
                   | Array<any>
                   | Record<string, any>;
                 controllerUserIds: Array<string>;
+                defeated: boolean;
                 disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
                 health:
@@ -49342,6 +49347,7 @@ export declare const api: {
                   | Record<string, any>;
                 controllerUserIds: Array<string>;
                 currentHitPoints: number;
+                defeated: boolean;
                 disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
                 features?: Array<{
@@ -49389,8 +49395,7 @@ export declare const api: {
                     | "OTHER";
                 }>;
                 gmNotes: string | null;
-                healthBand:
-                  "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+                healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
                 healthDisplay:
                   "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 id: string;
@@ -49501,6 +49506,7 @@ export declare const api: {
                   | Array<any>
                   | Record<string, any>;
                 controllerUserIds: Array<string>;
+                defeated: boolean;
                 disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
                 health:
@@ -49585,6 +49591,7 @@ export declare const api: {
               | Record<string, any>;
             controllerUserIds: Array<string>;
             currentHitPoints: number;
+            defeated: boolean;
             disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
             encounterId: string;
             features?: Array<{
@@ -49628,8 +49635,7 @@ export declare const api: {
                 | "OTHER";
             }>;
             gmNotes: string | null;
-            healthBand:
-              "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+            healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
             healthDisplay: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
             id: string;
             initiative: number | null;
@@ -49840,6 +49846,7 @@ export declare const api: {
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
+                | "TARGET_DEFEATED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_RANGE_UNCHECKED";
@@ -66392,6 +66399,7 @@ export declare const internal: {
                   | "ACTION_ECONOMY_UNAVAILABLE"
                   | "RESOURCE_UNAVAILABLE"
                   | "SOURCE_NOT_EQUIPPED"
+                  | "TARGET_DEFEATED"
                   | "TARGET_DISPOSITION"
                   | "TARGET_OUT_OF_RANGE"
                   | "TARGET_RANGE_UNCHECKED"
@@ -66429,6 +66437,7 @@ export declare const internal: {
                   | "ACTION_ECONOMY_UNAVAILABLE"
                   | "RESOURCE_UNAVAILABLE"
                   | "SOURCE_NOT_EQUIPPED"
+                  | "TARGET_DEFEATED"
                   | "TARGET_DISPOSITION"
                   | "TARGET_OUT_OF_RANGE"
                   | "TARGET_RANGE_UNCHECKED"
@@ -66770,6 +66779,7 @@ export declare const internal: {
                     | Record<string, any>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
+                  defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   features?: Array<{
@@ -66817,12 +66827,7 @@ export declare const internal: {
                       | "OTHER";
                   }>;
                   gmNotes: string | null;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
+                  healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
                   healthDisplay:
                     "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                   id: string;
@@ -66934,6 +66939,7 @@ export declare const internal: {
                     | Array<any>
                     | Record<string, any>;
                   controllerUserIds: Array<string>;
+                  defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   health:
@@ -68411,6 +68417,7 @@ export declare const internal: {
                           | "ACTION_ECONOMY_UNAVAILABLE"
                           | "RESOURCE_UNAVAILABLE"
                           | "SOURCE_NOT_EQUIPPED"
+                          | "TARGET_DEFEATED"
                           | "TARGET_DISPOSITION"
                           | "TARGET_OUT_OF_RANGE"
                           | "TARGET_RANGE_UNCHECKED"
@@ -68448,6 +68455,7 @@ export declare const internal: {
                           | "ACTION_ECONOMY_UNAVAILABLE"
                           | "RESOURCE_UNAVAILABLE"
                           | "SOURCE_NOT_EQUIPPED"
+                          | "TARGET_DEFEATED"
                           | "TARGET_DISPOSITION"
                           | "TARGET_OUT_OF_RANGE"
                           | "TARGET_RANGE_UNCHECKED"
