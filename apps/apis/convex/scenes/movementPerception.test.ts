@@ -234,7 +234,7 @@ describe('room Scene movement perception staging', () => {
     if (!boundary.occurrence?.pending) throw new Error('Expected current movement choice.')
     expect(boundary.delta).toMatchObject({
       kind: 'TOKEN_MOVED',
-      position: { x: 300, y: 50 }
+      position: { x: 200, y: 50 }
     })
     const plan = await planMovementDecisionInRoom(base.owner.caller, {
       type: 'RESOLVE_RULE_OCCURRENCE',
@@ -271,7 +271,7 @@ describe('room Scene movement perception staging', () => {
       const result = await move.publish()
       expect(result).toMatchObject({
         version: 1,
-        delta: { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: { x: 300, y: 50 } },
+        delta: { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: { x: 200, y: 50 } },
         occurrence: { status: 'PENDING' },
         fogPatches: [{ ownerUserId: base.owner.userId, mode: 'REPLACE' }]
       })
@@ -341,7 +341,7 @@ describe('room Scene movement perception staging', () => {
     expect(result).toMatchObject({
       version: 1,
       replayed: false,
-      delta: { kind: 'TOKEN_MOVED', tokenId: tokens[1]!.id, position: { x: 300, y: 50 } },
+      delta: { kind: 'TOKEN_MOVED', tokenId: tokens[1]!.id, position: { x: 200, y: 50 } },
       occurrence: { occurrenceId, occurrenceVersion: 0, status: 'PENDING' }
     })
     expect(await reactionRecords(base.t, base.run.id)).toEqual(beforeMechanics)
@@ -353,7 +353,7 @@ describe('room Scene movement perception staging', () => {
       JSON.parse(occurrence.pendingSnapshotJson!).applicationContext.root.currentSceneVersion
     ).toBe(1)
     expect(after.entities.find((row) => row.entityId === tokens[1]!.id)?.value).toMatchObject({
-      entity: { position: { x: 300, y: 50 } }
+      entity: { position: { x: 200, y: 50 } }
     })
     expect(await plan.publish()).toEqual({ ...result, replayed: true })
     expect(await records()).toEqual(after)
@@ -519,7 +519,7 @@ describe('room Scene movement perception staging', () => {
     const prepared = await planStagedMovementInRoom(base.owner.caller, saveId)
     expect(prepared.outcome.kind).toBe('PENDING')
     if (prepared.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
-    expect(prepared.outcome.movementIntent).toMatchObject({ position: { x: 300, y: 50 } })
+    expect(prepared.outcome.movementIntent).toMatchObject({ position: { x: 200, y: 50 } })
     expect(prepared.outcome.pendingSnapshot.applicationContext).toMatchObject({
       kind: 'ENCOUNTER_MOVEMENT_REACTION',
       phase: { kind: 'CHOICE' }

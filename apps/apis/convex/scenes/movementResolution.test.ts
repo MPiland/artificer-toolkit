@@ -564,9 +564,10 @@ describe('room movement response publication', () => {
     const second = await planMovementDecisionInRoom(value.base.owner.caller, secondCommand)
     expect(second.outcome.kind).toBe('TERMINAL')
     const result = await second.publish()
+    // The reach contact is at x = 200, so the declined move finishes its remaining path.
     expect(result).toMatchObject({
-      delta: null,
-      version: first.version,
+      delta: { kind: 'TOKEN_MOVED', position: { x: 300, y: 50 } },
+      version: first.version + 1,
       occurrence: { status: 'COMPLETE', occurrenceVersion: 2 }
     })
     expect(

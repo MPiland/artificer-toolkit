@@ -81,7 +81,7 @@ it.each(['USE', 'DECLINE'] as const)(
       targetFeatureResourceConsumption:
         selection === 'USE' ? expect.objectContaining({ beforeUsed: 0, afterUsed: 1 }) : null
     })
-    expect(reaction.option.candidate.contact).toEqual({ x: 300, y: 50 })
+    expect(reaction.option.candidate.contact).toEqual({ x: 200, y: 50 })
     expect(outcome.result.terminalPosition).toEqual(
       selection === 'USE' ? { x: 450, y: 50 } : reaction.option.candidate.contact
     )

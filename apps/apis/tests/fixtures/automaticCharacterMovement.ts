@@ -307,7 +307,7 @@ export async function setupAutomaticCharacterMovement(
       ? [reactors[0]!, mover, additionalCharacterActor, ...reactors.slice(1)]
       : [reactors[0]!, mover, ...reactors.slice(1)],
     additionalCharacterActor
-      ? [0, 300, ...reactors.slice(1).map((_, index) => 400 + index * 100)]
+      ? [100, 300, ...reactors.slice(1).map((_, index) => 400 + index * 100)]
       : policies.map((_, index) => 50 + index * 100),
     [
       { x: 150, y: 50 },

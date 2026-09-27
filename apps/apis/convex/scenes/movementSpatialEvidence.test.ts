@@ -213,8 +213,8 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   if (!firstReaction || firstReaction.kind !== 'CONTROLLER_CHOICE')
     throw new Error('Expected first retained controller choice.')
   expect(reactionContext.completedSpatialExecutions[0]?.candidate.candidate.pathDistance).toBe(70)
-  expect(reactionContext.root.pathStartDistance).toBe(250)
-  expect(firstReaction.group.pathDistance).toBe(250)
+  expect(reactionContext.root.pathStartDistance).toBe(150)
+  expect(firstReaction.group.pathDistance).toBe(150)
   expect(reactionContext.remainingSpatialCandidates[0]?.candidate.pathDistance).toBe(270)
   plan = await stage(value, pending, { kind: 'DECLINE' })
   published = await decide(plan)
@@ -311,7 +311,7 @@ it('retains spatial executions across used automatic reactions before one suffix
     (entry) => entry.option.candidate.pathDistance
   )
   expect(prefixExecution.candidate.candidate.pathDistance).toBe(70)
-  expect(reactionDistances).toEqual([250, 250])
+  expect(reactionDistances).toEqual([150, 150])
   expect(suffixExecution.candidate.candidate.pathDistance).toBe(270)
   expect(suffixExecution.d20?.rawFaces).toEqual([1])
   const preparedRolls = random.mock.calls.length

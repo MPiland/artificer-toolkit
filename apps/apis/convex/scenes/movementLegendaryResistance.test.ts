@@ -40,7 +40,7 @@ it.each(['USE', 'DECLINE'] as const)(
     const value = await setupReactionMovementScene(
       base,
       [base.reactor, base.mover],
-      [50],
+      [150],
       [
         { x: 150, y: 50 },
         { x: 600, y: 50 }
