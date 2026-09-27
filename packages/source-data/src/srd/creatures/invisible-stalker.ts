@@ -8,6 +8,7 @@ export const invisibleStalker: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.ELEMENTAL,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   tags: ['hover'],
   abilityScores: {
     STRENGTH: 16,
@@ -26,7 +27,7 @@ export const invisibleStalker: CreatureAuthored = {
   },
   speeds: [...S.walk(50), ...S.fly(50)],
   proficiencies: [
-    S.grantedSkillProficiency(174, 1, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillExpertise(174, 4, 'PERCEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(174, 2, 'AURAN')
   ],
   damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],

@@ -26,14 +26,14 @@ export const pegasus: CreatureAuthored = {
   },
   speeds: [...S.walk(60), ...S.fly(90)],
   proficiencies: [
-    S.grantedSaveProficiency(217, 1, 'DEXTERITY', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(217, 2, 'PERCEPTION')
+    S.grantedSkillExpertise(217, 4, 'PERCEPTION'),
+    S.grantedSaveProficiency(217, 1, 'DEXTERITY', 'WISDOM', 'CHARISMA')
   ],
   passivePerception: 16,
   features: [
     {
       id: S.featureId(217, 1),
-      label: 'Understands Celestial, Common, Elvish, and Sylvan',
+      label: 'Language Limitation',
       description: "understands Celestial, Common, Elvish, and Sylvan but can't speak",
       grants: {
         proficiencies: [

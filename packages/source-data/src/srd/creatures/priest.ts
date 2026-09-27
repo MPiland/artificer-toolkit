@@ -1,5 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
+import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 import * as S from './shared.js'
 
 export const priest: CreatureAuthored = {
@@ -11,6 +11,7 @@ export const priest: CreatureAuthored = {
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
+  tags: ['any race'],
   abilityScores: {
     STRENGTH: 10,
     DEXTERITY: 10,
@@ -27,7 +28,12 @@ export const priest: CreatureAuthored = {
     die: 8,
     modifier: 5
   },
-  speeds: walk(30),
+  speeds: [...S.walk(25)],
+  proficiencies: [
+    S.grantedSkillProficiency(225, 1, 'PERSUASION', 'RELIGION'),
+    S.grantedSkillExpertise(225, 2, 'MEDICINE')
+  ],
+  passivePerception: 13,
   challengeRatingId: CR.CR_2,
   xp: 450,
   features: [

@@ -28,7 +28,8 @@ export const lamia: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [
-    S.grantedSkillProficiency(181, 1, 'DECEPTION', 'INSIGHT', 'STEALTH'),
+    S.grantedSkillExpertise(181, 3, 'DECEPTION'),
+    S.grantedSkillProficiency(181, 1, 'INSIGHT', 'STEALTH'),
     S.grantedLanguageProficiency(181, 2, 'ABYSSAL', 'COMMON')
   ],
   senses: ['darkvision 60 ft.'],

@@ -311,10 +311,11 @@ export function constitutionPoisonDamageSave(input: {
   }
 }
 
-export function grantedSkillProficiency(
+function grantedSkill(
+  level: typeof SCALING_AMOUNT_KIND.FULL | typeof SCALING_AMOUNT_KIND.DOUBLE,
   creatureIndex: number,
   order: number,
-  ...skillCodes: string[]
+  skillCodes: string[]
 ) {
   return {
     id: proficiencyId(creatureIndex, order),
@@ -323,10 +324,27 @@ export function grantedSkillProficiency(
     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
     scalingKind: SCALING.NONE,
     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-    level: SCALING_AMOUNT_KIND.FULL,
+    level,
     skillIds: skillCodes.map(skillId),
     order
   }
+}
+
+export function grantedSkillProficiency(
+  creatureIndex: number,
+  order: number,
+  ...skillCodes: string[]
+) {
+  return grantedSkill(SCALING_AMOUNT_KIND.FULL, creatureIndex, order, skillCodes)
+}
+
+/** Skills whose printed bonus is twice the proficiency bonus, as a dragon's Perception. */
+export function grantedSkillExpertise(
+  creatureIndex: number,
+  order: number,
+  ...skillCodes: string[]
+) {
+  return grantedSkill(SCALING_AMOUNT_KIND.DOUBLE, creatureIndex, order, skillCodes)
 }
 
 export function grantedSaveProficiency(

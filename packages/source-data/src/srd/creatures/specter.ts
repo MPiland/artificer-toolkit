@@ -9,6 +9,7 @@ export const specter: CreatureAuthored = {
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
   alignmentId: '00000000-0000-0000-0001-000900000000',
+  tags: ['hover'],
   abilityScores: {
     STRENGTH: 1,
     DEXTERITY: 14,
@@ -27,6 +28,7 @@ export const specter: CreatureAuthored = {
   speeds: [...S.fly(50)],
   damageResistances: [
     'acid',
+    'cold',
     'fire',
     'lightning',
     'thunder',

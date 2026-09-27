@@ -10,6 +10,7 @@ export const otyugh: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.ABERRATION,
   size: S.SIZE_CODE.LARGE,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   abilityScores: {
     STRENGTH: 16,
     DEXTERITY: 11,

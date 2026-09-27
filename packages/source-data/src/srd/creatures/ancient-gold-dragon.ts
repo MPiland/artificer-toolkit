@@ -29,8 +29,9 @@ export const ancientGoldDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(19, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(19, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(19, 2, 'INSIGHT', 'PERCEPTION', 'PERSUASION'),
+    S.grantedSkillProficiency(19, 2, 'INSIGHT', 'PERSUASION', 'STEALTH'),
     S.grantedLanguageProficiency(19, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['fire'],

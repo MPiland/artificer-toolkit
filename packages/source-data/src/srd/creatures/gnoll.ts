@@ -28,6 +28,7 @@ export const gnoll: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(30)],
+  proficiencies: [S.grantedLanguageProficiency(144, 1, 'GNOLL')],
   senses: ['darkvision 60 ft.'],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1_2,

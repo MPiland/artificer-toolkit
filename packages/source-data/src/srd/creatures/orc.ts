@@ -11,6 +11,8 @@ export const orc: CreatureAuthored = {
   category: 'MONSTER',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
+  alignmentId: '00000000-0000-0000-0001-000900000000',
+  tags: ['orc'],
   abilityScores: {
     STRENGTH: 16,
     DEXTERITY: 12,
@@ -28,6 +30,12 @@ export const orc: CreatureAuthored = {
     modifier: 6
   },
   speeds: walk(30),
+  proficiencies: [
+    S.grantedLanguageProficiency(212, 2, 'COMMON', 'ORC'),
+    S.grantedSkillProficiency(212, 1, 'INTIMIDATION')
+  ],
+  senses: ['darkvision 60 ft.'],
+  passivePerception: 10,
   challengeRatingId: CR.CR_1_2,
   xp: 100,
   features: [

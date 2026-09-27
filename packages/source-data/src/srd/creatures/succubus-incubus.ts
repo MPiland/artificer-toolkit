@@ -3,13 +3,14 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const succubusIncubus: CreatureAuthored = {
   id: S.CREATURE_IDS.SUCCUBUS_INCUBUS,
-  label: 'Succubus Incubus',
+  label: 'Succubus/Incubus',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.FIEND,
   size: S.SIZE_CODE.MEDIUM,
   alignmentId: '00000000-0000-0000-0001-000800000000',
+  tags: ['shapechanger'],
   abilityScores: {
     STRENGTH: 8,
     DEXTERITY: 17,
@@ -28,23 +29,27 @@ export const succubusIncubus: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.fly(60)],
   proficiencies: [
-    S.grantedSkillProficiency(
-      7009,
-      1,
-      'DECEPTION',
-      'INSIGHT',
-      'PERCEPTION',
-      'PERSUASION',
-      'STEALTH'
-    )
+    S.grantedLanguageProficiency(267, 2, 'ABYSSAL', 'COMMON', 'INFERNAL'),
+    S.grantedSkillExpertise(267, 1, 'DECEPTION', 'INSIGHT', 'PERCEPTION', 'PERSUASION', 'STEALTH')
   ],
-  damageResistances: ['cold', 'fire', 'lightning', 'poison'],
-  conditionImmunities: ['charmed'],
+  damageResistances: [
+    'cold',
+    'fire',
+    'lightning',
+    'poison',
+    'bludgeoning, piercing, and slashing from nonmagical attacks'
+  ],
   senses: ['darkvision 60 ft.'],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_4,
   xp: 1100,
   features: [
+    {
+      id: S.featureId(267, 5),
+      label: 'Telepathy',
+      description: 'telepathy 60 ft.',
+      order: 0
+    },
     {
       id: S.featureId(267, 1),
       label: 'Shapechanger',
@@ -172,7 +177,7 @@ export const succubusIncubus: CreatureAuthored = {
     },
     {
       id: S.featureId(267, 4),
-      label: 'Claws',
+      label: 'Claw (Fiend Form Only)',
       description:
         'Claw (Fiend Form Only). Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) slashing damage.',
       effects: [

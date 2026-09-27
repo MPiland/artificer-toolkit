@@ -5,12 +5,12 @@ import { SRD_BREATHING_CAPABILITY_DEFINITION_ID } from '../ruleState.js'
 import * as S from './shared.js'
 export const rugOfSmothering: CreatureAuthored = {
   id: S.CREATURE_IDS.RUG_OF_SMOTHERING,
-  label: 'Rug Of Smothering',
+  label: 'Rug of Smothering',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.CONSTRUCT,
-  size: S.SIZE_CODE.MEDIUM,
+  size: S.SIZE_CODE.LARGE,
   alignmentId: '00000000-0000-0000-0001-000a00000000',
   abilityScores: {
     STRENGTH: 17,
@@ -24,11 +24,22 @@ export const rugOfSmothering: CreatureAuthored = {
   hitPoints: 33,
   hitDice: {
     count: 6,
-    die: 8,
-    modifier: 6
+    die: 10,
+    modifier: 0
   },
   speeds: [...S.walk(10)],
-  passivePerception: 10,
+  damageImmunities: ['poison', 'psychic'],
+  conditionImmunities: [
+    'blinded',
+    'charmed',
+    'deafened',
+    'frightened',
+    'paralyzed',
+    'petrified',
+    'poisoned'
+  ],
+  senses: ['blindsight 60 ft. (blind beyond this radius)'],
+  passivePerception: 6,
   challengeRatingId: S.CR.CR_2,
   xp: 450,
   features: [
@@ -164,6 +175,20 @@ export const rugOfSmothering: CreatureAuthored = {
         }
       ],
       order: 2
+    },
+    {
+      id: S.featureId(240, 3),
+      label: 'Antimagic Susceptibility',
+      description:
+        "Antimagic Susceptibility. The rug is incapacitated while in the area of an antimagic field. If targeted by dispel magic, the rug must succeed on a Constitution saving throw against the caster's spell save DC or fall unconscious for 1 minute.",
+      order: 3
+    },
+    {
+      id: S.featureId(240, 4),
+      label: 'Damage Transfer',
+      description:
+        'Damage Transfer. While it is grappling a creature, the rug takes only half the damage dealt to it, and the creature grappled by the rug takes the other half.',
+      order: 4
     }
   ]
 }

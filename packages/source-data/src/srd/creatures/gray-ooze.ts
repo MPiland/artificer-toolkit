@@ -26,7 +26,7 @@ export const grayOoze: CreatureAuthored = {
     modifier: 9
   },
   speeds: [...S.walk(10), ...S.climb(10)],
-  proficiencies: [S.grantedSkillProficiency(9475, 1, 'STEALTH')],
+  proficiencies: [S.grantedSkillExpertise(149, 1, 'STEALTH')],
   damageResistances: ['acid', 'cold', 'fire'],
   conditionImmunities: ['blinded', 'charmed', 'deafened', 'exhaustion', 'frightened', 'prone'],
   senses: ['blindsight 60 ft. (blind beyond this radius)'],

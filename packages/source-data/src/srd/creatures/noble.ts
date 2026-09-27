@@ -11,6 +11,7 @@ export const noble: CreatureAuthored = {
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
+  tags: ['any race'],
   abilityScores: {
     STRENGTH: 11,
     DEXTERITY: 12,
@@ -28,6 +29,8 @@ export const noble: CreatureAuthored = {
     modifier: 0
   },
   speeds: walk(30),
+  proficiencies: [S.grantedSkillProficiency(206, 1, 'DECEPTION', 'INSIGHT', 'PERSUASION')],
+  passivePerception: 12,
   challengeRatingId: CR.CR_1_8,
   xp: 25,
   features: [

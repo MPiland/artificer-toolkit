@@ -11,6 +11,7 @@ export const deathDog: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000800000000',
   abilityScores: {
     STRENGTH: 15,
     DEXTERITY: 14,
@@ -27,8 +28,12 @@ export const deathDog: CreatureAuthored = {
     modifier: 12
   },
   speeds: [...S.walk(40)],
-  proficiencies: [S.grantedSkillProficiency(1389, 1, 'PERCEPTION', 'STEALTH')],
-  passivePerception: 14,
+  proficiencies: [
+    S.grantedSkillExpertise(1389, 2, 'PERCEPTION'),
+    S.grantedSkillProficiency(1389, 1, 'STEALTH')
+  ],
+  senses: ['darkvision 120 ft.'],
+  passivePerception: 15,
   challengeRatingId: S.CR.CR_1,
   xp: 200,
   features: [

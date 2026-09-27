@@ -37,6 +37,12 @@ export const couatl: CreatureAuthored = {
   xp: 1100,
   features: [
     {
+      id: S.featureId(71, 7),
+      label: 'Telepathy',
+      description: 'telepathy 120 ft.',
+      order: 0
+    },
+    {
       id: S.featureId(71, 1),
       label: 'Innate Spellcasting',
       description:

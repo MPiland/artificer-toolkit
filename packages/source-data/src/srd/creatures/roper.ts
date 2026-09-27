@@ -27,7 +27,10 @@ export const roper: CreatureAuthored = {
     modifier: 33
   },
   speeds: [...S.walk(10), ...S.climb(10)],
-  proficiencies: [S.grantedSkillProficiency(7072, 1, 'PERCEPTION', 'STEALTH')],
+  proficiencies: [
+    S.grantedSkillExpertise(7072, 2, 'STEALTH'),
+    S.grantedSkillProficiency(7072, 1, 'PERCEPTION')
+  ],
   senses: ['darkvision 60 ft.'],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_5,

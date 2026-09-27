@@ -28,8 +28,9 @@ export const youngBlueDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.burrow(20), ...S.fly(80)],
   proficiencies: [
+    S.grantedSkillExpertise(302, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(302, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(302, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(302, 2, 'STEALTH'),
     S.grantedLanguageProficiency(302, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['lightning'],

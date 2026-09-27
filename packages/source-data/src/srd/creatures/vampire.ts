@@ -320,7 +320,7 @@ export const vampire: CreatureAuthored = {
     },
     {
       id: S.featureId(277, 12),
-      label: 'Multiattack',
+      label: 'Multiattack (Vampire Form Only)',
       description:
         'Multiattack (Vampire Form Only). The vampire makes two attacks, only one of which can be a bite attack.',
       effects: [
@@ -339,7 +339,7 @@ export const vampire: CreatureAuthored = {
     },
     {
       id: S.featureId(277, 13),
-      label: 'Unarmed Strike',
+      label: 'Unarmed Strike (Vampire Form Only)',
       description:
         'Melee Weapon Attack: +9 to hit, reach 5 ft., one creature. Hit: 8 (1d8 + 4) bludgeoning damage. Instead of dealing damage, the vampire can grapple the target (escape DC 18).',
       effects: [
@@ -396,7 +396,7 @@ export const vampire: CreatureAuthored = {
     },
     {
       id: S.featureId(277, 14),
-      label: 'Bite',
+      label: 'Bite (Bat or Vampire Form Only)',
       description:
         "Melee Weapon Attack: +9 to hit, reach 5 ft., one willing creature, or a creature that is grappled by the vampire, incapacitated, or restrained. Hit: 7 (1d6 + 4) piercing damage plus 10 (3d6) necrotic damage. The target's hit point maximum is reduced by an amount equal to the necrotic damage taken, and the vampire regains hit points equal to that amount. The reduction lasts until the target finishes a long rest. The target dies if this effect reduces its hit point maximum to 0. A humanoid slain in this way and then buried in the ground rises the following night as a vampire spawn under the vampire's control.",
       effects: [

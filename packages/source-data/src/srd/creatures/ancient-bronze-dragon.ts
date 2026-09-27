@@ -29,8 +29,9 @@ export const ancientBronzeDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(5407, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(5407, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(5407, 2, 'INSIGHT', 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(5407, 2, 'INSIGHT', 'STEALTH'),
     S.grantedLanguageProficiency(5407, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['lightning'],

@@ -28,7 +28,7 @@ export const chuul: CreatureAuthored = {
     modifier: 33
   },
   speeds: [...S.walk(30), ...S.swim(30)],
-  proficiencies: [S.grantedSkillProficiency(63, 1, 'PERCEPTION')],
+  proficiencies: [S.grantedSkillExpertise(63, 3, 'PERCEPTION')],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
   senses: ['darkvision 60 ft.'],

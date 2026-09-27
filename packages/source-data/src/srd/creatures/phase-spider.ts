@@ -26,7 +26,7 @@ export const phaseSpider: CreatureAuthored = {
     modifier: 5
   },
   speeds: [...S.walk(30), ...S.climb(30)],
-  proficiencies: [S.grantedSkillProficiency(218, 1, 'STEALTH')],
+  proficiencies: [S.grantedSkillExpertise(10218, 1, 'STEALTH')],
   senses: ['darkvision 60 ft.'],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_3,

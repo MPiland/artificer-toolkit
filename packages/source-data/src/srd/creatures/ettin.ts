@@ -27,7 +27,7 @@ export const ettin: CreatureAuthored = {
   },
   speeds: [...S.walk(40)],
   proficiencies: [
-    S.grantedSkillProficiency(100, 1, 'PERCEPTION'),
+    S.grantedSkillExpertise(100, 3, 'PERCEPTION'),
     S.grantedLanguageProficiency(100, 2, 'GIANT', 'ORC')
   ],
   senses: ['darkvision 60 ft.'],

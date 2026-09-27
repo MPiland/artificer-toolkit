@@ -27,7 +27,8 @@ export const satyr: CreatureAuthored = {
   },
   speeds: [...S.walk(40)],
   proficiencies: [
-    S.grantedSkillProficiency(245, 1, 'PERCEPTION', 'PERFORMANCE', 'STEALTH'),
+    S.grantedSkillExpertise(245, 3, 'PERFORMANCE'),
+    S.grantedSkillProficiency(245, 1, 'PERCEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(245, 2, 'COMMON', 'ELVISH', 'SYLVAN')
   ],
   passivePerception: 12,

@@ -26,7 +26,15 @@ export const shadow: CreatureAuthored = {
   },
   speeds: [...S.walk(40)],
   proficiencies: [S.grantedSkillProficiency(7360, 1, 'STEALTH')],
-  damageResistances: ['acid', 'cold', 'fire', 'lightning', 'thunder'],
+  damageVulnerabilities: ['radiant'],
+  damageResistances: [
+    'acid',
+    'cold',
+    'fire',
+    'lightning',
+    'thunder',
+    'bludgeoning, piercing, and slashing from nonmagical attacks'
+  ],
   damageImmunities: ['necrotic', 'poison'],
   conditionImmunities: [
     'exhaustion',
@@ -146,6 +154,13 @@ export const shadow: CreatureAuthored = {
         }
       ],
       order: 3
+    },
+    {
+      id: S.featureId(250, 4),
+      label: 'Sunlight Weakness',
+      description:
+        'Sunlight Weakness. While in sunlight, the shadow has disadvantage on attack rolls, ability checks, and saving throws.',
+      order: 4
     }
   ]
 }

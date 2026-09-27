@@ -9,7 +9,6 @@ export const lich: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
-  alignmentId: '00000000-0000-0000-0001-000700000000',
   abilityScores: {
     STRENGTH: 11,
     DEXTERITY: 16,
@@ -30,18 +29,13 @@ export const lich: CreatureAuthored = {
   proficiencies: [
     S.grantedSaveProficiency(2794, 1, 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM'),
     S.grantedSkillProficiency(2794, 2, 'ARCANA', 'HISTORY', 'INSIGHT', 'PERCEPTION'),
-    S.grantedLanguageProficiency(2794, 3, 'COMMON', 'DRACONIC', 'ELVISH', 'GIANT', 'INFERNAL')
+    S.grantedLanguageProficiency(2794, 3, 'COMMON')
   ],
-  damageResistances: [
-    'cold',
-    'lightning',
-    'necrotic',
-    'bludgeoning, piercing, and slashing from nonmagical attacks'
-  ],
-  damageImmunities: ['poison'],
+  damageResistances: ['cold', 'lightning', 'necrotic'],
+  damageImmunities: ['poison', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'poisoned'],
   senses: ['truesight 120 ft.'],
-  passivePerception: 14,
+  passivePerception: 19,
   challengeRatingId: S.CR.CR_21,
   xp: 33000,
   features: [

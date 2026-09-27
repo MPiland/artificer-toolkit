@@ -27,7 +27,8 @@ export const rustMonster: CreatureAuthored = {
     modifier: 5
   },
   speeds: [...S.walk(40)],
-  passivePerception: 10,
+  senses: ['darkvision 60 ft.'],
+  passivePerception: 11,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,
   features: [
@@ -127,6 +128,13 @@ export const rustMonster: CreatureAuthored = {
         }
       ],
       order: 3
+    },
+    {
+      id: S.featureId(241, 4),
+      label: 'Rust Metal',
+      description:
+        'Rust Metal. Any nonmagical weapon made of metal that hits the rust monster corrodes. After dealing damage, the weapon takes a permanent and cumulative -1 penalty to damage rolls. If its penalty drops to -5, the weapon is destroyed. Nonmagical ammunition made of metal that hits the rust monster is destroyed after dealing damage.',
+      order: 4
     }
   ]
 }

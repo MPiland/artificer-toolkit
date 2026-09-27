@@ -28,10 +28,15 @@ export const youngCopperDragon: CreatureAuthored = {
     modifier: 42
   },
   speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80)],
-  proficiencies: [S.grantedSkillProficiency(4834, 1, 'DECEPTION', 'PERCEPTION', 'STEALTH')],
+  proficiencies: [
+    S.grantedLanguageProficiency(4834, 4, 'COMMON', 'DRACONIC'),
+    S.grantedSkillExpertise(4834, 3, 'PERCEPTION'),
+    S.grantedSaveProficiency(4834, 2, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
+    S.grantedSkillProficiency(4834, 1, 'DECEPTION', 'STEALTH')
+  ],
   damageImmunities: ['acid'],
   senses: ['blindsight 30 ft.', 'darkvision 120 ft.'],
-  passivePerception: 19,
+  passivePerception: 17,
   challengeRatingId: S.CR.CR_7,
   xp: 2900,
   features: [

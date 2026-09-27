@@ -29,8 +29,9 @@ export const ancientCopperDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80)],
   proficiencies: [
+    S.grantedSkillExpertise(5710, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(5710, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(5710, 2, 'DECEPTION', 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(5710, 2, 'DECEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(5710, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['acid'],

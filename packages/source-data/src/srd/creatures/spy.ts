@@ -26,7 +26,18 @@ export const spy: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(30)],
-  proficiencies: [S.grantedSkillProficiency(261, 1, 'DECEPTION', 'INSIGHT', 'INVESTIGATION')],
+  proficiencies: [
+    S.grantedSkillExpertise(261, 2, 'INVESTIGATION', 'PERCEPTION'),
+    S.grantedSkillProficiency(
+      261,
+      1,
+      'DECEPTION',
+      'INSIGHT',
+      'PERSUASION',
+      'SLEIGHT_OF_HAND',
+      'STEALTH'
+    )
+  ],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

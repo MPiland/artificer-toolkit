@@ -25,7 +25,10 @@ export const saberToothedTiger: CreatureAuthored = {
     modifier: 14
   },
   speeds: [...S.walk(40)],
-  proficiencies: [S.grantedSkillProficiency(242, 1, 'PERCEPTION', 'STEALTH')],
+  proficiencies: [
+    S.grantedSkillExpertise(242, 2, 'STEALTH'),
+    S.grantedSkillProficiency(242, 1, 'PERCEPTION')
+  ],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

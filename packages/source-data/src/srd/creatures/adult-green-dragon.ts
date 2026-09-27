@@ -29,8 +29,9 @@ export const adultGreenDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(9, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(9, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(9, 2, 'DECEPTION', 'INSIGHT', 'PERCEPTION'),
+    S.grantedSkillProficiency(9, 2, 'DECEPTION', 'INSIGHT', 'PERSUASION', 'STEALTH'),
     S.grantedLanguageProficiency(9, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['poison'],

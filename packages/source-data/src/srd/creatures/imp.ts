@@ -32,6 +32,10 @@ export const imp: CreatureAuthored = {
     S.grantedSkillProficiency(173, 1, 'DECEPTION', 'INSIGHT', 'PERSUASION', 'STEALTH'),
     S.grantedLanguageProficiency(173, 2, 'INFERNAL', 'COMMON')
   ],
+  damageResistances: [
+    'cold',
+    "bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered"
+  ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
   senses: ['darkvision 120 ft.'],

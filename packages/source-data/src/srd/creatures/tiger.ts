@@ -25,7 +25,10 @@ export const tiger: CreatureAuthored = {
     modifier: 10
   },
   speeds: [...S.walk(40)],
-  proficiencies: [S.grantedSkillProficiency(270, 1, 'PERCEPTION', 'STEALTH')],
+  proficiencies: [
+    S.grantedSkillExpertise(270, 2, 'STEALTH'),
+    S.grantedSkillProficiency(270, 1, 'PERCEPTION')
+  ],
   senses: ['darkvision 60 ft.'],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1,

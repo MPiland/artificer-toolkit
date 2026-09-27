@@ -27,7 +27,7 @@ export const giantCrocodile: CreatureAuthored = {
     modifier: 27
   },
   speeds: [...S.walk(30), ...S.swim(50)],
-  proficiencies: [S.grantedSkillProficiency(120, 1, 'STEALTH')],
+  proficiencies: [S.grantedSkillExpertise(10120, 1, 'STEALTH')],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

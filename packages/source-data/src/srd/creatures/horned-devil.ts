@@ -44,6 +44,12 @@ export const hornedDevil: CreatureAuthored = {
   xp: 7200,
   features: [
     {
+      id: S.featureId(167, 7),
+      label: 'Telepathy',
+      description: 'telepathy 120 ft.',
+      order: 0
+    },
+    {
       id: S.featureId(167, 1),
       label: "Devil's Sight",
       description: "Devil's Sight. Magical darkness doesn't impede the devil's darkvision.",

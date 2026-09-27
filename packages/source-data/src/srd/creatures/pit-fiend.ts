@@ -33,7 +33,10 @@ export const pitFiend: CreatureAuthored = {
     S.grantedSaveProficiency(8042, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM'),
     S.grantedLanguageProficiency(8042, 2, 'INFERNAL')
   ],
-  damageResistances: ['cold', 'bludgeoning', 'piercing', 'slashing'],
+  damageResistances: [
+    'cold',
+    "bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered"
+  ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
   senses: ['truesight 120 ft.'],

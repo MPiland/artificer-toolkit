@@ -15,10 +15,11 @@ export const wereboar: CreatureAuthored = {
     DEXTERITY: 10,
     CONSTITUTION: 15,
     INTELLIGENCE: 10,
-    WISDOM: 9,
+    WISDOM: 11,
     CHARISMA: 8
   },
   armorClass: 10,
+  armorClassNote: 'in humanoid form, 11 (natural armor) in boar or hybrid form',
   hitPoints: 78,
   hitDice: {
     count: 12,
@@ -26,10 +27,14 @@ export const wereboar: CreatureAuthored = {
     modifier: 24
   },
   speeds: [...S.walk(30)],
+  proficiencies: [
+    S.grantedLanguageProficiency(288, 2, 'COMMON'),
+    S.grantedSkillProficiency(288, 1, 'PERCEPTION')
+  ],
   damageImmunities: [
     'bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons'
   ],
-  passivePerception: 9,
+  passivePerception: 12,
   challengeRatingId: S.CR.CR_4,
   xp: 1100,
   features: [
@@ -55,7 +60,7 @@ export const wereboar: CreatureAuthored = {
     },
     {
       id: S.featureId(288, 2),
-      label: 'Charge',
+      label: 'Charge (Boar or Hybrid Form Only)',
       description:
         'Charge (Boar or Hybrid Form Only). If the wereboar moves at least 15 feet straight toward a target and then hits it with its tusks on the same turn, the target takes an extra 7 (2d6) slashing damage. If the target is a creature, it must succeed on a DC 13 Strength saving throw or be knocked prone.',
       effects: [
@@ -74,7 +79,7 @@ export const wereboar: CreatureAuthored = {
     },
     {
       id: S.featureId(288, 3),
-      label: 'Relentless',
+      label: 'Relentless (Recharges after a Short or Long Rest)',
       description:
         'Relentless (Recharges after a Short or Long Rest). If the wereboar takes 14 damage or less that would reduce it to 0 hit points, it is reduced to 1 hit point instead.',
       effects: [
@@ -153,7 +158,7 @@ export const wereboar: CreatureAuthored = {
     },
     {
       id: S.featureId(288, 5),
-      label: 'Maul',
+      label: 'Maul (Humanoid or Hybrid Form Only)',
       description:
         'Maul (Humanoid or Hybrid Form Only). Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) bludgeoning damage.',
       effects: [
@@ -202,6 +207,13 @@ export const wereboar: CreatureAuthored = {
         }
       ],
       order: 5
+    },
+    {
+      id: S.featureId(288, 6),
+      label: 'Multiattack (Humanoid or Hybrid Form Only)',
+      description:
+        'Multiattack (Humanoid or Hybrid Form Only). The wereboar makes two attacks, only one of which can be with its tusks.',
+      order: 6
     }
   ]
 }

@@ -8,6 +8,7 @@ export const xorn: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.ELEMENTAL,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   abilityScores: {
     STRENGTH: 17,
     DEXTERITY: 10,
@@ -26,7 +27,8 @@ export const xorn: CreatureAuthored = {
   },
   speeds: [...S.walk(20), ...S.burrow(20)],
   proficiencies: [
-    S.grantedSkillProficiency(300, 1, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillExpertise(300, 3, 'PERCEPTION'),
+    S.grantedSkillProficiency(300, 1, 'STEALTH'),
     S.grantedLanguageProficiency(300, 2, 'TERRAN')
   ],
   damageResistances: ["piercing and slashing from nonmagical attacks that aren't adamantine"],

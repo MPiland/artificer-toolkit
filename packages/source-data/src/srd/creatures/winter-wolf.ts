@@ -29,7 +29,8 @@ export const winterWolf: CreatureAuthored = {
   },
   speeds: [...S.walk(50)],
   proficiencies: [
-    S.grantedSkillProficiency(295, 1, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillExpertise(295, 3, 'PERCEPTION'),
+    S.grantedSkillProficiency(295, 1, 'STEALTH'),
     S.grantedLanguageProficiency(295, 2, 'COMMON', 'GIANT', 'WINTER_WOLF')
   ],
   damageImmunities: ['cold'],

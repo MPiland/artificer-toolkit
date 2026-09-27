@@ -10,6 +10,7 @@ export const giantOctopus: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.BEAST,
   size: S.SIZE_CODE.LARGE,
+  alignmentId: '00000000-0000-0000-0001-000a00000000',
   abilityScores: {
     STRENGTH: 17,
     DEXTERITY: 13,
@@ -26,7 +27,7 @@ export const giantOctopus: CreatureAuthored = {
     modifier: 8
   },
   speeds: [...S.walk(10), ...S.swim(60)],
-  proficiencies: [S.grantedSkillProficiency(3505, 1, 'PERCEPTION', 'STEALTH')],
+  proficiencies: [S.grantedSkillExpertise(128, 1, 'PERCEPTION', 'STEALTH')],
   senses: ['darkvision 60 ft.'],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_1,
@@ -164,6 +165,12 @@ export const giantOctopus: CreatureAuthored = {
         })
       ],
       order: 4
+    },
+    {
+      id: S.featureId(128, 5),
+      label: 'Water Breathing',
+      description: 'Water Breathing. The octopus can breathe only underwater.',
+      order: 5
     }
   ]
 }

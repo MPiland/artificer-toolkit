@@ -28,8 +28,9 @@ export const gladiator: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [
+    S.grantedSkillExpertise(8895, 4, 'ATHLETICS'),
     S.grantedSaveProficiency(8895, 1, 'STRENGTH', 'DEXTERITY', 'CONSTITUTION'),
-    S.grantedSkillProficiency(8895, 2, 'ATHLETICS', 'INTIMIDATION'),
+    S.grantedSkillProficiency(8895, 2, 'INTIMIDATION'),
     S.grantedLanguageProficiency(8895, 3, 'COMMON')
   ],
   passivePerception: 11,

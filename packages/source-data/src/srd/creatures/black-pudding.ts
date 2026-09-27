@@ -18,24 +18,15 @@ export const blackPudding: CreatureAuthored = {
     CHARISMA: 1
   },
   armorClass: 7,
-  hitPoints: 68,
+  hitPoints: 85,
   hitDice: {
-    count: 8,
+    count: 10,
     die: 10,
-    modifier: 24
+    modifier: 30
   },
   speeds: [...S.walk(20), ...S.climb(20)],
   damageImmunities: ['acid', 'cold', 'lightning', 'slashing'],
-  conditionImmunities: [
-    'blinded',
-    'charmed',
-    'deafened',
-    'exhaustion',
-    'frightened',
-    'grappled',
-    'prone',
-    'restrained'
-  ],
+  conditionImmunities: ['blinded', 'charmed', 'deafened', 'exhaustion', 'frightened', 'prone'],
   senses: ['blindsight 60 ft. (blind beyond this radius)'],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_4,
@@ -135,7 +126,7 @@ export const blackPudding: CreatureAuthored = {
     },
     {
       id: S.featureId(47, 4),
-      label: 'Dissolving Pseudopod',
+      label: 'Pseudopod',
       description:
         'Pseudopod. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage plus 18 (4d8) acid damage. In addition, nonmagical armor worn by the target is partly dissolved and takes a permanent and cumulative -1 penalty to the AC it offers. The armor is destroyed if the penalty reduces its AC to 10.',
       effects: [

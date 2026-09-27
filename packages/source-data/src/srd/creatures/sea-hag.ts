@@ -20,6 +20,7 @@ export const seaHag: CreatureAuthored = {
     CHARISMA: 13
   },
   armorClass: 14,
+  armorClassNote: 'natural armor',
   hitPoints: 52,
   hitDice: {
     count: 7,
@@ -27,7 +28,9 @@ export const seaHag: CreatureAuthored = {
     modifier: 21
   },
   speeds: [...S.walk(30), ...S.swim(40)],
-  passivePerception: 10,
+  proficiencies: [S.grantedLanguageProficiency(248, 1, 'AQUAN', 'COMMON', 'GIANT')],
+  senses: ['darkvision 60 ft.'],
+  passivePerception: 11,
   challengeRatingId: S.CR.CR_2,
   xp: 450,
   features: [

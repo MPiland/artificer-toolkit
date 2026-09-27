@@ -11,6 +11,8 @@ export const goblin: CreatureAuthored = {
   category: 'MONSTER',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'SMALL',
+  alignmentId: '00000000-0000-0000-0001-000800000000',
+  tags: ['goblinoid'],
   abilityScores: {
     STRENGTH: 8,
     DEXTERITY: 14,
@@ -29,7 +31,7 @@ export const goblin: CreatureAuthored = {
   },
   speeds: walk(30),
   proficiencies: [
-    S.grantedSkillProficiency(146, 1, 'STEALTH'),
+    S.grantedSkillExpertise(146, 3, 'STEALTH'),
     S.grantedLanguageProficiency(146, 2, 'COMMON', 'GOBLIN')
   ],
   senses: ['darkvision 60 ft.'],

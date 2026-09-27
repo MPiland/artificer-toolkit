@@ -8,6 +8,7 @@ export const merfolk: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.HUMANOID,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   tags: ['merfolk'],
   abilityScores: {
     STRENGTH: 10,

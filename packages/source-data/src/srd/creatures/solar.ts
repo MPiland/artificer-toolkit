@@ -26,7 +26,11 @@ export const solar: CreatureAuthored = {
     modifier: 144
   },
   speeds: [...S.walk(50), ...S.fly(150)],
-  damageResistances: ['radiant'],
+  proficiencies: [
+    S.grantedSkillProficiency(256, 2, 'PERCEPTION'),
+    S.grantedSaveProficiency(256, 1, 'INTELLIGENCE', 'WISDOM', 'CHARISMA')
+  ],
+  damageResistances: ['radiant', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['necrotic', 'poison'],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'poisoned'],
   senses: ['truesight 120 ft.'],
@@ -34,6 +38,12 @@ export const solar: CreatureAuthored = {
   challengeRatingId: S.CR.CR_21,
   xp: 33000,
   features: [
+    {
+      id: S.featureId(256, 6),
+      label: 'Telepathy',
+      description: 'telepathy 120 ft.',
+      order: 0
+    },
     {
       id: S.featureId(256, 1),
       label: 'Angelic Weapons',
@@ -96,7 +106,7 @@ export const solar: CreatureAuthored = {
     },
     {
       id: S.featureId(256, 3),
-      label: 'Healing Touch',
+      label: 'Healing Touch (4/Day)',
       description:
         'Healing Touch (4/Day). The solar touches another creature. The target magically regains 40 (8d8 + 4) hit points and is freed from any curse, disease, poison, blindness, or deafness.',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -218,7 +228,7 @@ export const solar: CreatureAuthored = {
     },
     {
       id: S.featureId(256, 5),
-      label: 'Longbow',
+      label: 'Slaying Longbow',
       description:
         'Slaying Longbow. Ranged Weapon Attack: +13 to hit, range 150/600 ft., one target. Hit: 15 (2d8 + 6) piercing damage plus 27 (6d8) radiant damage. If the target is a creature that has 100 hit points or fewer, it must succeed on a DC 15 Constitution saving throw or die.',
       effects: [
@@ -280,6 +290,31 @@ export const solar: CreatureAuthored = {
         }
       ],
       order: 5
+    },
+    {
+      id: S.featureId(256, 7),
+      label: 'Magic Resistance',
+      description:
+        'Magic Resistance. The solar has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(256, 901),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(256, 902), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
+      order: 6
+    },
+    {
+      id: S.featureId(256, 8),
+      label: 'Multiattack',
+      description: 'Multiattack. The solar makes two greatsword attacks.',
+      order: 7
     }
   ]
 }

@@ -8,6 +8,7 @@ export const mimic: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   tags: ['shapechanger'],
   abilityScores: {
     STRENGTH: 17,
@@ -26,7 +27,7 @@ export const mimic: CreatureAuthored = {
     modifier: 18
   },
   speeds: [...S.walk(15)],
-  proficiencies: [S.grantedSkillProficiency(197, 1, 'STEALTH')],
+  proficiencies: [S.grantedSkillExpertise(10197, 1, 'STEALTH')],
   damageImmunities: ['acid'],
   conditionImmunities: ['prone'],
   senses: ['darkvision 60 ft.'],

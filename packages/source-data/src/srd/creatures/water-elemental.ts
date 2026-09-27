@@ -27,6 +27,8 @@ export const waterElemental: CreatureAuthored = {
     modifier: 48
   },
   speeds: [...S.walk(30), ...S.swim(90)],
+  proficiencies: [S.grantedLanguageProficiency(285, 1, 'AQUAN')],
+  damageResistances: ['acid', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['poison'],
   conditionImmunities: [
     'exhaustion',
@@ -83,7 +85,7 @@ export const waterElemental: CreatureAuthored = {
     },
     {
       id: S.featureId(285, 3),
-      label: 'Whelm',
+      label: 'Whelm (Recharge 4-6)',
       description:
         "Whelm (Recharge 4-6). Each creature in the elemental's space must make a DC 15 Strength saving throw. On a failure, a target takes 13 (2d8 + 4) bludgeoning damage. If it is Large or smaller, it is also grappled (escape DC 14). Until this grapple ends, the target is restrained and unable to breathe unless it can breathe water. If the saving throw is successful, the target is pushed out of the elemental's space. The elemental can grapple one Large creature or up to two Medium or smaller creatures at one time. At the start of each of the elemental's turns, each target grappled by it takes 13 (2d8 + 4) bludgeoning damage. A creature within 5 feet of the elemental can pull a creature or object out of it by taking an action to make a DC 14 Strength and succeeding.",
       effects: [
@@ -212,6 +214,12 @@ export const waterElemental: CreatureAuthored = {
         }
       ],
       order: 4
+    },
+    {
+      id: S.featureId(285, 5),
+      label: 'Multiattack',
+      description: 'Multiattack. The elemental makes two slam attacks.',
+      order: 5
     }
   ]
 }

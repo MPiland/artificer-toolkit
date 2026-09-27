@@ -27,7 +27,7 @@ export const minotaur: CreatureAuthored = {
   },
   speeds: [...S.walk(40)],
   proficiencies: [
-    S.grantedSkillProficiency(198, 1, 'PERCEPTION'),
+    S.grantedSkillExpertise(198, 3, 'PERCEPTION'),
     S.grantedLanguageProficiency(198, 2, 'ABYSSAL')
   ],
   senses: ['darkvision 60 ft.'],

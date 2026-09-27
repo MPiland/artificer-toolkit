@@ -10,6 +10,7 @@ export const kraken: CreatureAuthored = {
   creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.GARGANTUAN,
   alignmentId: '00000000-0000-0000-0001-000900000000',
+  tags: ['titan'],
   abilityScores: {
     STRENGTH: 30,
     DEXTERITY: 11,
@@ -26,17 +27,32 @@ export const kraken: CreatureAuthored = {
     die: 20,
     modifier: 189
   },
-  speeds: [...S.swim(60)],
+  speeds: [...S.walk(20), ...S.swim(60)],
   proficiencies: [
-    S.grantedSaveProficiency(9001, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(9001, 2, 'ATHLETICS', 'PERCEPTION', 'STEALTH'),
-    S.grantedLanguageProficiency(9001, 3, 'AQUAN')
+    S.grantedSaveProficiency(
+      9001,
+      1,
+      'STRENGTH',
+      'DEXTERITY',
+      'CONSTITUTION',
+      'INTELLIGENCE',
+      'WISDOM'
+    ),
+    S.grantedLanguageProficiency(9001, 3, 'ABYSSAL', 'CELESTIAL', 'INFERNAL', 'PRIMORDIAL')
   ],
+  damageImmunities: ['lightning', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
+  conditionImmunities: ['frightened', 'paralyzed'],
   senses: ['truesight 120 ft.'],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_23,
   xp: 50000,
   features: [
+    {
+      id: S.featureId(180, 9),
+      label: 'Telepathy',
+      description: 'telepathy 120 ft.',
+      order: 0
+    },
     {
       id: S.featureId(180, 1),
       label: 'Amphibious',

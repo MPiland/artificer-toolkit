@@ -10,7 +10,7 @@ export const ghost: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
-  alignmentId: '00000000-0000-0000-0001-000100000000',
+  tags: ['hover'],
   abilityScores: {
     STRENGTH: 7,
     DEXTERITY: 13,

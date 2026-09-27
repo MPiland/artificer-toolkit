@@ -27,7 +27,7 @@ export const giantSpider: CreatureAuthored = {
     modifier: 4
   },
   speeds: [...S.walk(30), ...S.climb(30)],
-  proficiencies: [S.grantedSkillProficiency(135, 1, 'STEALTH')],
+  proficiencies: [S.grantedSkillExpertise(10135, 1, 'STEALTH')],
   senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1,

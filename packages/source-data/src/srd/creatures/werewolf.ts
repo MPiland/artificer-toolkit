@@ -8,6 +8,7 @@ export const werewolf: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.HUMANOID,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000900000000',
   tags: ['human', 'shapechanger'],
   abilityScores: {
     STRENGTH: 15,
@@ -18,6 +19,7 @@ export const werewolf: CreatureAuthored = {
     CHARISMA: 10
   },
   armorClass: 11,
+  armorClassNote: 'in humanoid form, 12 (natural armor) in wolf or hybrid form',
   hitPoints: 58,
   hitDice: {
     count: 9,
@@ -25,7 +27,10 @@ export const werewolf: CreatureAuthored = {
     modifier: 18
   },
   speeds: [...S.walk(30)],
-  proficiencies: [S.grantedSkillProficiency(291, 1, 'PERCEPTION', 'STEALTH')],
+  proficiencies: [
+    S.grantedSkillExpertise(291, 3, 'PERCEPTION'),
+    S.grantedSkillProficiency(291, 1, 'STEALTH')
+  ],
   damageImmunities: [
     'bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons'
   ],

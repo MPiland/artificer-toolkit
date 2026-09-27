@@ -27,7 +27,8 @@ export const grimlock: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [
-    S.grantedSkillProficiency(154, 1, 'ATHLETICS', 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillExpertise(154, 3, 'PERCEPTION'),
+    S.grantedSkillProficiency(154, 1, 'ATHLETICS', 'STEALTH'),
     S.grantedLanguageProficiency(154, 2, 'UNDERCOMMON')
   ],
   conditionImmunities: ['blinded'],

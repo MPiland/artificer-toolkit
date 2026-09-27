@@ -7,7 +7,7 @@ export const darkmantle: CreatureAuthored = {
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
-  creatureTypeId: S.CREATURE_TYPE.ABERRATION,
+  creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.SMALL,
   alignmentId: '00000000-0000-0000-0001-000a00000000',
   abilityScores: {
@@ -19,7 +19,6 @@ export const darkmantle: CreatureAuthored = {
     CHARISMA: 5
   },
   armorClass: 11,
-  armorClassNote: 'natural armor',
   hitPoints: 22,
   hitDice: {
     count: 5,

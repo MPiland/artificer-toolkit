@@ -7,28 +7,33 @@ export const stoneGiant: CreatureAuthored = {
   systemId: S.SRD_SYSTEM_ID,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.GIANT,
-  size: S.SIZE_CODE.LARGE,
+  size: S.SIZE_CODE.HUGE,
   alignmentId: '00000000-0000-0000-0001-000500000000',
   abilityScores: {
     STRENGTH: 23,
     DEXTERITY: 15,
-    CONSTITUTION: 22,
+    CONSTITUTION: 20,
     INTELLIGENCE: 10,
-    WISDOM: 14,
-    CHARISMA: 12
+    WISDOM: 12,
+    CHARISMA: 9
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 126,
   hitDice: {
     count: 11,
-    die: 10,
-    modifier: 66
+    die: 12,
+    modifier: 55
   },
   speeds: [...S.walk(40)],
-  proficiencies: [S.grantedSkillProficiency(3307, 1, 'ATHLETICS', 'PERCEPTION')],
+  proficiencies: [
+    S.grantedLanguageProficiency(3307, 4, 'GIANT'),
+    S.grantedSkillExpertise(3307, 3, 'ATHLETICS'),
+    S.grantedSaveProficiency(3307, 2, 'DEXTERITY', 'CONSTITUTION', 'WISDOM'),
+    S.grantedSkillProficiency(3307, 1, 'PERCEPTION')
+  ],
   senses: ['darkvision 60 ft.'],
-  passivePerception: 16,
+  passivePerception: 14,
   challengeRatingId: S.CR.CR_7,
   xp: 2900,
   features: [
@@ -100,6 +105,12 @@ export const stoneGiant: CreatureAuthored = {
       description:
         'Rock. Ranged Weapon Attack: +9 to hit, range 60/240 ft., one target. Hit: 28 (4d10 + 6) bludgeoning damage.',
       order: 3
+    },
+    {
+      id: S.featureId(264, 4),
+      label: 'Multiattack',
+      description: 'Multiattack. The giant makes two greatclub attacks.',
+      order: 4
     }
   ]
 }

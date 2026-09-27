@@ -27,11 +27,19 @@ export const marilith: CreatureAuthored = {
     die: 10,
     modifier: 90
   },
-  speeds: [...S.walk(30)],
+  speeds: [...S.walk(40)],
   proficiencies: [
     S.grantedSaveProficiency(3284, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
     S.grantedLanguageProficiency(3284, 2, 'ABYSSAL')
   ],
+  damageResistances: [
+    'cold',
+    'fire',
+    'lightning',
+    'bludgeoning, piercing, and slashing from nonmagical attacks'
+  ],
+  damageImmunities: ['poison'],
+  conditionImmunities: ['poisoned'],
   senses: ['truesight 120 ft.'],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_16,

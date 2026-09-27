@@ -26,7 +26,9 @@ export const shrieker: CreatureAuthored = {
     modifier: 0
   },
   speeds: [],
-  passivePerception: 10,
+  conditionImmunities: ['blinded', 'deafened', 'frightened'],
+  senses: ['blindsight 30 ft. (blind beyond this radius)'],
+  passivePerception: 6,
   challengeRatingId: S.CR.CR_0,
   xp: 10,
   features: [

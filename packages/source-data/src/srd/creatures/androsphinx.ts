@@ -30,20 +30,12 @@ export const androsphinx: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(60)],
   proficiencies: [
-    S.grantedSaveProficiency(
-      24,
-      1,
-      'DEXTERITY',
-      'CONSTITUTION',
-      'INTELLIGENCE',
-      'WISDOM',
-      'CHARISMA'
-    ),
-    S.grantedSkillProficiency(24, 2, 'ARCANA', 'PERCEPTION', 'RELIGION'),
+    S.grantedSkillExpertise(24, 4, 'RELIGION'),
+    S.grantedSaveProficiency(24, 1, 'DEXTERITY', 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM'),
+    S.grantedSkillProficiency(24, 2, 'ARCANA', 'PERCEPTION'),
     S.grantedLanguageProficiency(24, 3, 'COMMON', 'SPHINX')
   ],
-  damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
-  damageImmunities: ['psychic'],
+  damageImmunities: ['psychic', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   conditionImmunities: ['charmed', 'frightened'],
   senses: ['truesight 120 ft.'],
   passivePerception: 20,

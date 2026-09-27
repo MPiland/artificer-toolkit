@@ -26,10 +26,11 @@ export const barbedDevil: CreatureAuthored = {
     die: 8,
     modifier: 52
   },
-  speeds: [...S.walk(30), ...S.climb(30)],
+  speeds: [...S.walk(30)],
   proficiencies: [
+    S.grantedSkillExpertise(7311, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(7311, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(7311, 2, 'DECEPTION', 'INSIGHT', 'PERCEPTION'),
+    S.grantedSkillProficiency(7311, 2, 'DECEPTION', 'INSIGHT'),
     S.grantedLanguageProficiency(7311, 3, 'INFERNAL')
   ],
   damageResistances: [
@@ -42,6 +43,12 @@ export const barbedDevil: CreatureAuthored = {
   challengeRatingId: S.CR.CR_5,
   xp: 1800,
   features: [
+    {
+      id: S.featureId(39, 8),
+      label: 'Telepathy',
+      description: 'telepathy 120 ft.',
+      order: 0
+    },
     {
       id: S.featureId(39, 1),
       label: 'Barbed Hide',

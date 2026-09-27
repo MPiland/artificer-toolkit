@@ -28,8 +28,9 @@ export const whiteDragonWyrmling: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.burrow(15), ...S.fly(60), ...S.swim(30)],
   proficiencies: [
+    S.grantedSkillExpertise(292, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(292, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(292, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(292, 2, 'STEALTH'),
     S.grantedLanguageProficiency(292, 3, 'DRACONIC')
   ],
   damageImmunities: ['cold'],

@@ -26,7 +26,8 @@ export const purpleWorm: CreatureAuthored = {
     die: 20,
     modifier: 90
   },
-  speeds: [...S.walk(0), ...S.burrow(50)],
+  speeds: [...S.walk(50), ...S.burrow(30)],
+  proficiencies: [S.grantedSaveProficiency(227, 1, 'CONSTITUTION', 'WISDOM')],
   senses: ['blindsight 30 ft.', 'tremorsense 60 ft.'],
   passivePerception: 9,
   challengeRatingId: S.CR.CR_15,

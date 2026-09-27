@@ -11,6 +11,7 @@ export const knight: CreatureAuthored = {
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
+  tags: ['any race'],
   abilityScores: {
     STRENGTH: 16,
     DEXTERITY: 11,
@@ -20,7 +21,7 @@ export const knight: CreatureAuthored = {
     CHARISMA: 15
   },
   armorClass: 18,
-  armorClassNote: 'plate armor',
+  armorClassNote: 'plate',
   hitPoints: 52,
   hitDice: {
     count: 8,
@@ -28,9 +29,20 @@ export const knight: CreatureAuthored = {
     modifier: 16
   },
   speeds: walk(30),
+  proficiencies: [S.grantedSaveProficiency(178, 1, 'CONSTITUTION', 'WISDOM')],
+  passivePerception: 10,
   challengeRatingId: CR.CR_3,
   xp: 700,
   features: [
+    {
+      id: S.featureId(178, 7),
+      label: 'Language Knowledge',
+      description: 'any one language (usually Common)',
+      grants: {
+        proficiencies: [S.grantedLanguageProficiency(178, 2, 'COMMON')]
+      },
+      order: 0
+    },
     {
       id: S.featureId(178, 1),
       label: 'Brave',

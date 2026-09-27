@@ -8,7 +8,7 @@ export const oni: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.GIANT,
   size: S.SIZE_CODE.LARGE,
-  alignmentId: '00000000-0000-0000-0001-000800000000',
+  alignmentId: '00000000-0000-0000-0001-000700000000',
   abilityScores: {
     STRENGTH: 19,
     DEXTERITY: 11,
@@ -27,12 +27,13 @@ export const oni: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.fly(30)],
   proficiencies: [
-    S.grantedSkillProficiency(3186, 1, 'ARCANA', 'DECEPTION', 'PERCEPTION'),
-    S.grantedLanguageProficiency(3186, 2, 'COMMON', 'GIANT', 'INFERNAL')
+    S.grantedSkillExpertise(3186, 4, 'DECEPTION'),
+    S.grantedSaveProficiency(3186, 3, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
+    S.grantedSkillProficiency(3186, 1, 'ARCANA', 'PERCEPTION'),
+    S.grantedLanguageProficiency(3186, 2, 'COMMON', 'GIANT')
   ],
-  damageResistances: ['cold'],
-  senses: ['darkvision 120 ft.'],
-  passivePerception: 13,
+  senses: ['darkvision 60 ft.'],
+  passivePerception: 14,
   challengeRatingId: S.CR.CR_7,
   xp: 2900,
   features: [
@@ -114,7 +115,7 @@ export const oni: CreatureAuthored = {
     },
     {
       id: S.featureId(211, 4),
-      label: 'Shapechanger',
+      label: 'Change Shape',
       description:
         'Change Shape. The oni magically polymorphs into a Small or Medium humanoid, into a Large giant, or back into its true form. Other than its size, its statistics are the same in each form. The only equipment that is transformed is its glaive, which shrinks so that it can be wielded in humanoid form. If the oni dies, it reverts to its true form, and its glaive reverts to its normal size.',
       effects: [
@@ -153,7 +154,7 @@ export const oni: CreatureAuthored = {
     },
     {
       id: S.featureId(211, 6),
-      label: 'Claw',
+      label: 'Claw (Oni Form Only)',
       description:
         'Claw (Oni Form Only). Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) slashing damage.',
       effects: [
@@ -213,6 +214,24 @@ export const oni: CreatureAuthored = {
         }
       ],
       order: 6
+    },
+    {
+      id: S.featureId(211, 7),
+      label: 'Magic Weapons',
+      description: "Magic Weapons. The oni's weapon attacks are magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(211, 901),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(211, 902), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
+        })
+      ],
+      order: 7
     }
   ]
 }

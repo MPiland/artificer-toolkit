@@ -25,7 +25,10 @@ export const lion: CreatureAuthored = {
     modifier: 4
   },
   speeds: [...S.walk(50)],
-  proficiencies: [S.grantedSkillProficiency(184, 1, 'PERCEPTION', 'STEALTH')],
+  proficiencies: [
+    S.grantedSkillExpertise(184, 2, 'STEALTH'),
+    S.grantedSkillProficiency(184, 1, 'PERCEPTION')
+  ],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

@@ -18,7 +18,8 @@ export const werebear: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 12
   },
-  armorClass: 11,
+  armorClass: 10,
+  armorClassNote: 'in humanoid form, 11 (natural armor) in bear and hybrid form',
   hitPoints: 135,
   hitDice: {
     count: 18,
@@ -29,7 +30,10 @@ export const werebear: CreatureAuthored = {
   damageImmunities: [
     'bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons'
   ],
-  proficiencies: [S.grantedSkillProficiency(7539, 1, 'PERCEPTION')],
+  proficiencies: [
+    S.grantedLanguageProficiency(287, 2, 'COMMON'),
+    S.grantedSkillExpertise(287, 1, 'PERCEPTION')
+  ],
   passivePerception: 17,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,
@@ -82,7 +86,7 @@ export const werebear: CreatureAuthored = {
     },
     {
       id: S.featureId(287, 4),
-      label: 'Bite',
+      label: 'Bite (Bear or Hybrid Form Only)',
       description:
         'Bite (Bear or Hybrid Form Only). Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 15 (2d10 + 4) piercing damage. If the target is a humanoid, it must succeed on a DC 14 Constitution saving throw or be cursed with werebear lycanthropy.',
       effects: [
@@ -139,7 +143,7 @@ export const werebear: CreatureAuthored = {
     },
     {
       id: S.featureId(287, 5),
-      label: 'Claws',
+      label: 'Claw (Bear or Hybrid Form Only)',
       description:
         'Claws. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) slashing damage.',
       effects: [

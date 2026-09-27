@@ -18,7 +18,6 @@ export const gelatinousCube: CreatureAuthored = {
     CHARISMA: 1
   },
   armorClass: 6,
-  armorClassNote: 'natural armor',
   hitPoints: 84,
   hitDice: {
     count: 8,

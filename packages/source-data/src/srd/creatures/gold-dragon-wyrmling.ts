@@ -28,8 +28,9 @@ export const goldDragonWyrmling: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.fly(60), ...S.swim(30)],
   proficiencies: [
+    S.grantedSkillExpertise(3328, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(3328, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(3328, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(3328, 2, 'STEALTH'),
     S.grantedLanguageProficiency(3328, 3, 'DRACONIC')
   ],
   damageImmunities: ['fire'],

@@ -28,8 +28,9 @@ export const blackDragonWyrmling: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.fly(60), ...S.swim(30)],
   proficiencies: [
+    S.grantedSkillExpertise(46, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(46, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(46, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(46, 2, 'STEALTH'),
     S.grantedLanguageProficiency(46, 3, 'DRACONIC')
   ],
   damageImmunities: ['acid'],

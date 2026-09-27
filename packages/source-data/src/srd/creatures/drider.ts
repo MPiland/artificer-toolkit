@@ -27,7 +27,8 @@ export const drider: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.climb(30)],
   proficiencies: [
-    S.grantedSkillProficiency(87, 1, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillExpertise(87, 3, 'STEALTH'),
+    S.grantedSkillProficiency(87, 1, 'PERCEPTION'),
     S.grantedLanguageProficiency(87, 2, 'ELVISH', 'UNDERCOMMON')
   ],
   senses: ['darkvision 120 ft.'],

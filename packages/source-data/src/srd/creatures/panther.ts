@@ -25,7 +25,10 @@ export const panther: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(50), ...S.climb(40)],
-  proficiencies: [S.grantedSkillProficiency(216, 1, 'PERCEPTION', 'STEALTH')],
+  proficiencies: [
+    S.grantedSkillExpertise(216, 2, 'STEALTH'),
+    S.grantedSkillProficiency(216, 1, 'PERCEPTION')
+  ],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

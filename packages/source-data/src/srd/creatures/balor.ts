@@ -30,7 +30,6 @@ export const balor: CreatureAuthored = {
   speeds: [...S.walk(40), ...S.fly(80)],
   proficiencies: [
     S.grantedSaveProficiency(2128, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(2128, 2, 'PERCEPTION'),
     S.grantedLanguageProficiency(2128, 3, 'ABYSSAL')
   ],
   damageResistances: [
@@ -41,7 +40,7 @@ export const balor: CreatureAuthored = {
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
   senses: ['truesight 120 ft.'],
-  passivePerception: 19,
+  passivePerception: 13,
   challengeRatingId: S.CR.CR_19,
   xp: 22000,
   features: [
@@ -458,6 +457,24 @@ export const balor: CreatureAuthored = {
         }
       ],
       order: 8
+    },
+    {
+      id: S.featureId(36, 9),
+      label: 'Magic Weapons',
+      description: "Magic Weapons. The balor's weapon attacks are magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(36, 901),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(36, 902), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
+        })
+      ],
+      order: 9
     }
   ]
 }

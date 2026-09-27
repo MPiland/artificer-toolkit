@@ -28,7 +28,7 @@ export const worg: CreatureAuthored = {
   },
   speeds: [...S.walk(50)],
   proficiencies: [
-    S.grantedSkillProficiency(297, 1, 'PERCEPTION'),
+    S.grantedSkillExpertise(297, 3, 'PERCEPTION'),
     S.grantedLanguageProficiency(297, 2, 'GOBLIN', 'WORG')
   ],
   senses: ['darkvision 60 ft.'],

@@ -8,6 +8,7 @@ export const grick: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   abilityScores: {
     STRENGTH: 14,
     DEXTERITY: 14,

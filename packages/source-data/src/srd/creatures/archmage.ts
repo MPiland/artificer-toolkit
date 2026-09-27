@@ -27,8 +27,8 @@ export const archmage: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [
-    S.grantedSaveProficiency(28, 1, 'INTELLIGENCE', 'WISDOM'),
-    S.grantedSkillProficiency(28, 2, 'ARCANA', 'HISTORY')
+    S.grantedSkillExpertise(28, 3, 'ARCANA', 'HISTORY'),
+    S.grantedSaveProficiency(28, 1, 'INTELLIGENCE', 'WISDOM')
   ],
   damageResistances: [
     'damage from spells; nonmagical bludgeoning, piercing, and slashing (from stoneskin)'

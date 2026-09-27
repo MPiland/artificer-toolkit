@@ -4592,7 +4592,7 @@
     {
       "domain": "creatures",
       "id": "00000000-0000-0000-0070-00f000000000",
-      "label": "Rug Of Smothering",
+      "label": "Rug of Smothering",
       "sourceReferences": [
         {
           "sourceFile": "SRD_CC_v5.1.txt",
@@ -5064,7 +5064,7 @@
     {
       "domain": "creatures",
       "id": "00000000-0000-0000-0070-010b00000000",
-      "label": "Succubus Incubus",
+      "label": "Succubus/Incubus",
       "sourceReferences": [
         {
           "sourceFile": "SRD_CC_v5.1.txt",

@@ -27,8 +27,13 @@ export const youngGoldDragon: CreatureAuthored = {
     die: 10,
     modifier: 85
   },
-  speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80), ...S.swim(40)],
-  proficiencies: [S.grantedSkillProficiency(9907, 1, 'INSIGHT', 'PERCEPTION', 'STEALTH')],
+  speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
+  proficiencies: [
+    S.grantedLanguageProficiency(9907, 4, 'COMMON', 'DRACONIC'),
+    S.grantedSkillExpertise(9907, 3, 'PERCEPTION'),
+    S.grantedSaveProficiency(9907, 2, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
+    S.grantedSkillProficiency(9907, 1, 'INSIGHT', 'PERSUASION', 'STEALTH')
+  ],
   damageImmunities: ['fire'],
   senses: ['blindsight 30 ft.', 'darkvision 120 ft.'],
   passivePerception: 19,

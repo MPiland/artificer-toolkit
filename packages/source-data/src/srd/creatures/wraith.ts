@@ -10,6 +10,7 @@ export const wraith: CreatureAuthored = {
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
   alignmentId: '00000000-0000-0000-0001-000800000000',
+  tags: ['hover'],
   abilityScores: {
     STRENGTH: 6,
     DEXTERITY: 16,
@@ -32,7 +33,7 @@ export const wraith: CreatureAuthored = {
     'fire',
     'lightning',
     'thunder',
-    'bludgeoning, piercing, and slashing from nonmagical attacks'
+    "bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered"
   ],
   damageImmunities: ['necrotic', 'poison'],
   conditionImmunities: [
@@ -43,8 +44,7 @@ export const wraith: CreatureAuthored = {
     'petrified',
     'poisoned',
     'prone',
-    'restrained',
-    'unconscious'
+    'restrained'
   ],
   senses: ['darkvision 60 ft.'],
   passivePerception: 12,

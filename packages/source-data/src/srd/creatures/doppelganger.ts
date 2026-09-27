@@ -9,6 +9,7 @@ export const doppelganger: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   tags: ['shapechanger'],
   abilityScores: {
     STRENGTH: 11,
@@ -27,7 +28,8 @@ export const doppelganger: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [
-    S.grantedSkillProficiency(83, 1, 'DECEPTION', 'INSIGHT'),
+    S.grantedSkillExpertise(83, 3, 'DECEPTION'),
+    S.grantedSkillProficiency(83, 1, 'INSIGHT'),
     S.grantedLanguageProficiency(83, 2, 'COMMON')
   ],
   conditionImmunities: ['charmed'],

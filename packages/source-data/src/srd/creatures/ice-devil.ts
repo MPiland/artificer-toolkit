@@ -9,6 +9,7 @@ export const iceDevil: CreatureAuthored = {
   creatureTypeId: S.CREATURE_TYPE.FIEND,
   size: S.SIZE_CODE.LARGE,
   alignmentId: '00000000-0000-0000-0001-000700000000',
+  tags: ['devil'],
   abilityScores: {
     STRENGTH: 21,
     DEXTERITY: 14,
@@ -28,20 +29,24 @@ export const iceDevil: CreatureAuthored = {
   speeds: [...S.walk(40)],
   proficiencies: [
     S.grantedSaveProficiency(8846, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(8846, 2, 'DECEPTION', 'INSIGHT', 'PERCEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(8846, 3, 'INFERNAL')
   ],
   damageResistances: [
-    'cold',
     "bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered"
   ],
-  damageImmunities: ['fire', 'poison'],
+  damageImmunities: ['cold', 'fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['blindsight 120 ft.'],
-  passivePerception: 15,
+  senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
+  passivePerception: 12,
   challengeRatingId: S.CR.CR_14,
   xp: 11500,
   features: [
+    {
+      id: S.featureId(171, 8),
+      label: 'Telepathy',
+      description: 'telepathy 120 ft.',
+      order: 0
+    },
     {
       id: S.featureId(171, 1),
       label: "Devil's Sight",

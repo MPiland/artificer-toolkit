@@ -28,7 +28,7 @@ export const sahuagin: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.swim(40)],
   proficiencies: [
-    S.grantedSkillProficiency(243, 1, 'PERCEPTION'),
+    S.grantedSkillExpertise(243, 3, 'PERCEPTION'),
     S.grantedLanguageProficiency(243, 2, 'SAHUAGIN')
   ],
   senses: ['darkvision 120 ft.'],

@@ -10,6 +10,7 @@ export const octopus: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.BEAST,
   size: S.SIZE_CODE.SMALL,
+  alignmentId: '00000000-0000-0000-0001-000a00000000',
   abilityScores: {
     STRENGTH: 4,
     DEXTERITY: 15,
@@ -28,7 +29,7 @@ export const octopus: CreatureAuthored = {
   speeds: [...S.walk(5), ...S.swim(30)],
   proficiencies: [S.grantedSkillProficiency(7953, 1, 'PERCEPTION', 'STEALTH')],
   senses: ['darkvision 30 ft.'],
-  passivePerception: 13,
+  passivePerception: 12,
   challengeRatingId: S.CR.CR_0,
   xp: 10,
   features: [
@@ -168,6 +169,12 @@ export const octopus: CreatureAuthored = {
         })
       ],
       order: 4
+    },
+    {
+      id: S.featureId(208, 5),
+      label: 'Water Breathing',
+      description: 'Water Breathing. The octopus can breathe only underwater.',
+      order: 5
     }
   ]
 }

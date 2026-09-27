@@ -26,9 +26,10 @@ export const treant: CreatureAuthored = {
     modifier: 60
   },
   speeds: [...S.walk(30)],
-  proficiencies: [S.grantedSkillProficiency(6752, 1, 'PERCEPTION')],
-  senses: ['passive Perception 16'],
-  passivePerception: 16,
+  proficiencies: [S.grantedLanguageProficiency(271, 1, 'COMMON', 'DRUIDIC', 'ELVISH', 'SYLVAN')],
+  damageVulnerabilities: ['fire'],
+  damageResistances: ['bludgeoning', 'piercing'],
+  passivePerception: 13,
   challengeRatingId: S.CR.CR_9,
   xp: 5000,
   features: [
@@ -71,7 +72,7 @@ export const treant: CreatureAuthored = {
     },
     {
       id: S.featureId(271, 3),
-      label: 'Animate Trees',
+      label: 'Animate Trees (1/Day)',
       description:
         "Animate Trees (1/Day). The treant magically animates one or two trees it can see within 60 feet of it. These trees have the same statistics as a treant, except they have Intelligence and Charisma scores of 1, they can't speak, and they have only the Slam action option. An animated tree acts as an ally of the treant. The tree remains animate for 1 day or until it dies; until the treant dies or is more than 120 feet from the tree; or until the treant takes a bonus action to turn it back into an inanimate tree. The tree then takes root if possible.",
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],

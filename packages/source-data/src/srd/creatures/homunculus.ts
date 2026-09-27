@@ -8,7 +8,7 @@ export const homunculus: CreatureAuthored = {
   systemId: S.SRD_SYSTEM_ID,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.CONSTRUCT,
-  size: S.SIZE_CODE.MEDIUM,
+  size: S.SIZE_CODE.TINY,
   alignmentId: '00000000-0000-0000-0001-000500000000',
   abilityScores: {
     STRENGTH: 4,

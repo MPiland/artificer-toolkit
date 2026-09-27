@@ -31,7 +31,7 @@ export const mummy: CreatureAuthored = {
   speeds: [...S.walk(20)],
   proficiencies: [S.grantedSaveProficiency(2585, 1, 'WISDOM')],
   damageVulnerabilities: ['fire'],
-  damageResistances: ['bludgeoning', 'piercing', 'slashing'],
+  damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['necrotic', 'poison'],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'poisoned'],
   senses: ['darkvision 60 ft.'],

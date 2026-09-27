@@ -8,7 +8,7 @@ export const vampireSpawn: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
-  alignmentId: '00000000-0000-0000-0001-000900000000',
+  alignmentId: '00000000-0000-0000-0001-000800000000',
   abilityScores: {
     STRENGTH: 16,
     DEXTERITY: 16,
@@ -25,10 +25,12 @@ export const vampireSpawn: CreatureAuthored = {
     die: 8,
     modifier: 33
   },
-  speeds: [...S.walk(30), ...S.climb(30)],
-  proficiencies: [S.grantedSkillProficiency(1668, 1, 'PERCEPTION', 'STEALTH')],
-  damageResistances: ['necrotic'],
-  conditionImmunities: ['charmed', 'exhaustion'],
+  speeds: [...S.walk(30)],
+  proficiencies: [
+    S.grantedSaveProficiency(1668, 2, 'DEXTERITY', 'WISDOM'),
+    S.grantedSkillProficiency(1668, 1, 'PERCEPTION', 'STEALTH')
+  ],
+  damageResistances: ['necrotic', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   senses: ['darkvision 60 ft.'],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_5,
@@ -224,6 +226,47 @@ export const vampireSpawn: CreatureAuthored = {
         }
       ],
       order: 4
+    },
+    {
+      id: S.featureId(278, 5),
+      label: 'Vampire Weaknesses',
+      description: 'Vampire Weaknesses. The vampire has the following flaws:',
+      order: 5
+    },
+    {
+      id: S.featureId(278, 6),
+      label: 'Forbiddance',
+      description:
+        "Forbiddance. The vampire can't enter a residence without an invitation from one of the occupants.",
+      order: 6
+    },
+    {
+      id: S.featureId(278, 7),
+      label: 'Harmed by Running Water',
+      description:
+        'Harmed by Running Water. The vampire takes 20 acid damage when it ends its turn in running water.',
+      order: 7
+    },
+    {
+      id: S.featureId(278, 8),
+      label: 'Stake to the Heart',
+      description:
+        'Stake to the Heart. The vampire is destroyed if a piercing weapon made of wood is driven into its heart while it is incapacitated in its resting place.',
+      order: 8
+    },
+    {
+      id: S.featureId(278, 9),
+      label: 'Sunlight Hypersensitivity',
+      description:
+        'Sunlight Hypersensitivity. The vampire takes 20 radiant damage when it starts its turn in sunlight. While in sunlight, it has disadvantage on attack rolls and ability checks.',
+      order: 9
+    },
+    {
+      id: S.featureId(278, 10),
+      label: 'Multiattack',
+      description:
+        'Multiattack. The vampire makes two attacks, only one of which can be a bite attack.',
+      order: 10
     }
   ]
 }

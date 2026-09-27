@@ -19,6 +19,7 @@ export const stoneGolem: CreatureAuthored = {
     CHARISMA: 1
   },
   armorClass: 17,
+  armorClassNote: 'natural armor',
   hitPoints: 178,
   hitDice: {
     count: 17,
@@ -34,7 +35,11 @@ export const stoneGolem: CreatureAuthored = {
     'petrified',
     'poisoned'
   ],
-  damageImmunities: ['poison', 'psychic'],
+  damageImmunities: [
+    'poison',
+    'psychic',
+    "bludgeoning, piercing, and slashing from nonmagical attacks that aren't adamantine"
+  ],
   senses: ['darkvision 120 ft.'],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_10,
@@ -98,7 +103,7 @@ export const stoneGolem: CreatureAuthored = {
     },
     {
       id: S.featureId(265, 4),
-      label: 'Slow',
+      label: 'Slow (Recharge 5-6)',
       description:
         "Slow (Recharge 5-6). The golem targets one or more creatures it can see within 10 feet of it. Each target must make a DC 17 Wisdom saving throw against this magic. On a failed save, a target can't use reactions, its speed is halved, and it can't make more than one attack on its turn. In addition, the target can take either an action or a bonus action on its turn, not both. These effects last for 1 minute. A target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
       effects: [
@@ -185,6 +190,12 @@ export const stoneGolem: CreatureAuthored = {
         }
       ],
       order: 5
+    },
+    {
+      id: S.featureId(265, 6),
+      label: 'Multiattack',
+      description: 'Multiattack. The golem makes two slam attacks.',
+      order: 6
     }
   ]
 }

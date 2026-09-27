@@ -8,6 +8,7 @@ export const lizardfolk: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.HUMANOID,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   tags: ['lizardfolk'],
   abilityScores: {
     STRENGTH: 15,
@@ -27,7 +28,8 @@ export const lizardfolk: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.swim(30)],
   proficiencies: [
-    S.grantedSkillProficiency(186, 1, 'PERCEPTION', 'STEALTH', 'SURVIVAL'),
+    S.grantedSkillExpertise(186, 3, 'STEALTH', 'SURVIVAL'),
+    S.grantedSkillProficiency(186, 1, 'PERCEPTION'),
     S.grantedLanguageProficiency(186, 2, 'DRACONIC')
   ],
   passivePerception: 13,

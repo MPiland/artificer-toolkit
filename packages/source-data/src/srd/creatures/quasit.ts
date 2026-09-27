@@ -27,10 +27,16 @@ export const quasit: CreatureAuthored = {
     die: 4,
     modifier: 0
   },
-  speeds: [...S.walk(20), ...S.fly(40)],
+  speeds: [...S.walk(40)],
   proficiencies: [
-    S.grantedSkillProficiency(2663, 1, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(2663, 1, 'STEALTH'),
     S.grantedLanguageProficiency(2663, 2, 'ABYSSAL', 'COMMON')
+  ],
+  damageResistances: [
+    'cold',
+    'fire',
+    'lightning',
+    'bludgeoning, piercing, and slashing from nonmagical attacks'
   ],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
@@ -80,7 +86,7 @@ export const quasit: CreatureAuthored = {
     },
     {
       id: S.featureId(228, 3),
-      label: 'Claws',
+      label: 'Claws (Bite in Beast Form)',
       description:
         'Claws (Bite in Beast Form). Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d4 + 3) piercing damage, and the target must succeed on a DC 10 Constitution saving throw or take 5 (2d4) poison damage and become poisoned for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
       effects: [
@@ -182,7 +188,7 @@ export const quasit: CreatureAuthored = {
     },
     {
       id: S.featureId(228, 4),
-      label: 'Scare',
+      label: 'Scare (1/Day)',
       description:
         "Scare (1/Day). One creature of the quasit's choice within 20 feet of it must succeed on a DC 10 Wisdom saving throw or be frightened for 1 minute. The target can repeat the saving throw at the end of each of its turns, with disadvantage if the quasit is within line of sight, ending the effect on itself on a success.",
       effects: [

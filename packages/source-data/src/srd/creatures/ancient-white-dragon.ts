@@ -29,8 +29,9 @@ export const ancientWhiteDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.burrow(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(23, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(23, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(23, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(23, 2, 'STEALTH'),
     S.grantedLanguageProficiency(23, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['cold'],

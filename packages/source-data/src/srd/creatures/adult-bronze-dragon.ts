@@ -29,8 +29,9 @@ export const adultBronzeDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(6, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(6, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(6, 2, 'INSIGHT', 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(6, 2, 'INSIGHT', 'STEALTH'),
     S.grantedLanguageProficiency(6, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['lightning'],

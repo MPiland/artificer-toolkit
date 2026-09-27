@@ -28,8 +28,9 @@ export const copperDragonWyrmling: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.climb(30), ...S.fly(60)],
   proficiencies: [
+    S.grantedSkillExpertise(7951, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(7951, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(7951, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(7951, 2, 'STEALTH'),
     S.grantedLanguageProficiency(7951, 3, 'DRACONIC')
   ],
   damageImmunities: ['acid'],

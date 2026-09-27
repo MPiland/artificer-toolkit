@@ -11,6 +11,7 @@ export const druid: CreatureAuthored = {
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
+  tags: ['any race'],
   abilityScores: {
     STRENGTH: 10,
     DEXTERITY: 12,
@@ -20,7 +21,7 @@ export const druid: CreatureAuthored = {
     CHARISMA: 11
   },
   armorClass: 11,
-  armorClassNote: 'leather armor',
+  armorClassNote: '16 with barkskin',
   hitPoints: 27,
   hitDice: {
     count: 5,

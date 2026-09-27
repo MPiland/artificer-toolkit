@@ -10,6 +10,7 @@ export const tarrasque: CreatureAuthored = {
   creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.GARGANTUAN,
   alignmentId: '00000000-0000-0000-0001-000a00000000',
+  tags: ['titan'],
   abilityScores: {
     STRENGTH: 30,
     DEXTERITY: 11,
@@ -27,8 +28,13 @@ export const tarrasque: CreatureAuthored = {
     modifier: 330
   },
   speeds: [...S.walk(40)],
-  damageImmunities: ['fire', 'poison'],
-  conditionImmunities: ['charmed', 'frightened', 'paralyzed', 'poisoned', 'stunned'],
+  proficiencies: [S.grantedSaveProficiency(268, 1, 'INTELLIGENCE', 'WISDOM', 'CHARISMA')],
+  damageImmunities: [
+    'fire',
+    'poison',
+    'bludgeoning, piercing, and slashing from nonmagical attacks'
+  ],
+  conditionImmunities: ['charmed', 'frightened', 'paralyzed', 'poisoned'],
   senses: ['blindsight 120 ft.'],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_30,
@@ -37,7 +43,7 @@ export const tarrasque: CreatureAuthored = {
     {
       id: S.featureId(268, 1),
       ruleDefinitionIds: [S.DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID],
-      label: 'Legendary Resistance',
+      label: 'Legendary Resistance (3/Day)',
       description:
         'Legendary Resistance (3/Day). If the tarrasque fails a saving throw, it can choose to succeed instead.',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -175,7 +181,7 @@ export const tarrasque: CreatureAuthored = {
     },
     {
       id: S.featureId(268, 6),
-      label: 'Claws',
+      label: 'Claw',
       description:
         'Claw. Melee Weapon Attack: +19 to hit, reach 15 ft., one target. Hit: 28 (4d8 + 10) slashing damage.',
       effects: [
@@ -397,6 +403,25 @@ export const tarrasque: CreatureAuthored = {
         })
       ],
       order: 10
+    },
+    {
+      id: S.featureId(268, 11),
+      label: 'Magic Resistance',
+      description:
+        'Magic Resistance. The tarrasque has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(268, 901),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(268, 902), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
+      order: 11
     }
   ]
 }

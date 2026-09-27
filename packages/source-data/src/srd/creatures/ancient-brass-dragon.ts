@@ -29,8 +29,9 @@ export const ancientBrassDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.burrow(40), ...S.fly(80)],
   proficiencies: [
+    S.grantedSkillExpertise(16, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(16, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(16, 2, 'HISTORY', 'PERCEPTION', 'PERSUASION', 'STEALTH'),
+    S.grantedSkillProficiency(16, 2, 'HISTORY', 'PERSUASION', 'STEALTH'),
     S.grantedLanguageProficiency(16, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['fire'],

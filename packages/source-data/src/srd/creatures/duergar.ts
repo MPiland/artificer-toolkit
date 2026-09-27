@@ -105,10 +105,7 @@ export const duergar: CreatureAuthored = {
     modifier: 8
   },
   speeds: [...S.walk(25)],
-  proficiencies: [
-    S.grantedSkillProficiency(3450, 1, 'PERCEPTION'),
-    S.grantedLanguageProficiency(3450, 2, 'DWARVISH', 'UNDERCOMMON')
-  ],
+  proficiencies: [S.grantedLanguageProficiency(3450, 2, 'DWARVISH', 'UNDERCOMMON')],
   damageResistances: ['poison'],
   senses: ['darkvision 120 ft.'],
   passivePerception: 10,

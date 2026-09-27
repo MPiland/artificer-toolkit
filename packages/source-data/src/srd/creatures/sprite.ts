@@ -19,6 +19,7 @@ export const sprite: CreatureAuthored = {
     CHARISMA: 11
   },
   armorClass: 15,
+  armorClassNote: 'leather armor',
   hitPoints: 2,
   hitDice: {
     count: 1,
@@ -26,8 +27,11 @@ export const sprite: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(10), ...S.fly(40)],
-  proficiencies: [S.grantedSkillProficiency(9803, 1, 'PERCEPTION', 'STEALTH')],
-  senses: ['darkvision 60 ft.'],
+  proficiencies: [
+    S.grantedLanguageProficiency(9803, 3, 'COMMON', 'ELVISH', 'SYLVAN'),
+    S.grantedSkillExpertise(9803, 2, 'STEALTH'),
+    S.grantedSkillProficiency(9803, 1, 'PERCEPTION')
+  ],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,
@@ -114,7 +118,7 @@ export const sprite: CreatureAuthored = {
     },
     {
       id: S.featureId(260, 2),
-      label: 'Invisible',
+      label: 'Invisibility',
       description:
         'Invisibility. The sprite magically turns invisible until it attacks or casts a spell, or until its concentration ends (as if concentrating on a spell). Any equipment the sprite wears or carries is invisible with it.',
       effects: [

@@ -10,6 +10,7 @@ export const dryad: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.FEY,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   abilityScores: {
     STRENGTH: 10,
     DEXTERITY: 12,
@@ -28,7 +29,8 @@ export const dryad: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [
-    S.grantedSkillProficiency(90, 1, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillExpertise(90, 3, 'STEALTH'),
+    S.grantedSkillProficiency(90, 1, 'PERCEPTION'),
     S.grantedLanguageProficiency(90, 2, 'ELVISH', 'SYLVAN')
   ],
   senses: ['darkvision 60 ft.'],

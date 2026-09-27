@@ -298,7 +298,7 @@ export const planetar: CreatureAuthored = {
     },
     {
       id: S.featureId(220, 9),
-      label: 'Healing Touch',
+      label: 'Healing Touch (4/Day)',
       description:
         'Healing Touch (4/Day). The planetar touches another creature. The target magically regains 30 (6d8 + 3) hit points and is freed from any curse, disease, poison, blindness, or deafness.',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],

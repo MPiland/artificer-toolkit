@@ -30,8 +30,8 @@ export const aboleth: CreatureAuthored = {
   },
   speeds: [...S.walk(10), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(1, 4, 'HISTORY', 'PERCEPTION'),
     S.grantedSaveProficiency(1, 1, 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM'),
-    S.grantedSkillProficiency(1, 2, 'HISTORY', 'PERCEPTION'),
     S.grantedLanguageProficiency(1, 3, 'DEEP_SPEECH')
   ],
   senses: ['darkvision 120 ft.'],

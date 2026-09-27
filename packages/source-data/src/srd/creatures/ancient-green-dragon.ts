@@ -29,8 +29,9 @@ export const ancientGreenDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(20, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(20, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(20, 2, 'DECEPTION', 'INSIGHT', 'PERCEPTION'),
+    S.grantedSkillProficiency(20, 2, 'DECEPTION', 'INSIGHT', 'PERSUASION', 'STEALTH'),
     S.grantedLanguageProficiency(20, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['poison'],

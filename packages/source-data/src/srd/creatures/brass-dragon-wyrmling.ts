@@ -29,8 +29,9 @@ export const brassDragonWyrmling: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.burrow(15), ...S.fly(60)],
   proficiencies: [
+    S.grantedSkillExpertise(53, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(53, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(53, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(53, 2, 'STEALTH'),
     S.grantedLanguageProficiency(53, 3, 'DRACONIC')
   ],
   damageImmunities: ['fire'],

@@ -215,7 +215,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['1d6+3', 'BLUDGEONING'],
       ['4d8', 'ACID']
     ]
-  ], // Black Pudding: Dissolving Pseudopod
+  ], // Black Pudding: Pseudopod
   ['00000000-0002-0003-0070-003000000000', [['1d6+1', 'PIERCING']]], // Blink Dog: Bite
   ['00000000-0002-0001-0070-003100000000', [['1d4+2', 'PIERCING']]], // Blood Hawk: Beak
   [
@@ -618,7 +618,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Mummy Lord: Rotting Fist
   ['00000000-0002-01f7-0070-00cb00000000', [['5d10+5', 'PIERCING']]], // Nalfeshnee: Bite
   ['00000000-0002-0008-0070-00cb00000000', [['3d6+5', 'SLASHING']]], // Nalfeshnee: Claw
-  ['00000000-0002-0001-0070-12f100000000', [['2d8+4', 'SLASHING']]], // Night Hag: Claws
+  ['00000000-0002-0001-0070-12f100000000', [['2d8+4', 'SLASHING']]], // Night Hag: Claws (Hag Form Only)
   [
     '00000000-0002-0001-0070-00cd00000000',
     [
@@ -639,7 +639,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0005-0070-00d100000000', [['2d6+4', 'PIERCING']]], // Ogre: Javelin
   ['00000000-0002-0009-0070-00d100000000', [['2d6+4', 'PIERCING']]], // Ogre: Javelin
   ['00000000-0002-0001-0070-00d200000000', [['2d8+4', 'BLUDGEONING']]], // Ogre Zombie: Morningstar
-  ['00000000-0002-0001-0070-0c7200000000', [['1d8+4', 'SLASHING']]], // Oni: Claw
+  ['00000000-0002-0001-0070-0c7200000000', [['1d8+4', 'SLASHING']]], // Oni: Claw (Oni Form Only)
   ['00000000-0002-01f5-0070-00d400000000', [['1d12+3', 'SLASHING']]], // Orc: Greataxe
   ['00000000-0002-01f6-0070-00d400000000', [['1d6+3', 'PIERCING']]], // Orc: Javelin
   ['00000000-0002-0200-0070-00d400000000', [['1d6+3', 'PIERCING']]], // Orc: Javelin
@@ -675,7 +675,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0005-0070-00e200000000', [['1d4+2', 'PIERCING']]], // Pseudodragon: Sting
   ['00000000-0002-0001-0070-1db400000000', [['3d8+9', 'PIERCING']]], // Purple Worm: Bite
   ['00000000-0002-0007-0070-1db400000000', [['3d6+9', 'PIERCING']]], // Purple Worm: Tail Stinger
-  ['00000000-0002-0001-0070-0a6700000000', [['1d4+3', 'PIERCING']]], // Quasit: Claws
+  ['00000000-0002-0001-0070-0a6700000000', [['1d4+3', 'PIERCING']]], // Quasit: Claws (Bite in Beast Form)
   ['00000000-0002-0001-0070-00e500000000', [['1', 'PIERCING']]], // Quipper: Bite
   ['00000000-0002-01f7-0070-00e600000000', [['2d6+2', 'SLASHING']]], // Rakshasa: Claw
   ['00000000-0002-0001-0070-00e700000000', [['1', 'PIERCING']]], // Rat: Bite
@@ -703,7 +703,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-1ba000000000', [['4d8+4', 'PIERCING']]], // Roper: Bite
   ['00000000-0002-0005-0070-1ba000000000', []], // Roper: Tendril (prints no hit damage)
   ['00000000-0002-01f9-0070-00ef00000000', []], // Roper: Tendril (prints no hit damage)
-  ['00000000-0002-0001-0070-1e1900000000', []], // Rug Of Smothering: Smother (prints no hit damage)
+  ['00000000-0002-0001-0070-1e1900000000', []], // Rug of Smothering: Smother (prints no hit damage)
   ['00000000-0002-0001-0070-0e0700000000', [['1d8+1', 'PIERCING']]], // Rust Monster: Bite
   ['00000000-0002-0001-0070-00f200000000', [['1d10+5', 'PIERCING']]], // Saber-Toothed Tiger: Bite
   ['00000000-0002-0005-0070-00f200000000', [['2d6+5', 'SLASHING']]], // Saber-Toothed Tiger: Claw
@@ -737,7 +737,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['2d8+6', 'PIERCING'],
       ['6d8', 'RADIANT']
     ]
-  ], // Solar: Longbow
+  ], // Solar: Slaying Longbow
   ['00000000-0002-0001-0070-197a00000000', [['3d6', 'NECROTIC']]], // Specter: Life Drain
   ['00000000-0002-0001-0070-010200000000', [['1', 'PIERCING']]], // Spider: Bite
   ['00000000-0002-0001-0070-010300000000', [['1d6+4', 'PIERCING']]], // Spirit Naga: Bite
@@ -757,9 +757,9 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-0ccc00000000', [['3d8+6', 'BLUDGEONING']]], // Stone Golem: Slam
   ['00000000-0002-0004-0070-010a00000000', [['6d6+9', 'SLASHING']]], // Storm Giant: Greatsword
   ['00000000-0002-0008-0070-010a00000000', [['4d12+9', 'BLUDGEONING']]], // Storm Giant: Rock
-  ['00000000-0002-0001-0070-1b6100000000', [['1d6+3', 'SLASHING']]], // Succubus Incubus: Claws
+  ['00000000-0002-0001-0070-1b6100000000', [['1d6+3', 'SLASHING']]], // Succubus/Incubus: Claw (Fiend Form Only)
   ['00000000-0002-0001-0070-0ba600000000', [['4d12+10', 'PIERCING']]], // Tarrasque: Bite
-  ['00000000-0002-00d1-0070-010c00000000', [['4d8+10', 'SLASHING']]], // Tarrasque: Claws
+  ['00000000-0002-00d1-0070-010c00000000', [['4d8+10', 'SLASHING']]], // Tarrasque: Claw
   ['00000000-0002-00d6-0070-010c00000000', [['4d10+10', 'PIERCING']]], // Tarrasque: Horns
   ['00000000-0002-00db-0070-010c00000000', [['4d6+10', 'BLUDGEONING']]], // Tarrasque: Tail
   ['00000000-0002-00e4-0070-010c00000000', []], // Tarrasque: Swallow (prints no hit damage)
@@ -779,14 +779,14 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0002-0070-011400000000', [['2d6+4', 'BLUDGEONING']]], // Unicorn: Hooves
   ['00000000-0002-0003-0070-011400000000', [['1d8+4', 'PIERCING']]], // Unicorn: Horn
   ['00000000-0005-0002-0070-011400000000', [['2d6+4', 'BLUDGEONING']]], // Unicorn: Legendary Actions > Hooves (from Hooves)
-  ['00000000-0002-00e0-0070-011500000000', [['1d8+4', 'BLUDGEONING']]], // Vampire: Unarmed Strike
+  ['00000000-0002-00e0-0070-011500000000', [['1d8+4', 'BLUDGEONING']]], // Vampire: Unarmed Strike (Vampire Form Only)
   [
     '00000000-0002-00e6-0070-011500000000',
     [
       ['1d6+4', 'PIERCING'],
       ['3d6', 'NECROTIC']
     ]
-  ], // Vampire: Bite
+  ], // Vampire: Bite (Bat or Vampire Form Only)
   [
     '00000000-0002-00d0-0070-011600000000',
     [
@@ -805,10 +805,10 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-011c00000000', [['2d6+4', 'BLUDGEONING']]], // Warhorse Skeleton: Hooves
   ['00000000-0002-0001-0070-178700000000', [['2d8+4', 'BLUDGEONING']]], // Water Elemental: Slam
   ['00000000-0002-0001-0070-011e00000000', [['1', 'PIERCING']]], // Weasel: Bite
-  ['00000000-0002-00cc-0070-011f00000000', [['2d10+4', 'PIERCING']]], // Werebear: Bite
-  ['00000000-0002-0001-0070-1d7300000000', [['2d8+4', 'SLASHING']]], // Werebear: Claws
+  ['00000000-0002-00cc-0070-011f00000000', [['2d10+4', 'PIERCING']]], // Werebear: Bite (Bear or Hybrid Form Only)
+  ['00000000-0002-0001-0070-1d7300000000', [['2d8+4', 'SLASHING']]], // Werebear: Claw (Bear or Hybrid Form Only)
   ['00000000-0002-0001-0070-1b1100000000', [['2d6+3', 'SLASHING']]], // Wereboar: Tusks (Boar or Hybrid Form Only)
-  ['00000000-0002-00ce-0070-012000000000', [['2d6+3', 'BLUDGEONING']]], // Wereboar: Maul
+  ['00000000-0002-00ce-0070-012000000000', [['2d6+3', 'BLUDGEONING']]], // Wereboar: Maul (Humanoid or Hybrid Form Only)
   ['00000000-0002-00cc-0070-012100000000', [['1d4+2', 'PIERCING']]], // Wererat: Bite (Rat or Hybrid Form Only)
   ['00000000-0002-00ce-0070-012100000000', [['1d6+2', 'PIERCING']]], // Wererat: Hand Crossbow (Humanoid or Hybrid Form Only)
   ['00000000-0002-0004-0070-012100000000', [['1d6+2', 'PIERCING']]], // Wererat: Shortsword (Humanoid or Hybrid Form Only)

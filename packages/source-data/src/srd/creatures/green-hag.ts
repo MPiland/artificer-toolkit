@@ -26,7 +26,7 @@ export const greenHag: CreatureAuthored = {
     die: 8,
     modifier: 33
   },
-  speeds: [...S.walk(30), ...S.swim(30)],
+  speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSkillProficiency(4388, 1, 'ARCANA', 'DECEPTION', 'PERCEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(4388, 2, 'COMMON', 'DRACONIC', 'SYLVAN')

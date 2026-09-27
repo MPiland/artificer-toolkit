@@ -20,6 +20,7 @@ export const shamblingMound: CreatureAuthored = {
     CHARISMA: 5
   },
   armorClass: 15,
+  armorClassNote: 'natural armor',
   hitPoints: 136,
   hitDice: {
     count: 16,
@@ -27,8 +28,10 @@ export const shamblingMound: CreatureAuthored = {
     modifier: 48
   },
   speeds: [...S.walk(20), ...S.swim(20)],
+  proficiencies: [S.grantedSkillProficiency(251, 1, 'STEALTH')],
   conditionImmunities: ['blinded', 'deafened', 'exhaustion'],
-  damageResistances: ['cold'],
+  senses: ['blindsight 60 ft. (blind beyond this radius)'],
+  damageResistances: ['cold', 'fire'],
   damageImmunities: ['lightning'],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_5,
@@ -246,6 +249,13 @@ export const shamblingMound: CreatureAuthored = {
         }
       ],
       order: 4
+    },
+    {
+      id: S.featureId(251, 5),
+      label: 'Multiattack',
+      description:
+        'Multiattack. The shambling mound makes two slam attacks. If both attacks hit a Medium or smaller target, the target is grappled (escape DC 14), and the shambling mound uses its Engulf on it.',
+      order: 5
     }
   ]
 }

@@ -283,6 +283,13 @@ export const clayGolem: CreatureAuthored = {
         }
       ],
       order: 8
+    },
+    {
+      id: S.featureId(64, 9),
+      label: 'Acid Absorption',
+      description:
+        'Acid Absorption. Whenever the golem is subjected to acid damage, it takes no damage and instead regains a number of hit points equal to the acid damage dealt.',
+      order: 9
     }
   ]
 }

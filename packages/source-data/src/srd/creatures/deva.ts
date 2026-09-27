@@ -38,6 +38,12 @@ export const deva: CreatureAuthored = {
   xp: 5900,
   features: [
     {
+      id: S.featureId(80, 8),
+      label: 'Telepathy',
+      description: 'telepathy 120 ft.',
+      order: 0
+    },
+    {
       id: S.featureId(80, 1),
       label: 'Angelic Weapons',
       description:

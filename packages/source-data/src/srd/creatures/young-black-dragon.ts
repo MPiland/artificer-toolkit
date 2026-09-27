@@ -28,8 +28,9 @@ export const youngBlackDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(301, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(301, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(301, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(301, 2, 'STEALTH'),
     S.grantedLanguageProficiency(301, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['acid'],

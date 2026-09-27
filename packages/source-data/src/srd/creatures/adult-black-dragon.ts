@@ -29,8 +29,9 @@ export const adultBlackDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
+    S.grantedSkillExpertise(3, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(3, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(3, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(3, 2, 'STEALTH'),
     S.grantedLanguageProficiency(3, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['acid'],

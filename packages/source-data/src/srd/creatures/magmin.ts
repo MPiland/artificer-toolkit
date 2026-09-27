@@ -9,7 +9,7 @@ export const magmin: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.ELEMENTAL,
   size: S.SIZE_CODE.SMALL,
-  alignmentId: '00000000-0000-0000-0001-000500000000',
+  alignmentId: '00000000-0000-0000-0001-000600000000',
   abilityScores: {
     STRENGTH: 7,
     DEXTERITY: 15,
@@ -28,7 +28,7 @@ export const magmin: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [S.grantedLanguageProficiency(3713, 1, 'IGNAN')],
-  damageResistances: ['bludgeoning', 'piercing', 'slashing'],
+  damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['fire'],
   senses: ['darkvision 60 ft.'],
   passivePerception: 10,

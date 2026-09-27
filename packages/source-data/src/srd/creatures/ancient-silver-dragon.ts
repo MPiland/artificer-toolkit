@@ -29,10 +29,12 @@ export const ancientSilverDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80)],
   proficiencies: [
+    S.grantedSkillExpertise(22, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(22, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(22, 2, 'ARCANA', 'HISTORY', 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(22, 2, 'ARCANA', 'HISTORY', 'STEALTH'),
     S.grantedLanguageProficiency(22, 3, 'COMMON', 'DRACONIC')
   ],
+  damageImmunities: ['cold'],
   senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
   passivePerception: 26,
   challengeRatingId: S.CR.CR_23,

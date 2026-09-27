@@ -32,6 +32,7 @@ export const stormGiant: CreatureAuthored = {
     S.grantedSkillProficiency(266, 2, 'ARCANA', 'ATHLETICS', 'HISTORY', 'PERCEPTION'),
     S.grantedLanguageProficiency(266, 3, 'COMMON', 'GIANT')
   ],
+  damageResistances: ['cold'],
   damageImmunities: ['lightning', 'thunder'],
   passivePerception: 19,
   challengeRatingId: S.CR.CR_13,

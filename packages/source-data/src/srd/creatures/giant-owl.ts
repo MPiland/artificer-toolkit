@@ -8,6 +8,7 @@ export const giantOwl: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.BEAST,
   creatureTypeId: S.CREATURE_TYPE.BEAST,
   size: S.SIZE_CODE.LARGE,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   abilityScores: {
     STRENGTH: 13,
     DEXTERITY: 15,
@@ -25,8 +26,9 @@ export const giantOwl: CreatureAuthored = {
   },
   speeds: [...S.walk(5), ...S.fly(60)],
   proficiencies: [
-    S.grantedSkillProficiency(129, 1, 'PERCEPTION', 'STEALTH'),
-    S.grantedLanguageProficiency(129, 2, 'GIANT_OWL', 'ELVISH')
+    S.grantedSkillExpertise(129, 4, 'PERCEPTION'),
+    S.grantedSkillProficiency(129, 1, 'STEALTH'),
+    S.grantedLanguageProficiency(129, 2, 'COMMON', 'ELVISH', 'GIANT_OWL', 'SYLVAN')
   ],
   senses: ['darkvision 120 ft.'],
   passivePerception: 15,

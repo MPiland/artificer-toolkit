@@ -28,7 +28,8 @@ export const bugbear: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [
-    S.grantedSkillProficiency(56, 1, 'STEALTH', 'SURVIVAL'),
+    S.grantedSkillExpertise(56, 3, 'STEALTH'),
+    S.grantedSkillProficiency(56, 1, 'SURVIVAL'),
     S.grantedLanguageProficiency(56, 2, 'COMMON', 'GOBLIN')
   ],
   senses: ['darkvision 60 ft.'],

@@ -29,8 +29,9 @@ export const adultSilverDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(80)],
   proficiencies: [
+    S.grantedSkillExpertise(11, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(11, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(11, 2, 'ARCANA', 'HISTORY', 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(11, 2, 'ARCANA', 'HISTORY', 'STEALTH'),
     S.grantedLanguageProficiency(11, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['cold'],

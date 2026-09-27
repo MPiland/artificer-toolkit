@@ -9,7 +9,7 @@ export const wight: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
-  alignmentId: '00000000-0000-0000-0001-000700000000',
+  alignmentId: '00000000-0000-0000-0001-000800000000',
   abilityScores: {
     STRENGTH: 15,
     DEXTERITY: 14,
@@ -19,7 +19,7 @@ export const wight: CreatureAuthored = {
     CHARISMA: 15
   },
   armorClass: 14,
-  armorClassNote: 'chain mail',
+  armorClassNote: 'studded leather',
   hitPoints: 45,
   hitDice: {
     count: 6,
@@ -27,13 +27,15 @@ export const wight: CreatureAuthored = {
     modifier: 18
   },
   speeds: [...S.walk(30)],
-  proficiencies: [
-    S.grantedSkillProficiency(9377, 1, 'PERCEPTION', 'STEALTH'),
-    S.grantedLanguageProficiency(9377, 2, 'COMMON')
+  proficiencies: [S.grantedSkillProficiency(9377, 1, 'PERCEPTION', 'STEALTH')],
+  damageResistances: [
+    'necrotic',
+    "bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered"
   ],
-  damageResistances: ['necrotic'],
+  damageImmunities: ['poison'],
   conditionImmunities: ['exhaustion', 'poisoned'],
-  passivePerception: 10,
+  senses: ['darkvision 60 ft.'],
+  passivePerception: 13,
   challengeRatingId: S.CR.CR_3,
   xp: 700,
   features: [

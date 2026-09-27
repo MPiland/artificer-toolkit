@@ -28,6 +28,7 @@ export const assassin: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [
+    S.grantedSkillExpertise(29, 4, 'STEALTH'),
     S.grantedSaveProficiency(29, 1, 'DEXTERITY', 'INTELLIGENCE'),
     S.grantedSkillProficiency(29, 2, 'ACROBATICS', 'DECEPTION', 'PERCEPTION')
   ],

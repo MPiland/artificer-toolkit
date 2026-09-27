@@ -28,8 +28,9 @@ export const redDragonWyrmling: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.climb(30), ...S.fly(60)],
   proficiencies: [
+    S.grantedSkillExpertise(233, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(233, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(233, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(233, 2, 'STEALTH'),
     S.grantedLanguageProficiency(233, 3, 'DRACONIC')
   ],
   damageImmunities: ['fire'],

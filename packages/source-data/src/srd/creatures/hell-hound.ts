@@ -27,7 +27,7 @@ export const hellHound: CreatureAuthored = {
     modifier: 14
   },
   speeds: [...S.walk(50)],
-  proficiencies: [S.grantedSkillProficiency(161, 1, 'PERCEPTION')],
+  proficiencies: [S.grantedSkillExpertise(161, 3, 'PERCEPTION')],
   damageImmunities: ['fire'],
   senses: ['darkvision 60 ft.'],
   passivePerception: 15,

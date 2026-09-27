@@ -9,7 +9,7 @@ export const beardedDevil: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.FIEND,
   size: S.SIZE_CODE.MEDIUM,
-  alignmentId: '00000000-0000-0000-0001-000900000000',
+  alignmentId: '00000000-0000-0000-0001-000700000000',
   tags: ['devil'],
   abilityScores: {
     STRENGTH: 16,
@@ -42,6 +42,12 @@ export const beardedDevil: CreatureAuthored = {
   challengeRatingId: S.CR.CR_3,
   xp: 700,
   features: [
+    {
+      id: S.featureId(42, 7),
+      label: 'Telepathy',
+      description: 'telepathy 120 ft.',
+      order: 0
+    },
     {
       id: S.featureId(42, 1),
       label: "Devil's Sight",

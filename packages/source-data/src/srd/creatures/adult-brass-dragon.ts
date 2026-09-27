@@ -29,10 +29,12 @@ export const adultBrassDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.burrow(30), ...S.fly(80)],
   proficiencies: [
+    S.grantedSkillExpertise(5, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(5, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(5, 2, 'HISTORY', 'PERCEPTION', 'PERSUASION', 'STEALTH'),
+    S.grantedSkillProficiency(5, 2, 'HISTORY', 'PERSUASION', 'STEALTH'),
     S.grantedLanguageProficiency(5, 3, 'COMMON', 'DRACONIC')
   ],
+  damageImmunities: ['fire'],
   senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
   passivePerception: 21,
   challengeRatingId: S.CR.CR_13,

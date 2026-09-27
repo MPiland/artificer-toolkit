@@ -11,6 +11,7 @@ export const weretiger: CreatureAuthored = {
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.HUMANOID,
   size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000500000000',
   tags: ['human', 'shapechanger'],
   abilityScores: {
     STRENGTH: 17,
@@ -28,7 +29,10 @@ export const weretiger: CreatureAuthored = {
     modifier: 48
   },
   speeds: [...S.walk(30)],
-  proficiencies: [S.grantedSkillProficiency(290, 1, 'PERCEPTION', 'STEALTH')],
+  proficiencies: [
+    S.grantedSkillExpertise(290, 3, 'PERCEPTION'),
+    S.grantedSkillProficiency(290, 1, 'STEALTH')
+  ],
   damageImmunities: [
     'bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons'
   ],

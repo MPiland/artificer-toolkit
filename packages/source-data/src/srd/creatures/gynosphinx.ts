@@ -28,7 +28,8 @@ export const gynosphinx: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.fly(60)],
   proficiencies: [
-    S.grantedSkillProficiency(3029, 1, 'ARCANA', 'HISTORY', 'PERCEPTION', 'RELIGION'),
+    S.grantedSkillExpertise(3029, 3, 'ARCANA', 'HISTORY'),
+    S.grantedSkillProficiency(3029, 1, 'PERCEPTION', 'RELIGION'),
     S.grantedLanguageProficiency(3029, 2, 'COMMON', 'SPHINX')
   ],
   damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],

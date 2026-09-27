@@ -12,7 +12,6 @@ export const cloaker: CreatureAuthored = {
   creatureTypeId: S.CREATURE_TYPE.ABERRATION,
   size: S.SIZE_CODE.LARGE,
   alignmentId: '00000000-0000-0000-0001-000600000000',
-  tags: ['hover'],
   abilityScores: {
     STRENGTH: 17,
     DEXTERITY: 15,
@@ -30,8 +29,10 @@ export const cloaker: CreatureAuthored = {
     modifier: 12
   },
   speeds: [...S.walk(10), ...S.fly(40)],
-  proficiencies: [S.grantedSkillProficiency(9141, 1, 'STEALTH')],
-  damageResistances: ['psychic'],
+  proficiencies: [
+    S.grantedLanguageProficiency(9141, 2, 'DEEP_SPEECH', 'UNDERCOMMON'),
+    S.grantedSkillProficiency(9141, 1, 'STEALTH')
+  ],
   senses: ['darkvision 60 ft.'],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_8,
@@ -177,7 +178,7 @@ export const cloaker: CreatureAuthored = {
     },
     {
       id: S.featureId(65, 5),
-      label: 'Phantasms',
+      label: 'Phantasms (Recharges after a Short or Long Rest)',
       description:
         "Phantasms (Recharges after a Short or Long Rest). The cloaker magically creates three illusory duplicates of itself if it isn't in bright light. The duplicates move with it and mimic its actions, shifting position so as to make it impossible to track which cloaker is the real one. If the cloaker is ever in an area of bright light, the duplicates disappear. Whenever any creature targets the cloaker with an attack or a harmful spell while a duplicate remains, that creature rolls randomly to determine whether it targets the cloaker or one of the duplicates. A creature is unaffected by this magical effect if it can't see or if it relies on senses other than sight. A duplicate has the cloaker's AC and uses its saving throws. If an attack hits a duplicate, or if a duplicate fails a saving throw against an effect that deals damage, the duplicate disappears.",
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],

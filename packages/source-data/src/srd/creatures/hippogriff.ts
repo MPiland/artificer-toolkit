@@ -26,7 +26,7 @@ export const hippogriff: CreatureAuthored = {
     modifier: 3
   },
   speeds: [...S.walk(40), ...S.fly(60)],
-  proficiencies: [S.grantedSkillProficiency(164, 1, 'PERCEPTION')],
+  proficiencies: [S.grantedSkillExpertise(10164, 1, 'PERCEPTION')],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

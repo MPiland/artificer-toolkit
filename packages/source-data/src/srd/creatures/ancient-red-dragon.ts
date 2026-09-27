@@ -29,8 +29,9 @@ export const ancientRedDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80)],
   proficiencies: [
+    S.grantedSkillExpertise(21, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(21, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(21, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(21, 2, 'STEALTH'),
     S.grantedLanguageProficiency(21, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['fire'],

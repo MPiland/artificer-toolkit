@@ -29,8 +29,9 @@ export const adultCopperDragon: CreatureAuthored = {
   },
   speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80)],
   proficiencies: [
+    S.grantedSkillExpertise(7, 4, 'PERCEPTION'),
     S.grantedSaveProficiency(7, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(7, 2, 'DECEPTION', 'PERCEPTION', 'STEALTH'),
+    S.grantedSkillProficiency(7, 2, 'DECEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(7, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['acid'],

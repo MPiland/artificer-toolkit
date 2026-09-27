@@ -11,6 +11,7 @@ export const banditCaptain: CreatureAuthored = {
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
+  tags: ['any race'],
   abilityScores: {
     STRENGTH: 15,
     DEXTERITY: 16,
@@ -20,7 +21,7 @@ export const banditCaptain: CreatureAuthored = {
     CHARISMA: 14
   },
   armorClass: 15,
-  armorClassNote: 'studded leather armor',
+  armorClassNote: 'studded leather',
   hitPoints: 65,
   hitDice: {
     count: 10,
@@ -28,6 +29,11 @@ export const banditCaptain: CreatureAuthored = {
     modifier: 20
   },
   speeds: walk(30),
+  proficiencies: [
+    S.grantedSkillProficiency(38, 2, 'ATHLETICS', 'DECEPTION'),
+    S.grantedSaveProficiency(38, 1, 'STRENGTH', 'DEXTERITY', 'WISDOM')
+  ],
+  passivePerception: 10,
   challengeRatingId: CR.CR_2,
   xp: 450,
   features: [

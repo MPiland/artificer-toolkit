@@ -26,7 +26,7 @@ export const scout: CreatureAuthored = {
     modifier: 3
   },
   speeds: [...S.walk(30)],
-  proficiencies: [S.grantedSkillProficiency(247, 1, 'NATURE', 'PERCEPTION', 'STEALTH', 'SURVIVAL')],
+  proficiencies: [S.grantedSkillExpertise(247, 3, 'NATURE', 'PERCEPTION', 'STEALTH', 'SURVIVAL')],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

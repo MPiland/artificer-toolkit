@@ -26,7 +26,7 @@ export const bulette: CreatureAuthored = {
     modifier: 45
   },
   speeds: [...S.walk(40), ...S.burrow(40)],
-  proficiencies: [S.grantedSkillProficiency(9521, 1, 'PERCEPTION')],
+  proficiencies: [S.grantedSkillExpertise(57, 1, 'PERCEPTION')],
   senses: ['darkvision 60 ft.', 'tremorsense 60 ft.'],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_5,

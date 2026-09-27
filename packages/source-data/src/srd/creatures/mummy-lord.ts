@@ -34,7 +34,11 @@ export const mummyLord: CreatureAuthored = {
     S.grantedSkillProficiency(2129, 2, 'HISTORY', 'RELIGION')
   ],
   damageVulnerabilities: ['fire'],
-  damageImmunities: ['necrotic', 'poison', 'bludgeoning', 'piercing', 'slashing'],
+  damageImmunities: [
+    'necrotic',
+    'poison',
+    'bludgeoning, piercing, and slashing from nonmagical attacks'
+  ],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'poisoned'],
   senses: ['darkvision 60 ft.'],
   passivePerception: 14,
