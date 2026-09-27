@@ -309,3 +309,47 @@ The other options:
   only add subscriptions, and so re-runs, on the same isolates. Re-run this browserless check after
   (b). Run the 6-browser V15 once command p95 is clearly under 1 s and durable p95 is clearly under
   250 ms.
+
+## Re-run after D59 (2026-09-27)
+
+This re-run follows the D59 lazy schema rollout. It is diagnostic evidence only; the V15 ledger is unchanged.
+
+- **Method:** the same workload, runner, analyzer and Worker helper as the D52 re-run.
+  - **Code:** `6d84568fd`.
+  - **Backend:** reset, deployed, seeded and audited by the `d59` integration run.
+  - **Orchestrator:** `d59.ps1` is `d52.ps1` with new run names. The proof runner refuses to overwrite existing evidence.
+- **Runs:**
+  - `v15bl-d59-r1` (876 s) completed the schedule but failed the per-operation assertion for `REACTION_RESPONSE` p95.
+  - `v15bl-d59-r2` (728 s) passed every assertion.
+  - The whole workload finished about 40% faster than after D52: 876 and 728 s, against 1,260 and 1,224 s.
+
+Values are run 1 / run 2, in ms.
+
+| Measure | p50 | p95 | After D52 p95 | Budget | Result |
+| --- | --- | --- | --- | --- | --- |
+| Gameplay command, all | 486 / 476 | **800 / 788** | 1,089 / 1,090 | p95 ≤ 1,000 | **Met**, 20% margin |
+| `RESOLVE_ACTION` | 417 / 411 | 529 / 477 | 873 / 913 | | Met |
+| `ADVANCE_TURN` | 480 / 476 | 616 / 612 | 1,080 / 1,059 | | Met |
+| `SCENE_MOVE` | 544 / 537 | 765 / 654 | 1,370 / 1,360 | | Met |
+| `REACTION_RESPONSE` | 763 / 752 | **1,008 / 987** | 1,372 / 1,300 | per-operation ≤ 1,000 | **At the budget**: run 1 failed |
+| Warm durable convergence | 61 / 63 | **103 / 104** | 251 / 252 | p95 ≤ 250 | **Met**, 58% margin |
+| Durable convergence p99 / max | | 120 / 115, max 231 / 128 | 269 / 269 | p99 ≤ 500 | Met |
+
+Per-function timings (run 2, execution p50 in ms, before → after):
+
+| Function | Before | After |
+| --- | --- | --- |
+| `projectionReads:get` (subscription) | 125 | 57 |
+| Capture bundle | 262 | 134 |
+| Action commit | 272 | 148 |
+| Turn commit | 288 | 190 |
+
+- **Setup is no longer the bottleneck.** The routes around the fast calls fell by a similar amount: the action route went from 359 to 194 ms.
+- **Movement routes are now the slowest.** The `encounter-movement-stage` and `encounter-movement` routes each take about 295 ms (p95 336 / 397 ms).
+- **Why reaction responses stay slow.** A reaction response runs both movement routes in sequence, and each reads about 140 documents. That handler work is what keeps `REACTION_RESPONSE` at the budget, after setup cost collapsed everywhere else.
+- **Resources:** the same expected domain rejections as before.
+
+### Recommendation
+
+- **Before the 6-browser V15**, cut the movement stage and commit handler cost; this is option (d) from the D52 analysis. The target is `REACTION_RESPONSE` p95 clearly under 1 s.
+- **Everything else can run now.** Command p95 and durable convergence both pass with margin.
