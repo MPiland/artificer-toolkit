@@ -1,6 +1,8 @@
 import { v } from 'convex/values'
 import {
   liveSessionEncounterCaptureBundleInputSchema,
+  liveSessionSystemStamp,
+  sameSystemStamp,
   type LiveSessionEncounterCaptureBundle
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import { internalQuery, type QueryCtx } from '../_generated/server'
@@ -14,7 +16,8 @@ import { admitEncounterCaptureParts, readEncounterRulesCapture } from './encount
  * the initiative round for a turn, the first Scene spatial effect page for a move, and each
  * Character's inputs. The scope is admitted once for the
  * Encounter parts and once for the Character parts; each part is still exactly the response its
- * own read returns, with the same read checksum and revisions. The Run's System travels once. The
+ * own read returns, with the same read checksum and revisions. The Run's System travels at most once,
+ * and not at all when the room already holds it at the current stamp (`cachedSystem`). The
  * bundle stops at the first part that fails; the planner reads that part separately and fails there.
  */
 export async function readEncounterCaptureBundle(
@@ -23,7 +26,7 @@ export async function readEncounterCaptureBundle(
 ): Promise<LiveSessionEncounterCaptureBundle> {
   // Admissions and parts repeat reads (actors, Characters); identical reads are served once (frozen).
   const ctx: QueryCtx = { ...transaction, db: memoizeTransactionReads(transaction.db) }
-  const { maintenanceDefinitionIds, ...scope } =
+  const { maintenanceDefinitionIds, cachedSystem, ...scope } =
     liveSessionEncounterCaptureBundleInputSchema.parse(args)
   const bundle: LiveSessionEncounterCaptureBundle = {
     encounter: [{ request: scope.request, response: await readEncounterRulesCapture(ctx, scope) }],
@@ -41,7 +44,12 @@ export async function readEncounterCaptureBundle(
     const inputs = await readPart({ kind: 'INPUTS' })
     if (inputs.kind !== 'INPUTS') return bundle
     const { system, ...runInputs } = inputs
-    bundle.system = system
+    // The System the room holds at the current stamp does not travel again; the read checksums and
+    // revisions still cover it.
+    bundle.system =
+      cachedSystem && sameSystemStamp(cachedSystem, liveSessionSystemStamp(runInputs.revisions))
+        ? { kind: 'UNCHANGED', stamp: cachedSystem }
+        : { kind: 'SYSTEM', system }
     bundle.inputs = runInputs
     if (scope.request.kind === 'TURN_COMMAND') await part({ kind: 'INITIATIVE_ROUND' })
     // A Cleaving answer rebuilds its choice from the Scene's bound tokens.

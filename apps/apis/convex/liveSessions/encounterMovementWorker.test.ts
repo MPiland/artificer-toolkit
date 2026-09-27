@@ -208,7 +208,8 @@ it.each([
         command: useCommand,
         characterRevisions: [],
         tokenOrdinals: value.request.tokenOrdinals,
-        maintenanceDefinitionIds: []
+        maintenanceDefinitionIds: [],
+        cachedSystem: null
       }
     )
     if (staged.kind !== 'STAGED') throw new Error('Expected a private receiving geometry save.')
@@ -794,6 +795,7 @@ it('bundles exactly the parts of a Character mover response the separate capture
       characterRevisions: [],
       tokenOrdinals: value.request.tokenOrdinals,
       maintenanceDefinitionIds: [],
+      cachedSystem: null,
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: crypto.randomUUID(),

@@ -90,7 +90,8 @@ export async function preparePrivateMovementResponse(input: {
       command,
       characterRevisions: [],
       tokenOrdinals: value.request.tokenOrdinals ?? [],
-      maintenanceDefinitionIds: []
+      maintenanceDefinitionIds: [],
+      cachedSystem: null
     }
   )
   if (staged.kind !== 'STAGED') throw new Error('Expected private movement response staging.')

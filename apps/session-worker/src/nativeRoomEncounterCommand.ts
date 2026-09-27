@@ -67,7 +67,8 @@ export async function executeLiveEncounterCommand(input: {
    * same call (D52). Null when the room holds no movement decision for it.
    */
   stageHeldMovement(
-    command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
+    command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
+    captures: LiveCaptureReads | undefined
   ): Promise<LiveSessionMovementStage | null>
   movement(
     command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
@@ -107,7 +108,7 @@ export async function executeLiveEncounterCommand(input: {
 
   async function route(reads: LiveCaptureReads | undefined): Promise<EncounterCommandResultDto> {
     const execution = { runtime: input.runtime, random: input.random, captures: reads }
-    const planned = await plannerRoute()
+    const planned = await plannerRoute(reads)
     // A GM void that declines a decision plans the GM's decline, then records the void.
     const result = await plan(
       planned.route,
@@ -291,7 +292,7 @@ export async function executeLiveEncounterCommand(input: {
     }
   }
 
-  async function plannerRoute(): Promise<{
+  async function plannerRoute(reads: LiveCaptureReads | undefined): Promise<{
     route: RoomEncounterPlanner
     decline: ResolveRuleOccurrenceInputDto | null
     staged?: LiveSessionMovementStage
@@ -300,7 +301,7 @@ export async function executeLiveEncounterCommand(input: {
     if (planner !== 'DECISION') return { route: planner, decline: null }
     if (command.type !== 'RESOLVE_RULE_OCCURRENCE' && command.type !== 'VOID_RULE_OCCURRENCE')
       throw new Error('Only decisions are routed by their pending occurrence.')
-    const staged = await input.stageHeldMovement(command)
+    const staged = await input.stageHeldMovement(command, reads)
     if (staged?.kind === 'ROUTED') return staged.route
     if (staged) return { route: 'MOVEMENT', decline: null, staged }
     return callLiveSessionRoute(environment, accessToken, 'encounterRoute', { ...actor, command })

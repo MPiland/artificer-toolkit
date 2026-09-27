@@ -5,7 +5,10 @@ import {
 import {
   isLiveSessionCaptureBundleAdmission,
   liveSessionCharacterRulesScope,
-  type LiveSessionEncounterCaptureBundle
+  liveSessionSystemStamp,
+  sameSystemStamp,
+  type LiveSessionEncounterCaptureBundle,
+  type LiveSessionSystemStamp
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import {
   liveSessionEncounterRulesInputSchema,
@@ -15,9 +18,14 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
-import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import {
+  callLiveSessionRoute,
+  LiveSessionRouteError,
+  type NativeLiveSessionEnvironment
+} from './liveSessionRoutes.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { ROOM_LIMITS } from './roomLimits.js'
 
@@ -35,12 +43,20 @@ export interface LiveCaptureReads {
   write(key: string, capture: LiveRulesCapture): void
   bundle(key: string, capture: LiveRulesCapture): void
   takeBundled(key: string): LiveRulesCapture | undefined
+  /** The stamp of the Run System the room holds, sent with a bundle request; null for none. */
+  systemStamp(): LiveSessionSystemStamp | null
+  /**
+   * A bundle's Run System: the one it carries, which the cache then holds, or the held one it
+   * left UNCHANGED. An UNCHANGED stamp this command did not send fails closed (409).
+   */
+  bundleSystem(bundle: LiveSessionEncounterCaptureBundle): SystemAuthoredDto | null
 }
 
 /**
- * The room's cache of System-level rules captures (definitions, vocabulary, Character sources).
- * Entries are keyed by their SYSTEM and CAMPAIGN revisions, so a revision bump misses; volatile
- * reads (Encounter state, actors, Character inputs) never enter it. Commit fences stay authoritative.
+ * The room's cache of System-level rules captures (definitions, vocabulary, Character sources) and
+ * of the Run System its capture bundles carry. Entries are keyed by their SYSTEM and CAMPAIGN
+ * revisions, so a revision bump misses; volatile reads (Encounter state, actors, Character inputs)
+ * never enter it. Commit fences stay authoritative.
  */
 export class LiveCaptureCache {
   readonly #entries = new Map<
@@ -48,6 +64,8 @@ export class LiveCaptureCache {
     { capture: LiveRulesCapture; bytes: number; expiresAt: number }
   >()
   #bytes = 0
+  #system: { stamp: LiveSessionSystemStamp; system: SystemAuthoredDto; expiresAt: number } | null =
+    null
 
   get size(): number {
     return this.#entries.size
@@ -56,13 +74,40 @@ export class LiveCaptureCache {
   clear(): void {
     this.#entries.clear()
     this.#bytes = 0
+    this.#system = null
   }
 
   /** A command's view; `dropReused` forgets exactly the entries that command reused. */
   reads(): LiveCaptureReads & { dropReused(): boolean } {
     const reused = new Set<string>()
     const bundled = new Map<string, LiveRulesCapture>()
+    // The Run System this command offered Convex; a later clear cannot change what that stamp means.
+    let offered: { stamp: LiveSessionSystemStamp; system: SystemAuthoredDto } | null = null
+    let reusedSystem = false
     return {
+      systemStamp: () => {
+        const held = this.#system
+        offered = held && held.expiresAt > Date.now() ? held : null
+        return offered?.stamp ?? null
+      },
+      bundleSystem: (bundle) => {
+        const { system, inputs } = bundle
+        if (!system) return null
+        if (system.kind === 'UNCHANGED') {
+          if (!offered || !sameSystemStamp(offered.stamp, system.stamp))
+            throw new LiveSessionRouteError(409)
+          reusedSystem = true
+          return structuredClone(offered.system)
+        }
+        const stamp = inputs && liveSessionSystemStamp(inputs.revisions)
+        if (stamp)
+          this.#system = {
+            stamp,
+            system: structuredClone(system.system),
+            expiresAt: Date.now() + ROOM_LIMITS.captureCacheTtlMs
+          }
+        return system.system
+      },
       bundle: (key, capture) => {
         bundled.set(key, capture)
       },
@@ -106,7 +151,14 @@ export class LiveCaptureCache {
       },
       dropReused: () => {
         for (const key of reused) this.#delete(key)
-        return reused.size > 0
+        if (
+          reusedSystem &&
+          this.#system &&
+          offered &&
+          sameSystemStamp(this.#system.stamp, offered.stamp)
+        )
+          this.#system = null
+        return reused.size > 0 || reusedSystem
       }
     }
   }
@@ -163,7 +215,8 @@ export async function captureEncounterRules(
       input,
       await callLiveSessionRoute(environment, accessToken, 'encounterBundle', {
         ...input,
-        maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS
+        maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS,
+        cachedSystem: captures.systemStamp()
       }),
       captures
     )
@@ -249,8 +302,9 @@ export function bundleCaptures(
   bundle: LiveSessionEncounterCaptureBundle,
   captures: LiveCaptureReads
 ): void {
-  // The Run's System travels once; its INPUTS responses get it back.
-  const { system, inputs } = bundle
+  // The Run's System travels at most once; its INPUTS responses get it back.
+  const system = captures.bundleSystem(bundle)
+  const { inputs } = bundle
   const parts: Array<{
     request: LiveSessionEncounterRulesRequest
     response: LiveSessionEncounterRulesResponse

@@ -99,7 +99,8 @@ async function setup() {
       tokenId: token.id.toLowerCase(),
       baseOrdinal
     })),
-    maintenanceDefinitionIds: []
+    maintenanceDefinitionIds: [],
+    cachedSystem: null
   }
   const ownerCapture: LiveSessionEncounterRulesInput = {
     campaignId: base.campaign.id,

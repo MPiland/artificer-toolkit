@@ -50,7 +50,7 @@ async function beginLiveSceneCommand(
   ctx: MutationCtx,
   input: Omit<
     LiveSessionMovementStageInput,
-    'characterRevisions' | 'tokenOrdinals' | 'maintenanceDefinitionIds'
+    'characterRevisions' | 'tokenOrdinals' | 'maintenanceDefinitionIds' | 'cachedSystem'
   >
 ): Promise<SceneGeometryBeginResult> {
   const authority = { campaignId: input.campaignId, epoch: input.authorityEpoch }
@@ -87,7 +87,7 @@ async function beginLiveSceneCommand(
 export const stage = memoizedInternalMutation({
   args: v.any(),
   handler: async (ctx, args: unknown): Promise<LiveSessionMovementStage> => {
-    const { characterRevisions, tokenOrdinals, maintenanceDefinitionIds, ...input } =
+    const { characterRevisions, tokenOrdinals, maintenanceDefinitionIds, cachedSystem, ...input } =
       liveSessionMovementStageInputSchema.parse(args)
     const { command, campaignId, authorityEpoch, expectedUserId, expectedRole } = input
     const member = { campaignId, authorityEpoch, expectedUserId, expectedRole }
@@ -119,7 +119,8 @@ export const stage = memoizedInternalMutation({
       expectedVersion: staged.expectedEncounterVersion,
       movement,
       request: { kind: 'MOVEMENT_INPUTS' },
-      maintenanceDefinitionIds
+      maintenanceDefinitionIds,
+      cachedSystem
     })
     return { kind: 'STAGED', begun, saveId, capture: { movement, bundle } }
   }

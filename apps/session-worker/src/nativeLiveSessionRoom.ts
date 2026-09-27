@@ -1129,7 +1129,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         runtime: await this.#liveRulesRuntime(),
         random: secureRandomInt,
         captureCache: this.#captureCache,
-        stageHeldMovement: async (decision) => {
+        stageHeldMovement: async (decision, captures) => {
           const context = this.#externalSceneContext()
           // Only a decision on the presented Scene's Encounter while it holds a movement decision.
           if (
@@ -1142,7 +1142,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             accessToken: admission.accessToken,
             actor: liveActor(admission, value),
             command: decision,
-            context
+            context,
+            captures
           })
         },
         movement: async (decision, captures, staged) => {

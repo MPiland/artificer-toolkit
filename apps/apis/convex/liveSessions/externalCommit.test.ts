@@ -84,9 +84,25 @@ afterEach(() => {
 
 /** Routes the room's private calls into convex-test as `member`, recording each command's calls. */
 const calls: string[] = []
+/** Whether each stage offered Convex a held Run System stamp, and whether the System came back. */
+const stages: Array<{ offered: boolean; system: string | null }> = []
 function routeRoom(member: { caller: Caller }) {
+  stages.length = 0
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-  stubLiveSessionFetch((pathname, init) => {
+  stubLiveSessionFetch(async (pathname, init) => {
+    if (pathname === '/live-sessions/encounter-movement-stage') {
+      const response = await member.caller.fetch(pathname, init)
+      const staged = (await response.clone().json()) as {
+        capture?: { bundle: { system: { kind: string } | null } } | null
+      }
+      stages.push({
+        offered:
+          (JSON.parse(String(init?.body)) as { cachedSystem: unknown }).cachedSystem !== null,
+        system: staged.capture?.bundle.system?.kind ?? null
+      })
+      calls.push(pathname)
+      return response
+    }
     // A rules capture is named by its request kind.
     calls.push(
       pathname === '/live-sessions/encounter-rules'
@@ -248,6 +264,11 @@ it('runs a bound move, its answer and a GM skip through the room pipeline, advan
     warm[1]
   ])
   expect(calls).toEqual(warm)
+  // The warm answer offered the Run System the move left in the room cache; Convex did not resend it.
+  expect(stages).toEqual([
+    { offered: false, system: 'SYSTEM' },
+    { offered: true, system: 'UNCHANGED' }
+  ])
   // A decision answer advances the room's sequence and returns its Encounter result.
   expect(await persisted(value.base)).toMatchObject({ sequence: 2 })
   expect(second.encounter?.occurrence).toMatchObject({ occurrenceId: choice.occurrenceId })
@@ -374,7 +395,8 @@ it('refuses the combined stage exactly as its separate begin, observe and captur
     presentation: { expectedPresentationVersion: 0 },
     characterRevisions: [],
     tokenOrdinals: value.request.tokenOrdinals,
-    maintenanceDefinitionIds: []
+    maintenanceDefinitionIds: [],
+    cachedSystem: null
   }
   const saves = () =>
     value.base.t.run(async (ctx) => (await ctx.db.query('sceneGeometrySaves').collect()).length)
@@ -454,7 +476,8 @@ it('refuses the combined stage exactly as its separate begin, observe and captur
     ...actor,
     characterRevisions: [],
     tokenOrdinals: [],
-    maintenanceDefinitionIds: []
+    maintenanceDefinitionIds: [],
+    cachedSystem: null
   }
   const published = await saves()
   routeRoom(value.player)

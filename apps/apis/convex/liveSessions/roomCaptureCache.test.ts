@@ -6,6 +6,11 @@ import type {
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
+import {
+  liveSessionEncounterCaptureBundleSchema,
+  liveSessionSystemStamp,
+  type LiveSessionSystemStamp
+} from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
@@ -549,6 +554,56 @@ it('bundles exactly the responses the separate captures return, with the System 
     expect(bundle).toEqual(separate)
   }
 }, 120_000)
+it('sends the Run System once per stamp and fails closed on a stamp the room did not offer', async () => {
+  const fixture = await roomFixture('AUTO_ROLL')
+  const action = concentrationAction(fixture)
+  const input = {
+    ...fixture.scope(action),
+    request: { kind: 'ACTION_COMMAND' as const, command: action },
+    maintenanceDefinitionIds: [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID]
+  }
+  const read = (cachedSystem: LiveSessionSystemStamp | null) =>
+    fixture.owner.caller.run((ctx) => readEncounterCaptureBundle(ctx, { ...input, cachedSystem }))
+  const full = await read(null)
+  if (full.system?.kind !== 'SYSTEM' || !full.inputs) throw new Error('Expected the Run System.')
+  const stamp = liveSessionSystemStamp(full.inputs.revisions)
+  if (!stamp) throw new Error('Expected the Run System stamp.')
+  const unchanged = await read(stamp)
+  // Only the System is left out: every part, read checksum and revision is the same.
+  expect(unchanged).toEqual({ ...full, system: { kind: 'UNCHANGED', stamp } })
+  expect(liveSessionEncounterCaptureBundleSchema.parse(unchanged)).toEqual(unchanged)
+  const stale = [
+    { ...stamp, systemRevision: crypto.randomUUID() },
+    { ...stamp, campaignRevision: crypto.randomUUID() }
+  ]
+  for (const cachedSystem of stale) expect((await read(cachedSystem)).system).toEqual(full.system)
+  // The contract binds an UNCHANGED stamp to the Run inputs' own revisions.
+  expect(
+    liveSessionEncounterCaptureBundleSchema.safeParse({
+      ...unchanged,
+      system: { kind: 'UNCHANGED', stamp: stale[0] }
+    }).success
+  ).toBe(false)
+
+  // The room offers only a System it holds and restores it for an UNCHANGED bundle.
+  const cache = new LiveCaptureCache()
+  const cold = cache.reads()
+  expect(cold.systemStamp()).toBeNull()
+  expect(cold.bundleSystem(full)).toEqual(full.system.system)
+  const warm = cache.reads()
+  expect(warm.systemStamp()).toEqual(stamp)
+  expect(warm.bundleSystem(unchanged)).toEqual(full.system.system)
+  // A command that did not offer that stamp fails closed.
+  expect(() => cache.reads().bundleSystem(unchanged)).toThrow(LiveSessionRouteError)
+  // A refused plan that reused the System drops it, so its replan reads the System again.
+  expect(warm.dropReused()).toBe(true)
+  expect(cache.reads().systemStamp()).toBeNull()
+  // A cache generation bump clears the System with every other entry.
+  cache.reads().bundleSystem(full)
+  expect(cache.reads().systemStamp()).toEqual(stamp)
+  cache.clear()
+  expect(cache.reads().systemStamp()).toBeNull()
+}, 120_000)
 /**
  * Meters one transaction's reads as they execute: index ranges (each executed get or query),
  * documents, all bytes and distinct bytes. Building a query reads nothing.
@@ -770,7 +825,8 @@ it('keeps the largest legal action bundle within the Convex transaction limits',
     const bundle = await readEncounterCaptureBundle(metered.ctx, {
       ...fixture.scope(command),
       request: { kind: 'ACTION_COMMAND', command },
-      maintenanceDefinitionIds: [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID]
+      maintenanceDefinitionIds: [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID],
+      cachedSystem: null
     })
     return { bundle, usage: metered.usage, returned: JSON.stringify(bundle).length }
   })

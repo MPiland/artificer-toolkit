@@ -731,7 +731,8 @@ it.each(['room', 'private'] as const)(
           command: concentration,
           characterRevisions: [],
           tokenOrdinals: [],
-          maintenanceDefinitionIds: []
+          maintenanceDefinitionIds: [],
+          cachedSystem: null
         })
       })
       expect(denied.status).toBe(409)
@@ -757,7 +758,8 @@ it.each(['room', 'private'] as const)(
           command: concentration,
           characterRevisions: [],
           tokenOrdinals: [],
-          maintenanceDefinitionIds: []
+          maintenanceDefinitionIds: [],
+          cachedSystem: null
         })
       })
       expect(revoked.status).toBe(422)

@@ -36,6 +36,7 @@ import {
  * it), which carries no fence. Convex routes a decision, begins the save, observes the room's Scene
  * vision `characterRevisions` and, for an Encounter-bound move, reads the planner's capture bundle.
  * `tokenOrdinals` are the room's definition ordinals, from which Convex takes the moving token's.
+ * `cachedSystem` is the stamp of the Run System the room holds, for the bundle.
  */
 export const liveSessionMovementStageInputSchema = lazySchema(() =>
   z
@@ -51,7 +52,8 @@ export const liveSessionMovementStageInputSchema = lazySchema(() =>
       characterRevisions: sceneGeometryObserveInputSchema.shape.characterRevisions,
       tokenOrdinals: sceneTokenOrdinalsSchema,
       maintenanceDefinitionIds:
-        liveSessionEncounterCaptureBundleInputSchema.shape.maintenanceDefinitionIds
+        liveSessionEncounterCaptureBundleInputSchema.shape.maintenanceDefinitionIds,
+      cachedSystem: liveSessionEncounterCaptureBundleInputSchema.shape.cachedSystem
     })
     .check(
       z.refine(

@@ -67,7 +67,8 @@ it('stages a current movement choice only for its live authority and actor, with
     command,
     characterRevisions: [],
     tokenOrdinals: value.request.tokenOrdinals,
-    maintenanceDefinitionIds: []
+    maintenanceDefinitionIds: [],
+    cachedSystem: null
   }
   const gameplay = () =>
     value.base.t.run(async (ctx) => ({

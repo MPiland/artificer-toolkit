@@ -182,7 +182,8 @@ it('publishes a sealed movement response through the private DO path without rep
     ...common,
     characterRevisions: [],
     tokenOrdinals: value.request.tokenOrdinals,
-    maintenanceDefinitionIds: []
+    maintenanceDefinitionIds: [],
+    cachedSystem: null
   }
   const staged = await callLiveSessionRoute(
     environment,

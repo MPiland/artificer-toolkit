@@ -18,10 +18,12 @@ export async function readBundleAndSeparateCaptures(
   const { request: _admission, ...scope } = admission
   const bundle = await readEncounterCaptureBundle(ctx, {
     ...admission,
-    maintenanceDefinitionIds: [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID]
+    maintenanceDefinitionIds: [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID],
+    cachedSystem: null
   })
-  const { system, inputs } = bundle
-  if (!system || !inputs) throw new Error('Expected bundled Run inputs.')
+  const { inputs } = bundle
+  if (bundle.system?.kind !== 'SYSTEM' || !inputs) throw new Error('Expected bundled Run inputs.')
+  const { system } = bundle.system
   const parts = [
     ...bundle.encounter,
     { request: { kind: 'INPUTS' as const }, response: { ...inputs, system } }

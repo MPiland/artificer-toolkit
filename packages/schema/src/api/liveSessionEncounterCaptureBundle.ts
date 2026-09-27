@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
+import type { LiveSessionRulesRevisions } from './liveSessionRulesRevisions.js'
 import {
   liveSessionCharacterInputsResponseSchema,
   type LiveSessionCharacterRulesInput
@@ -33,15 +34,30 @@ export function isLiveSessionCaptureBundleAdmission(request: { kind: string }): 
 }
 
 /**
+ * The SYSTEM and CAMPAIGN revisions a room holds the Run's System at, the same stamps its capture
+ * cache keys System-level reads on.
+ */
+export const liveSessionSystemStampSchema = lazySchema(() =>
+  z.strictObject({
+    systemId: postgresUuidSchema,
+    systemRevision: postgresUuidSchema,
+    campaignId: postgresUuidSchema,
+    campaignRevision: postgresUuidSchema
+  })
+)
+
+/**
  * One private capture of a room Encounter command's volatile inputs. `request` is the command's
  * admission capture; the bundle adds the reads its planner makes next under the same scope.
+ * `cachedSystem` is the stamp of the Run System the room holds, or null when it holds none.
  */
 export const liveSessionEncounterCaptureBundleInputSchema = lazySchema(() =>
   z
     .extend(liveSessionEncounterRulesInputSchema, {
       maintenanceDefinitionIds: z
         .array(postgresUuidSchema)
-        .check(z.maxLength(MAX_BUNDLED_MAINTENANCE_DEFINITIONS))
+        .check(z.maxLength(MAX_BUNDLED_MAINTENANCE_DEFINITIONS)),
+      cachedSystem: z.nullable(liveSessionSystemStampSchema)
     })
     .check(
       z.refine(
@@ -53,8 +69,10 @@ export const liveSessionEncounterCaptureBundleInputSchema = lazySchema(() =>
 
 /**
  * Each part is exactly the response its own capture returns, with its own read checksum and
- * revisions, except that the Run's System travels once: the Run `inputs` and each Character's
- * INPUTS omit it (their read checksums still cover it) and the receiver restores `system`. A bundle
+ * revisions, except that the Run's System travels at most once: the Run `inputs` and each
+ * Character's INPUTS omit it (their read checksums still cover it) and the receiver restores it.
+ * `system` is the System itself, or UNCHANGED when it is the one the room holds at the requested
+ * `cachedSystem` stamp, which is then exactly the stamp of the Run `inputs` revisions. A bundle
  * stops before the first part that would fail; the planner then reads that part separately and
  * meets the same refusal.
  */
@@ -71,7 +89,12 @@ export const liveSessionEncounterCaptureBundleSchema = lazySchema(() =>
         )
         .check(z.maxLength(2 + MAX_ENCOUNTER_ACTORS * (1 + MAX_BUNDLED_MAINTENANCE_DEFINITIONS))),
       /** The Run's System; null only when the bundle stopped before the Run INPUTS. */
-      system: z.nullable(systemAuthoredDtoSchema),
+      system: z.nullable(
+        z.discriminatedUnion('kind', [
+          z.strictObject({ kind: z.literal('SYSTEM'), system: systemAuthoredDtoSchema }),
+          z.strictObject({ kind: z.literal('UNCHANGED'), stamp: liveSessionSystemStampSchema })
+        ])
+      ),
       inputs: z.nullable(z.omit(liveSessionEncounterInputsResponseSchema, { system: true })),
       characters: z
         .array(
@@ -86,11 +109,49 @@ export const liveSessionEncounterCaptureBundleSchema = lazySchema(() =>
       z.refine(
         (bundle) =>
           (bundle.system === null) === (bundle.inputs === null) &&
-          (bundle.system !== null || bundle.characters.length === 0),
-        'A bundle carries its System exactly when it carries Run inputs.'
+          (bundle.system !== null || bundle.characters.length === 0) &&
+          (bundle.system?.kind !== 'UNCHANGED' ||
+            (bundle.inputs !== null &&
+              sameSystemStamp(
+                bundle.system.stamp,
+                liveSessionSystemStamp(bundle.inputs.revisions)
+              ))),
+        'A bundle carries its System, or its unchanged stamp, exactly when it carries Run inputs.'
       )
     )
 )
+
+export type LiveSessionSystemStamp = z.infer<typeof liveSessionSystemStampSchema>
+
+/** The Run System stamp of a capture's revisions; null unless both are observed. */
+export function liveSessionSystemStamp(
+  revisions: LiveSessionRulesRevisions
+): LiveSessionSystemStamp | null {
+  const system = revisions.find((observation) => observation.scope === 'SYSTEM')
+  const campaign = revisions.find((observation) => observation.scope === 'CAMPAIGN')
+  return system?.revision && campaign?.revision
+    ? {
+        systemId: system.id,
+        systemRevision: system.revision,
+        campaignId: campaign.id,
+        campaignRevision: campaign.revision
+      }
+    : null
+}
+
+export function sameSystemStamp(
+  left: LiveSessionSystemStamp | null,
+  right: LiveSessionSystemStamp | null
+): boolean {
+  return (
+    left !== null &&
+    right !== null &&
+    left.systemId === right.systemId &&
+    left.systemRevision === right.systemRevision &&
+    left.campaignId === right.campaignId &&
+    left.campaignRevision === right.campaignRevision
+  )
+}
 
 export type LiveSessionEncounterCaptureBundleInput = z.infer<
   typeof liveSessionEncounterCaptureBundleInputSchema

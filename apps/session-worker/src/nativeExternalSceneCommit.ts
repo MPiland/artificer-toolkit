@@ -94,6 +94,8 @@ export function stageExternalSceneCommand(input: {
   actor: LiveEncounterActor
   command: ExternalSceneCommand
   context: ExternalSceneContext
+  /** The command's capture view; the same view must later take the stage's bundle. */
+  captures?: LiveCaptureReads
 }): Promise<LiveSessionMovementStage> {
   const { command, context } = input
   const decision =
@@ -104,7 +106,8 @@ export function stageExternalSceneCommand(input: {
     ...(decision ? {} : { presentation: context.presentation }),
     characterRevisions: context.characterRevisions,
     tokenOrdinals: context.baseOrdinals.tokens,
-    maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS
+    maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS,
+    cachedSystem: input.captures?.systemStamp() ?? null
   })
 }
 
@@ -127,7 +130,9 @@ export async function prepareExternalSceneCommit(input: {
 }): Promise<PreparedExternalSceneCommit> {
   const { environment, accessToken, actor, command, context } = input
   const { scene } = context
-  const stage = input.staged ?? (await stageExternalSceneCommand(input))
+  // Without the room's cache, one view both stages and takes the bundle.
+  const captures = input.captures ?? new LiveCaptureCache().reads()
+  const stage = input.staged ?? (await stageExternalSceneCommand({ ...input, captures }))
   // Convex holds a published command the room has no receipt for (its ID was already used), or
   // the decision is no longer a movement decision.
   if (stage.kind !== 'STAGED') throw new LiveSessionRouteError(409)
@@ -163,7 +168,6 @@ export async function prepareExternalSceneCommit(input: {
       expectedVersion: staged.expectedEncounterVersion,
       movement: capture.movement
     }
-    const captures = input.captures ?? new LiveCaptureCache().reads()
     bundleCaptures(
       liveSessionEncounterRulesInputSchema.parse({
         ...scope,
