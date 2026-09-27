@@ -395,6 +395,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - D26 already pauses play while a decision is pending, so the prefetch goes stale only if the GM cancels.
     - A stale prefetch fails closed on the commit fences and falls back to today's stage-and-commit.
     - Rules and dice still run in the room at answer time, so D41 and D27 are unchanged. This amends D52's stage timing.
+    - **Outcome (2026-09-27): step 1 kept, step 2 built, measured and reverted.**
+      - Step 1 halved the documents the stage and commit read, but their user time stayed at about 164 ms each: they are bound by CPU. `REACTION_RESPONSE` p95 moved to 956 and 986 ms.
+      - Step 2's one-call answer took 468 ms and read 179 documents, the same work as stage plus commit. To verify the prefetched reads it has to re-read them, so the only saving is one route's overhead.
+      - The prefetch queries (935 per run, about 6 per decision, p95 283 ms) competed for the same CPU, and the overall command p95 rose above 1 s.
+      - The extra subject type, prefetch cache and query were not worth keeping for no gain, so step 2 was reverted: `611757d95`, `aef5acfdf` and `221fce311`, reverted by `91682875e`, `394511fbf` and `5d715e46e`.
+    - **Next:** cut handler CPU in the movement stage and commit, guided by a CPU profile. Collapsing the calls is revisited only if the fences can check versions instead of re-reading content.
     - The prefetch is admitted for the responder, and the answer command comes from the room instead of the staged save.
   - **The 6-browser V15** runs only once the browserless `REACTION_RESPONSE` p95 is clearly under 1 s.
 

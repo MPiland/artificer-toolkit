@@ -376,3 +376,20 @@ Values are run 1 / run 2, in ms.
 | `encounterMovement:commit` | 145 → 73 | 473 → 186 | 167 → 164 ms |
 
 The movement handlers are bound by CPU (parsing, checksums, planning inputs), not by database reads. Step 1 still stands on its own merits: it cuts database load, cuts the stage payload, and cuts the room's parsing. But only removing a whole call (D64 step 2), or cutting handler CPU, will bring `REACTION_RESPONSE` clearly under 1 s.
+
+## D64 step 2 measured and reverted (2026-09-27)
+
+Runs `v15bl-d64s2-r1` and `-r2` at `221fce311` both failed the overall command p95 assertion (`developmentEncounterCutover.ts:449`), so neither printed a summary.
+
+Per-function numbers for run 2 against step 1 (run 2):
+
+| Function | n | exec p50 / p95 | docs p50 | KB p50 |
+| --- | --- | --- | --- | --- |
+| `encounterMovement:answer` (new) | 152 | 468 / 522 | 179 | 634 |
+| `encounterMovementPrefetch:prefetch` (new) | 935 | 107 / 283 | 21 | 143 |
+| `encounterMovement:stage` (moves only now) | 170 | 202 / 265 | 87 | 268 |
+| `encounterMovement:commit` (moves only now) | 170 | 175 / 292 | 73 | 186 |
+
+- **The one-call answer saved no work.** It does the stage and commit work in one transaction, including a full re-read to verify the prefetch, so it costs what the two calls cost together.
+- **The prefetch added load.** It ran about 6 queries per decision (one per member). They competed with the command path, which pushed the overall p95 over budget.
+- **Step 2 was reverted.** See D64 in the open questions.
