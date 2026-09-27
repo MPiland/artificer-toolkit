@@ -1,5 +1,4 @@
-import { sha256 } from '@noble/hashes/sha256'
-import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils'
+import { sha256Hex } from '../../utils/sha256.js'
 
 export function canonicalizeRuleDocument(value: unknown): string {
   if (value === null || typeof value === 'boolean' || typeof value === 'string')
@@ -22,7 +21,7 @@ export function checksumRuleDocument(document: unknown): string {
 
 /** Hashes already canonical rules JSON; callers must preserve canonicalizeRuleDocument's bytes. */
 export function checksumCanonicalRuleDocument(canonicalJson: string): string {
-  return bytesToHex(sha256(utf8ToBytes(canonicalJson)))
+  return sha256Hex(canonicalJson)
 }
 
 export function equalCanonicalJson(left: unknown, right: unknown): boolean {

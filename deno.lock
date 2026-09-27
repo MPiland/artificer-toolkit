@@ -184,7 +184,6 @@
         "packageJson": {
           "dependencies": [
             "npm:@2toad/profanity@^3.3.0",
-            "npm:@noble/hashes@1.8.0",
             "npm:@types/rbush@4.0.0",
             "npm:fast-check@4.9.0",
             "npm:polygon-clipping@0.15.7",

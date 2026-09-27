@@ -174,7 +174,6 @@ __metadata:
   dependencies:
     "@2toad/profanity": "npm:^3.3.0"
     "@artificer-toolkit/design-system": "workspace:^"
-    "@noble/hashes": "npm:1.8.0"
     "@types/rbush": "npm:4.0.0"
     fast-check: "npm:4.9.0"
     polygon-clipping: "npm:0.15.7"
@@ -4806,13 +4805,6 @@ __metadata:
   version: 2.4.0
   resolution: "@noble/ciphers@npm:2.4.0"
   checksum: 10c0/f8c0cfec0c96554a379385e0a851e4f4eb3ceb1ac645885d8f94f6e75b8d56233e4a434413cb2bf37ec08960cc05dad1ddf98d25311e990ea6505c56a1c1ca95
-  languageName: node
-  linkType: hard
-
-"@noble/hashes@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@noble/hashes@npm:1.8.0"
-  checksum: 10c0/06a0b52c81a6fa7f04d67762e08b2c476a00285858150caeaaff4037356dd5e119f45b2a530f638b77a5eeca013168ec1b655db41bae3236cb2e9d511484fc77
   languageName: node
   linkType: hard
 

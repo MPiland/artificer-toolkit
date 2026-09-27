@@ -1,5 +1,4 @@
-import { sha256 } from '@noble/hashes/sha256'
-import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils'
+import { sha256Hex } from './sha256.js'
 
 export type CanonicalJson =
   | boolean
@@ -65,7 +64,7 @@ export function canonicalizeJson(value: unknown): string {
 }
 
 export function checksumCanonicalJson(value: unknown): string {
-  return bytesToHex(sha256(utf8ToBytes(canonicalizeJson(value))))
+  return sha256Hex(canonicalizeJson(value))
 }
 
 export function equalCanonicalJson(left: unknown, right: unknown): boolean {
