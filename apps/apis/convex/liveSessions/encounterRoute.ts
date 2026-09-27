@@ -14,23 +14,23 @@ import { readPendingRunDecision } from '../encounters/pendingReads'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
 
 /**
- * The Encounter's one pending occurrence and the planner that owns it, for a member who may see it
- * (players only their own).
+ * Names the room planner for the current pending occurrence; players see only their own. The
+ * movement stage routes a decision the room holds with this same classification (D52).
  */
-export async function readPendingDecisionOwner(
+export async function routeEncounterDecision(
   ctx: QueryCtx,
-  scope: Omit<LiveSessionEncounterRouteInput, 'command'> & {
-    encounterId: string
-    occurrenceId: string
-  }
-) {
-  const { campaign, membership, run } = await requireLiveEncounterRun(ctx, scope)
+  { command, ...scope }: LiveSessionEncounterRouteInput
+): Promise<LiveSessionEncounterRouteResponse> {
+  const { campaign, membership, run } = await requireLiveEncounterRun(ctx, {
+    ...scope,
+    encounterId: command.encounterId
+  })
   const pending = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))
     .take(2)
   const occurrence = pending[0]
-  const occurrenceId = scope.occurrenceId.toLowerCase()
+  const occurrenceId = command.occurrenceId.toLowerCase()
   // The client answered an occurrence that is no longer the pending one.
   if (pending.length !== 1 || occurrence?.id !== occurrenceId)
     rejectDomain('VERSION_STALE', 'Rule occurrence is unavailable.')
@@ -40,22 +40,6 @@ export async function readPendingDecisionOwner(
   )
     rejectDomain('NOT_ACTOR_CONTROLLER', "This decision isn't yours to answer.")
   const owner = await readNativeEncounterOccurrenceOwner(ctx, run, occurrenceId)
-  return { membership, run, occurrence, owner }
-}
-
-/**
- * Names the room planner for the current pending occurrence; players see only their own. The
- * movement stage and answer route a decision the room holds with this same classification (D52).
- */
-export async function routeEncounterDecision(
-  ctx: QueryCtx,
-  { command, ...scope }: LiveSessionEncounterRouteInput
-): Promise<LiveSessionEncounterRouteResponse> {
-  const { membership, run, occurrence, owner } = await readPendingDecisionOwner(ctx, {
-    ...scope,
-    encounterId: command.encounterId,
-    occurrenceId: command.occurrenceId
-  })
   if (command.type === 'VOID_RULE_OCCURRENCE') {
     const voided =
       membership.role === 'OWNER' && occurrence.pendingSnapshotJson !== null

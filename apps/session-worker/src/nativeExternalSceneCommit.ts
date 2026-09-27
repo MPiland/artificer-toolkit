@@ -1,7 +1,6 @@
-import {
-  resolveRuleOccurrenceInputDtoSchema,
-  type ResolveRuleOccurrenceInputDto,
-  type VoidRuleOccurrenceInputDto
+import type {
+  ResolveRuleOccurrenceInputDto,
+  VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   LiveSessionExpectedScene,
@@ -11,20 +10,10 @@ import type {
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
-import type {
-  LiveSessionMovementAnswerInput,
-  LiveSessionMovementPrefetch
-} from '@artificer-toolkit/schema/api/liveSessionMovementAnswer'
-import {
-  movementDecisionSubject,
-  type LiveSessionMovementCaptureScope
-} from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
-import type { LiveSessionEncounterCaptureBundle } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
 import type {
   SceneBaseOrdinals,
-  SceneGeometryBeginResult,
   SceneGeometryCommandResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSessionVisionComposition } from '@artificer-toolkit/schema/api/sceneSessionVision'
@@ -38,12 +27,7 @@ import {
   preparedMovementSceneDelta,
   preparedMovementSegment
 } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
-import {
-  movementResponseSceneCommand,
-  readEncounterMovementPendingContext
-} from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   applySceneDelta,
   applySceneGeometryDelta,
@@ -83,38 +67,18 @@ export interface ExternalSceneContext {
   presentation: LiveSessionScenePublicationDto['presentation']
 }
 
-/**
- * How the room holds a movement decision's answer before planning it: staged in Convex
- * (`encounter-movement-stage`), or planned on the bundle the room prefetched for the answering member
- * when the decision was issued (D64), which Convex stages in the answer's own commit.
- */
-export type HeldMovementStage =
-  | LiveSessionMovementStage
-  | { kind: 'PREFETCHED'; prefetch: LiveSessionMovementPrefetch }
-
-type AnswerPlan = LiveSessionMovementAnswerInput['plan']
-
 export type PreparedExternalSceneCommit = {
+  saveId: string
   expectedScene: LiveSessionExpectedScene
   nextScene: CampaignSceneStateDto
   fogChanged: boolean
 } & (
   | {
       kind: 'MOVEMENT'
-      saveId: string
       commit: Omit<LiveSessionMovementCommitInput, 'authority' | 'expectedScene'>
     }
   | {
-      kind: 'ANSWER'
-      sceneId: string
-      commandId: string
-      answer: Omit<LiveSessionMovementAnswerInput, 'plan' | 'expiresAt'> & {
-        plan: Omit<AnswerPlan, 'authority' | 'expectedScene'>
-      }
-    }
-  | {
       kind: 'GEOMETRY'
-      saveId: string
       finish: LiveSessionMovementCommitInput['finish']
       fogLayers: SceneFogLayer[]
     }
@@ -149,11 +113,9 @@ export function stageExternalSceneCommand(input: {
 
 /**
  * Plans a Convex-first command up to its commit from its stage (`staged` when the room already
- * staged or prefetched a held decision): any Encounter rules run in the DO on the capture bundle,
- * each fog owner's complete layer is derived, and the published Scene is predicted. The commit
- * freezes the plan and stages the fog in its own transaction; nothing here changes gameplay or
- * authority. A decision's answer is the room's own command, or a GM void's decline as its stage
- * returned it (D64).
+ * staged a held decision): any Encounter rules run in the DO on the stage's capture bundle, each fog
+ * owner's complete layer is derived, and the published Scene is predicted. The commit freezes the
+ * plan and stages the fog in its own transaction; nothing here changes gameplay or authority.
  */
 export async function prepareExternalSceneCommit(input: {
   environment: NativeLiveSessionEnvironment
@@ -164,7 +126,7 @@ export async function prepareExternalSceneCommit(input: {
   runtime: RulesRuntimeService
   random(maximum: number): number
   captures?: LiveCaptureReads
-  staged?: HeldMovementStage
+  staged?: LiveSessionMovementStage
 }): Promise<PreparedExternalSceneCommit> {
   const { environment, accessToken, actor, command, context } = input
   const { scene } = context
@@ -173,54 +135,11 @@ export async function prepareExternalSceneCommit(input: {
   const stage = input.staged ?? (await stageExternalSceneCommand({ ...input, captures }))
   // Convex holds a published command the room has no receipt for (its ID was already used), or
   // the decision is no longer a movement decision.
-  if (stage.kind === 'ROUTED' || stage.kind === 'REPLAY') throw new LiveSessionRouteError(409)
-  const prefetched = stage.kind === 'PREFETCHED' ? stage.prefetch : null
-  let staged: Extract<SceneGeometryBeginResult, { kind: 'READY' }>['input']
-  let begun: {
-    header: { id: string; version: number }
-    encounterId: string | null
-    startDistance: number
-    saveId: string | null
-    answer: ResolveRuleOccurrenceInputDto | null
-    capture: {
-      movement: LiveSessionMovementCaptureScope
-      bundle: LiveSessionEncounterCaptureBundle
-    } | null
-  }
-  if (stage.kind === 'PREFETCHED') {
-    // A prefetched answer plans the move its decision continues; Convex stages it at commit.
-    const { prefetch } = stage
-    const [admitted] = prefetch.bundle.encounter
-    if (
-      command.type !== 'RESOLVE_RULE_OCCURRENCE' ||
-      admitted?.response.kind !== 'MOVEMENT_INPUTS' ||
-      admitted.response.subject.kind !== 'DECISION'
-    )
-      throw new LiveSessionRouteError(409)
-    const answer = resolveRuleOccurrenceInputDtoSchema.parse(command)
-    const { root } = readEncounterMovementPendingContext(admitted.response.subject.pendingSnapshot)
-    staged = movementResponseSceneCommand(root, answer)
-    begun = {
-      header: admitted.response.header,
-      encounterId: prefetch.movement.encounterId,
-      startDistance: root.pathStartDistance,
-      saveId: null,
-      answer,
-      capture: { movement: prefetch.movement, bundle: prefetch.bundle }
-    }
-  } else {
-    staged = stage.begun.input
-    begun = {
-      header: stage.begun.header,
-      encounterId: stage.begun.encounterId ?? null,
-      startDistance: stage.begun.movementStartDistance ?? 0,
-      saveId: stage.saveId,
-      answer: stage.answer,
-      capture: stage.capture
-    }
-  }
+  if (stage.kind !== 'STAGED') throw new LiveSessionRouteError(409)
+  const { begun, saveId } = stage
   if (begun.header.id !== scene.id || begun.header.version !== scene.version)
     throw new LiveSessionRouteError(409)
+  const staged = begun.input
   const baseOrdinal =
     staged.type === 'MOVE_SCENE_TOKEN'
       ? (context.baseOrdinals.tokens.find((entry) => entry.tokenId === staged.tokenId)
@@ -230,28 +149,22 @@ export async function prepareExternalSceneCommit(input: {
             ?.baseOrdinal ?? null)
         : null
   let movement: {
-    scope: LiveSessionMovementCaptureScope
-    preparation: LiveSessionMovementPrepareInput['preparation']
+    prepareInput: LiveSessionMovementPrepareInput
     planned: Awaited<ReturnType<typeof prepareNativeLiveMovement>>
   } | null = null
   if (staged.type === 'MOVE_SCENE_TOKEN' && staged.expectedEncounterVersion !== null) {
-    const { capture, encounterId, answer } = begun
-    // An answer reads under its issued decision, a new move under its staged save (D64).
-    const subject = answer
-      ? movementDecisionSubject(answer)
-      : begun.saveId && { kind: 'SAVE' as const, saveId: begun.saveId }
+    const capture = stage.capture
     if (
-      !encounterId ||
+      !begun.encounterId ||
       !capture ||
-      !subject ||
-      capture.movement.encounterId !== encounterId ||
-      capture.movement.baseTokenOrdinal !== baseOrdinal ||
-      checksumCanonicalJson(capture.movement.subject) !== checksumCanonicalJson(subject)
+      capture.movement.encounterId !== begun.encounterId ||
+      capture.movement.saveId !== saveId ||
+      capture.movement.baseTokenOrdinal !== baseOrdinal
     )
       throw new LiveSessionRouteError(409)
     const scope = {
       ...actor,
-      encounterId,
+      encounterId: begun.encounterId,
       expectedVersion: staged.expectedEncounterVersion,
       movement: capture.movement
     }
@@ -264,7 +177,9 @@ export async function prepareExternalSceneCommit(input: {
       captures
     )
     // A decision continues its issued occurrence; a new move opens one.
-    const occurrenceId = answer ? answer.occurrenceId.toLowerCase() : crypto.randomUUID()
+    const decision =
+      command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE'
+    const occurrenceId = decision ? command.occurrenceId.toLowerCase() : crypto.randomUUID()
     const occurredAt = new Date().toISOString()
     const planned = await prepareNativeLiveMovement({
       environment,
@@ -273,24 +188,28 @@ export async function prepareExternalSceneCommit(input: {
       scene,
       occurrenceId,
       occurredAt,
-      answer,
       runtime: input.runtime,
       random: input.random,
       captures
     })
-    movement = {
-      scope: capture.movement,
+    const prepareInput: LiveSessionMovementPrepareInput = {
+      ...actor,
+      movement: scope.movement,
       preparation: {
-        encounterId,
+        encounterId: begun.encounterId,
         expectedEncounterVersion: staged.expectedEncounterVersion,
         occurrenceId,
         occurredAt,
         outcome: planned.outcome
       },
-      planned
+      revisions: planned.revisions(),
+      maintenanceOwners: planned.dependencies.flatMap(({ request }) =>
+        request.kind === 'MAINTENANCE_OWNER' ? [request] : []
+      )
     }
+    movement = { prepareInput, planned }
   }
-  const outcome = movement?.preparation.outcome ?? null
+  const outcome = movement?.prepareInput.preparation.outcome ?? null
 
   // Exploration follows the walked segment; the published delta is what Convex will write.
   let explorationDelta: Extract<SceneAtomicDelta, { kind: 'TOKEN_MOVED' | 'DOOR_STATE_SET' }>
@@ -299,7 +218,11 @@ export async function prepareExternalSceneCommit(input: {
   // The walked segment's cost becomes a bound actor's turn movement (D38).
   let movementCost: number | undefined
   if (staged.type === 'MOVE_SCENE_TOKEN') {
-    const walk = { path: staged.path, startDistance: begun.startDistance, outcome }
+    const walk = {
+      path: staged.path,
+      startDistance: begun.movementStartDistance ?? 0,
+      outcome
+    }
     const segment = preparedMovementSegment(walk)
     explorationDelta = { kind: 'TOKEN_MOVED', tokenId: staged.tokenId, position: segment.position }
     explorationPath = segment.path
@@ -343,94 +266,46 @@ export async function prepareExternalSceneCommit(input: {
     ]
   }
   const expectedScene = { sceneId: scene.id, version, delta: publishedDelta }
-  const fogChanged = layers.length > 0
-  if (!movement) {
-    if (!begun.saveId) throw new LiveSessionRouteError(409)
+  const finish = { saveId, baseOrdinal }
+  if (!movement)
     return {
       kind: 'GEOMETRY',
-      saveId: begun.saveId,
+      saveId,
       expectedScene,
       nextScene,
-      fogChanged,
-      finish: { saveId: begun.saveId, baseOrdinal },
+      fogChanged: layers.length > 0,
+      finish,
       fogLayers: layers
     }
-  }
-  const { planned } = movement
-  const planInput = {
-    preparation: movement.preparation,
-    revisions: planned.revisions(),
-    maintenanceOwners: planned.dependencies.flatMap(({ request }) =>
-      request.kind === 'MAINTENANCE_OWNER' ? [request] : []
-    ),
-    finish: { baseOrdinal, tokenOrdinals: context.baseOrdinals.tokens, movementCost },
-    rules: planned.rules,
-    settlements: planned.settlementInputs,
-    fogLayers: layers
-  }
-  if (prefetched && begun.answer)
-    return {
-      kind: 'ANSWER',
-      sceneId: scene.id,
-      commandId: begun.answer.commandId.toLowerCase(),
-      expectedScene,
-      nextScene,
-      fogChanged,
-      answer: {
-        ...actor,
-        command: begun.answer,
-        characterRevisions: context.characterRevisions,
-        prefetch: {
-          movement: prefetched.movement,
-          maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS,
-          checksum: prefetched.checksum
-        },
-        plan: planInput
-      }
-    }
-  if (!begun.saveId) throw new LiveSessionRouteError(409)
-  const { saveId } = begun
   return {
     kind: 'MOVEMENT',
     saveId,
     expectedScene,
     nextScene,
-    fogChanged,
+    fogChanged: layers.length > 0,
     commit: {
-      ...actor,
-      ...planInput,
-      movement: {
-        encounterId: movement.scope.encounterId,
-        baseTokenOrdinal: movement.scope.baseTokenOrdinal,
-        subject: { kind: 'SAVE', saveId }
-      },
-      finish: { ...planInput.finish, saveId },
+      ...movement.prepareInput,
+      finish: { ...finish, tokenOrdinals: context.baseOrdinals.tokens, movementCost },
+      rules: movement.planned.rules,
+      settlements: movement.planned.settlementInputs,
+      fogLayers: layers,
       ...(command.type === 'VOID_RULE_OCCURRENCE' ? { voidCommand: command } : {})
     }
   }
 }
-/**
- * Commits a prepared command; Convex advances the room's authority to `authority.sequence` with it.
- * A prefetched answer stages and commits in one call that Convex refuses after `expiresAt`.
- */
+
+/** Commits a staged command; Convex advances the room's authority to `authority.sequence` with it. */
 export async function commitExternalSceneCommit(input: {
   environment: NativeLiveSessionEnvironment
   accessToken: string
   actor: LiveEncounterActor
   prepared: PreparedExternalSceneCommit
   authority: LiveSessionExternalAuthority
-  expiresAt: number
 }): Promise<{
   scene: SceneGeometryCommandResult
   encounter: LiveSessionMovementCommitResponse['encounter']
 }> {
   const { environment, accessToken, prepared, authority } = input
-  if (prepared.kind === 'ANSWER')
-    return callLiveSessionRoute(environment, accessToken, 'encounterMovementAnswer', {
-      ...prepared.answer,
-      plan: { ...prepared.answer.plan, authority, expectedScene: prepared.expectedScene },
-      expiresAt: input.expiresAt
-    })
   if (prepared.kind === 'MOVEMENT')
     return callLiveSessionRoute(environment, accessToken, 'encounterMovementCommit', {
       ...prepared.commit,

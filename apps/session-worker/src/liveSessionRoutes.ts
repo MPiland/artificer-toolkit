@@ -52,11 +52,6 @@ import {
   liveSessionMovementStageInputSchema,
   liveSessionMovementStageSchema
 } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
-import {
-  liveSessionMovementAnswerInputSchema,
-  liveSessionMovementPrefetchInputSchema,
-  liveSessionMovementPrefetchSchema
-} from '@artificer-toolkit/schema/api/liveSessionMovementAnswer'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import {
   liveSessionActivationInputSchema,
@@ -171,14 +166,6 @@ const liveSessionRoutes = {
   },
   encounterMovementCommit: {
     input: liveSessionMovementCommitInputSchema,
-    output: liveSessionMovementCommitResponseSchema
-  },
-  encounterMovementPrefetch: {
-    input: liveSessionMovementPrefetchInputSchema,
-    output: liveSessionMovementPrefetchSchema
-  },
-  encounterMovementAnswer: {
-    input: liveSessionMovementAnswerInputSchema,
     output: liveSessionMovementCommitResponseSchema
   },
   sceneGeometryCommit: {

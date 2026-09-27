@@ -27,8 +27,7 @@ import {
 } from './vttScenes.js'
 import {
   resolveRuleOccurrenceInputDtoSchema,
-  voidRuleOccurrenceInputDtoSchema,
-  type ResolveRuleOccurrenceInputDto
+  voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
 /**
@@ -70,9 +69,8 @@ export const liveSessionMovementStageInputSchema = lazySchema(() =>
 /**
  * ROUTED: the decision's pending occurrence belongs to another room planner, and nothing was
  * staged. REPLAY: the command ID already published, which the room has no receipt for. STAGED: the
- * observed save (a rebase may have replaced the begun one), the decision answer it staged (a GM
- * void's decline, D26), and, for an Encounter-bound move or answer, the capture scope with the
- * bundle read under it: a move's save, or an answer's issued decision (D64).
+ * observed save (a rebase may have replaced the begun one) and, for an Encounter-bound move, the
+ * capture scope with the bundle read under it.
  */
 export const liveSessionMovementStageSchema: z.ZodMiniType<LiveSessionMovementStage> = lazySchema(
   () =>
@@ -83,7 +81,6 @@ export const liveSessionMovementStageSchema: z.ZodMiniType<LiveSessionMovementSt
         kind: z.literal('STAGED'),
         begun: sceneGeometryBeginReadySchema,
         saveId: postgresUuidSchema,
-        answer: z.nullable(resolveRuleOccurrenceInputDtoSchema),
         capture: z.nullable(
           z.strictObject({
             movement: liveSessionMovementCaptureScopeSchema,
@@ -103,7 +100,6 @@ export type LiveSessionMovementStage =
       kind: 'STAGED'
       begun: Extract<SceneGeometryBeginResult, { kind: 'READY' }>
       saveId: string
-      answer: ResolveRuleOccurrenceInputDto | null
       capture: {
         movement: LiveSessionMovementCaptureScope
         bundle: LiveSessionEncounterCaptureBundle

@@ -1506,7 +1506,6 @@ async function installExternalConvex(base: Awaited<ReturnType<typeof fixture>>) 
           encounterId: base.capture.sceneEncounterId
         },
         saveId,
-        answer: null,
         capture: null
       })
     }

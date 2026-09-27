@@ -36,12 +36,6 @@ const encounterMovementStage = makeFunctionReference<'mutation', JsonObject, unk
 const encounterMovementCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterMovement:commit'
 )
-const encounterMovementPrefetch = makeFunctionReference<'query', JsonObject, unknown>(
-  'liveSessions/encounterMovementPrefetch:prefetch'
-)
-const encounterMovementAnswer = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterMovement:answer'
-)
 const sceneGeometryCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterMovement:commitScene'
 )
@@ -129,16 +123,6 @@ export const encounterMovementCommitHttp = liveStateHttp(
   true,
   'Live Session movement commit unavailable.',
   (ctx, input) => ctx.runMutation(encounterMovementCommit, input)
-)
-export const encounterMovementPrefetchHttp = liveStateHttp(
-  true,
-  'Live Session movement inputs unavailable.',
-  (ctx, input) => ctx.runQuery(encounterMovementPrefetch, input)
-)
-export const encounterMovementAnswerHttp = liveStateHttp(
-  true,
-  'Live Session movement commit unavailable.',
-  (ctx, input) => ctx.runMutation(encounterMovementAnswer, input)
 )
 export const sceneGeometryCommitHttp = liveStateHttp(
   true,

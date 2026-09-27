@@ -109,7 +109,7 @@ async function setup() {
     expectedRole: 'OWNER',
     encounterId: base.run.id,
     expectedVersion: input.expectedEncounterVersion,
-    movement: { encounterId: base.run.id, baseTokenOrdinal: 0, subject: { kind: 'SAVE', saveId } },
+    movement: { encounterId: base.run.id, saveId, baseTokenOrdinal: 0 },
     request: { kind: 'MOVEMENT_INPUTS' }
   }
   return {
@@ -137,15 +137,12 @@ it('stages owner movement privately and captures its bound raw inputs', async ()
   if (staged.kind !== 'STAGED') throw new Error('Expected a receiving geometry save.')
   const scope: LiveSessionEncounterRulesInput = {
     ...base.ownerCapture,
-    movement: { ...base.ownerCapture.movement!, subject: { kind: 'SAVE', saveId: staged.saveId } }
+    movement: { ...base.ownerCapture.movement!, saveId: staged.saveId }
   }
   const movement = await base.other.caller.query(capture, scope)
   expect(movement).toMatchObject({
     kind: 'MOVEMENT_INPUTS',
-    subject: {
-      kind: 'SAVE',
-      save: { id: staged.saveId, actorUserId: base.other.userId, status: 'RECEIVING' }
-    },
+    save: { id: staged.saveId, actorUserId: base.other.userId, status: 'RECEIVING' },
     header: { id: base.sceneId, version: 0 },
     bindings: expect.arrayContaining([
       { actorId: base.actorIds[0], tokenId: base.tokenId },
@@ -236,7 +233,7 @@ it('prepares Worker movement from current private captures and rejects stale roo
   })
   const scope = {
     ...base.ownerCapture,
-    movement: { ...base.ownerCapture.movement!, subject: { kind: 'SAVE', saveId: staged.saveId } }
+    movement: { ...base.ownerCapture.movement!, saveId: staged.saveId }
   }
   const runtime = createPlatformRulesRuntime({
     continuationIntegrityKey: new Uint8Array(32).fill(7),
@@ -303,15 +300,11 @@ it('allows a controlling player to stage and capture movement, while rejecting a
     ...base.ownerCapture,
     expectedUserId: base.owner.userId,
     expectedRole: 'PLAYER',
-    movement: {
-      encounterId: base.run.id,
-      baseTokenOrdinal: 0,
-      subject: { kind: 'SAVE', saveId: staged.saveId }
-    }
+    movement: { encounterId: base.run.id, saveId: staged.saveId, baseTokenOrdinal: 0 }
   }
   await expect(base.owner.caller.query(capture, scope)).resolves.toMatchObject({
     kind: 'MOVEMENT_INPUTS',
-    subject: { kind: 'SAVE', save: { actorUserId: base.owner.userId } }
+    save: { actorUserId: base.owner.userId }
   })
   await expect(
     base.owner.caller.query(capture, {
@@ -380,7 +373,7 @@ it('does not let movement scope read a Character through a custom Encounter acto
       characterId: character.id,
       movement: {
         ...base.ownerCapture.movement!,
-        subject: { kind: 'SAVE', saveId: staged.saveId },
+        saveId: staged.saveId,
         actorId: base.actorIds[0]!
       },
       request: { kind: 'INPUTS' }
@@ -516,13 +509,7 @@ it('bundles exactly the movement parts the separate captures return, with the Sy
   const { bundle, separate } = await base.other.caller.run((ctx) =>
     readBundleAndSeparateCaptures(
       ctx,
-      {
-        ...base.ownerCapture,
-        movement: {
-          ...base.ownerCapture.movement!,
-          subject: { kind: 'SAVE', saveId: staged.saveId }
-        }
-      },
+      { ...base.ownerCapture, movement: { ...base.ownerCapture.movement!, saveId: staged.saveId } },
       base.run.actors
     )
   )

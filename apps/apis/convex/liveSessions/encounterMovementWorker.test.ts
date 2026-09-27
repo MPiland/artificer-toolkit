@@ -12,7 +12,6 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { movementDecisionSubject } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
@@ -273,11 +272,7 @@ it.each([
       expectedRole: asPlayer ? 'PLAYER' : 'OWNER',
       encounterId: value.base.run.id,
       expectedVersion: choice.encounterVersion,
-      movement: {
-        encounterId: value.base.run.id,
-        baseTokenOrdinal: 1,
-        subject: movementDecisionSubject(useCommand)
-      }
+      movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 }
     }
     // The room's own runtime: it reads no definition itself, so eligibility must use the capture.
     const runtime = await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
@@ -342,7 +337,6 @@ it.each([
       scene,
       occurrenceId,
       occurredAt,
-      answer: useCommand,
       runtime,
       random: (maximum) => {
         expect(maximum).toBeGreaterThan(0)
@@ -432,7 +426,7 @@ it.each([
       authorityEpoch: scope.authorityEpoch,
       expectedUserId: scope.expectedUserId,
       expectedRole: scope.expectedRole,
-      movement: { ...scope.movement, subject: { kind: 'SAVE', saveId: staged.saveId } },
+      movement: scope.movement,
       preparation,
       revisions: prepared.revisions(),
       maintenanceOwners: prepared.dependencies.flatMap(({ request }) =>
@@ -814,11 +808,7 @@ it('bundles exactly the parts of a Character mover response the separate capture
       }
     }
   )
-  if (staged.kind !== 'STAGED' || !staged.capture)
-    throw new Error('Expected a receiving geometry save.')
-  // An answer reads under its issued decision (D64).
-  expect(staged.capture.movement.subject.kind).toBe('DECISION')
-  const { movement } = staged.capture
+  if (staged.kind !== 'STAGED') throw new Error('Expected a receiving geometry save.')
   const { bundle, separate } = await value.owner.caller.run((ctx) =>
     readBundleAndSeparateCaptures(
       ctx,
@@ -826,7 +816,7 @@ it('bundles exactly the parts of a Character mover response the separate capture
         ...scope,
         encounterId: value.base.run.id,
         expectedVersion: choice.encounterVersion,
-        movement,
+        movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 },
         request: { kind: 'MOVEMENT_INPUTS' }
       },
       value.base.run.actors

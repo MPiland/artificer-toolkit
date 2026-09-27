@@ -5,7 +5,6 @@ import {
   sameSystemStamp,
   type LiveSessionEncounterCaptureBundle
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalQuery, type QueryCtx } from '../_generated/server'
 import { memoizeTransactionReads } from '../lib/transactionReads'
 import { admitCharacterInputsCaptures } from './characterRulesCapture'
@@ -86,18 +85,6 @@ export async function readEncounterCaptureBundle(
   }
   return bundle
 }
-/**
- * Every part's read checksum, in order. Each covers its input, reader and response (the Run System
- * included), so two bundles read under the same input agree exactly when every read does (D64).
- */
-export function captureBundleChecksum(bundle: LiveSessionEncounterCaptureBundle): string {
-  return checksumCanonicalJson({
-    encounter: bundle.encounter.map((part) => part.response.readChecksum),
-    inputs: bundle.inputs?.readChecksum ?? null,
-    characters: bundle.characters.map((part) => [part.actorId, part.response.readChecksum])
-  })
-}
-
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const capture = internalQuery({
   args: v.any(),

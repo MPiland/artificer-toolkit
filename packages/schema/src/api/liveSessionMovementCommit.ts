@@ -1,7 +1,7 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
 import { liveSessionSequenceDtoSchema } from './liveSessionCommands.js'
-import { liveSessionMovementSaveScopeSchema } from './liveSessionEncounterMovement.js'
+import { liveSessionMovementCaptureScopeSchema } from './liveSessionEncounterMovement.js'
 import {
   sceneGeometryCommandResultSchema,
   sceneGeometryFinishInputSchema,
@@ -81,7 +81,7 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
 export const liveSessionMovementPrepareInputSchema = lazySchema(() =>
   z.extend(liveSessionBootstrapInputSchema, {
     expectedRole: z.enum(['OWNER', 'PLAYER']),
-    movement: liveSessionMovementSaveScopeSchema,
+    movement: liveSessionMovementCaptureScopeSchema,
     preparation: sceneSpatialPreparationSchema,
     revisions: liveSessionRulesRevisionsSchema,
     maintenanceOwners: z
@@ -144,20 +144,10 @@ export const liveSessionEncounterBindingCommitInputSchema = lazySchema(() =>
   })
 )
 
-/**
- * What a room commit changes, so a resolve can tell whether it landed. A prefetched movement
- * answer (D64) stages its save in the commit's own transaction, so it is named by its Scene and
- * command ID; Convex refuses it after `expiresAt`, like a binding.
- */
+/** What a room commit changes, so a resolve can tell whether it landed. */
 export const liveSessionExternalCommitSubjectSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('SCENE_SAVE'), saveId: postgresUuidSchema }),
-    z.strictObject({
-      kind: z.literal('MOVEMENT_ANSWER'),
-      sceneId: postgresUuidSchema,
-      commandId: postgresUuidSchema,
-      expiresAt: liveSessionEncounterBindingCommitInputSchema.shape.expiresAt
-    }),
     z.strictObject({
       kind: z.literal('ENCOUNTER_BINDING'),
       encounterId: postgresUuidSchema,

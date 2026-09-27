@@ -64,10 +64,7 @@ export async function readResponse(ctx: MutationCtx, saveId: string, geometry: G
 /** Response authority belongs to the issued decision, independently of the movement initiator. */
 export async function readMovementResponseAuthority(
   ctx: QueryCtx,
-  command: Pick<
-    ResolveRuleOccurrenceInputDto,
-    'encounterId' | 'occurrenceId' | 'expectedVersion' | 'expectedOccurrenceVersion'
-  >
+  command: ResolveRuleOccurrenceInputDto
 ) {
   const { userId } = await requireIdentity(ctx)
   const run = await ctx.db

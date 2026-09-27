@@ -125,8 +125,8 @@ async function preparePrivateCommit(value: Fixture) {
     expectedRole: 'OWNER',
     movement: {
       encounterId: value.base.run.id,
-      baseTokenOrdinal: 1,
-      subject: { kind: 'SAVE', saveId: value.saveId }
+      saveId: value.saveId,
+      baseTokenOrdinal: 1
     },
     preparation,
     revisions,

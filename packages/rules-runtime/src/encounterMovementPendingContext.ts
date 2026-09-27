@@ -3,8 +3,6 @@ import {
   isServerKernelRuleExecutionPendingSnapshot,
   type ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import type { SceneTokenMovementCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 
 type KernelMovementContext = Extract<
   Extract<
@@ -74,25 +72,4 @@ export function readEncounterMovementPendingContext(
     }
   }
   throw new Error('Movement response has a different pending context.')
-}
-
-/**
- * The Scene move a decision's answer continues: the sealed root's original path from its current
- * Scene version, under the answer's command ID. Convex stages it and the room plans it (D64).
- */
-export function movementResponseSceneCommand(
-  root: ReturnType<typeof readEncounterMovementPendingContext>['root'],
-  command: Pick<ResolveRuleOccurrenceInputDto, 'commandId' | 'expectedVersion' | 'correlationId'>
-): SceneTokenMovementCommandInputDto {
-  return {
-    type: 'MOVE_SCENE_TOKEN',
-    commandId: command.commandId,
-    sceneId: root.sceneId,
-    tokenId: root.tokenId,
-    expectedSceneVersion: root.currentSceneVersion,
-    expectedEncounterVersion: command.expectedVersion,
-    correlationId: command.correlationId,
-    movementKind: root.movementKind,
-    path: root.originalPath
-  }
 }

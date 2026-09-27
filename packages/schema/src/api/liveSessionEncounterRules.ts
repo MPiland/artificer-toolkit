@@ -219,14 +219,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       autoRollByActorId: encounterAutoRollByActorIdSchema,
       /** The app roll a movement response settles with; null for any other answer. */
       appRoll: z.nullable(encounterSettledAppRollDtoSchema),
-      /** A move's staged save, or the issued decision an answer continues (D64). */
-      subject: z.discriminatedUnion('kind', [
-        z.strictObject({ kind: z.literal('SAVE'), save: sceneStoredGeometrySaveSchema }),
-        z.strictObject({
-          kind: z.literal('DECISION'),
-          pendingSnapshot: serverRuleExecutionPendingSnapshotDtoSchema
-        })
-      ]),
+      save: sceneStoredGeometrySaveSchema,
       header: sceneLiveStateHeaderSchema,
       bindings: z
         .array(z.strictObject({ actorId: postgresUuidSchema, tokenId: postgresUuidSchema }))

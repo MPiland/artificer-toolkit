@@ -14,6 +14,7 @@ import {
   type LiveSessionCommandRejectionCodeDto
 } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
+import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import { liveSessionEncounterTurnPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 
@@ -34,7 +35,6 @@ import {
   planNativeLiveEncounterAction
 } from './nativeEncounterRules.js'
 import { planNativeLiveEncounterTurn } from './nativeEncounterTurn.js'
-import type { HeldMovementStage } from './nativeExternalSceneCommit.js'
 
 /** The admitted room member issuing the command; every route rechecks it in Convex. */
 export interface LiveEncounterActor {
@@ -52,9 +52,7 @@ export interface LiveEncounterActor {
  * Planners may reuse cached System-level captures; a refused commit (409) of a plan that reused any
  * drops those entries and replans once from fresh reads before the refusal surfaces. A movement
  * decision's answer or GM void goes back to the room (`movement`), which commits it with the Scene;
- * one the room holds is staged first (`stageHeldMovement`), and that stage also routes it, unless
- * the room prefetched the answer's inputs (D64). A refused (409) prefetched answer falls back to the
- * stage once.
+ * one the room holds is staged first (`stageHeldMovement`), and that stage also routes it.
  */
 export async function executeLiveEncounterCommand(input: {
   environment: NativeLiveSessionEnvironment
@@ -66,17 +64,16 @@ export async function executeLiveEncounterCommand(input: {
   captureCache?: LiveCaptureCache
   /**
    * Stages a movement decision the room holds on its presented Scene (D26); Convex routes it in the
-   * same call (D52). An answer the room prefetched is taken instead, unstaged (D64). Null when the
-   * room holds no movement decision for it.
+   * same call (D52). Null when the room holds no movement decision for it.
    */
   stageHeldMovement(
     command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
     captures: LiveCaptureReads | undefined
-  ): Promise<HeldMovementStage | null>
+  ): Promise<LiveSessionMovementStage | null>
   movement(
     command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
     captures: LiveCaptureReads | undefined,
-    staged: HeldMovementStage | undefined
+    staged: LiveSessionMovementStage | undefined
   ): Promise<EncounterCommandResultDto>
 }): Promise<EncounterCommandResultDto> {
   const { environment, accessToken, actor, command, captureCache } = input
@@ -88,7 +85,6 @@ export async function executeLiveEncounterCommand(input: {
   const forward = () =>
     callLiveSessionRoute(environment, accessToken, 'encounterCommand', { ...actor, command })
   const captures = captureCache?.reads()
-  let prefetched = false
   let result: EncounterCommandResultDto
   try {
     result = await route(captures)
@@ -96,12 +92,10 @@ export async function executeLiveEncounterCommand(input: {
     if (
       !(error instanceof LiveSessionRouteError) ||
       error instanceof LiveSessionDomainRejectionError ||
-      error.status !== 409
+      error.status !== 409 ||
+      !captures?.dropReused()
     )
       throw error
-    // A stale prefetch was taken, so the retry stages; reused cache entries are read again.
-    const dropped = captures?.dropReused() ?? false
-    if (!prefetched && !dropped) throw error
     result = await route(captureCache?.reads())
   }
   // Backstop: every result for a player is the redacted player projection (ADR 0034 decision 1).
@@ -139,7 +133,7 @@ export async function executeLiveEncounterCommand(input: {
       captures?: LiveCaptureReads
     },
     reads: LiveCaptureReads | undefined,
-    staged: HeldMovementStage | undefined
+    staged: LiveSessionMovementStage | undefined
   ): Promise<EncounterCommandResultDto> {
     switch (planner) {
       case 'ACTION': {
@@ -301,7 +295,7 @@ export async function executeLiveEncounterCommand(input: {
   async function plannerRoute(reads: LiveCaptureReads | undefined): Promise<{
     route: RoomEncounterPlanner
     decline: ResolveRuleOccurrenceInputDto | null
-    staged?: HeldMovementStage
+    staged?: LiveSessionMovementStage
   }> {
     const planner = roomEncounterPlanner(command)
     if (planner !== 'DECISION') return { route: planner, decline: null }
@@ -309,7 +303,6 @@ export async function executeLiveEncounterCommand(input: {
       throw new Error('Only decisions are routed by their pending occurrence.')
     const staged = await input.stageHeldMovement(command, reads)
     if (staged?.kind === 'ROUTED') return staged.route
-    if (staged?.kind === 'PREFETCHED') prefetched = true
     if (staged) return { route: 'MOVEMENT', decline: null, staged }
     return callLiveSessionRoute(environment, accessToken, 'encounterRoute', { ...actor, command })
   }

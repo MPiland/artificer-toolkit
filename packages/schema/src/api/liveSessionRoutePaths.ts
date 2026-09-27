@@ -14,8 +14,6 @@ export const LIVE_SESSION_ROUTE_PATHS = {
   encounterBundle: '/live-sessions/encounter-bundle',
   encounterMovementStage: '/live-sessions/encounter-movement-stage',
   encounterMovementCommit: '/live-sessions/encounter-movement',
-  encounterMovementPrefetch: '/live-sessions/encounter-movement-prefetch',
-  encounterMovementAnswer: '/live-sessions/encounter-movement-answer',
   sceneGeometryCommit: '/live-sessions/scene-geometry',
   encounterBindingCommit: '/live-sessions/encounter-binding',
   externalCommitResolve: '/live-sessions/external-commit-resolve',
