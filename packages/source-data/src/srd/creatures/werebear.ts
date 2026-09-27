@@ -195,6 +195,24 @@ export const werebear: CreatureAuthored = {
         }
       ],
       order: 5
+    },
+    {
+      id: S.featureId(287, 6),
+      label: 'Greataxe (Humanoid or Hybrid Form Only)',
+      description:
+        'Greataxe (Humanoid or Hybrid Form Only). Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 10 (1d12 + 4) slashing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 287,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'SLASHING',
+          diceConfig: '1d12',
+          ability: 'STRENGTH'
+        })
+      ],
+      order: 6
     }
   ]
 }

@@ -5,12 +5,6 @@
  * longer applies. Each reason names the follow-up that removes it (D56).
  */
 
-const UNAUTHORED_ACTION =
-  'The printed action is not authored yet; it needs Effects authoring (attack roll, damage, saves), a follow-up (D56).'
-const UNAUTHORED_REACTION =
-  'The printed reaction is not authored yet; it needs a reaction Effect, a follow-up (D56).'
-const UNAUTHORED_SPELLCASTING =
-  'The printed spellcasting trait is not authored yet; it needs spell grants, a follow-up (D56).'
 const UNAUTHORED_LEGENDARY =
   'The printed legendary action option is not authored yet; the Creature has no legendary action options, a follow-up (D56).'
 const UNREACHABLE_SKILL =
@@ -22,26 +16,6 @@ const entries = (reason: string, keys: readonly string[]) =>
   keys.map((key) => [key, reason] as const)
 
 export const SRD_CREATURE_STAT_BLOCK_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
-  ...entries(UNAUTHORED_ACTION, [
-    'Aboleth|features +Tentacle',
-    'Aboleth|features +Tail',
-    'Aboleth|features +Enslave (3/Day)',
-    'Ice Devil|features +Wall of Ice (Recharge 6)',
-    'Kraken|features +Fling',
-    'Oni|features +Glaive',
-    'Solar|features +Flying Sword',
-    'Succubus/Incubus|features +Charm',
-    'Succubus/Incubus|features +Etherealness',
-    'Werebear|features +Greataxe (Humanoid or Hybrid Form Only)'
-  ]),
-  ...entries(UNAUTHORED_REACTION, [
-    'Marilith|features +Parry',
-    'Stone Giant|features +Rock Catching'
-  ]),
-  ...entries(UNAUTHORED_SPELLCASTING, [
-    'Androsphinx|features +Spellcasting',
-    'Solar|features +Innate Spellcasting'
-  ]),
   ...entries(UNAUTHORED_LEGENDARY, [
     'Aboleth|legendaryActions +Detect',
     'Aboleth|legendaryActions +Tail Swipe',

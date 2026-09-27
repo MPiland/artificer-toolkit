@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const succubusIncubus: CreatureAuthored = {
   id: S.CREATURE_IDS.SUCCUBUS_INCUBUS,
@@ -229,6 +230,73 @@ export const succubusIncubus: CreatureAuthored = {
         }
       ],
       order: 4
+    },
+    {
+      id: S.featureId(267, 6),
+      label: 'Charm',
+      description:
+        "Charm. One humanoid the fiend can see within 30 feet of it must succeed on a DC 15 Wisdom saving throw or be magically charmed for 1 day. The charmed target obeys the fiend's verbal or telepathic commands. If the target suffers any harm or receives a suicidal command, it can repeat the saving throw, ending the effect on a success. If the target successfully saves against the effect, or if the effect on it ends, the target is immune to this fiend's Charm for the next 24 hours. The fiend can have only one target charmed at a time. If it charms another, the effect on the previous target ends.",
+      effects: [
+        {
+          id: S.actionId(267, 300),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(267, 301),
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+              baseDc: 15
+            },
+            range: {
+              id: S.actionId(267, 302),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(267, 303),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(267, 303)}__result`,
+                resultKind: 'SINGLE',
+                duration: {
+                  id: S.actionId(267, 304),
+                  durationKind: DURATION_KIND.DAY,
+                  amount: 1
+                },
+                outcomes: [
+                  {
+                    id: S.actionId(267, 305),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('CHARMED')
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      order: 5
+    },
+    {
+      id: S.featureId(267, 7),
+      label: 'Etherealness',
+      description:
+        'Etherealness. The fiend magically enters the Ethereal Plane from the Material Plane, or vice versa.',
+      order: 6
     }
   ]
 }

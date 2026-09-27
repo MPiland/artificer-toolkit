@@ -1,6 +1,7 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
+import { conditionTypeId } from '../equipment/shared.js'
 
 import * as S from './shared.js'
 export const aboleth: CreatureAuthored = {
@@ -143,107 +144,109 @@ export const aboleth: CreatureAuthored = {
       label: 'Multiattack',
       description: 'The aboleth makes three tentacle attacks.',
       effects: [
-        {
-          id: S.legendaryActionId(1, 14),
-          order: 2,
+        S.closedRuleEffect({
+          id: S.actionId(1, 110),
           invocation: {
-            kind: 'ACTION' as const,
+            kind: 'ACTION',
             triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.FREE
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(1, 111), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
+      order: 5
+    },
+    {
+      id: S.featureId(1, 6),
+      label: 'Tentacle',
+      description:
+        "Tentacle. Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 12 (2d6 + 5) bludgeoning damage. If the target is a creature, it must succeed on a DC 14 Constitution saving throw or become diseased. The disease has no effect for 1 minute and can be removed by any magic that cures disease. After 1 minute, the diseased creature's skin becomes translucent and slimy, the creature can't regain hit points unless it is underwater, and the disease can be removed only by heal or another disease-curing spell of 6th level or higher. When the creature is outside a body of water, it takes 6 (1d12) acid damage every 10 minutes unless moisture is applied to the skin before 10 minutes have passed.",
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 1,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'BLUDGEONING',
+          diceConfig: '2d6',
+          ability: 'STRENGTH'
+        })
+      ],
+      order: 6
+    },
+    {
+      id: S.featureId(1, 7),
+      label: 'Tail',
+      description:
+        'Tail. Melee Weapon Attack: +9 to hit, reach 10 ft. one target. Hit: 15 (3d6 + 5) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 1,
+          localIndex: 10,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'BLUDGEONING',
+          diceConfig: '3d6',
+          ability: 'STRENGTH'
+        })
+      ],
+      order: 7
+    },
+    {
+      id: S.featureId(1, 8),
+      label: 'Enslave (3/Day)',
+      description:
+        "Enslave (3/Day). The aboleth targets one creature it can see within 30 feet of it. The target must succeed on a DC 14 Wisdom saving throw or be magically charmed by the aboleth until the aboleth dies or until it is on a different plane of existence from the target. The charmed target is under the aboleth's control and can't take reactions, and the aboleth and the target can communicate telepathically with each other over any distance. Whenever the charmed target takes damage, the target can repeat the saving throw. On a success, the effect ends. No more than once every 24 hours, the target can also repeat the saving throw when it is at least 1 mile away from the aboleth.",
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(1, 20),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.DAILY,
+        amount: 3
+      },
+      effects: [
+        {
+          id: S.actionId(1, 21),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(1, 22),
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+              baseDc: 14
             },
             range: {
-              id: S.legendaryActionId(1, 15),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              id: S.actionId(1, 23),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
             {
-              id: S.legendaryActionId(1, 16),
+              id: S.actionId(1, 24),
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
               groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
               resultBlock: {
-                id: S.legendaryActionId(1, 16) + '__result',
-                resultKind: 'SINGLE' as const,
+                id: `${S.actionId(1, 24)}__result`,
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
-                    id: S.legendaryActionId(1, 16),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '3d6',
-                    bonuses: [
-                      {
-                        id: S.legendaryActionId(1, 20),
-                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.STRENGTH,
-                        order: 1
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.legendaryActionId(1, 17),
-          order: 3,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.FREE
-            },
-            range: {
-              id: S.legendaryActionId(1, 18),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.legendaryActionId(1, 19),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.legendaryActionId(1, 19) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(1, 19),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PSYCHIC'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '3d6'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.legendaryActionId(1, 21),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.legendaryActionId(1, 21) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(1, 21),
-                    effectKind: S.EFFECT_KIND.HEAL,
-                    valueKind: 'DICE',
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '3d6'
+                    id: S.actionId(1, 25),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('CHARMED')
                   }
                 ]
               }
@@ -251,7 +254,7 @@ export const aboleth: CreatureAuthored = {
           ]
         }
       ],
-      order: 9
+      order: 8
     }
   ]
 }

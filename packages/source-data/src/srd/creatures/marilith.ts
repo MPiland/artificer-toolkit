@@ -279,6 +279,25 @@ export const marilith: CreatureAuthored = {
         })
       ],
       order: 8
+    },
+    {
+      id: S.featureId(192, 9),
+      label: 'Parry',
+      description:
+        'Parry. The marilith adds 5 to its AC against one melee attack that would hit it. To do so, the marilith must see the attacker and be wielding a melee weapon.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.reactionId(192, 101),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.REACTION, amount: 1 },
+            range: { id: S.reactionId(192, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PARRY
+        })
+      ],
+      order: 9
     }
   ]
 }

@@ -271,6 +271,13 @@ export const kraken: CreatureAuthored = {
       order: 7
     },
     {
+      id: S.featureId(180, 10),
+      label: 'Fling',
+      description:
+        'Fling. One Large or smaller object held or creature grappled by the kraken is thrown up to 60 feet in a random direction and knocked prone. If a thrown target strikes a solid surface, the target takes 3 (1d6) bludgeoning damage for every 10 feet it was thrown. If the target is thrown at another creature, that creature must succeed on a DC 18 Dexterity saving throw or take the same damage and be knocked prone.',
+      order: 8
+    },
+    {
       id: S.featureId(180, 8),
       label: 'Lightning Storm',
       description:
@@ -349,7 +356,7 @@ export const kraken: CreatureAuthored = {
           ]
         }
       ],
-      order: 8
+      order: 9
     }
   ]
 }

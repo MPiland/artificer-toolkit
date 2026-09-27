@@ -216,6 +216,24 @@ export const oni: CreatureAuthored = {
       order: 6
     },
     {
+      id: S.featureId(211, 8),
+      label: 'Glaive',
+      description:
+        'Glaive. Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 15 (2d10 + 4) slashing damage, or 9 (1d10 + 4) slashing damage in Small or Medium form.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 211,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'SLASHING',
+          diceConfig: '2d10',
+          ability: 'STRENGTH'
+        })
+      ],
+      order: 7
+    },
+    {
       id: S.featureId(211, 7),
       label: 'Magic Weapons',
       description: "Magic Weapons. The oni's weapon attacks are magical.",
@@ -231,7 +249,7 @@ export const oni: CreatureAuthored = {
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
         })
       ],
-      order: 7
+      order: 8
     }
   ]
 }

@@ -315,6 +315,82 @@ export const solar: CreatureAuthored = {
       label: 'Multiattack',
       description: 'Multiattack. The solar makes two greatsword attacks.',
       order: 7
+    },
+    {
+      id: S.featureId(256, 9),
+      label: 'Innate Spellcasting',
+      description:
+        "Innate Spellcasting. The solar's spellcasting ability is Charisma (spell save DC 25). It can innately cast the following spells, requiring no material components: At will: detect evil and good, invisibility (self only) 3/day each: blade barrier, dispel evil and good, resurrection 1/day each: commune, control weather",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(256, 701),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.DETECT_EVIL_AND_GOOD],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            order: 0
+          },
+          {
+            id: S.actionId(256, 702),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.INVISIBILITY],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL, S.SPELL_GRANT_ATTRIBUTE.SELF_ONLY],
+            order: 1
+          },
+          ...[
+            [3, S.SPELL_IDS.BLADE_BARRIER],
+            [3, S.SPELL_IDS.DISPEL_EVIL_AND_GOOD],
+            [3, S.SPELL_IDS.RESURRECTION],
+            [1, S.SPELL_IDS.COMMUNE],
+            [1, S.SPELL_IDS.CONTROL_WEATHER]
+          ].map(([perDay, spellId], index) => ({
+            id: S.actionId(256, 710 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [spellId as string],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            charges: {
+              id: S.actionId(256, 720 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.DAILY,
+              amount: perDay as number
+            },
+            order: index + 2
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(256, 730),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(256, 731), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_INNATE_SPELLCASTING
+        })
+      ],
+      order: 8
+    },
+    {
+      id: S.featureId(256, 10),
+      label: 'Flying Sword',
+      description:
+        "Flying Sword. The solar releases its greatsword to hover magically in an unoccupied space within 5 feet of it. If the solar can see the sword, the solar can mentally command it as a bonus action to fly up to 50 feet and either make one attack against a target or return to the solar's hands. If the hovering sword is targeted by any effect, the solar is considered to be holding it. The hovering sword falls if the solar dies.",
+      order: 9
     }
   ]
 }

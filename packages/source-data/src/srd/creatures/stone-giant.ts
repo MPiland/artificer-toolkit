@@ -111,6 +111,13 @@ export const stoneGiant: CreatureAuthored = {
       label: 'Multiattack',
       description: 'Multiattack. The giant makes two greatclub attacks.',
       order: 4
+    },
+    {
+      id: S.featureId(264, 5),
+      label: 'Rock Catching',
+      description:
+        'Rock Catching. If a rock or similar object is hurled at the giant, the giant can, with a successful DC 10 Dexterity saving throw, catch the missile and take no bludgeoning damage from it.',
+      order: 5
     }
   ]
 }

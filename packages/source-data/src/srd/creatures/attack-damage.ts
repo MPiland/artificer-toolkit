@@ -9,6 +9,8 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   string,
   readonly (readonly [expression: string, damageType: string])[]
 > = new Map([
+  ['00000000-0002-0001-0070-000100000000', [['2d6+5', 'BLUDGEONING']]], // Aboleth: Tentacle
+  ['00000000-0002-000a-0070-000100000000', [['3d6+5', 'BLUDGEONING']]], // Aboleth: Tail
   ['00000000-0002-0001-0070-000200000000', [['1d4', 'BLUDGEONING']]], // Acolyte: Club
   [
     '00000000-0002-000a-0070-000300000000',
@@ -640,6 +642,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0009-0070-00d100000000', [['2d6+4', 'PIERCING']]], // Ogre: Javelin
   ['00000000-0002-0001-0070-00d200000000', [['2d8+4', 'BLUDGEONING']]], // Ogre Zombie: Morningstar
   ['00000000-0002-0001-0070-0c7200000000', [['1d8+4', 'SLASHING']]], // Oni: Claw (Oni Form Only)
+  ['00000000-0002-0001-0070-00d300000000', [['2d10+4', 'SLASHING']]], // Oni: Glaive
   ['00000000-0002-01f5-0070-00d400000000', [['1d12+3', 'SLASHING']]], // Orc: Greataxe
   ['00000000-0002-01f6-0070-00d400000000', [['1d6+3', 'PIERCING']]], // Orc: Javelin
   ['00000000-0002-0200-0070-00d400000000', [['1d6+3', 'PIERCING']]], // Orc: Javelin
@@ -807,6 +810,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-011e00000000', [['1', 'PIERCING']]], // Weasel: Bite
   ['00000000-0002-00cc-0070-011f00000000', [['2d10+4', 'PIERCING']]], // Werebear: Bite (Bear or Hybrid Form Only)
   ['00000000-0002-0001-0070-1d7300000000', [['2d8+4', 'SLASHING']]], // Werebear: Claw (Bear or Hybrid Form Only)
+  ['00000000-0002-0001-0070-011f00000000', [['1d12+4', 'SLASHING']]], // Werebear: Greataxe (Humanoid or Hybrid Form Only)
   ['00000000-0002-0001-0070-1b1100000000', [['2d6+3', 'SLASHING']]], // Wereboar: Tusks (Boar or Hybrid Form Only)
   ['00000000-0002-00ce-0070-012000000000', [['2d6+3', 'BLUDGEONING']]], // Wereboar: Maul (Humanoid or Hybrid Form Only)
   ['00000000-0002-00cc-0070-012100000000', [['1d4+2', 'PIERCING']]], // Wererat: Bite (Rat or Hybrid Form Only)

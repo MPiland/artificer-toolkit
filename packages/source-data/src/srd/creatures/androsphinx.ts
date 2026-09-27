@@ -78,6 +78,77 @@ export const androsphinx: CreatureAuthored = {
       order: 2
     },
     {
+      id: S.featureId(24, 7),
+      label: 'Spellcasting',
+      description:
+        "Spellcasting. The sphinx is a 12th-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 18, +10 to hit with spell attacks). It requires no material components to cast its spells. The sphinx has the following cleric spells prepared: Cantrips (at will): sacred flame, spare the dying, thaumaturgy 1st level (4 slots): command, detect evil and good, detect magic 2nd level (3 slots): lesser restoration, zone of truth 3rd level (3 slots): dispel magic, tongues 4th level (3 slots): banishment, freedom of movement 5th level (2 slots): flame strike, greater restoration 6th level (1 slot): heroes' feast",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(24, 301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.SACRED_FLAME,
+              S.SPELL_IDS.SPARE_THE_DYING,
+              S.SPELL_IDS.THAUMATURGY
+            ],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.WISDOM,
+            order: 0
+          },
+          ...[
+            [
+              1,
+              4,
+              [S.SPELL_IDS.COMMAND, S.SPELL_IDS.DETECT_EVIL_AND_GOOD, S.SPELL_IDS.DETECT_MAGIC]
+            ],
+            [2, 3, [S.SPELL_IDS.LESSER_RESTORATION, S.SPELL_IDS.ZONE_OF_TRUTH]],
+            [3, 3, [S.SPELL_IDS.DISPEL_MAGIC, S.SPELL_IDS.TONGUES]],
+            [4, 3, [S.SPELL_IDS.BANISHMENT, S.SPELL_IDS.FREEDOM_OF_MOVEMENT]],
+            [5, 2, [S.SPELL_IDS.FLAME_STRIKE, S.SPELL_IDS.GREATER_RESTORATION]],
+            [6, 1, [S.SPELL_IDS.HEROES_FEAST]]
+          ].map(([level, slots, spellIds], index) => ({
+            id: S.actionId(24, 310 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: spellIds as string[],
+            attributes: [
+              S.SPELL_GRANT_ATTRIBUTE.PREPARED,
+              S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE,
+              S.SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL
+            ],
+            castAtLevel: level as number,
+            castingAbility: S.ABILITY_CODE.WISDOM,
+            charges: {
+              id: S.actionId(24, 320 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.LONG_REST,
+              amount: slots as number
+            },
+            order: index + 1
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(24, 330),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(24, 331), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPELLCASTING_SLOTS
+        })
+      ],
+      order: 3
+    },
+    {
       id: S.featureId(24, 3),
       label: 'Multiattack',
       description: 'Multiattack. The sphinx makes two claw attacks.',
@@ -93,7 +164,7 @@ export const androsphinx: CreatureAuthored = {
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
         })
       ],
-      order: 3
+      order: 4
     },
     {
       id: S.featureId(24, 4),
@@ -153,7 +224,7 @@ export const androsphinx: CreatureAuthored = {
           ]
         }
       ],
-      order: 4
+      order: 5
     },
     {
       id: S.featureId(24, 5),
@@ -402,7 +473,7 @@ export const androsphinx: CreatureAuthored = {
           ]
         }
       ],
-      order: 5
+      order: 6
     },
     {
       id: S.featureId(24, 6),
@@ -516,7 +587,7 @@ export const androsphinx: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      order: 6
+      order: 7
     }
   ]
 }

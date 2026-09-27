@@ -4,6 +4,8 @@
  * inline ATTACK roll, keyed by its source ID. Attacks that print none take their base attack’s.
  */
 export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map([
+  ['00000000-0001-0006-0070-000100000000', 9], // Aboleth: Tentacle
+  ['00000000-0001-0007-0070-000100000000', 9], // Aboleth: Tail
   ['00000000-0001-0003-0070-000200000000', 2], // Acolyte: Club
   ['00000000-0001-0004-0070-000300000000', 11], // Adult Black Dragon: Bite
   ['00000000-0001-0005-0070-000300000000', 11], // Adult Black Dragon: Claw
@@ -340,6 +342,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0002-0070-00d100000000', 6], // Ogre: Javelin
   ['00000000-0001-0003-0070-00d200000000', 6], // Ogre Zombie: Morningstar
   ['00000000-0001-0006-0070-00d300000000', 7], // Oni: Claw (Oni Form Only)
+  ['00000000-0001-0008-0070-00d300000000', 7], // Oni: Glaive
   ['00000000-0001-0002-0070-00d400000000', 5], // Orc: Greataxe
   ['00000000-0001-0003-0070-00d400000000', 5], // Orc: Javelin
   ['00000000-0001-0003-0070-00d600000000', 3], // Owl: Talons
@@ -447,6 +450,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0002-0070-011e00000000', 5], // Weasel: Bite
   ['00000000-0001-0004-0070-011f00000000', 7], // Werebear: Bite (Bear or Hybrid Form Only)
   ['00000000-0001-0005-0070-011f00000000', 7], // Werebear: Claw (Bear or Hybrid Form Only)
+  ['00000000-0001-0006-0070-011f00000000', 7], // Werebear: Greataxe (Humanoid or Hybrid Form Only)
   ['00000000-0001-0004-0070-012000000000', 5], // Wereboar: Tusks (Boar or Hybrid Form Only)
   ['00000000-0001-0005-0070-012000000000', 5], // Wereboar: Maul (Humanoid or Hybrid Form Only)
   ['00000000-0001-0005-0070-012100000000', 4], // Wererat: Bite (Rat or Hybrid Form Only)
