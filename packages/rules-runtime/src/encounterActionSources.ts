@@ -4,6 +4,7 @@ import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/ch
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
 
 type CompiledCharacterAction = Extract<
@@ -92,6 +93,20 @@ export function resolveEncounterActionSource(
     )
   }
   return { kind: 'CREATURE', actor, capability }
+}
+
+/**
+ * The Creature's Legendary Action Features. Their options run only in a Legendary window at the end
+ * of another creature's turn, never as the Creature's own turn action (D63).
+ */
+export function encounterLegendaryActionFeatureIds(
+  actor: EncounterRunActorState
+): ReadonlySet<string> {
+  return new Set(
+    snapshotFeatureDefinitions(actor)
+      .filter((feature) => feature.section === 'LEGENDARY_ACTION')
+      .map((feature) => feature.id)
+  )
 }
 
 /** The action's display name for logs and prompts; a Character action may have none. */

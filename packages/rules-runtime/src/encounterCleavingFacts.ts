@@ -9,6 +9,7 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import { snapshotStatBlock } from './encounterProjection.js'
+import { isEncounterActorDefeated } from './encounterActorDefeat.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { NativeEncounterActionSource } from './encounterActionSources.js'
 import type { NativeCleavingCandidate } from './encounterCleavingChoice.js'
@@ -176,7 +177,8 @@ export function buildEncounterCleavingCandidate(input: {
   } | null
 }): NativeCleavingCandidate | null {
   const { target, geometry } = input
-  if (target.actor.kind === 'CUSTOM') return null
+  // Excess damage never carries into a defeated creature (D63).
+  if (target.actor.kind === 'CUSTOM' || isEncounterActorDefeated(target.actor)) return null
   const armorClass =
     target.actor.kind === 'CHARACTER'
       ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective

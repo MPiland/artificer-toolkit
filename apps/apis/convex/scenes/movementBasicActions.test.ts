@@ -161,6 +161,29 @@ it('offers the reactor its opportunity attack when the mover leaves its reach', 
   expect((await moveAwayFromReactor(await moverTurn())).outcome.kind).toBe('PENDING')
 })
 
+it('a defeated reactor takes no opportunity attack (D63)', async () => {
+  const base = await moverTurn()
+  await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) =>
+        q.eq('encounterId', base.run.id).eq('id', base.reactor.id)
+      )
+      .unique()
+    if (!row) throw new Error('Missing reaction actor.')
+    const defeated = encounterRunActorStateSchema.parse({
+      ...JSON.parse(row.stateJson),
+      currentHitPoints: 0,
+      defeated: true
+    })
+    await ctx.db.patch(row._id, {
+      stateJson: JSON.stringify(defeated),
+      stateChecksum: checksumCanonicalJson(defeated)
+    })
+  })
+  expect((await moveAwayFromReactor(base)).outcome.kind).not.toBe('PENDING')
+})
+
 it('a Disengaged mover provokes no opportunity attack prompt in Assisted mode (Q11)', async () => {
   const base = await moverTurn()
   await basicAction(base, base.mover.id, disengage!.id)

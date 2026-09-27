@@ -9,8 +9,10 @@ import {
 } from '../encounterInitiativeStaging.js'
 import {
   applyEncounterInitiativeAdvance,
+  firstUndefeatedActorId,
   planEncounterInitiativeAdvance,
-  settleEncounterInitiativeRound
+  settleEncounterInitiativeRound,
+  skipDefeatedOpeningTurns
 } from '../encounterInitiativeStateSettlement.js'
 import {
   ACTOR_A,
@@ -22,6 +24,10 @@ import {
   preparingRound
 } from './encounterInitiativeFixtures.js'
 import { ENCOUNTER_ID } from './dnd5eSrdEncounter.js'
+
+const NONE: ReadonlySet<string> = new Set()
+const ACTOR_D = '00000000-0000-4000-8000-0000000000a4'
+const SIDE_ALLIES = '00000000-0000-4000-8000-0000000005a3'
 
 const ACTORS = [
   { id: ACTOR_A, sideId: SIDE_HEROES },
@@ -45,13 +51,22 @@ async function settle(input: {
   )
 }
 
-async function advance(state: EncounterInitiativeRoundStateDto, currentActorId: string) {
-  const plan = planEncounterInitiativeAdvance({ state, currentActorId })
+async function advance(
+  state: EncounterInitiativeRoundStateDto,
+  currentActorId: string,
+  defeatedActorIds: ReadonlySet<string> = NONE
+) {
+  const plan = planEncounterInitiativeAdvance({ state, currentActorId, defeatedActorIds })
   const staged = inMemoryInitiativeRepository(state)
   return {
     plan,
     state: persisted(
-      await applyEncounterInitiativeAdvance({ repository: staged.repository, state, plan })
+      await applyEncounterInitiativeAdvance({
+        repository: staged.repository,
+        state,
+        plan,
+        defeatedActorIds
+      })
     )
   }
 }
@@ -177,7 +192,9 @@ describe('planEncounterInitiativeAdvance', () => {
       orderedActorIds: [ACTOR_C, ACTOR_A, ACTOR_B]
     })
 
-    expect(planEncounterInitiativeAdvance({ state, currentActorId: ACTOR_C })).toEqual({
+    expect(
+      planEncounterInitiativeAdvance({ defeatedActorIds: NONE, state, currentActorId: ACTOR_C })
+    ).toEqual({
       kind: 'SAME_ROUND',
       round: 1,
       stateChecksum: checksumCanonicalJson(state),
@@ -200,19 +217,23 @@ describe('planEncounterInitiativeAdvance', () => {
     const third = await advance(second.state, ACTOR_A)
     expect(third.plan).toMatchObject({ kind: 'SAME_ROUND', nextActorId: ACTOR_B })
 
-    expect(planEncounterInitiativeAdvance({ state: third.state, currentActorId: ACTOR_B })).toEqual(
-      {
-        kind: 'ROUND_WRAP',
-        round: 1,
-        nextRound: 2,
-        cadence: 'ENCOUNTER_START',
-        stateChecksum: checksumCanonicalJson(third.state),
-        currentActorId: ACTOR_B,
-        firstActorId: ACTOR_C,
-        orderedActorIds: [ACTOR_C, ACTOR_A, ACTOR_B],
-        orderedSideIds: []
-      }
-    )
+    expect(
+      planEncounterInitiativeAdvance({
+        defeatedActorIds: NONE,
+        state: third.state,
+        currentActorId: ACTOR_B
+      })
+    ).toEqual({
+      kind: 'ROUND_WRAP',
+      round: 1,
+      nextRound: 2,
+      cadence: 'ENCOUNTER_START',
+      stateChecksum: checksumCanonicalJson(third.state),
+      currentActorId: ACTOR_B,
+      firstActorId: ACTOR_C,
+      orderedActorIds: [ACTOR_C, ACTOR_A, ACTOR_B],
+      orderedSideIds: []
+    })
     const wrapped = await advance(third.state, ACTOR_B)
     expect(cursor(wrapped.state)).toEqual({
       round: [1, 'COMPLETED', 3],
@@ -232,7 +253,13 @@ describe('planEncounterInitiativeAdvance', () => {
     })
     const last = await advance((await advance(state, ACTOR_B)).state, ACTOR_A)
 
-    expect(planEncounterInitiativeAdvance({ state: last.state, currentActorId: ACTOR_C })).toEqual({
+    expect(
+      planEncounterInitiativeAdvance({
+        defeatedActorIds: NONE,
+        state: last.state,
+        currentActorId: ACTOR_C
+      })
+    ).toEqual({
       kind: 'ROUND_WRAP',
       round: 1,
       nextRound: 2,
@@ -263,6 +290,7 @@ describe('planEncounterInitiativeAdvance', () => {
     ])
 
     const wrap = planEncounterInitiativeAdvance({
+      defeatedActorIds: NONE,
       state: acrossSides.state,
       currentActorId: ACTOR_A
     })
@@ -282,17 +310,26 @@ describe('planEncounterInitiativeAdvance', () => {
   it('refuses a preparing round, a mismatched current actor, and a stale plan', async () => {
     const preparing = preparingRound({ actors: ACTORS })
     expect(() =>
-      planEncounterInitiativeAdvance({ state: preparing, currentActorId: ACTOR_A })
+      planEncounterInitiativeAdvance({
+        defeatedActorIds: NONE,
+        state: preparing,
+        currentActorId: ACTOR_A
+      })
     ).toThrow('Only an active initiative round can advance.')
     const state = await settle({ state: preparing, orderedActorIds: [ACTOR_C, ACTOR_A, ACTOR_B] })
-    expect(() => planEncounterInitiativeAdvance({ state, currentActorId: ACTOR_A })).toThrow(
-      'Encounter and normalized initiative current actors do not match.'
-    )
+    expect(() =>
+      planEncounterInitiativeAdvance({ defeatedActorIds: NONE, state, currentActorId: ACTOR_A })
+    ).toThrow('Encounter and normalized initiative current actors do not match.')
 
-    const plan = planEncounterInitiativeAdvance({ state, currentActorId: ACTOR_C })
+    const plan = planEncounterInitiativeAdvance({
+      defeatedActorIds: NONE,
+      state,
+      currentActorId: ACTOR_C
+    })
     const moved = (await advance(state, ACTOR_C)).state
     await expect(
       applyEncounterInitiativeAdvance({
+        defeatedActorIds: NONE,
         repository: inMemoryInitiativeRepository(moved).repository,
         state: moved,
         plan
@@ -304,6 +341,7 @@ describe('planEncounterInitiativeAdvance', () => {
     }
     await expect(
       applyEncounterInitiativeAdvance({
+        defeatedActorIds: NONE,
         repository: inMemoryInitiativeRepository(renumbered).repository,
         state: renumbered,
         plan
@@ -322,9 +360,13 @@ describe('planEncounterInitiativeAdvance', () => {
         participant.actorId === ACTOR_C ? { ...participant, turnOrderOrdinal: 3 } : participant
       )
     }
-    expect(() => planEncounterInitiativeAdvance({ state: gap, currentActorId: ACTOR_A })).toThrow(
-      'Active initiative state must retain one exact contiguous actor order.'
-    )
+    expect(() =>
+      planEncounterInitiativeAdvance({
+        defeatedActorIds: NONE,
+        state: gap,
+        currentActorId: ACTOR_A
+      })
+    ).toThrow('Active initiative state must retain one exact contiguous actor order.')
     const actedLater: EncounterInitiativeRoundStateDto = {
       ...state,
       participants: state.participants.map((participant) =>
@@ -332,7 +374,93 @@ describe('planEncounterInitiativeAdvance', () => {
       )
     }
     expect(() =>
-      planEncounterInitiativeAdvance({ state: actedLater, currentActorId: ACTOR_A })
+      planEncounterInitiativeAdvance({
+        defeatedActorIds: NONE,
+        state: actedLater,
+        currentActorId: ACTOR_A
+      })
     ).toThrow('Active initiative participant state is not a valid turn cursor.')
+  })
+})
+
+describe('defeated actors keep their place but lose their turns (D63)', () => {
+  it('skips a defeated actor, marking it as having acted', async () => {
+    const settled = await settle({
+      state: preparingRound({ actors: ACTORS }),
+      orderedActorIds: [ACTOR_C, ACTOR_A, ACTOR_B]
+    })
+    const next = await advance(settled, ACTOR_C, new Set([ACTOR_A]))
+    expect(next.plan).toMatchObject({ kind: 'SAME_ROUND', nextActorId: ACTOR_B })
+    expect(cursor(next.state).participants).toEqual([
+      [ACTOR_A, 'ACTED', 1, 2],
+      [ACTOR_B, 'ACTIVE', 2, 2],
+      [ACTOR_C, 'ACTED', 0, 3]
+    ])
+  })
+
+  it('wraps the round when everyone after the current actor is defeated, opening past them', async () => {
+    const settled = await settle({
+      state: preparingRound({ actors: ACTORS }),
+      orderedActorIds: [ACTOR_C, ACTOR_A, ACTOR_B]
+    })
+    const defeated = new Set([ACTOR_C, ACTOR_B])
+    const second = await advance(settled, ACTOR_C)
+    const wrap = await advance(second.state, ACTOR_A, defeated)
+    expect(wrap.plan).toMatchObject({
+      kind: 'ROUND_WRAP',
+      firstActorId: ACTOR_A,
+      orderedActorIds: [ACTOR_C, ACTOR_A, ACTOR_B]
+    })
+    expect(cursor(wrap.state).participants).toEqual([
+      [ACTOR_A, 'ACTED', 1, 3],
+      [ACTOR_B, 'ACTED', 2, 2],
+      [ACTOR_C, 'ACTED', 0, 3]
+    ])
+  })
+
+  it('completes every side the skip leaves behind in side-roll initiative', async () => {
+    const actors = [...ACTORS, { id: ACTOR_D, sideId: SIDE_ALLIES }]
+    const settled = await settle({
+      state: preparingRound({ actors, policy: sideRollPolicy }),
+      orderedActorIds: [ACTOR_B, ACTOR_C, ACTOR_A, ACTOR_D],
+      orderedSideIds: [SIDE_FOES, SIDE_HEROES, SIDE_ALLIES]
+    })
+    const skipped = await advance(settled, ACTOR_B, new Set([ACTOR_C, ACTOR_A]))
+    expect(skipped.plan).toMatchObject({ kind: 'SAME_ROUND', nextActorId: ACTOR_D })
+    expect(cursor(skipped.state).sides).toEqual([
+      [SIDE_HEROES, 'COMPLETED', 1],
+      [SIDE_FOES, 'COMPLETED', 0],
+      [SIDE_ALLIES, 'ACTIVE', 2]
+    ])
+  })
+
+  it('opens a freshly settled round with its first actor that can act', async () => {
+    const settled = await settle({
+      state: preparingRound({ actors: ACTORS, policy: eachRoundPolicy }),
+      orderedActorIds: [ACTOR_B, ACTOR_A, ACTOR_C]
+    })
+    const staged = inMemoryInitiativeRepository(settled)
+    const opened = persisted(
+      await skipDefeatedOpeningTurns({
+        repository: staged.repository,
+        state: settled,
+        defeatedActorIds: new Set([ACTOR_B])
+      })
+    )
+    expect(cursor(opened).participants).toEqual([
+      [ACTOR_A, 'ACTIVE', 1, 2],
+      [ACTOR_B, 'ACTED', 0, 3],
+      [ACTOR_C, 'READY', 2, 1]
+    ])
+    expect(firstUndefeatedActorId([ACTOR_B, ACTOR_A, ACTOR_C], new Set([ACTOR_B]))).toBe(ACTOR_A)
+    // With everyone defeated the round keeps its first actor.
+    const everyone = new Set([ACTOR_A, ACTOR_B, ACTOR_C])
+    expect(
+      await skipDefeatedOpeningTurns({
+        repository: inMemoryInitiativeRepository(settled).repository,
+        state: settled,
+        defeatedActorIds: everyone
+      })
+    ).toBe(settled)
   })
 })

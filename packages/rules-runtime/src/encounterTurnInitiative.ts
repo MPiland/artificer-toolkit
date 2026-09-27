@@ -7,6 +7,11 @@ import { encounterInitiativeSettlementDtoSchema } from '@artificer-toolkit/schem
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { stableActors } from './encounterActorState.js'
+import { defeatedEncounterActorIds } from './encounterActorDefeat.js'
+import {
+  firstUndefeatedActorId,
+  skipDefeatedOpeningTurns
+} from './encounterInitiativeStateSettlement.js'
 import {
   compileEncounterInitiativeDeclaration,
   createEncounterInitiativeDeclarationRequest,
@@ -411,6 +416,13 @@ export async function prepareEncounterTurnInitiative(input: {
     }
   }
   if (result.orderedActorIds.length === 0) throw new Error('Encounter initiative did not settle.')
+  // Defeated actors keep their rolled place, but the round opens with the first that can act (D63).
+  const defeatedActorIds = defeatedEncounterActorIds(actors)
+  const roundState = await skipDefeatedOpeningTurns({
+    repository: staged.repository,
+    state: result.state,
+    defeatedActorIds
+  })
   const initiative = encounterInitiativeSettlementDtoSchema.parse({
     round: result.state.round.round,
     cadence: result.state.round.cadence,
@@ -427,12 +439,12 @@ export async function prepareEncounterTurnInitiative(input: {
       initiative,
       stagedInitiative: {
         beforePin,
-        stagedRoundState: serializeStagedInitiativeRoundState(result.state)
+        stagedRoundState: serializeStagedInitiativeRoundState(roundState)
       },
       proposedTerminalTransition: {
         status: 'ACTIVE' as const,
         round,
-        currentActorId: result.orderedActorIds[0]!
+        currentActorId: firstUndefeatedActorId(result.orderedActorIds, defeatedActorIds)
       }
     }
   }

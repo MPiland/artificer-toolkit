@@ -14,6 +14,8 @@ import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPoli
 export function evaluateEncounterActionRuleWarnings(input: {
   preparedWarnings: readonly EncounterRuleWarningDto[]
   target: Parameters<typeof evaluateEncounterActionTargetPolicy>[0]
+  /** A defeated target (D63) is left out of target lists; naming one anyway only warns. */
+  targetDefeated: boolean
   actionEconomy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>
   activationCode: string
   acknowledged: readonly EncounterRuleWarningCodeDto[]
@@ -23,9 +25,12 @@ export function evaluateEncounterActionRuleWarnings(input: {
   | { kind: 'ACCEPTED'; overrides: EncounterRuleWarningDto[] } {
   const targetWarnings = evaluateEncounterActionTargetPolicy(input.target)
   if (targetWarnings === null) return { kind: 'UNSUPPORTED_TARGET' }
-  const warnings = [
+  const warnings: EncounterRuleWarningDto[] = [
     ...encounterActionEconomyWarnings(input.actionEconomy, input.activationCode),
     ...input.preparedWarnings,
+    ...(input.targetDefeated
+      ? [{ code: 'TARGET_DEFEATED' as const, message: 'The target is defeated.' }]
+      : []),
     ...targetWarnings
   ]
   return warnings.every((warning) => input.acknowledged.includes(warning.code))

@@ -7,6 +7,7 @@ import { encounterPlayerProjectionDtoSchema } from '@artificer-toolkit/schema/ap
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
@@ -201,7 +202,11 @@ export async function readDisarmAdmission(
       readRunActor(ctx, state, root.targetActorId)
     ])
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
+    if (isEncounterActorDefeated(actor)) rejectDomain('ACTOR_DEFEATED')
     if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+    // A defeated creature can't contest a Disarm (D63).
+    if (isEncounterActorDefeated(target))
+      rejectDomain('TARGET_UNAVAILABLE', 'The target is defeated.')
   }
   if (state.version !== root.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.automationMode === 'MANUAL') throw new Error('Disarm requires an Assisted Encounter.')

@@ -43,6 +43,8 @@ function participantTransition(current: string, next: string) {
     (current === 'PENDING' && ['EVALUATED', 'READY'].includes(next)) ||
     (current === 'EVALUATED' && ['PENDING', 'READY'].includes(next)) ||
     (current === 'READY' && next === 'ACTIVE') ||
+    // A defeated actor's skipped turn (D63).
+    (current === 'READY' && next === 'ACTED') ||
     (current === 'ACTIVE' && next === 'ACTED')
   )
 }
@@ -54,6 +56,8 @@ function sideTransition(current: string, next: string) {
     (current === 'PENDING' && ['EVALUATED', 'READY'].includes(next)) ||
     (current === 'EVALUATED' && ['PENDING', 'READY'].includes(next)) ||
     (current === 'READY' && next === 'ACTIVE') ||
+    // A side whose every turn was skipped (D63).
+    (current === 'READY' && next === 'COMPLETED') ||
     (current === 'ACTIVE' && next === 'COMPLETED')
   )
 }

@@ -9,6 +9,7 @@ import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rul
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
+import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readRunActors } from '../encounters/documents'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
@@ -116,7 +117,8 @@ export const commitPending = internalMutation({
       })
       const advance = planEncounterInitiativeAdvance({
         state: normalized,
-        currentActorId: state.currentActorId
+        currentActorId: state.currentActorId,
+        defeatedActorIds: defeatedEncounterActorIds(actors)
       })
       if (checksumCanonicalJson(root.initiativeAdvance) !== checksumCanonicalJson(advance))
         throw new Error('Live Session pending initiative advance is stale.')
@@ -135,8 +137,10 @@ export const commitPending = internalMutation({
         const expectedActor =
           advance.kind === 'SAME_ROUND'
             ? advance.nextActorId
-            : advance.cadence === 'EACH_ROUND'
-              ? (context.root.initiative?.orderedActorIds[0] ?? advance.firstActorId)
+            : advance.cadence === 'EACH_ROUND' && context.root.initiative
+              ? context.root.stagedInitiative?.stagedRoundState.participants.find(
+                  (participant) => participant.status === 'ACTIVE'
+                )?.actorId
               : advance.firstActorId
         if (
           context.root.proposedTerminalTransition.status !== 'ACTIVE' ||

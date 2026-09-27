@@ -4,6 +4,7 @@ import {
 } from './encounterLegendaryActionDiscovery.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
+import { defeatedEncounterActorIds } from './encounterActorDefeat.js'
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { compileEncounterFeatureActionPlan } from './encounterActionMechanicsPreparation.js'
@@ -106,7 +107,11 @@ export async function discoverTurnLegendaryWindows(input: {
     candidatesByOptionId: ReadonlyMap<string, EncounterLegendaryActionCandidate>
   }[]
 > {
-  const actors = input.actors.filter((actor) => actor.kind === 'CREATURE')
+  // A defeated creature takes no Legendary Actions and is no one's target (D63).
+  const defeatedActorIds = defeatedEncounterActorIds(input.actors)
+  const actors = input.actors.filter(
+    (actor) => actor.kind === 'CREATURE' && !defeatedActorIds.has(actor.id)
+  )
   if (actors.length === 0) return []
   // A Legendary Action candidate requires a fixed, unscaled Feature charge pool.
   if (
@@ -180,7 +185,10 @@ export async function discoverTurnLegendaryWindows(input: {
     const options = candidates
       .filter((candidate) => candidate.ownerActorId === ownerActorId)
       .flatMap((candidate) => {
-        const option = optionForCandidate(candidate, input.state.actorIds)
+        const option = optionForCandidate(
+          candidate,
+          input.state.actorIds.filter((actorId) => !defeatedActorIds.has(actorId))
+        )
         if (!option) return []
         if (candidatesByOptionId.has(option.optionId))
           throw new Error('Legendary Action choice identity is ambiguous.')

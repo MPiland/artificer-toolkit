@@ -4,7 +4,9 @@ import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/proj
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
+import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { QueryCtx } from '../_generated/server'
+import { rejectDomain } from '../lib/domainRejections'
 import { readRunActor, readRunState } from '../encounters/documents'
 import { requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
 import { requireIdentity } from '../lib/identity'
@@ -170,12 +172,13 @@ export async function readLiveMovementAdmission(
   }
   if (!token || token.locked)
     throw new Error('Members may only move an unlocked token they control.')
-  if (!resolution)
-    await requireEncounterActorControl(ctx, {
-      campaign,
-      membership,
-      actor: await readRunActor(ctx, state, tokenBinding.actorId)
-    })
+  if (!resolution) {
+    const mover = await readRunActor(ctx, state, tokenBinding.actorId)
+    await requireEncounterActorControl(ctx, { campaign, membership, actor: mover })
+    // A defeated creature doesn't move itself (D63); the GM may still reposition its token.
+    if (membership.role !== 'OWNER' && isEncounterActorDefeated(mover))
+      rejectDomain('ACTOR_DEFEATED')
+  }
   if (
     checksumCanonicalJson(token.position) !==
     checksumCanonicalJson(resolution ? resolution.root.currentPosition : save.input.path[0])

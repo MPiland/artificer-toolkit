@@ -121,16 +121,17 @@ export const encounterInitiativeAdvancePlanDtoSchema = z.discriminatedUnion('kin
             path: ['nextRound'],
             message: 'Initiative round wraps must advance exactly one round.'
           })
+        // The kept order opens with its first actor that isn't defeated (D63).
         if (
           (value.cadence === 'ENCOUNTER_START' &&
-            value.firstActorId !== value.orderedActorIds[0]) ||
+            (value.firstActorId === null || !value.orderedActorIds.includes(value.firstActorId))) ||
           (value.cadence === 'EACH_ROUND' && value.firstActorId !== null)
         )
           context.addIssue({
             code: 'custom',
             path: ['firstActorId'],
             message:
-              'Encounter-start cadence must retain its first actor; each-round cadence must defer it.'
+              'Encounter-start cadence must open with one of its actors; each-round cadence must defer it.'
           })
       })
     )

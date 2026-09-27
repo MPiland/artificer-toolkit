@@ -287,6 +287,18 @@ describe('Cleaving target facts', () => {
     ).toBeNull()
   })
 
+  it('never carries excess damage into a defeated creature (D63)', () => {
+    const deadGoblin = srdCreatureActor({
+      id: SECOND_ID,
+      creature: goblin,
+      currentHitPoints: 0,
+      defeated: true
+    })
+    expect(
+      candidate({ actor: deadGoblin, cellX: 1, originalAttack: { total: 15, naturalRoll: 11 } })
+    ).toBeNull()
+  })
+
   it('refuses a Scene whose grid changed since the attack', () => {
     expect(() =>
       buildEncounterCleavingCandidate({

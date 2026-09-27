@@ -16,7 +16,8 @@ import {
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
-import { snapshotFeatureDefinitions } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 import { query, type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
@@ -94,6 +95,8 @@ async function readActionChoicesRun(ctx: QueryCtx, input: GetEncounterActionChoi
   const actor = await readRunActor(ctx, state, input.actorId)
   // A player sees the choices of an actor they control; creature actions included only then.
   await requireEncounterActorControl(ctx, { campaign, membership, actor })
+  // A defeated actor has no choices (D63).
+  if (isEncounterActorDefeated(actor)) return null
   return { state, actor, campaign, membership }
 }
 
@@ -222,12 +225,8 @@ export const get = query({
           'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
       })
       // A Legendary Action is taken only at the end of another creature's turn (SRD 5.1), in its
-      // Legendary window, never from the owner's own action drawer.
-      const legendaryFeatureIds = new Set(
-        snapshotFeatureDefinitions(actor)
-          .filter((feature) => feature.section === 'LEGENDARY_ACTION')
-          .map((feature) => feature.id)
-      )
+      // Legendary window, never from the owner's own action drawer; the room refuses it too.
+      const legendaryFeatureIds = encounterLegendaryActionFeatureIds(actor)
       unavailableActions = discovered.unavailable
         .filter((action) => !legendaryFeatureIds.has(action.ownerFeatureId))
         .map(({ actionId, label, reason }) => ({ id: actionId, label, reason }))

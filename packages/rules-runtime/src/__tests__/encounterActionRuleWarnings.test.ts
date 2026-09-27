@@ -384,6 +384,7 @@ describe('encounter action rule warning gate', () => {
             targetPolicy: prepared.targetPolicy,
             sceneContext: farApart
           },
+          targetDefeated: false,
           actionEconomy,
           activationCode: 'ACTION',
           acknowledged
@@ -444,6 +445,7 @@ describe('encounter action rule warning gate', () => {
           },
           sceneContext: farApart
         },
+        targetDefeated: false,
         actionEconomy: {
           consumption: {
             definitionId: SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -482,6 +484,7 @@ describe('encounter action rule warning gate', () => {
           targetPolicy: prepared.targetPolicy,
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
+        targetDefeated: false,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
@@ -527,12 +530,38 @@ describe('encounter action rule warning gate', () => {
           targetPolicy: prepared.targetPolicy,
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
+        targetDefeated: false,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
       })
     expect(gate(6)).toEqual({ kind: 'ACCEPTED', overrides: [] })
     expect(gate(7)).toEqual({ kind: 'UNACKNOWLEDGED', warnings: [rangeWarning] })
+  })
+
+  it('warns, overridably, when the chosen target is defeated (D63)', () => {
+    const gate = (acknowledged: EncounterRuleWarningDto['code'][]) =>
+      evaluateEncounterActionRuleWarnings({
+        preparedWarnings: [],
+        target: {
+          actor: { id: ACTOR_ID, disposition: 'HOSTILE' },
+          target: { id: TARGET_ID, disposition: 'FRIENDLY' },
+          targetPolicy: {
+            range: { id: 'range', rangeKind: 'UNLIMITED' },
+            targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+            shape: null,
+            pathOverrides: []
+          },
+          sceneContext: null
+        },
+        targetDefeated: true,
+        actionEconomy: null,
+        activationCode: 'ACTION',
+        acknowledged
+      })
+    const defeated = { code: 'TARGET_DEFEATED', message: 'The target is defeated.' }
+    expect(gate([])).toEqual({ kind: 'UNACKNOWLEDGED', warnings: [defeated] })
+    expect(gate(['TARGET_DEFEATED'])).toEqual({ kind: 'ACCEPTED', overrides: [defeated] })
   })
 
   it('accepts a clean action with no overrides and refuses an unsupported target policy', () => {
@@ -548,6 +577,7 @@ describe('encounter action rule warning gate', () => {
       evaluateEncounterActionRuleWarnings({
         preparedWarnings: [],
         target: { actor, target, targetPolicy, sceneContext: null },
+        targetDefeated: false,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
@@ -562,6 +592,7 @@ describe('encounter action rule warning gate', () => {
           targetPolicy: { ...targetPolicy, targeting: null },
           sceneContext: null
         },
+        targetDefeated: false,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: ['RESOURCE_UNAVAILABLE']

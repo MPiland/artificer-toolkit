@@ -319,7 +319,8 @@ describe('prepareEncounterTurnInitiative at a new round', () => {
     }
     const advance = planEncounterInitiativeAdvance({
       state: hydrateStagedState(serializeStagedInitiativeRoundState(lastTurn)),
-      currentActorId: ACTOR_C
+      currentActorId: ACTOR_C,
+      defeatedActorIds: new Set()
     })
     return {
       advance,

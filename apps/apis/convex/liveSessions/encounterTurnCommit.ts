@@ -4,6 +4,7 @@ import { type EncounterCommandResultDto } from '@artificer-toolkit/schema/api/en
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { applyEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
+import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import {
   legendaryActionDamage,
   nativeConcentrationDamageApplications
@@ -121,7 +122,8 @@ export const commit = internalMutation({
       await applyEncounterInitiativeAdvance({
         repository: initiative,
         state: original,
-        plan: advance
+        plan: advance,
+        defeatedActorIds: defeatedEncounterActorIds(durableActors)
       })
     }
     const effectCommit = {

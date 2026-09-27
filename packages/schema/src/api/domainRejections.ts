@@ -3,12 +3,14 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 
 const reasonsWithoutPayload = [
   'ACTIVE_ENCOUNTER_EXISTS',
+  'ACTOR_DEFEATED',
   'CAMPAIGN_NOT_ACTIVE',
   'COMMAND_ID_REUSED',
   'DECISION_NOT_PENDING',
   'DECISION_REQUIRES_ANSWER',
   'ENCOUNTER_NOT_ACTIVE',
   'GM_ONLY',
+  'LEGENDARY_WINDOW_ONLY',
   'NOT_ACTOR_CONTROLLER',
   'NOT_CURRENT_ACTOR',
   'PENDING_DECISION',
@@ -22,12 +24,14 @@ const reasonsWithoutPayload = [
 /** The user-safe message for each reason unless a refusal names something more specific. */
 export const DOMAIN_REJECTION_MESSAGES: Record<(typeof reasonsWithoutPayload)[number], string> = {
   ACTIVE_ENCOUNTER_EXISTS: 'Campaign already has an active Encounter.',
+  ACTOR_DEFEATED: 'This actor is defeated. Raise its hit points above 0 to revive it.',
   CAMPAIGN_NOT_ACTIVE: 'Archived Campaigns are read-only.',
   COMMAND_ID_REUSED: 'Command ID was already used with different input.',
   DECISION_NOT_PENDING: 'This decision is already settled.',
   DECISION_REQUIRES_ANSWER: 'This decision must be answered before play can continue.',
   ENCOUNTER_NOT_ACTIVE: 'Completed Encounters are read-only.',
   GM_ONLY: 'Only the GM can do that.',
+  LEGENDARY_WINDOW_ONLY: "Legendary Actions are taken at the end of another creature's turn.",
   NOT_ACTOR_CONTROLLER: "You don't control this actor.",
   NOT_CURRENT_ACTOR: 'The selected actor does not have the turn.',
   PENDING_DECISION: 'An Encounter rule occurrence is awaiting resolution.',

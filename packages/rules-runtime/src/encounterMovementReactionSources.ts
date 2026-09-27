@@ -23,7 +23,10 @@ export type EncounterMovementReactionActor = Pick<
   'id' | 'kind' | 'sourceId' | 'systemId'
 > & {
   resources: unknown
-} & ({ kind: 'CHARACTER' } | { kind: 'CREATURE' | 'CUSTOM'; conditions: unknown })
+} & (
+    | { kind: 'CHARACTER' }
+    | { kind: 'CREATURE' | 'CUSTOM'; conditions: unknown; defeated: boolean }
+  )
 
 export type EncounterMovementReactionEncounter = Pick<EncounterRunState, 'gameSystemId'> & {
   actors: readonly EncounterMovementReactionActor[]
@@ -173,6 +176,8 @@ function featureSources(input: {
       if (!actor || actor.kind !== 'CREATURE') {
         throw new Error('Encounter feature reaction capability has no immutable actor source.')
       }
+      // A defeated creature takes no reactions or opportunity attacks (D63).
+      if (actor.defeated) return []
       return reactorTokens(input.tokens, input.actorIdByTokenId, actor.id).map((token) => ({
         reactorActorId: actor.id,
         reactorTokenId: token.id,

@@ -20,8 +20,11 @@ import {
 import { evaluateEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   encounterActionSourceLabel,
+  encounterLegendaryActionFeatureIds,
   resolveEncounterActionSource
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   lockedRelationshipActionFacts,
   mergeCanonicalD20Contributors
@@ -233,6 +236,17 @@ export async function planNativeLiveEncounterAction(
         allyAdvantage ? [allyAdvantage.contributor] : []
       )
   })
+  if (
+    prepared.source.kind === 'CREATURE' &&
+    encounterLegendaryActionFeatureIds(prepared.actor).has(
+      prepared.source.capability.ownerFeatureId
+    )
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'LEGENDARY_WINDOW_ONLY',
+      message: DOMAIN_REJECTION_MESSAGES.LEGENDARY_WINDOW_ONLY
+    })
   // Only an attack roll uses the advantage; a saving-throw action leaves it for the next attack.
   const allyAdvantageUses =
     allyAdvantage && typeof prepared.binding.actionMechanic.attackBonus === 'number'
@@ -294,6 +308,7 @@ export async function planNativeLiveEncounterAction(
       targetPolicy: prepared.targetPolicy,
       sceneContext
     },
+    targetDefeated: isEncounterActorDefeated(prepared.target),
     actionEconomy: economy,
     activationCode: activation.code,
     acknowledged: command.acknowledgedWarnings

@@ -198,9 +198,15 @@ function orderedInitiativeSides(state: EncounterInitiativeRoundStateDto): string
   return ordered.map((side) => side.sideId)
 }
 
+/**
+ * Plans the next turn. Defeated actors (D63) keep their initiative place, but their turns are
+ * skipped: the next turn goes to the next actor that isn't defeated, wrapping the round when none
+ * remains after the current one.
+ */
 export function planEncounterInitiativeAdvance(input: {
   state: EncounterInitiativeRoundStateDto
   currentActorId: string
+  defeatedActorIds: ReadonlySet<string>
 }): EncounterInitiativeAdvancePlanDto {
   if (input.state.round.status !== 'ACTIVE')
     throw new Error('Only an active initiative round can advance.')
@@ -209,7 +215,9 @@ export function planEncounterInitiativeAdvance(input: {
   if (current.actorId !== input.currentActorId)
     throw new Error('Encounter and normalized initiative current actors do not match.')
   const stateChecksum = checksumCanonicalJson(input.state)
-  const next = ordered[activeIndex + 1]
+  const next = ordered
+    .slice(activeIndex + 1)
+    .find((participant) => !input.defeatedActorIds.has(participant.actorId))
   if (next)
     return encounterInitiativeAdvancePlanDtoSchema.parse({
       kind: 'SAME_ROUND',
@@ -226,108 +234,131 @@ export function planEncounterInitiativeAdvance(input: {
     cadence: input.state.round.cadence,
     stateChecksum,
     currentActorId: current.actorId,
-    firstActorId: input.state.round.cadence === 'ENCOUNTER_START' ? orderedActorIds[0]! : null,
+    firstActorId:
+      input.state.round.cadence === 'ENCOUNTER_START'
+        ? firstUndefeatedActorId(orderedActorIds, input.defeatedActorIds)
+        : null,
     orderedActorIds,
     orderedSideIds: orderedInitiativeSides(input.state)
   })
 }
 
+/** The round's opening actor: the first one that isn't defeated (D63). */
+export function firstUndefeatedActorId(
+  orderedActorIds: readonly string[],
+  defeatedActorIds: ReadonlySet<string>
+): string {
+  // With everyone defeated the round still needs a current actor; the order's first keeps it.
+  return orderedActorIds.find((actorId) => !defeatedActorIds.has(actorId)) ?? orderedActorIds[0]!
+}
+
+/**
+ * Moves a just-settled round's opening turn past defeated actors (D63), marking them as having
+ * acted; they keep their initiative place. Unchanged when the opener can act or everyone is defeated.
+ */
+export async function skipDefeatedOpeningTurns(input: {
+  repository: InitiativeRepository
+  state: EncounterInitiativeRoundStateDto
+  defeatedActorIds: ReadonlySet<string>
+}): Promise<EncounterInitiativeRoundStateDto> {
+  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
+  const opener = ordered[activeIndex]!
+  if (
+    activeIndex !== 0 ||
+    firstUndefeatedActorId(
+      ordered.map((participant) => participant.actorId),
+      input.defeatedActorIds
+    ) === opener.actorId
+  )
+    return input.state
+  const plan = planEncounterInitiativeAdvance({
+    state: input.state,
+    currentActorId: opener.actorId,
+    defeatedActorIds: input.defeatedActorIds
+  })
+  return applyEncounterInitiativeAdvance({ ...input, plan })
+}
+
+/**
+ * Commits a planned advance. The outgoing actor and every defeated actor whose turn is skipped are
+ * marked as having acted, and so is each side left behind, so the cursor stays contiguous.
+ */
 export async function applyEncounterInitiativeAdvance(input: {
   repository: InitiativeRepository
   state: EncounterInitiativeRoundStateDto
   plan: EncounterInitiativeAdvancePlanDto
+  defeatedActorIds: ReadonlySet<string>
 }): Promise<EncounterInitiativeRoundStateDto> {
   const currentPlan = planEncounterInitiativeAdvance({
     state: input.state,
-    currentActorId: input.plan.currentActorId
+    currentActorId: input.plan.currentActorId,
+    defeatedActorIds: input.defeatedActorIds
   })
   if (checksumCanonicalJson(currentPlan) !== checksumCanonicalJson(input.plan))
     throw new Error('The normalized initiative round changed before turn advancement.')
 
+  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
+  const nextActorId = input.plan.kind === 'SAME_ROUND' ? input.plan.nextActorId : null
+  const nextIndex =
+    nextActorId === null
+      ? ordered.length
+      : ordered.findIndex((participant) => participant.actorId === nextActorId)
   const participants = new Map(
     input.state.participants.map((participant) => [participant.actorId, participant])
   )
-  const current = participants.get(input.plan.currentActorId)!
-  participants.set(
-    current.actorId,
-    await input.repository.updateInitiativeParticipant({
-      encounterId: current.encounterId,
-      round: current.round,
-      actorId: current.actorId,
-      expectedVersion: current.version,
-      status: 'ACTED',
-      initiativeScore: current.initiativeScore,
-      evaluation: current.evaluation,
-      tie: current.tie,
-      declaration: current.declaration,
-      declarationChecksum: current.declarationChecksum,
-      turnOrderOrdinal: current.turnOrderOrdinal
-    })
-  )
+  const setParticipantStatus = async (
+    participant: EncounterInitiativeParticipantDto,
+    status: 'ACTED' | 'ACTIVE'
+  ) =>
+    participants.set(
+      participant.actorId,
+      await input.repository.updateInitiativeParticipant({
+        encounterId: participant.encounterId,
+        round: participant.round,
+        actorId: participant.actorId,
+        expectedVersion: participant.version,
+        status,
+        initiativeScore: participant.initiativeScore,
+        evaluation: participant.evaluation,
+        tie: participant.tie,
+        declaration: participant.declaration,
+        declarationChecksum: participant.declarationChecksum,
+        turnOrderOrdinal: participant.turnOrderOrdinal
+      })
+    )
+  for (const participant of ordered.slice(activeIndex, nextIndex))
+    await setParticipantStatus(participant, 'ACTED')
+  const next = ordered[nextIndex]
+  if (next) await setParticipantStatus(next, 'ACTIVE')
 
   const sides = new Map(input.state.sides.map((side) => [side.sideId, side]))
-  const currentSide = sides.get(current.sideId) ?? null
-  let nextSideId: string | null = null
-  if (input.plan.kind === 'SAME_ROUND') {
-    const next = participants.get(input.plan.nextActorId)!
-    nextSideId = next.sideId
-    participants.set(
-      next.actorId,
-      await input.repository.updateInitiativeParticipant({
-        encounterId: next.encounterId,
-        round: next.round,
-        actorId: next.actorId,
-        expectedVersion: next.version,
-        status: 'ACTIVE',
-        initiativeScore: next.initiativeScore,
-        evaluation: next.evaluation,
-        tie: next.tie,
-        declaration: next.declaration,
-        declarationChecksum: next.declarationChecksum,
-        turnOrderOrdinal: next.turnOrderOrdinal
+  const setSideStatus = async (sideId: string, status: 'COMPLETED' | 'ACTIVE') => {
+    const side = sides.get(sideId)
+    if (!side) throw new Error('The normalized initiative side changed before turn advancement.')
+    sides.set(
+      sideId,
+      await input.repository.updateInitiativeSide({
+        encounterId: side.encounterId,
+        round: side.round,
+        sideId,
+        expectedVersion: side.version,
+        status,
+        initiativeScore: side.initiativeScore,
+        evaluation: side.evaluation,
+        tie: side.tie,
+        sideOrderOrdinal: side.sideOrderOrdinal
       })
     )
   }
-
-  if (currentSide && (input.plan.kind === 'ROUND_WRAP' || currentSide.sideId !== nextSideId)) {
-    sides.set(
-      currentSide.sideId,
-      await input.repository.updateInitiativeSide({
-        encounterId: currentSide.encounterId,
-        round: currentSide.round,
-        sideId: currentSide.sideId,
-        expectedVersion: currentSide.version,
-        status: 'COMPLETED',
-        initiativeScore: currentSide.initiativeScore,
-        evaluation: currentSide.evaluation,
-        tie: currentSide.tie,
-        sideOrderOrdinal: currentSide.sideOrderOrdinal
-      })
+  if (input.state.round.procedure === 'SIDE_ROLL') {
+    const nextSideId = next?.sideId ?? null
+    const leftSideIds = new Set(
+      ordered.slice(activeIndex, nextIndex).map((participant) => participant.sideId)
     )
-  }
-  if (
-    input.plan.kind === 'SAME_ROUND' &&
-    input.state.round.procedure === 'SIDE_ROLL' &&
-    currentSide?.sideId !== nextSideId &&
-    nextSideId
-  ) {
-    const nextSide = sides.get(nextSideId)
-    if (!nextSide)
-      throw new Error('The normalized initiative side changed before turn advancement.')
-    sides.set(
-      nextSide.sideId,
-      await input.repository.updateInitiativeSide({
-        encounterId: nextSide.encounterId,
-        round: nextSide.round,
-        sideId: nextSide.sideId,
-        expectedVersion: nextSide.version,
-        status: 'ACTIVE',
-        initiativeScore: nextSide.initiativeScore,
-        evaluation: nextSide.evaluation,
-        tie: nextSide.tie,
-        sideOrderOrdinal: nextSide.sideOrderOrdinal
-      })
-    )
+    if (nextSideId !== null) leftSideIds.delete(nextSideId)
+    for (const sideId of leftSideIds) await setSideStatus(sideId, 'COMPLETED')
+    if (nextSideId !== null && nextSideId !== ordered[activeIndex]!.sideId)
+      await setSideStatus(nextSideId, 'ACTIVE')
   }
 
   const round =

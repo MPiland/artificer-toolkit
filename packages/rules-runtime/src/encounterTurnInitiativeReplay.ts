@@ -9,6 +9,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
 import { planEncounterInitiativeAdvance } from './encounterInitiativeStateSettlement.js'
+import { defeatedEncounterActorIds } from './encounterActorDefeat.js'
 import type { EncounterInitiativeOccurrenceRoot } from './encounterInitiativeOccurrence.js'
 import type { prepareEncounterTurnEffects } from './encounterTurnEffects.js'
 import type { prepareTurnLegendaryActions } from './encounterTurnLegendaryAction.js'
@@ -97,9 +98,14 @@ export async function restoreEncounterInitiativeTurnActors<
     actorIds: state.actorIds,
     allowedSideIds: state.sides.map((side) => side.id)
   })
+  const actors = await input.readActors()
   if (
     checksumCanonicalJson(
-      planEncounterInitiativeAdvance({ state: normalized, currentActorId: state.currentActorId })
+      planEncounterInitiativeAdvance({
+        state: normalized,
+        currentActorId: state.currentActorId,
+        defeatedActorIds: defeatedEncounterActorIds(actors)
+      })
     ) !== checksumCanonicalJson(advance)
   )
     throw new Error('Initiative outgoing advancement is stale.')
@@ -135,7 +141,7 @@ export async function restoreEncounterInitiativeTurnActors<
     autoRoll: false,
     root: turnRoot,
     occurrenceId: input.occurrenceId,
-    actors: await input.readActors(),
+    actors,
     boundary: { ordinal: 0, stage: 'END_OF_TURN', actorId: state.currentActorId },
     retainedPhase: root.outgoingTurn
   })

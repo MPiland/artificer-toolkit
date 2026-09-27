@@ -4,6 +4,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { hydrateStagedState } from '@artificer-toolkit/rules-runtime/encounterInitiativeStaging'
 import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readRunActors } from './documents'
@@ -64,6 +65,7 @@ export async function readNativeTurnSettlement(input: {
     if (active) rejectDomain('ACTIVE_ENCOUNTER_EXISTS')
   }
 
+  const durableActors = await readRunActors(ctx, state)
   const initiative = createEncounterInitiativeStore(ctx)
   const original =
     root.commandType === 'ADVANCE_TURN'
@@ -80,14 +82,14 @@ export async function readNativeTurnSettlement(input: {
     })
     const current = planEncounterInitiativeAdvance({
       state: original,
-      currentActorId: state.currentActorId
+      currentActorId: state.currentActorId,
+      defeatedActorIds: defeatedEncounterActorIds(durableActors)
     })
     if (checksumCanonicalJson(current) !== checksumCanonicalJson(root.initiativeAdvance))
       throw new Error('Encounter initiative advancement is stale.')
   } else if (root.initiativeAdvance !== null || !root.initiative)
     throw new Error('Initial initiative settlement is unavailable.')
 
-  const durableActors = await readRunActors(ctx, state)
   const staged = root.stagedInitiative
   if (root.initiative) {
     if (
@@ -118,7 +120,11 @@ export async function readNativeTurnSettlement(input: {
       actorIds: state.actorIds,
       allowedSideIds: state.sides.map((side) => side.id)
     })
-    if (root.initiative.orderedActorIds[0] !== root.proposedTerminalTransition.currentActorId)
+    // The room opens the round past actors defeated by then (D63), so it may skip the first ones.
+    if (
+      root.proposedTerminalTransition.currentActorId === null ||
+      !root.initiative.orderedActorIds.includes(root.proposedTerminalTransition.currentActorId)
+    )
       throw new Error('Staged initiative current actor is stale.')
   } else if (staged) throw new Error('Unexpected staged initiative settlement.')
   const advance = root.initiativeAdvance
@@ -126,8 +132,8 @@ export async function readNativeTurnSettlement(input: {
     const nextActorId =
       advance.kind === 'SAME_ROUND'
         ? advance.nextActorId
-        : advance.cadence === 'EACH_ROUND'
-          ? (root.initiative?.orderedActorIds[0] ?? advance.firstActorId)
+        : advance.cadence === 'EACH_ROUND' && root.initiative
+          ? root.proposedTerminalTransition.currentActorId
           : advance.firstActorId
     const nextRound = advance.kind === 'SAME_ROUND' ? state.round : advance.nextRound
     if (

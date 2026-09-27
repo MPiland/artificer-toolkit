@@ -11,6 +11,7 @@ import { prepareEncounterTurnResponse } from '@artificer-toolkit/rules-runtime/e
 import { restoreEncounterInitiativeTurnActors } from '@artificer-toolkit/rules-runtime/encounterTurnInitiativeReplay'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
+import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
@@ -228,7 +229,8 @@ export async function planNativeLiveEncounterTurn(
     })
     const advance = planEncounterInitiativeAdvance({
       state: normalized,
-      currentActorId: state.currentActorId
+      currentActorId: state.currentActorId,
+      defeatedActorIds: defeatedEncounterActorIds(actors)
     })
     root = {
       rootCommandId: admission.command.commandId,

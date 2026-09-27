@@ -46,6 +46,7 @@ const DRAGON_ID = '00000000-0000-4000-8000-00000000b001'
 const WOLF_ID = '00000000-0000-4000-8000-00000000b002'
 const OCCURRENCE_ID = '00000000-0000-4000-8000-00000000b003'
 const USER_ID = '00000000-0000-4000-8000-00000000b004'
+const BAT_ID = '00000000-0000-4000-8000-00000000b005'
 const srdLegendaryActions = creatureFeature(ancientRedDragon, 'Legendary Actions')
 /**
  * The Ancient Red Dragon's pool of 3: Detect and Tail Attack cost 1, Wing Attack costs 2. Tail Attack
@@ -350,6 +351,30 @@ describe('Legendary Action choices offered at the end of a turn', () => {
       }
     ])
   })
+  it('offers a defeated owner nothing and never offers a defeated target (D63)', async () => {
+    const defeatedDragon = srdCreatureActor({
+      id: DRAGON_ID,
+      creature: legendaryDragon,
+      featureCharges: { [legendaryActions.id]: 0 },
+      currentHitPoints: 0,
+      defeated: true
+    })
+    expect(
+      await offered({ actors: [defeatedDragon, wolfActor], outgoingActorId: WOLF_ID })
+    ).toEqual([])
+    const deadWolf = srdCreatureActor({
+      id: WOLF_ID,
+      creature: wolf,
+      currentHitPoints: 0,
+      defeated: true
+    })
+    const bat = srdCreatureActor({ id: BAT_ID, creature: wolf })
+    const [choice] = await offered({ actors: [dragon(), deadWolf, bat], outgoingActorId: BAT_ID })
+    expect(
+      choice?.options.find((option) => option.label === 'Tail Attack')?.targetActorIds
+    ).toEqual([BAT_ID])
+  })
+
   it('offers nothing at the end of the owner’s own turn or while the owner is incapacitated', async () => {
     expect(await offered({ actors: [dragon(), wolfActor], outgoingActorId: DRAGON_ID })).toEqual([])
     for (const condition of ['Incapacitated', 'Stunned', 'Paralyzed'])

@@ -5,18 +5,24 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_CONCENTRATION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { domainRejection } from '../../tests/fixtures/playerControl'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
@@ -285,6 +291,55 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
       })
     }
   }, 120000)
+
+  it('refuses a Legendary option sent as the dragon’s own action (D63)', async () => {
+    const base = await setup({ gmAutoRoll: true, playerAutoRoll: true })
+    const current = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'SET_CURRENT_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version,
+        actorId: base.dragonActor.id
+      }
+    })
+    const legendaryActionId = await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', base.run.id).eq('id', base.dragonActor.id)
+        )
+        .unique()
+      if (!row) throw new Error('The Legendary fixture dragon is missing.')
+      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const legendary = encounterLegendaryActionFeatureIds(actor)
+      return discoverEncounterFeatureActionCapabilities({
+        actor,
+        conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
+        abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+      }).find((capability) => legendary.has(capability.ownerFeatureId))?.actionId
+    })
+    if (!legendaryActionId) throw new Error('Expected a Legendary option.')
+    expect(
+      await domainRejection(
+        executeInRoom(base.owner.caller, {
+          command: {
+            type: 'RESOLVE_ACTION',
+            acceptedWieldConflict: null,
+            acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED'],
+            encounterId: base.run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: current.projection.version,
+            actorId: base.dragonActor.id,
+            targetActorId: base.characterActor.id,
+            actionId: legendaryActionId,
+            optionalCombatIntent: null,
+            sceneContext: null
+          }
+        })
+      )
+    ).toMatchObject({ reason: 'LEGENDARY_WINDOW_ONLY' })
+  }, 60000)
 
   it('makes the Character whose Concentration the Tail breaks roll for it (D50.4)', async () => {
     const base = await setup({ gmAutoRoll: true, playerAutoRoll: false })
