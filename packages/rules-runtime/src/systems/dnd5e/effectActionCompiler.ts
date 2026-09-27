@@ -76,6 +76,7 @@ export const DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.scalar-reduc
 export const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
 export const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'
 export const DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.save-damage-total'
+const DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY = 'dnd5e.damage-multiplier'
 export const DND5E_HEAL_TOTAL_OPERATION_KEY = 'dnd5e.heal-total'
 export const DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY = 'dnd5e.condition-apply-proposal'
 export const DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY =
@@ -771,6 +772,16 @@ function relationshipRecurrenceGraph(input: {
   })
 }
 
+/** An authored damage multiplier (for example half on a successful save), rounded down. */
+function multipliedDamageAmount(amount: number, multiplier: number): number {
+  const value = Math.floor(amount * multiplier)
+  if (!Number.isFinite(multiplier) || multiplier < 0 || !Number.isSafeInteger(value))
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D damage multiplier must be a finite nonnegative number.'
+    )
+  return value
+}
+
 function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
@@ -806,7 +817,7 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
   uuid(outcome.damageTypeId, 'D&D damage type identity')
   return {
     kind: 'DAMAGE',
-    amount: outcome.amount,
+    amount: multipliedDamageAmount(outcome.amount, outcome.multiplier ?? 1),
     damageTypeId: outcome.damageTypeId
   }
 }
@@ -842,7 +853,11 @@ function specializedTestOutcome(entry: CompiledEffectGroup['entries'][number]): 
       if (!Number.isSafeInteger(amount))
         unsupported('D&D fixed damage amount exceeds the safe integer contract.')
       uuid(outcome.damageTypeId, 'D&D damage type identity')
-      return { kind: 'DAMAGE', amount, damageTypeId: outcome.damageTypeId }
+      return {
+        kind: 'DAMAGE',
+        amount: multipliedDamageAmount(amount, outcome.multiplier ?? 1),
+        damageTypeId: outcome.damageTypeId
+      }
     }
     validateDiceOutcomeRow(outcome)
     uuid(outcome.damageTypeId, 'D&D damage type identity')
@@ -1707,7 +1722,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   uuid(outcome.damageTypeId, 'D&D damage type identity')
   return {
     kind: 'DAMAGE',
-    amount: outcome.amount,
+    amount: multipliedDamageAmount(outcome.amount, outcome.multiplier ?? 1),
     damageTypeId: outcome.damageTypeId
   }
 }
@@ -2060,6 +2075,30 @@ export const dnd5eSaveDamageTotalOperation: PureRuleOperationContract = {
     }
   }
 }
+/** Applies an authored damage multiplier to rolled damage, rounding down (SRD). */
+export const dnd5eDamageMultiplierOperation: PureRuleOperationContract = {
+  key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PURE',
+  inputs: {
+    amount: RULE_VALUE_KIND.NUMBER,
+    multiplier: RULE_VALUE_KIND.NUMBER
+  },
+  outputs: { value: RULE_VALUE_KIND.NUMBER },
+  execute(inputs) {
+    const amount = inputs.amount
+    const multiplier = inputs.multiplier
+    if (
+      typeof amount !== 'number' ||
+      !Number.isSafeInteger(amount) ||
+      amount < 0 ||
+      typeof multiplier !== 'number'
+    ) {
+      throw new Error('D&D damage multiplier requires a safe damage amount.')
+    }
+    return { value: multipliedDamageAmount(amount, multiplier) }
+  }
+}
 export const dnd5eHealTotalOperation: PureRuleOperationContract = {
   key: DND5E_HEAL_TOTAL_OPERATION_KEY,
   contractVersion: 1,
@@ -2398,6 +2437,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_TOTAL_OPERATION_KEY,
     DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
+    DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
     DND5E_HEAL_TOTAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
@@ -2930,9 +2970,31 @@ function diceGraphDefinition(input: {
           }
         }
       ]
-  const amount = !needsTotal
+  const total = !needsTotal
     ? rolledSubtotal
     : { kind: 'NODE_OUTPUT' as const, nodeId: totalNodeId, port: 'value' }
+  const multiplier =
+    outcome.effectKind === 'DAMAGE' && outcome.multiplier !== undefined && outcome.multiplier !== 1
+      ? outcome.multiplier
+      : null
+  const multipliedNodeId = `${prefix}damage-multiplied`
+  const multiplierNode =
+    multiplier === null
+      ? []
+      : [
+          {
+            id: multipliedNodeId,
+            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
+            inputs: {
+              amount: total,
+              multiplier: { kind: 'LITERAL' as const, value: multiplier }
+            }
+          }
+        ]
+  const amount =
+    multiplier === null
+      ? total
+      : { kind: 'NODE_OUTPUT' as const, nodeId: multipliedNodeId, port: 'value' }
   const proposalId =
     input.recurring?.frozenGraphNodeId ?? `${prefix}proposal-${input.entry.pathCode.toLowerCase()}`
   const sourceEntryId = input.recurring?.compiledEntryId ?? input.entry.entryId
@@ -2953,6 +3015,7 @@ function diceGraphDefinition(input: {
       ...diceNodes,
       ...sumNodes,
       ...totalNode,
+      ...multiplierNode,
       {
         id: proposalId,
         operation: { key: proposalOperation, contractVersion: 1 },
@@ -3411,8 +3474,9 @@ function fixedOutcomeGraphDefinition(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
   outcome: Outcome
+  nodePrefix?: string
 }): RuleGraphDefinition {
-  const proposalId = `proposal-${input.entry.pathCode.toLowerCase()}`
+  const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
   const operation =
     input.outcome.kind === 'HEAL'
       ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
@@ -3506,6 +3570,11 @@ function fixedOutcomeGraphDefinition(input: {
         }
       : {})
   }
+}
+
+/** The authored result path in a direct proposal node id: `[prefix]proposal-<path>`. */
+function proposalNodePathCode(nodeId: string): string | null {
+  return /(?:^|-)proposal-([a-z_]+)$/.exec(nodeId)?.[1]?.toUpperCase() ?? null
 }
 
 function authoredOutcomeGroups(
@@ -3680,6 +3749,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry)
+    const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
     return outcome.kind === 'DICE_DAMAGE' ||
       outcome.kind === 'DICE_HEAL' ||
       outcome.kind === 'DICE_SCALAR_REDUCTION'
@@ -3704,10 +3774,10 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
           ...(outcome.kind === 'DICE_HEAL'
             ? { modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY }
             : {}),
-          ...(groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {})
+          ...groupNodePrefix
         })
       : entries.length === 1
-        ? fixedOutcomeGraphDefinition({ action: input.action, entry, outcome })
+        ? fixedOutcomeGraphDefinition({ action: input.action, entry, outcome, ...groupNodePrefix })
         : unsupported('D&D fixed outcome path must compile to one direct result.')
   })
   const definition = mergedOutcomeGraphDefinition({
@@ -4467,9 +4537,7 @@ function conditionImmunityFacts(
     const pathCode =
       path?.kind === 'LITERAL' && typeof path.value === 'string'
         ? path.value
-        : node.id.startsWith('proposal-')
-          ? node.id.slice('proposal-'.length).toUpperCase()
-          : null
+        : proposalNodePathCode(node.id)
     const factKey = legacySingleCondition
       ? DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
       : pathCode
@@ -4549,9 +4617,7 @@ function interpretDirectProposal(
     const authoredPath =
       authoredPathBinding?.kind === 'LITERAL' && typeof authoredPathBinding.value === 'string'
         ? authoredPathBinding.value
-        : publishedNode.id.startsWith('proposal-')
-          ? publishedNode.id.slice('proposal-'.length).toUpperCase()
-          : null
+        : proposalNodePathCode(publishedNode.id)
     const conditionFactKey = legacySingleCondition
       ? DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
       : authoredPath

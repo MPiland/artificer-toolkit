@@ -7,11 +7,13 @@ import {
   TRIGGER,
   ACTIVATION_CODE
 } from '@artificer-toolkit/shared/core'
+import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { evaluateSrdCharacter, srdFeature } from './dnd5eSrdCharacter.js'
 import {
   creatureActor,
+  type CreatureFeature,
   prepareCreatureAction,
   settleCreatureAction,
   srdAbilityId,
@@ -116,9 +118,44 @@ const dreadGaze = () =>
     ]
   })
 
+/** "Acid Burst": a failure takes 6 acid damage and is frightened. */
+const acidBurst = () =>
+  saveFeature({
+    ability: 'WISDOM',
+    dc: 13,
+    paths: [
+      { pathCode: PATH_CODE.ON_SAVE_FAIL, outcome: { kind: 'DAMAGE', amount: 6 } },
+      { pathCode: PATH_CODE.ON_SAVE_FAIL, outcome: { kind: 'CONDITION', conditionId: FRIGHTENED } }
+    ]
+  })
+
+/**
+ * The SRD Black Dragon Wyrmling's Acid Breath (DC 11 Dexterity, 5d8 acid, half on a success),
+ * aimed at one target: the Encounter does not run its 15-foot line area yet.
+ */
+function acidBreath(): CreatureFeature {
+  const feature = blackDragonWyrmling.features?.find(({ label }) => label.startsWith('Acid Breath'))
+  const effect = feature?.effects?.[0]
+  if (!feature || effect?.invocation.kind !== 'ACTION')
+    throw new Error('The SRD Acid Breath action is missing.')
+  return {
+    ...feature,
+    effects: [
+      {
+        ...effect,
+        invocation: {
+          ...effect.invocation,
+          range: { id: effect.invocation.range.id, rangeKind: RANGE_KIND.UNLIMITED },
+          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
+        }
+      }
+    ]
+  }
+}
+
 /** A Wolf target (11 HP, DEX 15 → +2, WIS 12 → +1) facing the Feature. */
 async function resolve(input: {
-  feature: ReturnType<typeof saveFeature>
+  feature: CreatureFeature
   rolls: readonly number[]
   conditionImmunityIds?: readonly string[]
   savingThrowDefinitions?: readonly unknown[]
@@ -131,7 +168,7 @@ async function resolve(input: {
       features: [],
       ...(input.conditionImmunityIds ? { conditionImmunityIds: input.conditionImmunityIds } : {})
     }),
-    featureId: FEATURE_ID,
+    featureId: input.feature.id,
     overridable: true
   })
   const binding = input.savingThrowDefinitions
@@ -226,6 +263,30 @@ describe('saving throw outcomes through action execution', () => {
     expect(result.d20).toMatchObject({ resultPath: 'ON_SAVE_FAIL' })
     expect(result.hitPoints).toBe(8)
     expect(result.conditionIds).toEqual([])
+  })
+
+  it('applies a fixed damage outcome and a condition on the same failure result', async () => {
+    // Natural 5 + WIS 1 = 6 against DC 13.
+    const result = await resolve({ feature: acidBurst(), rolls: [4] })
+    expect(result.d20).toMatchObject({ total: 6, resultPath: 'ON_SAVE_FAIL' })
+    expect(result.hitPoints).toBe(5)
+    expect(result.conditionIds).toEqual([FRIGHTENED])
+  })
+
+  it('takes the full SRD Acid Breath damage on a failed save', async () => {
+    // Natural 5 + DEX 2 = 7 against DC 11, then 1 + 1 + 1 + 1 + 2 on the 5d8.
+    const result = await resolve({ feature: acidBreath(), rolls: [4, 0, 0, 0, 0, 1] })
+    expect(result.d20).toMatchObject({ total: 7, defenseOrDc: 11, resultPath: 'ON_SAVE_FAIL' })
+    expect(result.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 6 }])
+    expect(result.hitPoints).toBe(5)
+  })
+
+  it('halves the SRD Acid Breath damage, rounded down, on a successful save', async () => {
+    // Natural 12 + DEX 2 = 14 against DC 11, then 1 + 2 + 3 + 4 + 5 = 15 on the 5d8, halved to 7.
+    const result = await resolve({ feature: acidBreath(), rolls: [11, 0, 1, 2, 3, 4] })
+    expect(result.d20).toMatchObject({ total: 14, defenseOrDc: 11, resultPath: 'ON_SAVE_SUCCESS' })
+    expect(result.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 7 }])
+    expect(result.hitPoints).toBe(4)
   })
 })
 
