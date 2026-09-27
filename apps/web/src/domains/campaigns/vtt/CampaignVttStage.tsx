@@ -1162,6 +1162,7 @@ export function CampaignVttStage({
               opened={actionsOpened}
               onOpen={() => setActionsOpened(true)}
               onClose={() => setActionsOpened(false)}
+              unavailableActions={currentActionChoices?.unavailableActions ?? []}
               optionalRules={currentActionChoices?.optionalRules ?? []}
               pending={encounterCommand.isPending || pendingOccurrence !== null}
               scene={scene}

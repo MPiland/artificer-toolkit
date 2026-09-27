@@ -3,7 +3,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
 
 type CompiledCharacterAction = Extract<
@@ -77,12 +77,20 @@ export function resolveEncounterActionSource(
     'abilities' in system && Array.isArray(system.abilities)
       ? system.abilities.map((ability) => ({ id: ability.id, code: ability.code }))
       : []
-  const capability = discoverEncounterFeatureActionCapabilities({
+  const actions = discoverEncounterFeatureActions({
     actor,
     conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: abilities
-  }).find((value) => value.actionId === input.actionId)
-  if (!capability) throw new Error('The selected Creature action source is stale.')
+  })
+  const capability = actions.available.find((value) => value.actionId === input.actionId)
+  if (!capability) {
+    const unavailable = actions.unavailable.find((value) => value.actionId === input.actionId)
+    throw new Error(
+      unavailable
+        ? `${unavailable.label} is unavailable: ${unavailable.reason}`
+        : 'The selected Creature action source is stale.'
+    )
+  }
   return { kind: 'CREATURE', actor, capability }
 }
 

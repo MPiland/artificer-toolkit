@@ -8,6 +8,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterActionChoiceDto,
+  EncounterActionChoicesDto,
   EncounterBasicActionChoiceDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -49,11 +50,13 @@ function renderDrawer(
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<unknown>,
   {
     choices = actions,
+    unavailableActions = [],
     basicActions = [],
     onUseBasicAction = vi.fn(),
     waitingOn = null
   }: {
     choices?: EncounterActionChoiceDto[]
+    unavailableActions?: EncounterActionChoicesDto['unavailableActions']
     basicActions?: EncounterBasicActionChoiceDto[]
     onUseBasicAction?: (command: UseEncounterBasicActionInputDto) => Promise<unknown>
     waitingOn?: 'GM' | 'PLAYER' | null
@@ -71,6 +74,7 @@ function renderDrawer(
       opened
       optionalRules={[]}
       pending={false}
+      unavailableActions={unavailableActions}
       scene={tabletopLiveScene}
       waitingOn={waitingOn}
       onClose={vi.fn()}
@@ -173,6 +177,27 @@ describe('CampaignTabletopActionDrawer availability', () => {
     expect(await screen.findByText('No bonus action left this turn.')).toBeInTheDocument()
     await user.keyboard('{ArrowDown}{Enter}')
     expect(screen.getByRole('listitem')).toHaveTextContent('No bonus action left this turn.')
+  })
+
+  it('lists an action whose authored mechanics cannot run with its reason, never selectable', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), {
+      unavailableActions: [
+        {
+          id: 'unavailable-action',
+          label: 'Quill Volley',
+          reason:
+            'Encounter feature attack action "Quill Volley" must author exactly one ATTACK roll definition.'
+        }
+      ]
+    })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    const option = await screen.findByRole('option', { name: /Quill Volley/ })
+    expect(option).toHaveAttribute('data-combobox-disabled')
+    expect(option).toHaveTextContent('must author exactly one ATTACK roll definition')
+    await user.click(option)
+    expect(screen.getByRole('combobox', { name: 'Action' })).toHaveValue('')
   })
 
   it('waits on whoever the server says must answer the pending decision', async () => {

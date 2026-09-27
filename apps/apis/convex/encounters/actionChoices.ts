@@ -8,12 +8,13 @@ import {
   getEncounterActionChoicesInputDtoSchema,
   getEncounterOptionalActionChoicesInputDtoSchema,
   type EncounterActionChoiceDto,
+  type EncounterActionChoicesDto,
   type EncounterActionChoicesResponseDto,
   type EncounterOptionalActionChoicesDto,
   type GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
-import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
+import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 import { query, type QueryCtx } from '../_generated/server'
@@ -132,6 +133,7 @@ export const get = query({
       return read
     }
     let actions: EncounterActionChoiceDto[] = []
+    let unavailableActions: EncounterActionChoicesDto['unavailableActions'] = []
     if (actor.kind === 'CHARACTER') {
       const facts = actorTarget?.characterFacts
       const mechanics = actorTarget?.characterReactionSource?.mechanics
@@ -212,13 +214,19 @@ export const get = query({
       )
     } else if (actor.kind === 'CREATURE') {
       const system = await requireSystem(ctx, state.gameSystemId)
+      const discovered = discoverEncounterFeatureActions({
+        actor,
+        conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+        abilityDefinitions:
+          'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
+      })
+      unavailableActions = discovered.unavailable.map(({ actionId, label, reason }) => ({
+        id: actionId,
+        label,
+        reason
+      }))
       actions = await Promise.all(
-        discoverEncounterFeatureActionCapabilities({
-          actor,
-          conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-          abilityDefinitions:
-            'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
-        }).map(async (action) => ({
+        discovered.available.map(async (action) => ({
           id: action.actionId,
           label: action.label,
           ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
@@ -249,6 +257,7 @@ export const get = query({
       encounterVersion: state.version,
       actorId: actor.id,
       actions,
+      unavailableActions,
       basicActions,
       optionalRules: activeOptionalCombatDefinitions({
         automationMode: state.automationMode,

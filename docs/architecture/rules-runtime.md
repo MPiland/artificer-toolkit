@@ -760,6 +760,16 @@ exact immutable authored Effect before invoking the System adapter. The adapter 
 System-owned policy facts from that compiled value; it cannot replace or rewrite the compiled Effect.
 Capability evidence retains separate authored-source and compiled-Effect checksums.
 
+Creature discovery isolates each action (D54). When one action's authored mechanics cannot compile or
+bind (no single `ATTACK` roll on an attack, an Equipment base-damage mismatch), that action is listed
+unavailable with the reason; the Creature's other actions, and every other Creature in the Encounter,
+still move, react and act. Snapshot provenance and action-identity failures still reject the whole
+discovery. `encounters/actionChoices:get` returns the unavailable actions beside the available ones,
+and the action drawer lists them disabled with their reason; resolving one is refused with that reason.
+Publication (`creaturePublicationDtoSchema`) refuses a Creature attack without exactly one `ATTACK`
+roll; read schemas do not re-apply that rule to published Creatures, so an unavailable
+action comes from content published before a rule existed or from a compile gap the sweep tracks.
+
 There is no persistent prepared-plan layer. A derived action list may accelerate presentation but is
 never authority; every command repeats current capability and authorization checks.
 

@@ -40,6 +40,7 @@ export function CampaignTabletopActionDrawer({
   basicActions,
   actionsLoading,
   actionChoicesError,
+  unavailableActions,
   optionalRules,
   actorIdByTokenId,
   connected,
@@ -58,6 +59,7 @@ export function CampaignTabletopActionDrawer({
   basicActions: EncounterBasicActionChoiceDto[]
   actionsLoading: boolean
   actionChoicesError: string | null
+  unavailableActions: EncounterActionChoicesDto['unavailableActions']
   optionalRules: EncounterActionChoicesDto['optionalRules']
   actorIdByTokenId: ReadonlyMap<string, string>
   connected: boolean
@@ -368,25 +370,40 @@ export function CampaignTabletopActionDrawer({
             </Alert>
           ) : null}
           {actionsLoading ? <Text c='dimmed'>Loading available actions…</Text> : null}
-          {!actionsLoading && !actionChoicesError && actions.length ? (
+          {!actionsLoading &&
+          !actionChoicesError &&
+          (actions.length || unavailableActions.length) ? (
             <>
               <Select
                 comboboxProps={{ withinPortal: false }}
-                data={[...actionGroups].map(([key, { lead }]) => ({
-                  label: lead.sourceLabel ? `${lead.label} · ${lead.sourceLabel}` : lead.label,
-                  value: key
-                }))}
+                data={[
+                  ...[...actionGroups].map(([key, { lead }]) => ({
+                    label: lead.sourceLabel ? `${lead.label} · ${lead.sourceLabel}` : lead.label,
+                    value: key
+                  })),
+                  // An action whose authored mechanics cannot run is listed, never selectable.
+                  ...unavailableActions.map((action) => ({
+                    label: action.label,
+                    value: action.id,
+                    disabled: true
+                  }))
+                ]}
                 disabled={selectionControlsDisabled}
                 label='Action'
                 renderOption={({ option }) => {
-                  const warnings = actionGroups.get(option.value)?.lead.warnings ?? []
-                  return warnings.length ? (
+                  const reasons =
+                    actionGroups
+                      .get(option.value)
+                      ?.lead.warnings.map((warning) => warning.message)
+                      .join(' ') ??
+                    unavailableActions.find((action) => action.id === option.value)?.reason
+                  return reasons ? (
                     <div>
                       <Text c='dimmed' size='sm'>
                         {option.label}
                       </Text>
                       <Text c='dimmed' size='xs'>
-                        {warnings.map((warning) => warning.message).join(' ')}
+                        {reasons}
                       </Text>
                     </div>
                   ) : (

@@ -214,6 +214,7 @@ export const ResolveTargetedAction: Story = {
     scene: tabletopLiveScene,
     onResolve: resolveActionCommand,
     optionalRules,
+    unavailableActions: [],
     onLoadOptionalChoices: loadOptionalChoices
   },
   play: async ({ canvasElement }) => {
@@ -259,6 +260,7 @@ export const ResolveDisarm: Story = {
     scene: tabletopLiveScene,
     onResolve: resolveActionCommand,
     optionalRules,
+    unavailableActions: [],
     onLoadOptionalChoices: loadOptionalChoices
   },
   play: async ({ canvasElement }) => {
@@ -328,6 +330,7 @@ export const CreatureSource: Story = {
     scene: tabletopLiveScene,
     onResolve: resolveActionCommand,
     optionalRules: [],
+    unavailableActions: [],
     onLoadOptionalChoices: loadOptionalChoices
   },
   play: async ({ canvasElement }) => {
@@ -362,6 +365,7 @@ export const StaleOptionalScope: Story = {
     scene: tabletopLiveScene,
     onResolve: resolveActionCommand,
     optionalRules,
+    unavailableActions: [],
     onLoadOptionalChoices: loadSlowOptionalChoices
   },
   play: async ({ canvasElement }) => {
@@ -405,6 +409,7 @@ export const ConfirmShieldStow: Story = {
     scene: tabletopLiveScene,
     onResolve: resolveActionCommand,
     optionalRules: [],
+    unavailableActions: [],
     onLoadOptionalChoices: loadOptionalChoices
   },
   play: async ({ canvasElement }) => {
@@ -451,6 +456,7 @@ export const ChooseVersatileGrip: Story = {
     scene: tabletopLiveScene,
     onResolve: resolveActionCommand,
     optionalRules: [],
+    unavailableActions: [],
     onLoadOptionalChoices: loadOptionalChoices
   },
   play: async ({ canvasElement }) => {

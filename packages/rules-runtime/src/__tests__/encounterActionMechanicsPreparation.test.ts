@@ -1,10 +1,20 @@
+import {
+  SRD_ABILITIES,
+  SRD_SYSTEM_ID,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
+import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
+import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { featureChargeUsed } from '../encounterActorState.js'
+import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { buildEncounterMovementReactionFacts } from '../encounterMovementReactionFacts.js'
 import {
   QUILL_VOLLEY_CHARGE_ID,
   QUILL_VOLLEY_ID,
   creatureActor,
+  creatureEncounter,
   featureActionId,
   prepareCreatureAction,
   quillVolley,
@@ -109,7 +119,14 @@ describe('encounter action mechanics preparation: Feature charges', () => {
 })
 
 describe('encounter action discovery: attack rolls', () => {
-  it('rejects an attack-triggered Feature action that authors no ATTACK roll', () => {
+  const missingAttackRoll =
+    'Encounter feature attack action "Quill Volley" must author exactly one ATTACK roll definition.'
+  const systemBindings = {
+    conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
+    abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
+  }
+
+  it('makes an attack-triggered Feature action that authors no ATTACK roll unavailable, with the reason', () => {
     const attack = quillVolley({ charges: 1, cost: 1, rangeFeet: 30 })
     const withRoll = creatureActor({ id: SOURCE_ID, label: 'Quill Beast', features: [attack] })
     const withoutRoll = creatureActor({
@@ -119,9 +136,62 @@ describe('encounter action discovery: attack rolls', () => {
     })
 
     expect(featureActionId(withRoll, QUILL_VOLLEY_ID)).toEqual(expect.any(String))
-    expect(() => featureActionId(withoutRoll, QUILL_VOLLEY_ID)).toThrow(
-      'Encounter feature attack action "Quill Volley" must author exactly one ATTACK roll definition.'
-    )
+    const discovery = discoverEncounterFeatureActions({ actor: withoutRoll, ...systemBindings })
+    expect(discovery.available).toEqual([])
+    expect(discovery.unavailable).toEqual([
+      {
+        actionId: expect.stringContaining(QUILL_VOLLEY_ID),
+        label: 'Quill Volley',
+        reason: missingAttackRoll
+      }
+    ])
+    expect(() =>
+      resolveEncounterActionSource({
+        actor: withoutRoll,
+        actionId: discovery.unavailable[0]!.actionId,
+        gameSystemId: SRD_SYSTEM_ID,
+        system: srdSystemRecord
+      })
+    ).toThrow(`Quill Volley is unavailable: ${missingAttackRoll}`)
+  })
+
+  it("keeps one Creature's invalid action from stopping the rest of the Encounter moving and acting", async () => {
+    const attack = quillVolley({ charges: 1, cost: 1, rangeFeet: 30 })
+    const broken = creatureActor({
+      id: SOURCE_ID,
+      label: 'Homebrew Beast',
+      features: [{ ...attack, rollDefinitions: [] }]
+    })
+    const working = creatureActor({ id: TARGET_ID, label: 'Quill Beast', features: [attack] })
+    const { state, movementTargets } = creatureEncounter<ProjectableCharacterFacts>([
+      broken,
+      working
+    ])
+
+    const reactionFacts = buildEncounterMovementReactionFacts({
+      state,
+      userId: SOURCE_ID,
+      campaignOwnerUserId: SOURCE_ID,
+      targets: movementTargets,
+      system: srdSystemRecord,
+      definitions: {
+        requireCurrent: async () => {
+          throw new Error('No reusable definitions are read.')
+        }
+      }
+    })
+    expect(
+      reactionFacts.encounterFeatureCapabilities.map((capability) => capability.encounterActorId)
+    ).toEqual([TARGET_ID])
+
+    const prepared = await prepareCreatureAction({
+      actor: working,
+      target: broken,
+      featureId: QUILL_VOLLEY_ID,
+      overridable: true
+    })
+    const { mechanics } = await settleCreatureAction({ prepared, rolls: [14] })
+    expect(mechanics.targetPlan.updatedActor).toMatchObject({ currentHitPoints: 8 })
   })
 
   it('needs no ATTACK roll for an action that is not an attack', () => {

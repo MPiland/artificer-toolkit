@@ -65,6 +65,14 @@ export const encounterActionChoicesDtoSchema = z.strictObject({
   encounterVersion: versionSchema,
   actorId: postgresUuidSchema,
   actions: z.array(encounterActionChoiceDtoSchema),
+  /** Creature actions whose authored mechanics cannot run, with the reason. They never resolve. */
+  unavailableActions: z.array(
+    z.strictObject({
+      id: characterSheetActionDtoSchema.shape.id,
+      label: characterSheetActionDtoSchema.shape.label,
+      reason: z.string().check(z.minLength(1)).check(z.maxLength(500))
+    })
+  ),
   basicActions: z
     .array(encounterBasicActionChoiceDtoSchema)
     .check(z.maxLength(MAX_BASIC_ACTION_CHOICES)),

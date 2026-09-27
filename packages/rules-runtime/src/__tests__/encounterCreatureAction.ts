@@ -32,7 +32,7 @@ import {
 import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
-import { buildMovementTarget } from '../encounterMovementTargets.js'
+import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
 
 export type CreatureFeature = NonNullable<CreatureAuthored['features']>[number]
 type ActionCharacterFacts = NonNullable<
@@ -245,10 +245,9 @@ export function featureActionId(actor: EncounterRunActorState, featureId: string
 }
 
 /** An Assisted Encounter Run of the given actors and their current movement-target facts. */
-export function creatureEncounter(
-  actors: readonly EncounterRunActorState[],
-  automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED'
-) {
+export function creatureEncounter<
+  TCharacterFacts extends CharacterMovementFacts = ActionCharacterFacts
+>(actors: readonly EncounterRunActorState[], automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED') {
   const state = encounterRunStateSchema.parse({
     id: ENCOUNTER_ID,
     campaignId: CAMPAIGN_ID,
@@ -277,7 +276,7 @@ export function creatureEncounter(
   const movementTargets = new Map(
     actors.map((actor) => [
       actor.id,
-      buildMovementTarget<ActionCharacterFacts>({
+      buildMovementTarget<TCharacterFacts>({
         actor,
         activeEffects: [],
         gameSystemId: SRD_SYSTEM_ID,

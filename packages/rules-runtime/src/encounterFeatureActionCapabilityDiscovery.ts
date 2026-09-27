@@ -52,6 +52,18 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
   label: string
 }
 
+/** A Creature action whose authored mechanics cannot run; it is listed unavailable, not thrown. */
+export interface EncounterFeatureActionUnavailable {
+  actionId: string
+  label: string
+  reason: string
+}
+
+export interface EncounterFeatureActionDiscovery {
+  available: readonly EncounterFeatureActionCapabilityDescriptor[]
+  unavailable: readonly EncounterFeatureActionUnavailable[]
+}
+
 function featureResourceUse(input: {
   ownerFeature: FeatureDto
   compiledEffect: CompiledEffectGroup
@@ -610,16 +622,18 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
       actor: EncounterProjectionActorInput
       conditionDefinitionIds?: readonly string[]
       abilityDefinitions?: readonly { id: string; code: string }[]
-    }): readonly EncounterFeatureActionCapabilityDescriptor[] {
-      if (input.actor.kind === 'CUSTOM' || input.actor.kind === 'CHARACTER') return []
+    }): EncounterFeatureActionDiscovery {
+      if (input.actor.kind === 'CUSTOM' || input.actor.kind === 'CHARACTER')
+        return { available: [], unavailable: [] }
       const provenance = snapshotProvenance(input.actor)
       const gameSystemId = requireCanonicalUuid(
         input.actor.systemId!,
         'Creature Game System identity'
       )
       const adapter = adaptersBySystemId.get(gameSystemId)
-      if (!adapter) return []
-      const descriptors: EncounterFeatureActionCapabilityDescriptor[] = []
+      if (!adapter) return { available: [], unavailable: [] }
+      const available: EncounterFeatureActionCapabilityDescriptor[] = []
+      const unavailable: EncounterFeatureActionUnavailable[] = []
       const actionIds = new Set<string>()
       for (const feature of snapshotFeatures(input.actor)) {
         const ownerFeatureId = requireCanonicalUuid(feature.id, 'Creature feature identity')
@@ -633,36 +647,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               : requireCanonicalUuid(entry.featureOption.id, 'Creature feature option identity')
           const effect = entry.effect
           const effectId = requireCanonicalUuid(effect.id, 'Creature feature Effect identity')
-          const compiledEffect = compileEffect(effect)
-          if (compiledEffect.invocation.kind !== 'ACTION') continue
-          const equipmentResolution = resolveFeatureEquipmentAction({
-            actor: input.actor,
-            ownerFeature: entry.ownerFeature,
-            featureEffects: featureEffectEntries(entry.ownerFeature)
-              .map((candidate) => compileEffect(candidate.effect))
-              .filter((candidate) => candidate.invocation.kind === 'ACTION'),
-            candidate: compiledEffect
-          })
-          const effectiveCompiledEffect = equipmentResolution.effectiveCompiledEffect
-          const normalized = adapter.compile({
-            encounterActorId: input.actor.id,
-            creatureSourceId: provenance.creatureSourceId,
-            gameSystemId,
-            sourceRevision: provenance.sourceRevision,
-            sourceVersionId: provenance.sourceVersionId,
-            sourceChecksum: provenance.sourceChecksum,
-            ownerFeature: entry.ownerFeature,
-            featureOption: entry.featureOption,
-            compiledEffect: effectiveCompiledEffect,
-            conditionDefinitionIds: input.conditionDefinitionIds ?? [],
-            abilityDefinitions: input.abilityDefinitions ?? []
-          })
-          if (normalized === null) continue
-          assertExactSystemBindings({
-            conditionDefinitionIds: input.conditionDefinitionIds ?? [],
-            abilityDefinitions: input.abilityDefinitions ?? [],
-            normalized
-          })
+          if (effect.invocation.kind === 'PASSIVE') continue
           const exactActionId = actionId(input.actor.id, ownerFeatureId, featureOptionId, effectId)
           if (actionIds.has(exactActionId)) {
             throw new Error(
@@ -670,42 +655,81 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
             )
           }
           actionIds.add(exactActionId)
-          descriptors.push({
-            kind: 'ENCOUNTER_FEATURE',
-            gameSystemId,
-            authoredRootKind: 'effect',
-            entryPointDefinitionId: effectId,
-            effectId,
-            actionId: exactActionId,
-            label: entry.featureOption?.label ?? entry.ownerFeature.label,
-            sourceId: ownerFeatureId,
-            mechanicFacts: normalizeCharacterActionMechanicFacts(effectiveCompiledEffect),
-            conditionDefinitionIds:
-              normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
-            savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
-            compiledEffect: effectiveCompiledEffect,
-            encounterActorId: input.actor.id,
-            ownerFeatureId,
-            featureOptionId,
-            ownerRuleDefinitionIds: entry.ownerFeature.ruleDefinitionIds ?? [],
-            optionRuleDefinitionIds: entry.featureOption?.ruleDefinitionIds ?? [],
-            authoredEffectChecksum: checksumRuleDocument(effect),
-            compiledEffectChecksum: checksumRuleDocument(effectiveCompiledEffect),
-            featureResourceUse: featureResourceUse({
+          const label = entry.featureOption?.label ?? entry.ownerFeature.label
+          // One action's invalid authored mechanics make only that action unavailable (D54).
+          try {
+            const compiledEffect = compileEffect(effect)
+            const equipmentResolution = resolveFeatureEquipmentAction({
+              actor: input.actor,
               ownerFeature: entry.ownerFeature,
-              compiledEffect: effectiveCompiledEffect
-            }),
-            equipmentBinding: equipmentResolution.binding,
-            attackMechanic: featureAttackMechanic({
+              featureEffects: featureEffectEntries(entry.ownerFeature)
+                .map((candidate) => compileEffect(candidate.effect))
+                .filter((candidate) => candidate.invocation.kind === 'ACTION'),
+              candidate: compiledEffect
+            })
+            const effectiveCompiledEffect = equipmentResolution.effectiveCompiledEffect
+            const normalized = adapter.compile({
+              encounterActorId: input.actor.id,
+              creatureSourceId: provenance.creatureSourceId,
+              gameSystemId,
+              sourceRevision: provenance.sourceRevision,
+              sourceVersionId: provenance.sourceVersionId,
+              sourceChecksum: provenance.sourceChecksum,
               ownerFeature: entry.ownerFeature,
               featureOption: entry.featureOption,
-              compiledEffect: effectiveCompiledEffect
-            }),
-            ...provenance
-          })
+              compiledEffect: effectiveCompiledEffect,
+              conditionDefinitionIds: input.conditionDefinitionIds ?? [],
+              abilityDefinitions: input.abilityDefinitions ?? []
+            })
+            if (normalized === null) continue
+            assertExactSystemBindings({
+              conditionDefinitionIds: input.conditionDefinitionIds ?? [],
+              abilityDefinitions: input.abilityDefinitions ?? [],
+              normalized
+            })
+            available.push({
+              kind: 'ENCOUNTER_FEATURE',
+              gameSystemId,
+              authoredRootKind: 'effect',
+              entryPointDefinitionId: effectId,
+              effectId,
+              actionId: exactActionId,
+              label,
+              sourceId: ownerFeatureId,
+              mechanicFacts: normalizeCharacterActionMechanicFacts(effectiveCompiledEffect),
+              conditionDefinitionIds:
+                normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
+              savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
+              compiledEffect: effectiveCompiledEffect,
+              encounterActorId: input.actor.id,
+              ownerFeatureId,
+              featureOptionId,
+              ownerRuleDefinitionIds: entry.ownerFeature.ruleDefinitionIds ?? [],
+              optionRuleDefinitionIds: entry.featureOption?.ruleDefinitionIds ?? [],
+              authoredEffectChecksum: checksumRuleDocument(effect),
+              compiledEffectChecksum: checksumRuleDocument(effectiveCompiledEffect),
+              featureResourceUse: featureResourceUse({
+                ownerFeature: entry.ownerFeature,
+                compiledEffect: effectiveCompiledEffect
+              }),
+              equipmentBinding: equipmentResolution.binding,
+              attackMechanic: featureAttackMechanic({
+                ownerFeature: entry.ownerFeature,
+                featureOption: entry.featureOption,
+                compiledEffect: effectiveCompiledEffect
+              }),
+              ...provenance
+            })
+          } catch (error) {
+            unavailable.push({
+              actionId: exactActionId,
+              label,
+              reason: error instanceof Error ? error.message : 'Its authored mechanics are invalid.'
+            })
+          }
         }
       }
-      return descriptors
+      return { available, unavailable }
     }
   }
 }
