@@ -254,6 +254,26 @@ function eligibleTokens(
   )
 }
 
+function tokenVisibilityPolygons(
+  state: SceneExplorationState,
+  token: SceneToken,
+  positions: readonly ScenePoint[],
+  barrierIndex: SceneBarrierIndex
+): ScenePolygon[] {
+  const vision = visionRangeInMapPixels(state, token)?.vision
+  if (!vision) return []
+  return positions.flatMap((position) => {
+    const polygon = visibilityPolygonForToken(
+      position,
+      vision,
+      state.barriers,
+      state.doorStates,
+      barrierIndex
+    )
+    return polygon ? [polygon] : []
+  })
+}
+
 /**
  * Derive only newly explored canonical 32x32 fog chunks. Applying the returned layer is
  * monotonic: already explored cells stay explored and an unchanged view returns null.
@@ -262,32 +282,31 @@ export function deriveSceneExplorationPatch(
   state: SceneExplorationState,
   options: { ownerUserId: string | null; tokenIds?: readonly string[] }
 ): SceneFogLayer | null {
-  const existing = state.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId)
-  const dimensions = existing ?? fogDimensions(state)
-  const before = existing
-    ? readLayerMask(existing)
-    : new Uint8Array(Math.ceil((dimensions.width * dimensions.height) / 8))
-  const after = before.slice()
   const tokens = eligibleTokens(
     state,
     options.ownerUserId,
     options.tokenIds ? new Set(options.tokenIds) : null
   )
   const barrierIndex = new SceneBarrierIndex(state.barriers)
-  const polygons = tokens.flatMap((token) => {
-    const ranged = visionRangeInMapPixels(state, token)
-    if (!ranged?.vision) return []
-    const polygon = visibilityPolygonForToken(
-      ranged.position,
-      ranged.vision,
-      state.barriers,
-      state.doorStates,
-      barrierIndex
-    )
-    return polygon ? [polygon] : []
-  })
-  if (polygons.length === 0) return null
+  return exploredPolygonsPatch(
+    state,
+    options.ownerUserId,
+    tokens.flatMap((token) => tokenVisibilityPolygons(state, token, [token.position], barrierIndex))
+  )
+}
 
+/** Rasterize visibility polygons into one owner's layer, returning only the changed chunks. */
+function exploredPolygonsPatch(
+  state: SceneExplorationState,
+  ownerUserId: string | null,
+  polygons: readonly ScenePolygon[]
+): SceneFogLayer | null {
+  if (polygons.length === 0) return null
+  const existing = state.fogLayers.find((layer) => layer.ownerUserId === ownerUserId)
+  const dimensions = existing ?? fogDimensions(state)
+  const after = existing
+    ? readLayerMask(existing)
+    : new Uint8Array(Math.ceil((dimensions.width * dimensions.height) / 8))
   const changedChunkIndexes = new Set<number>()
   const chunksPerRow = Math.ceil(dimensions.width / FOG_CHUNK_SIDE)
   for (const polygon of polygons) {
@@ -337,53 +356,62 @@ export function deriveSceneExplorationPatch(
         )
       ),
     height: dimensions.height,
-    ownerUserId: options.ownerUserId,
+    ownerUserId,
     width: dimensions.width
   }
 }
 
-function withFogPatch(state: SceneExplorationState, patch: SceneFogLayer): SceneExplorationState {
-  const current = state.fogLayers.find((layer) => layer.ownerUserId === patch.ownerUserId)
-  const chunks = new Map(current?.chunks.map((chunk) => [chunk.index, chunk]) ?? [])
-  for (const chunk of patch.chunks) chunks.set(chunk.index, chunk)
-  const layer = { ...patch, chunks: [...chunks.values()].sort((a, b) => a.index - b.index) }
-  return {
-    ...state,
-    fogLayers: current
-      ? state.fogLayers.map((candidate) =>
-          candidate.ownerUserId === patch.ownerUserId ? layer : candidate
-        )
-      : [...state.fogLayers, layer]
-  }
-}
+/** Bounds one move's visibility polygons: this many, plus at most one per path segment. */
+const MAX_PATH_EXPLORATION_SAMPLES = 1_024
 
-/** Derive one cumulative exploration patch for a token's validated movement path. */
+/**
+ * Derive one cumulative exploration patch for a token's validated movement path. The token explores
+ * continuously: each segment is sampled so that, in open space, every point within its sight radius
+ * less one fog cell of any point on the path is explored, as when watching the token walk the path.
+ */
 export function deriveSceneTokenPathExplorationPatch(
   state: SceneExplorationState,
   options: { ownerUserId: string | null; path: readonly ScenePoint[]; tokenId: string }
 ): SceneFogLayer | null {
-  const token = state.tokens.find((candidate) => candidate.id === options.tokenId)
-  if (!token || options.path.length === 0) return null
-  const original = state.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId)
-  let working = state
-  for (const position of options.path) {
-    const positioned = {
-      ...working,
-      tokens: working.tokens.map((candidate) =>
-        candidate.id === token.id ? { ...candidate, position } : candidate
-      )
-    }
-    const patch = deriveSceneExplorationPatch(positioned, {
-      ownerUserId: options.ownerUserId,
-      tokenIds: [token.id]
+  if (options.path.length === 0) return null
+  const [token] = eligibleTokens(state, options.ownerUserId, new Set([options.tokenId]))
+  const vision = token && visionRangeInMapPixels(state, token)?.vision
+  if (!token || !vision) return null
+  const dimensions =
+    state.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId) ??
+    fogDimensions(state)
+  const fogCell = Math.max(state.map.width / dimensions.width, state.map.height / dimensions.height)
+  const radius = Math.max(vision.brightRange, vision.dimRange)
+  // Samples `step` apart see everything within sqrt(r^2 - (step/2)^2) >= r - fogCell of the path.
+  const coveringStep = 2 * Math.sqrt(radius ** 2 - Math.max(0, radius - fogCell) ** 2)
+  const segmentLengths = options.path
+    .slice(1)
+    .map((point, index) =>
+      Math.hypot(point.x - options.path[index]!.x, point.y - options.path[index]!.y)
+    )
+  const totalLength = segmentLengths.reduce((sum, length) => sum + length, 0)
+  // Sightless vision explores nothing between corners, so it samples only the corners.
+  const step =
+    coveringStep > 0
+      ? Math.max(coveringStep, totalLength / MAX_PATH_EXPLORATION_SAMPLES)
+      : Number.POSITIVE_INFINITY
+  const positions = [
+    options.path[0]!,
+    ...segmentLengths.flatMap((length, index) => {
+      const from = options.path[index]!
+      const to = options.path[index + 1]!
+      const samples = Math.max(1, Math.ceil(length / step))
+      return Array.from({ length: samples }, (_, sample) => {
+        const progress = (sample + 1) / samples
+        return { x: from.x + (to.x - from.x) * progress, y: from.y + (to.y - from.y) * progress }
+      })
     })
-    working = patch ? withFogPatch(positioned, patch) : positioned
-  }
-  const resolved = working.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId)
-  if (!resolved) return null
-  const originalChunks = new Map(original?.chunks.map((chunk) => [chunk.index, chunk.data]) ?? [])
-  const chunks = resolved.chunks.filter((chunk) => originalChunks.get(chunk.index) !== chunk.data)
-  return chunks.length === 0 ? null : { ...resolved, chunks }
+  ]
+  return exploredPolygonsPatch(
+    state,
+    options.ownerUserId,
+    tokenVisibilityPolygons(state, token, positions, new SceneBarrierIndex(state.barriers))
+  )
 }
 
 /**
