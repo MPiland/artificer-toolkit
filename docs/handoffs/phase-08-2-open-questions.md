@@ -6,7 +6,36 @@
 
 ## Open
 
-_(none)_
+### Q14 GM private rolls and the "a roll happened" tease
+
+**User proposal (2026-09-27):**
+- A GM's private roll is invisible to players by default. They don't learn that the GM rolled at all.
+- From the GM's own private chat card, the GM can choose to send a deliberately vague notice to chat:
+  - "<Creature> made a roll" for a roll made for a creature;
+  - "The GM made a roll" for a roll of the GM's own.
+
+**Recommendation:** adopt it, with these refinements.
+1. **Never name a hidden creature.** The notice uses the creature's name only for players who can currently see that creature (the same visibility rule as the D62 reduction label). Everyone else sees "The GM made a roll".
+2. **The outcome is not the roll.** When a private roll changes something a player can see, that player still sees the effect but not the roll or its source. Examples: an attack against their Character hits, or they must make a save. A private roll that hits a player shows "You take 7 necrotic damage" with no attacker name if the attacker is hidden.
+3. **Two GM actions on a private card:**
+   - "Tell players a roll happened": the vague notice, with no result, total or reason.
+   - "Reveal roll": the full card, for the moment a natural 20 is worth showing after the fact.
+
+   Both only reveal, and each reveal is logged.
+4. **The default is a per-GM preference, not a Campaign mode.**
+   - "My creature rolls: private (default) / public", with a per-roll override in context.
+   - Foundry defaults to public rolls, and Roll20 needs `/gmroll`.
+   - Private by default protects suspense.
+   - Public is one click away for GMs who like dice drama at the table.
+
+**Compared with Foundry and Roll20:**
+- Foundry's "Private GM Roll" shows players a placeholder card with the result hidden, so they always learn that a roll happened.
+- Foundry's "Self Roll" and Roll20's `/gmroll` show players nothing, with no way to tease afterwards.
+- This design is Self Roll plus an opt-in, after-the-fact tease or reveal. That is better than both.
+
+**Scope:** it belongs in the S6i rule-roll chat cards slice, which already covers every automatic roll. It isn't a separate project.
+
+**Answer:**
 
 ## Decisions to review
 
