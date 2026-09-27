@@ -148,7 +148,7 @@ export const darkmantle: CreatureAuthored = {
                   {
                     id: S.actionId(6527, 6),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DARKMANTLE_DARKNESS_AURA
+                    ruleKind: S.CLOSED_RULE_KIND.DARKMANTLE_ATTACH
                   }
                 ]
               }
@@ -194,7 +194,7 @@ export const darkmantle: CreatureAuthored = {
                   {
                     id: S.actionId(6527, 9),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: 'DARKMANTLE_ATTACH' as const
+                    ruleKind: S.CLOSED_RULE_KIND.DARKMANTLE_DARKNESS_AURA
                   }
                 ]
               }

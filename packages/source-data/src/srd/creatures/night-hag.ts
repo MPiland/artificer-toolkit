@@ -227,7 +227,7 @@ export const nightHag: CreatureAuthored = {
                   {
                     id: S.actionId(4849, 7),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_ETHEREALNESS
+                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_CHANGE_SHAPE
                   }
                 ]
               }
@@ -273,7 +273,7 @@ export const nightHag: CreatureAuthored = {
                   {
                     id: S.actionId(4849, 10),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_NIGHTMARE_HAUNTING
+                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_ETHEREALNESS
                   }
                 ]
               }
@@ -319,7 +319,7 @@ export const nightHag: CreatureAuthored = {
                   {
                     id: S.actionId(4849, 13),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: 'NIGHT_HAG_CHANGE_SHAPE' as const
+                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_NIGHTMARE_HAUNTING
                   }
                 ]
               }
