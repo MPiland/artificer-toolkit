@@ -7,5 +7,6 @@ export type HitPointMaximumReductionAuthored = {
     kind: 'DAMAGE_TAKEN'
     damageOutcomeId: string
   }
-  recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+  /** Restoration magic always ends the reduction; `LONG_REST` also ends it on a long rest. */
+  recoveryTags: Array<'RESTORE_HIT_POINT_MAXIMUM' | 'LONG_REST'>
 }

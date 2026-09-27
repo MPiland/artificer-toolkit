@@ -6,6 +6,10 @@ import {
 import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
+import {
+  hitPointMaximumReductionRecoveryTagsSchema,
+  type HitPointMaximumReductionRecoveryTag
+} from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type {
   CompiledDamageEffect,
   CompiledDuration,
@@ -1436,8 +1440,7 @@ function exactImmediateFollowUpSaveShape(
     failure.amountSource.kind === 'DAMAGE_TAKEN' &&
     failure.amountSource.damageOutcomeId === damageEntry.outcome.id &&
     UUID.test(failure.amountSource.damageOutcomeId) &&
-    failure.recoveryTags.length === 1 &&
-    failure.recoveryTags[0] === 'RESTORE_HIT_POINT_MAXIMUM' &&
+    hitPointMaximumReductionRecoveryTagsSchema.safeParse(failure.recoveryTags).success &&
     commonBoundedSave
   ) {
     return 'STATE_ONLY_REDUCTION'
@@ -1493,8 +1496,7 @@ function exactImmediateFollowUpSaveShape(
         reduction.amountSource.kind === 'DAMAGE_TAKEN' &&
         reduction.amountSource.damageOutcomeId === damageEntry.outcome.id &&
         UUID.test(reduction.amountSource.damageOutcomeId) &&
-        reduction.recoveryTags.length === 1 &&
-        reduction.recoveryTags[0] === 'RESTORE_HIT_POINT_MAXIMUM')) &&
+        hitPointMaximumReductionRecoveryTagsSchema.safeParse(reduction.recoveryTags).success)) &&
     commonBoundedSave &&
     // One TEST d20, doubled primary critical dice, one nested save d20, and
     // the selected nested damage dice must fit the coordinator-wide bound.
@@ -2029,6 +2031,17 @@ export const dnd5eDamageProposalOperation: ProposalRuleOperationContract = {
     }
   }
 }
+/** A reduction's recovery tags travel through its graph as canonical JSON text. */
+function parseRecoveryTags(value: unknown): HitPointMaximumReductionRecoveryTag[] | null {
+  if (typeof value !== 'string') return null
+  try {
+    const parsed = hitPointMaximumReductionRecoveryTagsSchema.safeParse(JSON.parse(value))
+    return parsed.success && JSON.stringify(parsed.data) === value ? parsed.data : null
+  } catch {
+    return null
+  }
+}
+
 export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperationContract = {
   key: DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
   contractVersion: 1,
@@ -2039,7 +2052,7 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
     sourceDamageNodeId: RULE_VALUE_KIND.TEXT,
     sourceDamageOperationKey: RULE_VALUE_KIND.TEXT,
     sourceDamageOutcomeId: RULE_VALUE_KIND.TEXT,
-    recoveryTag: RULE_VALUE_KIND.TEXT,
+    recoveryTags: RULE_VALUE_KIND.TEXT,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
   },
   outputs: {
@@ -2048,7 +2061,7 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
     sourceDamageNodeId: RULE_VALUE_KIND.TEXT,
     sourceDamageOperationKey: RULE_VALUE_KIND.TEXT,
     sourceDamageOutcomeId: RULE_VALUE_KIND.TEXT,
-    recoveryTag: RULE_VALUE_KIND.TEXT,
+    recoveryTags: RULE_VALUE_KIND.TEXT,
     applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
     authorized: RULE_VALUE_KIND.BOOLEAN,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
@@ -2059,7 +2072,7 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
     const sourceDamageNodeId = inputs.sourceDamageNodeId
     const sourceDamageOperationKey = inputs.sourceDamageOperationKey
     const sourceDamageOutcomeId = inputs.sourceDamageOutcomeId
-    const recoveryTag = inputs.recoveryTag
+    const recoveryTags = inputs.recoveryTags
     const targetStateChecksum = inputs.targetStateChecksum
     if (
       typeof targetActorId !== 'string' ||
@@ -2071,7 +2084,8 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
       sourceDamageOperationKey.length === 0 ||
       typeof sourceDamageOutcomeId !== 'string' ||
       !UUID.test(sourceDamageOutcomeId) ||
-      recoveryTag !== 'RESTORE_HIT_POINT_MAXIMUM' ||
+      typeof recoveryTags !== 'string' ||
+      !parseRecoveryTags(recoveryTags) ||
       typeof targetStateChecksum !== 'string' ||
       !/^[a-f0-9]{64}$/.test(targetStateChecksum)
     ) {
@@ -2083,7 +2097,7 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
       sourceDamageNodeId,
       sourceDamageOperationKey,
       sourceDamageOutcomeId,
-      recoveryTag,
+      recoveryTags,
       applicationCandidate: true,
       authorized: resultPath === 'ON_SAVE_FAIL',
       targetStateChecksum
@@ -3563,9 +3577,9 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
                   kind: 'LITERAL' as const,
                   value: reduction.amountSource.damageOutcomeId
                 },
-                recoveryTag: {
+                recoveryTags: {
                   kind: 'LITERAL' as const,
-                  value: reduction.recoveryTags[0]
+                  value: JSON.stringify(reduction.recoveryTags)
                 },
                 targetStateChecksum: {
                   kind: 'FACT' as const,
@@ -5296,7 +5310,8 @@ function interpretDirect(
     const sourceDamageNodeId = reduction.outputs.sourceDamageNodeId
     const sourceDamageOperationKey = reduction.outputs.sourceDamageOperationKey
     const sourceDamageOutcomeId = reduction.outputs.sourceDamageOutcomeId
-    const recoveryTag = reduction.outputs.recoveryTag
+    const recoveryTags = reduction.outputs.recoveryTags
+    const parsedRecoveryTags = parseRecoveryTags(recoveryTags)
     const resultPath = reduction.outputs.resultPath
     if (
       !publishedNode ||
@@ -5313,21 +5328,21 @@ function interpretDirect(
       typeof sourceDamageOperationKey !== 'string' ||
       typeof sourceDamageOutcomeId !== 'string' ||
       !UUID.test(sourceDamageOutcomeId) ||
-      recoveryTag !== 'RESTORE_HIT_POINT_MAXIMUM' ||
+      !parsedRecoveryTags ||
       typeof resultPath !== 'string' ||
       reduction.inputs.resultPath !== resultPath ||
       reduction.inputs.sourceDamageNodeId !== sourceDamageNodeId ||
       reduction.inputs.sourceDamageOperationKey !== sourceDamageOperationKey ||
       reduction.inputs.sourceDamageOutcomeId !== sourceDamageOutcomeId ||
-      reduction.inputs.recoveryTag !== recoveryTag ||
+      reduction.inputs.recoveryTags !== recoveryTags ||
       publishedNode.inputs.sourceDamageNodeId?.kind !== 'LITERAL' ||
       publishedNode.inputs.sourceDamageNodeId.value !== sourceDamageNodeId ||
       publishedNode.inputs.sourceDamageOperationKey?.kind !== 'LITERAL' ||
       publishedNode.inputs.sourceDamageOperationKey.value !== sourceDamageOperationKey ||
       publishedNode.inputs.sourceDamageOutcomeId?.kind !== 'LITERAL' ||
       publishedNode.inputs.sourceDamageOutcomeId.value !== sourceDamageOutcomeId ||
-      publishedNode.inputs.recoveryTag?.kind !== 'LITERAL' ||
-      publishedNode.inputs.recoveryTag.value !== recoveryTag ||
+      publishedNode.inputs.recoveryTags?.kind !== 'LITERAL' ||
+      publishedNode.inputs.recoveryTags.value !== recoveryTags ||
       publishedNode.inputs.resultPath?.kind !== 'NODE_OUTPUT' ||
       publishedNode.inputs.resultPath.nodeId !== 'nested-save-test' ||
       publishedNode.inputs.resultPath.port !== 'resultPath' ||
@@ -5361,7 +5376,7 @@ function interpretDirect(
           sourceDamageOperationKey,
           sourceDamageOutcomeId,
           reductionAmount: damage.resolvedAmount,
-          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+          recoveryTags: parsedRecoveryTags
         })
       }
     }

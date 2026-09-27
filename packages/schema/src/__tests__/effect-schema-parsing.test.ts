@@ -165,7 +165,7 @@ describe('effect schema parsing', () => {
     }
   })
 
-  it('accepts one UUID-backed maximum hit point reduction source and canonical recovery tag', () => {
+  it('accepts one UUID-backed maximum hit point reduction source and its recovery tags', () => {
     const valid = {
       id: '00000000-0000-4000-8000-0000000000f0',
       effectKind: 'HIT_POINT_MAXIMUM_REDUCTION',
@@ -176,9 +176,24 @@ describe('effect schema parsing', () => {
       recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
     }
     expect(hitPointMaximumReductionDtoSchema.safeParse(valid).success).toBe(true)
-    expect(
-      hitPointMaximumReductionDtoSchema.safeParse({ ...valid, recoveryTags: [] }).success
-    ).toBe(false)
+    // Life Drain also ends on a long rest (D62).
+    for (const recoveryTags of [
+      ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST'],
+      ['LONG_REST', 'RESTORE_HIT_POINT_MAXIMUM']
+    ])
+      expect(hitPointMaximumReductionDtoSchema.safeParse({ ...valid, recoveryTags }).success).toBe(
+        true
+      )
+    // Restoration magic always ends a reduction; tags are unique.
+    for (const recoveryTags of [
+      [],
+      ['LONG_REST'],
+      ['RESTORE_HIT_POINT_MAXIMUM', 'RESTORE_HIT_POINT_MAXIMUM'],
+      ['RESTORE_HIT_POINT_MAXIMUM', 'SHORT_REST']
+    ])
+      expect(hitPointMaximumReductionDtoSchema.safeParse({ ...valid, recoveryTags }).success).toBe(
+        false
+      )
     expect(
       hitPointMaximumReductionDtoSchema.safeParse({
         ...valid,

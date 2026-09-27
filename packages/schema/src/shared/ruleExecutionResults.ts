@@ -420,6 +420,16 @@ export const storedRuleExecutionResultDtoSchema = z
               trace.outputs.targetActorId !== batch.targetActorId
             )
               return false
+            if (application.kind === 'HIT_POINT_MAXIMUM_REDUCTION')
+              // A reduction's proposal names the damage it follows; its amount is that damage.
+              return (
+                trace.outputs.authorized === true &&
+                trace.outputs.resultPath === application.resolvedPath &&
+                trace.outputs.sourceDamageNodeId === application.sourceDamageNodeId &&
+                trace.outputs.sourceDamageOperationKey === application.sourceDamageOperationKey &&
+                trace.outputs.sourceDamageOutcomeId === application.sourceDamageOutcomeId &&
+                trace.outputs.recoveryTags === JSON.stringify(application.recoveryTags)
+              )
             const authoredPath = trace.outputs.authoredPath ?? null
             const resolvedPath = trace.outputs.resolvedPath ?? null
             if (
@@ -456,7 +466,17 @@ export const storedRuleExecutionResultDtoSchema = z
         .map((trace, index) => ({ trace, index }))
         .filter(
           ({ trace }) =>
-            trace.outputs.applicationCandidate === true && trace.outputs.authorized === true
+            trace.outputs.applicationCandidate === true &&
+            trace.outputs.authorized === true &&
+            // A reduction whose damage dealt nothing (immunity) reduces nothing and has no application.
+            (typeof trace.outputs.sourceDamageNodeId !== 'string' ||
+              batch.applications.some(
+                (application) =>
+                  application.kind === 'DAMAGE' &&
+                  application.sourceNodeId === trace.outputs.sourceDamageNodeId &&
+                  application.sourceOperationKey === trace.outputs.sourceDamageOperationKey &&
+                  application.resolvedAmount > 0
+              ))
         )
       if (
         authorizedCandidates.length !== boundTraceIndexes.size ||

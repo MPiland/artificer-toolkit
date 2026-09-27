@@ -1087,7 +1087,10 @@ function registerOutcomeFields(
         'Recovery',
         {
           kind: 'INLINE_OPTIONS',
-          options: [{ code: 'RESTORE_HIT_POINT_MAXIMUM', label: 'Restore Hit Point Maximum' }]
+          options: [
+            { code: 'RESTORE_HIT_POINT_MAXIMUM', label: 'Restore Hit Point Maximum' },
+            { code: 'LONG_REST', label: 'Long Rest' }
+          ]
         },
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION) }
       )

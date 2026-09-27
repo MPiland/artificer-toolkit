@@ -4,6 +4,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
+import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import { activeRuleEffectLifecycleDtoSchema } from './activeRuleEffectLifecycle.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import { pathLifecycleConsumeEventSchema, pathLifecycleEndEventSchema } from './enums.js'
@@ -116,7 +117,7 @@ export const activeRuleEffectStateContributionDtoSchema = z.strictObject({
   sourceDamageOutcomeId: uuidSchema,
   sourceDamageNodeId: identifierSchema,
   sourceDamageOperationKey: identifierSchema,
-  recoveryTags: z.tuple([z.literal('RESTORE_HIT_POINT_MAXIMUM')])
+  recoveryTags: hitPointMaximumReductionRecoveryTagsSchema
 })
 
 export const activeRuleEffectScalarReductionContributionDtoSchema = z.strictObject({

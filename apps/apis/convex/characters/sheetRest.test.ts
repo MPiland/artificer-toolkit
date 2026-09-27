@@ -75,9 +75,42 @@ function completion(input: CharacterRestPreviewInput, projected: CharacterRestPr
   return { id: input.id, command }
 }
 
-function scalarReductionDefinition(
+type StateContribution = Extract<
+  ActiveRuleEffectDefinitionDto,
+  { schemaVersion: 2 }
+>['stateContributions'][number]
+
+function scalarReduction(recoveryTriggers: Array<'SHORT_REST' | 'LONG_REST'>): StateContribution {
+  return {
+    kind: 'SCALAR_REDUCTION',
+    valueDefinitionId: '00000000-0000-4000-8000-000000000106',
+    amount: 1,
+    stacking: 'ADDITIVE',
+    floor: 0,
+    recoveryTriggers,
+    terminalConsequence: 'TARGET_DIED',
+    sourceOutcomeId: '00000000-0000-4000-8000-000000000107',
+    sourceNodeId: 'entry',
+    sourceOperationKey: 'comparison'
+  }
+}
+
+function hitPointMaximumReduction(
+  recoveryTags: Array<'RESTORE_HIT_POINT_MAXIMUM' | 'LONG_REST'>
+): StateContribution {
+  return {
+    kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+    amount: 3,
+    sourceDamageOutcomeId: '00000000-0000-4000-8000-000000000108',
+    sourceDamageNodeId: 'entry',
+    sourceDamageOperationKey: 'comparison',
+    recoveryTags
+  }
+}
+
+function reductionDefinition(
   characterId: string,
-  recoveryTriggers: Array<'SHORT_REST' | 'LONG_REST'>
+  contribution: StateContribution
 ): ActiveRuleEffectDefinitionDto {
   const definitionId = '00000000-0000-4000-8000-000000000101'
   const entryId = '00000000-0000-4000-8000-000000000102'
@@ -117,20 +150,7 @@ function scalarReductionDefinition(
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }
     },
-    stateContributions: [
-      {
-        kind: 'SCALAR_REDUCTION',
-        valueDefinitionId: '00000000-0000-4000-8000-000000000106',
-        amount: 1,
-        stacking: 'ADDITIVE',
-        floor: 0,
-        recoveryTriggers,
-        terminalConsequence: 'TARGET_DIED',
-        sourceOutcomeId: '00000000-0000-4000-8000-000000000107',
-        sourceNodeId: 'entry',
-        sourceOperationKey: 'comparison'
-      }
-    ]
+    stateContributions: [contribution]
   }
 }
 
@@ -238,20 +258,31 @@ describe('native Character rest preview and completion', () => {
     })
     const effectIds = {
       matching: '00000000-0000-4000-8000-000000000111',
-      preserved: '00000000-0000-4000-8000-000000000112'
+      preserved: '00000000-0000-4000-8000-000000000112',
+      preservedMaximum: '00000000-0000-4000-8000-000000000113'
     }
     await t.run(async (ctx) => {
       const store = createActiveRuleEffectStore(ctx)
       await store.create({
         id: effectIds.matching,
         owner: { kind: 'CHARACTER', characterId: character.id },
-        definition: scalarReductionDefinition(character.id, ['SHORT_REST']),
+        definition: reductionDefinition(character.id, scalarReduction(['SHORT_REST'])),
         lifecycle: { schemaVersion: 1, remainingTicks: null }
       })
       await store.create({
         id: effectIds.preserved,
         owner: { kind: 'CHARACTER', characterId: character.id },
-        definition: scalarReductionDefinition(character.id, ['LONG_REST']),
+        definition: reductionDefinition(character.id, scalarReduction(['LONG_REST'])),
+        lifecycle: { schemaVersion: 1, remainingTicks: null }
+      })
+      // A short rest leaves a Life Drain's long-rest maximum reduction in place.
+      await store.create({
+        id: effectIds.preservedMaximum,
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: reductionDefinition(
+          character.id,
+          hitPointMaximumReduction(['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST'])
+        ),
         lifecycle: { schemaVersion: 1, remainingTicks: null }
       })
     })
@@ -357,7 +388,17 @@ describe('native Character rest preview and completion', () => {
       await t.run((ctx) =>
         createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
       )
-    ).toEqual([expect.objectContaining({ id: effectIds.preserved })])
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: effectIds.preserved }),
+        expect.objectContaining({ id: effectIds.preservedMaximum })
+      ])
+    )
+    expect(
+      await t.run((ctx) =>
+        createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
+      )
+    ).toHaveLength(2)
     expect(completed.streamVersion).toBe(3)
     expect(completed.sheet.overview.hitDice.find((die) => die.die === pool.die)?.used).toBe(1)
     expect(completed.sheet.overview.currentHitPoints).toBe(
@@ -464,11 +505,33 @@ describe('native Character rest preview and completion', () => {
     expect(projected.hitPoints.canResetMaximumHitPointModifier).toBe(true)
     expect(await readState()).toEqual(before)
     const longEffectId = '00000000-0000-4000-8000-000000000121'
+    const longMaximumEffectId = '00000000-0000-4000-8000-000000000122'
+    const restorationOnlyEffectId = '00000000-0000-4000-8000-000000000123'
     await t.run(async (ctx) => {
-      await createActiveRuleEffectStore(ctx).create({
+      const store = createActiveRuleEffectStore(ctx)
+      await store.create({
         id: longEffectId,
         owner: { kind: 'CHARACTER', characterId: character.id },
-        definition: scalarReductionDefinition(character.id, ['LONG_REST']),
+        definition: reductionDefinition(character.id, scalarReduction(['LONG_REST'])),
+        lifecycle: { schemaVersion: 1, remainingTicks: null }
+      })
+      // A long rest ends a Life Drain reduction (D62) but not one only magic restores (Clay Golem).
+      await store.create({
+        id: longMaximumEffectId,
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: reductionDefinition(
+          character.id,
+          hitPointMaximumReduction(['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST'])
+        ),
+        lifecycle: { schemaVersion: 1, remainingTicks: null }
+      })
+      await store.create({
+        id: restorationOnlyEffectId,
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: reductionDefinition(
+          character.id,
+          hitPointMaximumReduction(['RESTORE_HIT_POINT_MAXIMUM'])
+        ),
         lifecycle: { schemaVersion: 1, remainingTicks: null }
       })
     })
@@ -487,14 +550,14 @@ describe('native Character rest preview and completion', () => {
       await t.run((ctx) =>
         createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
       )
-    ).toEqual([expect.objectContaining({ id: longEffectId })])
+    ).toHaveLength(3)
     vi.restoreAllMocks()
     const completed = await owner.caller.mutation(execute, command)
     expect(
       await t.run((ctx) =>
         createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
       )
-    ).toEqual([])
+    ).toEqual([expect.objectContaining({ id: restorationOnlyEffectId })])
     expect(completed.sheet.overview).toMatchObject({
       currentHitPoints: originalSheet.overview.maxHitPoints,
       maxHitPoints: originalSheet.overview.maxHitPoints,

@@ -1,5 +1,6 @@
 import { z } from '../zod.js'
 
+import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
   MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
   activeRuleEffectScalarReductionContributionDtoSchema,
@@ -107,7 +108,7 @@ export const characterMechanicsApplicationDtoSchema = z.discriminatedUnion('kind
     sourceDamageOutcomeId: uuidSchema,
     sourceDamageNodeId: identifierSchema,
     sourceDamageOperationKey: identifierSchema,
-    recoveryTags: z.tuple([z.literal('RESTORE_HIT_POINT_MAXIMUM')]),
+    recoveryTags: hitPointMaximumReductionRecoveryTagsSchema,
     requestedAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
     resolvedAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
     appliedAmount: integerSchema.check(z.gte(0)).check(z.lte(Number.MAX_SAFE_INTEGER)),

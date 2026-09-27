@@ -15,6 +15,7 @@ import type { CombatPerceptionCapabilityInstance } from '@artificer-toolkit/shar
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/authored'
 
@@ -177,7 +178,7 @@ export interface CharacterHitPointMaximumReductionApplication {
   sourceDamageOperationKey: string
   sourceDamageOutcomeId: string
   reductionAmount: number
-  recoveryTags: readonly ['RESTORE_HIT_POINT_MAXIMUM']
+  recoveryTags: readonly HitPointMaximumReductionRecoveryTag[]
 }
 
 /** One UUID-backed scalar reduction selected by a pinned System graph. */

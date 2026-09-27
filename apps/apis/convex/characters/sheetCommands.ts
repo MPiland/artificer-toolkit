@@ -504,8 +504,12 @@ export async function executeCharacterSheetCommand(
       if (
         !effect.definition.stateContributions.some(
           (contribution) =>
-            contribution.kind === 'SCALAR_REDUCTION' &&
-            contribution.recoveryTriggers.some((trigger) => restTriggers.has(trigger))
+            (contribution.kind === 'SCALAR_REDUCTION' &&
+              contribution.recoveryTriggers.some((trigger) => restTriggers.has(trigger))) ||
+            // A Life Drain-style maximum reduction ends on a long rest (D62).
+            (contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
+              command.restKind === 'LONG' &&
+              contribution.recoveryTags.includes('LONG_REST'))
         )
       )
         continue

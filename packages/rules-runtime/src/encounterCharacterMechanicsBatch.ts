@@ -1,5 +1,6 @@
 import { v5 as uuidv5 } from 'uuid'
 
+import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
@@ -201,8 +202,7 @@ export function foldCharacterMechanicsApplications(input: {
           application.sourceDamageOutcomeId ||
         application.sourceDamageNodeId.trim().length === 0 ||
         application.sourceDamageOperationKey.trim().length === 0 ||
-        application.recoveryTags.length !== 1 ||
-        application.recoveryTags[0] !== 'RESTORE_HIT_POINT_MAXIMUM'
+        !hitPointMaximumReductionRecoveryTagsSchema.safeParse(application.recoveryTags).success
       )
         throw new EncounterValidationError('The hit point maximum reduction is invalid.')
       const beforeMaximumHitPoints = maximum
@@ -216,7 +216,7 @@ export function foldCharacterMechanicsApplications(input: {
         sourceDamageOutcomeId: application.sourceDamageOutcomeId,
         sourceDamageNodeId: application.sourceDamageNodeId,
         sourceDamageOperationKey: application.sourceDamageOperationKey,
-        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM'],
+        recoveryTags: [...application.recoveryTags],
         requestedAmount: application.reductionAmount,
         resolvedAmount: application.reductionAmount,
         appliedAmount: beforeMaximumHitPoints - maximum,
