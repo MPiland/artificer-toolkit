@@ -655,7 +655,7 @@ export const adultCopperDragon: CreatureAuthored = {
                 triggerCode: 'ACTIVATED',
                 activation: { code: 'FREE' },
                 range: { id: '00000000-0005-001d-0070-000700000000', rangeKind: 'SPECIAL' },
-                resourceUse: { chargeId: '00000000-0005-0015-0070-000700000000', cost: 1 }
+                resourceUse: { chargeId: '00000000-0005-0015-0070-000700000000', cost: 2 }
               },
               paths: [
                 {
