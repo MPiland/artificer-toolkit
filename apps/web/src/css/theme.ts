@@ -62,6 +62,7 @@ export const resolver: CSSVariablesResolver = () => ({
   light: {
     '--border-color': foundationVars.color.border.strong,
     '--mantine-color-text': foundationVars.color.text.primary,
+    '--mantine-color-dimmed': foundationVars.color.text.secondary,
     '--mantine-color-body': foundationVars.color.surface.canvas,
     '--mantine-color-default-border': foundationVars.color.border.strong,
     '--mantine-color-brand-filled': foundationVars.color.accent.solid,
@@ -71,6 +72,7 @@ export const resolver: CSSVariablesResolver = () => ({
   dark: {
     '--border-color': foundationVars.color.border.strong,
     '--mantine-color-text': foundationVars.color.text.primary,
+    '--mantine-color-dimmed': foundationVars.color.text.secondary,
     '--mantine-color-body': foundationVars.color.surface.canvas,
     '--mantine-color-default-border': foundationVars.color.border.strong,
     '--mantine-color-brand-filled': foundationVars.color.accent.solid,

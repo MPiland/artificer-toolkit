@@ -8,7 +8,10 @@ import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { http, HttpResponse } from 'msw'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaigns'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import {
+  encounterCommandResultDtoSchema,
+  type EncounterCommandResultDto
+} from '@artificer-toolkit/schema/api/encounters'
 import {
   sceneFogAppendInputSchema,
   sceneFogCommandResultSchema,
@@ -33,8 +36,6 @@ import {
   sceneRecipientPageSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
-  bindEncounterToPresentedSceneInputDtoSchema,
-  bindEncounterToPresentedSceneResultDtoSchema,
   encounterActorTokenBindingCommandInputDtoSchema,
   type CampaignSceneStateDto,
   sceneCommandResultDtoSchema,
@@ -69,7 +70,6 @@ const geometryExecute = fn()
 const liveCommand = fn()
 const mediaGetDelivery = fn()
 const encounterActorTokenBindingExecute = fn()
-const encounterSceneBindingBind = fn()
 const fogBegin = fn()
 const fogAppend = fn()
 const fogPublish = fn()
@@ -203,7 +203,10 @@ export const GmWindow: Story = {
         })
       )
     })
-    await userEvent.click(page.getByLabelText("Scene token for Ember's Wake"))
+    const emberTokenSelect = page.getByLabelText("Scene token for Ember's Wake")
+    // Turn controls stay disabled until the room acknowledges the turn change.
+    await waitFor(() => expect(emberTokenSelect).toBeEnabled())
+    await userEvent.click(emberTokenSelect)
     await userEvent.click(await page.findByRole('option', { name: 'Ember' }))
     await waitFor(async () => {
       await expect(encounterActorTokenBindingExecute).toHaveBeenCalledWith({
@@ -321,6 +324,11 @@ function renderWindow(
           }
         ]
       : []
+  })
+  const encounterResult = encounterCommandResultDtoSchema.parse({
+    projection: { ...encounter, version: encounter.version + 1 },
+    roll: null,
+    occurrence: null
   })
   const sceneBinding = sceneEncounterBindingSchema.parse({
     encounterId: encounter.id,
@@ -561,8 +569,6 @@ function renderWindow(
       const name = getFunctionName(reference)
       if (name === getFunctionName(convexApi.encounters.actorTokenBindings.execute))
         return encounterActorTokenBindingExecute(args)
-      if (name === getFunctionName(convexApi.encounters.sceneBindings.bind))
-        return encounterSceneBindingBind(args)
       if (name === getFunctionName(convexApi.scenes.fogCommands.begin)) return fogBegin(args)
       if (name === getFunctionName(convexApi.scenes.fogCommands.append)) return fogAppend(args)
       if (name === getFunctionName(convexApi.scenes.fogCommands.publish)) return fogPublish(args)
@@ -636,26 +642,13 @@ function renderWindow(
     encounterActorTokenBindingCommandInputDtoSchema.parse(
       (raw as FunctionArgs<typeof convexApi.encounters.actorTokenBindings.execute>).input
     )
-    return encounterCommandResultDtoSchema.parse({
-      projection: { ...encounter, version: encounter.version + 1 },
-      roll: null,
-      occurrence: null
-    })
-  })
-  encounterSceneBindingBind.mockReset().mockImplementation(async (raw) => {
-    const input = bindEncounterToPresentedSceneInputDtoSchema.parse(raw)
-    return bindEncounterToPresentedSceneResultDtoSchema.parse({
-      commandId: input.commandId,
-      encounterId: input.encounterId,
-      replayed: false,
-      sceneId: scene.id
-    })
+    return encounterResult
   })
 
   const recipientState: LiveSessionRecipientStateDto = { recipientRole: campaign.role, scene }
   liveCommand.mockReset()
   return (
-    <StoryLiveSessionTransport state={recipientState}>
+    <StoryLiveSessionTransport encounterResult={encounterResult} state={recipientState}>
       <StoryConvexFixture client={convex}>
         <QueryClientProvider client={queryClient}>
           <CampaignTabletopWindow campaignId={args.campaignId} currentUserId={args.currentUserId} />
@@ -703,9 +696,11 @@ function StoryConvexFixture({
 
 function StoryLiveSessionTransport({
   children,
+  encounterResult,
   state
 }: {
   children: ReactNode
+  encounterResult: EncounterCommandResultDto
   state: LiveSessionRecipientStateDto
 }) {
   const [installed, setInstalled] = useState(false)
@@ -743,7 +738,38 @@ function StoryLiveSessionTransport({
 
       send(data: string): void {
         const message = liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data))
-        if (message.type === 'COMMAND') liveCommand(message)
+        if (message.type === 'COMMAND') {
+          liveCommand(message)
+          // The room acknowledges an Encounter command to its initiator, which settles the command.
+          if (message.command.scope === 'ENCOUNTER') {
+            const committed = {
+              commandId: message.command.command.commandId,
+              delta: { scope: 'ENCOUNTER', result: encounterResult },
+              sequence: message.expectedSessionSequence,
+              type: 'COMMAND_COMMITTED'
+            } satisfies LiveSessionWebSocketServerMessageDto
+            this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(committed) }))
+          }
+          // The GM binds an Encounter to the presented Scene through the room (D47).
+          if (message.command.scope === 'ENCOUNTER_BINDING' && state.scene) {
+            const { command } = message.command
+            const committed = {
+              commandId: command.commandId,
+              delta: {
+                scope: 'ENCOUNTER_BINDING',
+                result: {
+                  commandId: command.commandId,
+                  encounterId: command.encounterId,
+                  replayed: false,
+                  sceneId: state.scene.id
+                }
+              },
+              sequence: message.expectedSessionSequence + 1,
+              type: 'COMMAND_COMMITTED'
+            } satisfies LiveSessionWebSocketServerMessageDto
+            this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(committed) }))
+          }
+        }
         if (
           message.type === 'AUTHENTICATE' &&
           message.accessToken === 'story-convex-access-token'
@@ -766,7 +792,7 @@ function StoryLiveSessionTransport({
     return () => {
       Reflect.set(globalThis, 'WebSocket', originalWebSocket)
     }
-  }, [state])
+  }, [encounterResult, state])
 
   return installed ? children : null
 }
