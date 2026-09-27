@@ -24,6 +24,12 @@ definition checksums, and typed parent/class/equipment references. `/srd/audit.j
 pure SRD semantic checks independently of SQL. These are preflight checks, not proof of persistence
 or the complete rules execution corpus.
 
+Every attack-triggered Creature Feature or option authors exactly one `ATTACK` roll definition
+(D53). Most come from `src/srd/creatures/attack-bonuses.ts`, the printed "+N to hit" of each stat
+block keyed by source ID; attacks that print none take their named base attack's bonus. Regenerate
+it with `yarn workspace @artificer-toolkit/source-data generate:creature-attack-bonuses` after adding
+attack-triggered actions, and review the diff. Runtime code never parses the prose.
+
 The local Convex importer now preserves all 1,051 roots and 50 reusable definitions. Repeat seeding
 is a no-op; read-back verifies complete-record hashes against this package. Authored version payloads
 use lossless canonical JSON text to accommodate deeply composed mechanics, with metadata kept

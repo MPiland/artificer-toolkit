@@ -1,0 +1,140 @@
+/**
+ * Authoring tool (D53): writes each SRD Creature attack's printed "+N to hit" into
+ * src/srd/creatures/attack-bonuses.ts. Rerun it after adding attack-triggered Creature actions
+ * and review the diff; the output is authored source data, and runtime code never parses prose.
+ *
+ * yarn workspace @artificer-toolkit/source-data generate:creature-attack-bonuses
+ */
+import { writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import type { FeatureBaseAuthored } from '@artificer-toolkit/shared'
+import {
+  creatureAttackRollId,
+  SRD_ATTACK_TRIGGER_CODES
+} from '../src/srd/creatures/attack-rolls.js'
+import { srdCreatureRecords } from '../src/srd/creatures/index.js'
+
+/**
+ * Attacks that print no bonus of their own ("The dragon makes a tail attack.") take it from the
+ * named base attacks of the same Creature, keyed by `Creature label|Feature or option label`.
+ */
+const BASE_ATTACKS: Readonly<Record<string, readonly string[]>> = {
+  'Adult Black Dragon|Tail Attack': ['Tail'],
+  'Adult Blue Dragon|Tail Attack': ['Tail'],
+  'Adult Brass Dragon|Tail Attack': ['Tail'],
+  'Adult Green Dragon|Tail Attack': ['Tail'],
+  'Adult Red Dragon|Tail Attack': ['Tail'],
+  'Adult White Dragon|Tail Attack': ['Tail'],
+  'Ancient Black Dragon|Tail Attack': ['Tail'],
+  'Ancient Blue Dragon|Tail Attack': ['Tail'],
+  'Ancient Brass Dragon|Tail Attack': ['Tail'],
+  'Ancient Bronze Dragon|Tail Attack': ['Tail'],
+  'Ancient Copper Dragon|Tail Attack': ['Tail'],
+  'Cult Fanatic|Multiattack': ['Dagger'],
+  'Death Dog|Multiattack': ['Bite'],
+  'Deva|Multiattack': ['Mace'],
+  'Djinni|Multiattack': ['Scimitar'],
+  'Dretch|Multiattack': ['Bite', 'Claws'],
+  'Drider|Multiattack': ['Longsword', 'Longbow'],
+  'Flesh Golem|Multiattack': ['Slam'],
+  'Giant Eagle|Multiattack': ['Beak', 'Talons'],
+  'Giant Vulture|Multiattack': ['Beak', 'Talons'],
+  'Gynosphinx|Multiattack': ['Claw'],
+  'Hezrou|Multiattack': ['Bite', 'Claw'],
+  'Hydra|Multiattack': ['Bite'],
+  // The source authors only the Ice Devil's Tail; its printed bite and claws share the +10.
+  'Ice Devil|Multiattack': ['Tail'],
+  'Invisible Stalker|Multiattack': ['Slam'],
+  'Remorhaz|Swallow': ['Bite'],
+  'Tarrasque|Swallow': ['Bite'],
+  'Unicorn|Hooves': ['Hooves']
+}
+
+const PRINTED_BONUS = /([+-]\d+) to hit/g
+
+function printedBonuses(source: FeatureBaseAuthored): number[] {
+  return [...source.description.matchAll(PRINTED_BONUS)].map((match) => Number(match[1]))
+}
+
+function isAttackSource(source: FeatureBaseAuthored) {
+  return (source.effects ?? []).some(
+    (effect) =>
+      effect.invocation.kind === 'ACTION' &&
+      SRD_ATTACK_TRIGGER_CODES.has(effect.invocation.triggerCode ?? '')
+  )
+}
+
+/** An ATTACK roll this tool did not write is authored inline and keeps its own bonus. */
+function hasInlineAttackRoll(source: FeatureBaseAuthored) {
+  return (source.rollDefinitions ?? []).some(
+    (definition) =>
+      definition.kind === 'ATTACK' && definition.id !== creatureAttackRollId(source.id)
+  )
+}
+
+const entries: { entry: string; comment: string }[] = []
+const review: string[] = []
+const usedBaseKeys = new Set<string>()
+for (const creature of srdCreatureRecords) {
+  const features = creature.features ?? []
+  const sources = features.flatMap((feature) => [
+    { source: feature, path: feature.label },
+    ...(feature.options ?? []).map((option) => ({
+      source: option,
+      path: `${feature.label} > ${option.label}`
+    }))
+  ])
+  for (const { source, path } of sources) {
+    if (!isAttackSource(source) || hasInlineAttackRoll(source)) continue
+    const label = `${creature.label}: ${path}`
+    const [printed, ...variants] = printedBonuses(source)
+    if (printed !== undefined) {
+      if (variants.length > 0) review.push(`${label} uses its first printed bonus ${printed}`)
+      entries.push({ entry: `['${source.id}', ${printed}]`, comment: label })
+      continue
+    }
+    const baseKey = `${creature.label}|${source.label}`
+    const baseLabels = BASE_ATTACKS[baseKey]
+    if (!baseLabels) throw new Error(`${label} prints no attack bonus and names no base attack.`)
+    usedBaseKeys.add(baseKey)
+    const bonuses = new Set(
+      baseLabels.map((baseLabel) => {
+        const base = features.find((feature) => feature.label === baseLabel)
+        const bonus = base ? printedBonuses(base)[0] : undefined
+        if (bonus === undefined) throw new Error(`${label} base attack "${baseLabel}" is missing.`)
+        return bonus
+      })
+    )
+    const [bonus] = bonuses
+    if (bonus === undefined || bonuses.size !== 1) {
+      throw new Error(`${label} base attacks disagree on the bonus: ${[...bonuses].join(', ')}.`)
+    }
+    const from = `from ${baseLabels.join(', ')}`
+    review.push(`${label} ${bonus} (${from})`)
+    entries.push({
+      entry: `['${source.id}', ${bonus}]`,
+      comment: `${label} (no printed bonus; ${from})`
+    })
+  }
+}
+const unusedBaseKeys = Object.keys(BASE_ATTACKS).filter((key) => !usedBaseKeys.has(key))
+if (unusedBaseKeys.length > 0) throw new Error(`Unused base attacks: ${unusedBaseKeys.join(', ')}.`)
+
+await writeFile(
+  resolve(import.meta.dirname, '../src/srd/creatures/attack-bonuses.ts'),
+  [
+    '// Generated by packages/source-data/scripts/generateCreatureAttackBonuses.ts; review changes.',
+    '/**',
+    ' * The printed SRD attack bonus of every attack-triggered Creature Feature or option without an',
+    ' * inline ATTACK roll, keyed by its source ID. Attacks that print none take their base attack’s.',
+    ' */',
+    'export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map([',
+    ...entries.map(
+      ({ entry, comment }, index) =>
+        `  ${entry}${index < entries.length - 1 ? ',' : ''} // ${comment}`
+    ),
+    '])',
+    ''
+  ].join('\n')
+)
+console.log(`${entries.length} attack bonuses; review:\n${review.join('\n')}`)
