@@ -180,6 +180,20 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   * **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D50** Rules defects found by the T2 fast tests. All get fixed, each with a test that fails first:
+  1. **HIGH: Legendary discovery throws on SRD dragon attack options.** `encounterTurnLegendaryDiscovery.ts:33` calls `adapter.compile`, which throws on anything that isn't a self action (`effectActionCompiler.ts:1646`). So ending a turn in an Assisted Encounter with an SRD dragon crashes. Legendary options that are attacks (Tail Attack, Wing Attack) must be offered and resolve as actions. Discovery must never throw on one option.
+  2. **Initiative tie-break.** The tie-break roll only orders the tied creatures, and their initiative count stays the same (SRD 5.1). Today `encounterInitiativeStateEvaluation.ts:54` overwrites the score, which breaks reinforcement placement.
+  3. **Initiative roll log.** Log `1d20+modifier` as stored, and honor advantage on initiative (Barbarian Feral Instinct). Today `commands.ts:400-434` logs a bare 1d20.
+  4. **Concentration saves.** One save per damage source, not per damage part (SRD 5.1). The DC comes from that source's total damage. First confirm whether the compiler emits several damage rows for one attack.
+  5. **SRD data: Legendary costs.** Options authored "Costs 2 Actions" or "Costs 3 Actions" use those costs, fixing the adult and ancient dragons and the Unicorn. The SRD manifest diff must show only those changes.
+  6. **Resistance and vulnerability together.** When both apply, halve (round down) and then double. They don't cancel (SRD 5.1), and today every odd amount comes out 1 too high (`effectActionCompiler.ts:4720-4737`).
+  7. **Cleaving reach** uses the fixed D48 grid measure (`encounterCleavingFacts.ts:205-209`). This goes into the D48 batch.
+  8. **Smaller fixes:**
+     * Cleaving continues from a target at full HP that has temporary hit points, when the rules allow it.
+     * A `CONDITION_REMOVE` receipt reports `applied` correctly when the condition is on both the Sheet and the Campaign.
+     * `inMemoryInitiativeRepository` doesn't leak `expectedVersion` into DTOs or checksums.
+  9. **Tests typecheck.** Add a repo typecheck config for `packages/rules-runtime/src/__tests__`, run through turbo and CI. Fix the two existing errors it finds: `dnd5eCombatMath.test.ts:815` and `encounterMovementReactionDecision.test.ts:47`.
+
 * **D48** Rules defects found by the T1 fast tests. All are to be fixed, each with a test that fails first:
   * **Half damage on a successful save.** An `ON_SAVE_SUCCESS` outcome's `multiplier` (for example 0.5) must apply to direct saving-throw actions, such as the Black Dragon Wyrmling's Acid Breath. Today only the nested follow-up save shape halves damage, so the tabletop disagrees with the Sheet.
   * **Several non-dice outcomes on one save result.** Two or more fixed or condition outcomes on the same result path must not crash. Give every outcome group a unique node id, as dice groups already have.
