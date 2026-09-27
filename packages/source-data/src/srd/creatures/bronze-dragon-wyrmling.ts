@@ -125,7 +125,8 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(54, 3)),
       label: 'Breath Weapons (Recharge 5-6)',
-      description: 'The dragon uses one of the following breath weapons.',
+      description:
+        'The dragon uses one of the following breath weapons. Lightning Breath. The dragon exhales lightning in a 40-foot line that is 5 feet wide. Each creature in that line must make a DC 12 Dexterity saving throw, taking 16 (3d10) lightning damage on a failed save, or half as much damage on a successful one. Repulsion Breath. The dragon exhales repulsion energy in a 30-foot cone. Each creature in that area must succeed on a DC 12 Strength saving throw. On a failed save, the creature is pushed 30 feet away from the dragon.',
       effects: [
         {
           id: S.actionId(6062, 5),
@@ -222,17 +223,26 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
               id: S.actionId(6062, 13),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(6062, 13) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
+                  {
+                    id: S.actionId(6062, 14),
+                    effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
+                    direction: 'AWAY_FROM_SOURCE',
+                    actionEconomy: 'NONE',
+                    distanceMode: 'FIXED_DISTANCE',
+                    amount: 30,
+                    unit: S.MEASUREMENT_UNIT_CODE.FEET
+                  },
                   {
                     id: S.actionId(6062, 13),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_REPULSION_BREATH
                   }
                 ]
               }

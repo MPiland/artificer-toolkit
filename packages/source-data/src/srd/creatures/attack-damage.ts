@@ -857,6 +857,8 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Young Blue Dragon: Bite
   ['00000000-0002-0009-0070-012e00000000', [['2d6+5', 'SLASHING']]], // Young Blue Dragon: Claw
   ['00000000-0002-0008-0070-012f00000000', [['2d6+4', 'SLASHING']]], // Young Brass Dragon: Claw
+  ['00000000-0002-0001-0070-013000000000', [['2d10+5', 'PIERCING']]], // Young Bronze Dragon: Bite
+  ['00000000-0002-000a-0070-013000000000', [['2d6+5', 'SLASHING']]], // Young Bronze Dragon: Claw
   ['00000000-0002-00d3-0070-013100000000', [['2d10+4', 'PIERCING']]], // Young Copper Dragon: Bite
   ['00000000-0002-00d8-0070-013100000000', [['2d6+4', 'SLASHING']]], // Young Copper Dragon: Claw
   ['00000000-0002-00d5-0070-013200000000', [['2d10+6', 'PIERCING']]], // Young Gold Dragon: Bite

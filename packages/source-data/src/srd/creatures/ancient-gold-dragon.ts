@@ -408,50 +408,8 @@ export const ancientGoldDragon: CreatureAuthored = {
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(19, 8)),
       label: 'Breath Weapons (Recharge 5-6)',
-      description: 'The dragon uses one of the following breath weapons.',
-      effects: [
-        {
-          id: S.actionId(19, 28),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(19, 29), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          paths: [
-            {
-              id: S.actionId(19, 30),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(19, 30) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(19, 30),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
-      order: 8
-    },
-    {
-      id: S.featureId(19, 9),
-      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: S.rechargeFeatureCharge(S.featureId(19, 9)),
-      label: 'Fire Breath (Recharge 5-6)',
       description:
-        'The dragon exhales fire in a 90-foot cone. Each creature in that area must make a DC 24 Dexterity saving throw, taking 71 (13d10) fire damage on a failed save, or half as much damage on a successful one.',
+        'The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in a 90-foot cone. Each creature in that area must make a DC 24 Dexterity saving throw, taking 71 (13d10) fire damage on a failed save, or half as much damage on a successful one. Weakening Breath. The dragon exhales gas in a 90-foot cone. Each creature in that area must succeed on a DC 24 Strength saving throw or have disadvantage on Strength-based attack rolls, Strength checks, and Strength saving throws for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
       effects: [
         {
           id: S.actionId(19, 31),
@@ -515,22 +473,10 @@ export const ancientGoldDragon: CreatureAuthored = {
               }
             }
           ]
-        }
-      ],
-      order: 9
-    },
-    {
-      id: S.featureId(19, 10),
-      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: S.rechargeFeatureCharge(S.featureId(19, 10)),
-      label: 'Weakening Breath (Recharge 5-6)',
-      description:
-        'The dragon exhales gas in a 90-foot cone. Each creature in that area must succeed on a DC 24 Strength saving throw or have disadvantage on Strength-based attack rolls, Strength checks, and Strength saving throws for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
-      effects: [
+        },
         {
           id: S.actionId(19, 36),
-          order: 1,
+          order: 2,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -585,7 +531,7 @@ export const ancientGoldDragon: CreatureAuthored = {
           ]
         }
       ],
-      order: 10
+      order: 8
     },
     {
       id: S.featureId(19, 11),

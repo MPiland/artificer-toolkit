@@ -1,5 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
 export const youngGoldDragon: CreatureAuthored = {
@@ -60,9 +60,12 @@ export const youngGoldDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(306, 2),
-      label: 'Fire Breath',
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(306, 2)),
+      label: 'Breath Weapons (Recharge 5-6)',
       description:
-        'Fire Breath. The dragon exhales fire in a 30-foot cone. Each creature in that area must make a DC 17 Dexterity saving throw, taking 55 (10d10) fire damage on a failed save, or half as much damage on a successful one.',
+        'The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in a 30-foot cone. Each creature in that area must make a DC 17 Dexterity saving throw, taking 55 (10d10) fire damage on a failed save, or half as much damage on a successful one. Weakening Breath. The dragon exhales gas in a 30-foot cone. Each creature in that area must succeed on a DC 17 Strength saving throw or have disadvantage on Strength-based attack rolls, Strength checks, and Strength saving throws for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
       effects: [
         {
           id: S.actionId(306, 202),
@@ -125,6 +128,66 @@ export const youngGoldDragon: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '10d10',
                     multiplier: 0.5
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          id: S.actionId(306, 230),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(306, 231),
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
+              baseDc: 17
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(306, 232), rangeKind: S.RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(306, 233),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(306, 234),
+                resultKind: 'SEQUENCE',
+                duration: {
+                  id: S.actionId(306, 235),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
+                outcomes: [
+                  {
+                    id: S.actionId(306, 236),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(306, 237),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
+                      baseDc: 17
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
+                    id: S.actionId(306, 238),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_WEAKENING_BREATH
                   }
                 ]
               }

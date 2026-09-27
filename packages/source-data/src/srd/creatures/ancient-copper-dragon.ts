@@ -367,29 +367,8 @@ export const ancientCopperDragon: CreatureAuthored = {
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(18, 7)),
       label: 'Breath Weapons (Recharge 5-6)',
-      description: 'The dragon uses one of the following breath weapons.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(18, 103),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(18, 104), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
-        })
-      ],
-      order: 7
-    },
-    {
-      id: S.featureId(18, 8),
-      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: S.rechargeFeatureCharge(S.featureId(18, 8)),
-      label: 'Acid Breath (Recharge 5-6)',
       description:
-        'Acid Breath. The dragon exhales acid in an 90-foot line that is 10 feet wide. Each creature in that line must make a DC 22 Dexterity saving throw, taking 63 (14d8) acid damage on a failed save, or half as much damage on a successful one.',
+        "The dragon uses one of the following breath weapons. Acid Breath. The dragon exhales acid in an 90-foot line that is 10 feet wide. Each creature in that line must make a DC 22 Dexterity saving throw, taking 63 (14d8) acid damage on a failed save, or half as much damage on a successful one. Slowing Breath. The dragon exhales gas in a 90-foot cone. Each creature in that area must succeed on a DC 22 Constitution saving throw. On a failed save, the creature can't use reactions, its speed is halved, and it can't make more than one attack on its turn. In addition, the creature can use either an action or a bonus action on its turn, but not both. These effects last for 1 minute. The creature can repeat the saving throw at the end of each of its turns, ending the effect on itself with a successful save.",
       effects: [
         {
           id: S.actionId(5710, 30),
@@ -459,22 +438,10 @@ export const ancientCopperDragon: CreatureAuthored = {
               }
             }
           ]
-        }
-      ],
-      order: 8
-    },
-    {
-      id: S.featureId(18, 9),
-      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: S.rechargeFeatureCharge(S.featureId(18, 9)),
-      label: 'Slowing Breath (Recharge 5-6)',
-      description:
-        "The dragon exhales gas in a 90-foot cone. Each creature in that area must succeed on a DC 22 Constitution saving throw. On a failed save, the creature can't use reactions, its speed is halved, and it can't make more than one attack on its turn. In addition, the creature can use either an action or a bonus action on its turn, but not both. These effects last for 1 minute. The creature can repeat the saving throw at the end of each of its turns, ending the effect on itself with a successful save.",
-      effects: [
+        },
         {
           id: S.actionId(5710, 35),
-          order: 1,
+          order: 2,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -535,7 +502,7 @@ export const ancientCopperDragon: CreatureAuthored = {
           ]
         }
       ],
-      order: 9
+      order: 7
     },
     {
       id: S.featureId(18, 10),

@@ -383,9 +383,9 @@ export const ancientBronzeDragon: CreatureAuthored = {
       ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(17, 8)),
-      label: 'Lightning Breath (Recharge 5-6)',
+      label: 'Breath Weapons (Recharge 5-6)',
       description:
-        'The dragon exhales lightning in a 120-foot line that is 10 feet wide. Each creature in that line must make a DC 23 Dexterity saving throw, taking 88 (16d10) lightning damage on a failed save, or half as much damage on a successful one.',
+        'The dragon uses one of the following breath weapons. Lightning Breath. The dragon exhales lightning in a 120-foot line that is 10 feet wide. Each creature in that line must make a DC 23 Dexterity saving throw, taking 88 (16d10) lightning damage on a failed save, or half as much damage on a successful one. Repulsion Breath. The dragon exhales repulsion energy in a 30-foot cone. Each creature in that area must succeed on a DC 23 Strength saving throw. On a failed save, the creature is pushed 60 feet away from the dragon.',
       effects: [
         {
           id: S.actionId(5407, 28),
@@ -455,22 +455,10 @@ export const ancientBronzeDragon: CreatureAuthored = {
               }
             }
           ]
-        }
-      ],
-      order: 8
-    },
-    {
-      id: S.featureId(17, 9),
-      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: S.rechargeFeatureCharge(S.featureId(17, 9)),
-      label: 'Repulsion Breath (Recharge 5-6)',
-      description:
-        'The dragon exhales repulsion energy in a 30-foot cone. Each creature in that area must succeed on a DC 23 Strength saving throw. On a failed save, the creature is pushed 60 feet away from the dragon.',
-      effects: [
+        },
         {
           id: S.actionId(5407, 35),
-          order: 1,
+          order: 2,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -521,7 +509,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
           ]
         }
       ],
-      order: 9
+      order: 8
     },
     {
       id: S.featureId(17, 10),

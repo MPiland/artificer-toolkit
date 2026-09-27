@@ -477,6 +477,8 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0002-0070-012e00000000', 9], // Young Blue Dragon: Bite
   ['00000000-0001-0003-0070-012e00000000', 9], // Young Blue Dragon: Claw
   ['00000000-0001-0003-0070-012f00000000', 7], // Young Brass Dragon: Claw
+  ['00000000-0001-0003-0070-013000000000', 8], // Young Bronze Dragon: Bite
+  ['00000000-0001-0004-0070-013000000000', 8], // Young Bronze Dragon: Claw
   ['00000000-0001-0004-0070-013100000000', 7], // Young Copper Dragon: Bite
   ['00000000-0001-0005-0070-013100000000', 7], // Young Copper Dragon: Claw
   ['00000000-0001-0004-0070-013200000000', 10], // Young Gold Dragon: Bite

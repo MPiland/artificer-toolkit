@@ -425,9 +425,9 @@ export const adultGoldDragon: CreatureAuthored = {
       ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(8, 8)),
-      label: 'Fire Breath (Recharge 5-6)',
+      label: 'Breath Weapons (Recharge 5-6)',
       description:
-        'The dragon exhales fire in a 60-foot cone. Each creature in that area must make a DC 21 Dexterity saving throw, taking 66 (12d10) fire damage on a failed save, or half as much damage on a successful one.',
+        'The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in a 60-foot cone. Each creature in that area must make a DC 21 Dexterity saving throw, taking 66 (12d10) fire damage on a failed save, or half as much damage on a successful one. Weakening Breath. The dragon exhales gas in a 60-foot cone. Each creature in that area must succeed on a DC 21 Strength saving throw or have disadvantage on Strength-based attack rolls, Strength checks, and Strength saving throws for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
       effects: [
         {
           id: S.actionId(8, 28),
@@ -497,22 +497,10 @@ export const adultGoldDragon: CreatureAuthored = {
               }
             }
           ]
-        }
-      ],
-      order: 8
-    },
-    {
-      id: S.featureId(8, 9),
-      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: S.rechargeFeatureCharge(S.featureId(8, 9)),
-      label: 'Weakening Breath (Recharge 5-6)',
-      description:
-        'The dragon exhales gas in a 60-foot cone. Each creature in that area must succeed on a DC 21 Strength saving throw or have disadvantage on Strength-based attack rolls, Strength checks, and Strength saving throws for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
-      effects: [
+        },
         {
           id: S.actionId(8, 33),
-          order: 1,
+          order: 2,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -573,7 +561,7 @@ export const adultGoldDragon: CreatureAuthored = {
           ]
         }
       ],
-      order: 9
+      order: 8
     },
     {
       id: S.featureId(8, 10),

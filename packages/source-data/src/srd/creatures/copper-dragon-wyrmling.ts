@@ -1,5 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const copperDragonWyrmling: CreatureAuthored = {
   id: S.CREATURE_IDS.COPPER_DRAGON_WYRMLING,
@@ -108,7 +108,8 @@ export const copperDragonWyrmling: CreatureAuthored = {
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(70, 3)),
       label: 'Breath Weapons (Recharge 5-6)',
-      description: 'The dragon uses one of the following breath weapons.',
+      description:
+        "The dragon uses one of the following breath weapons. Acid Breath. The dragon exhales acid in an 20-foot line that is 5 feet wide. Each creature in that line must make a DC 11 Dexterity saving throw, taking 18 (4d8) acid damage on a failed save, or half as much damage on a successful one. Slowing Breath. The dragon exhales gas in a 15-foot cone. Each creature in that area must succeed on a DC 11 Constitution saving throw. On a failed save, the creature can't use reactions, its speed is halved, and it can't make more than one attack on its turn. In addition, the creature can use either an action or a bonus action on its turn, but not both. These effects last for 1 minute. The creature can repeat the saving throw at the end of each of its turns, ending the effect on itself with a successful save.",
       effects: [
         {
           id: S.actionId(7951, 5),
@@ -205,17 +206,36 @@ export const copperDragonWyrmling: CreatureAuthored = {
               id: S.actionId(7951, 13),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(7951, 13) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(7951, 14),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
+                  {
+                    id: S.actionId(7951, 15),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(7951, 16),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 11
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
                   {
                     id: S.actionId(7951, 13),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_SLOWING_BREATH
                   }
                 ]
               }

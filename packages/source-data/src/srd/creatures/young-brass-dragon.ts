@@ -121,9 +121,9 @@ export const youngBrassDragon: CreatureAuthored = {
       ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(303, 4)),
-      label: 'Fire Breath (Recharge 5-6)',
+      label: 'Breath Weapons (Recharge 5-6)',
       description:
-        'The dragon exhales fire in a 40-foot line that is 5 feet wide. Each creature in that line must make a DC 14 Dexterity saving throw, taking 42 (12d6) fire damage on a failed save, or half as much damage on a successful one.',
+        'The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in a 40-foot line that is 5 feet wide. Each creature in that line must make a DC 14 Dexterity saving throw, taking 42 (12d6) fire damage on a failed save, or half as much damage on a successful one. Sleep Breath. The dragon exhales sleep gas in a 30-foot cone. Each creature in that area must succeed on a DC 14 Constitution saving throw or fall unconscious for 5 minutes. This effect ends for a creature if the creature takes damage or someone uses an action to wake it.',
       effects: [
         {
           id: S.actionId(303, 12),
@@ -193,22 +193,10 @@ export const youngBrassDragon: CreatureAuthored = {
               }
             }
           ]
-        }
-      ],
-      order: 4
-    },
-    {
-      id: S.featureId(303, 5),
-      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: S.rechargeFeatureCharge(S.featureId(303, 5)),
-      label: 'Sleep Breath (Recharge 5-6)',
-      description:
-        'The dragon exhales sleep gas in a 30-foot cone. Each creature in that area must succeed on a DC 14 Constitution saving throw or fall unconscious for 5 minutes. This effect ends for a creature if the creature takes damage or someone uses an action to wake it.',
-      effects: [
+        },
         {
           id: S.actionId(303, 17),
-          order: 1,
+          order: 2,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -241,7 +229,7 @@ export const youngBrassDragon: CreatureAuthored = {
                 duration: {
                   id: S.actionId(303, 21),
                   durationKind: DURATION_KIND.MINUTE,
-                  amount: 10
+                  amount: 5
                 },
                 outcomes: [
                   {
@@ -255,7 +243,7 @@ export const youngBrassDragon: CreatureAuthored = {
           ]
         }
       ],
-      order: 5
+      order: 4
     }
   ]
 }

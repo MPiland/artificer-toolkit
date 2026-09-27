@@ -1,4 +1,4 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
 export const goldDragonWyrmling: CreatureAuthored = {
@@ -60,6 +60,127 @@ export const goldDragonWyrmling: CreatureAuthored = {
       label: 'Breath Weapons (Recharge 5-6)',
       description:
         'Breath Weapons (Recharge 5-6). The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in a 15-foot cone. Each creature in that area must make a DC 13 Dexterity saving throw, taking 22 (4d10) fire damage on a failed save, or half as much damage on a successful one. Weakening Breath. The dragon exhales gas in a 15-foot cone. Each creature in that area must succeed on a DC 13 Strength saving throw or have disadvantage on Strength-based attack rolls, Strength checks, and Strength saving throws for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
+      effects: [
+        {
+          id: S.actionId(147, 20),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(147, 21),
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+              baseDc: 13
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(147, 22), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          paths: [
+            {
+              id: S.actionId(147, 23),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(147, 23)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(147, 24),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('FIRE'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d10'
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(147, 25),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(147, 25)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(147, 26),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('FIRE'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d10',
+                    multiplier: 0.5
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          id: S.actionId(147, 30),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(147, 31),
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.STRENGTH,
+              baseDc: 13
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(147, 32), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          paths: [
+            {
+              id: S.actionId(147, 33),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(147, 33)}__result`,
+                resultKind: 'SEQUENCE',
+                duration: {
+                  id: S.actionId(147, 34),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
+                outcomes: [
+                  {
+                    id: S.actionId(147, 35),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(147, 36),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.STRENGTH,
+                      baseDc: 13
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
+                    id: S.actionId(147, 37),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_WEAKENING_BREATH
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 3
     }
   ]

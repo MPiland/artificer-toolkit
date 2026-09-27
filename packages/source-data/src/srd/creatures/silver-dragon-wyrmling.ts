@@ -109,7 +109,8 @@ export const silverDragonWyrmling: CreatureAuthored = {
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(254, 2)),
       label: 'Breath Weapons (Recharge 5-6)',
-      description: 'The dragon uses one of the following breath weapons.',
+      description:
+        'The dragon uses one of the following breath weapons. Cold Breath. The dragon exhales an icy blast in a 15-foot cone. Each creature in that area must make a DC 13 Constitution saving throw, taking 18 (4d8) cold damage on a failed save, or half as much damage on a successful one. Paralyzing Breath. The dragon exhales paralyzing gas in a 15-foot cone. Each creature in that area must succeed on a DC 13 Constitution saving throw or be paralyzed for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
       effects: [
         {
           id: S.actionId(254, 5),
@@ -206,12 +207,12 @@ export const silverDragonWyrmling: CreatureAuthored = {
               id: S.actionId(254, 13),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(254, 13) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(254, 14),
                   durationKind: DURATION_KIND.MINUTE,
@@ -222,6 +223,20 @@ export const silverDragonWyrmling: CreatureAuthored = {
                     id: S.actionId(254, 13),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('PARALYZED')
+                  },
+                  {
+                    id: S.actionId(254, 15),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(254, 16),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 13
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
                   }
                 ]
               }

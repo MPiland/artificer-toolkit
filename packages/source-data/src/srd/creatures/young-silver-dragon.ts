@@ -177,9 +177,9 @@ export const youngSilverDragon: CreatureAuthored = {
       ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(309, 4)),
-      label: 'Cold Breath (Recharge 5-6)',
+      label: 'Breath Weapons (Recharge 5-6)',
       description:
-        'The dragon exhales an icy blast in a 30-foot cone. Each creature in that area must make a DC 17 Constitution saving throw, taking 54 (12d8) cold damage on a failed save, or half as much damage on a successful one.',
+        'The dragon uses one of the following breath weapons. Cold Breath. The dragon exhales an icy blast in a 30-foot cone. Each creature in that area must make a DC 17 Constitution saving throw, taking 54 (12d8) cold damage on a failed save, or half as much damage on a successful one. Paralyzing Breath. The dragon exhales paralyzing gas in a 30-foot cone. Each creature in that area must succeed on a DC 17 Constitution saving throw or be paralyzed for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
       effects: [
         {
           id: S.actionId(309, 12),
@@ -249,19 +249,10 @@ export const youngSilverDragon: CreatureAuthored = {
               }
             }
           ]
-        }
-      ],
-      order: 4
-    },
-    {
-      id: S.featureId(309, 5),
-      label: 'Paralyzing Breath',
-      description:
-        'The dragon exhales paralyzing gas in a 30-foot cone. Each creature in that area must succeed on a DC 17 Constitution saving throw or be paralyzed for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
-      effects: [
+        },
         {
           id: S.actionId(309, 17),
-          order: 1,
+          order: 2,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -285,12 +276,12 @@ export const youngSilverDragon: CreatureAuthored = {
               id: S.actionId(309, 20),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(309, 20) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(309, 21),
                   durationKind: DURATION_KIND.MINUTE,
@@ -301,6 +292,20 @@ export const youngSilverDragon: CreatureAuthored = {
                     id: S.actionId(309, 20),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('PARALYZED')
+                  },
+                  {
+                    id: S.actionId(309, 22),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(309, 23),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 17
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
                   }
                 ]
               }
@@ -308,7 +313,7 @@ export const youngSilverDragon: CreatureAuthored = {
           ]
         }
       ],
-      order: 5
+      order: 4
     }
   ]
 }

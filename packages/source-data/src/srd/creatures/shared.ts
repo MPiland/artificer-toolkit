@@ -311,6 +311,83 @@ export function constitutionPoisonDamageSave(input: {
   }
 }
 
+/**
+ * A weapon attack action: "Melee Weapon Attack: … reach N ft." (or "Ranged … range N ft."), one
+ * target, dealing `diceConfig` damage plus the ability modifier on a hit, then any follow-up save.
+ * It takes the IDs `actionId(creatureIndex, localIndex)` through `localIndex + 4`; its ATTACK roll
+ * comes from the printed bonus (attack-bonuses.ts).
+ */
+export function weaponAttack(input: {
+  creatureIndex: number
+  localIndex: number
+  kind: 'MELEE' | 'RANGED'
+  feet: number
+  damageType: string
+  diceConfig: string
+  ability: AbilityCode | null
+  followUpSave?: FollowUpSaveAuthored
+}): NonNullable<FeatureAuthored['effects']>[number] {
+  const id = (offset: number) => actionId(input.creatureIndex, input.localIndex + offset)
+  const sequence = input.followUpSave !== undefined
+  return {
+    id: id(0),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode:
+        input.kind === 'MELEE' ? TRIGGER.MELEE_WEAPON_ATTACK : TRIGGER.RANGED_WEAPON_ATTACK,
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      range: {
+        id: id(1),
+        rangeKind: RANGE_KIND.DISTANCE,
+        amount: input.feet,
+        unit: MEASUREMENT_UNIT_CODE.FEET
+      },
+      targeting: {
+        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+        dispositionKind: TARGET_DISPOSITION_KIND.ANY
+      }
+    },
+    paths: [
+      {
+        id: id(2),
+        order: 1,
+        pathCode: PATH_CODE.ON_HIT,
+        groupType: sequence ? PATH_GROUP_TYPE.SEQUENTIAL : PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${id(2)}__result`,
+          resultKind: sequence ? 'SEQUENCE' : 'SINGLE',
+          outcomes: [
+            {
+              id: id(3),
+              effectKind: EFFECT_KIND.DAMAGE,
+              damageTypeId: damageTypeId(input.damageType),
+              valueKind: DAMAGE_VALUE_KIND.DICE,
+              scalingKind: SCALING.NONE,
+              diceConfig: input.diceConfig,
+              ...(input.ability
+                ? {
+                    bonuses: [
+                      {
+                        id: id(4),
+                        bonusKind: DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: input.ability,
+                        order: 1
+                      }
+                    ]
+                  }
+                : {})
+            },
+            ...(input.followUpSave ? [input.followUpSave] : [])
+          ]
+        }
+      }
+    ]
+  }
+}
+
 function grantedSkill(
   level: typeof SCALING_AMOUNT_KIND.FULL | typeof SCALING_AMOUNT_KIND.DOUBLE,
   creatureIndex: number,

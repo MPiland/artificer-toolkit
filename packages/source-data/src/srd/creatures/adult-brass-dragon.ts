@@ -328,26 +328,8 @@ export const adultBrassDragon: CreatureAuthored = {
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(5, 7)),
       label: 'Breath Weapons (Recharge 5-6)',
-      description: 'The dragon uses one of the following breath weapons.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(5, 105),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(5, 106), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
-        })
-      ],
-      order: 7
-    },
-    {
-      id: S.featureId(5, 8),
-      label: 'Fire Breath',
       description:
-        'Fire Breath. The dragon exhales fire in an 60-foot line that is 5 feet wide. Each creature in that line must make a DC 18 Dexterity saving throw, taking 45 (13d6) fire damage on a failed save, or half as much damage on a successful one.',
+        'The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in an 60-foot line that is 5 feet wide. Each creature in that line must make a DC 18 Dexterity saving throw, taking 45 (13d6) fire damage on a failed save, or half as much damage on a successful one. Sleep Breath. The dragon exhales sleep gas in a 60-foot cone. Each creature in that area must succeed on a DC 18 Constitution saving throw or fall unconscious for 10 minutes. This effect ends for a creature if the creature takes damage or someone uses an action to wake it.',
       effects: [
         {
           id: S.actionId(5, 30),
@@ -411,19 +393,10 @@ export const adultBrassDragon: CreatureAuthored = {
               }
             }
           ]
-        }
-      ],
-      order: 8
-    },
-    {
-      id: S.featureId(5, 9),
-      label: 'Sleep Breath',
-      description:
-        'The dragon exhales sleep gas in a 60-foot cone. Each creature in that area must succeed on a DC 18 Constitution saving throw or fall unconscious for 10 minutes. This effect ends for a creature if the creature takes damage or someone uses an action to wake it.',
-      effects: [
+        },
         {
           id: S.actionId(5, 35),
-          order: 1,
+          order: 2,
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -464,7 +437,7 @@ export const adultBrassDragon: CreatureAuthored = {
           ]
         }
       ],
-      order: 9
+      order: 7
     },
     {
       id: S.featureId(5, 10),

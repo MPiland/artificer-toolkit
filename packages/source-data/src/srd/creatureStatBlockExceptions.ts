@@ -5,8 +5,6 @@
  * longer applies. Each reason names the follow-up that removes it (D56).
  */
 
-const SEPARATE_BREATH =
-  'Breath weapons are authored as separate Features, each with its own Recharge 5-6 charge; the stat block prints one Breath Weapons action sharing one recharge. Merging them into one Feature is a follow-up (D56).'
 const UNAUTHORED_ACTION =
   'The printed action is not authored yet; it needs Effects authoring (attack roll, damage, saves), a follow-up (D56).'
 const UNAUTHORED_REACTION =
@@ -24,45 +22,6 @@ const entries = (reason: string, keys: readonly string[]) =>
   keys.map((key) => [key, reason] as const)
 
 export const SRD_CREATURE_STAT_BLOCK_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
-  ...entries(SEPARATE_BREATH, [
-    'Adult Brass Dragon|features -Fire Breath',
-    'Adult Brass Dragon|features -Sleep Breath',
-    'Adult Bronze Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Adult Bronze Dragon|features -Lightning Breath (Recharge 5-6)',
-    'Adult Bronze Dragon|features -Repulsion Breath (Recharge 5-6)',
-    'Adult Copper Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Adult Copper Dragon|features -Acid Breath (Recharge 5-6)',
-    'Adult Copper Dragon|features -Slowing Breath (Recharge 5-6)',
-    'Adult Gold Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Adult Gold Dragon|features -Fire Breath (Recharge 5-6)',
-    'Adult Gold Dragon|features -Weakening Breath (Recharge 5-6)',
-    'Adult Silver Dragon|features -Cold Breath (Recharge 5-6)',
-    'Adult Silver Dragon|features -Paralyzing Breath (Recharge 5-6)',
-    'Ancient Brass Dragon|features -Fire Breath',
-    'Ancient Brass Dragon|features -Sleep Breath',
-    'Ancient Bronze Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Ancient Bronze Dragon|features -Lightning Breath (Recharge 5-6)',
-    'Ancient Bronze Dragon|features -Repulsion Breath (Recharge 5-6)',
-    'Ancient Copper Dragon|features -Acid Breath (Recharge 5-6)',
-    'Ancient Copper Dragon|features -Slowing Breath (Recharge 5-6)',
-    'Ancient Gold Dragon|features -Fire Breath (Recharge 5-6)',
-    'Ancient Gold Dragon|features -Weakening Breath (Recharge 5-6)',
-    'Ancient Silver Dragon|features -Cold Breath (Recharge 5-6)',
-    'Ancient Silver Dragon|features -Paralyzing Breath (Recharge 5-6)',
-    'Young Brass Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Young Brass Dragon|features -Fire Breath (Recharge 5-6)',
-    'Young Brass Dragon|features -Sleep Breath (Recharge 5-6)',
-    'Young Bronze Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Young Bronze Dragon|features -Lightning Breath (Recharge 5-6)',
-    'Young Bronze Dragon|features -Repulsion Breath (Recharge 5-6)',
-    'Young Copper Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Young Copper Dragon|features -Acid Breath',
-    'Young Gold Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Young Gold Dragon|features -Fire Breath',
-    'Young Silver Dragon|features +Breath Weapons (Recharge 5-6)',
-    'Young Silver Dragon|features -Cold Breath (Recharge 5-6)',
-    'Young Silver Dragon|features -Paralyzing Breath'
-  ]),
   ...entries(UNAUTHORED_ACTION, [
     'Aboleth|features +Tentacle',
     'Aboleth|features +Tail',

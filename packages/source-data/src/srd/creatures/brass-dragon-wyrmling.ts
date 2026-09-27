@@ -109,7 +109,8 @@ export const brassDragonWyrmling: CreatureAuthored = {
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: S.rechargeFeatureCharge(S.featureId(53, 2)),
       label: 'Breath Weapons (Recharge 5-6)',
-      description: 'The dragon uses one of the following breath weapons.',
+      description:
+        'The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in an 20-foot line that is 5 feet wide. Each creature in that line must make a DC 11 Dexterity saving throw, taking 14 (4d6) fire damage on a failed save, or half as much damage on a successful one. Sleep Breath. The dragon exhales sleep gas in a 15-foot cone. Each creature in that area must succeed on a DC 11 Constitution saving throw or fall unconscious for 1 minute. This effect ends for a creature if the creature takes damage or someone uses an action to wake it.',
       effects: [
         {
           id: S.actionId(53, 5),
@@ -215,7 +216,7 @@ export const brassDragonWyrmling: CreatureAuthored = {
                 duration: {
                   id: S.actionId(53, 14),
                   durationKind: DURATION_KIND.MINUTE,
-                  amount: 10
+                  amount: 1
                 },
                 outcomes: [
                   {
