@@ -9,8 +9,9 @@ import { internalQuery } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { rejectDomain } from '../lib/domainRejections'
 import { recordEncounterCommand } from '../encounters/commands'
-import { readRunProjection } from '../encounters/documents'
+import { readRunProjection, readRunState } from '../encounters/documents'
 import { readEvidenceRollDice } from '../encounters/evidenceRolls'
+import { readActorInitiativeRoll } from '../encounters/initiativeSources'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
 
 /**
@@ -23,7 +24,7 @@ export const dice = internalQuery({
   args: v.any(),
   handler: async (ctx, args: unknown) => {
     const { command, ...scope } = liveSessionEncounterRollInputSchema.parse(args)
-    const { userId, membership, run } = await requireLiveEncounterRun(ctx, {
+    const { userId, campaign, membership, run } = await requireLiveEncounterRun(ctx, {
       ...scope,
       encounterId: command.encounterId
     })
@@ -40,8 +41,17 @@ export const dice = internalQuery({
       )
       .unique()
     if (recorded) return liveSessionEncounterRollDiceSchema.parse({ dice: [] })
-    if (command.type === 'ROLL_ACTOR_INITIATIVE')
-      return liveSessionEncounterRollDiceSchema.parse({ dice: [20] })
+    if (command.type === 'ROLL_ACTOR_INITIATIVE') {
+      const { rollMode } = await readActorInitiativeRoll(
+        ctx,
+        readRunState(run),
+        campaign,
+        command.actorId.toLowerCase()
+      )
+      return liveSessionEncounterRollDiceSchema.parse({
+        dice: rollMode === 'NORMAL' ? [20] : [20, 20]
+      })
+    }
     const definition = readRunProjection(run)
       .actors.find((actor) => actor.id === command.actorId.toLowerCase())
       ?.features.find((feature) => feature.id === command.featureId)

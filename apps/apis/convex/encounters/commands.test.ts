@@ -30,6 +30,7 @@ import {
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { airElemental } from '@artificer-toolkit/source-data/srd/creatures/air-elemental.js'
+import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -326,8 +327,8 @@ async function resolveAssistedSideRoll(
   return current
 }
 
-async function setupCharacterAutomatic() {
-  const base = await readyCharacterFixture()
+async function setupCharacterAutomatic(classOptions?: Parameters<typeof readyCharacterFixture>[0]) {
+  const base = await readyCharacterFixture(classOptions)
   const campaign = await base.other.caller.mutation(createCampaign, {
     name: 'Character initiative commands',
     format: 'ONGOING',
@@ -2240,11 +2241,12 @@ describe('native Encounter Run commands', () => {
       }
     })
     getRandomValues.mockRestore()
+    // The log records the roll as made: 1d20 plus the initiative modifier.
     expect(rolled.roll).toMatchObject({
       characterId: null,
       characterLabel: actor.label,
       source: { kind: 'INITIATIVE', label: 'Initiative' },
-      evidence: { total: 5, modifier: 0 }
+      evidence: { total: 7, modifier: 2 }
     })
     expect(rolled.projection).toMatchObject({ version: 1 })
     expect(rolled.projection.actors).toContainEqual(
@@ -2310,7 +2312,7 @@ describe('native Encounter Run commands', () => {
       characterId: character.id,
       characterLabel: actor.label,
       source: { kind: 'INITIATIVE', label: 'Initiative' },
-      evidence: { total: 5, modifier: 0 }
+      evidence: { total: 7, modifier: 2 }
     })
     expect(rolled.projection).toMatchObject({ version: 1 })
     expect(rolled.projection.actors).toContainEqual(
@@ -2352,6 +2354,41 @@ describe('native Encounter Run commands', () => {
         }
       })
     ).rejects.toThrow(LiveSessionRouteError)
+  })
+
+  it('rolls initiative with advantage for a Character with Feral Instinct', async () => {
+    const feralInstinct = barbarian.features?.find((feature) => feature.label === 'Feral Instinct')
+    if (!feralInstinct) throw new Error('Missing SRD Feral Instinct.')
+    const { owner, run } = await setupCharacterAutomatic({
+      features: [{ ...feralInstinct, availableAtLevel: 1, effects: [] }]
+    })
+    const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
+    if (!actor) throw new Error('Missing Character actor.')
+    const faces = [2, 15]
+    const getRandomValues = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
+      ;(array as Uint32Array)[0] = faces.shift() ?? 0
+      return array
+    })
+    const rolled = await executeInRoom(owner.caller, {
+      command: {
+        type: 'ROLL_ACTOR_INITIATIVE',
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 0,
+        actorId: actor.id
+      }
+    })
+    getRandomValues.mockRestore()
+    // Two d20s (3 and 16), keeping the higher, plus the +2 initiative modifier.
+    expect(rolled.roll?.evidence).toMatchObject({
+      mode: 'ADVANTAGE',
+      terms: [{ rolls: [3, 16], subtotal: 16 }],
+      modifier: 2,
+      total: 18
+    })
+    expect(rolled.projection.actors).toContainEqual(
+      expect.objectContaining({ id: actor.id, initiative: 18 })
+    )
   })
 
   it('starts a Manual Run through normalized initiative and replays the terminal command', async () => {
