@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import type { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 
 type DamageBatch = {
   targetActorId: string
@@ -85,6 +86,32 @@ export function nativeConcentrationDamageSourceLabels(
     )
   )
 }
+/**
+ * Each executed Legendary Action of a turn as one damage source against its target, named after
+ * its option. A turn orders them between its outgoing and incoming turn effects.
+ */
+export function legendaryActionDamage(
+  actions: TurnCoordinatorRootDto['completedLegendaryActions']
+): DamageBatch[] {
+  return (actions ?? []).flatMap(({ choice, resolution }) => {
+    if (
+      resolution.kind !== 'EXECUTED' ||
+      (resolution.application.kind !== 'CHARACTER_MECHANICS_BATCH' &&
+        resolution.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+    )
+      return []
+    return [
+      {
+        targetActorId: resolution.application.targetActorId,
+        applications: resolution.application.applications,
+        sourceLabel:
+          choice.options.find((option) => option.optionId === resolution.selectedOptionId)?.label ??
+          null
+      }
+    ]
+  })
+}
+
 /** Names each turn-effect execution's damage after its authored effect definition. */
 export async function labelTurnEffectDamage<
   TExecution extends DamageBatch & { definition: { authoredEffectId: string } }
@@ -131,13 +158,19 @@ export function nativeConcentrationParentDamage(
         damageTypeId: result.applicationOutputs.damage.damageTypeId
       })
     ]
+  // A turn deals its outgoing effects, then its Legendary Actions, then its incoming effects.
   if (result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS')
-    return nativeConcentrationDamageApplications(result.executions)
+    return nativeConcentrationDamageApplications([
+      ...legendaryActionDamage(result.legendaryActions),
+      ...result.executions
+    ])
   if (result.status === 'TURN_LIFECYCLE_COMPLETE')
-    return nativeConcentrationDamageApplications(
-      [result.outgoingTurn, result.incomingTurn].flatMap((phase) =>
-        phase.kind === 'EXECUTED' ? phase.executions : []
-      )
-    )
+    return nativeConcentrationDamageApplications([
+      ...(result.outgoingTurn.kind === 'EXECUTED' ? result.outgoingTurn.executions : []),
+      ...legendaryActionDamage(result.legendaryActions),
+      ...(result.incomingTurn.kind === 'EXECUTED' ? result.incomingTurn.executions : [])
+    ])
+  if (result.status === 'INITIATIVE_COMPLETE')
+    return nativeConcentrationDamageApplications(legendaryActionDamage(result.legendaryActions))
   return []
 }

@@ -14,7 +14,14 @@ import {
 } from './encounterActionEntryPointCompiler.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { featureChargeUsed } from './encounterActorState.js'
-import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
+import {
+  featureActionMechanic,
+  type EncounterFeatureActionCapabilityDescriptor
+} from './encounterFeatureActionCapabilityDiscovery.js'
+import type {
+  CharacterRuleActionExecutionPlan,
+  CharacterRuleActionSystemAdapter
+} from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   mergeCanonicalD20Contributors,
@@ -76,6 +83,19 @@ export function encounterActionCurrentnessChecksum(input: {
     ...(maintenance ? { maintenance } : {}),
     ...(sceneContext ? { sceneContext } : {})
   })
+}
+
+/** The execution plan a Creature's feature action runs; Legendary discovery pins the same plan. */
+export function compileEncounterFeatureActionPlan(
+  adapter: CharacterRuleActionSystemAdapter,
+  capability: EncounterFeatureActionCapabilityDescriptor
+): CharacterRuleActionExecutionPlan {
+  return (
+    adapter.compileExecutionPlan?.({
+      action: capability,
+      compilerSource: buildCompiledActionCompilerSource(capability)
+    }) ?? { kind: 'SINGLE_GRAPH', published: adapter.compile({ action: capability }) }
+  )
 }
 
 /** Prepares current source, target, and resource facts without persistence access. */
@@ -160,15 +180,7 @@ export async function prepareEncounterActionMechanics<
       ? source.entry.schemaVersion === 4
         ? source.entry.compilation.executionPlan
         : { kind: 'SINGLE_GRAPH' as const, published: source.entry.compilation.published }
-      : (() => {
-          const compilerSource = buildCompiledActionCompilerSource(source.capability)
-          return (
-            adapter.compileExecutionPlan?.({ action: source.capability, compilerSource }) ?? {
-              kind: 'SINGLE_GRAPH' as const,
-              published: adapter.compile({ action: source.capability })
-            }
-          )
-        })()
+      : compileEncounterFeatureActionPlan(adapter, source.capability)
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
     source.kind === 'CHARACTER_ACTION'

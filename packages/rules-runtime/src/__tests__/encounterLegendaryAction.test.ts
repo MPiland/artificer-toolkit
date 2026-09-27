@@ -17,6 +17,8 @@ import {
   applyStagedLegendaryActionRefreshes,
   stageEncounterLegendaryActionRefreshes
 } from '../encounterLegendaryActionDiscovery.js'
+import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
+import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { resolveEncounterRuleCapabilityStates } from '../encounterRuleCapabilityState.js'
 import { prepareTurnLegendaryActions } from '../encounterTurnLegendaryAction.js'
 import { discoverTurnLegendaryWindows } from '../encounterTurnLegendaryDiscovery.js'
@@ -46,9 +48,9 @@ const OCCURRENCE_ID = '00000000-0000-4000-8000-00000000b003'
 const USER_ID = '00000000-0000-4000-8000-00000000b004'
 const srdLegendaryActions = creatureFeature(ancientRedDragon, 'Legendary Actions')
 /**
- * The Ancient Red Dragon's pool of 3: Detect and Tail Attack cost 1, Wing Attack costs 2. The SRD
- * attack options do not compile as executable Legendary Actions yet, so each option keeps its
- * identity, charge and cost but takes the supported self-action shape the Convex fixture uses.
+ * The Ancient Red Dragon's pool of 3: Detect and Tail Attack cost 1, Wing Attack costs 2. Tail Attack
+ * runs the dragon's own Tail (D51 option B). Wing Attack is an area save, which a turn cannot run
+ * yet, so it keeps its identity, charge and cost but takes a supported self-action shape.
  */
 const legendaryActions: typeof srdLegendaryActions = {
   ...srdLegendaryActions,
@@ -170,7 +172,8 @@ async function offered(input: Parameters<typeof discoverWindows>[0]) {
   return windows.map((window) => ({
     ownerActorId: window.choice.ownerActorId,
     options: window.choice.options.map((option) => ({
-      label: window.candidatesByOptionId.get(option.optionId)?.action.label,
+      label: option.label,
+      targetActorIds: option.targetActorIds,
       featureCost: option.featureCost,
       poolBefore: option.poolBefore,
       poolRemaining: option.poolRemaining
@@ -241,14 +244,25 @@ describe('Legendary Action choices offered at the end of a turn', () => {
     })
     expect(others).toEqual([])
     expect(choice?.ownerActorId).toBe(DRAGON_ID)
-    // Detect is a check with no executable effect, so only the two attacks are offered.
+    // Detect is a check with no executable effect, so only the two attacks are offered. Tail Attack
+    // runs the dragon's Tail against another actor; the stand-in Wing Attack targets its user.
     expect(
-      [...(choice?.options ?? [])].sort((left, right) =>
-        (left.label ?? '').localeCompare(right.label ?? '')
-      )
+      [...(choice?.options ?? [])].sort((left, right) => left.label.localeCompare(right.label))
     ).toEqual([
-      { label: 'Tail Attack', featureCost: 1, poolBefore: 3, poolRemaining: 2 },
-      { label: 'Wing Attack (Costs 2 Actions)', featureCost: 2, poolBefore: 3, poolRemaining: 1 }
+      {
+        label: 'Tail Attack',
+        targetActorIds: [WOLF_ID],
+        featureCost: 1,
+        poolBefore: 3,
+        poolRemaining: 2
+      },
+      {
+        label: 'Wing Attack (Costs 2 Actions)',
+        targetActorIds: [DRAGON_ID],
+        featureCost: 2,
+        poolBefore: 3,
+        poolRemaining: 1
+      }
     ])
     const [window] = await discoverWindows({
       actors: [dragon(), wolfActor],
@@ -273,7 +287,6 @@ describe('Legendary Action choices offered at the end of a turn', () => {
       expect(identity).toMatchObject({
         ownerActorId: DRAGON_ID,
         ownerFeatureId: legendaryActions.id,
-        targetActorId: DRAGON_ID,
         chargeId: legendaryCharge?.id,
         lifecycle
       })
@@ -288,7 +301,15 @@ describe('Legendary Action choices offered at the end of a turn', () => {
     ).toEqual([
       {
         ownerActorId: DRAGON_ID,
-        options: [{ label: 'Tail Attack', featureCost: 1, poolBefore: 1, poolRemaining: 0 }]
+        options: [
+          {
+            label: 'Tail Attack',
+            targetActorIds: [WOLF_ID],
+            featureCost: 1,
+            poolBefore: 1,
+            poolRemaining: 0
+          }
+        ]
       }
     ])
     expect(
@@ -308,19 +329,10 @@ describe('Legendary Action choices offered at the end of a turn', () => {
         },
         featureCharges: { [srdLegendaryActions.id]: 0 }
       })
-    // The SRD Tail Attack and Wing Attack are not yet executable Legendary Actions.
+    // The SRD Wing Attack is an area save, which a turn cannot run yet; Tail Attack runs the Tail.
     expect(
       await offered({
         actors: [srdDragon(srdLegendaryActions.options), wolfActor],
-        outgoingActorId: WOLF_ID
-      })
-    ).toEqual([])
-    const [, srdTailAttack] = srdLegendaryActions.options ?? []
-    const [, , executableWingAttack] = legendaryActions.options ?? []
-    if (!srdTailAttack || !executableWingAttack) throw new Error('Expected both options.')
-    expect(
-      await offered({
-        actors: [srdDragon([srdTailAttack, executableWingAttack]), wolfActor],
         outgoingActorId: WOLF_ID
       })
     ).toEqual([
@@ -328,16 +340,16 @@ describe('Legendary Action choices offered at the end of a turn', () => {
         ownerActorId: DRAGON_ID,
         options: [
           {
-            label: 'Wing Attack (Costs 2 Actions)',
-            featureCost: 2,
+            label: 'Tail Attack',
+            targetActorIds: [WOLF_ID],
+            featureCost: 1,
             poolBefore: 3,
-            poolRemaining: 1
+            poolRemaining: 2
           }
         ]
       }
     ])
   })
-
   it('offers nothing at the end of the owner’s own turn or while the owner is incapacitated', async () => {
     expect(await offered({ actors: [dragon(), wolfActor], outgoingActorId: DRAGON_ID })).toEqual([])
     for (const condition of ['Incapacitated', 'Stunned', 'Paralyzed'])
@@ -442,35 +454,71 @@ describe('Legendary Action turn window', () => {
     turnRoot: ReturnType<typeof root>
     automationMode?: 'MANUAL'
     pending?: Parameters<typeof prepareTurnLegendaryActions>[0]['pending']
-    decline?: boolean
+    resolution?: Parameters<typeof prepareTurnLegendaryActions>[0]['resolution']
+    autoRollByActorId?: Readonly<Record<string, boolean>>
+    /** Every die the turn rolls, as 0-based faces in request order. */
+    faces?: readonly number[]
   }) {
+    const state = srdEncounterState({
+      actors: input.actors,
+      currentActorId: WOLF_ID,
+      ...(input.automationMode ? { automationMode: input.automationMode } : {})
+    })
+    const faces = [...(input.faces ?? [])]
     return prepareTurnLegendaryActions({
-      state: srdEncounterState({
-        actors: input.actors,
-        currentActorId: WOLF_ID,
-        ...(input.automationMode ? { automationMode: input.automationMode } : {})
-      }),
+      state,
       userId: USER_ID,
-      autoRollByActorId: {},
+      autoRollByActorId: input.autoRollByActorId ?? {},
       occurrenceId: OCCURRENCE_ID,
       root: input.turnRoot,
       ...(input.pending ? { pending: input.pending } : {}),
-      ...(input.decline ? { resolution: { kind: 'DECLINE' as const } } : {}),
+      ...(input.resolution ? { resolution: input.resolution } : {}),
       updatedAt: '2026-09-26T00:00:01.000Z',
       actors: input.actors,
       discoverWindows: ({ outgoingActorId, actors }) =>
         discoverWindows({ actors, outgoingActorId }),
-      prepareMechanics: () => {
-        throw new Error('A declined Legendary Action prepares no mechanics.')
-      },
+      // The same preparation every Encounter action runs, against each actor's current facts.
+      prepareMechanics: (mechanics) =>
+        prepareEncounterActionMechanics({
+          ...mechanics,
+          state,
+          overridable: false,
+          movementTargets: new Map([
+            ...[mechanics.actor, mechanics.target].map(
+              (actor) => [actor.id, srdCreatureTarget(actor)] as const
+            ),
+            ...(mechanics.movementTargets ?? [])
+          ]),
+          loadSource: async (source) =>
+            resolveEncounterActionSource({ ...source, system: srdSystemRecord }),
+          loadRelationshipFacts: async () => []
+        }),
       definitions: srdDefinitions,
       createRuntime: createSrdRulesRuntime,
-      rollD20: () => {
-        throw new Error('A declined Legendary Action rolls no d20.')
+      random: (maximum) => {
+        const face = faces.shift()
+        if (face === undefined || face >= maximum) throw new Error(`Unexpected roll (d${maximum}).`)
+        return face
       }
     })
   }
 
+  /** The owner's paused Legendary Action choice and its option with this label. */
+  async function pausedChoice(actors: readonly EncounterRunActorState[], label = 'Tail Attack') {
+    const paused = await prepare({ actors, turnRoot: root({ currentActorId: WOLF_ID }) })
+    if (paused.kind !== 'PENDING') throw new Error('Expected the Legendary Action choice.')
+    const context = paused.snapshot.applicationContext
+    if (context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE')
+      throw new Error('Expected a Legendary Action choice context.')
+    const tailAttack = context.choice.options.find((option) => option.label === label)
+    if (!tailAttack) throw new Error(`Expected the ${label} option.`)
+    return { snapshot: paused.snapshot, context, tailAttack }
+  }
+
+  function wolfHitPoints(actors: readonly EncounterRunActorState[]) {
+    const wolf = actors.find((actor) => actor.id === WOLF_ID)
+    return wolf?.kind === 'CREATURE' ? wolf.currentHitPoints : undefined
+  }
   it('pauses the end of another creature’s turn on the owner’s Legendary Action choice', async () => {
     const actors = [dragon({ used: 1 }), wolfActor]
     const result = await prepare({ actors, turnRoot: root({ currentActorId: DRAGON_ID }) })
@@ -510,7 +558,7 @@ describe('Legendary Action turn window', () => {
       actors,
       turnRoot: context.root,
       pending: paused.snapshot,
-      decline: true
+      resolution: { kind: 'DECLINE' }
     })
     if (declined.kind !== 'COMPLETE') throw new Error('A declined window completes the turn.')
     expect(declined.root.legendaryActionQueue).toBeUndefined()
@@ -535,7 +583,8 @@ describe('Legendary Action turn window', () => {
     expect(await prepare({ actors, turnRoot, automationMode: 'MANUAL' })).toEqual({
       kind: 'COMPLETE',
       root: turnRoot,
-      actors
+      actors,
+      movementTargets: new Map()
     })
     await expect(
       prepare({
@@ -547,5 +596,255 @@ describe('Legendary Action turn window', () => {
         }
       })
     ).rejects.toThrow('Manual turns cannot contain Legendary Actions.')
+  })
+
+  it('runs the Tail its Tail Attack names against the picked target, spending one Legendary Action (D51)', async () => {
+    const actors = [dragon(), wolfActor]
+    const { snapshot, context, tailAttack } = await pausedChoice(actors)
+    // The dragon auto-rolls: a 15 hits (+17), and its Tail deals 2d8 + 10 = 1 + 2 + 10.
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: snapshot,
+      resolution: {
+        kind: 'LEGENDARY_OPTION',
+        optionId: tailAttack.optionId,
+        targetActorId: WOLF_ID
+      },
+      autoRollByActorId: { [DRAGON_ID]: true },
+      faces: [14, 0, 1]
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The Tail Attack settles the window.')
+    const [evidence] = done.root.completedLegendaryActions ?? []
+    if (evidence?.resolution.kind !== 'EXECUTED') throw new Error('Expected the executed window.')
+    expect(evidence.resolution).toMatchObject({
+      selectedOptionId: tailAttack.optionId,
+      targetActorId: WOLF_ID,
+      application: {
+        kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+        sourceActorId: DRAGON_ID,
+        targetActorId: WOLF_ID,
+        d20: { selectedNatural: 15, resultPath: 'ON_HIT' },
+        featureResourceConsumption: { cost: 1, beforeUsed: 0, afterUsed: 1 }
+      }
+    })
+    expect(
+      evidence.resolution.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
+        evidence.resolution.application.applications.map((application) =>
+          application.kind === 'DAMAGE'
+            ? [application.requestedAmount, application.damageTypeId]
+            : null
+        )
+    ).toEqual([[13, srdDamageTypeId('Bludgeoning')]])
+    expect(wolfHitPoints(done.actors)).toBe(0)
+    const settledDragon = done.actors.find((actor) => actor.id === DRAGON_ID)
+    if (!settledDragon) throw new Error('Expected the dragon.')
+    expect(featureChargeUsed(settledDragon, legendaryActions.id)).toBe(1)
+    // Later turn stages see the wounded Wolf.
+    expect(done.movementTargets.get(WOLF_ID)?.state.current).toBe(0)
+  })
+
+  it('doubles the Tail’s damage dice on a critical hit', async () => {
+    const actors = [dragon(), wolfActor]
+    const { snapshot, context, tailAttack } = await pausedChoice(actors)
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: snapshot,
+      resolution: {
+        kind: 'LEGENDARY_OPTION',
+        optionId: tailAttack.optionId,
+        targetActorId: WOLF_ID
+      },
+      autoRollByActorId: { [DRAGON_ID]: true },
+      faces: [19, 0, 0, 0, 0]
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The Tail Attack settles the window.')
+    const application = done.root.completedLegendaryActions?.[0]?.resolution
+    expect(application).toMatchObject({
+      application: {
+        d20: { selectedNatural: 20, resultPath: 'ON_CRIT' },
+        applications: [{ kind: 'DAMAGE', requestedAmount: 4 + 10 }]
+      }
+    })
+  })
+
+  it('pauses on the owner’s attack roll and each damage die for its controllers, then settles', async () => {
+    const actors = [dragon(), wolfActor]
+    const { snapshot, context, tailAttack } = await pausedChoice(actors)
+    const attack = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: snapshot,
+      resolution: {
+        kind: 'LEGENDARY_OPTION',
+        optionId: tailAttack.optionId,
+        targetActorId: WOLF_ID
+      }
+    })
+    if (attack.kind !== 'PENDING' || attack.snapshot.snapshotKind !== 'KERNEL_EVIDENCE')
+      throw new Error('Expected the dragon’s attack roll.')
+    expect(attack.snapshot.applicationContext).toMatchObject({
+      kind: 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE',
+      targetActorId: WOLF_ID,
+      rollerActorId: DRAGON_ID,
+      d20Policy: { rollMode: 'NORMAL' }
+    })
+    let pending = attack
+    let answer: Parameters<typeof prepare>[0]['resolution'] = {
+      kind: 'ENTER_DICE',
+      requestId: attack.snapshot.request.requestId,
+      rawFaces: [15],
+      rollMode: 'NORMAL'
+    }
+    for (const face of [8, 8]) {
+      const next = await prepare({
+        actors,
+        turnRoot: context.root,
+        pending: pending.snapshot,
+        resolution: answer
+      })
+      if (next.kind !== 'PENDING' || next.snapshot.snapshotKind !== 'KERNEL_EVIDENCE')
+        throw new Error('Expected a damage die.')
+      expect(next.snapshot.applicationContext).toMatchObject({ d20Policy: null })
+      pending = next
+      answer = { kind: 'ENTER_INTEGER', requestId: next.snapshot.request.requestId, value: face }
+    }
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: pending.snapshot,
+      resolution: answer
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The Tail Attack settles the window.')
+    expect(done.root.completedLegendaryActions?.[0]?.resolution).toMatchObject({
+      application: { applications: [{ kind: 'DAMAGE', requestedAmount: 8 + 8 + 10 }] }
+    })
+  })
+
+  it('replays a settled window from its recorded dice, without rolling again', async () => {
+    const actors = [dragon(), wolfActor]
+    const { snapshot, context, tailAttack } = await pausedChoice(actors)
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: snapshot,
+      resolution: {
+        kind: 'LEGENDARY_OPTION',
+        optionId: tailAttack.optionId,
+        targetActorId: WOLF_ID
+      },
+      autoRollByActorId: { [DRAGON_ID]: true },
+      faces: [14, 0, 1]
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The Tail Attack settles the window.')
+    const decision = {
+      kind: 'LEGENDARY_OPTION' as const,
+      commandId: '00000000-0000-4000-8000-00000000b011',
+      commandFingerprint: 'e'.repeat(64),
+      actorUserId: USER_ID,
+      correlationId: null,
+      expectedOccurrenceVersion: 0,
+      selectionChecksum: context.selectionChecksum,
+      optionId: tailAttack.optionId,
+      targetActorId: WOLF_ID
+    }
+    const replayed = await prepare({
+      actors,
+      turnRoot: { ...done.root, resolutionCommands: [decision] }
+    })
+    if (replayed.kind !== 'COMPLETE') throw new Error('The replay completes.')
+    expect(replayed.root.completedLegendaryActions).toEqual(done.root.completedLegendaryActions)
+    expect(wolfHitPoints(replayed.actors)).toBe(0)
+    await expect(
+      prepare({
+        actors,
+        turnRoot: {
+          ...done.root,
+          resolutionCommands: [{ ...decision, targetActorId: DRAGON_ID }]
+        }
+      })
+    ).rejects.toThrow('Retained Legendary Action decision is stale.')
+  })
+
+  it('pauses a save its action forces for the target’s controllers, then applies its outcome', async () => {
+    // A Giant Spider whose Legendary option runs its Bite: a hit, then a DC 11 Constitution save
+    // against 2d8 poison that the Wolf rolls (ADR 0034 decision 3).
+    const giantSpider = srdByLabel(SRD.creatures, 'Giant Spider')
+    const bite = creatureFeature(giantSpider, 'Bite')
+    const spiderLegendary = {
+      ...legendaryActions,
+      options: [
+        {
+          id: '00000000-0000-4000-8000-00000000b021',
+          label: 'Bite',
+          description: 'The spider makes one bite attack.',
+          order: 1,
+          actionReference: { featureId: bite.id, chargeCost: 1 }
+        }
+      ]
+    }
+    const spider = srdCreatureActor({
+      id: DRAGON_ID,
+      creature: { ...giantSpider, features: [...(giantSpider.features ?? []), spiderLegendary] },
+      featureCharges: { [spiderLegendary.id]: 0 }
+    })
+    const actors = [spider, wolfActor]
+    const { snapshot, context, tailAttack: option } = await pausedChoice(actors, 'Bite')
+    // The spider auto-rolls its hit (a 19) and its 1d8 + 3 piercing (a 4); the Wolf's save waits.
+    const save = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: snapshot,
+      resolution: { kind: 'LEGENDARY_OPTION', optionId: option.optionId, targetActorId: WOLF_ID },
+      autoRollByActorId: { [DRAGON_ID]: true },
+      faces: [18, 3]
+    })
+    if (save.kind !== 'PENDING' || save.snapshot.snapshotKind !== 'KERNEL_EVIDENCE')
+      throw new Error('Expected the Wolf’s save.')
+    expect(save.snapshot.applicationContext).toMatchObject({
+      rollerActorId: WOLF_ID,
+      d20Policy: { dc: 11 }
+    })
+    // A natural 1 fails: 2d8 poison rolls 1 and 2.
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: save.snapshot,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: save.snapshot.request.requestId,
+        rawFaces: [1],
+        rollMode: 'NORMAL'
+      },
+      autoRollByActorId: { [DRAGON_ID]: true },
+      faces: [0, 1]
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The Bite settles the window.')
+    expect(done.root.completedLegendaryActions?.[0]?.resolution).toMatchObject({
+      application: {
+        nestedD20: { selectedNatural: 1, resultPath: 'ON_SAVE_FAIL' },
+        applications: [
+          { kind: 'DAMAGE', requestedAmount: 4 + 3 },
+          { kind: 'DAMAGE', requestedAmount: 1 + 2 }
+        ]
+      }
+    })
+  })
+  it('refuses a target the option does not offer', async () => {
+    const actors = [dragon(), wolfActor]
+    const { snapshot, context, tailAttack } = await pausedChoice(actors)
+    await expect(
+      prepare({
+        actors,
+        turnRoot: context.root,
+        pending: snapshot,
+        resolution: {
+          kind: 'LEGENDARY_OPTION',
+          optionId: tailAttack.optionId,
+          targetActorId: DRAGON_ID
+        }
+      })
+    ).rejects.toThrow('Legendary Action target is unavailable.')
   })
 })

@@ -141,7 +141,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       root,
       occurrenceId,
       actors: legendary.actors,
-      movementTargets: outgoing?.movementTargets
+      movementTargets: legendary.movementTargets
     })
     if (initiative.kind === 'PENDING') return initiative
     root = initiative.root
@@ -176,7 +176,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   if (recharge.kind === 'PENDING') return recharge
   if (recharge.plan) root = { ...root, completedRechargePlan: recharge.plan }
   const movementTargets = new Map<string, MovementTarget<TCharacterFacts>>()
-  for (const [actorId, target] of outgoing?.movementTargets ?? []) {
+  // Legendary Actions start from the outgoing turn's facts and add each actor they changed.
+  for (const [actorId, target] of legendary.movementTargets) {
     const actor = recharge.actors.find((candidate) => candidate.id === actorId)
     if (!actor) throw new Error('Turn-effect staged actor is unavailable.')
     movementTargets.set(

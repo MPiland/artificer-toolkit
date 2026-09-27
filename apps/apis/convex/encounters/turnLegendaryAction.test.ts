@@ -221,6 +221,17 @@ function response(
   } satisfies EncounterExecuteInput
 }
 
+/** The Legendary option at `index`, aimed at its first offered target (its user, for a self action). */
+function legendaryOption(
+  pending: { options: readonly { optionId: string; targetActorIds: readonly string[] }[] },
+  index = 0
+) {
+  const option = pending.options[index]
+  const targetActorId = option?.targetActorIds[0]
+  if (!option || !targetActorId) throw new Error('Expected a Legendary option with a target.')
+  return { kind: 'LEGENDARY_OPTION' as const, optionId: option.optionId, targetActorId }
+}
+
 async function setup(
   rolls: FixtureRolls,
   creatures = 3,
@@ -565,10 +576,7 @@ describe('native Encounter turn Legendary Actions', () => {
       if (!choice || choice.kind !== 'LEGENDARY_ACTION_CHOICE')
         throw new Error('EACH_ROUND must offer the outgoing Legendary window before initiative.')
       unchangedMechanics(before, await stored(base.t, base.run.id))
-      const option = response(base.run.id, result, {
-        kind: 'OPTION',
-        optionId: choice.options[0]!.optionId
-      })
+      const option = response(base.run.id, result, legendaryOption(choice))
       result = await executeInRoom(base.owner.caller, option).catch((cause: unknown) => {
         throw new Error('Legendary option failed.', { cause })
       })
@@ -643,11 +651,14 @@ describe('native Encounter turn Legendary Actions', () => {
       expect(terminal.rounds).toHaveLength(before.rounds.length + 1)
       expect(terminal.receipts).toHaveLength(before.receipts.length + 1)
       expect(terminal.commands).toHaveLength(before.commands.length + 1)
-      const acting = encounterRunActorStateSchema.parse(
-        JSON.parse(terminal.actors.find((row) => row.id === choice.ownerActorId)!.stateJson)
+      // The Legendary attack hit its target, not its owner (D51 option B).
+      const hit = encounterRunActorStateSchema.parse(
+        JSON.parse(
+          terminal.actors.find((row) => row.id === legendaryOption(choice).targetActorId)!.stateJson
+        )
       )
-      if (acting.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
-      expect(acting.currentHitPoints).toBe(10)
+      if (hit.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
+      expect(hit.currentHitPoints).toBe(10)
       for (const input of [advance, option, dice, ...initiativeResponses, rechargeInput])
         await expect(replayInRoom(base.owner.caller, input)).resolves.toEqual(result)
       expect(await stored(base.t, base.run.id)).toEqual(terminal)
@@ -681,7 +692,7 @@ describe('native Encounter turn Legendary Actions', () => {
       expect(pending.ownerActorId).toBe(ownerId)
       expect(pending.options).toHaveLength(1)
       expect(pending.options[0]).toMatchObject({
-        targetActorId: ownerId,
+        targetActorIds: [ownerId],
         ownerFeatureId: automaticChargedBiteFeatureId
       })
       await expect(
@@ -699,9 +710,7 @@ describe('native Encounter turn Legendary Actions', () => {
       const command = response(
         base.run.id,
         result,
-        index === 0
-          ? { kind: 'DECLINE' }
-          : { kind: 'OPTION', optionId: pending.options[0]!.optionId }
+        index === 0 ? { kind: 'DECLINE' } : legendaryOption(pending)
       )
       responses.push(command)
       result = await executeInRoom(base.owner.caller, command)
@@ -784,10 +793,7 @@ describe('native Encounter turn Legendary Actions', () => {
     if (!first || first.kind !== 'LEGENDARY_ACTION_CHOICE')
       throw new Error('Expected the first Legendary owner.')
     const selectedOwner = first.ownerActorId
-    const option = response(base.run.id, result, {
-      kind: 'OPTION',
-      optionId: first.options[0]!.optionId
-    })
+    const option = response(base.run.id, result, legendaryOption(first))
     result = await executeInRoom(base.owner.caller, option).catch((cause: unknown) => {
       throw new Error('Legendary option failed.', { cause })
     })
@@ -883,11 +889,13 @@ describe('native Encounter turn Legendary Actions', () => {
         })
       )
     })
-    const selectedActor = encounterRunActorStateSchema.parse(
-      JSON.parse(terminal.actors.find((row) => row.id === selectedOwner)!.stateJson)
+    const hitActor = encounterRunActorStateSchema.parse(
+      JSON.parse(
+        terminal.actors.find((row) => row.id === legendaryOption(first).targetActorId)!.stateJson
+      )
     )
-    if (selectedActor.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
-    expect(selectedActor.currentHitPoints).toBe(10)
+    if (hitActor.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
+    expect(hitActor.currentHitPoints).toBe(10)
     const enteringActor = encounterRunActorStateSchema.parse(
       JSON.parse(
         terminal.actors.find((row) => row.id === result.projection.currentActorId)!.stateJson
@@ -949,7 +957,7 @@ describe('native Encounter turn Legendary Actions', () => {
       const answerer = variant === 'GM_OVERRIDE' ? base.owner : base.other
       result = await executeInRoom(
         answerer.caller,
-        response(base.run.id, result, { kind: 'OPTION', optionId: choice.options[0]!.optionId })
+        response(base.run.id, result, legendaryOption(choice))
       )
       if (variant === 'PLAYER_AUTO_ROLL') {
         expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
@@ -1004,7 +1012,11 @@ describe('native Encounter turn Legendary Actions', () => {
     await expect(
       executeInRoom(
         base.owner.caller,
-        response(base.run.id, result, { kind: 'OPTION', optionId: 'f'.repeat(64) })
+        response(base.run.id, result, {
+          kind: 'LEGENDARY_OPTION',
+          optionId: 'f'.repeat(64),
+          targetActorId: first.ownerActorId
+        })
       )
     ).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(before)
@@ -1063,10 +1075,7 @@ describe('native Encounter turn Legendary Actions', () => {
     const pending = result.occurrence?.pending
     if (!pending || pending.kind !== 'LEGENDARY_ACTION_CHOICE')
       throw new Error('Expected one Legendary owner.')
-    const terminalInput = response(base.run.id, result, {
-      kind: 'OPTION',
-      optionId: pending.options[0]!.optionId
-    })
+    const terminalInput = response(base.run.id, result, legendaryOption(pending))
     const before = await stored(base.t, base.run.id)
     const terminal = await executeInRoom(base.owner.caller, terminalInput)
     expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
@@ -1195,10 +1204,7 @@ describe('private DO turn Legendary Action response', () => {
     expect(initial.occurrence.occurrenceVersion).toBe(0)
     unchangedMechanics(before, await stored(base.t, base.run.id))
     const ownerId = choice.ownerActorId
-    const chosenCommand = response(base.run.id, initial, {
-      kind: 'OPTION',
-      optionId: choice.options[0]!.optionId
-    }).command
+    const chosenCommand = response(base.run.id, initial, legendaryOption(choice)).command
     const chosen = await planNativeLiveEncounterTurn(
       environment,
       'fixture-access-token',
@@ -1302,12 +1308,20 @@ describe('private DO turn Legendary Action response', () => {
     const spent = encounterRunActorStateSchema.parse(
       JSON.parse(after.actors.find((row) => row.id === ownerId)!.stateJson)
     )
+    const hit = encounterRunActorStateSchema.parse(
+      JSON.parse(
+        after.actors.find((row) => row.id === legendaryOption(choice).targetActorId)!.stateJson
+      )
+    )
     expect(terminal.projection.currentActorId).toBe(ownerId)
-    if (spent.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
-    expect(spent.currentHitPoints).toBe(10)
+    if (spent.kind === 'CHARACTER' || hit.kind === 'CHARACTER')
+      throw new Error('Expected Creature actors.')
+    // The owner's spent pool refreshes as its turn starts; its Tail-style attack hit the other actor.
     expect(spent.resources).toMatchObject({
       featureCharges: { [automaticChargedBiteFeatureId]: 0 }
     })
+    expect(hit.id).not.toBe(ownerId)
+    expect(hit.currentHitPoints).toBe(10)
     expect(
       await callLiveSessionRoute(
         environment,
@@ -1458,7 +1472,7 @@ describe('private DO turn Legendary Action response', () => {
         scope,
         {
           ...decline,
-          resolution: { kind: 'OPTION', optionId: choice.options[0]!.optionId }
+          resolution: legendaryOption(choice)
         },
         replayOptions
       )

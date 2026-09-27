@@ -44,6 +44,7 @@ export type TurnResolutionCommandDto =
       expectedOccurrenceVersion: number
       selectionChecksum: string
       optionId: string
+      targetActorId: string
     }
 
 export const turnResolutionCommandDtoSchema: z.ZodMiniType<TurnResolutionCommandDto> =
@@ -84,6 +85,7 @@ export const turnResolutionCommandDtoSchema: z.ZodMiniType<TurnResolutionCommand
       correlationId: z.nullable(uuidSchema),
       expectedOccurrenceVersion: integerSchema.check(z.gte(0)),
       selectionChecksum: checksumSchema,
-      optionId: checksumSchema
+      optionId: checksumSchema,
+      targetActorId: uuidSchema
     })
   ])

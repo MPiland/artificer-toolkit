@@ -11,8 +11,8 @@ import { requireEncounterActorControl } from './actorController'
 
 /**
  * A player answers only the turn decisions that belong to an actor they control: its initiative
- * declaration, its turn-effect saves, and a granted Creature's Recharge dice and Legendary Action
- * choice and dice.
+ * declaration, its turn-effect saves, a granted Creature's Recharge dice and Legendary Action
+ * choice (with a target they can see) and dice, and the saves a Legendary Action forces on it.
  * A replay returns only to the user who answered, and a declaration replay also requires current
  * control. Every other turn step is the GM's.
  */
@@ -74,10 +74,16 @@ export async function requireTurnResponseController(
         ? turnPendingActorId(snapshot)
         : context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' &&
             snapshot &&
-            (resolution.kind === 'DECLINE' || resolution.kind === 'OPTION')
+            (resolution.kind === 'DECLINE' || resolution.kind === 'LEGENDARY_OPTION')
           ? turnPendingActorId(snapshot)
           : null
   const actor = actorId ? await readRunActor(ctx, state, actorId) : null
   if (!actor) throw new Error('Campaign not found.')
   await requireEncounterActorControl(ctx, { campaign, membership, actor })
+  // A player picks a Legendary Action's target among the actors they can see.
+  if (
+    resolution.kind === 'LEGENDARY_OPTION' &&
+    !(await readRunActor(ctx, state, resolution.targetActorId)).public
+  )
+    throw new Error('Campaign not found.')
 }

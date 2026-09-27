@@ -99,7 +99,7 @@ export function createNativeLiveTurnStages(
         ...stage,
         definitions,
         createRuntime,
-        rollD20,
+        random,
         discoverWindows: (discovery) =>
           discoverTurnLegendaryWindows({
             ...discovery,

@@ -17,6 +17,7 @@ import {
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
 import { turnEffectExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { serverRuleExecutionD20PolicyDtoSchema } from './ruleExecutionEvidence.js'
+import { directActionTwoPhaseDtoSchema } from './ruleExecutionDirectActionPendingContexts.js'
 import {
   MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES,
   completedTurnRechargePlanDtoSchema,
@@ -447,10 +448,10 @@ export const legendaryActionChoicePendingContextDtoSchema = z
   )
 
 /**
- * Server-only evidence boundary after the GM has selected one Legendary
- * Action.  The Kernel continuation remains the only executable payload; this
- * context retains just the exact turn and selected-source pins needed to
- * revalidate it on resume.
+ * Server-only evidence boundary of a selected Legendary Action, paused on one of its action's
+ * requests: the owner's attack or damage dice, or a save its target rolls. The Kernel continuation
+ * remains the only executable payload; this context retains the exact turn, selection and phase
+ * pins needed to revalidate it on resume.
  */
 export const legendaryActionEvidencePendingContextDtoSchema = z
   .strictObject({
@@ -461,7 +462,12 @@ export const legendaryActionEvidencePendingContextDtoSchema = z
     choice: legendaryActionChoiceGroupDtoSchema,
     selectionChecksum: checksumSchema,
     selectedOption: legendaryActionChoiceOptionDtoSchema,
-    d20Policy: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)
+    targetActorId: uuidSchema,
+    /** The actor whose controllers answer this request: the owner, or the target for its save. */
+    rollerActorId: uuidSchema,
+    /** The request's d20 policy; null for a damage die. */
+    d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
+    twoPhase: z.nullable(z.lazy(() => directActionTwoPhaseDtoSchema))
   })
   .check(
     z.superRefine((value, refinement) => {
@@ -489,7 +495,10 @@ export const legendaryActionEvidencePendingContextDtoSchema = z
       }
       if (
         value.choice.options.find((option) => option.optionId === value.selectedOption.optionId) ===
-        undefined
+          undefined ||
+        !value.selectedOption.targetActorIds.includes(value.targetActorId) ||
+        (value.rollerActorId !== value.selectedOption.ownerActorId &&
+          value.rollerActorId !== value.targetActorId)
       ) {
         refinement.addIssue({
           code: 'custom',

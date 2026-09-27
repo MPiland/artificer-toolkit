@@ -3,9 +3,12 @@ import { z } from '../zod.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
-import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS, authoredShortTextSchema } from './authoredLimits.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
-import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
+import {
+  ruleExecutionPhaseReceiptsDtoSchema,
+  serverCompletedRuleExecutionDtoSchema
+} from './ruleExecutionProtocol.js'
 import {
   ruleExecutionChecksumSchema as checksumSchema,
   ruleExecutionIdentifierSchema as identifierSchema,
@@ -154,7 +157,17 @@ export const legendaryActionChoiceOptionDtoSchema = z
     ownerActorId: uuidSchema,
     ownerFeatureId: uuidSchema,
     actionId: identifierSchema,
-    targetActorId: uuidSchema,
+    /** The option's label, which names the action it runs ("Tail Attack"). */
+    label: authoredShortTextSchema,
+    /**
+     * The actors the option may target, in canonical order: only its owner for a self action, else
+     * every other Encounter actor. The controller picks one with the option (D51 option B).
+     */
+    targetActorIds: z
+      .array(uuidSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    /** The exact execution plan the option runs. */
     actionSourceChecksum: checksumSchema,
     chargeId: uuidSchema,
     featureCost: positiveIntegerSchema,
@@ -173,6 +186,16 @@ export const legendaryActionChoiceOptionDtoSchema = z
   })
   .check(
     z.superRefine((option, refinement) => {
+      if (
+        option.targetActorIds.some(
+          (id, index) => index > 0 && id <= (option.targetActorIds[index - 1] ?? '')
+        )
+      )
+        refinement.addIssue({
+          code: 'custom',
+          path: ['targetActorIds'],
+          message: 'Legendary Action targets must be unique and canonical.'
+        })
       if (
         option.featureCost > option.poolBefore ||
         option.poolRemaining !== option.poolBefore - option.featureCost
@@ -202,14 +225,13 @@ export const legendaryActionChoiceGroupDtoSchema = z
         const identity = `${option.ownerFeatureId}:${option.actionId}`
         if (
           option.ownerActorId !== group.ownerActorId ||
-          option.targetActorId !== group.ownerActorId ||
           optionIds.has(option.optionId) ||
           (index > 0 && identity <= prior)
         ) {
           refinement.addIssue({
             code: 'custom',
             path: ['options', index],
-            message: 'Legendary Action choices must retain one canonical SELF-targeted owner group.'
+            message: 'Legendary Action choices must retain one canonical owner group.'
           })
         }
         optionIds.add(option.optionId)
@@ -239,7 +261,10 @@ export const turnLegendaryActionEvidenceDtoSchema = z
       z.strictObject({
         kind: z.literal('EXECUTED'),
         selectedOptionId: checksumSchema,
+        targetActorId: uuidSchema,
         execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+        initialFactsChecksum: checksumSchema,
+        phaseReceipts: z.optional(z.lazy(() => ruleExecutionPhaseReceiptsDtoSchema)),
         application: z.lazy(() => serverRuleExecutionApplicationOutputsDtoSchema),
         characterTransitions: z
           .array(legendaryActionCharacterTransitionDtoSchema)
@@ -283,9 +308,9 @@ export const turnLegendaryActionEvidenceDtoSchema = z
         return
       }
       if (
-        resolution.execution.evidence.source.checksum !== option.actionSourceChecksum ||
+        !option.targetActorIds.includes(resolution.targetActorId) ||
         application.sourceActorId !== option.ownerActorId ||
-        application.targetActorId !== option.targetActorId
+        application.targetActorId !== resolution.targetActorId
       ) {
         context.addIssue({
           code: 'custom',

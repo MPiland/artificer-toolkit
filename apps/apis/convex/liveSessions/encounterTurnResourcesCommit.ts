@@ -31,6 +31,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { MutationCtx } from '../_generated/server'
 import { readDefinitionRoot } from '../content/definitionStore'
 import { readRunActor } from '../encounters/documents'
+import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 
 /** Applies only the sealed resource outcomes after outgoing effects have committed. */
@@ -115,32 +116,34 @@ export async function persistLiveTurnResources(
   }
 
   const seenOwners = new Set<string>()
-  for (const raw of actions) {
+  for (const [ordinal, raw] of actions.entries()) {
     const evidence = turnLegendaryActionEvidenceDtoSchema.parse(raw)
     const ownerId = evidence.choice.ownerActorId
     if (seenOwners.has(ownerId) || ownerId === state.currentActorId)
       throw new Error('Live Session Legendary Action owner is stale.')
     seenOwners.add(ownerId)
     if (evidence.resolution.kind === 'DECLINED') continue
-    const selectedOptionId = evidence.resolution.selectedOptionId
+    const { selectedOptionId, targetActorId, application } = evidence.resolution
     const option = evidence.choice.options.find((entry) => entry.optionId === selectedOptionId)
-    const application = evidence.resolution.application
+    const target = await readActor(targetActorId)
     if (
       !option ||
-      option.targetActorId !== ownerId ||
-      application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
+      !state.actorIds.includes(targetActorId) ||
+      (application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
+        application.kind !== 'CHARACTER_MECHANICS_BATCH') ||
+      (target.kind === 'CHARACTER') !== (application.kind === 'CHARACTER_MECHANICS_BATCH') ||
       application.occurrenceId !== occurrenceId ||
       application.sourceActorId !== ownerId ||
-      application.targetActorId !== ownerId ||
+      application.targetActorId !== targetActorId ||
       application.sourceCharacterStreamVersion !== null ||
       application.resourceConsumption !== null ||
-      application.spellCastConsumption !== null ||
-      application.targetFeatureResourceConsumption !== null ||
-      application.legendaryResistance !== null ||
       application.activeEffectTransitions.length !== 0 ||
       application.stateEffectTransitions.length !== 0 ||
       application.maintenanceTransition != null ||
-      evidence.resolution.characterTransitions.length !== 0
+      application.targetFeatureResourceConsumption !== null ||
+      (application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+        ? application.legendaryResistance !== null
+        : application.spellCastConsumption !== null)
     )
       throw new Error('Live Session Legendary Action application is unavailable.')
     const owner = await readActor(ownerId)
@@ -194,15 +197,25 @@ export async function persistLiveTurnResources(
       !ruleGraphDefinitionDtoSchema.safeParse(graph.document).success
     )
       throw new Error('Live Session Legendary Action lifecycle is stale.')
+    // The action's outcome lands on its target, the same batch the room planned (D51 option B).
     const mechanics = await applyLiveEncounterMechanicsBatch(ctx, {
       encounterId: state.id,
-      targetActorId: ownerId,
+      targetActorId,
       expectedEncounterVersion: state.version,
       occurrenceId,
       sourceCommandId: root.rootCommandId,
-      commandId: root.rootCommandId,
+      commandId:
+        target.kind === 'CHARACTER'
+          ? deriveEncounterCharacterMechanicsEventCommandId({
+              occurrenceId,
+              sourceCommandId: root.rootCommandId,
+              phase: 'LEGENDARY_ACTION_OUTCOME',
+              ordinal,
+              targetCharacterId: target.sourceId
+            })
+          : root.rootCommandId,
       occurredAt,
-      applications: application.applications.map((entry) => ({ ...entry, targetActorId: ownerId })),
+      applications: application.applications.map((entry) => ({ ...entry, targetActorId })),
       effectiveMaximumHitPoints: application.targetTransition.before.maximumHitPoints,
       effectiveScalarValues: application.targetTransition.before.scalarValues,
       forceVersionAdvance: false
@@ -212,10 +225,25 @@ export async function persistLiveTurnResources(
         checksumCanonicalJson(application.applications) ||
       checksumCanonicalJson(mechanics.targetTransition) !==
         checksumCanonicalJson(application.targetTransition) ||
-      mechanics.characterStreamVersion !== null
+      (application.kind === 'CHARACTER_MECHANICS_BATCH'
+        ? mechanics.characterStreamVersion !== application.targetCharacterStreamVersion ||
+          checksumCanonicalJson(evidence.resolution.characterTransitions) !==
+            checksumCanonicalJson(
+              target.kind === 'CHARACTER' && mechanics.characterStreamVersion !== null
+                ? [
+                    {
+                      characterId: target.sourceId,
+                      beforeStreamVersion: mechanics.characterStreamVersion - 1,
+                      afterStreamVersion: mechanics.characterStreamVersion
+                    }
+                  ]
+                : []
+            )
+        : mechanics.characterStreamVersion !== null ||
+          evidence.resolution.characterTransitions.length !== 0)
     )
       throw new Error('Live Session Legendary Action mechanics receipt mismatch.')
-    const settled = mechanics.updatedActor
+    const settled = targetActorId === ownerId ? mechanics.updatedActor : await readActor(ownerId)
     if (featureChargeUsed(settled, feature.id) !== resource.beforeUsed)
       throw new Error('Live Session Legendary Action resource changed before settlement.')
     await writeActor(
@@ -226,7 +254,6 @@ export async function persistLiveTurnResources(
       })
     )
   }
-
   if (legendaryRefreshes.length) {
     if (
       !enteringId ||

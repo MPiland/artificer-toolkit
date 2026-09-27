@@ -152,5 +152,5 @@ export async function restoreEncounterInitiativeTurnActors<
     root: turnRoot
   })
   if (prepared.kind !== 'COMPLETE') throw new Error('Outgoing Legendary Actions are incomplete.')
-  return { actors: prepared.actors, movementTargets: outgoing.movementTargets }
+  return { actors: prepared.actors, movementTargets: prepared.movementTargets }
 }

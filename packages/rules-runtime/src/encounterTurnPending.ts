@@ -19,8 +19,9 @@ type RechargePendingContext = Extract<
 
 /**
  * The actor a pending turn step belongs to: a turn-effect save's target, the recharging Creature, or
- * the Creature choosing and rolling a Legendary Action. Its controllers and the GM answer it (ADR 0034
- * decision 3; D24, D30), so a Creature the GM granted to a player acts and rolls with that player.
+ * the Creature choosing and rolling a Legendary Action, or that action's target rolling its save. Its
+ * controllers and the GM answer it (ADR 0034 decision 3; D24, D30), so a Creature the GM granted to a
+ * player acts and rolls with that player.
  * Null for the GM's own turn steps (initiative scoring and order).
  */
 export function turnPendingActorId(pending: ServerRuleExecutionPendingSnapshotDto) {
@@ -34,7 +35,7 @@ export function turnPendingActorId(pending: ServerRuleExecutionPendingSnapshotDt
     case 'ENCOUNTER_TURN_RECHARGE':
       return context.currentCandidate.actorId
     case 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE':
-      return context.choice.ownerActorId
+      return context.rollerActorId
     default:
       return null
   }
@@ -85,6 +86,8 @@ export function projectNativeLegendaryPending(input: {
   occurrenceVersion: number
   encounterVersion: number
   reasons?: EncounterRollModeReasons
+  /** The actors this viewer may target; null for the GM, who may target any. */
+  visibleActorIds?: ReadonlySet<string> | null
 }) {
   const context = input.snapshot.applicationContext
   const identity = {
@@ -100,36 +103,52 @@ export function projectNativeLegendaryPending(input: {
       kind: 'LEGENDARY_ACTION_CHOICE',
       ownerActorId: context.choice.ownerActorId,
       options: context.choice.options.map(
-        ({ optionId, actionId, ownerFeatureId, targetActorId }) => ({
+        ({ optionId, actionId, ownerFeatureId, label, featureCost, targetActorIds }) => ({
           optionId,
           actionId,
           ownerFeatureId,
-          targetActorId
+          label,
+          featureCost,
+          targetActorIds: targetActorIds.filter(
+            (actorId) => !input.visibleActorIds || input.visibleActorIds.has(actorId)
+          )
         })
       ),
-      allowedResponses: ['DECLINE', 'OPTION']
+      allowedResponses: ['DECLINE', 'LEGENDARY_OPTION']
     })
   if (
     context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE' ||
     input.snapshot.snapshotKind !== 'KERNEL_EVIDENCE'
   )
     throw new Error('Legendary Action pending evidence is unavailable.')
-  return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
-    ...identity,
-    kind: 'D20_EVIDENCE',
-    rollerActorId: context.choice.ownerActorId,
-    request: {
-      requestId: input.snapshot.request.requestId,
-      min: 1,
-      max: 20,
-      rollMode: context.d20Policy.rollMode,
-      derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
-        rollMode: context.d20Policy.rollMode,
-        contributors: context.d20Policy.contributors
-      })
-    },
-    allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
-  })
+  const { request } = input.snapshot
+  const { d20Policy, rollerActorId } = context
+  return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(
+    d20Policy
+      ? {
+          ...identity,
+          kind: 'D20_EVIDENCE',
+          rollerActorId,
+          request: {
+            requestId: request.requestId,
+            min: 1,
+            max: 20,
+            rollMode: d20Policy.rollMode,
+            derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
+              rollMode: d20Policy.rollMode,
+              contributors: d20Policy.contributors
+            })
+          },
+          allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+        }
+      : {
+          ...identity,
+          kind: 'ACTION_OUTCOME_EVIDENCE',
+          rollerActorId,
+          request: { requestId: request.requestId, min: request.min, max: request.max },
+          allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+        }
+  )
 }
 
 export function projectNativeTurnPending(

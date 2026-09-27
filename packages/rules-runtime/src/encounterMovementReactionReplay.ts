@@ -17,17 +17,16 @@ import type { EncounterLegendaryResistanceCandidate } from './encounterLegendary
 import type { prepareEncounterMovementReactionAction } from './encounterMovementReactionPreparation.js'
 import { createEncounterLegendaryResistancePhase } from './encounterMovementReactionContinuation.js'
 import {
-  selectEncounterActionD20Natural,
-  type EncounterEvidenceAnswer
-} from './encounterEvidenceAnswer.js'
+  resolutionForRetainedEvidence,
+  retainedD20Evidence,
+  retainedIntegerEvidence,
+  retainedReceiptD20
+} from './encounterActionRetainedEvidence.js'
 import {
   requireEncounterMovementMaintenanceCurrentness,
   bindEncounterMovementMaintenancePending
 } from './encounterMovementMaintenance.js'
-import {
-  type ServerKernelRuleExecutionPendingSnapshotDto,
-  type ServerRuleExecutionD20EvidenceDto
-} from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { movementReactionActionExecutionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMovementReactionReceipts'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import type { z } from 'zod'
@@ -41,10 +40,6 @@ type PreparedMovementReaction = Pick<
 
 type MovementReactionActionExecutionDto = z.infer<typeof movementReactionActionExecutionDtoSchema>
 type ReplayResult = Awaited<ReturnType<typeof advanceNativeActionGraphs>>
-type RetainedD20Evidence = Pick<
-  ServerRuleExecutionD20EvidenceDto,
-  'requestId' | 'rollMode' | 'derivedRollMode' | 'rawFaces' | 'selectedNatural'
->
 
 function same(left: unknown, right: unknown) {
   return checksumRuleDocument(left) === checksumRuleDocument(right)
@@ -66,108 +61,12 @@ function requireActionEvidenceSnapshot(input: {
   return context.phase
 }
 
-function retainedIntegerEvidence(input: {
-  snapshot?: ServerKernelRuleExecutionPendingSnapshotDto
-  receipt?: MovementReactionActionExecutionDto
-}) {
-  const traces = [
-    ...(input.snapshot?.phaseReceipts?.map((receipt) => receipt.execution.evidence.trace) ?? []),
-    ...(input.snapshot ? [input.snapshot.trace] : []),
-    ...(input.receipt?.phaseReceipts?.map((receipt) => receipt.execution.evidence.trace) ?? []),
-    ...(input.receipt ? [input.receipt.execution.evidence.trace] : [])
-  ]
-  const values = new Map<string, number>()
-  for (const trace of traces.flat()) {
-    const evidence = trace.evidence
-    if (!evidence || !Number.isSafeInteger(evidence.value)) continue
-    const prior = values.get(evidence.requestId)
-    if (prior !== undefined && prior !== evidence.value)
-      throw new Error('The retained movement reaction evidence is inconsistent.')
-    values.set(evidence.requestId, evidence.value)
-  }
-  return values
-}
-
-function retainedD20Evidence(input: {
-  snapshot?: ServerKernelRuleExecutionPendingSnapshotDto
-  receipt?: MovementReactionActionExecutionDto
-}) {
-  const context = input.snapshot?.applicationContext
-  const pending =
-    context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' && context.phase.kind === 'ACTION_EVIDENCE'
-      ? context.phase.twoPhase
-      : undefined
-  const retained = retainedReceiptD20(input.receipt)
-  const evidence = [
-    ...(pending?.phase === 'OUTCOME'
-      ? [
-          {
-            requestId: pending.testRollEvidence.requestId,
-            rawFaces: pending.testRollEvidence.rawFaces,
-            rollMode: pending.testRollEvidence.rollMode,
-            derivedRollMode: pending.testRollEvidence.derivedRollMode,
-            selectedNatural: pending.testRollEvidence.selectedNatural
-          }
-        ]
-      : []),
-    ...(pending?.phase === 'OUTCOME' && pending.nestedOutcomeD20Evidence
-      ? [pending.nestedOutcomeD20Evidence]
-      : []),
-    ...(retained.d20 ? [retained.d20] : []),
-    ...(retained.nestedD20 ? [retained.nestedD20] : [])
-  ]
-  const values = new Map<string, RetainedD20Evidence>()
-  for (const entry of evidence) {
-    const prior = values.get(entry.requestId)
-    if (prior && !same(prior, entry))
-      throw new Error('The retained movement reaction d20 evidence is inconsistent.')
-    values.set(entry.requestId, entry)
-  }
-  return values
-}
-
-function retainedReceiptD20(receipt: MovementReactionActionExecutionDto | undefined) {
-  const application = receipt?.application
-  if (
-    !application ||
-    (application.kind !== 'CHARACTER_MECHANICS_BATCH' &&
-      application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
-  )
-    return { d20: null, nestedD20: null }
-  return { d20: application.d20, nestedD20: application.nestedD20 }
-}
-
-function resolutionForRetainedEvidence(input: {
-  pending: PendingNativeActionGraphs
-  integers: ReadonlyMap<string, number>
-  d20: ReadonlyMap<string, RetainedD20Evidence>
-  used: Set<string>
-}): EncounterEvidenceAnswer {
-  const { request } = input.pending.continuation
-  if (request.kind !== 'INTEGER_RANGE')
-    throw new Error('The action requested unsupported evidence.')
-  if (input.pending.d20Policy) {
-    const evidence = input.d20.get(request.requestId)
-    if (
-      !evidence ||
-      evidence.derivedRollMode !== input.pending.d20Policy.rollMode ||
-      selectEncounterActionD20Natural(evidence.rollMode, evidence.rawFaces) !==
-        evidence.selectedNatural
-    )
-      throw new Error('The retained movement reaction d20 evidence is stale.')
-    input.used.add(request.requestId)
-    return {
-      kind: 'ENTER_DICE',
-      requestId: request.requestId,
-      rawFaces: evidence.rawFaces,
-      rollMode: evidence.rollMode
-    }
-  }
-  const value = input.integers.get(request.requestId)
-  if (value === undefined || value < request.min || value > request.max)
-    throw new Error('The retained movement reaction integer evidence is stale.')
-  input.used.add(request.requestId)
-  return { kind: 'ENTER_INTEGER', requestId: request.requestId, value }
+/** The d20s a paused movement reaction's OUTCOME phase already rolled. */
+function snapshotTwoPhase(snapshot: ServerKernelRuleExecutionPendingSnapshotDto | undefined) {
+  const context = snapshot?.applicationContext
+  return context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' && context.phase.kind === 'ACTION_EVIDENCE'
+    ? context.phase.twoPhase
+    : undefined
 }
 
 function sameContinuation(
@@ -264,7 +163,7 @@ export async function replayEncounterMovementReactionAction(input: {
   if (receipt && !same(receipt.option, input.prepared.option))
     throw new Error('The retained movement reaction option is stale.')
   const integers = retainedIntegerEvidence({ snapshot, receipt })
-  const d20 = retainedD20Evidence({ snapshot, receipt })
+  const d20 = retainedD20Evidence({ twoPhase: snapshotTwoPhase(snapshot), receipt })
   const used = new Set<string>()
   let result = await advanceNativeActionGraphs({
     runtime: input.runtime,
@@ -288,7 +187,7 @@ export async function replayEncounterMovementReactionAction(input: {
       if (
         [
           ...retainedIntegerEvidence(issuedEvidence).keys(),
-          ...retainedD20Evidence(issuedEvidence).keys()
+          ...retainedD20Evidence({ twoPhase: snapshotTwoPhase(input.issuedSnapshot) }).keys()
         ].some((requestId) => !used.has(requestId))
       )
         throw new Error('The retained movement reaction evidence has unused requests.')
@@ -455,7 +354,7 @@ async function replayResistanceAction(
     }
   }
   const integers = retainedIntegerEvidence({ snapshot, receipt })
-  const d20 = retainedD20Evidence({ snapshot, receipt })
+  const d20 = retainedD20Evidence({ twoPhase: snapshotTwoPhase(snapshot), receipt })
   const used = new Set([boundary.d20.requestId])
   let result = await continueNativeActionAfterTest(source)
   for (let count = 0; result.kind === 'PENDING'; count++) {

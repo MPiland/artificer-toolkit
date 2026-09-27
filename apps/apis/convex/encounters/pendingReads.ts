@@ -159,7 +159,7 @@ export async function readPendingRunDecision(
       root.initiatorUserId !== campaign.ownerUserId
     )
       throw new Error('Stored Encounter turn root is invalid.')
-    // A Creature's controllers pick and roll its Legendary Action.
+    // A Creature's controllers pick and roll its Legendary Action; its target rolls its saves.
     const actorId = turnPendingActorId(pendingSnapshot)
     if (actorId === null || !controlledActorIds.has(actorId)) return null
     return withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
@@ -168,7 +168,12 @@ export async function readPendingRunDecision(
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         encounterVersion: row.version,
-        reasons
+        reasons,
+        // A player targets only the actors they can see.
+        visibleActorIds:
+          membership.role === 'OWNER'
+            ? null
+            : new Set(actors.filter((actor) => actor.public).map((actor) => actor.id))
       })
     )
   }

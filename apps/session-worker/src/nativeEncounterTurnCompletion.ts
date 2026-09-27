@@ -11,6 +11,7 @@ import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/enco
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import {
   labelTurnEffectDamage,
+  legendaryActionDamage,
   nativeConcentrationDamageApplications,
   nativeConcentrationDamageSourceLabels
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
@@ -117,11 +118,17 @@ export async function prepareNativeLiveTurnCompletion(input: {
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
-  const damage = await labelTurnEffectDamage(executions, async (definitionId) => {
+  const readLabel = async (definitionId: string) => {
     const response = await input.capture({ kind: 'DEFINITION', definitionId })
     if (response.kind !== 'DEFINITION') throw new Error('Turn effect definition is unavailable.')
     return response.definition?.label ?? null
-  })
+  }
+  // The same order the terminal receipt keeps: outgoing effects, Legendary Actions, incoming effects.
+  const damage = [
+    ...(await labelTurnEffectDamage(prepared.outgoing?.plan?.executions ?? [], readLabel)),
+    ...legendaryActionDamage(prepared.root.completedLegendaryActions),
+    ...(await labelTurnEffectDamage(prepared.incoming.plan?.executions ?? [], readLabel))
+  ]
   const concentration = await planNativeLiveConcentration({
     state: nextState,
     autoRollByActorId: input.autoRollByActorId,

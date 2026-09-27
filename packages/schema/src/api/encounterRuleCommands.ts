@@ -201,7 +201,13 @@ export const resolveRuleOccurrenceInputDtoSchema = z.extend(commandBaseDtoSchema
     }),
     ...movementReactionChoiceSelectionDtoSchema._zod.def.options,
     z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
-    z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema })
+    z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),
+    /** A Legendary Action option and the actor it targets, from the option's targets. */
+    z.strictObject({
+      kind: z.literal('LEGENDARY_OPTION'),
+      optionId: checksumSchema,
+      targetActorId: uuidSchema
+    })
   ])
 })
 /**

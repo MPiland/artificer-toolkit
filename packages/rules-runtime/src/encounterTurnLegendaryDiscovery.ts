@@ -6,6 +6,9 @@ import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import { compileEncounterFeatureActionPlan } from './encounterActionMechanicsPreparation.js'
+import { buildCompiledActionTargetPolicy } from './encounterActionEntryPointCompiler.js'
+import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
@@ -25,26 +28,50 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 
 type LegendaryActionChoiceGroupDto = z.infer<typeof legendaryActionChoiceGroupDtoSchema>
 
-/** The option for one candidate, or null when the System cannot execute its authored shape. */
+/**
+ * The option for one candidate: the action it runs, planned exactly as the action runs, and the
+ * actors it may target. Null when the System cannot execute its authored shape inside a turn yet
+ * (an area, or an action that starts an active effect).
+ */
 function optionForCandidate(
-  candidate: EncounterLegendaryActionCandidate
+  candidate: EncounterLegendaryActionCandidate,
+  actorIds: readonly string[]
 ): LegendaryActionChoiceGroupDto['options'][number] | null {
   const resource = candidate.action.featureResourceUse
   const adapter = characterRuleActionSystemAdapterRegistry.get(candidate.gameSystemId)
   if (!resource || !adapter) throw new Error('The Legendary Action source cannot be executed.')
-  let published: ReturnType<typeof adapter.compile>
+  let plan: ReturnType<typeof compileEncounterFeatureActionPlan>
   try {
-    published = adapter.compile({ action: candidate.action })
+    plan = compileEncounterFeatureActionPlan(adapter, candidate.action)
   } catch (error) {
     if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
     throw error
   }
+  const published = plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
+  if (adapter.activeEffectPlans?.({ action: candidate.action, published }).length) return null
+  const targetPolicy = buildCompiledActionTargetPolicy(candidate.action)
+  const owner = { id: candidate.ownerActorId, disposition: 'NEUTRAL' as const }
+  if (
+    evaluateEncounterActionTargetPolicy({
+      actor: owner,
+      target: owner,
+      targetPolicy,
+      sceneContext: null
+    }) === null
+  )
+    return null
+  const targetActorIds =
+    targetPolicy.range.rangeKind === 'SELF'
+      ? [candidate.ownerActorId]
+      : actorIds.filter((actorId) => actorId !== candidate.ownerActorId).sort()
+  if (targetActorIds.length === 0) return null
   const optionWithoutId = {
     ownerActorId: candidate.ownerActorId,
     ownerFeatureId: candidate.ownerFeatureId,
     actionId: candidate.actionId,
-    targetActorId: candidate.ownerActorId,
-    actionSourceChecksum: published.checksum,
+    label: candidate.action.label,
+    targetActorIds,
+    actionSourceChecksum: checksumRuleDocument(plan),
     chargeId: resource.chargeId,
     featureCost: candidate.featureCost,
     poolBefore: candidate.poolBefore,
@@ -62,7 +89,6 @@ function optionForCandidate(
   }
   return { ...optionWithoutId, optionId: checksumRuleDocument(optionWithoutId) }
 }
-
 /** Discovers current eligible Legendary Action choices without staging or mutating a turn. */
 export async function discoverTurnLegendaryWindows(input: {
   state: EncounterRunState
@@ -154,7 +180,7 @@ export async function discoverTurnLegendaryWindows(input: {
     const options = candidates
       .filter((candidate) => candidate.ownerActorId === ownerActorId)
       .flatMap((candidate) => {
-        const option = optionForCandidate(candidate)
+        const option = optionForCandidate(candidate, input.state.actorIds)
         if (!option) return []
         if (candidatesByOptionId.has(option.optionId))
           throw new Error('Legendary Action choice identity is ambiguous.')

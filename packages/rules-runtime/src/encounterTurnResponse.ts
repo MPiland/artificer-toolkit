@@ -19,8 +19,12 @@ export function matchesNativeTurnResponse(
   switch (resolution.kind) {
     case 'DECLINE':
       return history.kind === 'LEGENDARY_DECLINE'
-    case 'OPTION':
-      return history.kind === 'LEGENDARY_OPTION' && history.optionId === resolution.optionId
+    case 'LEGENDARY_OPTION':
+      return (
+        history.kind === 'LEGENDARY_OPTION' &&
+        history.optionId === resolution.optionId &&
+        history.targetActorId === resolution.targetActorId
+      )
     case 'ENTER_DICE':
       return (
         (history.kind === 'ENTER_DICE' || history.kind === 'LEGENDARY_ENTER_DICE') &&
@@ -192,7 +196,7 @@ export function prepareEncounterTurnResponse(input: {
   if (context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE') {
     if (
       pending.snapshotKind !== 'AGGREGATE_CHOICE' ||
-      (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
+      (resolution.kind !== 'DECLINE' && resolution.kind !== 'LEGENDARY_OPTION')
     )
       throw new Error('Legendary Action choice is required.')
     entry =
@@ -202,7 +206,8 @@ export function prepareEncounterTurnResponse(input: {
             ...base,
             kind: 'LEGENDARY_OPTION',
             selectionChecksum: context.selectionChecksum,
-            optionId: resolution.optionId
+            optionId: resolution.optionId,
+            targetActorId: resolution.targetActorId
           }
   } else {
     if (
@@ -222,11 +227,17 @@ export function prepareEncounterTurnResponse(input: {
         throw new Error('Turn-effect d20 evidence is required.')
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
     } else {
-      if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
-        throw new Error('Legendary Action d20 evidence is required.')
+      // A Legendary Action pauses on its d20 or on one of its damage dice.
+      if (resolution.kind === (context.d20Policy ? 'ENTER_INTEGER' : 'ENTER_DICE'))
+        throw new Error('Legendary Action evidence of this kind is required.')
       entry = {
         ...base,
-        kind: resolution.kind === 'ENTER_DICE' ? 'LEGENDARY_ENTER_DICE' : 'LEGENDARY_SYSTEM_ROLL',
+        kind:
+          resolution.kind === 'ENTER_DICE'
+            ? 'LEGENDARY_ENTER_DICE'
+            : resolution.kind === 'ENTER_INTEGER'
+              ? 'ENTER_INTEGER'
+              : 'LEGENDARY_SYSTEM_ROLL',
         requestId: resolution.requestId
       }
     }

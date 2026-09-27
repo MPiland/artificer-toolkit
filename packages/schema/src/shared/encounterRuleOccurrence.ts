@@ -185,12 +185,15 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = z
             optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
             actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
             ownerFeatureId: uuidSchema,
-            targetActorId: uuidSchema
+            label: triggerLabelSchema,
+            featureCost: z.number().check(z.int()).check(z.positive()),
+            /** The actors this viewer may pick as the option's target. */
+            targetActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
           })
         )
         .check(z.minLength(1))
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),
-      allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('LEGENDARY_OPTION')])
     }),
     z.strictObject({
       kind: z.literal('OPTIONAL_COMBAT_CLEAVING'),

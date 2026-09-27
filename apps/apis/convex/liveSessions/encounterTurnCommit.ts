@@ -4,7 +4,10 @@ import { type EncounterCommandResultDto } from '@artificer-toolkit/schema/api/en
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { applyEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  legendaryActionDamage,
+  nativeConcentrationDamageApplications
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -80,11 +83,12 @@ export const commit = internalMutation({
       )
     )
       throw new Error('Live Session turn rule output scope mismatch.')
-    const applications = nativeConcentrationDamageApplications(
-      [root.outgoingTurn, input.incomingTurn].flatMap((phase) =>
-        phase?.kind === 'STAGED' ? phase.plan.executions : []
-      )
-    )
+    // Outgoing effects, then Legendary Actions, then incoming effects, as the room planned them.
+    const applications = nativeConcentrationDamageApplications([
+      ...(root.outgoingTurn?.kind === 'STAGED' ? root.outgoingTurn.plan.executions : []),
+      ...legendaryActionDamage(root.completedLegendaryActions),
+      ...(input.incomingTurn.kind === 'STAGED' ? input.incomingTurn.plan.executions : [])
+    ])
     if (
       input.maintenanceOwners.some(
         (request) =>

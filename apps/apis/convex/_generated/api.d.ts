@@ -45985,16 +45985,18 @@ export declare const api: {
                 targetActorId: string;
               }
             | {
-                allowedResponses: Array<"DECLINE" | "OPTION">;
+                allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                 encounterVersion: number;
                 kind: "LEGENDARY_ACTION_CHOICE";
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<{
                   actionId: string;
+                  featureCost: number;
+                  label: string;
                   optionId: string;
                   ownerFeatureId: string;
-                  targetActorId: string;
+                  targetActorIds: Array<string>;
                 }>;
                 ownerActorId: string;
               }
@@ -46219,16 +46221,18 @@ export declare const api: {
                   targetActorId: string;
                 }
               | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                   encounterVersion: number;
                   kind: "LEGENDARY_ACTION_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{
                     actionId: string;
+                    featureCost: number;
+                    label: string;
                     optionId: string;
                     ownerFeatureId: string;
-                    targetActorId: string;
+                    targetActorIds: Array<string>;
                   }>;
                   ownerActorId: string;
                 }
@@ -48249,7 +48253,12 @@ export declare const api: {
                           | { kind: "DECLINE" }
                           | { kind: "OPTION"; optionId: string }
                           | { kind: "PASSAGE_DECLINE" }
-                          | { kind: "PASSAGE_OPTION"; optionId: string };
+                          | { kind: "PASSAGE_OPTION"; optionId: string }
+                          | {
+                              kind: "LEGENDARY_OPTION";
+                              optionId: string;
+                              targetActorId: string;
+                            };
                         type: "RESOLVE_RULE_OCCURRENCE";
                       }
                     | {
@@ -48472,16 +48481,18 @@ export declare const api: {
             targetActorId: string;
           }
         | {
-            allowedResponses: Array<"DECLINE" | "OPTION">;
+            allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
             encounterVersion: number;
             kind: "LEGENDARY_ACTION_CHOICE";
             occurrenceId: string;
             occurrenceVersion: number;
             options: Array<{
               actionId: string;
+              featureCost: number;
+              label: string;
               optionId: string;
               ownerFeatureId: string;
-              targetActorId: string;
+              targetActorIds: Array<string>;
             }>;
             ownerActorId: string;
           }
@@ -51661,16 +51672,18 @@ export declare const api: {
                   targetActorId: string;
                 }
               | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                   encounterVersion: number;
                   kind: "LEGENDARY_ACTION_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{
                     actionId: string;
+                    featureCost: number;
+                    label: string;
                     optionId: string;
                     ownerFeatureId: string;
-                    targetActorId: string;
+                    targetActorIds: Array<string>;
                   }>;
                   ownerActorId: string;
                 }
@@ -53057,16 +53070,18 @@ export declare const api: {
                   targetActorId: string;
                 }
               | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                   encounterVersion: number;
                   kind: "LEGENDARY_ACTION_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{
                     actionId: string;
+                    featureCost: number;
+                    label: string;
                     optionId: string;
                     ownerFeatureId: string;
-                    targetActorId: string;
+                    targetActorIds: Array<string>;
                   }>;
                   ownerActorId: string;
                 }
@@ -53757,16 +53772,18 @@ export declare const api: {
                   targetActorId: string;
                 }
               | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                   encounterVersion: number;
                   kind: "LEGENDARY_ACTION_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{
                     actionId: string;
+                    featureCost: number;
+                    label: string;
                     optionId: string;
                     ownerFeatureId: string;
-                    targetActorId: string;
+                    targetActorIds: Array<string>;
                   }>;
                   ownerActorId: string;
                 }
@@ -54373,16 +54390,18 @@ export declare const api: {
                     targetActorId: string;
                   }
                 | {
-                    allowedResponses: Array<"DECLINE" | "OPTION">;
+                    allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                     encounterVersion: number;
                     kind: "LEGENDARY_ACTION_CHOICE";
                     occurrenceId: string;
                     occurrenceVersion: number;
                     options: Array<{
                       actionId: string;
+                      featureCost: number;
+                      label: string;
                       optionId: string;
                       ownerFeatureId: string;
-                      targetActorId: string;
+                      targetActorIds: Array<string>;
                     }>;
                     ownerActorId: string;
                   }
@@ -66511,7 +66530,12 @@ export declare const internal: {
                   | { kind: "DECLINE" }
                   | { kind: "OPTION"; optionId: string }
                   | { kind: "PASSAGE_DECLINE" }
-                  | { kind: "PASSAGE_OPTION"; optionId: string };
+                  | { kind: "PASSAGE_OPTION"; optionId: string }
+                  | {
+                      kind: "LEGENDARY_OPTION";
+                      optionId: string;
+                      targetActorId: string;
+                    };
                 type: "RESOLVE_RULE_OCCURRENCE";
               }
             | {
@@ -66614,16 +66638,18 @@ export declare const internal: {
                   targetActorId: string;
                 }
               | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                   encounterVersion: number;
                   kind: "LEGENDARY_ACTION_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{
                     actionId: string;
+                    featureCost: number;
+                    label: string;
                     optionId: string;
                     ownerFeatureId: string;
-                    targetActorId: string;
+                    targetActorIds: Array<string>;
                   }>;
                   ownerActorId: string;
                 }
@@ -68531,7 +68557,12 @@ export declare const internal: {
                           | { kind: "DECLINE" }
                           | { kind: "OPTION"; optionId: string }
                           | { kind: "PASSAGE_DECLINE" }
-                          | { kind: "PASSAGE_OPTION"; optionId: string };
+                          | { kind: "PASSAGE_OPTION"; optionId: string }
+                          | {
+                              kind: "LEGENDARY_OPTION";
+                              optionId: string;
+                              targetActorId: string;
+                            };
                         type: "RESOLVE_RULE_OCCURRENCE";
                       }
                     | {
@@ -68690,16 +68721,18 @@ export declare const internal: {
             targetActorId: string;
           }
         | {
-            allowedResponses: Array<"DECLINE" | "OPTION">;
+            allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
             encounterVersion: number;
             kind: "LEGENDARY_ACTION_CHOICE";
             occurrenceId: string;
             occurrenceVersion: number;
             options: Array<{
               actionId: string;
+              featureCost: number;
+              label: string;
               optionId: string;
               ownerFeatureId: string;
-              targetActorId: string;
+              targetActorIds: Array<string>;
             }>;
             ownerActorId: string;
           }
@@ -70149,16 +70182,18 @@ export declare const internal: {
                     targetActorId: string;
                   }
                 | {
-                    allowedResponses: Array<"DECLINE" | "OPTION">;
+                    allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                     encounterVersion: number;
                     kind: "LEGENDARY_ACTION_CHOICE";
                     occurrenceId: string;
                     occurrenceVersion: number;
                     options: Array<{
                       actionId: string;
+                      featureCost: number;
+                      label: string;
                       optionId: string;
                       ownerFeatureId: string;
-                      targetActorId: string;
+                      targetActorIds: Array<string>;
                     }>;
                     ownerActorId: string;
                   }
@@ -72522,16 +72557,18 @@ export declare const internal: {
                   targetActorId: string;
                 }
               | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                   encounterVersion: number;
                   kind: "LEGENDARY_ACTION_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{
                     actionId: string;
+                    featureCost: number;
+                    label: string;
                     optionId: string;
                     ownerFeatureId: string;
-                    targetActorId: string;
+                    targetActorIds: Array<string>;
                   }>;
                   ownerActorId: string;
                 }
@@ -73329,16 +73366,18 @@ export declare const internal: {
                       targetActorId: string;
                     }
                   | {
-                      allowedResponses: Array<"DECLINE" | "OPTION">;
+                      allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                       encounterVersion: number;
                       kind: "LEGENDARY_ACTION_CHOICE";
                       occurrenceId: string;
                       occurrenceVersion: number;
                       options: Array<{
                         actionId: string;
+                        featureCost: number;
+                        label: string;
                         optionId: string;
                         ownerFeatureId: string;
-                        targetActorId: string;
+                        targetActorIds: Array<string>;
                       }>;
                       ownerActorId: string;
                     }

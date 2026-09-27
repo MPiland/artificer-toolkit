@@ -1,4 +1,3 @@
-import { executeEncounterMovementReactionAction } from './encounterMovementReactionActionExecution.js'
 import { stageEncounterLegendaryActionRefreshes } from './encounterLegendaryActionDiscovery.js'
 import { stageEncounterActionEconomyRefreshes } from './encounterActionEconomy.js'
 import {
@@ -20,9 +19,21 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { turnLegendaryActionEvidenceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
+import { advanceNativeActionGraphs } from './encounterActionExecution.js'
+import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
-import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
+import {
+  projectEncounterActionTarget,
+  type ProjectableCharacterFacts
+} from './encounterActionProjection.js'
+import { buildEncounterActionStoredExecution } from './encounterActionReceipt.js'
+import {
+  resolutionForRetainedEvidence,
+  retainedD20Evidence,
+  retainedIntegerEvidence
+} from './encounterActionRetainedEvidence.js'
 import type { discoverTurnLegendaryWindows } from './encounterTurnLegendaryDiscovery.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { EncounterWieldConflictAcceptance } from './encounterWieldConflict.js'
@@ -37,7 +48,10 @@ export type TurnLegendaryActionInput<
 > = {
   state: EncounterRunState
   userId: string
-  /** Each Creature's roller preference; its controllers roll its Legendary Actions (ADR 0034). */
+  /**
+   * Each actor's roller preference: a Creature's controllers roll its Legendary Actions, and the
+   * target's controllers roll its saves (ADR 0034).
+   */
   autoRollByActorId: Readonly<Record<string, boolean>>
   occurrenceId: string
   root: TurnCoordinatorRootDto
@@ -65,25 +79,29 @@ export type TurnLegendaryActionInput<
   }): Promise<Awaited<ReturnType<typeof prepareEncounterActionMechanics<TCharacterFacts>>>>
   definitions: CurrentReusableDefinitionSource
   createRuntime(): Promise<RulesRuntimeService>
-  rollD20(): number
+  random(maximum: number): number
 }
 
 function same(left: unknown, right: unknown) {
   return checksumCanonicalJson(left) === checksumCanonicalJson(right)
 }
 
-/** Reconstructs every completed owner decision before extending a turn; it never writes mechanics. */
+/**
+ * Reconstructs every completed owner decision before extending a turn; it never writes mechanics.
+ * A selected option runs the action it names through the same prepared, phased action path as any
+ * other Encounter action (D51 option B), against the target its controller picked.
+ */
 export async function prepareTurnLegendaryActions<
   TCharacterFacts extends ProjectableCharacterFacts
 >(input: TurnLegendaryActionInput<TCharacterFacts>) {
   const { state, occurrenceId, userId } = input
   let root = input.root
-  const durable = input.actors
-  let actors = [...durable]
+  let actors = [...input.actors]
+  const targets = new Map(input.movementTargets)
   if (state.automationMode === 'MANUAL') {
     if (root.completedLegendaryActions || root.legendaryActionQueue)
       throw new Error('Manual turns cannot contain Legendary Actions.')
-    return { kind: 'COMPLETE' as const, root, actors }
+    return { kind: 'COMPLETE' as const, root, actors, movementTargets: targets }
   }
   const windows =
     root.commandType === 'ADVANCE_TURN' &&
@@ -94,7 +112,7 @@ export async function prepareTurnLegendaryActions<
       ? await input.discoverWindows({
           state,
           occurrenceId,
-          actors: durable,
+          actors: input.actors,
           movementTargets: input.movementTargets,
           outgoingActorId:
             state.currentActorId ??
@@ -107,118 +125,127 @@ export async function prepareTurnLegendaryActions<
   const completed = [...(root.completedLegendaryActions ?? [])]
   const seen = new Set<string>()
 
-  async function execute(choice: Choice, optionId: string, retained?: LegendaryEvidence) {
+  async function execute(
+    choice: Choice,
+    selection: { optionId: string; targetActorId: string },
+    ordinal: number,
+    retained?: LegendaryEvidence
+  ) {
     const window = windows.find((entry) => entry.choice.ownerActorId === choice.ownerActorId)
-    const option = choice.options.find((entry) => entry.optionId === optionId)
-    const candidate = window?.candidatesByOptionId.get(optionId)
+    const option = choice.options.find((entry) => entry.optionId === selection.optionId)
+    const candidate = window?.candidatesByOptionId.get(selection.optionId)
     if (!window || !same(window.choice, choice) || !option || !candidate)
       throw new Error('Legendary Action choice is stale.')
-    const actor = durable.find((entry) => entry.id === choice.ownerActorId)
-    if (!actor || actor.kind !== 'CREATURE' || option.targetActorId !== actor.id)
+    const actor = actors.find((entry) => entry.id === choice.ownerActorId)
+    const target = actors.find((entry) => entry.id === selection.targetActorId)
+    if (!actor || actor.kind !== 'CREATURE')
       throw new Error('Legendary Action owner is unavailable.')
+    if (!target || !option.targetActorIds.includes(target.id))
+      throw new Error('Legendary Action target is unavailable.')
+    // Earlier windows of this turn may have changed either actor; later stages see what they did.
     const prepared = await input.prepareMechanics({
       actor,
-      target: actor,
-      actors: durable,
+      target,
+      actors,
       actionId: option.actionId,
       wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-      ...(input.movementTargets?.has(actor.id) ? { movementTargets: input.movementTargets } : {})
+      movementTargets: targets
     })
-    const published = prepared.adapter.compile({ action: candidate.action })
-    if (published.checksum !== option.actionSourceChecksum)
+    if (checksumRuleDocument(prepared.plan) !== option.actionSourceChecksum)
       throw new Error('Legendary Action source is stale.')
-    if (prepared.adapter.activeEffectPlans?.({ action: candidate.action, published }).length)
-      throw new Error('Legendary Action requires the complete active-effect coordinator.')
-    const kernel =
-      input.pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
-      input.pending.applicationContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
-        ? input.pending
-        : null
-    const kernelContext =
-      kernel?.applicationContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
-        ? kernel.applicationContext
-        : null
-    const retainedApplication =
-      retained?.resolution.kind === 'EXECUTED' ? retained.resolution.application : null
-    const retainedD20 =
-      retainedApplication &&
-      (retainedApplication.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
-        retainedApplication.kind === 'CHARACTER_MECHANICS_BATCH')
-        ? retainedApplication.d20
-        : null
-    const continuation = kernel
-      ? (() => {
-          const {
-            snapshotKind: _kind,
-            applicationContext: _context,
-            optionalCombatSnapshotChecksum: _optional,
-            phaseReceipts: _phases,
-            ...value
-          } = kernel
-          return value
-        })()
-      : undefined
-    if (
-      kernelContext &&
-      !retained &&
-      (!same(kernelContext.choice, choice) || !same(kernelContext.selectedOption, option))
-    )
-      throw new Error('Legendary Action evidence selection is stale.')
-    const resolution = input.resolution
-    if (
-      kernel &&
-      !retained &&
-      resolution?.kind !== 'ENTER_DICE' &&
-      resolution?.kind !== 'SYSTEM_ROLL'
-    )
-      throw new Error('Legendary Action dice are required.')
-    const binding = prepared.binding
-    const execution = await executeEncounterMovementReactionAction({
+    const execution = {
       runtime: await (runtimePromise ??= input.createRuntime()),
+      adapter: prepared.adapter,
+      plan: prepared.plan,
       occurrenceId,
-      // A retained replay never prompts: its recorded d20 replays with the mode it was rolled with.
-      autoRoll: retained !== undefined || input.autoRollByActorId[actor.id] === true,
-      ...(retainedD20
-        ? { retainedRoll: { rawFaces: retainedD20.rawFaces, rollMode: retainedD20.rollMode } }
-        : {}),
-      prepared: {
-        adapter: prepared.adapter,
-        published,
-        actionMechanic: binding.actionMechanic,
-        sourceDerivedFacts: binding.sourceDerivedFacts,
-        target: {
-          actorId: actor.id,
-          currentHitPoints: binding.currentHitPoints,
-          temporaryHitPoints: binding.temporaryHitPoints,
-          maximumHitPoints: binding.maximumHitPoints,
-          scalarValues: binding.targetScalarValues,
-          conditionIds: binding.targetConditionIds,
-          derivedFacts: binding.targetDerivedFacts,
-          defenses: binding.defenses,
-          conditionImmunityIds: binding.conditionImmunityIds
-        }
-      },
-      ...(kernelContext &&
-      continuation &&
-      !retained &&
-      (resolution?.kind === 'ENTER_DICE' || resolution?.kind === 'SYSTEM_ROLL')
-        ? {
-            continuation,
-            expectedD20Policy: kernelContext.d20Policy,
-            resolution
-          }
-        : {}),
-      rollD20: retained
-        ? () => {
-            throw new Error('Retained Legendary Action dice are incomplete.')
-          }
-        : input.rollD20
-    })
-    if (execution.kind === 'PENDING') {
+      binding: prepared.binding,
+      afterTest: async () => undefined
+    }
+    let result: Awaited<ReturnType<typeof advanceNativeActionGraphs>>
+    if (retained) {
+      if (retained.resolution.kind !== 'EXECUTED')
+        throw new Error('Retained Legendary Action execution is unavailable.')
+      // A settled window replays from its recorded dice and never rolls again.
+      const receipt = retained.resolution
+      const integers = retainedIntegerEvidence({ receipt })
+      const d20 = retainedD20Evidence({ receipt })
+      const used = new Set<string>()
+      const replay = { ...execution, autoRoll: { SOURCE: false, TARGET: false } }
+      result = await advanceNativeActionGraphs(replay)
+      for (let count = 0; result.kind === 'PENDING'; count++) {
+        if (count >= RULE_GRAPH_LIMITS.NODES)
+          throw new Error('Retained Legendary Action evidence is invalid.')
+        const resolution = resolutionForRetainedEvidence({ pending: result, integers, d20, used })
+        result = await advanceNativeActionGraphs({
+          ...replay,
+          resume: { pending: result, resolution }
+        })
+      }
+      if ([...integers.keys(), ...d20.keys()].some((requestId) => !used.has(requestId)))
+        throw new Error('Retained Legendary Action evidence has unused requests.')
+    } else {
+      const kernel =
+        input.pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
+        input.pending.applicationContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
+          ? input.pending
+          : null
+      const context =
+        kernel?.applicationContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
+          ? kernel.applicationContext
+          : null
+      if (
+        context &&
+        (!same(context.choice, choice) ||
+          context.selectedOption.optionId !== selection.optionId ||
+          context.targetActorId !== selection.targetActorId)
+      )
+        throw new Error('Legendary Action evidence selection is stale.')
+      const resolution = input.resolution
+      const answer =
+        resolution?.kind === 'ENTER_DICE' ||
+        resolution?.kind === 'ENTER_INTEGER' ||
+        resolution?.kind === 'SYSTEM_ROLL'
+          ? resolution
+          : null
+      if (kernel && !answer) throw new Error('Legendary Action dice are required.')
+      result = await advanceNativeActionGraphs({
+        ...execution,
+        random: input.random,
+        autoRoll: {
+          SOURCE: input.autoRollByActorId[actor.id] === true,
+          TARGET: input.autoRollByActorId[target.id] === true
+        },
+        ...(kernel && context && answer
+          ? {
+              resume: {
+                pending: {
+                  kind: 'PENDING' as const,
+                  continuation: (() => {
+                    const {
+                      snapshotKind: _kind,
+                      applicationContext: _context,
+                      optionalCombatSnapshotChecksum: _optional,
+                      phaseReceipts: _phases,
+                      ...value
+                    } = kernel
+                    return value
+                  })(),
+                  d20Policy: context.d20Policy,
+                  twoPhase: context.twoPhase,
+                  ...(kernel.phaseReceipts ? { phaseReceipts: kernel.phaseReceipts } : {})
+                },
+                resolution: answer
+              }
+            }
+          : {})
+      })
+    }
+    if (result.kind === 'PENDING') {
+      if (retained) throw new Error('Retained Legendary Action execution is incomplete.')
       return {
         kind: 'PENDING' as const,
         snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
-          ...execution.continuation,
+          ...result.continuation,
           snapshotKind: 'KERNEL_EVIDENCE',
           applicationContext: {
             kind: 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE',
@@ -228,17 +255,21 @@ export async function prepareTurnLegendaryActions<
             choiceSelectionChecksum: checksumCanonicalJson(choice),
             selectedOption: option,
             selectionChecksum: checksumCanonicalJson(option),
-            d20Policy: execution.d20Policy
-          }
+            targetActorId: target.id,
+            rollerActorId: result.roller === 'SOURCE' ? actor.id : target.id,
+            d20Policy: result.d20Policy,
+            twoPhase: result.twoPhase
+          },
+          ...(result.phaseReceipts ? { phaseReceipts: result.phaseReceipts } : {})
         })
       }
     }
     if (
       prepared.adapter.interpretSpatial?.({
-        execution: execution.execution,
+        execution: result.execution,
         occurrenceId,
-        published,
-        targetActorId: actor.id
+        published: result.published,
+        targetActorId: target.id
       }).length
     )
       throw new Error('Legendary Action requires the complete contextual action coordinator.')
@@ -251,43 +282,80 @@ export async function prepareTurnLegendaryActions<
         sourceCommandId: root.rootCommandId,
         commandId: root.rootCommandId,
         occurredAt: input.updatedAt,
-        applications: execution.applications,
-        eventPhases: { resource: 'LEGENDARY_ACTION_RESOURCE', outcome: 'LEGENDARY_ACTION_OUTCOME' }
+        applications: result.applications,
+        eventPhases: { resource: 'LEGENDARY_ACTION_RESOURCE', outcome: 'LEGENDARY_ACTION_OUTCOME' },
+        ordinal
       },
       userId
     )
+    const stored = buildEncounterActionStoredExecution({
+      prepared,
+      execution: result,
+      occurrenceId,
+      occurrenceVersion: 0,
+      settled: plan,
+      effects: projectNativeActionEffectTransitions({
+        state: null,
+        recurring: null,
+        targetActorId: target.id
+      }),
+      maintainedState: null,
+      maintenanceTransition: null,
+      actionEconomy: null
+    })
+    if (stored.status !== 'COMPLETE') throw new Error('Legendary Action receipt is incomplete.')
+    const targetCharacter = prepared.targetFacts.characterFacts
     const evidence = turnLegendaryActionEvidenceDtoSchema.parse({
       choice,
       selectionChecksum: checksumCanonicalJson(choice),
       resolution: {
         kind: 'EXECUTED',
-        selectedOptionId: optionId,
-        execution: execution.execution,
-        application: {
-          kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
-          schemaVersion: 1,
-          occurrenceId,
-          sourceActorId: actor.id,
-          targetActorId: actor.id,
-          sourceCharacterStreamVersion: null,
-          resourceConsumption: null,
-          featureResourceConsumption: plan.featureResourceReceipt,
-          actionEconomyTransition: null,
-          d20: execution.d20,
-          nestedD20: null,
-          targetTransition: plan.mechanics.targetTransition,
-          applications: plan.mechanics.receiptApplications
-        },
-        characterTransitions: []
+        selectedOptionId: selection.optionId,
+        targetActorId: target.id,
+        execution: result.execution,
+        initialFactsChecksum: result.initialFactsChecksum,
+        ...(result.phaseReceipts ? { phaseReceipts: result.phaseReceipts } : {}),
+        application: stored.applicationOutputs,
+        characterTransitions:
+          target.kind === 'CHARACTER' && targetCharacter && plan.mechanics.characterStreamVersion
+            ? [
+                {
+                  characterId: target.sourceId,
+                  beforeStreamVersion: targetCharacter.active.streamVersion,
+                  afterStreamVersion: plan.mechanics.characterStreamVersion
+                }
+              ]
+            : []
       }
     })
     if (retained && !same(evidence, retained))
       throw new Error('Retained Legendary Action execution is stale.')
-    actors = actors.map((entry) => (entry.id === actor.id ? plan.settledSource : entry))
+    const settledTarget = target.id === actor.id ? plan.settledSource : plan.mechanics.updatedActor
+    actors = actors.map((entry) =>
+      entry.id === actor.id ? plan.settledSource : entry.id === target.id ? settledTarget : entry
+    )
+    for (const [settled, characterPlan] of [
+      [plan.settledSource, target.id === actor.id ? plan.targetPlan : null],
+      ...(target.id === actor.id ? [] : [[settledTarget, plan.targetPlan] as const])
+    ] as const) {
+      const current = prepared.movementTargets.get(settled.id)
+      if (!current) throw new Error('Legendary Action actor facts are unavailable.')
+      targets.set(
+        settled.id,
+        projectEncounterActionTarget({
+          target: current,
+          actor: settled,
+          plan: characterPlan,
+          campaignId: state.campaignId,
+          gameSystemId: state.gameSystemId,
+          occurredAt: input.updatedAt
+        })
+      )
+    }
     return { kind: 'COMPLETE' as const, evidence }
   }
 
-  for (const evidence of completed) {
+  for (const [ordinal, evidence] of completed.entries()) {
     const ownerId = evidence.choice.ownerActorId
     if (
       seen.has(ownerId) ||
@@ -305,11 +373,20 @@ export async function prepareTurnLegendaryActions<
       (evidence.resolution.kind === 'DECLINED'
         ? decision.kind !== 'LEGENDARY_DECLINE'
         : decision.kind !== 'LEGENDARY_OPTION' ||
-          decision.optionId !== evidence.resolution.selectedOptionId)
+          decision.optionId !== evidence.resolution.selectedOptionId ||
+          decision.targetActorId !== evidence.resolution.targetActorId)
     )
       throw new Error('Retained Legendary Action decision is stale.')
     if (evidence.resolution.kind === 'EXECUTED')
-      await execute(evidence.choice, evidence.resolution.selectedOptionId, evidence)
+      await execute(
+        evidence.choice,
+        {
+          optionId: evidence.resolution.selectedOptionId,
+          targetActorId: evidence.resolution.targetActorId
+        },
+        ordinal,
+        evidence
+      )
   }
 
   if (root.commandType === 'ADVANCE_TURN' && (input.startOutgoing || !root.outgoingTurn)) {
@@ -364,14 +441,17 @@ export async function prepareTurnLegendaryActions<
           resolution: { kind: 'DECLINED' }
         })
       } else {
-        const optionId =
+        const selection =
           context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
-            ? context.selectedOption.optionId
-            : input.resolution?.kind === 'OPTION'
-              ? input.resolution.optionId
+            ? { optionId: context.selectedOption.optionId, targetActorId: context.targetActorId }
+            : input.resolution?.kind === 'LEGENDARY_OPTION'
+              ? {
+                  optionId: input.resolution.optionId,
+                  targetActorId: input.resolution.targetActorId
+                }
               : null
-        if (!optionId) throw new Error('Legendary Action choice is required.')
-        const result = await execute(choice, optionId)
+        if (!selection) throw new Error('Legendary Action choice is required.')
+        const result = await execute(choice, selection, completed.length)
         if (result.kind === 'PENDING') return result
         completed.push(result.evidence)
       }
@@ -462,5 +542,5 @@ export async function prepareTurnLegendaryActions<
       )
     }
   }
-  return { kind: 'COMPLETE' as const, root, actors }
+  return { kind: 'COMPLETE' as const, root, actors, movementTargets: targets }
 }
