@@ -23,12 +23,13 @@ import { checksumCanonicalRuleDocument } from '@artificer-toolkit/shared/rules/c
 import { components } from '../_generated/api'
 import authSchema from '../betterAuth/schema'
 import { characterTables } from '../characters/schema'
-import { contentTables } from '../content/schema'
+import { buildContentTables } from '../content/schema'
 import { encodeUtf8PayloadChunks } from '../lib/jsonPayloadChunks'
 import { sceneTables } from '../scenes/schema'
 import { importTables } from './schema'
 import { loadSourceRef } from './runnerState'
 
+const contentTables = buildContentTables()
 const modules = {
   ...Object.fromEntries(
     Object.entries(import.meta.glob('../**/*.*s')).map(([path, load]) => [

@@ -14,7 +14,7 @@ import {
   notificationPreferencesDtoSchema
 } from '@artificer-toolkit/schema/api/notifications'
 
-import { contentTables } from './content/schema'
+import { buildContentTables } from './content/schema'
 import { characterTables } from './characters/schema'
 import { campaignTables } from './campaigns/schema'
 import { socialTables } from './social/schema'
@@ -97,7 +97,7 @@ export default defineSchema({
       'profile',
       'hasSceneReferences'
     ]),
-  ...contentTables,
+  ...buildContentTables(),
   ...characterTables,
   ...campaignTables,
   ...socialTables,

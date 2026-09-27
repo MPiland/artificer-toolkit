@@ -16,7 +16,7 @@ import { components } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
 import authSchema from '../betterAuth/schema'
 import { characterTables } from '../characters/schema'
-import { contentTables } from '../content/schema'
+import { buildContentTables } from '../content/schema'
 import { materializeRunnerSource, prepareWithNativeLookup, runnerLookupLoaders } from './preview'
 import { loadExactForJobRef, loadMasterPageForJobRef } from './previewLookup'
 import type { ImportRunnerSource } from './runnerState'
@@ -38,7 +38,7 @@ const testSchema = defineSchema({
     .index('by_authUserId', ['authUserId'])
     .index('by_userId', ['userId']),
   ...characterTables,
-  ...contentTables,
+  ...buildContentTables(),
   ...importTables
 })
 
