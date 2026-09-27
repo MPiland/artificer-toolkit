@@ -103,14 +103,15 @@ export function CharacterSheetHpEditor({
         <ul aria-label='Maximum hit point reductions' className={overviewStyles.hpReductionList}>
           {sheet.overview.maxHitPointsReductions.map((reduction, index) => (
             <li className={overviewStyles.hpReductionRow} key={`${reduction.id}:${index}`}>
-              <div>
-                <Text>Maximum reduced</Text>
-                <Text className={overviewStyles.hpReductionRecovery}>
+              <Text>
+                {reduction.label}
+                <span className={overviewStyles.hpReductionRecovery}>
+                  {' · '}
                   {reduction.recoveryTags.includes('LONG_REST')
                     ? 'Until long rest'
                     : 'Until restored'}
-                </Text>
-              </div>
+                </span>
+              </Text>
               <Text className={overviewStyles.hpReductionAmount}>
                 {formatSigned(-reduction.amount)}
               </Text>

@@ -128,11 +128,13 @@ describe('Character Sheet vitals', () => {
     sheet.overview.maxHitPointsReductions = [
       {
         id: '11111111-1111-4111-8111-111111111121',
+        label: 'Life Drain',
         amount: 4,
         recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
       },
       {
         id: '11111111-1111-4111-8111-111111111122',
+        label: 'Slam',
         amount: 2,
         recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
       }
@@ -145,8 +147,8 @@ describe('Character Sheet vitals', () => {
     await openHpControls(user)
     const reductions = screen.getByRole('list', { name: /maximum hit point reductions/i })
     const [drain, golem] = within(reductions).getAllByRole('listitem')
-    expect(drain).toHaveTextContent(/maximum reduced\s*until long rest\s*-4/i)
-    expect(golem).toHaveTextContent(/maximum reduced\s*until restored\s*-2/i)
+    expect(drain).toHaveTextContent(/^Life Drain\s*·\s*Until long rest\s*-4$/)
+    expect(golem).toHaveTextContent(/^Slam\s*·\s*Until restored\s*-2$/)
   })
 
   it('does not submit no-op hit point adjustments', async () => {
