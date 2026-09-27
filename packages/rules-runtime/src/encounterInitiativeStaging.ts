@@ -89,14 +89,14 @@ export function inMemoryInitiativeRepository(initial: EncounterInitiativeRoundSt
         }
         return state.round
       },
-      async updateInitiativeParticipant(input) {
+      async updateInitiativeParticipant({ expectedVersion, ...input }) {
         const index = state.participants.findIndex(
           (candidate) => candidate.actorId === input.actorId
         )
         const current = state.participants[index]
         if (!current)
           throw new EncounterConflictError('Staged initiative participant is unavailable.')
-        requireVersion(current.version, input.expectedVersion)
+        requireVersion(current.version, expectedVersion)
         const updated = { ...current, ...input, version: current.version + 1 }
         state = {
           ...state,
@@ -106,11 +106,11 @@ export function inMemoryInitiativeRepository(initial: EncounterInitiativeRoundSt
         }
         return updated
       },
-      async updateInitiativeSide(input) {
+      async updateInitiativeSide({ expectedVersion, ...input }) {
         const index = state.sides.findIndex((candidate) => candidate.sideId === input.sideId)
         const current = state.sides[index]
         if (!current) throw new EncounterConflictError('Staged initiative side is unavailable.')
-        requireVersion(current.version, input.expectedVersion)
+        requireVersion(current.version, expectedVersion)
         const updated = { ...current, ...input, version: current.version + 1 }
         state = {
           ...state,

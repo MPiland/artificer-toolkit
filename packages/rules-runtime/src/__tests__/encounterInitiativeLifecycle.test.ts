@@ -223,6 +223,19 @@ describe('initiative lifecycle with automatic dice (Automatic)', () => {
     )
   })
 
+  it('orders tied creatures by the tie-breaker without changing their initiative count', async () => {
+    // A: 13 + 2 = 15 and B: 15 + 0 = 15 tie; C: 13 - 1 = 12. Tie-breaker: A 4, B 9.
+    const run = await harness({ policy: actorRoll, mode: 'AUTO_ROLL', dice: [13, 15, 13, 4, 9] })
+    const result = await run.start()
+
+    if (result.kind !== 'SETTLED') throw new Error('Expected settled initiative.')
+    expect(participantScores(run.read())).toEqual([
+      [ACTOR_A, 'READY', 15, 1],
+      [ACTOR_B, 'ACTIVE', 15, 0],
+      [ACTOR_C, 'READY', 12, 2]
+    ])
+  })
+
   it('rerolls a tie again while a repeating tie-breaker has attempts left', async () => {
     const repeating = initiativePolicySnapshot({
       procedure: 'ACTOR_ROLL',
@@ -498,6 +511,26 @@ describe('initiative lifecycle procedures and cadence', () => {
       [ACTOR_B, 'READY', null, 1],
       [ACTOR_C, 'ACTIVE', null, 0]
     ])
+  })
+
+  it('stores updated participants and sides without the version precondition', async () => {
+    const state = preparingRound({ actors: ACTORS, policy: sideRoll })
+    const staged = inMemoryInitiativeRepository(state)
+    const participant = state.participants[0]!
+    const side = state.sides[0]!
+    const { createdAt: _pc, updatedAt: _pu, version: participantVersion, ...participantFields } =
+      participant
+    const { createdAt: _sc, updatedAt: _su, version: sideVersion, ...sideFields } = side
+    const { sideId: _sideId, ...participantUpdate } = participantFields
+    await staged.repository.updateInitiativeParticipant({
+      ...participantUpdate,
+      expectedVersion: participantVersion
+    })
+    await staged.repository.updateInitiativeSide({ ...sideFields, expectedVersion: sideVersion })
+
+    const stored = staged.read()
+    expect(stored.participants[0]).toEqual({ ...participant, version: participantVersion + 1 })
+    expect(stored.sides[0]).toEqual({ ...side, version: sideVersion + 1 })
   })
 
   it('refuses a round whose procedure, cadence or checksum differs from the frozen policy', async () => {

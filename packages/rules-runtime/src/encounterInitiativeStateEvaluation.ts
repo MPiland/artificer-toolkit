@@ -51,7 +51,9 @@ async function recordParticipant(input: {
     input.phase === 'PRIMARY' && input.pointer ? input.pointer : input.participant.evaluation
   const tie =
     input.phase === 'TIE_RESOLUTION' && input.pointer ? input.pointer : input.participant.tie
-  const score = input.pointer ? input.score : input.participant.initiativeScore
+  // A tie-breaker only orders the tied group; the initiative count stays the primary score.
+  const score =
+    input.phase === 'PRIMARY' && input.pointer ? input.score : input.participant.initiativeScore
   if (
     input.participant.status === input.status &&
     input.participant.initiativeScore === score &&
@@ -86,7 +88,7 @@ async function recordSide(input: {
   const evaluation =
     input.phase === 'PRIMARY' && input.pointer ? input.pointer : input.side.evaluation
   const tie = input.phase === 'TIE_RESOLUTION' && input.pointer ? input.pointer : input.side.tie
-  const score = input.pointer ? input.score : input.side.initiativeScore
+  const score = input.phase === 'PRIMARY' && input.pointer ? input.score : input.side.initiativeScore
   if (
     input.side.status === input.status &&
     input.side.initiativeScore === score &&
