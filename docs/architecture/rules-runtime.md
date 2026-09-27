@@ -1707,7 +1707,10 @@ modeled yet. The Wight's zombie rising is description-only.
 (`rules-runtime/character/hitPointMaximumReductions`) lists a Character's active reductions and
 subtracts them, never below 0. The Encounter's Character targets, the Sheet projection and the rest
 preview all use it, so the Sheet and the Encounter show the same maximum. The Sheet lists each
-reduction in hit point management (amount, and "until long rest" or "until restored"). Current hit
+reduction in hit point management as "<label> · Until long rest" or "<label> · Until restored" with its
+amount. The label is the acting Feature or action label ("Life Drain"), frozen onto the
+`HIT_POINT_MAXIMUM_REDUCTION` contribution as the required `sourceLabel` when the effect is created;
+the attacking Creature's own name is never stored there. Current hit
 points clamp to the reduced maximum in the Sheet, its commands and the Encounter projection. A rest
 preview's maximum leaves out the reductions that rest ends (`activeEffectEndsOnRest`, the same test
 the rest uses to delete them). The Character row's stored `maximumHitPoints` (D7) is the maximum
