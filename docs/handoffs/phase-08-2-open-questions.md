@@ -383,6 +383,20 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Touch range.** A single-target Touch action (for example the Unicorn's Healing Touch) behaves as a 5-ft range that warns when out of reach (D11). It is not refused.
   * **Wording:** "This actor can't take an action right now."
   * **Creature saving-throw proficiencies.** Stat blocks with a Saving Throws line must use those modifiers. This needs a creature schema field and SRD data. It's queued as its own slice before closed beta. Its source-identity check requires a frozen tree.
+- **D64** (2026-09-27) Reaction answers must be fast. After D59, `REACTION_RESPONSE` p95 sat at the 1 s V15 budget (1,008 and 987 ms).
+  - **Why they are slow:** the answer runs a movement stage and then a commit on the critical path. Together they read about 400 documents and 1.5 MB, while an attack reads 62.
+  - **Step 1, now:**
+    - one transaction read memo that is aware of writes;
+    - the room reuses its cached Run System when the stamp matches, so Convex stops resending it;
+    - duplicated validation in the commit is removed.
+
+    Every fence still reads within the transaction, and no check is removed.
+  - **Step 2, next:** stage the held movement's inputs when the decision is issued, while the player decides, so the answer is one commit.
+    - D26 already pauses play while a decision is pending, so the prefetch goes stale only if the GM cancels.
+    - A stale prefetch fails closed on the commit fences and falls back to today's stage-and-commit.
+    - Rules and dice still run in the room at answer time, so D41 and D27 are unchanged. This amends D52's stage timing.
+    - The prefetch is admitted for the responder, and the answer command comes from the room instead of the staged save.
+  - **The 6-browser V15** runs only once the browserless `REACTION_RESPONSE` p95 is clearly under 1 s.
 
 ## Resolved
 
