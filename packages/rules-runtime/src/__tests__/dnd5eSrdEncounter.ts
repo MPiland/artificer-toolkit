@@ -20,6 +20,7 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_REUSABLE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -30,6 +31,7 @@ import {
 
 import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
 import { buildEncounterActorRuleFacts } from '../encounterActorRuleFacts.js'
+import { pinCreatureEquipmentSources } from '../encounterCreatureEquipmentSources.js'
 import { reconcileEncounterActorRuleOutput } from '../encounterActorRuleOutput.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
 import {
@@ -58,6 +60,25 @@ const VOCABULARY_SNAPSHOT_ID = '00000000-0000-4000-8000-00000000e005'
 type Ability = keyof typeof SRD_ABILITY_DEFINITION_IDS
 
 const seedsById = new Map(SRD_REUSABLE_DEFINITIONS.map((seed) => [seed.id, seed]))
+
+const srdEquipmentById = new Map(srdEquipment.map((document) => [document.id, document]))
+
+/** A Creature's loadout Equipment served as current version-1 SRD records. */
+function srdLoadoutEquipmentRecords(creature: CreatureAuthored) {
+  return new Map(
+    (creature.equipmentLoadout ?? []).map(({ equipmentId }) => {
+      const document = srdEquipmentById.get(equipmentId)
+      if (!document) throw new Error(`SRD Equipment "${equipmentId}" is missing.`)
+      const record = {
+        document,
+        checksum: checksumRuleDocument(document),
+        version: 1,
+        versionId: SOURCE_VERSION_ID
+      }
+      return [equipmentId, { authored: record }] as const
+    })
+  )
+}
 
 /** The published SRD reusable definitions, served as current version-1 records. */
 export const srdDefinitions: CurrentReusableDefinitionSource = {
@@ -118,7 +139,7 @@ export function creatureFeature(creature: CreatureAuthored, label: string) {
 
 /**
  * An SRD Creature as a Run actor, snapshotted the way Blueprint creation freezes it: explicit empty
- * defense lists and the installed System's compiled rule facts.
+ * defense lists, the installed System's compiled rule facts and its pinned Equipment loadout.
  */
 export function srdCreatureActor(input: {
   id: string
@@ -138,6 +159,10 @@ export function srdCreatureActor(input: {
     damageImmunities: input.creature.damageImmunities ?? [],
     conditionImmunities: input.creature.conditionImmunities ?? []
   }
+  const equipmentSources = pinCreatureEquipmentSources({
+    creature,
+    equipmentRecords: srdLoadoutEquipmentRecords(creature)
+  })
   return encounterRunActorStateSchema.parse({
     id: input.id,
     encounterId: ENCOUNTER_ID,
@@ -170,7 +195,8 @@ export function srdCreatureActor(input: {
       sourceChecksum: checksumRuleDocument(creature),
       maxHitPoints: creature.hitPoints,
       payload: creature,
-      ruleFacts: compileInstalledCreatureRuleFacts({ creature, vocabulary: SRD_VOCABULARY })
+      ruleFacts: compileInstalledCreatureRuleFacts({ creature, vocabulary: SRD_VOCABULARY }),
+      ...(equipmentSources.length > 0 ? { equipmentSources } : {})
     },
     createdAt: TIMESTAMP,
     updatedAt: TIMESTAMP
