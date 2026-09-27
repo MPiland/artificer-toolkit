@@ -7,11 +7,9 @@
  */
 import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { ATTACK_TRIGGER_CODES } from '@artificer-toolkit/schema/effects/effect'
 import type { FeatureBaseAuthored } from '@artificer-toolkit/shared'
-import {
-  creatureAttackRollId,
-  SRD_ATTACK_TRIGGER_CODES
-} from '../src/srd/creatures/attack-rolls.js'
+import { creatureAttackRollId } from '../src/srd/creatures/attack-rolls.js'
 import { srdCreatureRecords } from '../src/srd/creatures/index.js'
 
 /**
@@ -42,8 +40,7 @@ const BASE_ATTACKS: Readonly<Record<string, readonly string[]>> = {
   'Gynosphinx|Multiattack': ['Claw'],
   'Hezrou|Multiattack': ['Bite', 'Claw'],
   'Hydra|Multiattack': ['Bite'],
-  // The source authors only the Ice Devil's Tail; its printed bite and claws share the +10.
-  'Ice Devil|Multiattack': ['Tail'],
+  'Ice Devil|Multiattack': ['Bite', 'Claws', 'Tail'],
   'Invisible Stalker|Multiattack': ['Slam'],
   'Remorhaz|Swallow': ['Bite'],
   'Tarrasque|Swallow': ['Bite'],
@@ -60,7 +57,7 @@ function isAttackSource(source: FeatureBaseAuthored) {
   return (source.effects ?? []).some(
     (effect) =>
       effect.invocation.kind === 'ACTION' &&
-      SRD_ATTACK_TRIGGER_CODES.has(effect.invocation.triggerCode ?? '')
+      ATTACK_TRIGGER_CODES.has(effect.invocation.triggerCode ?? '')
   )
 }
 

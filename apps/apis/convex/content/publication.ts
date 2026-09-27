@@ -6,6 +6,7 @@ import {
   authoredPublicationResultSchema,
   type AuthoredPublicationResult
 } from '@artificer-toolkit/schema/api/authoredPublication'
+import { creaturePublicationDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { mutation } from '../lib/mutations'
@@ -41,6 +42,11 @@ export const publishDraft = mutation({
     if (input.subjectKind === 'RACE')
       await assertRaceRelationshipsIndexed(ctx, state.draft.systemId)
     const subject = await normalizePublicationDocument(ctx, state)
+    if (subject.subjectKind === 'CREATURE') {
+      const publishable = creaturePublicationDtoSchema.safeParse(subject.document)
+      if (!publishable.success)
+        throw new Error(publishable.error.issues.map((issue) => issue.message).join(' '))
+    }
     if (subject.subjectKind === 'RACE' && subject.document.category === 'SUBRACE') {
       const { systemId, parentRaceId } = subject.document
       const siblings = await ctx.db

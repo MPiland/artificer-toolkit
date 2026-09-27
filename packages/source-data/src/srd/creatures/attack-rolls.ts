@@ -1,17 +1,8 @@
-import { TRIGGER, type CreatureAuthored, type FeatureBaseAuthored } from '@artificer-toolkit/shared'
+import type { CreatureAuthored, FeatureBaseAuthored } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
 import { SRD_CREATURE_ATTACK_BONUSES } from './attack-bonuses.js'
 
 const SRD_ATTACK_ROLL_NAMESPACE = '86ddb419-e8bf-42ab-bc2d-efb8878a4f97'
-
-/** Effect triggers that resolve as an attack roll, so their Feature or option needs one ATTACK roll. */
-export const SRD_ATTACK_TRIGGER_CODES: ReadonlySet<string> = new Set([
-  TRIGGER.MELEE_WEAPON_ATTACK,
-  TRIGGER.RANGED_WEAPON_ATTACK,
-  TRIGGER.UNARMED_ATTACK,
-  TRIGGER.MELEE_SPELL_ATTACK,
-  TRIGGER.RANGED_SPELL_ATTACK
-])
 
 export function creatureAttackRollId(sourceId: string) {
   return uuidv5(`${sourceId}:attack-roll`, SRD_ATTACK_ROLL_NAMESPACE)

@@ -127,6 +127,14 @@ const weaponAttackTriggerCodes: readonly string[] = [
   triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK
 ]
 
+/** Triggers resolved by an attack roll, so the Feature or option invoking one defines its ATTACK roll. */
+export const ATTACK_TRIGGER_CODES: ReadonlySet<string> = new Set([
+  ...weaponAttackTriggerCodes,
+  triggerCodeSchema._zod.def.entries.UNARMED_ATTACK,
+  triggerCodeSchema._zod.def.entries.MELEE_SPELL_ATTACK,
+  triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK
+])
+
 /** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
 export const equipmentEffectDtoSchema = z
   .extend(createEffectDtoSchema(pathDtoSchema), { grip: z.nullable(equipmentGripSchema) })

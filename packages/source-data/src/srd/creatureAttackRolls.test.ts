@@ -1,7 +1,7 @@
 import type { FeatureBaseAuthored } from '@artificer-toolkit/shared'
+import { ATTACK_TRIGGER_CODES } from '@artificer-toolkit/schema/effects/effect'
 import { describe, expect, it } from 'vitest'
 import { SRD_CREATURE_ATTACK_BONUSES } from './creatures/attack-bonuses.js'
-import { SRD_ATTACK_TRIGGER_CODES } from './creatures/attack-rolls.js'
 import { srdBaselineContent } from './index.js'
 
 const attackSources = srdBaselineContent.subjects.creatures.flatMap((creature) =>
@@ -11,7 +11,7 @@ const attackSources = srdBaselineContent.subjects.creatures.flatMap((creature) =
       (source.effects ?? []).some(
         (effect) =>
           effect.invocation.kind === 'ACTION' &&
-          SRD_ATTACK_TRIGGER_CODES.has(effect.invocation.triggerCode ?? '')
+          ATTACK_TRIGGER_CODES.has(effect.invocation.triggerCode ?? '')
       )
     )
     .map((source) => ({ label: `${creature.label}: ${source.label}`, source }))
@@ -40,7 +40,7 @@ describe('SRD Creature attack rolls', () => {
         : [label]
     })
 
-    expect(attackSources).toHaveLength(491)
+    expect(attackSources).toHaveLength(493)
     expect(invalid).toEqual([])
   })
 

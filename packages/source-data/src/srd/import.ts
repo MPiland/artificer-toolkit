@@ -11,7 +11,7 @@ import {
 } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
-import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { creaturePublicationDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { featAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
 import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
@@ -102,7 +102,7 @@ export function prepareSrdImport(
   }
   add('BACKGROUND', bundle.subjects.backgrounds, backgroundAuthoredDtoSchema)
   add('CLASS', bundle.subjects.classes, classAuthoredDtoSchema)
-  add('CREATURE', bundle.subjects.creatures, creatureAuthoredDtoSchema)
+  add('CREATURE', bundle.subjects.creatures, creaturePublicationDtoSchema)
   add('EQUIPMENT', bundle.subjects.equipment, equipmentAuthoredDtoSchema)
   add('FEAT', bundle.subjects.feats, featAuthoredDtoSchema)
   add('RACE', bundle.subjects.races, raceAuthoredDtoSchema)

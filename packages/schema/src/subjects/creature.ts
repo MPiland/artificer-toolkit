@@ -10,6 +10,7 @@ import {
 import { detailDtoSchema } from '../shared/detail.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 import { speedDtoSchema } from '../shared/speed.js'
+import { ATTACK_TRIGGER_CODES } from '../effects/effect.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
 import { costDtoSchema } from './shared.js'
@@ -161,6 +162,44 @@ function validateCreatureEquipmentLoadout(
   }
 }
 
+/**
+ * Publication rule: a Creature Feature or option whose action makes an attack roll defines exactly
+ * one ATTACK roll, which carries its attack bonus. Drafts may be saved without it, and reads of
+ * already published Creatures do not re-apply it; discovery isolates such an action instead.
+ */
+function validateCreatureAttackRolls(
+  creature: { features?: z.infer<typeof featureDtoSchema>[] },
+  context: z.core.$RefinementCtx
+) {
+  for (const [featureIndex, feature] of (creature.features ?? []).entries()) {
+    const sources = [
+      { source: feature, path: ['features', featureIndex] },
+      ...(feature.options ?? []).map((option, optionIndex) => ({
+        source: option,
+        path: ['features', featureIndex, 'options', optionIndex]
+      }))
+    ]
+    for (const { source, path } of sources) {
+      const attacks = (source.effects ?? []).some(
+        (effect) =>
+          effect.invocation.kind !== 'PASSIVE' &&
+          ATTACK_TRIGGER_CODES.has(effect.invocation.triggerCode)
+      )
+      if (!attacks) continue
+      const attackRolls = (source.rollDefinitions ?? []).filter(
+        (definition) => definition.kind === 'ATTACK'
+      ).length
+      if (attackRolls !== 1) {
+        context.addIssue({
+          code: 'custom',
+          path: [...path, 'rollDefinitions'],
+          message: `"${source.label}" makes an attack, so it must define exactly one ATTACK roll with its attack bonus (it defines ${attackRolls}).`
+        })
+      }
+    }
+  }
+}
+
 const creatureAuthoredDtoObject = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
@@ -214,6 +253,11 @@ const creatureAuthoredDtoSchemaBase = creatureAuthoredDtoObject.check(
 
 export type CreatureAuthoredDto = z.infer<typeof creatureAuthoredDtoSchemaBase>
 export const creatureAuthoredDtoSchema = creatureAuthoredDtoSchemaBase
+
+/** The Creature a publication (platform seed or owner publish) may commit. */
+export const creaturePublicationDtoSchema = creatureAuthoredDtoSchemaBase.check(
+  z.superRefine(validateCreatureAttackRolls)
+)
 
 export const creatureAuthoringInputDtoSchema = z
   .extend(creatureAuthoredDtoObject, { userId: z.optional(authoredIdentifierSchema) })

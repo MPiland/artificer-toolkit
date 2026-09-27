@@ -143,6 +143,36 @@ function publicationInput(draft: AuthoredDraftResult): AuthoredPublishDraftInput
 }
 
 describe('native Creature publication', () => {
+  it('refuses to publish a Creature attack that does not define exactly one ATTACK roll', async () => {
+    const { first } = await fixture()
+    const draft = await copyDraft(first.caller)
+    const copied = creatureAuthoredDtoSchema.parse(draft.payload)
+    const withoutAttackRoll = await first.caller.mutation(api.content.drafts.save, {
+      subjectKind: 'CREATURE',
+      subjectId: draft.subjectId,
+      systemId: draft.systemId,
+      label: 'Homebrew Warhorse',
+      payload: {
+        ...copied,
+        features: copied.features?.map((feature) =>
+          feature.label === 'Hooves' ? { ...feature, rollDefinitions: [] } : feature
+        )
+      }
+    })
+
+    await expect(
+      first.caller.mutation(publish, publicationInput(withoutAttackRoll))
+    ).rejects.toThrow(
+      '"Hooves" makes an attack, so it must define exactly one ATTACK roll with its attack bonus (it defines 0).'
+    )
+    expect(
+      await first.caller.query(api.content.drafts.get, {
+        subjectKind: 'CREATURE',
+        subjectId: draft.subjectId
+      })
+    ).toEqual(withoutAttackRoll)
+  })
+
   it('publishes canonical indexed Creature copies with cloned loadout bindings, source facts, and private active detail', async () => {
     const { t, first, second } = await fixture()
     const canonicalBefore = await t.run(async (ctx) =>
