@@ -104,7 +104,7 @@ export function CharacterSheetHpEditor({
           {sheet.overview.maxHitPointsReductions.map((reduction, index) => (
             <li className={overviewStyles.hpReductionRow} key={`${reduction.id}:${index}`}>
               <Text>
-                {reduction.label}
+                {reduction.label ?? 'Unknown source'}
                 <span className={overviewStyles.hpReductionRecovery}>
                   {' · '}
                   {reduction.recoveryTags.includes('LONG_REST')
