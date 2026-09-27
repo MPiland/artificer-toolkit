@@ -808,7 +808,8 @@ it('resumes each Assisted evidence through the Worker and commits only the compl
       )
     ).rejects.toThrow()
   }
-  expect(responses).toHaveLength(3)
+  // The natural 20 is a critical hit, so each damage die is rolled twice (D58).
+  expect(responses).toHaveLength(5)
   expect(publicResult.occurrence?.status).toBe('COMPLETE')
   const after = await storedActionState(base)
   expect(after.run).not.toEqual(before.run)

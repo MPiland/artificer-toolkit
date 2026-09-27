@@ -352,8 +352,11 @@ describe('room movement response publication', () => {
       expect(plan.outcome.kind).toBe(pending.kind === 'MOVEMENT_REACTION' ? 'TERMINAL' : 'PENDING')
       result = await plan.publish()
     }
+    // The natural 20 is a critical hit: the reaction's two damage dice are each rolled twice (D58).
     expect(evidenceKinds).toEqual([
       'D20_EVIDENCE',
+      'ACTION_OUTCOME_EVIDENCE',
+      'ACTION_OUTCOME_EVIDENCE',
       'ACTION_OUTCOME_EVIDENCE',
       'ACTION_OUTCOME_EVIDENCE'
     ])

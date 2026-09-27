@@ -1451,8 +1451,9 @@ describe('native encounter actions', () => {
     let result = await executeInRoom(base.owner.caller, {
       command: input
     })
+    // Every d20 is a natural 20, so the critical hit rolls each damage die twice (D58).
     for (let step = 0; result.occurrence?.status === 'PENDING'; step++) {
-      expect(step).toBeLessThan(4)
+      expect(step).toBeLessThan(6)
       const pending = result.occurrence.pending
       if (
         !pending ||
