@@ -178,5 +178,27 @@ export function auditSrdSourceSemantics(): SrdSourceAuditIssue[] {
     })
   }
 
+  // A Legendary Action option authored "Costs N Actions" spends N from the pool.
+  for (const creature of srdBaselineContent.subjects.creatures) {
+    for (const option of (creature.features ?? []).flatMap((feature) => feature.options ?? [])) {
+      const cost = Number(/\(Costs (\d+) Actions\)/.exec(option.label)?.[1] ?? 1)
+      const mismatched = (option.effects ?? []).filter(
+        (effect) =>
+          effect.invocation.kind === 'ACTION' &&
+          effect.invocation.resourceUse !== undefined &&
+          effect.invocation.resourceUse.cost !== cost
+      )
+      if (mismatched.length > 0) {
+        issues.push({
+          domain: 'creatures',
+          id: creature.id,
+          label: creature.label,
+          issue: `Legendary Action option "${option.label}" does not spend ${cost}`,
+          paths: mismatched.map((effect) => effect.id)
+        })
+      }
+    }
+  }
+
   return issues
 }

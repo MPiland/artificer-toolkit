@@ -656,7 +656,7 @@ export const ancientBrassDragon: CreatureAuthored = {
                 },
                 activation: { code: 'FREE' },
                 range: { id: '00000000-0005-001e-0070-001000000000', rangeKind: 'SPECIAL' },
-                resourceUse: { chargeId: '00000000-0005-0015-0070-001000000000', cost: 1 }
+                resourceUse: { chargeId: '00000000-0005-0015-0070-001000000000', cost: 2 }
               },
               paths: [
                 {
