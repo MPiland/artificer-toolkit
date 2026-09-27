@@ -288,12 +288,16 @@ from `executeLiveEncounterCommand` (route `MOVEMENT`). Inside the command chain 
    STATE_SYNC when fog changed, then the ENCOUNTER result to a decision's initiator. The browser
    settles an Encounter command only on its ENCOUNTER result.
 
-A commit refused with a response rolled back, so the record is dropped. Without a response the
-record stays, and the room settles it before the next command, while activating, before a
-presentation change and before the drain fence: the Worker-secret route
-`external-commit-resolve` answers COMMITTED (the save published and the authority reached N+1 with
-the predicted checksum) or ABANDONED (it expires the still-receiving save while the authority is at
-N, so a delayed commit fails); anything else fails closed. A COMMITTED recovery applies the record,
+A commit refused with a 4xx response rolled back, so the record is dropped. Without a response (or
+on a 5xx) the record stays, and the room settles it before the next command, while activating,
+before a presentation change and before the drain fence: the Worker-secret route
+`external-commit-resolve` takes the record's `subject` and answers COMMITTED (the change landed and
+the authority reached N+1 with the predicted checksum) or ABANDONED (it did not land and the
+authority is at N, after a fence that makes a delayed commit fail: a still-receiving save expires);
+anything else fails closed. Only a retry of the same room commit replays in Convex; a replay whose
+authority has not reached the room's sequence is refused, since the change was made outside the
+room. An exact retry the room answers from its journal reports `replayed: true` in its Scene or
+binding result, as Convex replays do (D47). A COMMITTED recovery applies the record,
 drops the Scene cache and challenges every socket, because no member saw the change. Bootstrap
 accepts a persisted sequence of N+1 only through that recovery; while a record exists the journal
 refuses other commits, the drain fence and `discardReplaceableAuthority`.
@@ -326,6 +330,25 @@ skip also writes an `encounterDecisionSkips` row keyed by the decision's occurre
 `encounters/activeReads:decisionSettlement` answers `GM_SKIP` (or `ANSWER`) for the decision a
 player was shown, and their drawer says "The GM skipped this decision." (D39). The skipped
 occurrence and version key both writes, so a retry repeats nothing.
+
+**Encounter binding through the room (CURRENT, D47).** While a room owns the presented Scene,
+`encounters/sceneBindings:bind` keeps refusing a direct binding, and the GM binds an Encounter to
+that Scene mid-session through the room: live command scope `ENCOUNTER_BINDING` with the
+`BIND_ENCOUNTER_TO_PRESENTED_SCENE` input (`#executeEncounterBinding` in `nativeLiveSessionRoom.ts`).
+A player is refused with `GM_ONLY`. The room uses the same Convex-first path as a Scene commit: it
+flushes the outbox, writes the write-ahead record with subject `ENCOUNTER_BINDING`, and calls the
+Worker-secret route `encounter-binding` (`liveSessions/encounterBinding:commit`), which binds with
+the room's synchronized Scene and presentation fence (`bindEncounterToPresentedScene`, shared with
+the native mutation) and advances the authority to N+1 in the same transaction
+(`commitWithAuthorityAdvance`). The room's state and checksum do not change; only the sequence
+advances. The commit carries `expiresAt` (now plus the route timeout) and Convex refuses it after
+that time, so `external-commit-resolve` answers ABANDONED for a binding only once `expiresAt` has
+passed, touching the authority row so a commit still in flight conflicts and reruns past its expiry;
+before then it fails closed and the room asks the member to try again. On success the room points
+its Scene at the Encounter (later moves on it commit Convex-first) and sends every member
+`COMMAND_COMMITTED` with the new sequence and an `ENCOUNTER_BINDING` delta; members read the binding
+through `sceneBindings:get`. Without a live room the native mutation still binds. Deleting a
+prepared, bound Encounter (the only unbinding) still refuses while the room owns the Scene.
 
 **Turn movement (CURRENT, D37-D38, V07.5).** The room, which holds the whole Scene
 (`prepareExternalSceneCommit`), measures each published segment of a bound move with
@@ -937,7 +960,12 @@ stale state: a player sending a GM-only Encounter command is refused with `GM_ON
 can do that."), and a member answering a decision or acting for an actor they do not control with
 `NOT_ACTOR_CONTROLLER`. A genuinely stale version keeps `VERSION_STALE`, and the room's generic
 `STALE_STATE` stays for redacted Convex refusals. The default messages live in
-`DOMAIN_REJECTION_MESSAGES` beside the reason enum.
+`DOMAIN_REJECTION_MESSAGES` beside the reason enum. A nested Convex function stopped at its
+execution limit ("Function execution timed out", for example a rules capture under load) changed
+nothing, so the route answers 503 instead of 409 (`isConvexExecutionTimeout`), and the room refuses
+with `UNAVAILABLE` and `LIVE_SESSION_TRY_AGAIN_MESSAGE` ("The table is busy right now; try again.")
+rather than `STALE_STATE` (D47). Convex gives no structured code for this, so the check matches its
+message.
 
 Rule warnings (current, ADR 0034 decision 2) are the one rejection with a payload: reason
 `RULE_WARNINGS` is a discriminated variant of `domainRejectionErrorDataSchema` that also carries

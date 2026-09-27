@@ -93,7 +93,8 @@ function applyRecipientDelta(
   state: LiveSessionRecipientStateDto,
   delta: Exclude<LiveSessionRecipientDeltaDto, { scope: 'ENCOUNTER' }> | null
 ): LiveSessionRecipientStateDto | null {
-  if (delta === null) return state
+  // A binding changes no Scene state; members read it through their Convex subscription.
+  if (delta === null || delta.scope === 'ENCOUNTER_BINDING') return state
   if (delta.scope === 'SCENE_VERSION') {
     if (state.scene?.id !== delta.sceneId || delta.version !== state.scene.version + 1) return null
     return { ...state, scene: { ...state.scene, version: delta.version } }

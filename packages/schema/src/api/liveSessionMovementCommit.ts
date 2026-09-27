@@ -7,9 +7,10 @@ import {
   sceneGeometryFinishInputSchema,
   sceneGeometryObserveInputSchema,
   sceneGeometrySaveLookupSchema,
-  sceneGeometryStageFogInputSchema
+  sceneGeometryStageFogInputSchema,
+  scenePresentationFenceSchema
 } from './sceneGeometry.js'
-import { sceneDeltaDtoSchema } from './vttScenes.js'
+import { bindEncounterToPresentedSceneInputDtoSchema, sceneDeltaDtoSchema } from './vttScenes.js'
 import { encounterCommandResultDtoSchema } from './encounterData.js'
 import { voidRuleOccurrenceInputDtoSchema } from './encounterRuleCommands.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
@@ -121,13 +122,40 @@ export const liveSessionSceneGeometryStageFogInputSchema = z.extend(
 export const liveSessionSceneGeometrySaveResponseSchema = sceneGeometrySaveLookupSchema
 
 /**
+ * A room Encounter binding (D47): the GM binds an Encounter to the room's presented Scene. Convex
+ * refuses it once its clock passes `expiresAt`, so a resolve after that time can settle it as
+ * ABANDONED without a delayed commit landing later.
+ */
+export const liveSessionEncounterBindingCommitInputSchema = z.extend(
+  liveSessionBootstrapInputSchema,
+  {
+    command: bindEncounterToPresentedSceneInputDtoSchema,
+    sceneId: postgresUuidSchema,
+    presentation: scenePresentationFenceSchema,
+    authority: liveSessionExternalAuthoritySchema,
+    expiresAt: z.number().check(z.int()).check(z.positive())
+  }
+)
+
+/** What a room commit changes, so a resolve can tell whether it landed. */
+export const liveSessionExternalCommitSubjectSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('SCENE_SAVE'), saveId: postgresUuidSchema }),
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_BINDING'),
+    encounterId: postgresUuidSchema,
+    commandId: postgresUuidSchema,
+    expiresAt: liveSessionEncounterBindingCommitInputSchema.shape.expiresAt
+  })
+])
+
+/**
  * Settles a room commit whose outcome the room did not observe (a timeout or a restart). Worker
  * secret only: the room's write-ahead record supplies every field.
  */
 export const liveSessionExternalCommitResolveInputSchema = z.strictObject({
   campaignId: postgresUuidSchema,
   epoch: postgresUuidSchema,
-  saveId: postgresUuidSchema,
+  subject: liveSessionExternalCommitSubjectSchema,
   expectedSequence: liveSessionSequenceDtoSchema,
   expectedStateChecksum: projectionChecksumSchema,
   nextStateChecksum: projectionChecksumSchema
@@ -166,6 +194,12 @@ export type LiveSessionSceneGeometryCommitInput = z.infer<
 >
 export type LiveSessionExternalCommitResolveInput = z.infer<
   typeof liveSessionExternalCommitResolveInputSchema
+>
+export type LiveSessionExternalCommitSubject = z.infer<
+  typeof liveSessionExternalCommitSubjectSchema
+>
+export type LiveSessionEncounterBindingCommitInput = z.infer<
+  typeof liveSessionEncounterBindingCommitInputSchema
 >
 export type LiveSessionMovementCommitResponse = z.infer<
   typeof liveSessionMovementCommitResponseSchema

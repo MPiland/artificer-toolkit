@@ -1,3 +1,8 @@
+import {
+  liveSessionExternalCommitSubjectSchema,
+  type LiveSessionExternalCommitSubject
+} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+
 export const MAX_DURABLE_COMMAND_JSON_BYTES = 1_000_000
 export const MAX_DURABLE_OUTBOX_BATCH_COUNT = 100
 
@@ -63,7 +68,8 @@ export interface DurableExternalCommit {
   nextStateJson: string
   /** The receipt a recovery stores; a normal completion stores the committed result instead. */
   receiptJson: string
-  saveId: string
+  /** What the commit changes, so a resolve can tell whether it landed. */
+  subject: LiveSessionExternalCommitSubject
 }
 
 export type DurableCommandJournalErrorCode =
@@ -126,7 +132,7 @@ interface ExternalCommitRow extends Record<string, SqlStorageValue> {
   next_state_checksum: string
   next_state_json: string
   receipt_json: string
-  save_id: string
+  subject_json: string
 }
 
 interface JsonChunkRow extends Record<string, SqlStorageValue> {
@@ -335,7 +341,7 @@ export class DurableCommandJournal {
         command_id TEXT NOT NULL,
         actor_id TEXT NOT NULL,
         fingerprint TEXT NOT NULL,
-        save_id TEXT NOT NULL,
+        subject_json TEXT NOT NULL,
         expected_sequence INTEGER NOT NULL CHECK (expected_sequence >= 0),
         expected_state_checksum TEXT NOT NULL,
         next_state_checksum TEXT NOT NULL,
@@ -351,6 +357,22 @@ export class DurableCommandJournal {
         CHECK (part_index < part_count)
       );
     `)
+    // Before D47 the record named only its Scene save; an unsettled one keeps that as its subject.
+    const legacy = storage.sql
+      .exec<{ name: string }>("SELECT name FROM pragma_table_info('durable_external_commit')")
+      .toArray()
+      .some((column) => column.name === 'save_id')
+    if (legacy) {
+      storage.sql.exec('ALTER TABLE durable_external_commit RENAME COLUMN save_id TO subject_json')
+      const record = storage.sql
+        .exec<{ subject_json: string }>('SELECT subject_json FROM durable_external_commit')
+        .toArray()[0]
+      if (record)
+        storage.sql.exec(
+          'UPDATE durable_external_commit SET subject_json = ? WHERE id = 1',
+          JSON.stringify({ kind: 'SCENE_SAVE', saveId: record.subject_json })
+        )
+    }
   }
 
   activate(input: {
@@ -569,7 +591,6 @@ export class DurableCommandJournal {
     assertIdentifier('authority epoch', input.authorityEpoch)
     assertIdentifier('command ID', input.commandId)
     assertIdentifier('command fingerprint', input.fingerprint)
-    assertIdentifier('Scene save ID', input.saveId)
     assertSequence('expected sequence', input.expectedSequence)
     assertChecksum('expected state checksum', input.expectedStateChecksum)
     assertChecksum('next state checksum', input.nextStateChecksum)
@@ -600,13 +621,13 @@ export class DurableCommandJournal {
         fail('CORRUPT_JOURNAL', 'The durable command sequence is exhausted.')
       this.storage.sql.exec(
         `INSERT INTO durable_external_commit (
-          id, command_id, actor_id, fingerprint, save_id, expected_sequence,
+          id, command_id, actor_id, fingerprint, subject_json, expected_sequence,
           expected_state_checksum, next_state_checksum, next_state_json, receipt_json
         ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         input.commandId,
         input.actorId,
         input.fingerprint,
-        input.saveId,
+        JSON.stringify(liveSessionExternalCommitSubjectSchema.parse(input.subject)),
         input.expectedSequence,
         input.expectedStateChecksum,
         input.nextStateChecksum,
@@ -878,7 +899,7 @@ export class DurableCommandJournal {
   #externalRow(): ExternalCommitRow | undefined {
     return this.storage.sql
       .exec<ExternalCommitRow>(
-        `SELECT command_id, actor_id, fingerprint, save_id, expected_sequence,
+        `SELECT command_id, actor_id, fingerprint, subject_json, expected_sequence,
                 expected_state_checksum, next_state_checksum, next_state_json, receipt_json
          FROM durable_external_commit
          WHERE id = 1`
@@ -903,7 +924,7 @@ export class DurableCommandJournal {
       nextStateChecksum: row.next_state_checksum,
       nextStateJson,
       receiptJson: row.receipt_json,
-      saveId: row.save_id
+      subject: liveSessionExternalCommitSubjectSchema.parse(JSON.parse(row.subject_json))
     }
   }
 

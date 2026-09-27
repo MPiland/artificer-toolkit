@@ -18,6 +18,7 @@ export const LIVE_SESSION_ROUTE_PATHS = {
   encounterMovementStageFog: '/live-sessions/encounter-movement-stage-fog',
   encounterMovementCommit: '/live-sessions/encounter-movement',
   sceneGeometryCommit: '/live-sessions/scene-geometry',
+  encounterBindingCommit: '/live-sessions/encounter-binding',
   externalCommitResolve: '/live-sessions/external-commit-resolve',
   encounterActionPending: '/live-sessions/encounter-action-pending',
   encounterActionCommit: '/live-sessions/encounter-action',

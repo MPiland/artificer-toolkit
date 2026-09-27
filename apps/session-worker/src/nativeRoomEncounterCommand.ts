@@ -9,7 +9,10 @@ import {
   CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES,
   type LiveSessionEncounterRoute
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
-import type { LiveSessionCommandRejectionCodeDto } from '@artificer-toolkit/schema/api/liveSessionCommands'
+import {
+  LIVE_SESSION_TRY_AGAIN_MESSAGE,
+  type LiveSessionCommandRejectionCodeDto
+} from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { liveSessionEncounterTurnPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -309,6 +312,8 @@ export function encounterCommandRefusal(error: unknown): {
       code: 'STALE_STATE',
       message: 'The Encounter changed; review the current state and try again.'
     }
+  // Convex ran out of time (503): nothing changed and the same command can be retried.
+  if (status === 503) return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   return {
     code: status === 401 || status === 403 ? 'FORBIDDEN' : 'UNAVAILABLE',
     message: 'The Encounter command could not be completed.'

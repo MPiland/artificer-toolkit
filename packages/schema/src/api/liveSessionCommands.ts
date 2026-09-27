@@ -2,6 +2,8 @@ import { z } from '../zod.js'
 import { encounterCommandResultDtoSchema } from './encounterData.js'
 import { encounterCommandInputDtoSchema } from './encounters.js'
 import {
+  bindEncounterToPresentedSceneInputDtoSchema,
+  bindEncounterToPresentedSceneResultDtoSchema,
   campaignSceneStateDtoSchema,
   sceneCommandInputDtoSchema,
   sceneCommandResultDtoSchema
@@ -17,11 +19,16 @@ export const liveSessionSequenceDtoSchema = z
 /**
  * Scene commands change the room's live projection; Encounter commands are planned by the room and
  * committed by Convex before acknowledgement. Encounter-bound token moves stay Scene-scoped here:
- * the room recognizes the binding and runs the Encounter movement rules for them.
+ * the room recognizes the binding and runs the Encounter movement rules for them. The GM binds an
+ * Encounter to the presented Scene through the room too (D47), which commits it to Convex first.
  */
 export const liveSessionCommandDtoSchema = z.discriminatedUnion('scope', [
   z.strictObject({ scope: z.literal('SCENE'), command: sceneCommandInputDtoSchema }),
-  z.strictObject({ scope: z.literal('ENCOUNTER'), command: encounterCommandInputDtoSchema })
+  z.strictObject({ scope: z.literal('ENCOUNTER'), command: encounterCommandInputDtoSchema }),
+  z.strictObject({
+    scope: z.literal('ENCOUNTER_BINDING'),
+    command: bindEncounterToPresentedSceneInputDtoSchema
+  })
 ])
 
 export const liveSessionRecipientStateDtoSchema = z.strictObject({
@@ -33,6 +40,11 @@ export const liveSessionRecipientDeltaDtoSchema = z.discriminatedUnion('scope', 
   z.strictObject({ scope: z.literal('SCENE'), result: sceneCommandResultDtoSchema }),
   // Sent only to the initiator; other recipients converge through Convex subscriptions.
   z.strictObject({ scope: z.literal('ENCOUNTER'), result: encounterCommandResultDtoSchema }),
+  // Sent to every member: the Scene's Encounter binding is Campaign-visible.
+  z.strictObject({
+    scope: z.literal('ENCOUNTER_BINDING'),
+    result: bindEncounterToPresentedSceneResultDtoSchema
+  }),
   z.strictObject({
     scope: z.literal('SCENE_VERSION'),
     sceneId: uuidSchema,
@@ -55,6 +67,13 @@ export const liveSessionCommandRejectionCodeDtoSchema = z.enum([
   'STALE_STATE',
   'UNAVAILABLE'
 ])
+
+/**
+ * The `UNAVAILABLE` message when Convex could not answer in time, for example a read past its time
+ * limit: nothing changed, so the same command can be sent again. Genuine staleness stays
+ * `STALE_STATE`.
+ */
+export const LIVE_SESSION_TRY_AGAIN_MESSAGE = 'The table is busy right now; try again.'
 
 export type LiveSessionCommandDto = z.infer<typeof liveSessionCommandDtoSchema>
 export type LiveSessionRecipientStateDto = z.infer<typeof liveSessionRecipientStateDtoSchema>

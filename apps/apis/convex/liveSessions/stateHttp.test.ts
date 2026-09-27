@@ -1,4 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
+import { ConvexError } from 'convex/values'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
@@ -7,6 +8,7 @@ import type {
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
+import { isConvexExecutionTimeout } from './stateHttp'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -67,4 +69,15 @@ it('returns an expected Encounter rejection as structured data and redacts other
   const mismatched = await forward(base.other.userId)
   expect(mismatched.status).toBe(409)
   expect(await mismatched.text()).toBe('Live Session Encounter command unavailable.')
+})
+
+it('reports only a Convex execution timeout as retryable, never a stale-state or domain failure (D47)', () => {
+  expect(
+    isConvexExecutionTimeout(new Error('Function execution timed out (maximum duration: 1s)'))
+  ).toBe(true)
+  expect(isConvexExecutionTimeout(new Error('Live Session authority sequence is stale.'))).toBe(
+    false
+  )
+  expect(isConvexExecutionTimeout(new ConvexError('Function execution timed out'))).toBe(false)
+  expect(isConvexExecutionTimeout('Function execution timed out')).toBe(false)
 })

@@ -335,6 +335,49 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
+  it('settles an Encounter binding with the next room sequence and an unchanged Scene (D47)', async () => {
+    const durableStates: unknown[] = []
+    const errors: Error[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onDurableState: (state) => durableStates.push(state),
+      onError: (error) => errors.push(error),
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+    const state = { ...recipientState, recipientRole: 'OWNER', scene: sceneState }
+    socket.receive({ authorityEpoch, sequence: 4, state, type: 'STATE_SYNC' })
+    const committed = connection.submitCommand({
+      command: {
+        commandId,
+        encounterId: tabletopGmEncounter.id,
+        type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE'
+      },
+      scope: 'ENCOUNTER_BINDING'
+    })
+    const delta = {
+      result: { commandId, encounterId: tabletopGmEncounter.id, replayed: false, sceneId },
+      scope: 'ENCOUNTER_BINDING'
+    }
+    socket.receive({ commandId, delta, sequence: 5, type: 'COMMAND_COMMITTED' })
+    await expect(committed).resolves.toMatchObject({ delta, sequence: 5 })
+    expect(errors).toEqual([])
+    expect(durableStates.at(-1)).toMatchObject({
+      commandReady: true,
+      recipientState: state,
+      sequence: 5
+    })
+    connection.close()
+  })
+
   it('settles a movement decision only with its Encounter result after its Scene change', async () => {
     const errors: Error[] = []
     const durableStates: unknown[] = []

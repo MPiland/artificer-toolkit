@@ -325,7 +325,7 @@ it('resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit th
     callLiveSessionRoute(environment, null, 'externalCommitResolve', {
       campaignId: value.base.campaign.id,
       epoch,
-      saveId: input.prepared.saveId,
+      subject: { kind: 'SCENE_SAVE', saveId: input.prepared.saveId },
       expectedSequence: input.authority.sequence - 1,
       expectedStateChecksum: input.authority.expectedStateChecksum,
       nextStateChecksum: input.authority.stateChecksum
@@ -356,7 +356,7 @@ it('resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit th
     callLiveSessionRoute(environment, null, 'externalCommitResolve', {
       campaignId: value.base.campaign.id,
       epoch,
-      saveId: committed.prepared.saveId,
+      subject: { kind: 'SCENE_SAVE', saveId: committed.prepared.saveId },
       expectedSequence: 5,
       expectedStateChecksum: committed.authority.expectedStateChecksum,
       nextStateChecksum: committed.authority.stateChecksum

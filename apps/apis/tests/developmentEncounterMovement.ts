@@ -223,8 +223,8 @@ export async function prepareEncounterMovementFixture({
     (actor) => actor.kind === 'CHARACTER' && actor.sourceId === playerCharacterId
   )
   if (!reactor || !mover) throw new Error('Movement reaction fixture actors are unavailable.')
-  // Bind before START opens the Session room: Convex refuses a binding to the presented Scene while
-  // the room owns it (sceneBindings:bind), and no room route binds one yet.
+  // Bind natively before START opens the Session room; while the room owns the presented Scene,
+  // Convex refuses a native binding and the GM binds through the room (D47).
   await owner.mutation(bindScene, {
     type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
     encounterId: created.id,

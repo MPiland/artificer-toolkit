@@ -18,7 +18,10 @@ import {
   liveSessionPublishInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import { liveSessionMovementBeginInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
-import { liveSessionSceneGeometryCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import {
+  liveSessionEncounterBindingCommitInputSchema,
+  liveSessionSceneGeometryCommitInputSchema
+} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   liveSessionTransientCaptureInputSchema,
@@ -127,6 +130,16 @@ afterEach(() => {
 })
 
 /** Every fixture entity comes from the Scene definition, in order. */
+/** A stored Scene receipt as the room sends it again for an exact retry: it reports the replay. */
+function asReplay(message: LiveSessionWebSocketServerMessageDto | undefined) {
+  if (message?.type !== 'COMMAND_COMMITTED' || message.delta?.scope !== 'SCENE')
+    throw new Error('Expected a committed Scene command.')
+  return {
+    ...message,
+    delta: { ...message.delta, result: { ...message.delta.result, replayed: true } }
+  }
+}
+
 function baseOrdinals(scene: CampaignSceneStateDto) {
   return {
     tokens: scene.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal })),
@@ -636,7 +649,7 @@ it.each([0, 600])(
       base.messages.filter(
         (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
       )[1]
-    ).toEqual(first)
+    ).toEqual(asReplay(first))
     const doorReceipt = await runInDurableObject(base.stub, (_instance, state) =>
       state.storage.sql
         .exec<{ undo_json: string | null }>(
@@ -1281,7 +1294,7 @@ it.each([false, true])(
       base.messages.filter(
         (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === moveCommandId
       )[1]
-    ).toEqual(moveCommitted)
+    ).toEqual(asReplay(moveCommitted))
     expect(publications).toHaveLength(1)
 
     const compactUndo = {
@@ -1359,7 +1372,7 @@ it.each([false, true])(
       base.messages.filter(
         (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === undoCommandId
       )[1]
-    ).toEqual(undoCommitted)
+    ).toEqual(asReplay(undoCommitted))
     expect(publications).toHaveLength(2)
     const undoCopies = await runInDurableObject(base.stub, (_instance, state) =>
       state.storage.sql
@@ -1618,12 +1631,13 @@ it('commits a move on an Encounter-bound Scene Convex-first with the authority a
     (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
   )
   base.socket.send(JSON.stringify(command))
+  // An exact retry returns the stored receipt, reporting the replay as Convex does (D47).
   await vi.waitFor(() =>
     expect(
       base.messages.filter(
         (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
       )
-    ).toEqual([first, first])
+    ).toEqual([first, asReplay(first)])
   )
   const reused = tokenMoveCommand(moved, value.tokenId, commandId, { x: 30, y: 10 }, 1)
   base.socket.send(JSON.stringify(reused))
@@ -1761,6 +1775,172 @@ it('surfaces a refused commit and leaves the room unchanged', async () => {
     records: []
   })
   expect(convex.calls).not.toContain('resolve')
+})
+
+function bindCommand(encounterId: string, commandId: string) {
+  return {
+    command: {
+      command: { commandId, encounterId, type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE' },
+      scope: 'ENCOUNTER_BINDING'
+    },
+    expectedSessionSequence: 0,
+    type: 'COMMAND'
+  } as const
+}
+
+/** Serves the room's binding commit like Convex, recording each request body. */
+async function installBindingConvex(
+  base: Awaited<ReturnType<typeof fixture>>,
+  outcome: () => 'COMMIT' | 'TIMEOUT' = () => 'COMMIT'
+) {
+  const commits: Array<ReturnType<typeof liveSessionEncounterBindingCommitInputSchema.parse>> = []
+  const resolves: unknown[] = []
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === '/live-sessions/external-commit-resolve') {
+      resolves.push(await request.clone().json())
+      return undefined
+    }
+    if (pathname !== '/live-sessions/encounter-binding') return undefined
+    const body = liveSessionEncounterBindingCommitInputSchema.parse(await request.json())
+    commits.push(body)
+    if (outcome() === 'TIMEOUT') throw new TypeError('The Convex request timed out.')
+    return Response.json({
+      commandId: body.command.commandId,
+      encounterId: body.command.encounterId,
+      replayed: false,
+      sceneId: body.sceneId
+    })
+  })
+  return { commits, resolves }
+}
+
+it('binds an Encounter to the presented Scene through the room, GM only, then moves run Convex-first (D47)', async () => {
+  const value = movementScene(crypto.randomUUID())
+  value.scene.fogMode = 'OFF'
+  const base = await fixture(value.scene)
+  await synchronizeScene(base, value.scene)
+  const player = await connectPlayer(base)
+  const convex = await installExternalConvex(base)
+  const binding = await installBindingConvex(base)
+  const encounterId = crypto.randomUUID()
+  const initial = createNativeLiveSessionState()
+  base.messages.length = 0
+  player.messages.length = 0
+
+  // A player may not bind: the refusal says it is the GM's.
+  const refusedId = crypto.randomUUID()
+  player.socket.send(JSON.stringify(bindCommand(encounterId, refusedId)))
+  await vi.waitFor(() =>
+    expect(player.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'DOMAIN_REJECTED',
+        commandId: refusedId,
+        reason: 'GM_ONLY',
+        type: 'COMMAND_REJECTED'
+      })
+    )
+  )
+  expect(binding.commits).toEqual([])
+
+  const commandId = crypto.randomUUID()
+  base.socket.send(JSON.stringify(bindCommand(encounterId, commandId)))
+  const committed = {
+    commandId,
+    delta: {
+      scope: 'ENCOUNTER_BINDING',
+      result: { commandId, encounterId, replayed: false, sceneId: value.scene.id }
+    },
+    sequence: 1,
+    type: 'COMMAND_COMMITTED'
+  }
+  // Every member gets the binding with the new sequence.
+  await vi.waitFor(() => expect(base.messages).toContainEqual(committed))
+  await vi.waitFor(() => expect(player.messages).toContainEqual(committed))
+  expect(binding.commits).toEqual([
+    {
+      campaignId: base.capture.campaignId,
+      authorityEpoch: base.authorityEpoch,
+      expectedUserId: base.userId,
+      expectedRole: 'OWNER',
+      command: { commandId, encounterId, type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE' },
+      sceneId: value.scene.id,
+      presentation: { expectedPresentationVersion: 1 },
+      // A binding advances the sequence and leaves the room's state unchanged.
+      authority: {
+        sequence: 1,
+        expectedStateChecksum: initial.stateChecksum,
+        stateChecksum: initial.stateChecksum
+      },
+      expiresAt: expect.any(Number)
+    }
+  ])
+  expect(await journalEvidence(base)).toEqual({
+    authority: { published_sequence: 1, sequence: 1 },
+    outboxCount: 0,
+    records: []
+  })
+
+  // An exact retry replays the stored receipt without another commit.
+  base.socket.send(JSON.stringify(bindCommand(encounterId, commandId)))
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual({
+      ...committed,
+      delta: { ...committed.delta, result: { ...committed.delta.result, replayed: true } }
+    })
+  )
+  expect(binding.commits).toHaveLength(1)
+
+  // The Scene is now Encounter-bound, so a move on it commits to Convex first.
+  const moveId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, moveId, { x: 20, y: 10 }, 1))
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ commandId: moveId, sequence: 2, type: 'COMMAND_COMMITTED' })
+    )
+  )
+  expect(convex.calls).toEqual(['begin', 'observe', 'commit'])
+})
+
+it('keeps the record of a binding whose commit timed out and settles it by its binding subject', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  await synchronizeScene(base, value.scene)
+  const convex = await installExternalConvex(base)
+  convex.resolve = 'ABANDONED'
+  let timeout = true
+  const binding = await installBindingConvex(base, () => (timeout ? 'TIMEOUT' : 'COMMIT'))
+  const encounterId = crypto.randomUUID()
+  base.messages.length = 0
+
+  const lostId = crypto.randomUUID()
+  base.socket.send(JSON.stringify(bindCommand(encounterId, lostId)))
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ code: 'UNAVAILABLE', commandId: lostId, type: 'COMMAND_REJECTED' })
+    )
+  )
+  expect(await journalEvidence(base)).toMatchObject({ records: [lostId] })
+
+  timeout = false
+  const nextId = crypto.randomUUID()
+  base.socket.send(JSON.stringify(bindCommand(encounterId, nextId)))
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ commandId: nextId, sequence: 1, type: 'COMMAND_COMMITTED' })
+    )
+  )
+  expect(binding.resolves).toEqual([
+    expect.objectContaining({
+      subject: {
+        kind: 'ENCOUNTER_BINDING',
+        encounterId,
+        commandId: lostId,
+        expiresAt: binding.commits[0]!.expiresAt
+      }
+    })
+  ])
 })
 
 it('surfaces a player domain rejection from Convex with the Scene correction', async () => {
@@ -2023,7 +2203,7 @@ it('completes or abandons a record left by a restart when the next member admits
           sequence: 1,
           type: 'COMMAND_COMMITTED'
         }),
-        saveId: crypto.randomUUID()
+        subject: { kind: 'SCENE_SAVE', saveId: crypto.randomUUID() }
       })
     })
     await evictDurableObject(base.stub)

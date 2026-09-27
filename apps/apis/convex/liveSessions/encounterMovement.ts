@@ -33,7 +33,7 @@ import { commitLiveMovement } from './encounterMovementCommit'
 import { publishWithAuthorityAdvance } from './externalCommit'
 
 /** The forwarded member, their current role and the room's active epoch. */
-async function requireLiveMember(ctx: MutationCtx, input: LiveSessionBootstrapInput) {
+export async function requireLiveMember(ctx: MutationCtx, input: LiveSessionBootstrapInput) {
   const { userId } = await requireIdentity(ctx)
   if (userId !== input.expectedUserId) throw new Error('Live movement identity mismatch.')
   const { membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)

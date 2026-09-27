@@ -77,7 +77,6 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterSessionStateDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import { bindEncounterToPresentedSceneResultDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   encounterActorTokenBindingCommandInputDtoSchema,
   type BindEncounterToPresentedSceneInputDto,
@@ -591,11 +590,14 @@ export function CampaignVttStage({
       )
     }
   })
+  // The room owns the presented Scene, so the GM binds through it (D47).
   const bindEncounter = useMutation({
-    mutationFn: async (command: BindEncounterToPresentedSceneInputDto) =>
-      bindEncounterToPresentedSceneResultDtoSchema.parse(
-        await convex.mutation(convexApi.encounters.sceneBindings.bind, command)
-      )
+    mutationFn: async (command: BindEncounterToPresentedSceneInputDto) => {
+      const commit = await live.sendCommand({ command, scope: 'ENCOUNTER_BINDING' })
+      if (commit.delta?.scope !== 'ENCOUNTER_BINDING')
+        throw new Error('Live play acknowledged the Encounter binding without a result.')
+      return commit.delta.result
+    }
   })
   const dispatchSceneCommand = useCallback(
     (command: SceneCommandInputDto) => {
@@ -1101,6 +1103,7 @@ export function CampaignVttStage({
           {campaign.role === 'OWNER' && activeEncounter && !activeEncounterSceneBinding ? (
             <Button
               disabled={
+                !live.commandReady ||
                 bindEncounter.isPending ||
                 sceneBinding.isPending ||
                 sceneBinding.isError ||

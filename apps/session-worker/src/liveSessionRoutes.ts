@@ -42,6 +42,7 @@ import {
   liveSessionEncounterTurnPendingInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import {
+  liveSessionEncounterBindingCommitInputSchema,
   liveSessionExternalCommitResolveInputSchema,
   liveSessionExternalCommitResolveResponseSchema,
   liveSessionMovementCommitInputSchema,
@@ -77,7 +78,10 @@ import {
   sceneGeometryBeginResultSchema,
   sceneGeometryCommandResultSchema
 } from '@artificer-toolkit/schema/api/sceneGeometry'
-import { setCampaignLiveScenePresentationResultDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  bindEncounterToPresentedSceneResultDtoSchema,
+  setCampaignLiveScenePresentationResultDtoSchema
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneSpatialPreparationSchema } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { z } from 'zod'
 
@@ -105,7 +109,8 @@ export class LiveSessionDomainRejectionError extends LiveSessionRouteError {
   }
 }
 
-const timeoutMs = 10_000
+/** How long the room waits for a private route before treating its outcome as unknown. */
+export const LIVE_SESSION_ROUTE_TIMEOUT_MS = 10_000
 
 function safeOrigin(value: string): URL {
   let url: URL
@@ -182,6 +187,10 @@ const liveSessionRoutes = {
   sceneGeometryCommit: {
     input: liveSessionSceneGeometryCommitInputSchema,
     output: sceneGeometryCommandResultSchema
+  },
+  encounterBindingCommit: {
+    input: liveSessionEncounterBindingCommitInputSchema,
+    output: bindEncounterToPresentedSceneResultDtoSchema
   },
   externalCommitResolve: {
     input: liveSessionExternalCommitResolveInputSchema,
@@ -273,7 +282,7 @@ export async function callLiveSessionRoute<R extends LiveSessionRoute>(
   const { input: inputSchema, output } = liveSessionRoutes[route]
   const body = JSON.stringify(inputSchema.parse(input))
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  const timeout = setTimeout(() => controller.abort(), LIVE_SESSION_ROUTE_TIMEOUT_MS)
   let response: Response | undefined
   try {
     response = await fetch(

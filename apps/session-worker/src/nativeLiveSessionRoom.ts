@@ -17,8 +17,12 @@ import {
   type LiveSessionScenePublicationDto
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
+import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
+import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import {
   sceneCommandResultDtoSchema,
+  type BindEncounterToPresentedSceneInputDto,
+  type BindEncounterToPresentedSceneResultDto,
   type CampaignSceneStateDto,
   type SceneCommandResultDto,
   type SceneTransientEnvelopeDto
@@ -61,6 +65,7 @@ import {
 } from './nativeRoomSceneCommand.js'
 import {
   callLiveSessionRoute,
+  LIVE_SESSION_ROUTE_TIMEOUT_MS,
   LiveSessionDomainRejectionError,
   LiveSessionRouteError
 } from './liveSessionRoutes.js'
@@ -141,6 +146,22 @@ function viewer(value: Pick<Admission, 'role' | 'userId'>): SceneViewer {
 function send(socket: WebSocket, message: LiveSessionWebSocketServerMessageDto): void {
   if (socket.readyState !== WebSocket.OPEN) return
   socket.send(JSON.stringify(liveSessionWebSocketServerMessageDtoSchema.parse(message)))
+}
+
+/**
+ * A stored command receipt sent again for an exact retry. Its Scene or binding result reports
+ * `replayed: true`, as Convex's replays do; an Encounter result has no replay flag.
+ */
+function replayReceipt(receiptJson: string): LiveSessionWebSocketServerMessageDto {
+  const receipt = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(receiptJson))
+  if (receipt.type !== 'COMMAND_COMMITTED')
+    throw new Error('Live Session command receipt is invalid.')
+  const { delta } = receipt
+  if (delta?.scope === 'SCENE')
+    return { ...receipt, delta: { ...delta, result: { ...delta.result, replayed: true } } }
+  if (delta?.scope === 'ENCOUNTER_BINDING')
+    return { ...receipt, delta: { ...delta, result: { ...delta.result, replayed: true } } }
+  return receipt
 }
 
 function streamKey(envelope: SceneTransientEnvelopeDto): string {
@@ -827,6 +848,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (this.#liveAdmission(socket)?.generation !== admission.generation) return
     if (message.command.scope === 'ENCOUNTER')
       return this.#executeEncounterCommand(socket, admission, value, message.command.command)
+    if (message.command.scope === 'ENCOUNTER_BINDING')
+      return this.#executeEncounterBinding(socket, admission, value, message.command.command)
     const sceneCommand =
       message.command.scope === 'SCENE'
         ? liveSessionSceneCommandInputSchema.safeParse(message.command.command)
@@ -861,12 +884,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     if (prior.kind === 'REPLAY') {
-      const replay = liveSessionWebSocketServerMessageDtoSchema.parse(
-        JSON.parse(prior.receipt.receiptJson)
-      )
-      if (replay.type !== 'COMMAND_COMMITTED')
-        throw new Error('Live Session command receipt is invalid.')
-      send(socket, replay)
+      send(socket, replayReceipt(prior.receipt.receiptJson))
       return
     }
     const command = sceneCommand.data
@@ -1024,12 +1042,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         : {})
     })
     if (result.kind === 'REPLAY') {
-      const replay = liveSessionWebSocketServerMessageDtoSchema.parse(
-        JSON.parse(result.receipt.receiptJson)
-      )
-      if (replay.type !== 'COMMAND_COMMITTED')
-        throw new Error('Live Session Scene command receipt is invalid.')
-      send(socket, replay)
+      send(socket, replayReceipt(result.receipt.receiptJson))
       return
     }
     this.#cache = { ...synchronized, scene: nextScene, synchronized: true }
@@ -1260,11 +1273,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           type: 'COMMAND_COMMITTED'
         })
       ),
-      saveId: prepared.saveId
+      subject: { kind: 'SCENE_SAVE', saveId: prepared.saveId }
     })
-    let committed: Awaited<ReturnType<typeof commitExternalSceneCommit>>
-    try {
-      committed = await commitExternalSceneCommit({
+    const committed = await this.#sendExternalCommit(command.commandId, () =>
+      commitExternalSceneCommit({
         environment: this.env,
         accessToken: admission.accessToken,
         actor,
@@ -1275,12 +1287,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           stateChecksum: next.stateChecksum
         }
       })
-    } catch (error) {
-      // A response means Convex rolled the commit back; without one the outcome is unknown.
-      if (error instanceof LiveSessionRouteError && error.status >= 400 && error.status < 500)
-        this.#journal.abandonExternalCommit(command.commandId)
-      throw error
-    }
+    )
     const result = sceneCommandResultDtoSchema.parse({
       commandId: committed.scene.commandId,
       delta: committed.scene.delta,
@@ -1330,6 +1337,148 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return committed
   }
 
+  /**
+   * Sends the commit behind a write-ahead record. A 4xx response means Convex rolled it back, so the
+   * record is dropped; without one (or on a 5xx) the outcome is unknown and the record stays for
+   * the next command to settle.
+   */
+  async #sendExternalCommit<Result>(
+    commandId: string,
+    commit: () => Promise<Result>
+  ): Promise<Result> {
+    try {
+      return await commit()
+    } catch (error) {
+      if (error instanceof LiveSessionRouteError && error.status >= 400 && error.status < 500)
+        this.#journal.abandonExternalCommit(commandId)
+      throw error
+    }
+  }
+
+  /**
+   * Binds an Encounter to the presented Scene (D47, GM only) Convex-first like a Scene commit: the
+   * write-ahead record, then a commit that advances Convex's authority to the next sequence and
+   * that Convex refuses after `expiresAt`, so a resolve can abandon it safely. The room's state is
+   * unchanged, but its Scene now runs bound moves through Encounter rules. Every member gets the
+   * binding with the new sequence.
+   */
+  async #executeEncounterBinding(
+    socket: WebSocket,
+    admission: Admission,
+    value: SocketAttachment,
+    command: BindEncounterToPresentedSceneInputDto
+  ): Promise<void> {
+    const commandId = command.commandId
+    const fingerprint = checksumCanonicalJson({ command, scope: 'ENCOUNTER_BINDING' })
+    const prior = this.#journal.lookupCommand({ actorId: admission.userId, commandId, fingerprint })
+    if (prior.kind === 'MISMATCHED_REUSE') {
+      this.#rejectCommand(
+        socket,
+        commandId,
+        'INVALID_COMMAND',
+        'The command ID was already used for different input.'
+      )
+      return
+    }
+    if (prior.kind === 'REPLAY') {
+      send(socket, replayReceipt(prior.receipt.receiptJson))
+      return
+    }
+    if (admission.role !== 'OWNER') {
+      send(socket, {
+        code: 'DOMAIN_REJECTED',
+        commandId,
+        currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
+        message: DOMAIN_REJECTION_MESSAGES.GM_ONLY,
+        reason: 'GM_ONLY',
+        warnings: null,
+        type: 'COMMAND_REJECTED'
+      })
+      return
+    }
+    const synchronized = this.#cache?.synchronized ? this.#cache : null
+    if (!synchronized?.scene || !synchronized.presentation) {
+      this.#rejectCommand(
+        socket,
+        commandId,
+        'UNAVAILABLE',
+        'Scene synchronization is required before changing the live Scene.'
+      )
+      return
+    }
+    const sceneId = synchronized.scene.id
+    const { presentation } = synchronized
+    try {
+      await this.#flushOutbox()
+      const current = this.#journal.readCurrent()
+      if (!current || current.authorityEpoch !== value.authorityEpoch)
+        throw new LiveSessionRouteError(409)
+      const sequence = current.sequence + 1
+      const expiresAt = Date.now() + LIVE_SESSION_ROUTE_TIMEOUT_MS
+      const receipt = (result: BindEncounterToPresentedSceneResultDto) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse({
+          commandId,
+          delta: { scope: 'ENCOUNTER_BINDING', result },
+          sequence,
+          type: 'COMMAND_COMMITTED'
+        })
+      this.#journal.beginExternalCommit({
+        actorId: admission.userId,
+        authorityEpoch: value.authorityEpoch,
+        commandId,
+        expectedSequence: current.sequence,
+        expectedStateChecksum: current.stateChecksum,
+        fingerprint,
+        nextStateChecksum: current.stateChecksum,
+        nextStateJson: current.stateJson,
+        receiptJson: JSON.stringify(
+          receipt({
+            commandId: commandId.toLowerCase(),
+            encounterId: command.encounterId.toLowerCase(),
+            replayed: false,
+            sceneId
+          })
+        ),
+        subject: {
+          kind: 'ENCOUNTER_BINDING',
+          encounterId: command.encounterId,
+          commandId,
+          expiresAt
+        }
+      })
+      const result = await this.#sendExternalCommit(commandId, () =>
+        callLiveSessionRoute(this.env, admission.accessToken, 'encounterBindingCommit', {
+          campaignId: value.campaignId,
+          authorityEpoch: value.authorityEpoch,
+          expectedUserId: admission.userId,
+          expectedRole: admission.role,
+          command,
+          sceneId,
+          presentation,
+          authority: {
+            sequence,
+            expectedStateChecksum: current.stateChecksum,
+            stateChecksum: current.stateChecksum
+          },
+          expiresAt
+        })
+      )
+      const committed = receipt(result)
+      this.#journal.completeExternalCommit({
+        authorityEpoch: value.authorityEpoch,
+        commandId,
+        receiptJson: JSON.stringify(committed)
+      })
+      if (this.#cache?.scene?.id === result.sceneId)
+        this.#cache = { ...this.#cache, encounterId: result.encounterId }
+      this.#authorityCaptures.clear()
+      for (const member of this.ctx.getWebSockets())
+        if (this.#liveAdmission(member)) send(member, committed)
+    } catch (error) {
+      this.#rejectExternal(socket, commandId, error, undefined)
+    }
+  }
+
   /** Maps a failed Convex-first Scene command to its user-safe rejection. */
   #rejectExternal(
     socket: WebSocket,
@@ -1357,7 +1506,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       status === 409 ? 'STALE_STATE' : 'UNAVAILABLE',
       status === 409
         ? 'The table changed; the current state has been restored.'
-        : 'The table change could not be saved.',
+        : status === 503
+          ? LIVE_SESSION_TRY_AGAIN_MESSAGE
+          : 'The table change could not be saved.',
       this.#journal.readCurrent()?.sequence ?? 0,
       correction
     )
@@ -1407,7 +1558,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const { outcome } = await callLiveSessionRoute(this.env, null, 'externalCommitResolve', {
       campaignId,
       epoch: current.authorityEpoch,
-      saveId: record.saveId,
+      subject: record.subject,
       expectedSequence: record.expectedSequence,
       expectedStateChecksum: record.expectedStateChecksum,
       nextStateChecksum: record.nextStateChecksum

@@ -48,6 +48,9 @@ const encounterMovementCommit = makeFunctionReference<'mutation', JsonObject, un
 const sceneGeometryCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterMovement:commitScene'
 )
+const encounterBindingCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterBinding:commit'
+)
 const externalCommitResolve = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/externalCommit:resolve'
 )
@@ -149,6 +152,11 @@ export const sceneGeometryCommitHttp = liveStateHttp(
   true,
   'Live Session Scene commit unavailable.',
   (ctx, input) => ctx.runMutation(sceneGeometryCommit, input)
+)
+export const encounterBindingCommitHttp = liveStateHttp(
+  true,
+  'Live Session Encounter binding unavailable.',
+  (ctx, input) => ctx.runMutation(encounterBindingCommit, input)
 )
 export const externalCommitResolveHttp = liveStateHttp(
   false,
@@ -254,6 +262,21 @@ export const releaseHttp = liveStateHttp(false, 'Live Session release unavailabl
   ctx.runMutation(release, input)
 )
 
+/**
+ * Convex's own message for a function stopped at its execution limit; the function changed nothing,
+ * so the room offers a retry (503) instead of reporting stale state (409).
+ */
+const EXECUTION_TIMEOUT_MESSAGE = 'Function execution timed out'
+
+/** Whether a failed nested call was stopped by Convex's time limit rather than failing itself. */
+export function isConvexExecutionTimeout(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    !(error instanceof ConvexError) &&
+    error.message.includes(EXECUTION_TIMEOUT_MESSAGE)
+  )
+}
+
 /** Worker-secret routes; `requireUserIdentity` additionally requires the forwarded user token. */
 function liveStateHttp(
   requireUserIdentity: boolean,
@@ -272,7 +295,7 @@ function liveStateHttp(
       const rejection =
         error instanceof ConvexError ? domainRejectionErrorDataSchema.safeParse(error.data) : null
       if (rejection?.success) return jsonResponse(rejection.data, 422)
-      return textResponse(unavailableMessage, 409)
+      return textResponse(unavailableMessage, isConvexExecutionTimeout(error) ? 503 : 409)
     }
   })
 }

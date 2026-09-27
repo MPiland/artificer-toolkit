@@ -700,7 +700,7 @@ it.each([
           ...commitInput,
           expectedScene: { ...expectedScene, version: expectedScene.version + 1 }
         })
-      ).rejects.toThrow('Live Scene publication differs from the room prediction.')
+      ).rejects.toThrow('Live commit differs from the room prediction.')
       expect(await records()).toEqual(before)
       expect(await geometrySave()).toEqual(observedSave)
       // The refused commits leave the authority where the root move's commit left it.

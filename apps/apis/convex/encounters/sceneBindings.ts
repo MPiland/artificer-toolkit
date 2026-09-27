@@ -4,6 +4,7 @@ import {
   bindEncounterToPresentedSceneInputDtoSchema,
   bindEncounterToPresentedSceneResultDtoSchema,
   encounterSceneActorTokenBindingDtoSchema,
+  type BindEncounterToPresentedSceneInputDto,
   type BindEncounterToPresentedSceneResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
@@ -18,7 +19,7 @@ import { mutation } from '../lib/mutations'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { readRunProjection, readRunState } from './documents'
-import { internalQuery, query, type QueryCtx } from '../_generated/server'
+import { internalQuery, query, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { readRecipientContext } from '../scenes/recipientContext'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '../lib/domainRejections'
@@ -126,81 +127,96 @@ export const forVisibleTokens = internalQuery({
   }
 })
 
-export const bind = mutation({
-  args: zodToConvex(bindEncounterToPresentedSceneInputDtoSchema),
-  returns: zodToConvex(bindEncounterToPresentedSceneResultDtoSchema),
-  handler: async (ctx, args): Promise<BindEncounterToPresentedSceneResultDto> => {
-    const input = bindEncounterToPresentedSceneInputDtoSchema.parse({
-      ...args,
-      commandId: args.commandId.toLowerCase(),
-      encounterId: args.encounterId.toLowerCase()
-    })
-    const { userId } = await requireIdentity(ctx)
-    const encounter = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
-      .unique()
-    if (!encounter) throw new Error('Encounter is unavailable.')
-    const { campaign, membership } = await requireCampaignAuthority(
-      ctx,
-      encounter.campaignId,
-      userId
+/**
+ * Binds an Encounter to its Campaign's presented Scene (GM only); the same command replays its
+ * result. Natively Convex must own the Scene's live state. Through the room (D47), `room` fences
+ * the Scene and presentation the room synchronized, and the caller advances the room's authority
+ * in the same transaction.
+ */
+export async function bindEncounterToPresentedScene(
+  ctx: MutationCtx,
+  args: BindEncounterToPresentedSceneInputDto,
+  room: { sceneId: string; expectedPresentationVersion: number } | null
+): Promise<BindEncounterToPresentedSceneResultDto> {
+  const input = bindEncounterToPresentedSceneInputDtoSchema.parse({
+    ...args,
+    commandId: args.commandId.toLowerCase(),
+    encounterId: args.encounterId.toLowerCase()
+  })
+  const { userId } = await requireIdentity(ctx)
+  const encounter = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
+    .unique()
+  if (!encounter) throw new Error('Encounter is unavailable.')
+  const { campaign, membership } = await requireCampaignAuthority(ctx, encounter.campaignId, userId)
+  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
+  if (encounter.gameSystemId !== campaign.gameSystemId)
+    throw new Error('Encounter does not match the Campaign Game System.')
+  readRunState(encounter)
+  readRunProjection(encounter)
+  const commandFingerprint = checksumCanonicalJson(input)
+  const existing = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', encounter.id))
+    .unique()
+  if (existing) {
+    if (
+      existing.campaignId !== campaign.id ||
+      existing.commandId !== input.commandId ||
+      existing.commandFingerprint !== commandFingerprint
     )
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
-    if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
-    if (encounter.gameSystemId !== campaign.gameSystemId)
-      throw new Error('Encounter does not match the Campaign Game System.')
-    readRunState(encounter)
-    readRunProjection(encounter)
-    const commandFingerprint = checksumCanonicalJson(input)
-    const existing = await ctx.db
-      .query('encounterSceneBindings')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounter.id))
-      .unique()
-    if (existing) {
-      if (
-        existing.campaignId !== campaign.id ||
-        existing.commandId !== input.commandId ||
-        existing.commandFingerprint !== commandFingerprint
-      )
-        throw new Error('Encounter already has a different Campaign Scene binding.')
-      return {
-        commandId: input.commandId,
-        encounterId: encounter.id,
-        replayed: true,
-        sceneId: existing.sceneId
-      }
-    }
-    const presentation = await ctx.db
-      .query('campaignScenePresentations')
-      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
-      .unique()
-    const sceneId = presentation?.sceneId
-    if (!sceneId) throw new Error('The Campaign is not presenting a Scene.')
-    await assertConvexOwnsSceneLiveState(ctx, campaign.id, sceneId)
-    const scene = await ctx.db
-      .query('campaignScenes')
-      .withIndex('by_publicId', (q) => q.eq('id', sceneId))
-      .unique()
-    if (!scene || scene.campaignId !== campaign.id)
-      throw new Error('The presented Campaign Scene is unavailable.')
-    const now = new Date().toISOString()
-    await ctx.db.insert(
-      'encounterSceneBindings',
-      encounterSceneBindingSchema.parse({
-        encounterId: encounter.id,
-        campaignId: campaign.id,
-        sceneId: scene.id,
-        commandId: input.commandId,
-        commandFingerprint,
-        createdAt: now
-      })
-    )
+      throw new Error('Encounter already has a different Campaign Scene binding.')
     return {
       commandId: input.commandId,
       encounterId: encounter.id,
-      replayed: false,
-      sceneId: scene.id
+      replayed: true,
+      sceneId: existing.sceneId
     }
   }
+  const presentation = await ctx.db
+    .query('campaignScenePresentations')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+    .unique()
+  const sceneId = presentation?.sceneId
+  if (!sceneId) throw new Error('The Campaign is not presenting a Scene.')
+  if (!room) await assertConvexOwnsSceneLiveState(ctx, campaign.id, sceneId)
+  else if (
+    sceneId !== room.sceneId.toLowerCase() ||
+    presentation.version !== room.expectedPresentationVersion
+  )
+    throw new Error('Scene presentation is stale.')
+  const scene = await ctx.db
+    .query('campaignScenes')
+    .withIndex('by_publicId', (q) => q.eq('id', sceneId))
+    .unique()
+  if (!scene || scene.campaignId !== campaign.id)
+    throw new Error('The presented Campaign Scene is unavailable.')
+  const now = new Date().toISOString()
+  await ctx.db.insert(
+    'encounterSceneBindings',
+    encounterSceneBindingSchema.parse({
+      encounterId: encounter.id,
+      campaignId: campaign.id,
+      sceneId: scene.id,
+      commandId: input.commandId,
+      commandFingerprint,
+      createdAt: now
+    })
+  )
+  return {
+    commandId: input.commandId,
+    encounterId: encounter.id,
+    replayed: false,
+    sceneId: scene.id
+  }
+}
+
+/** Binds without a room; a live room owns its presented Scene, so the GM binds through it (D47). */
+export const bind = mutation({
+  args: zodToConvex(bindEncounterToPresentedSceneInputDtoSchema),
+  returns: zodToConvex(bindEncounterToPresentedSceneResultDtoSchema),
+  handler: (ctx, args): Promise<BindEncounterToPresentedSceneResultDto> =>
+    bindEncounterToPresentedScene(ctx, args, null)
 })

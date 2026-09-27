@@ -570,7 +570,7 @@ it('journals a Convex-first commit write-ahead and completes it with no outbox r
       nextStateChecksum: `${checksum}-next`,
       nextStateJson: largeUnicodeJson(commandId),
       receiptJson: JSON.stringify({ recovered: commandId }),
-      saveId: crypto.randomUUID()
+      subject: { kind: 'SCENE_SAVE' as const, saveId: crypto.randomUUID() }
     })
 
     // Every earlier command must be published before Convex advances the sequence itself.
@@ -644,5 +644,38 @@ it('journals a Convex-first commit write-ahead and completes it with no outbox r
         commandId: 'external-4'
       }).receipt
     ).toMatchObject({ sequence: 3, receiptJson: '{"recovered":"external-4"}' })
+  })
+})
+
+it('carries an unsettled record from before D47 over as its Scene save subject', async () => {
+  const test = fixture()
+  await runInDurableObject(test.stub, (_instance, state) => {
+    const saveId = crypto.randomUUID()
+    state.storage.sql.exec('DROP TABLE durable_external_commit')
+    state.storage.sql.exec(`
+      CREATE TABLE durable_external_commit (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        command_id TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        fingerprint TEXT NOT NULL,
+        save_id TEXT NOT NULL,
+        expected_sequence INTEGER NOT NULL CHECK (expected_sequence >= 0),
+        expected_state_checksum TEXT NOT NULL,
+        next_state_checksum TEXT NOT NULL,
+        next_state_json TEXT NOT NULL,
+        receipt_json TEXT NOT NULL
+      )
+    `)
+    state.storage.sql.exec(
+      `INSERT INTO durable_external_commit VALUES (1, 'legacy-1', ?, 'fingerprint', ?, 0,
+        'checksum-0', 'checksum-1', '{}', '{}')`,
+      test.actorId,
+      saveId
+    )
+    const journal = new DurableCommandJournal(state.storage)
+    expect(journal.readExternalCommit()).toMatchObject({
+      commandId: 'legacy-1',
+      subject: { kind: 'SCENE_SAVE', saveId }
+    })
   })
 })
