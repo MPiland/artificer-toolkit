@@ -41,7 +41,7 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
     sourceVersionId: string
     sourceChecksum: string
   } | null
-  /** Exact authored attack roll for this Feature/option, when one is present. */
+  /** Exact authored attack roll for this Feature/option; attack-triggered actions require one. */
   attackMechanic: {
     rollDefinitionId: string
     attackBonus: number
@@ -78,11 +78,22 @@ type EncounterFeatureEffect = NonNullable<FeatureDto['effects']>[number]
 function featureAttackMechanic(input: {
   ownerFeature: FeatureDto
   featureOption: FeatureDto | null
+  compiledEffect: CompiledEffectGroup
 }): EncounterFeatureActionCapabilityDescriptor['attackMechanic'] {
   const source = input.featureOption ?? input.ownerFeature
   const definitions = (source.rollDefinitions ?? []).filter(
     (definition) => definition.kind === 'ATTACK'
   )
+  const invocation = input.compiledEffect.invocation
+  if (
+    definitions.length === 0 &&
+    invocation.kind === 'ACTION' &&
+    dnd5eAttackKind(invocation.triggerCode) !== null
+  ) {
+    throw new Error(
+      `Encounter feature attack action "${source.label}" must author one ATTACK roll definition.`
+    )
+  }
   if (definitions.length === 0) return null
   if (definitions.length !== 1) {
     throw new Error('Encounter feature action must bind at most one authored attack roll.')
@@ -525,7 +536,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   }
   if (
     JSON.stringify(capability.attackMechanic) !==
-    JSON.stringify(featureAttackMechanic({ ownerFeature, featureOption }))
+    JSON.stringify(featureAttackMechanic({ ownerFeature, featureOption, compiledEffect }))
   ) {
     throw new Error('Encounter feature action attack roll is stale.')
   }
@@ -695,7 +706,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
             equipmentBinding: equipmentResolution.binding,
             attackMechanic: featureAttackMechanic({
               ownerFeature: entry.ownerFeature,
-              featureOption: entry.featureOption
+              featureOption: entry.featureOption,
+              compiledEffect: effectiveCompiledEffect
             }),
             ...provenance
           })

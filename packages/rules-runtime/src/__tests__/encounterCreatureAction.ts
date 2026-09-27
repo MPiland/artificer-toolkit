@@ -68,7 +68,7 @@ export const QUILL_VOLLEY_CHARGE_ID = '00000000-0000-4000-8000-00000000c002'
 
 /**
  * "Quill Volley": a charged single-target Action dealing a fixed 3 piercing damage. With
- * `rangeFeet` it is a ranged weapon attack at that range (3 damage on a hit); otherwise it
+ * `rangeFeet` it is a +5 ranged weapon attack at that range (3 damage on a hit); otherwise it
  * simply happens to any target.
  */
 export function quillVolley(input: {
@@ -89,6 +89,21 @@ export function quillVolley(input: {
       resetKind: 'MANUAL',
       amount: input.charges
     },
+    ...(input.rangeFeet === undefined
+      ? {}
+      : {
+          rollDefinitions: [
+            {
+              id: '00000000-0000-4000-8000-00000000c008',
+              label: 'Quill Volley attack',
+              kind: 'ATTACK' as const,
+              expression: { count: 1, die: 20, modifier: 5 },
+              rollMode: 'NORMAL' as const,
+              chargeCost: null,
+              order: 1
+            }
+          ]
+        }),
     effects: [
       {
         id: '00000000-0000-4000-8000-00000000c003',

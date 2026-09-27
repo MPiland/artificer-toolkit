@@ -5,6 +5,7 @@ import {
   QUILL_VOLLEY_CHARGE_ID,
   QUILL_VOLLEY_ID,
   creatureActor,
+  featureActionId,
   prepareCreatureAction,
   quillVolley,
   settleCreatureAction
@@ -104,5 +105,32 @@ describe('encounter action mechanics preparation: Feature charges', () => {
     expect(featureChargeUsed(mechanics.settledSource, QUILL_VOLLEY_ID)).toBe(3)
     expect(mechanics.featureResourceReceipt).toBeNull()
     expect(mechanics.targetPlan.updatedActor).toMatchObject({ currentHitPoints: 8 })
+  })
+})
+
+describe('encounter action discovery: attack rolls', () => {
+  it('rejects an attack-triggered Feature action that authors no ATTACK roll', () => {
+    const attack = quillVolley({ charges: 1, cost: 1, rangeFeet: 30 })
+    const withRoll = creatureActor({ id: SOURCE_ID, label: 'Quill Beast', features: [attack] })
+    const withoutRoll = creatureActor({
+      id: SOURCE_ID,
+      label: 'Quill Beast',
+      features: [{ ...attack, rollDefinitions: [] }]
+    })
+
+    expect(featureActionId(withRoll, QUILL_VOLLEY_ID)).toEqual(expect.any(String))
+    expect(() => featureActionId(withoutRoll, QUILL_VOLLEY_ID)).toThrow(
+      'Encounter feature attack action "Quill Volley" must author one ATTACK roll definition.'
+    )
+  })
+
+  it('needs no ATTACK roll for an action that is not an attack', () => {
+    const actor = creatureActor({
+      id: SOURCE_ID,
+      label: 'Quill Beast',
+      features: [quillVolley({ charges: 1, cost: 1 })]
+    })
+
+    expect(featureActionId(actor, QUILL_VOLLEY_ID)).toEqual(expect.any(String))
   })
 })
