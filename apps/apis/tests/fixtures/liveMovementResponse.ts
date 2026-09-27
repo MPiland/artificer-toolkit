@@ -12,6 +12,7 @@ import type {
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type { sceneGeometryFinishInputSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+import { movementDecisionSubject } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import {
   createPlatformRulesRuntime,
@@ -151,7 +152,11 @@ export async function preparePrivateMovementResponse(input: {
     ...common,
     encounterId: value.base.run.id,
     expectedVersion: command.expectedVersion,
-    movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 }
+    movement: {
+      encounterId: value.base.run.id,
+      baseTokenOrdinal: 1,
+      subject: movementDecisionSubject(command)
+    }
   }
   const runtime = createPlatformRulesRuntime({
     continuationIntegrityKey: await deriveRulesContinuationKey(
@@ -183,6 +188,7 @@ export async function preparePrivateMovementResponse(input: {
     scene,
     occurrenceId: command.occurrenceId,
     occurredAt,
+    answer: command,
     runtime,
     random: (maximum) => {
       if (maximum <= 0) throw new Error('Invalid private movement roll bound.')
@@ -198,7 +204,7 @@ export async function preparePrivateMovementResponse(input: {
   }
   const planInput: LiveSessionMovementPrepareInput = {
     ...common,
-    movement: scope.movement,
+    movement: { ...scope.movement, subject: { kind: 'SAVE', saveId: staged.saveId } },
     preparation,
     revisions: planned.revisions(),
     maintenanceOwners: planned.dependencies.flatMap(({ request }) =>

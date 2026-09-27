@@ -147,7 +147,7 @@ export async function commitLiveMovement(
   const { userId } = await requireIdentity(ctx)
   if (
     userId !== input.expectedUserId ||
-    input.finish.saveId !== input.movement.saveId ||
+    input.finish.saveId !== input.movement.subject.saveId ||
     input.finish.baseOrdinal !== input.movement.baseTokenOrdinal
   )
     throw new Error('Live movement commit identity or save mismatch.')
@@ -155,7 +155,7 @@ export async function commitLiveMovement(
     campaignId: input.campaignId,
     epoch: input.authorityEpoch
   })
-  const { saveId } = input.movement
+  const { saveId } = input.movement.subject
   const staged = await readGeometrySave(ctx, saveId)
   // The room's frozen plan and fog layers stage in this transaction, after every captured owner is
   // checked (D52); a completed publication validates its receipt before the revisions it consumed.

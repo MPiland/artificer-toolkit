@@ -4,7 +4,7 @@ import type {
   LiveSessionExternalAuthority,
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
+import type { LiveSessionMovementPrefetch } from '@artificer-toolkit/schema/api/liveSessionMovementAnswer'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   preparedMovementCost,
@@ -38,6 +38,7 @@ import { parseGeometrySave } from '../../convex/scenes/geometryDocuments'
 import { persistSpatialPreparation } from '../../convex/scenes/spatialPreparationPersistence'
 import {
   callLiveSessionRoute,
+  LIVE_SESSION_ROUTE_TIMEOUT_MS,
   LiveSessionDomainRejectionError,
   LiveSessionRouteError
 } from '../../../session-worker/src/liveSessionRoutes'
@@ -59,11 +60,15 @@ import {
   prepareExternalSceneCommit,
   stageExternalSceneCommand,
   type ExternalSceneContext,
-  type ExternalSceneCommand
+  type ExternalSceneCommand,
+  type HeldMovementStage
 } from '../../../session-worker/src/nativeExternalSceneCommit'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
 import { hydrateNativeTransientScene } from '../../../session-worker/src/nativeSceneClient'
-import type { LiveCaptureReads } from '../../../session-worker/src/nativeCaptureCache'
+import {
+  BUNDLED_MAINTENANCE_DEFINITION_IDS,
+  type LiveCaptureReads
+} from '../../../session-worker/src/nativeCaptureCache'
 import {
   createNativeLiveRulesRuntime,
   secureRandomInt
@@ -161,7 +166,7 @@ async function stageRoomMovement(input: {
   command: ExternalSceneCommand
   random: (maximum: number) => number
   captures?: LiveCaptureReads
-  staged?: LiveSessionMovementStage
+  staged?: HeldMovementStage
 }) {
   const { caller, room, actor } = input
   const context = await roomSceneContext(room, actor, input.encounterId)
@@ -175,16 +180,21 @@ async function stageRoomMovement(input: {
     captures: input.captures,
     staged: input.staged
   })
-  if (prepared.kind !== 'MOVEMENT') throw new Error('Expected an Encounter movement commit.')
+  if (prepared.kind === 'GEOMETRY') throw new Error('Expected an Encounter movement commit.')
   return {
-    saveId: prepared.saveId,
-    outcome: prepared.commit.preparation.outcome,
+    // A prefetched answer stages its save in its own commit (D64).
+    saveId: prepared.kind === 'MOVEMENT' ? prepared.saveId : null,
+    outcome:
+      prepared.kind === 'MOVEMENT'
+        ? prepared.commit.preparation.outcome
+        : prepared.answer.plan.preparation.outcome,
     commit: async () =>
       commitExternalSceneCommit({
         ...room,
         actor,
         prepared,
-        authority: await caller.run((ctx) => nextExternalAuthority(ctx, actor.campaignId))
+        authority: await caller.run((ctx) => nextExternalAuthority(ctx, actor.campaignId)),
+        expiresAt: Date.now() + LIVE_SESSION_ROUTE_TIMEOUT_MS
       })
   }
 }
@@ -193,15 +203,18 @@ async function stageRoomMovement(input: {
  * Sends one Encounter command through the room's dispatcher (`executeLiveEncounterCommand`) as a
  * member. The Campaign needs an active live authority at `actor.authorityEpoch`. A movement decision
  * commits with the presented Scene (`stageRoomMovement`); like the room, a decision on the presented
- * Scene's Encounter while it holds a movement decision is staged first, which also routes it (D52).
+ * Scene's Encounter while it holds a movement decision is staged first, which also routes it (D52),
+ * unless `prefetch` holds its inputs, which the room takes once (D64).
  */
 export function executeRoomEncounterCommand(input: {
   caller: Pick<MemberCaller, 'fetch' | 'run'>
   actor: LiveEncounterActor
   command: EncounterCommandInputDto
   random?: (maximum: number) => number
+  prefetch?: LiveSessionMovementPrefetch
 }): Promise<EncounterCommandResultDto> {
   const random = input.random ?? secureRandomInt
+  let prefetch = input.prefetch ?? null
   return withRoomConvex(input.caller, (room) =>
     executeLiveEncounterCommand({
       ...room,
@@ -210,9 +223,12 @@ export function executeRoomEncounterCommand(input: {
       random,
       stageHeldMovement: async (command) => {
         const context = await roomSceneContext(room, input.actor, command.encounterId)
-        return context?.movementDecisionPending
-          ? stageExternalSceneCommand({ ...room, actor: input.actor, command, context })
-          : null
+        if (!context?.movementDecisionPending) return null
+        const taken = command.type === 'RESOLVE_RULE_OCCURRENCE' ? prefetch : null
+        prefetch = null
+        return taken
+          ? { kind: 'PREFETCHED', prefetch: taken }
+          : stageExternalSceneCommand({ ...room, actor: input.actor, command, context })
       },
       movement: async (command, captures, held) => {
         const staged = await stageRoomMovement({
@@ -319,7 +335,8 @@ function roomRefusal(error: unknown) {
 export async function executeInRoom(
   caller: MemberCaller,
   input: z.input<typeof encounterExecuteInputSchema>,
-  random?: (maximum: number) => number
+  random?: (maximum: number) => number,
+  prefetch?: LiveSessionMovementPrefetch
 ): Promise<EncounterCommandResultDto> {
   const { command } = encounterExecuteInputSchema.parse(input)
   return asRoomMember(caller, command.encounterId, (actor) =>
@@ -327,7 +344,33 @@ export async function executeInRoom(
       caller,
       actor,
       command,
-      random: random ?? ((maximum) => rollRandom.nextRollInt(maximum))
+      random: random ?? ((maximum) => rollRandom.nextRollInt(maximum)),
+      prefetch
+    })
+  )
+}
+
+/**
+ * Reads a held movement decision's inputs as the room does when it issues the decision (D64), for
+ * the caller's member. The Campaign needs an active live authority, since the answer must read
+ * under the same epoch for its checksum to match.
+ */
+export function prefetchInRoom(
+  caller: MemberCaller,
+  decision: { encounterId: string; occurrenceId: string }
+): Promise<LiveSessionMovementPrefetch> {
+  return asRoomMember(caller, decision.encounterId, (actor) =>
+    withRoomConvex(caller, async (room) => {
+      const context = await roomSceneContext(room, actor, decision.encounterId)
+      if (!context) throw sceneNotPresentedRejection()
+      return callLiveSessionRoute(room.environment, room.accessToken, 'encounterMovementPrefetch', {
+        ...actor,
+        encounterId: decision.encounterId,
+        occurrenceId: decision.occurrenceId,
+        tokenOrdinals: context.baseOrdinals.tokens,
+        maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS,
+        cachedSystem: null
+      })
     })
   )
 }
@@ -437,6 +480,7 @@ async function planInRoom(
       })
     )
   )
+  if (!staged.saveId) throw new Error('Expected a staged movement save.')
   return {
     saveId: staged.saveId,
     outcome: staged.outcome,
@@ -501,7 +545,11 @@ export async function planStagedMovementInRoom(caller: MemberCaller, saveId: str
       const baseOrdinal =
         context.baseOrdinals.tokens.find((entry) => entry.tokenId === input.tokenId)?.baseOrdinal ??
         null
-      const movement = { encounterId, saveId: saveId.toLowerCase(), baseTokenOrdinal: baseOrdinal }
+      const movement = {
+        encounterId,
+        baseTokenOrdinal: baseOrdinal,
+        subject: { kind: 'SAVE' as const, saveId: saveId.toLowerCase() }
+      }
       const occurrenceId = crypto.randomUUID()
       const occurredAt = new Date().toISOString()
       const planned = await prepareNativeLiveMovement({
@@ -510,6 +558,7 @@ export async function planStagedMovementInRoom(caller: MemberCaller, saveId: str
         scene: context.scene,
         occurrenceId,
         occurredAt,
+        answer: null,
         random: (maximum) => rollRandom.nextRollInt(maximum)
       })
       const prepareInput: LiveSessionMovementPrepareInput = {
@@ -530,7 +579,7 @@ export async function planStagedMovementInRoom(caller: MemberCaller, saveId: str
       // Freeze the plan now, as the commit would, so a test can inspect or disturb the frozen save
       // before it publishes; the commit then finds the identical preparation.
       await caller.run((ctx) =>
-        persistSpatialPreparation(ctx, movement.saveId, prepareInput.preparation)
+        persistSpatialPreparation(ctx, movement.subject.saveId, prepareInput.preparation)
       )
       const walk = { path: input.path, startDistance: 0, outcome: planned.outcome }
       return {
@@ -538,7 +587,7 @@ export async function planStagedMovementInRoom(caller: MemberCaller, saveId: str
         commit: {
           ...prepareInput,
           finish: {
-            saveId: movement.saveId,
+            saveId: movement.subject.saveId,
             baseOrdinal,
             tokenOrdinals: context.baseOrdinals.tokens,
             movementCost: preparedMovementCost({
@@ -567,7 +616,7 @@ export async function planStagedMovementInRoom(caller: MemberCaller, saveId: str
             authority: await nextExternalAuthority(ctx, actor.campaignId),
             expectedScene: await expectedMovementScene(
               ctx,
-              staged.commit.movement.saveId,
+              staged.commit.movement.subject.saveId,
               staged.outcome
             )
           })

@@ -15,7 +15,10 @@ import { isEncounterMovementContext } from '../encounters/occurrenceOwner'
 import { beginSceneGeometry } from './geometryStaging'
 import { parseGeometrySave, readMovementResolution } from './geometryDocuments'
 import { readMovementResponseAuthority } from './movementResolutionDocuments'
-import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import {
+  movementResponseSceneCommand,
+  readEncounterMovementPendingContext
+} from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { readPresentedVisionScene } from './sessionVisionDocuments'
 
 /** Stages the room's movement decision on its Scene after the issued-decision and receipt checks. */
@@ -97,21 +100,10 @@ export async function beginMovementResolution(
     campaignId: campaign.id,
     sceneId
   })
-  const root = current.root
   return beginSceneGeometry(
     ctx,
     sceneGeometryExecuteInputSchema.parse({
-      input: {
-        type: 'MOVE_SCENE_TOKEN',
-        commandId: command.commandId,
-        sceneId,
-        tokenId: root.tokenId,
-        expectedSceneVersion: root.currentSceneVersion,
-        expectedEncounterVersion: command.expectedVersion,
-        correlationId: command.correlationId,
-        movementKind: root.movementKind,
-        path: root.originalPath
-      },
+      input: movementResponseSceneCommand(current.root, command),
       presentation: { expectedPresentationVersion: presentation.version }
     }),
     {

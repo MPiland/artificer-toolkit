@@ -270,7 +270,7 @@ export async function readEncounterSettledAppRoll(
   ctx: QueryCtx,
   input: {
     occurrence: Doc<'encounterRuleOccurrences'>
-    response: ResolveRuleOccurrenceInputDto
+    response: Pick<ResolveRuleOccurrenceInputDto, 'resolution'>
     userId: string
   }
 ): Promise<EncounterSettledAppRollDto | null> {

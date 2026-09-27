@@ -35,8 +35,6 @@ import {
   readEncounterAutoRollByActorId,
   readEncounterControlledActorIds
 } from '../encounters/actorController'
-import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { readLiveEncounterActionScope } from './encounterActionAdmission'
 import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
@@ -519,18 +517,11 @@ async function readOrdinaryEncounterCapture(
       campaignOwnerUserId: campaign.ownerUserId,
       autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
         campaign,
-        // A response continues the mover's command; its rolls keep the mover as initiator.
-        initiatorUserId: movementAdmission.save.movementResolution
-          ? readEncounterMovementPendingContext(
-              serverRuleExecutionPendingSnapshotDtoSchema.parse(
-                JSON.parse(movementAdmission.save.movementResolution.pendingSnapshotJson)
-              )
-            ).root.initiatorUserId
-          : movementAdmission.save.actorUserId,
+        initiatorUserId: movementAdmission.initiatorUserId,
         actors: await readRunActors(ctx, state)
       }),
       appRoll: movementAdmission.appRoll,
-      save: movementAdmission.save,
+      subject: movementAdmission.subject,
       header: movementAdmission.header,
       bindings: await readEncounterCleavingBindings(ctx, state, movementAdmission.header.id)
     }

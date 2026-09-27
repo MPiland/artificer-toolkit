@@ -9,6 +9,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { movementDecisionSubject } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { createNativeLiveRulesRuntime } from '../../../session-worker/src/nativeRulesRuntime'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
@@ -242,7 +243,11 @@ it('publishes a sealed movement response through the private DO path without rep
     ...common,
     encounterId: value.base.run.id,
     expectedVersion: choice.encounterVersion,
-    movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 }
+    movement: {
+      encounterId: value.base.run.id,
+      baseTokenOrdinal: 1,
+      subject: movementDecisionSubject(command)
+    }
   }
   // The room's own runtime: it reads no definition itself, so eligibility must use the capture.
   const runtime = await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
@@ -255,6 +260,7 @@ it('publishes a sealed movement response through the private DO path without rep
     scene,
     occurrenceId,
     occurredAt,
+    answer: command,
     runtime,
     random: (maximum) => {
       expect(maximum).toBeGreaterThan(0)
@@ -281,7 +287,7 @@ it('publishes a sealed movement response through the private DO path without rep
   }
   const planInput: LiveSessionMovementPrepareInput = {
     ...common,
-    movement: scope.movement,
+    movement: { ...scope.movement, subject: { kind: 'SAVE', saveId: staged.saveId } },
     preparation,
     revisions: planned.revisions(),
     maintenanceOwners: planned.dependencies.flatMap(({ request }) =>
@@ -362,7 +368,7 @@ it('publishes a sealed movement response through the private DO path without rep
   const secondScope = {
     ...scope,
     expectedVersion: secondChoice.encounterVersion,
-    movement: { ...scope.movement, saveId: secondStaged.saveId }
+    movement: { ...scope.movement, subject: movementDecisionSubject(secondCommand) }
   }
   const secondPlanned = await prepareNativeLiveMovement({
     environment,
@@ -371,6 +377,7 @@ it('publishes a sealed movement response through the private DO path without rep
     scene: await loadScene(),
     occurrenceId: secondChoice.occurrenceId,
     occurredAt,
+    answer: secondCommand,
     runtime,
     random: (maximum) => {
       expect(maximum).toBeGreaterThan(0)
@@ -389,7 +396,7 @@ it('publishes a sealed movement response through the private DO path without rep
   }
   const secondPlanInput: LiveSessionMovementPrepareInput = {
     ...common,
-    movement: secondScope.movement,
+    movement: { ...secondScope.movement, subject: { kind: 'SAVE', saveId: secondStaged.saveId } },
     preparation: secondPreparation,
     revisions: secondPlanned.revisions(),
     maintenanceOwners: secondPlanned.dependencies.flatMap(({ request }) =>

@@ -16,7 +16,6 @@ import {
   liveSessionPublishInputSchema,
   type LiveSessionScenePublicationDto
 } from '@artificer-toolkit/schema/api/liveSessionState'
-import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
@@ -76,14 +75,20 @@ import {
   sceneNotPresentedRejection,
   type LiveEncounterActor
 } from './nativeRoomEncounterCommand.js'
-import { LiveCaptureCache, type LiveCaptureReads } from './nativeCaptureCache.js'
+import {
+  BUNDLED_MAINTENANCE_DEFINITION_IDS,
+  LiveCaptureCache,
+  type LiveCaptureReads
+} from './nativeCaptureCache.js'
 import {
   commitExternalSceneCommit,
   prepareExternalSceneCommit,
   stageExternalSceneCommand,
   type ExternalSceneCommand,
-  type ExternalSceneContext
+  type ExternalSceneContext,
+  type HeldMovementStage
 } from './nativeExternalSceneCommit.js'
+import { MovementPrefetches } from './nativeMovementPrefetch.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
 import {
@@ -247,6 +252,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   )
   #cache: TransientCache | null = null
   readonly #captureCache = new LiveCaptureCache()
+  readonly #movementPrefetches = new MovementPrefetches()
   #cacheGeneration = 0
   #presentationChanging = false
   #commandChain: Promise<void> = Promise.resolve()
@@ -1137,6 +1143,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             context.encounterId !== decision.encounterId.toLowerCase()
           )
             return null
+          // An answer whose inputs the room read when the decision was issued commits in one call.
+          const prefetch =
+            decision.type === 'RESOLVE_RULE_OCCURRENCE'
+              ? await this.#movementPrefetches.take(admission.userId, decision)
+              : null
+          if (prefetch) return { kind: 'PREFETCHED', prefetch }
           return stageExternalSceneCommand({
             environment: this.env,
             accessToken: admission.accessToken,
@@ -1201,7 +1213,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
     fingerprint: string,
     captures: LiveCaptureReads | undefined,
-    staged: LiveSessionMovementStage | undefined
+    staged: HeldMovementStage | undefined
   ): Promise<EncounterCommandResultDto> {
     if (this.#cache?.synchronized && this.#cache.encounterId !== command.encounterId.toLowerCase())
       throw sceneNotPresentedRejection()
@@ -1233,7 +1245,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     command: ExternalSceneCommand,
     fingerprint: string,
     captures: LiveCaptureReads | undefined,
-    staged?: LiveSessionMovementStage
+    staged?: HeldMovementStage
   ) {
     await this.#flushOutbox()
     const context = this.#externalSceneContext()
@@ -1259,6 +1271,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#cache.scene.version !== before.version
     )
       throw new LiveSessionRouteError(409)
+    // A prefetched answer stages its save in its own commit, which Convex refuses after this time.
+    const expiresAt = Date.now() + LIVE_SESSION_ROUTE_TIMEOUT_MS
     const next = createNativeLiveSessionState(prepared.nextScene)
     const sequence = current.sequence + 1
     const { delta: predictedDelta, version } = prepared.expectedScene
@@ -1294,7 +1308,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           type: 'COMMAND_COMMITTED'
         })
       ),
-      subject: { kind: 'SCENE_SAVE', saveId: prepared.saveId }
+      subject:
+        prepared.kind === 'ANSWER'
+          ? {
+              kind: 'MOVEMENT_ANSWER',
+              sceneId: prepared.sceneId,
+              commandId: prepared.commandId,
+              expiresAt
+            }
+          : { kind: 'SCENE_SAVE', saveId: prepared.saveId }
     })
     const committed = await this.#sendExternalCommit(command.commandId, () =>
       commitExternalSceneCommit({
@@ -1306,7 +1328,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           sequence,
           expectedStateChecksum: current.stateChecksum,
           stateChecksum: next.stateChecksum
-        }
+        },
+        expiresAt
       })
     )
     const result = sceneCommandResultDtoSchema.parse({
@@ -1338,15 +1361,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       receiptJson: JSON.stringify(receipt)
     })
     const latest = this.#cache
+    const movement = prepared.kind !== 'GEOMETRY'
+    const issued = movement && result.occurrence?.status === 'PENDING' ? result.occurrence : null
     if (latest?.scene?.id === before.id)
       this.#cache = {
         ...latest,
-        movementDecisionPending:
-          prepared.kind === 'MOVEMENT'
-            ? result.occurrence?.status === 'PENDING'
-            : latest.movementDecisionPending,
+        movementDecisionPending: movement ? issued !== null : latest.movementDecisionPending,
         scene: prepared.nextScene
       }
+    if (issued) this.#prefetchMovementDecision(issued.occurrenceId)
+    else if (movement) this.#movementPrefetches.clear()
     this.#broadcastSceneCommitted(
       { commandId: command.commandId, sequence },
       before,
@@ -1581,8 +1605,55 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#cache === cached &&
       capture.sceneHeader?.id === cached.scene?.id &&
       capture.sceneEncounterId === cached.encounterId
-    )
+    ) {
       this.#cache = { ...cached, movementDecisionPending: capture.sceneMovementDecisionPending }
+      if (!capture.sceneMovementDecisionPending) this.#movementPrefetches.clear()
+    }
+  }
+
+  /**
+   * Reads a newly issued movement decision's inputs off the command chain, once for every admitted
+   * member, while the table decides (D64). Convex refuses the members who may not answer it. The
+   * Run System is resolved here, since the answer's own capture view takes the bundle.
+   */
+  #prefetchMovementDecision(occurrenceId: string): void {
+    const context = this.#externalSceneContext()
+    const encounterId = context?.encounterId
+    if (!context || !encounterId) return
+    const members = new Map<string, { admission: Admission; value: SocketAttachment }>()
+    for (const socket of this.ctx.getWebSockets()) {
+      const admission = this.#liveAdmission(socket)
+      const value = attachment(socket)
+      if (admission && value && !members.has(admission.userId))
+        members.set(admission.userId, { admission, value })
+    }
+    this.#movementPrefetches.issue(
+      occurrenceId,
+      [...members.values()].map(({ admission, value }) => ({
+        userId: admission.userId,
+        read: async () => {
+          const reads = this.#captureCache.reads()
+          const prefetch = await callLiveSessionRoute(
+            this.env,
+            admission.accessToken,
+            'encounterMovementPrefetch',
+            {
+              ...liveActor(admission, value),
+              encounterId,
+              occurrenceId,
+              tokenOrdinals: context.baseOrdinals.tokens,
+              maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS,
+              cachedSystem: reads.systemStamp()
+            }
+          )
+          const system = reads.bundleSystem(prefetch.bundle)
+          return {
+            ...prefetch,
+            bundle: { ...prefetch.bundle, system: system && { kind: 'SYSTEM', system } }
+          }
+        }
+      }))
+    )
   }
 
   /**
@@ -2461,6 +2532,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#cacheGeneration += 1
     this.#cache = null
     this.#captureCache.clear()
+    this.#movementPrefetches.clear()
   }
 
   #json(value: string): unknown {

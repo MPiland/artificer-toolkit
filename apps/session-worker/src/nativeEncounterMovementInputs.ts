@@ -7,15 +7,18 @@ import {
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
-import { resolveRuleOccurrenceInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
+import { movementDecisionSubject } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import {
   serverPublishedRuleDefinitionDtoSchema,
   serverRuleExecutionInputDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
-import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import {
+  movementResponseSceneCommand,
+  readEncounterMovementPendingContext
+} from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { suppressesEncounterOpportunityAttacks } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
@@ -45,6 +48,8 @@ export async function readNativeLiveMovementInputs(input: {
   }
   scene: CampaignSceneState
   occurrenceId: string
+  /** A decision's answer, from the room; null for a new move. */
+  answer: ResolveRuleOccurrenceInputDto | null
   runtime: RulesRuntimeService
   captures?: LiveCaptureReads
 }) {
@@ -83,11 +88,30 @@ export async function readNativeLiveMovementInputs(input: {
   const inputs = await capture({ kind: 'INPUTS' })
   if (movement.kind !== 'MOVEMENT_INPUTS' || inputs.kind !== 'INPUTS')
     throw new Error('Movement inputs are unavailable.')
-  const { header, save } = movement
+  const { header, subject } = movement
   const { state, system } = inputs
+  const scoped = input.scope.movement.subject
+  // A new move reads under its staged save; an answer under its issued decision (D64).
+  const save = subject.kind === 'SAVE' ? subject.save : null
+  const decision =
+    subject.kind === 'DECISION' && input.answer
+      ? { answer: input.answer, snapshot: subject.pendingSnapshot }
+      : null
+  const issued = decision && readEncounterMovementPendingContext(decision.snapshot)
+  const command = save
+    ? save.input
+    : issued && decision && movementResponseSceneCommand(issued.root, decision.answer)
   if (
-    save.id !== scope.movement?.saveId ||
-    save.sceneId !== scene.id ||
+    !command ||
+    (save
+      ? scoped.kind !== 'SAVE' ||
+        save.id !== scoped.saveId ||
+        save.sceneId !== scene.id ||
+        save.actorUserId !== scope.expectedUserId ||
+        save.movementResolution !== undefined
+      : scoped.kind !== 'DECISION' ||
+        checksumCanonicalJson(scoped) !==
+          checksumCanonicalJson(movementDecisionSubject(decision!.answer))) ||
     header.id !== scene.id ||
     header.version !== scene.version ||
     header.definitionId !== scene.definitionId ||
@@ -99,10 +123,10 @@ export async function readNativeLiveMovementInputs(input: {
     state.campaignId !== scope.campaignId ||
     state.gameSystemId !== system.id ||
     state.status !== 'ACTIVE' ||
-    save.input.type !== 'MOVE_SCENE_TOKEN' ||
-    save.input.expectedEncounterVersion !== state.version ||
-    save.input.expectedSceneVersion !== scene.version ||
-    save.actorUserId !== scope.expectedUserId
+    command.type !== 'MOVE_SCENE_TOKEN' ||
+    command.sceneId !== scene.id ||
+    command.expectedEncounterVersion !== state.version ||
+    command.expectedSceneVersion !== scene.version
   )
     throw new Error('Movement capture binding mismatch.')
   for (const collection of ['tokens', 'barriers', 'lights', 'darknessZones'] as const)
@@ -114,7 +138,6 @@ export async function readNativeLiveMovementInputs(input: {
   for (const key of ['grid', 'map', 'ambientIllumination', 'fogMode', 'visionRevealMode'] as const)
     if (checksumCanonicalJson(scene[key]) !== checksumCanonicalJson(header[key]))
       throw new Error('Movement Scene settings changed.')
-  const command = save.input
   const token = scene.tokens.find((candidate) => candidate.id === command.tokenId)
   // The movement capture already admitted the mover as a controller of the bound actor.
   if (!token || token.locked) throw new Error('Movement token authority is unavailable.')
@@ -133,58 +156,60 @@ export async function readNativeLiveMovementInputs(input: {
     )
   )
     throw new Error('Movement actor bindings are inconsistent.')
-  if (!save.movementResolution) {
+  if (!decision) {
     if (checksumCanonicalJson(command.path[0]) !== checksumCanonicalJson(token.position))
       throw new Error('Movement path does not begin at the current token position.')
     const failure = sceneTokenMovementFailure(scene, token.id, command.path.at(-1)!, command.path)
     if (failure) throw new Error(failure)
   }
-  const response = save.movementResolution
-    ? (() => {
-        const retained = save.movementResolution
-        const command = resolveRuleOccurrenceInputDtoSchema.parse(JSON.parse(retained.commandJson))
-        const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-          JSON.parse(retained.pendingSnapshotJson)
-        )
-        const { context, root } = readEncounterMovementPendingContext(snapshot)
-        if (
-          retained.commandChecksum !== checksumCanonicalJson(command) ||
-          retained.pendingSnapshotChecksum !== checksumCanonicalJson(snapshot) ||
-          command.commandId !== save.commandId ||
-          command.encounterId !== root.encounterId ||
-          command.occurrenceId !== serverRuleExecutionPendingOccurrenceId(snapshot) ||
-          command.occurrenceId !== occurrenceId ||
-          command.expectedOccurrenceVersion !== root.resolutionCommands.length ||
-          command.expectedVersion !== state.version ||
-          command.correlationId !== save.input.correlationId ||
-          root.commandId === command.commandId ||
-          root.encounterId !== state.id ||
-          root.sceneId !== scene.id ||
-          root.tokenId !== token.id ||
-          root.movementKind !== save.input.movementKind ||
-          root.currentSceneVersion !== scene.version ||
-          checksumCanonicalJson(root.currentPosition) !== checksumCanonicalJson(token.position) ||
-          checksumCanonicalJson(root.originalPath) !== checksumCanonicalJson(save.input.path) ||
-          (snapshot.optionalCombatSnapshotChecksum ?? null) !== state.optionalCombatSnapshotChecksum
-        )
-          throw new Error('Stored movement response identity is inconsistent.')
-        const responseCommand = movementRuleResolutionCommandDtoSchema.parse({
-          commandId: command.commandId,
-          commandFingerprint: checksumCanonicalJson(command),
-          actorUserId: scope.expectedUserId,
-          correlationId: command.correlationId,
-          expectedOccurrenceVersion: command.expectedOccurrenceVersion,
-          kind: command.resolution.kind,
-          ...('requestId' in command.resolution ? { requestId: command.resolution.requestId } : {}),
-          ...('optionId' in command.resolution ? { optionId: command.resolution.optionId } : {})
-        })
-        if (root.resolutionCommands.some((entry) => entry.commandId === responseCommand.commandId))
-          throw new Error('Movement response command was already used.')
-        // An app roll settles with the faces Convex recorded for it, never client-supplied values.
-        const answer = withEncounterAppRoll(command.resolution, movement.appRoll)
-        return { command, answer, snapshot, context, root, responseCommand }
-      })()
-    : null
+  const response =
+    decision && issued
+      ? (() => {
+          // The answer comes from the room; its decision is the one Convex read under the scope.
+          const { answer: command, snapshot } = decision
+          const { context, root } = issued
+          if (
+            command.encounterId.toLowerCase() !== root.encounterId ||
+            command.occurrenceId.toLowerCase() !==
+              serverRuleExecutionPendingOccurrenceId(snapshot) ||
+            command.occurrenceId.toLowerCase() !== occurrenceId ||
+            command.expectedOccurrenceVersion !== root.resolutionCommands.length ||
+            command.expectedVersion !== state.version ||
+            root.commandId === command.commandId ||
+            root.encounterId !== state.id ||
+            root.sceneId !== scene.id ||
+            root.tokenId !== token.id ||
+            root.currentSceneVersion !== scene.version ||
+            checksumCanonicalJson(root.currentPosition) !== checksumCanonicalJson(token.position) ||
+            (snapshot.optionalCombatSnapshotChecksum ?? null) !==
+              state.optionalCombatSnapshotChecksum ||
+            (command.resolution.kind === 'SYSTEM_ROLL') !== (movement.appRoll !== null) ||
+            (movement.appRoll !== null &&
+              'rollId' in command.resolution &&
+              movement.appRoll.rollId !== command.resolution.rollId.toLowerCase())
+          )
+            throw new Error('Movement response identity is inconsistent.')
+          const responseCommand = movementRuleResolutionCommandDtoSchema.parse({
+            commandId: command.commandId,
+            commandFingerprint: checksumCanonicalJson(command),
+            actorUserId: scope.expectedUserId,
+            correlationId: command.correlationId,
+            expectedOccurrenceVersion: command.expectedOccurrenceVersion,
+            kind: command.resolution.kind,
+            ...('requestId' in command.resolution
+              ? { requestId: command.resolution.requestId }
+              : {}),
+            ...('optionId' in command.resolution ? { optionId: command.resolution.optionId } : {})
+          })
+          if (
+            root.resolutionCommands.some((entry) => entry.commandId === responseCommand.commandId)
+          )
+            throw new Error('Movement response command was already used.')
+          // An app roll settles with the faces Convex recorded for it, never client-supplied values.
+          const answer = withEncounterAppRoll(command.resolution, movement.appRoll)
+          return { command, answer, snapshot, context, root, responseCommand }
+        })()
+      : null
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
     capture
@@ -331,6 +356,7 @@ export async function readNativeLiveMovementInputs(input: {
         })
   return {
     save,
+    move: command,
     response,
     header,
     autoRollByActorId: movement.autoRollByActorId,

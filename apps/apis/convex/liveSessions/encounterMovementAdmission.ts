@@ -1,5 +1,8 @@
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import type { LiveSessionMovementCaptureScope } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
+import type {
+  LiveSessionMovementCaptureScope,
+  LiveSessionMovementDecisionSubject
+} from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -12,30 +15,27 @@ import { requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
 import { requireIdentity } from '../lib/identity'
 import { assertGeometryReceiving, readGeometrySave } from '../scenes/geometryDocuments'
 import { normalizeSceneGeometryEntity } from '../scenes/geometryValues'
-import { parseLiveEntity } from '../scenes/liveDocuments'
-import { assertMovementResolutionCurrent } from '../scenes/movementResolutionDocuments'
-import { readSessionVisionScope } from '../scenes/sessionVisionDocuments'
+import { parseLiveEntity, readLiveScene } from '../scenes/liveDocuments'
+import {
+  assertMovementResolutionCurrent,
+  readMovementResponseAuthority
+} from '../scenes/movementResolutionDocuments'
+import { readPresentedVisionScene, readSessionVisionScope } from '../scenes/sessionVisionDocuments'
+import { readPendingRunDecision } from '../encounters/pendingReads'
+import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { requireEncounterActorControl } from '../encounters/actorController'
 
-/** Authorize raw movement reads against the staged Scene command and current Encounter. */
-export async function readLiveMovementAdmission(
-  ctx: QueryCtx,
-  input: Pick<
-    LiveSessionEncounterRulesInput,
-    'campaignId' | 'authorityEpoch' | 'expectedUserId' | 'expectedRole'
-  > & { movement: LiveSessionMovementCaptureScope }
-) {
-  const { userId } = await requireIdentity(ctx)
-  if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
-  await requireActiveCampaignLiveAuthority(ctx, {
-    campaignId: input.campaignId,
-    epoch: input.authorityEpoch
-  })
-  const current = await readGeometrySave(ctx, input.movement.saveId)
-  const { save, header, campaign, membership, presented } = current
+type MovementAdmissionInput = Pick<
+  LiveSessionEncounterRulesInput,
+  'campaignId' | 'authorityEpoch' | 'expectedUserId' | 'expectedRole'
+> & { movement: LiveSessionMovementCaptureScope }
+
+/** A staged move's save: its actor, Scene snapshot and presented Scene vision are current. */
+async function readStagedMove(ctx: QueryCtx, input: MovementAdmissionInput, saveId: string) {
+  const current = await readGeometrySave(ctx, saveId)
+  const { save, header, campaign, membership, presented, userId } = current
   if (
-    current.userId !== userId ||
     membership.role !== input.expectedRole ||
     campaign.id !== input.campaignId ||
     campaign.status !== 'ACTIVE'
@@ -53,13 +53,98 @@ export async function readLiveMovementAdmission(
     save.input.expectedSceneVersion !== save.snapshotVersion
   )
     throw new Error('Live Session movement Scene snapshot is unavailable.')
-  const tokenId = save.input.tokenId
   await readSessionVisionScope(ctx, save.sessionVision, {
     header,
     campaign,
     userId,
     ...presented
   })
+  // A response save continues its issued decision, which must be unchanged.
+  const resolution = save.movementResolution
+    ? await assertMovementResolutionCurrent(ctx, save)
+    : null
+  return {
+    userId,
+    campaign,
+    membership,
+    header,
+    command: save.input,
+    decision: resolution,
+    appRoll: resolution?.appRoll ?? null,
+    subject: { kind: 'SAVE' as const, save }
+  }
+}
+
+/**
+ * A decision's answer, before or without its staged save (D64): the member may answer the issued
+ * occurrence at these versions (players only one their pending reads show them), and its Scene is
+ * the presented one at the sealed root's version.
+ */
+async function readIssuedDecision(
+  ctx: QueryCtx,
+  input: MovementAdmissionInput,
+  subject: LiveSessionMovementDecisionSubject
+) {
+  const current = await readMovementResponseAuthority(ctx, {
+    encounterId: input.movement.encounterId,
+    occurrenceId: subject.occurrenceId,
+    expectedVersion: subject.encounterVersion,
+    expectedOccurrenceVersion: subject.occurrenceVersion
+  })
+  const { userId, campaign, membership, run, occurrence, snapshot, root } = current
+  if (membership.role !== input.expectedRole || campaign.id !== input.campaignId)
+    throw new Error('Live Session movement scope mismatch.')
+  if (
+    membership.role !== 'OWNER' &&
+    (await readPendingRunDecision(ctx, run, campaign, membership))?.occurrenceId !== occurrence.id
+  )
+    rejectDomain('NOT_ACTOR_CONTROLLER', "This decision isn't yours to answer.")
+  const { header } = await readLiveScene(ctx, root.sceneId, 'MEMBER')
+  await readPresentedVisionScene(ctx, { campaignId: campaign.id, sceneId: root.sceneId })
+  if (header.version !== root.currentSceneVersion)
+    throw new Error('Scene changed before this command completed.')
+  const appRoll = subject.appRoll
+    ? await readEncounterSettledAppRoll(ctx, {
+        occurrence,
+        response: { resolution: { kind: 'SYSTEM_ROLL', ...subject.appRoll } },
+        userId
+      })
+    : null
+  return {
+    userId,
+    campaign,
+    membership,
+    header,
+    command: {
+      tokenId: root.tokenId,
+      expectedSceneVersion: root.currentSceneVersion,
+      expectedEncounterVersion: subject.encounterVersion
+    },
+    decision: current,
+    appRoll,
+    subject: { kind: 'DECISION' as const, pendingSnapshot: snapshot }
+  }
+}
+
+/**
+ * Authorize raw movement reads against the current Encounter and either the staged Scene command
+ * or, for a decision's answer, the issued occurrence.
+ */
+export async function readLiveMovementAdmission(ctx: QueryCtx, input: MovementAdmissionInput) {
+  const { userId } = await requireIdentity(ctx)
+  if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
+  await requireActiveCampaignLiveAuthority(ctx, {
+    campaignId: input.campaignId,
+    epoch: input.authorityEpoch
+  })
+  const { subject } = input.movement
+  const admitted =
+    subject.kind === 'SAVE'
+      ? await readStagedMove(ctx, input, subject.saveId)
+      : await readIssuedDecision(ctx, input, subject)
+  const { campaign, membership, header, command, decision } = admitted
+  if (admitted.userId !== userId) throw new Error('Live Session movement scope mismatch.')
+  const { tokenId } = command
   const run = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', input.movement.encounterId))
@@ -71,7 +156,7 @@ export async function readLiveMovementAdmission(
     state.status !== 'ACTIVE' ||
     state.campaignId !== campaign.id ||
     state.gameSystemId !== campaign.gameSystemId ||
-    state.version !== save.input.expectedEncounterVersion
+    state.version !== command.expectedEncounterVersion
   )
     throw new Error('Spatial Encounter scope is stale.')
   const binding = await ctx.db
@@ -102,15 +187,10 @@ export async function readLiveMovementAdmission(
   )
     throw new Error('Stored Encounter token binding is inconsistent.')
 
-  const resolution = save.movementResolution
-    ? await assertMovementResolutionCurrent(ctx, save)
-    : null
-  if (
-    resolution &&
-    (resolution.state.id !== state.id || resolution.root.tokenId !== save.input.tokenId)
-  )
+  if (decision && (decision.state.id !== state.id || decision.root.tokenId !== tokenId))
     throw new Error('Movement response Encounter scope is stale.')
-  if (!resolution) {
+  const save = admitted.subject.kind === 'SAVE' ? admitted.subject.save : null
+  if (save && !decision) {
     const pending = await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) =>
@@ -135,7 +215,7 @@ export async function readLiveMovementAdmission(
     )
     .unique()
   const live = liveRow ? parseLiveEntity(liveRow, header.version) : null
-  if (live && live.version > save.input.expectedSceneVersion)
+  if (live && live.version > command.expectedSceneVersion)
     throw new Error('Scene target changed before this command completed.')
   let token: SceneToken | null = null
   if (live) {
@@ -162,7 +242,7 @@ export async function readLiveMovementAdmission(
       base.ordinal !== ordinal ||
       base.value.collection !== 'tokens' ||
       base.entityId !== base.value.entity.id ||
-      base.entityId.toLowerCase() !== save.input.tokenId ||
+      base.entityId.toLowerCase() !== tokenId ||
       base.checksum !== checksumCanonicalJson(base.value)
     )
       throw new Error('Stored spatial token source is inconsistent.')
@@ -172,7 +252,7 @@ export async function readLiveMovementAdmission(
   }
   if (!token || token.locked)
     throw new Error('Members may only move an unlocked token they control.')
-  if (!resolution) {
+  if (!decision) {
     const mover = await readRunActor(ctx, state, tokenBinding.actorId)
     await requireEncounterActorControl(ctx, { campaign, membership, actor: mover })
     // A defeated creature doesn't move itself (D63); the GM may still reposition its token.
@@ -181,8 +261,19 @@ export async function readLiveMovementAdmission(
   }
   if (
     checksumCanonicalJson(token.position) !==
-    checksumCanonicalJson(resolution ? resolution.root.currentPosition : save.input.path[0])
+    checksumCanonicalJson(
+      decision ? decision.root.currentPosition : 'path' in command ? command.path[0] : null
+    )
   )
     throw new Error('Movement token position is stale.')
-  return { ...current, state, appRoll: resolution?.appRoll ?? null }
+  return {
+    campaign,
+    membership,
+    header,
+    state,
+    appRoll: admitted.appRoll,
+    subject: admitted.subject,
+    // A response continues the mover's command; its rolls keep the mover as initiator.
+    initiatorUserId: decision ? decision.root.initiatorUserId : userId
+  }
 }

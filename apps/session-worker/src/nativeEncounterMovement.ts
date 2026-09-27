@@ -103,8 +103,9 @@ export async function prepareNativeLiveMovement(
   }
 ) {
   const captured = await readNativeLiveMovementInputs(input)
-  const { state, save, response, system, definitions, capture, spatialEffects, runtime } = captured
-  if (save.input.type !== 'MOVE_SCENE_TOKEN' || save.input.expectedEncounterVersion === null)
+  const { state, save, move, response, system, definitions, capture, spatialEffects, runtime } =
+    captured
+  if (move.expectedEncounterVersion === null)
     throw new Error('Movement requires an Encounter move.')
   const { random, scene } = input
   const userId = input.scope.expectedUserId
@@ -394,6 +395,7 @@ export async function prepareNativeLiveMovement(
     settlements: NativeLiveMovementSettlement[]
   }
   if (!response) {
+    if (!save) throw new Error('A new move requires its staged save.')
     planned = await continueMovement({
       state,
       userId,
@@ -402,14 +404,14 @@ export async function prepareNativeLiveMovement(
         commandId: save.commandId,
         commandFingerprint: save.inputChecksum,
         initiatorUserId: userId,
-        correlationId: save.input.correlationId,
+        correlationId: move.correlationId,
         encounterId: state.id,
         sceneId: scene.id,
         tokenId: captured.token.id,
-        expectedEncounterVersion: save.input.expectedEncounterVersion,
-        expectedSceneVersion: save.input.expectedSceneVersion,
-        movementKind: save.input.movementKind,
-        originalPath: save.input.path
+        expectedEncounterVersion: move.expectedEncounterVersion,
+        expectedSceneVersion: move.expectedSceneVersion,
+        movementKind: move.movementKind,
+        originalPath: move.path
       },
       sceneVersion: scene.version,
       sceneTokens: scene.tokens,

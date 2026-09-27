@@ -64,8 +64,9 @@ export function publishWithAuthorityAdvance(
  * Settles a room commit the room did not see finish. COMMITTED when its change landed and the
  * authority reached the room's next sequence and checksum; ABANDONED when it did not land and the
  * authority remains at the room's sequence, after fencing it so a delayed commit fails: a still
- * receiving save expires, and a binding resolves only after its `expiresAt`, touching the authority
- * so a commit still in flight conflicts and reruns past its expiry. Anything else fails closed.
+ * receiving save expires, and a binding or prefetched movement answer (D64) resolves only after its
+ * `expiresAt`, touching the authority so a commit still in flight conflicts and reruns past its
+ * expiry. Anything else fails closed.
  */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const resolve = internalMutation({
@@ -92,6 +93,25 @@ export const resolve = internalMutation({
       landed = save.status === 'PUBLISHED'
       fence = async () => {
         if (save.status === 'RECEIVING') await ctx.db.patch(row._id, { status: 'EXPIRED' })
+      }
+    } else if (subject.kind === 'MOVEMENT_ANSWER') {
+      // The answer stages its save in its own transaction: no row means it has not landed.
+      const row = await ctx.db
+        .query('sceneGeometrySaves')
+        .withIndex('by_sceneId_commandId', (q) =>
+          q
+            .eq('sceneId', subject.sceneId.toLowerCase())
+            .eq('commandId', subject.commandId.toLowerCase())
+        )
+        .unique()
+      const save = row && parseGeometrySave(row)
+      if (save && save.sessionVision?.campaignId !== input.campaignId.toLowerCase())
+        throw new Error('Scene geometry save belongs to another Campaign.')
+      landed = save?.status === 'PUBLISHED'
+      fence = async () => {
+        if (Date.now() <= subject.expiresAt)
+          throw new Error('The movement answer commit may still land.')
+        await ctx.db.patch(authority._id, { updatedAt: new Date().toISOString() })
       }
     } else {
       const binding = await ctx.db
