@@ -29,6 +29,10 @@ import {
 } from './encounterRelationshipActionFacts.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
 import {
+  encounterActionLongRangeContributor,
+  type EncounterActionSceneContext
+} from './encounterActionTargetPolicy.js'
+import {
   dnd5eAttackDamageDefenses,
   dnd5eCharacterAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
@@ -111,6 +115,8 @@ export async function prepareEncounterActionMechanics<
   /** RESOLVE_ACTION reports overridable warnings; reactions, legendary actions and Disarm refuse them. */
   overridable: boolean
   movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+  /** The locked Scene positions of a RESOLVE_ACTION, for range-derived roll modes. */
+  sceneContext?: EncounterActionSceneContext | null
   loadSource: (
     input: Omit<EncounterActionSourceInput, 'system'>
   ) => Promise<NativeEncounterActionSource>
@@ -282,7 +288,12 @@ export async function prepareEncounterActionMechanics<
             itemMechanics: source.effectivePolicyOutput.itemMechanics
           })
         : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
-  // A Dodging target (basic action, Q11, applied to its facts) gives attacks against it disadvantage.
+  // A Dodging target (basic action, Q11, applied to its facts) gives attacks against it
+  // disadvantage, and so does a target beyond a ranged attack's normal range (D62).
+  const longRange = encounterActionLongRangeContributor({
+    targetPolicy,
+    sceneContext: input.sceneContext ?? null
+  })
   const contributors = mergeCanonicalD20Contributors(
     await input.loadRelationshipFacts({
       state,
@@ -295,7 +306,8 @@ export async function prepareEncounterActionMechanics<
       actionEffectId:
         source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
     }),
-    targetFacts.basicActionAttackContributors
+    targetFacts.basicActionAttackContributors,
+    longRange ? [longRange] : []
   )
   return {
     state,

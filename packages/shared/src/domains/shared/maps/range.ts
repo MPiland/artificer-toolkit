@@ -40,6 +40,13 @@ export const RANGE_NODE_MAP = range.define('range', ({ map, cond, nodes }) => {
       })
     )
     .set(
+      'longAmount',
+      number(['longAmount'], 'Long Range', {
+        order: 3,
+        showIf: local.field(['rangeKind']).eq('DISTANCE')
+      })
+    )
+    .set(
       'unit',
       selectSingle(
         ['unit'],
@@ -49,7 +56,7 @@ export const RANGE_NODE_MAP = range.define('range', ({ map, cond, nodes }) => {
           options: MEASUREMENT_UNIT_OPTIONS
         },
         {
-          order: 3,
+          order: 4,
           requiredIf: true,
           showIf: local.field(['rangeKind']).eq('DISTANCE')
         }
@@ -59,7 +66,7 @@ export const RANGE_NODE_MAP = range.define('range', ({ map, cond, nodes }) => {
       'scaling',
       groupObject(['scaling'], 'Scaling', () => RANGE_SCALING_NODE_MAP, {
         presentation: 'inline',
-        order: 4,
+        order: 5,
         showIf: local.field(['rangeKind']).eq('DISTANCE')
       })
     )

@@ -1,13 +1,7 @@
 import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { EncounterProjectionActorInput } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import {
-  compileEffect,
-  type CompiledDamageEffect,
-  type CompiledEffect,
-  type CompiledEffectGroup
-} from '@artificer-toolkit/shared/compilers'
-import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
+import { compileEffect, type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
@@ -251,160 +245,49 @@ function snapshotLoadout(actor: EncounterProjectionActorInput) {
   return snapshotCreatureEquipmentLoadout(actor)
 }
 
-type DamageSignature = {
-  damageTypeId: string
-  dice: readonly { count: number; die: number }[]
-}
-
-function damageSignatures(effect: CompiledEffectGroup): readonly DamageSignature[] {
-  return effect.entries.flatMap((entry) => {
-    if (
-      entry.pathCode !== 'ON_HIT' ||
-      !('outcome' in entry) ||
-      entry.outcome.effectKind !== 'DAMAGE' ||
-      entry.outcome.valueKind !== 'DICE' ||
-      !('dice' in entry.outcome) ||
-      typeof entry.outcome.dice !== 'string'
-    ) {
-      return []
-    }
-    const parsed = parseRollExpression(entry.outcome.dice)
-    return [
-      {
-        damageTypeId: entry.outcome.damageTypeId,
-        dice: parsed.terms.map((term) => ({ count: term.count, die: term.die }))
-      }
-    ]
-  })
-}
-
-function hasSameBaseDamage(input: {
-  equipmentEffect: CompiledEffectGroup
-  featureEffect: CompiledEffectGroup
-}): boolean {
-  if (input.equipmentEffect.invocation.triggerCode !== input.featureEffect.invocation.triggerCode) {
-    return false
-  }
-  const equipmentDamage = damageSignatures(input.equipmentEffect)
-  const featureDamage = damageSignatures(input.featureEffect)
-  return (
-    equipmentDamage.length > 0 &&
-    equipmentDamage.every((expected) =>
-      featureDamage.some(
-        (actual) =>
-          actual.damageTypeId === expected.damageTypeId &&
-          JSON.stringify(actual.dice) === JSON.stringify(expected.dice)
-      )
+/** The damage types of an Effect's hit damage, dice or fixed. */
+function hitDamageTypeIds(effect: CompiledEffectGroup): ReadonlySet<string> {
+  return new Set(
+    effect.entries.flatMap((entry) =>
+      entry.pathCode === 'ON_HIT' && 'outcome' in entry && entry.outcome.effectKind === 'DAMAGE'
+        ? [entry.outcome.damageTypeId]
+        : []
     )
   )
 }
 
-type CompiledDiceDamageEffect = CompiledDamageEffect & {
-  valueKind: 'DICE'
-  dice: string
-}
-
-type SimpleHitDamageEntry = CompiledEffect & {
-  pathCode: 'ON_HIT'
-  outcome: CompiledDiceDamageEffect
-}
-
-function hitDamageEntry(
-  entry: CompiledEffectGroup['entries'][number] | undefined
-): SimpleHitDamageEntry | null {
-  if (
-    entry === undefined ||
-    entry.pathCode !== 'ON_HIT' ||
-    !('outcome' in entry) ||
-    entry.outcome.effectKind !== 'DAMAGE' ||
-    entry.outcome.valueKind !== 'DICE' ||
-    !('dice' in entry.outcome) ||
-    typeof entry.outcome.dice !== 'string'
-  ) {
-    return null
-  }
-  return entry as SimpleHitDamageEntry
-}
-
-function simpleHitDamageEntry(effect: CompiledEffectGroup): SimpleHitDamageEntry | null {
-  if (effect.entries.length !== 1) return null
-  return hitDamageEntry(effect.entries[0])
-}
-
-function composeBaseEquipmentEffect(input: {
+/**
+ * A Creature Feature acts through the Equipment it holds when both are the same kind of attack and
+ * the Feature deals every damage type the Equipment does. The Feature authors its own printed hit
+ * damage (an SRD monster's weapon dice scale with its size, and traits such as Brute add dice);
+ * the Equipment gives the action its identity and properties (D62, M9).
+ */
+function actsThroughEquipment(input: {
   equipmentEffect: CompiledEffectGroup
   featureEffect: CompiledEffectGroup
-}): CompiledEffectGroup {
-  const equipmentEntry = simpleHitDamageEntry(input.equipmentEffect)
-  const equipmentDice = equipmentEntry
-    ? parseRollExpression(equipmentEntry.outcome.dice).terms.map((term) => ({
-        count: term.count,
-        die: term.die
-      }))
-    : []
-  const matchingFeatureEntries = equipmentEntry
-    ? input.featureEffect.entries.flatMap((entry) => {
-        const candidate = hitDamageEntry(entry)
-        return candidate &&
-          candidate.outcome.damageTypeId === equipmentEntry.outcome.damageTypeId &&
-          JSON.stringify(
-            parseRollExpression(candidate.outcome.dice).terms.map((term) => ({
-              count: term.count,
-              die: term.die
-            }))
-          ) === JSON.stringify(equipmentDice)
-          ? [candidate]
-          : []
-      })
-    : []
-  const featureEntry = matchingFeatureEntries.length === 1 ? matchingFeatureEntries[0] : null
-  if (equipmentEntry === null || featureEntry === null || !hasSameBaseDamage(input)) {
-    throw new Error(
-      'Creature Feature base Equipment action must use a single matching hit-damage path.'
-    )
-  }
-  return {
-    ...input.equipmentEffect,
-    id: input.featureEffect.id,
-    order: input.featureEffect.order,
-    invocation: input.featureEffect.invocation,
-    entries: input.featureEffect.entries.map((entry) =>
-      entry === featureEntry
-        ? {
-            ...equipmentEntry,
-            outcome: {
-              ...equipmentEntry.outcome,
-              dice: featureEntry.outcome.dice,
-              ...(featureEntry.outcome.bonuses === undefined
-                ? {}
-                : { bonuses: featureEntry.outcome.bonuses })
-            }
-          }
-        : entry
-    )
-  }
+}): boolean {
+  if (input.equipmentEffect.invocation.triggerCode !== input.featureEffect.invocation.triggerCode)
+    return false
+  const equipmentTypes = hitDamageTypeIds(input.equipmentEffect)
+  const featureTypes = hitDamageTypeIds(input.featureEffect)
+  return equipmentTypes.size > 0 && [...equipmentTypes].every((type) => featureTypes.has(type))
 }
 
-type FeatureEquipmentResolution = {
-  binding: EncounterFeatureActionCapabilityDescriptor['equipmentBinding']
-  effectiveCompiledEffect: CompiledEffectGroup
-}
-
-export function resolveFeatureEquipmentAction(input: {
-  actor: EncounterProjectionActorInput
-  ownerFeature: FeatureDto
-  featureEffects: readonly CompiledEffectGroup[]
+/** The Equipment an entry's action Feature acts through, if its loadout binds one. */
+function entryEquipmentBinding(
+  actor: EncounterProjectionActorInput,
+  entry: FeatureEffectEntry,
   candidate: CompiledEffectGroup
-}): FeatureEquipmentResolution {
-  const loadout = snapshotLoadout(input.actor)
-  const bindings = loadout.filter((entry) => entry.actionFeatureIds.includes(input.ownerFeature.id))
-  if (bindings.length === 0) {
-    return { binding: null, effectiveCompiledEffect: input.candidate }
-  }
+): EncounterFeatureActionCapabilityDescriptor['equipmentBinding'] {
+  const equipmentFeature = entry.actionFeature ?? entry.ownerFeature
+  const bindings = snapshotLoadout(actor).filter((loadoutEntry) =>
+    loadoutEntry.actionFeatureIds.includes(equipmentFeature.id)
+  )
+  if (bindings.length === 0) return null
   if (bindings.length !== 1) {
     throw new Error('Creature Feature action has ambiguous Equipment loadout bindings.')
   }
-  const source = snapshotCreatureEquipmentSources(input.actor).find(
+  const source = snapshotCreatureEquipmentSources(actor).find(
     (candidate) => candidate.loadoutEntryId === bindings[0]!.id
   )
   if (!source) throw new Error('Creature Feature action is missing its pinned Equipment source.')
@@ -415,46 +298,40 @@ export function resolveFeatureEquipmentAction(input: {
     throw new Error('Creature Feature action Equipment source has no compiled action mechanics.')
   }
   const matchingEquipmentEffect = equipmentEffects.find(
-    (effect) => effect.invocation.triggerCode === input.candidate.invocation.triggerCode
+    (effect) => effect.invocation.triggerCode === candidate.invocation.triggerCode
   )
   if (!matchingEquipmentEffect) {
     throw new Error('Creature Feature action does not match an Equipment action trigger.')
   }
+  const featureEffects = [
+    ...(equipmentFeature.effects ?? []),
+    ...(equipmentFeature.options ?? []).flatMap((option) => option.effects ?? [])
+  ]
   if (
-    !input.featureEffects.some((effect) =>
-      hasSameBaseDamage({
-        equipmentEffect: matchingEquipmentEffect,
-        featureEffect: effect
-      })
+    !featureEffects.some(
+      (effect) =>
+        effect.invocation.kind === 'ACTION' &&
+        actsThroughEquipment({
+          equipmentEffect: matchingEquipmentEffect,
+          featureEffect: compileEffect(effect)
+        })
     )
   ) {
-    throw new Error(
-      'Creature Feature action does not preserve its Equipment base damage mechanics.'
-    )
+    throw new Error('Creature Feature action does not deal its Equipment damage types.')
   }
-  const binding = {
+  return {
     loadoutEntryId: source.loadoutEntryId,
     equipmentId: source.equipmentId,
     sourceRevision: source.sourceRevision,
     sourceVersionId: source.sourceVersionId,
     sourceChecksum: source.sourceChecksum
   }
-  const effectiveCompiledEffect = hasSameBaseDamage({
-    equipmentEffect: matchingEquipmentEffect,
-    featureEffect: input.candidate
-  })
-    ? composeBaseEquipmentEffect({
-        equipmentEffect: matchingEquipmentEffect,
-        featureEffect: input.candidate
-      })
-    : input.candidate
-  return { binding, effectiveCompiledEffect }
 }
 
 /**
  * Validates every action-bound feature against the effective loadout before an
  * Encounter-owned equipment overlay is persisted. It intentionally reuses the
- * same composition rule that discovery uses for future action capabilities.
+ * same binding rule that discovery uses for future action capabilities.
  */
 export function assertEncounterCreatureEquipmentLoadoutCapabilities(
   actor: EncounterProjectionActorInput
@@ -464,29 +341,9 @@ export function assertEncounterCreatureEquipmentLoadoutCapabilities(
     for (const entry of featureEffectEntries(feature, features)) {
       const candidate = compileEffect(entry.effect)
       if (candidate.invocation.kind !== 'ACTION') continue
-      resolveEntryEquipmentAction(actor, entry, candidate)
+      entryEquipmentBinding(actor, entry, candidate)
     }
   }
-}
-
-/** Resolves an entry's action against the Equipment its action Feature is bound to, if any. */
-function resolveEntryEquipmentAction(
-  actor: EncounterProjectionActorInput,
-  entry: FeatureEffectEntry,
-  candidate: CompiledEffectGroup
-): FeatureEquipmentResolution {
-  const equipmentFeature = entry.actionFeature ?? entry.ownerFeature
-  return resolveFeatureEquipmentAction({
-    actor,
-    ownerFeature: equipmentFeature,
-    featureEffects: [
-      ...(equipmentFeature.effects ?? []),
-      ...(equipmentFeature.options ?? []).flatMap((option) => option.effects ?? [])
-    ]
-      .map((effect) => compileEffect(effect))
-      .filter((effect) => effect.invocation.kind === 'ACTION'),
-    candidate
-  })
 }
 
 function actionId(
@@ -540,7 +397,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   if (!entry || (entry.actionFeature?.id ?? null) !== capability.actionFeatureId)
     throw new Error('Encounter feature action capability Effect is stale.')
   const { effect } = entry
-  const featureCompiledEffect = compileEffect(effect)
+  const compiledEffect = compileEffect(effect)
   if (
     capability.entryPointDefinitionId !== effect.id ||
     capability.actionId !==
@@ -550,8 +407,6 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   ) {
     throw new Error('Encounter feature action capability authored Effect is stale.')
   }
-  const equipmentResolution = resolveEntryEquipmentAction(actor, entry, featureCompiledEffect)
-  const compiledEffect = equipmentResolution.effectiveCompiledEffect
   if (
     capability.compiledEffectChecksum !== checksumRuleDocument(compiledEffect) ||
     checksumRuleDocument(capability.compiledEffect) !== checksumRuleDocument(compiledEffect)
@@ -566,7 +421,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   }
   if (
     JSON.stringify(capability.equipmentBinding ?? null) !==
-    JSON.stringify(equipmentResolution.binding)
+    JSON.stringify(entryEquipmentBinding(actor, entry, compiledEffect))
   ) {
     throw new Error('Encounter feature action Equipment binding is stale.')
   }
@@ -707,12 +562,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           // One action's invalid authored mechanics make only that action unavailable (D54).
           try {
             const compiledEffect = compileEffect(effect)
-            const equipmentResolution = resolveEntryEquipmentAction(
-              input.actor,
-              entry,
-              compiledEffect
-            )
-            const effectiveCompiledEffect = equipmentResolution.effectiveCompiledEffect
+            const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
             const normalized = adapter.compile({
               encounterActorId: input.actor.id,
               creatureSourceId: provenance.creatureSourceId,
@@ -722,7 +572,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               sourceChecksum: provenance.sourceChecksum,
               ownerFeature: entry.ownerFeature,
               featureOption: entry.featureOption,
-              compiledEffect: effectiveCompiledEffect,
+              compiledEffect,
               conditionDefinitionIds: input.conditionDefinitionIds ?? [],
               abilityDefinitions: input.abilityDefinitions ?? []
             })
@@ -742,11 +592,11 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               label,
               grip: effect.grip ?? null,
               sourceId: ownerFeatureId,
-              mechanicFacts: normalizeCharacterActionMechanicFacts(effectiveCompiledEffect),
+              mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
               conditionDefinitionIds:
                 normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
               savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
-              compiledEffect: effectiveCompiledEffect,
+              compiledEffect,
               encounterActorId: input.actor.id,
               ownerFeatureId,
               featureOptionId,
@@ -754,10 +604,10 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               ownerRuleDefinitionIds: entry.ownerFeature.ruleDefinitionIds ?? [],
               optionRuleDefinitionIds: entry.featureOption?.ruleDefinitionIds ?? [],
               authoredEffectChecksum: checksumRuleDocument(effect),
-              compiledEffectChecksum: checksumRuleDocument(effectiveCompiledEffect),
-              featureResourceUse: featureResourceUse(entry, effectiveCompiledEffect),
-              equipmentBinding: equipmentResolution.binding,
-              attackMechanic: featureAttackMechanic(entry, effectiveCompiledEffect),
+              compiledEffectChecksum: checksumRuleDocument(compiledEffect),
+              featureResourceUse: featureResourceUse(entry, compiledEffect),
+              equipmentBinding,
+              attackMechanic: featureAttackMechanic(entry, compiledEffect),
               ...provenance
             })
           } catch (error) {

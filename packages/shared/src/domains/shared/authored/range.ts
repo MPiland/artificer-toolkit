@@ -14,6 +14,8 @@ export type RangeAuthored =
       id: string
       rangeKind: Extract<RangeKind, 'DISTANCE'>
       amount: number
+      /** A ranged weapon attack's long range; beyond `amount` the attack has disadvantage. */
+      longAmount?: number
       unit: MeasurementUnitCode
       scaling?: ScalableValueAuthored<RangeMeasurementAuthored>
     }

@@ -6,7 +6,11 @@ import {
 import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
-import type { CompiledDamageEffect, CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type {
+  CompiledDamageEffect,
+  CompiledDuration,
+  CompiledEffectGroup
+} from '@artificer-toolkit/shared/compilers'
 import type {
   ActorRelationshipAuthored,
   HitPointMaximumReductionAuthored
@@ -83,7 +87,10 @@ export const DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY = 'dnd5e.condition-app
 export const DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY =
   'dnd5e.movement-interruption-authorization'
 const DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY = 'dnd5e.actor-relationship-state'
+const DND5E_CONDITION_DURATION_OPERATION_KEY = 'dnd5e.condition-duration'
 const DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION = 1
+/** The most target turns an Encounter active effect counts (its persisted tick bound). */
+const MAX_ACTIVE_EFFECT_TURNS = 10_000
 export const DND5E_TARGET_ACTOR_FACT_KEY = 'encounter.target-actor-id'
 export const DND5E_ATTACK_MODIFIER_FACT_KEY = 'dnd5e.attack-modifier'
 export const DND5E_TARGET_DEFENSE_FACT_KEY = 'dnd5e.target-defense'
@@ -100,6 +107,24 @@ export const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
   ON_SAVE_FAIL: 'dnd5e.target-condition-immune.on-save-fail',
   ON_SAVE_SUCCESS: 'dnd5e.target-condition-immune.on-save-success'
 } as const
+/**
+ * A result path may apply several conditions ("grappled, and restrained until the grapple ends"),
+ * each with its own immunity fact: the path's key for the first, `<key>.<n>` for the n-th.
+ */
+const MAX_CONDITIONS_PER_PATH = 4
+function conditionImmuneFactKey(pathCode: string, ordinal: number): string | undefined {
+  const key =
+    DND5E_CONDITION_IMMUNE_FACT_KEYS[pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS]
+  if (!key || !Number.isSafeInteger(ordinal) || ordinal < 1 || ordinal > MAX_CONDITIONS_PER_PATH)
+    return undefined
+  return ordinal === 1 ? key : `${key}.${ordinal}`
+}
+/** Whether a condition node's immunity fact is one of its result path's keys. */
+function isPathConditionImmuneFactKey(factKey: string, pathCode: string): boolean {
+  return Array.from({ length: MAX_CONDITIONS_PER_PATH }, (_, index) =>
+    conditionImmuneFactKey(pathCode, index + 1)
+  ).includes(factKey)
+}
 export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_USE: 'dnd5e.resolved-damage-expression.on-use',
   ON_HIT: 'dnd5e.resolved-damage-expression.on-hit',
@@ -117,6 +142,7 @@ export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
   'dnd5e.active-effect-save-request-node-id'
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY =
   'dnd5e.active-effect-repeat-save-condition-id'
+const DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY = 'dnd5e.active-effect-timed-condition-id'
 export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-roll-influence'
 export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY =
@@ -362,9 +388,17 @@ function isSupportedTestTargetPolicy(
   ) {
     return false
   }
+  const attackKind = dnd5eAttackKind(invocation.triggerCode)
+  // Only a ranged weapon attack has a long range ("range 80/320 ft.").
+  if (
+    invocation.range.rangeKind === 'DISTANCE' &&
+    invocation.range.longAmount !== undefined &&
+    (attackKind !== 'RANGED' || !Number.isSafeInteger(invocation.range.longAmount))
+  )
+    return false
   if (invocation.activation.code === 'ACTION') {
     // A melee attack may reach 0 ft.: a swarm's "one target in the swarm's space".
-    const minimumDistance = isDnd5eMeleeAttackKind(dnd5eAttackKind(invocation.triggerCode)) ? 0 : 1
+    const minimumDistance = isDnd5eMeleeAttackKind(attackKind) ? 0 : 1
     return (
       invocation.range.rangeKind === 'UNLIMITED' ||
       invocation.range.rangeKind === 'TOUCH' ||
@@ -994,31 +1028,16 @@ function repeatingImmediateFollowUpSavePlan(
   ) {
     return null
   }
-  const firstEntry = action.compiledEffect.entries[0]
-  const duration = firstEntry && 'duration' in firstEntry ? firstEntry.duration : undefined
-  // A condition that lasts "1 minute" ends after 10 of the target's turns (SRD 5.1).
-  const roundsPerUnit =
-    duration?.durationKind === 'ROUND' ? 1 : duration?.durationKind === 'MINUTE' ? 10 : null
-  if (
-    duration &&
-    (roundsPerUnit === null ||
-      !('amount' in duration) ||
-      duration.scaling ||
-      !Number.isSafeInteger(duration.amount) ||
-      duration.amount < 1)
-  ) {
-    return null
-  }
+  const duration = immediateFollowUpSaveDuration(action)
+  const initialRemaining = duration ? conditionDurationTurns(duration) : null
+  if (duration && initialRemaining === null) return null
   return {
     authoredEffectId: action.effectId,
     compiledEntryId: saveEntry.resultBlockId,
     frozenGraphNodeId: 'repeat-save-test',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
-    initialRemaining:
-      duration && 'amount' in duration && roundsPerUnit !== null
-        ? duration.amount * roundsPerUnit
-        : null,
+    initialRemaining,
     conditionContribution: { conditionId: condition.conditionId },
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
@@ -1029,6 +1048,110 @@ function repeatingImmediateFollowUpSavePlan(
     perceptionContributions: [],
     maintenance: null
   }
+}
+
+/** The authored duration of a hit's result block, which its follow-up save's condition lasts. */
+function immediateFollowUpSaveDuration(
+  action: Dnd5eCompiledEffectActionSource
+): CompiledDuration | undefined {
+  const firstEntry = action.compiledEffect.entries[0]
+  return firstEntry && 'duration' in firstEntry ? firstEntry.duration : undefined
+}
+
+const TURNS_PER_DURATION_UNIT: Partial<Record<CompiledDuration['durationKind'], number>> = {
+  ROUND: 1,
+  MINUTE: 10,
+  HOUR: 600
+}
+
+/**
+ * A condition's duration in the target's turns: "1 minute" ends after 10 of them (SRD 5.1). Null
+ * for a duration the active-effect lifecycle cannot count (scaled, too long, or not timed).
+ */
+function conditionDurationTurns(duration: CompiledDuration): number | null {
+  const perUnit = TURNS_PER_DURATION_UNIT[duration.durationKind]
+  if (
+    perUnit === undefined ||
+    !('amount' in duration) ||
+    duration.scaling ||
+    !Number.isSafeInteger(duration.amount) ||
+    duration.amount < 1
+  )
+    return null
+  const turns = duration.amount * perUnit
+  return turns <= MAX_ACTIVE_EFFECT_TURNS ? turns : null
+}
+
+/**
+ * A one-time save's condition with a duration (D62.2, "poisoned for 1 minute"): the condition the
+ * failed save applies is owned by an Encounter active effect that counts the target's turns and
+ * removes it after the last one. No save repeats.
+ */
+function timedImmediateConditionPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const duration = immediateFollowUpSaveDuration(action)
+  const resolved = immediateFollowUpSaveEntries(action.compiledEffect.entries)
+  if (
+    !duration ||
+    !resolved ||
+    exactImmediateFollowUpSaveShape(action.compiledEffect.entries) !== 'CONDITION_ON_FAILURE'
+  )
+    return null
+  const failure = resolved.saveEntry.outcome.onFailure
+  const condition = failure.kind === 'OUTCOMES' ? failure.outcomes[0] : undefined
+  const initialRemaining = conditionDurationTurns(duration)
+  if (
+    condition?.effectKind !== 'CONDITION' ||
+    initialRemaining === null ||
+    !(action.conditionDefinitionIds ?? []).includes(condition.conditionId) ||
+    !UUID.test(resolved.saveEntry.resultBlockId)
+  )
+    return null
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: resolved.saveEntry.resultBlockId,
+    frozenGraphNodeId: 'condition-duration',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'END_OF_TURN',
+    initialRemaining,
+    conditionContribution: { conditionId: condition.conditionId },
+    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: condition.conditionId },
+    perceptionContributions: [],
+    maintenance: null
+  }
+}
+
+/** The recurrence graph of a timed condition: one pure node the target's turn ends tick. */
+function conditionDurationPublishedGraph(input: {
+  action: Dnd5eCompiledEffectActionSource
+  plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
+  conditionId: string
+}): ServerPublishedRuleDefinitionDto {
+  const definition: RuleGraphDefinition = {
+    schemaVersion: 1,
+    id: input.action.effectId,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+    nodes: [
+      {
+        id: input.plan.frozenGraphNodeId,
+        operation: { key: DND5E_CONDITION_DURATION_OPERATION_KEY, contractVersion: 1 },
+        inputs: {}
+      }
+    ],
+    outputs: { conditionId: { kind: 'LITERAL', value: input.conditionId } },
+    sourceEntryBindings: [
+      { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId }
+    ]
+  }
+  return serverPublishedRuleDefinitionDtoSchema.parse({
+    id: definition.id,
+    gameSystemId: definition.gameSystemId,
+    definitionFamilyKey: definition.definitionFamilyKey,
+    checksum: checksumRuleDocument(definition),
+    definition
+  })
 }
 
 /**
@@ -1437,14 +1560,17 @@ function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSou
     .onFailure
   const shape = exactImmediateFollowUpSaveShape(action.compiledEffect.entries)
   // A repeating save runs only with its active-effect plan; without one the condition would
-  // never be saved against again.
-  // Only the repeating save's condition may carry a duration.
-  const lasting = action.compiledEffect.entries.some(
-    (entry) => 'duration' in entry && (entry.duration || entry.lifecycle)
-  )
+  // never be saved against again. A duration belongs to the repeating save's condition or to a
+  // one-time save's condition (D62.2), which its own active effect times.
+  const entries = action.compiledEffect.entries
+  const lifecycle = entries.some((entry) => 'lifecycle' in entry && entry.lifecycle)
+  const timed = entries.some((entry) => 'duration' in entry && entry.duration)
   return (
     testPhaseKindOrNull(action) === 'ATTACK' &&
-    ((shape !== null && shape !== 'REPEATING_CONDITION' && !lasting) ||
+    ((shape !== null &&
+      shape !== 'REPEATING_CONDITION' &&
+      !lifecycle &&
+      (!timed || timedImmediateConditionPlan(action) !== null)) ||
       repeatingImmediateFollowUpSavePlan(action) !== null) &&
     (failure?.kind !== 'OUTCOMES' ||
       failure.outcomes.every(
@@ -1735,7 +1861,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       invocation.range.rangeKind === 'TOUCH' ||
       (invocation.range.rangeKind === 'DISTANCE' &&
         Number.isSafeInteger(invocation.range.amount) &&
-        invocation.range.amount > 0)) &&
+        invocation.range.amount > 0 &&
+        invocation.range.longAmount === undefined)) &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
     invocation.targeting.dispositionKind === 'ANY' &&
     !invocation.targeting.excludedCreatureTypeIds?.length
@@ -2445,6 +2572,15 @@ export const dnd5eActorRelationshipStateOperation: PureRuleOperationContract = {
   outputs: {},
   execute: () => ({})
 }
+/** Marks one counted turn of a timed condition; the effect planner owns its removal. */
+export const dnd5eConditionDurationOperation: PureRuleOperationContract = {
+  key: DND5E_CONDITION_DURATION_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PURE',
+  inputs: {},
+  outputs: {},
+  execute: () => ({})
+}
 export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
   gameSystemId: DND5E_SYSTEM_ID,
   contractVersion: 1,
@@ -2483,10 +2619,12 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       key: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
       valueKind: RULE_VALUE_KIND.BOOLEAN
     },
-    ...Object.values(DND5E_CONDITION_IMMUNE_FACT_KEYS).map((key) => ({
-      key,
-      valueKind: RULE_VALUE_KIND.BOOLEAN
-    })),
+    ...Object.keys(DND5E_CONDITION_IMMUNE_FACT_KEYS).flatMap((pathCode) =>
+      Array.from({ length: MAX_CONDITIONS_PER_PATH }, (_, index) => ({
+        key: conditionImmuneFactKey(pathCode, index + 1)!,
+        valueKind: RULE_VALUE_KIND.BOOLEAN
+      }))
+    ),
     ...Object.values(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).map((key) => ({
       key,
       valueKind: RULE_VALUE_KIND.TEXT
@@ -2529,6 +2667,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_HEAL_TOTAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
+    DND5E_CONDITION_DURATION_OPERATION_KEY,
     DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
     DND5E_ATTACK_TEST_OPERATION_KEY,
     DND5E_SAVE_TEST_OPERATION_KEY,
@@ -2730,7 +2869,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     unsupported('D&D test action has an unsupported bounded shape.')
   }
   const paths = new Set<string>()
-  const conditionPaths = new Set<string>()
+  const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
     if ('outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP') continue
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
@@ -2753,10 +2892,13 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     if (outcome.kind === 'CONDITION_APPLY') {
       if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
         unsupported('D&D test action condition is not in the pinned System vocabulary.')
-      // Each result path binds one condition-immunity fact.
-      if (conditionPaths.has(entry.pathCode))
-        unsupported('D&D test action outcome is not supported: one path applies two conditions.')
-      conditionPaths.add(entry.pathCode)
+      // Each of a result path's conditions binds its own condition-immunity fact.
+      const count = (conditionCounts.get(entry.pathCode) ?? 0) + 1
+      if (count > MAX_CONDITIONS_PER_PATH)
+        unsupported(
+          'D&D test action outcome is not supported: one path applies too many conditions.'
+        )
+      conditionCounts.set(entry.pathCode, count)
     }
   }
   for (const pathCode of paths) {
@@ -3583,6 +3725,8 @@ function fixedOutcomeGraphDefinition(input: {
   entry: CompiledEffectGroup['entries'][number]
   outcome: Outcome
   nodePrefix?: string
+  /** The condition's place among its path's conditions, which selects its immunity fact. */
+  conditionOrdinal?: number
 }): RuleGraphDefinition {
   const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
   const operation =
@@ -3611,9 +3755,8 @@ function fixedOutcomeGraphDefinition(input: {
           conditionImmune: {
             kind: 'FACT' as const,
             factKey:
-              DND5E_CONDITION_IMMUNE_FACT_KEYS[
-                input.entry.pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS
-              ]
+              conditionImmuneFactKey(input.entry.pathCode, input.conditionOrdinal ?? 1) ??
+              unsupported('D&D result path applies too many conditions.')
           }
         }
       : {
@@ -3892,7 +4035,20 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
           ...groupNodePrefix
         })
       : entries.length === 1
-        ? fixedOutcomeGraphDefinition({ action: input.action, entry, outcome, ...groupNodePrefix })
+        ? fixedOutcomeGraphDefinition({
+            action: input.action,
+            entry,
+            outcome,
+            ...groupNodePrefix,
+            conditionOrdinal: groups
+              .slice(0, groupIndex + 1)
+              .filter(
+                ([candidate]) =>
+                  candidate?.pathCode === entry.pathCode &&
+                  'outcome' in candidate &&
+                  candidate.outcome.effectKind === 'CONDITION'
+              ).length
+          })
         : unsupported('D&D fixed outcome path must compile to one direct result.')
   })
   const definition = mergedOutcomeGraphDefinition({
@@ -4653,17 +4809,17 @@ function conditionImmunityFacts(
       path?.kind === 'LITERAL' && typeof path.value === 'string'
         ? path.value
         : proposalNodePathCode(node.id)
-    const factKey = legacySingleCondition
-      ? DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
-      : pathCode
-        ? DND5E_CONDITION_IMMUNE_FACT_KEYS[
-            pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS
-          ]
-        : undefined
-    if (!factKey || !binding || binding.kind !== 'FACT' || binding.factKey !== factKey)
+    if (
+      !binding ||
+      binding.kind !== 'FACT' ||
+      (legacySingleCondition
+        ? binding.factKey !== DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
+        : !pathCode || !isPathConditionImmuneFactKey(binding.factKey, pathCode))
+    )
       throw new Dnd5eEffectActionCompilerError(
         'The D&D condition action immunity binding is invalid.'
       )
+    const factKey = binding.factKey
     const previous = identitiesByFactKey.get(factKey)
     if (previous !== undefined && previous !== conditionId.value)
       throw new Dnd5eEffectActionCompilerError(
@@ -4733,12 +4889,13 @@ function interpretDirectProposal(
       authoredPathBinding?.kind === 'LITERAL' && typeof authoredPathBinding.value === 'string'
         ? authoredPathBinding.value
         : proposalNodePathCode(publishedNode.id)
+    const conditionBinding = publishedNode.inputs.conditionImmune
     const conditionFactKey = legacySingleCondition
       ? DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
-      : authoredPath
-        ? DND5E_CONDITION_IMMUNE_FACT_KEYS[
-            authoredPath as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS
-          ]
+      : authoredPath &&
+          conditionBinding?.kind === 'FACT' &&
+          isPathConditionImmuneFactKey(conditionBinding.factKey, authoredPath)
+        ? conditionBinding.factKey
         : undefined
     const conditionFacts = conditionImmunityFacts(graph, input.conditionImmunityIds)
     if (
@@ -5718,16 +5875,23 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
     const repeatPlan =
       repeatingDirectFollowUpSavePlan(action) ?? repeatingImmediateFollowUpSavePlan(action)
+    const timedPlan = repeatPlan ? null : timedImmediateConditionPlan(action)
     const relationship = relationshipPlan(action)
-    const plan = repeatPlan ?? relationship ?? supportedRecurringPlan(action)
+    const plan = repeatPlan ?? timedPlan ?? relationship ?? supportedRecurringPlan(action)
     if (!plan) return []
     const frozenGraph = repeatPlan
       ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
-      : relationship
-        ? relationship.frozenGraph
-        : published
-    const test = repeatPlan || relationship ? null : testPlan(action)
-    const outcome = repeatPlan || relationship || test ? null : supported(action)
+      : timedPlan?.conditionContribution
+        ? conditionDurationPublishedGraph({
+            action,
+            plan: timedPlan,
+            conditionId: timedPlan.conditionContribution.conditionId
+          })
+        : relationship
+          ? relationship.frozenGraph
+          : published
+    const test = repeatPlan || timedPlan || relationship ? null : testPlan(action)
+    const outcome = repeatPlan || timedPlan || relationship || test ? null : supported(action)
     const firstEntry = action.compiledEffect.entries[0]
     const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
     const expectedOperation = relationship
@@ -5736,19 +5900,21 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
       : repeatPlan
         ? DND5E_SAVE_TEST_OPERATION_KEY
-        : test && recurringOutcome
-          ? testProposalOperationKey(boundedTestOutcome(action.compiledEffect.entries[0]!))
-          : outcome?.kind === 'DICE_HEAL'
-            ? outcome.temporary
-              ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-              : DND5E_HEAL_PROPOSAL_OPERATION_KEY
-            : outcome?.kind === 'HEAL'
-              ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
-              : outcome?.kind === 'TEMPORARY_HIT_POINTS'
+        : timedPlan
+          ? DND5E_CONDITION_DURATION_OPERATION_KEY
+          : test && recurringOutcome
+            ? testProposalOperationKey(boundedTestOutcome(action.compiledEffect.entries[0]!))
+            : outcome?.kind === 'DICE_HEAL'
+              ? outcome.temporary
                 ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-                : outcome?.kind === 'DAMAGE'
-                  ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-                  : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+                : DND5E_HEAL_PROPOSAL_OPERATION_KEY
+              : outcome?.kind === 'HEAL'
+                ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
+                : outcome?.kind === 'TEMPORARY_HIT_POINTS'
+                  ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
+                  : outcome?.kind === 'DAMAGE'
+                    ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+                    : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
     if (
       frozenGraph.definition.nodes.filter(
         (node) => node.id === plan.frozenGraphNodeId && node.operation.key === expectedOperation
@@ -6371,6 +6537,29 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       graph.source.gameSystemId !== DND5E_SYSTEM_ID
     )
       throw new Dnd5eEffectActionCompilerError('D&D active-effect execution source is invalid.')
+    // A timed condition (D62.2) ends after the target's last counted turn.
+    const timedConditionId = definition.adapterFacts[DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]
+    if (timedConditionId !== undefined) {
+      if (typeof timedConditionId !== 'string' || !UUID.test(timedConditionId))
+        throw new Dnd5eEffectActionCompilerError('D&D timed condition identity is unavailable.')
+      return lifecycle.remainingTicks === 1
+        ? {
+            applications: [
+              {
+                kind: 'CONDITION_REMOVE' as const,
+                conditionId: timedConditionId,
+                sourceActiveEffectId: activeEffectId,
+                targetActorId: target.targetActorId,
+                sourceNodeId: definition.frozenGraphNodeId,
+                sourceOperationKey: DND5E_CONDITION_DURATION_OPERATION_KEY,
+                authoredPath: null,
+                resolvedPath: null
+              }
+            ],
+            terminal: true
+          }
+        : { applications: [], terminal: false, emptyApplicationAllowed: true }
+    }
     const published = publishedDefinitionForFrozenGraph(graph)
     const repeatedSavePath = repeatedFollowUpSaveResultPath({
       execution,

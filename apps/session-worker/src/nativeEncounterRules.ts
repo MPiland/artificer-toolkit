@@ -213,6 +213,31 @@ export async function planNativeLiveEncounterAction(
       selectedActors.map(async (actor) => [actor.id, await loadTarget(actor)] as const)
     )
   )
+  const capturedScene = command.sceneContext
+    ? await capture({
+        kind: 'ACTION_SCENE',
+        command: {
+          actorId: command.actorId,
+          targetActorId: command.targetActorId,
+          sceneContext: command.sceneContext
+        }
+      })
+    : null
+  if (capturedScene && capturedScene.kind !== 'ACTION_SCENE')
+    throw new Error('Action Scene context is unavailable.')
+  const sceneInputs = capturedScene?.context ?? null
+  const sceneContext = sceneInputs
+    ? {
+        sceneId: sceneInputs.sceneId,
+        sceneVersion: sceneInputs.sceneVersion,
+        sourceToken: sceneInputs.sourceToken,
+        targetToken: sceneInputs.targetToken,
+        grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+          encounter: state,
+          sceneGrid: sceneInputs.sceneGrid
+        })
+      }
+    : null
   // An ally's Help (basic action, Q11) gives this actor's next attack roll advantage.
   const allyAdvantage = encounterBasicActionAllyAdvantage({ actors, attackerId: command.actorId })
   const prepared = await prepareEncounterActionMechanics({
@@ -224,6 +249,7 @@ export async function planNativeLiveEncounterAction(
     wieldConflictAcceptance: { kind: 'PROMPTED', accepted: command.acceptedWieldConflict },
     overridable: true,
     movementTargets,
+    sceneContext,
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>
       mergeCanonicalD20Contributors(
@@ -252,31 +278,6 @@ export async function planNativeLiveEncounterAction(
     allyAdvantage && typeof prepared.binding.actionMechanic.attackBonus === 'number'
       ? [{ helperActorId: allyAdvantage.helperActorId, effect: allyAdvantage.effect }]
       : []
-  const capturedScene = command.sceneContext
-    ? await capture({
-        kind: 'ACTION_SCENE',
-        command: {
-          actorId: command.actorId,
-          targetActorId: command.targetActorId,
-          sceneContext: command.sceneContext
-        }
-      })
-    : null
-  if (capturedScene && capturedScene.kind !== 'ACTION_SCENE')
-    throw new Error('Action Scene context is unavailable.')
-  const sceneInputs = capturedScene?.context ?? null
-  const sceneContext = sceneInputs
-    ? {
-        sceneId: sceneInputs.sceneId,
-        sceneVersion: sceneInputs.sceneVersion,
-        sourceToken: sceneInputs.sourceToken,
-        targetToken: sceneInputs.targetToken,
-        grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
-          encounter: state,
-          sceneGrid: sceneInputs.sceneGrid
-        })
-      }
-    : null
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const activation =

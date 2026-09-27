@@ -1,11 +1,20 @@
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { describe, expect, it } from 'vitest'
 
+import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
 import { resolveCreatureDamageExpression } from '../systems/dnd5e/effectActionCompiler.js'
+import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
-import { creatureFeature, srdCondition, srdCreatureActor, testUuid } from './dnd5eSrdEncounter.js'
+import {
+  createSrdRulesRuntime,
+  creatureFeature,
+  srdCondition,
+  srdCreatureActor,
+  testUuid
+} from './dnd5eSrdEncounter.js'
 import {
   prepareCreatureAction,
   settleCreatureAction,
@@ -63,6 +72,35 @@ async function attackOgre(input: {
   }
 }
 
+/** One end-of-turn tick of a timed condition on the Ogre, with the given turns remaining. */
+async function tickTimedCondition(input: {
+  definition: Parameters<typeof executeTargetBoundActiveRuleEffectWithPause>[0]['definition']
+  remainingTicks: number
+}) {
+  const lifecycle = { schemaVersion: 1 as const, remainingTicks: input.remainingTicks }
+  const ogre = srdByLabel(SRD.creatures, 'Ogre')
+  const result = await executeTargetBoundActiveRuleEffectWithPause({
+    activeEffectId: testUuid(0xb5),
+    activeEffectVersion: 1,
+    definition: input.definition,
+    lifecycle,
+    lifecycleChecksum: checksumRuleDocument(lifecycle),
+    occurrenceId: testUuid(0xb6),
+    targetActorId: TARGET_ID,
+    currentHitPoints: ogre.hitPoints,
+    temporaryHitPoints: 0,
+    maximumHitPoints: ogre.hitPoints,
+    targetScalarValues: {},
+    targetConditionIds: [srdCondition('Poisoned')],
+    targetDerivedFacts: {},
+    defenses: [],
+    runtime: await createSrdRulesRuntime(),
+    adapters: characterRuleActionSystemAdapterRegistry
+  })
+  if ('continuation' in result) throw new Error('A timed condition asks for no dice.')
+  return result
+}
+
 describe('SRD Creature attacks with several hit results', () => {
   it('deals every damage part of one hit as one damage source', async () => {
     // Adult Red Dragon Bite, +14: 19 (2d10 + 8) piercing plus 7 (2d6) fire.
@@ -79,6 +117,74 @@ describe('SRD Creature attacks with several hit results', () => {
     expect(hit.hitPoints).toBe(59 - 18)
     // One damage source, so one Concentration check at the DC of its total.
     expect(hit.concentrationChecks).toMatchObject([{ appliedAmount: 18, damageTypeId: null }])
+  })
+})
+
+describe('SRD Creature weapon attacks through held Equipment (D62, M9)', () => {
+  it('deals the Ogre’s printed Greatclub damage, larger than the Equipment’s own dice', async () => {
+    // Greatclub, +6: 13 (2d8 + 4) bludgeoning; a Greatclub alone deals 1d8.
+    const hit = await attackOgre({ attacker: 'Ogre', feature: 'Greatclub', rolls: [9, 0, 1] })
+    expect(hit.execution.d20).toMatchObject({ total: 16, resultPath: 'ON_HIT' })
+    expect(hit.damage).toEqual([[1 + 2 + 4, srdDamageTypeId('BLUDGEONING')]])
+  })
+})
+
+describe('SRD hits that apply several conditions (D62, M9)', () => {
+  it('grapples and restrains the target of the Giant Toad’s Bite', async () => {
+    // Bite, +4: 7 (1d10 + 2) piercing plus 5 (1d10) poison, grappled and restrained.
+    const hit = await attackOgre({ attacker: 'Giant Toad', feature: 'Bite', rolls: [9, 0, 1] })
+    expect(hit.damage).toEqual([
+      [1 + 2, srdDamageTypeId('PIERCING')],
+      [2, srdDamageTypeId('POISON')]
+    ])
+    expect(hit.conditionIds).toEqual([srdCondition('Grappled'), srdCondition('Restrained')].sort())
+  })
+})
+
+describe('SRD one-time saves with a timed condition (D62.2)', () => {
+  it('poisons the target of the Homunculus’s Bite for 1 minute, ending after 10 of its turns', async () => {
+    // Bite, +4: 1 piercing, then DC 10 Constitution or poisoned for 1 minute. The Ogre saves at +3.
+    const failed = await attackOgre({ attacker: 'Homunculus', feature: 'Bite', rolls: [9, 0] })
+    expect(failed.execution.nestedD20).toMatchObject({ total: 4, resultPath: 'ON_SAVE_FAIL' })
+    expect(failed.conditionIds).toEqual([srdCondition('Poisoned')])
+    const effect = failed.effects.recurringEffect
+    if (!effect) throw new Error('Expected the timed poison effect.')
+    expect(effect).toMatchObject({
+      definition: {
+        recurrence: {
+          recurrenceStage: 'END_OF_TURN',
+          expiration: { kind: 'TICKS', initialRemaining: 10, decrementStage: 'END_OF_TURN' }
+        }
+      },
+      lifecycle: { remainingTicks: 10 }
+    })
+    // No save repeats: each of the target's turn ends only counts down, and the last removes it.
+    const tick = (remainingTicks: number) =>
+      tickTimedCondition({ definition: effect.definition, remainingTicks })
+    expect(await tick(10)).toMatchObject({ applications: [], terminal: false, d20: null })
+    expect(await tick(1)).toMatchObject({
+      applications: [{ kind: 'CONDITION_REMOVE', conditionId: srdCondition('Poisoned') }],
+      terminal: true,
+      d20: null
+    })
+
+    const saved = await attackOgre({ attacker: 'Homunculus', feature: 'Bite', rolls: [9, 19] })
+    expect(saved.conditionIds).toEqual([])
+    expect(saved.effects.recurringEffect).toBeNull()
+  })
+
+  it('poisons the target of the Drow’s Hand Crossbow for 1 hour: 600 of its turns', async () => {
+    // Hand Crossbow, +4: 5 (1d6 + 2) piercing, then DC 13 Constitution or poisoned for 1 hour.
+    const failed = await attackOgre({
+      attacker: 'Drow',
+      feature: 'Hand Crossbow',
+      rolls: [9, 0, 0]
+    })
+    expect(failed.conditionIds).toEqual([srdCondition('Poisoned')])
+    expect(failed.effects.recurringEffect?.lifecycle).toEqual({
+      schemaVersion: 1,
+      remainingTicks: 600
+    })
   })
 })
 

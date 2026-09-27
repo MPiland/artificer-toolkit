@@ -8,8 +8,19 @@ import {
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
+import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import { ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID } from './encounterRollModeReasons.js'
 
 type DispositionActor = { id: string; disposition: EncounterActorDispositionDto }
+
+type SceneTokenGeometry = Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
+
+/** The locked Scene geometry an action's range is measured on. */
+export type EncounterActionSceneContext = {
+  grid: SceneGrid
+  sourceToken: SceneTokenGeometry
+  targetToken: SceneTokenGeometry
+}
 
 /** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
 const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
@@ -40,11 +51,7 @@ export function evaluateEncounterActionTargetPolicy(input: {
   actor: DispositionActor
   target: DispositionActor
   targetPolicy: CompiledActionTargetPolicy
-  sceneContext: {
-    grid: SceneGrid
-    sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
-    targetToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
-  } | null
+  sceneContext: EncounterActionSceneContext | null
 }): EncounterRuleWarningDto[] | null {
   const policy = input.targetPolicy
   if (policy.shape !== null || policy.pathOverrides.length !== 0) return null
@@ -84,10 +91,13 @@ export function evaluateEncounterActionTargetPolicy(input: {
       })
     return warnings
   }
+  // A ranged weapon attack reaches its long range, at disadvantage beyond its normal range.
   const distance = input.sceneContext
     ? measuredDistance(
         input.sceneContext,
-        range.rangeKind === 'DISTANCE' ? { amount: range.amount, unit: range.unit } : TOUCH_RANGE
+        range.rangeKind === 'DISTANCE'
+          ? { amount: range.longAmount ?? range.amount, unit: range.unit }
+          : TOUCH_RANGE
       )
     : null
   if (distance === null) warnings.push(RANGE_UNCHECKED)
@@ -96,8 +106,32 @@ export function evaluateEncounterActionTargetPolicy(input: {
   return warnings
 }
 
+/**
+ * A ranged weapon attack against a target beyond its normal range and within its long range has
+ * disadvantage (D62), a contributor derived like any other roll-mode reason. None without a long
+ * range or a Scene to measure on; beyond the long range the target policy warns instead.
+ */
+export function encounterActionLongRangeContributor(input: {
+  targetPolicy: CompiledActionTargetPolicy
+  sceneContext: EncounterActionSceneContext | null
+}): EncounterRelationshipD20Contributor | null {
+  const { range } = input.targetPolicy
+  if (range.rangeKind !== 'DISTANCE' || range.longAmount === undefined || !input.sceneContext)
+    return null
+  const normal = measuredDistance(input.sceneContext, { amount: range.amount, unit: range.unit })
+  const long = measuredDistance(input.sceneContext, { amount: range.longAmount, unit: range.unit })
+  return normal && long && normal.measured > normal.maximum && long.measured <= long.maximum
+    ? {
+        sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+        grantId: null,
+        domainKey: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+        influence: 'DISADVANTAGE'
+      }
+    : null
+}
+
 function measuredDistance(
-  scene: NonNullable<Parameters<typeof evaluateEncounterActionTargetPolicy>[0]['sceneContext']>,
+  scene: EncounterActionSceneContext,
   range: Parameters<typeof lengthMeasurementInSceneUnits>[0]
 ) {
   try {

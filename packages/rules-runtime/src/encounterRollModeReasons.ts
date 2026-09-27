@@ -15,6 +15,14 @@ export type EncounterRollModeReasons = (input: {
   contributors: readonly EncounterD20Contributor[]
 }) => string[]
 
+/** A ranged attack beyond its normal range (D62): a rules-owned contributor with no authored source. */
+export const ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID = 'rule:long-range'
+
+/** The reason labels of rules-owned contributors, which no authored source names. */
+const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
+  [ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID, 'Long range']
+])
+
 /** For summaries built where labels are not read; the pending read adds them. */
 export const noEncounterRollModeReasons: EncounterRollModeReasons = () => []
 
@@ -35,14 +43,18 @@ export function collectEncounterRollModeContributors(
   }
 }
 
-/** Labels the mode's contributors by source; unlabeled sources are left out, duplicates merged. */
+/**
+ * Labels the mode's contributors by source, or by their rules-owned label; unlabeled sources are
+ * left out, duplicates merged.
+ */
 export function labelEncounterRollModeReasons(
   labels: ReadonlyMap<string, string>
 ): EncounterRollModeReasons {
   return (input) => [
     ...new Set(
       modeContributors(input).flatMap((contributor) => {
-        const label = labels.get(contributor.sourceId)
+        const label =
+          labels.get(contributor.sourceId) ?? RULE_CONTRIBUTOR_LABELS.get(contributor.sourceId)
         return label ? [label] : []
       })
     )

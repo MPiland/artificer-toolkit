@@ -4,9 +4,14 @@ import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/proje
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import {
+  encounterActionLongRangeContributor,
   encounterActorRelationship,
   evaluateEncounterActionTargetPolicy
 } from '../encounterActionTargetPolicy.js'
+import {
+  ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+  labelEncounterRollModeReasons
+} from '../encounterRollModeReasons.js'
 
 const DISPOSITIONS: readonly EncounterActorDispositionDto[] = ['FRIENDLY', 'NEUTRAL', 'HOSTILE']
 
@@ -302,6 +307,78 @@ describe('encounter action target range', () => {
     expect(rangeWarnings({ range, targeting })).toEqual([
       { code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }
     ])
+  })
+
+  it('reaches a ranged attack’s long range and warns only beyond it (D62)', () => {
+    // A light crossbow: range 80/320 ft., 16 and 64 squares.
+    const range = {
+      id: 'range',
+      rangeKind: 'DISTANCE' as const,
+      amount: 80,
+      longAmount: 320,
+      unit: 'FEET' as const
+    }
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(40, 0) } })).toEqual(
+      []
+    )
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(64, 0) } })).toEqual(
+      []
+    )
+    expect(rangeWarnings({ range, scene: { source: token(0, 0), target: token(65, 0) } })).toEqual([
+      OUT_OF_RANGE
+    ])
+  })
+
+  it('gives a ranged attack disadvantage beyond its normal range, up to its long range (D62)', () => {
+    const targetPolicy = {
+      range: {
+        id: 'range',
+        rangeKind: 'DISTANCE' as const,
+        amount: 80,
+        longAmount: 320,
+        unit: 'FEET' as const
+      },
+      targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const },
+      shape: null,
+      pathOverrides: []
+    }
+    const contributor = (column: number | null) =>
+      encounterActionLongRangeContributor({
+        targetPolicy,
+        sceneContext:
+          column === null
+            ? null
+            : { grid: FEET_GRID, sourceToken: token(0, 0), targetToken: token(column, 0) }
+      })
+    const longRange = {
+      sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+      grantId: null,
+      domainKey: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+      influence: 'DISADVANTAGE' as const
+    }
+    expect(contributor(16)).toBeNull()
+    expect(contributor(17)).toEqual(longRange)
+    expect(contributor(64)).toEqual(longRange)
+    // Beyond the long range the policy warns instead, and nothing measures without a Scene.
+    expect(contributor(65)).toBeNull()
+    expect(contributor(null)).toBeNull()
+    // A range without a long range never gives disadvantage.
+    expect(
+      encounterActionLongRangeContributor({
+        targetPolicy: {
+          ...targetPolicy,
+          range: { id: 'range', rangeKind: 'DISTANCE', amount: 80, unit: 'FEET' }
+        },
+        sceneContext: { grid: FEET_GRID, sourceToken: token(0, 0), targetToken: token(40, 0) }
+      })
+    ).toBeNull()
+    // Assisted names the reason.
+    expect(
+      labelEncounterRollModeReasons(new Map())({
+        rollMode: 'DISADVANTAGE',
+        contributors: [longRange]
+      })
+    ).toEqual(['Long range'])
   })
 
   it('refuses policies the single-target path cannot resolve', () => {
