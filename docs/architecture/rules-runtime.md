@@ -1527,6 +1527,17 @@ bonuses. Any other nested save, a versatile `CHOICE` path and a `CLOSED_RULE` ou
 unsupported (fail closed). SRD stat blocks author the printed rider save instead of an unconditional
 result, so an action never applies a saved-against effect without the save.
 
+**CURRENT / critical hits (D58):** a natural 20 selects `ON_CRIT`, and OUTCOME specializes the
+ordinary `ON_HIT` results followed by any authored `ON_CRIT` rider. `diceGraphDefinition` rolls every
+`ON_HIT` damage die twice and adds the flat modifier once (SRD 5.1), for Creature and Character
+attacks, opportunity attacks and every other phased attack alike, including each part of a
+multi-part hit and the hit damage before an `IMMEDIATE` save. It is the only place that doubles
+dice. The damage of the save a hit forces, non-damage dice (a Strength drain) and an authored
+`ON_CRIT` rider's own dice are not the attack's damage dice and are rolled once, so `ON_CRIT` is
+authored only for a genuine critical-only rider, never to fake doubling. Single-graph attacks carry
+only fixed amounts, which have no dice. An unscaled hit may author at most 15 dice so its critical
+stays within the 31-dice bound.
+
 No unselected damage dice are requested. Each phase is independently acyclic and executes once with
 one evidence stage. Resource consumption, aggregate mutations, events, and terminal receipt changes
 remain deferred until the terminal phase succeeds. A paused occurrence may retain the sealed current

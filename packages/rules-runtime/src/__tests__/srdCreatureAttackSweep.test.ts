@@ -27,6 +27,7 @@ import {
   testUuid,
   TIMESTAMP
 } from './dnd5eSrdEncounter.js'
+import { outcomeDice } from './encounterCreatureAction.js'
 import {
   SRD_CREATURE_ATTACK_UNSUPPORTED,
   type SrdCreatureAttackUnsupportedReason
@@ -40,6 +41,9 @@ const COMMAND_ID = testUuid(0xe008)
 const D20_FACE = 15
 const scriptedRandom = (maxExclusive: number) =>
   maxExclusive === 20 ? D20_FACE - 1 : Math.floor(maxExclusive / 2)
+/** The same faces with a natural 20 on every d20: a critical hit. */
+const criticalRandom = (maxExclusive: number) =>
+  maxExclusive === 20 ? 19 : Math.floor(maxExclusive / 2)
 
 /** The seeded SRD Creatures, validated the way Blueprint creation reads them. */
 const creatures = prepareSrdImport()
@@ -89,10 +93,29 @@ function resolvedHitDamage(creature: CreatureAuthored, unit: AttackUnit): string
   )
 }
 
-function printedHitDamage(unit: AttackUnit): string[] {
+function printedDamage(unit: AttackUnit) {
   const printed = SRD_CREATURE_ATTACK_DAMAGE.get(unit.effectId)
   if (!printed) throw new Error(`${unit.label} has no printed damage entry.`)
-  return printed.map(([expression, damageType]) => `${canonicalDamage(expression)} ${damageType}`)
+  return printed
+}
+
+function printedHitDamage(unit: AttackUnit): string[] {
+  return printedDamage(unit).map(
+    ([expression, damageType]) => `${canonicalDamage(expression)} ${damageType}`
+  )
+}
+
+/** A critical hit rolls each printed hit damage die twice (SRD 5.1); a flat amount has none. */
+function printedCriticalDice(unit: AttackUnit): string[] {
+  return printedDamage(unit)
+    .flatMap(([expression]) =>
+      /^\d+$/.test(expression)
+        ? []
+        : parseRollExpression(expression).terms.flatMap((term) =>
+            Array.from({ length: term.count * 2 }, () => `d${term.die}`)
+          )
+    )
+    .sort()
 }
 
 function attackUnits(creature: CreatureAuthored): AttackUnit[] {
@@ -161,7 +184,7 @@ describe('SRD Creature attack sweep', () => {
     expect(mismatches).toEqual({})
   })
 
-  it('prepares, executes and plans every SRD Creature attack, except the shrinking allowlist', async () => {
+  it('prepares, executes and plans every SRD Creature attack, except the shrinking allowlist, and doubles its dice on a critical hit', async () => {
     const runtime = await createSrdRulesRuntime()
     const ogre = creatures.find((creature) => creature.label === 'Ogre')
     if (!ogre) throw new Error('The SRD Ogre is missing.')
@@ -170,6 +193,9 @@ describe('SRD Creature attack sweep', () => {
     /** Every working attack hits the Ogre with the scripted face plus its authored attack bonus. */
     const hits: Record<string, { total: number | undefined; resultPath: string | undefined }> = {}
     const expectedHits: typeof hits = {}
+    /** Every working attack's critical hit rolls each of its hit damage dice twice. */
+    const criticalDice: Record<string, string[]> = {}
+    const expectedCriticalDice: typeof criticalDice = {}
     const effectIds = new Set<string>()
 
     for (const creature of creatures) {
@@ -221,15 +247,16 @@ describe('SRD Creature attack sweep', () => {
             loadRelationshipFacts: async () => []
           })
           stage = 'EXECUTE'
-          const executed = await executeNativeActionGraphs({
+          const execution = {
             runtime,
             adapter: prepared.adapter,
             plan: prepared.plan,
             occurrenceId: OCCURRENCE_ID,
             binding: prepared.binding,
-            afterTest: async () => undefined,
-            random: scriptedRandom
-          })
+            afterTest: async () => undefined
+          }
+          const executed = await executeNativeActionGraphs({ ...execution, random: scriptedRandom })
+          const critical = await executeNativeActionGraphs({ ...execution, random: criticalRandom })
           stage = 'PLAN'
           planNativeEncounterActionMechanics(
             {
@@ -249,6 +276,8 @@ describe('SRD Creature attack sweep', () => {
             resultPath: executed.d20?.resultPath
           }
           expectedHits[unit.effectId] = { total: D20_FACE + unit.attackBonus, resultPath: 'ON_HIT' }
+          criticalDice[unit.effectId] = outcomeDice(critical).hit.sort()
+          expectedCriticalDice[unit.effectId] = printedCriticalDice(unit)
         } catch (error) {
           failures[unit.effectId] = unsupportedReason(unit, stage, error)
         }
@@ -258,5 +287,6 @@ describe('SRD Creature attack sweep', () => {
     expect(effectIds.size).toBe(516)
     expect(failures).toEqual(SRD_CREATURE_ATTACK_UNSUPPORTED)
     expect(hits).toEqual(expectedHits)
+    expect(criticalDice).toEqual(expectedCriticalDice)
   }, 600_000)
 })

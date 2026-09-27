@@ -33,6 +33,7 @@ import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPrep
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
+import { DND5E_DAMAGE_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 
 export type CreatureFeature = NonNullable<CreatureAuthored['features']>[number]
 type ActionCharacterFacts = NonNullable<
@@ -363,4 +364,30 @@ export async function settleCreatureAction(input: {
     SETTLING_USER_ID
   )
   return { execution, mechanics }
+}
+
+/**
+ * The damage dice an action's final phase rolled, as die sizes in request order: the attack's hit
+ * damage dice and, separately, the damage dice of a saving throw the hit forces. Each dice group
+ * shares its node-id prefix with the proposal it feeds, so other dice (a Strength drain) are left out.
+ */
+export function outcomeDice(execution: Awaited<ReturnType<typeof executeNativeActionGraphs>>) {
+  const { trace } = execution.execution.evidence
+  const hitPrefixes = new Set(
+    trace.flatMap((entry) =>
+      entry.operation.key === DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+        ? [entry.nodeId.replace(/proposal-[a-z_]+$/, '')]
+        : []
+    )
+  )
+  const faces = (prefixes: ReadonlySet<string>) =>
+    trace.flatMap((entry) => {
+      const prefix = /^(.*)die-\d+$/.exec(entry.nodeId)?.[1]
+      return entry.operation.key === 'evidence.integer-range' &&
+        prefix !== undefined &&
+        prefixes.has(prefix)
+        ? [`d${String(entry.inputs.max)}`]
+        : []
+    })
+  return { hit: faces(hitPrefixes), save: faces(new Set(['nested-save-'])) }
 }

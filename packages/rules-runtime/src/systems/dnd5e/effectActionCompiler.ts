@@ -1617,6 +1617,13 @@ function validateDiceOutcomeGroup(
   const firstOutcome = first.outcome
   if (firstOutcome.scalingKind === 'NONE') {
     if (entries.length !== 1) unsupported('D&D unscaled dice outcomes must have one authored row.')
+    // A critical hit rolls hit damage dice twice, so they must stay bounded when doubled.
+    if (
+      first.pathCode === 'ON_HIT' &&
+      !/^[1-9]\d*$/.test(firstOutcome.dice) &&
+      parseBoundedDiceConfiguration(firstOutcome.dice).terms[0]!.count > 15
+    )
+      unsupported('D&D critical dice exceed the bounded exact-dice contract.')
     return
   }
   if (firstOutcome.scalingKind !== 'PER_LEVEL')
@@ -2929,23 +2936,29 @@ function exactDiceConfiguration(
   return resolved
 }
 
-function criticalDiceConfiguration(configuration: string): string {
-  const parsed = parseBoundedDiceConfiguration(configuration)
-  const term = parsed.terms[0]!
-  if (term.count > 15) unsupported('D&D critical dice exceed the bounded exact-dice contract.')
-  const modifier =
-    parsed.modifier > 0
-      ? ` + ${parsed.modifier}`
-      : parsed.modifier < 0
-        ? ` - ${Math.abs(parsed.modifier)}`
-        : ''
-  return `${term.count * 2}d${term.die}${modifier}`
+/**
+ * A critical hit rolls every damage die of the attack's hit damage twice and adds the modifier
+ * once (SRD 5.1). Every attack OUTCOME applies it here; authored ON_CRIT riders and the damage of
+ * a save the hit forces are not the attack's damage and keep their dice.
+ */
+function isCriticalHitDamage(
+  selectedPath: SpecializedPath,
+  entry: CompiledEffectGroup['entries'][number]
+): boolean {
+  return (
+    selectedPath === 'ON_CRIT' &&
+    entry.pathCode === 'ON_HIT' &&
+    'outcome' in entry &&
+    entry.outcome.effectKind === 'DAMAGE'
+  )
 }
 
 function diceGraphDefinition(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
   diceConfig: string
+  /** Roll the dice twice for a critical hit; the modifier is still added once. */
+  critical?: boolean
   modifierFactKey?: string
   nodePrefix?: string
   recurring?: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
@@ -2962,9 +2975,10 @@ function diceGraphDefinition(input: {
   if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
   if (outcome.effectKind === 'DAMAGE') uuid(outcome.damageTypeId, 'D&D damage type identity')
   const parsed = parseBoundedDiceConfiguration(input.diceConfig)
-  const term = parsed.terms[0]
+  const authoredTerm = parsed.terms[0]
+  if (!authoredTerm) unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
+  const term = input.critical ? { ...authoredTerm, count: authoredTerm.count * 2 } : authoredTerm
   if (
-    !term ||
     term.reroll ||
     term.selection ||
     term.count < 1 ||
@@ -3768,10 +3782,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       return diceGraphDefinition({
         action: input.action,
         entry: primaryDamageEntry,
-        diceConfig:
-          input.selectedPath === 'ON_CRIT'
-            ? criticalDiceConfiguration(primaryDiceConfiguration)
-            : primaryDiceConfiguration,
+        diceConfig: primaryDiceConfiguration,
+        critical: isCriticalHitDamage(input.selectedPath, primaryDamageEntry),
         ...nodePrefix
       })
     })
@@ -3850,6 +3862,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
               : outcome.kind === 'DICE_SCALAR_REDUCTION'
                 ? outcome.diceConfig
                 : compiledDiceConfiguration(entry),
+          critical: isCriticalHitDamage(input.selectedPath, entry),
           ...(outcome.kind === 'DICE_HEAL'
             ? { modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY }
             : {}),
