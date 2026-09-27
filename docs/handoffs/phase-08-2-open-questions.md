@@ -6,49 +6,7 @@
 
 ## Open
 
-### Q14 GM private rolls and the "a roll happened" tease
-
-**User proposal (2026-09-27):**
-
-* A GM's private roll is invisible to players by default. They don't learn that the GM rolled at all.
-* From the GM's own private chat card, the GM can choose to send a deliberately vague notice to chat:
-  * "<Creature> made a roll" for a roll made for a creature;
-  * "The GM made a roll" for a roll of the GM's own.
-
-**Recommendation:** adopt it, with these refinements.
-
-1. **Never name a hidden creature.** The notice uses the creature's name only for players who can currently see that creature (the same visibility rule as the D62 reduction label). Everyone else sees "The GM made a roll".
-2. **The outcome is not the roll.** When a private roll changes something a player can see, that player still sees the effect but not the roll or its source. Examples: an attack against their Character hits, or they must make a save. A private roll that hits a player shows "You take 7 necrotic damage" with no attacker name if the attacker is hidden.
-3. **Two GM actions on a private card:**
-
-   * "Tell players a roll happened": the vague notice, with no result, total or reason.
-   * "Reveal roll": the full card, for the moment a natural 20 is worth showing after the fact.
-
-   Both only reveal, and each reveal is logged.
-4. **The default is a per-GM preference, not a Campaign mode.**
-
-   * "My creature rolls: private (default) / public", with a per-roll override in context.
-   * Foundry defaults to public rolls, and Roll20 needs `/gmroll`.
-   * Private by default protects suspense.
-   * Public is one click away for GMs who like dice drama at the table.
-
-**Compared with Foundry and Roll20:**
-
-* Foundry's "Private GM Roll" shows players a placeholder card with the result hidden, so they always learn that a roll happened.
-* Foundry's "Self Roll" and Roll20's `/gmroll` show players nothing, with no way to tease afterwards.
-* This design is Self Roll plus an opt-in, after-the-fact tease or reveal. That is better than both.
-
-**Scope:** it belongs in the S6i rule-roll chat cards slice, which already covers every automatic roll. It isn't a separate project.
-
-**Answer:** Agreed with the exception of a per-GM preference. What if instead, they pick public or private roll. Public is public  just like Foundry. Private after the result is where they can click to send to public so they can choose on a case by case basis for the private rolls. That way we don't have to worry about settings. Maybe even on the private they can send the full roll like a public or send a vague one (however we want to word that).
-
-**Follow-up (Claude, 2026-09-27):** agreed on a choice made each time with no settings page, and on the two reveals from a private card: "Show roll" (the full card) and "Show that I rolled" (the vague notice).
-
-One catch: most creature rolls are automatic, because the rules engine rolls attacks as soon as the GM confirms an action. Asking Public or Private before every roll would add a click to every monster attack.
-
-**Proposal:** a Public/Private toggle next to the GM's roll controls (the action drawer and chat) that remembers the last choice, like Foundry's roll-mode dropdown by the chat box. It is a choice in context, not a setting. The GM flips it when the situation changes, and it stays put for a run of goblin attacks. It starts on Public, matching Foundry.
-
-**Follow-up answer:**
+_(none)_
 
 ## Decisions to review
 
@@ -418,6 +376,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+* **Q14 (2026-09-27).** GM rolls are Public or Private, chosen with a toggle beside the GM's roll controls (the action drawer and chat). The toggle remembers the last choice, starts on Public (as in Foundry), and has no settings page.
+  * A Private roll shows players nothing, not even that a roll happened.
+  * The GM's private card offers two reveals, both logged, neither retractable: "Show roll" (the full card) and "Show that I rolled" (a vague notice with no result or reason).
+  * The notice names a creature only for players who can currently see it; everyone else sees "The GM made a roll".
+  * Consequences stay visible: a player hit by a private roll still sees the damage and any save prompt, but not the roll, its total or a hidden source.
+  * It ships in the S6i rule-roll chat cards slice.
 * **Q13 (2026-09-27).** Option (a): R03.1's corpus clause now reads "the protected SRD corpus matches the current SRD manifest checksum reported by the seed audit, with every corpus change since the removal tracing to a recorded ruling". R03.1 is READY: the seed audit passes, and all 21 corpus commits since the fourth pass cite a ruling.
 * **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:
   * **Mechanics** are closed, System-neutral rule kinds in `packages/shared` with the other core engine enums: a movement budget bonus equal to speed, suppressing opportunity attacks, disadvantage on attacks against the actor until its next turn, and advantage granted to an ally.
