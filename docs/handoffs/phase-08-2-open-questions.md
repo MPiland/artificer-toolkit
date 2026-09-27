@@ -180,6 +180,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   - **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D58 (blocks closed beta) Critical hits must double every damage die.** Found by M2: on a critical hit, Creature attacks roll normal dice and add only an authored `ON_CRIT` result. So a critical Adult Red Dragon Bite deals 2d10+8 and 2d6 instead of 4d10+8 and 4d6. The one exception, the hit-then-save shape, already doubles.
+  * **Rule (SRD 5.1):** a critical hit doubles every damage die of the attack's damage parts, including extra dice such as Sneak Attack or Divine Smite. Flat modifiers are not doubled.
+  * **Fix:** apply this in one place for Creature and Character attacks alike, with pure tests.
+  * **Audit:** check whether any authored `ON_CRIT` data exists only to fake doubling. If it does, remove it.
+
 * **D56** Audit every SRD Creature stat block against the SRD 5.1 text, before closed beta. The D54 damage audit fixed 16 Creatures, and the Ice Devil also shows cold as a resistance where the SRD says immunity, plus a wrong passive Perception and senses. So the damage errors are probably not isolated.
   * **What to check:** AC, HP and hit dice, speeds, ability scores, saving throws (with M5), skills, damage and condition immunities, resistances and vulnerabilities, senses and passive Perception, languages, CR and XP, and trait, action and reaction text versus the mechanics.
   * **How:** extract the printed values once into committed tables by script, the same pattern as the attack-bonus and damage tables. Add a source-data test that compares every Creature against them. Fix mismatches in authored data, and allowlist any justified exceptions with a reason.
