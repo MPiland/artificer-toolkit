@@ -179,6 +179,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   - **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D63 (blocks closed beta) 0 hit points.**
+  * **Creatures:** a Creature reduced to 0 HP is defeated. It takes no actions, reactions or Legendary Actions, and its turns are skipped. It stays in the initiative order marked defeated (Foundry parity). The GM can revive it or set another HP value, for example "knocked out, not killed".
+  * **Characters:** a Character at 0 HP becomes unconscious and dying, and enters the death-save flow (queued).
+  * **Scope:** this applies everywhere: turns, reactions, opportunity attacks, Legendary windows, Cleaving targets and action eligibility.
+  * **Legendary options through RESOLVE_ACTION:** the server refuses them, not only the drawer. A Legendary option can be used only in a Legendary window.
 * **D62** Rulings on M8's questions, and slice M9:
   1. **Ranged range.** Ranged attacks author normal and long range (SRD).
      * Beyond normal and up to long range, the attack roll has disadvantage with the reason "Long range". This is derived automatically in Assisted mode, like other roll-mode reasons.
