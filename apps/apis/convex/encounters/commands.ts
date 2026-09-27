@@ -49,7 +49,7 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { requireSystem } from '../content/systemDocuments'
 import { readEncounterActorCore, readRunActors } from './documents'
-import { loadEncounterInitiativeSources } from './initiativeSources'
+import { readActorInitiativeRoll } from './initiativeSources'
 import { createEncounterInitiativeStore } from './initiativeStore'
 import { correctInitiativeCursor } from './initiativeCorrection'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -397,23 +397,12 @@ export async function recordEncounterCommand(
         conditions: character.conditions
       }
     }
-    let initiativeModifier = 0
     if (input.type === 'ROLL_ACTOR_INITIATIVE') {
-      const source = (await loadEncounterInitiativeSources(ctx, state, campaign)).actors.find(
-        (candidate) => candidate.actor.id === actor.id
-      )
-      if (!source) throw new Error('Encounter initiative source was not found.')
+      const initiative = await readActorInitiativeRoll(ctx, state, campaign, actor.id)
       const system = await requireSystem(ctx, state.gameSystemId)
-      initiativeModifier =
-        source.kind === 'CHARACTER'
-          ? (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput).derivedStats
-              .initiative.effective
-          : source.kind === 'CREATURE'
-            ? source.actorRule.initiativeModifier
-            : 0
       roll = rollRecordDtoSchema.parse({
         id: crypto.randomUUID(),
-        characterId: source.kind === 'CHARACTER' ? source.characterId : null,
+        characterId: initiative.characterId,
         characterLabel: actor.label,
         source: { kind: 'INITIATIVE', label: 'Initiative' },
         ruleset: {
@@ -421,7 +410,11 @@ export async function recordEncounterCommand(
           code: system.rulesetCode,
           version: system.rulesetVersion
         },
-        ...evaluateRollExpression(parseRollExpression('1d20'), { nextInt }),
+        ...evaluateRollExpression(
+          parseRollExpression(initiative.expression),
+          { nextInt },
+          initiative.rollMode
+        ),
         createdAt: updatedAt
       })
     }
@@ -430,9 +423,7 @@ export async function recordEncounterCommand(
         ? {
             ...actor,
             initiative:
-              input.type === 'ROLL_ACTOR_INITIATIVE'
-                ? roll!.evidence.total + initiativeModifier
-                : input.initiative,
+              input.type === 'ROLL_ACTOR_INITIATIVE' ? roll!.evidence.total : input.initiative,
             ...(input.type === 'SET_INITIATIVE' && input.manualOrder !== undefined
               ? { manualOrder: input.manualOrder }
               : {}),

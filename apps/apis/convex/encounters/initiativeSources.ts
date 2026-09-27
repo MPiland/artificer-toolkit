@@ -57,3 +57,33 @@ export async function loadEncounterInitiativeSources(
     }
   })
 }
+
+/**
+ * One actor's initiative roll as made (SRD 5.1): 1d20 plus its initiative modifier, rolled with the
+ * Character's initiative roll mode (advantage from Feral Instinct, for example).
+ */
+export async function readActorInitiativeRoll(
+  ctx: QueryCtx,
+  state: EncounterRunState,
+  campaign: { id: string; ownerUserId: string },
+  actorId: string
+) {
+  const source = (await loadEncounterInitiativeSources(ctx, state, campaign)).actors.find(
+    (candidate) => candidate.actor.id === actorId
+  )
+  if (!source) throw new Error('Encounter initiative source was not found.')
+  const policy =
+    source.kind === 'CHARACTER'
+      ? (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput)
+      : null
+  const modifier = policy
+    ? policy.derivedStats.initiative.effective
+    : source.kind === 'CREATURE'
+      ? source.actorRule.initiativeModifier
+      : 0
+  return {
+    characterId: source.kind === 'CHARACTER' ? source.characterId : null,
+    expression: modifier === 0 ? '1d20' : `1d20${modifier > 0 ? '+' : ''}${modifier}`,
+    rollMode: policy?.rollModes.initiative ?? 'NORMAL'
+  }
+}
