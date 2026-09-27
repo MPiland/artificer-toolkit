@@ -799,7 +799,8 @@ System-owned policy facts from that compiled value; it cannot replace or rewrite
 Capability evidence retains separate authored-source and compiled-Effect checksums.
 
 Creature discovery isolates each action (D54). When one action's authored mechanics cannot compile or
-bind (no single `ATTACK` roll on an attack, an Equipment base-damage mismatch), that action is listed
+bind (no single `ATTACK` roll on an attack, held Equipment of another kind of attack or damage
+type), that action is listed
 unavailable with the reason; the Creature's other actions, and every other Creature in the Encounter,
 still move, react and act. Snapshot provenance and action-identity failures still reject the whole
 discovery. `encounters/actionChoices:get` returns the unavailable actions beside the available ones,
@@ -1584,10 +1585,11 @@ these shapes:
 
 - full nested damage on a failure and `multiplier: 0.5` of the same dice on a success, or the
   nested damage on a failure only;
-- one condition on a failure, applied once;
+- one condition on a failure, applied once, and ending after its authored duration when it has one
+  (D62.2, below);
 - one condition on a failure that repeats the save at the end of each of the target's turns (an
-  Encounter active effect), ending after its authored `ROUND` or `MINUTE` duration (a minute is
-  10 of the target's turns); only this shape may carry a duration;
+  Encounter active effect), ending after its authored `ROUND`, `MINUTE` or `HOUR` duration (a
+  minute is 10 of the target's turns);
 - a state-only hit point maximum reduction, or a fixed 25-foot pull toward the source.
 
 The hit damage before the save may be a fixed amount or bounded dice with a flat modifier or ability
@@ -1618,6 +1620,74 @@ expression, and OUTCOME accepts either authored dice (a critical doubles whichev
 action that authors half-hit-point dice fails closed without the source's hit points, and a Character
 action leaves that damage unresolved. The swarm's other traits (moving through openings, no healing)
 stay description-only, and a reach-0 opportunity attack is not supported.
+
+**CURRENT / ranged range (D62.1):** a ranged weapon attack's `DISTANCE` range may author
+`longAmount`, its printed long range ("range 80/320 ft."). SRD Equipment and Creature Features
+author it the same way, so a Character's longbow and a Scout's behave alike; the compiler accepts it
+only on a `RANGED_WEAPON_ATTACK`. `evaluateEncounterActionTargetPolicy` measures to the long range and
+warns (`TARGET_OUT_OF_RANGE`, D11) only beyond it. Between the normal and the long range,
+`encounterActionLongRangeContributor` adds a `DISADVANTAGE` d20 contributor. `RESOLVE_ACTION`
+preparation derives it from the locked Scene positions (the Session DO captures the Scene before it
+prepares), beside the Dodge and Help contributors, so the derived mode and its evidence need no
+client input. Its source id `rule:long-range` is rules-owned: `labelEncounterRollModeReasons` names it
+"Long range" without an authored source, and Assisted shows that reason. Without a bound Scene
+nothing is measured (`TARGET_RANGE_UNCHECKED`). Movement reactions, Disarm and Cleaving are melee and
+pass no Scene; a Legendary option beyond its normal range warns only past the long range and does not
+yet derive the contributor.
+
+**CURRENT / timed conditions on one-time saves (D62.2):** the result block of a hit whose
+`IMMEDIATE` one-time save applies one condition on a failure may author a `ROUND`, `MINUTE` or `HOUR`
+duration ("poisoned for 1 minute"). A minute is 10 of the target's turns and an hour 600, within
+the active-effect tick bound (10,000); a longer or scaled duration fails closed. The failed save
+applies the condition in OUTCOME as before, and an Encounter active effect owns it: its frozen graph
+is one pure `dnd5e.condition-duration` node that each end of the target's turn counts down, and the
+last counted turn removes the condition (`CONDITION_REMOVE`). No save repeats and no dice are asked.
+The effect is created only when the condition was applied. The repeating save keeps its own shape
+(D57 ruling 3), and both share one duration-to-turns conversion.
+
+**CURRENT / several conditions on one hit (M9):** one result path may apply up to four conditions
+("grappled, and restrained until the grapple ends"). Each condition is its own OUTCOME group with a
+unique node id (D48) and its own immunity fact: the path's fact for the first
+(`dnd5e.target-condition-immune.on-hit`), `<fact>.<n>` for the n-th, all declared by the capability
+contract. Condition-immunity binding and interpretation read the node's own fact key and check that it
+belongs to its path. The conditions are bare (D57 ruling 2, option a): the GM removes restrained when
+the grapple ends until the target-owned grapple relationship lands.
+
+**CURRENT / Creature Equipment weapons (M9):** a Creature Feature bound to held Equipment
+(`equipmentLoadout.actionFeatureIds`) authors its own printed hit damage. SRD monsters' weapon dice
+scale with their size and traits (the Ogre's Greatclub deals 2d8 + 4, a Greatclub 1d8; the
+Bugbear's Brute adds a die; the Sprite's Longsword deals 1), so no dice rule can derive them. The
+Equipment gives the action its identity and properties: discovery binds the Feature to it when the
+Equipment has an action with the same trigger and the Feature deals every damage type that action
+does. `REPLACE_CREATURE_EQUIPMENT` applies the same rule, so a Club cannot replace a Dagger. The
+compiled action is the Feature's own Effect; nothing from the Equipment's damage is merged into it.
+
+**M9 sweep categories (D62).** The SRD attack sweep's allowlist went from 126 entries to 44; each
+remaining entry keeps one reason, and the allowlist may only shrink:
+
+- `SPECIAL_RANGE` (55, removed): every ranged weapon attack now authors its printed normal and long
+  range; the 14 attack-triggered Multiattacks are `ACTIVATED` closed rules like every other
+  Multiattack; the Mammoth's Stomp is an action (its bonus-action use belongs to Trampling Charge);
+  the Deep Gnome's dart repeats its save as authored data. Area parts wait on area targeting.
+- `FOLLOW_UP_SAVE` (6): a follow-up save the adapter does not run: a condition that turns into
+  another (the Cockatrice's petrification), a rider that is a `CLOSED_RULE` (the Death Dog's
+  disease, the Horned Devil's infernal wound, the Couatl's 24-hour poison, longer than the
+  active-effect tick bound), a push-and-prone save (Dragon Turtle Tail) and a hit that deals no
+  damage before its save (Guardian Naga Spit Poison).
+- `OUTCOME_KIND` (45 → 37): the CLOSED_RULE riders that had a typed equivalent now author it:
+  save-or-prone (Tarrasque Tail), versatile grips (Veteran and Wight Longsword, Druid Quarterstaff),
+  a bare poisoned condition (Erinyes Longbow), two conditions on one hit (Giant Toad, Remorhaz); the
+  Goblin's long-range rule is the range itself; the Lich's duplicate Paralyzing Touch rule and the
+  Horned Devil's object ignition are gone (description-only). What remains has no typed outcome yet:
+  swallowing, attaching (Stirge, Darkmantle), curses (lycanthropy, Rakshasa, Lamia, mummy rot),
+  regaining hit points from the damage dealt (Vampire), a grapple-or-damage choice, a Strength
+  contest pull (Merrow), armor corrosion and slaying. The Wight, Wraith and Specter Life Drains need
+  a hit point maximum reduction that ends on a long rest; the reduction contract recovers only
+  through restoration magic today (a persisted contract, escalated).
+- `EQUIPMENT_BASE_DAMAGE` (26 → `EQUIPMENT_DAMAGE_TYPE`, 1): a Creature's weapon dice no longer
+  have to match its Equipment's (above). Only the Ogre Zombie's Morningstar remains: it prints
+  bludgeoning damage, a morningstar deals piercing (a probable SRD printing error, like the D61
+  exceptions).
 
 No unselected damage dice are requested. Each phase is independently acyclic and executes once with
 one evidence stage. Resource consumption, aggregate mutations, events, and terminal receipt changes
