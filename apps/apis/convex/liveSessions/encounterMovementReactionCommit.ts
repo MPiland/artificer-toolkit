@@ -20,7 +20,7 @@ import {
   persistLiveEncounterActionEffects
 } from './encounterActionEffectsCommit'
 import {
-  readLiveCharacterStoredMaximumHitPoints,
+  readLiveCharacterMaximumHitPoints,
   readLiveCharacterStreamVersion,
   readLiveMovementTargetState,
   movementPersistedTransitionState
@@ -139,7 +139,7 @@ export async function persistLiveMovementReaction(
         applications: [],
         effectiveMaximumHitPoints:
           source.kind === 'CHARACTER'
-            ? await readLiveCharacterStoredMaximumHitPoints(ctx, state, source.sourceId)
+            ? await readLiveCharacterMaximumHitPoints(ctx, state, source.sourceId)
             : source.maxHitPoints,
         forceVersionAdvance: false,
         characterResourceConsumption: resource

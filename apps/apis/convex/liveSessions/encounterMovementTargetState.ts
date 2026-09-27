@@ -6,6 +6,7 @@ import type {
 import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { MutationCtx } from '../_generated/server'
 import { readCampaignCharacterState } from '../campaigns/characterState'
+import { readCharacterMaximumHitPoints } from '../characters/characterMaximumHitPoints'
 import { readCharacterRecord } from '../characters/stateDocuments'
 
 async function readLiveCharacterRow(ctx: MutationCtx, state: EncounterRunState, id: string) {
@@ -19,15 +20,15 @@ async function readLiveCharacterRow(ctx: MutationCtx, state: EncounterRunState, 
 }
 
 /**
- * The Character's stored effective maximum, before active-effect reductions. It bounds a
- * resource-only batch, whose transition the room does not plan.
+ * The Character's effective maximum, as the Sheet shows it. It bounds a resource-only batch, whose
+ * transition the room does not plan.
  */
-export async function readLiveCharacterStoredMaximumHitPoints(
+export async function readLiveCharacterMaximumHitPoints(
   ctx: MutationCtx,
   state: EncounterRunState,
   characterId: string
 ) {
-  return (await readLiveCharacterRow(ctx, state, characterId)).maximumHitPoints
+  return readCharacterMaximumHitPoints(ctx, await readLiveCharacterRow(ctx, state, characterId))
 }
 
 /** The current Character stream version that a room plan's captured version must equal. */

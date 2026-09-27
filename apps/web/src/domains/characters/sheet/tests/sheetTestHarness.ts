@@ -53,6 +53,7 @@ export function createSheet(): CharacterSheetResponseDto {
       maxHitPointsOverride: null,
       maxHitPointsModifier: 0,
       maxHitPointsModifierAdjustmentId: null,
+      maxHitPointsReductions: [],
       exhaustion: {
         label: 'Exhaustion',
         description: 'Exhaustion measures cumulative fatigue.',

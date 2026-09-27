@@ -53,6 +53,7 @@ export const characterSheetFixture = {
     maxHitPointsOverride: null,
     maxHitPointsModifier: 0,
     maxHitPointsModifierAdjustmentId: null,
+    maxHitPointsReductions: [],
     exhaustion: {
       label: 'Exhaustion',
       description: dnd5e2014ExhaustionDescription,

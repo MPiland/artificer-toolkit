@@ -109,12 +109,12 @@ export async function createEncounterRun(
   for (const characterId of party) {
     const loaded = await loadCharacterSheet(ctx, userId, characterId, campaign.id)
     if (!loaded) throw new Error('Assigned Character is unavailable.')
-    const { character, active } = loaded
+    const { character, sheet } = loaded
     if (character.systemId !== campaign.gameSystemId)
       throw new Error('Assigned Character does not match the Campaign Game System.')
     characterStates.set(
       character.id,
-      characterProjectionState(character, active.maximumHitPoints, conditionTypes)
+      characterProjectionState(character, sheet.overview.maxHitPoints, conditionTypes)
     )
     actors.push(
       encounterRunActorStateSchema.parse({

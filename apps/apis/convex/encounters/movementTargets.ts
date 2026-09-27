@@ -84,15 +84,11 @@ export async function loadMovementTargets(
         campaign.id
       )
       if (!loaded) throw new Error('Encounter Character source is unavailable.')
-      const activeEffects = await listActiveRuleEffects(ctx, {
-        kind: 'CHARACTER',
-        characterId: actor.sourceId
-      })
       const target = buildMovementTarget<
         NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts>>>
       >({
         actor,
-        activeEffects,
+        activeEffects: loaded.activeEffects,
         gameSystemId: state.gameSystemId,
         campaignId: campaign.id,
         characterFacts: loaded,

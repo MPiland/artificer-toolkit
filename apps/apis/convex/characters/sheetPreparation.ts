@@ -43,7 +43,8 @@ export function projectCharacterSheetFacts(
     creaturesById: facts.prepared.context.creaturesById,
     vehiclesById: facts.prepared.context.vehiclesById,
     spellCustomizations: facts.sheetState.spellCustomizations,
-    ruleEvaluation: facts.ruleEvaluation
+    ruleEvaluation: facts.ruleEvaluation,
+    activeEffects: facts.activeEffects
   })
   return {
     active: facts.active,
@@ -57,6 +58,7 @@ export function projectCharacterSheetFacts(
       facts.campaignContext
     ),
     evaluationInput: facts.evaluationInput,
+    activeEffects: facts.activeEffects,
     ruleEvaluation: facts.ruleEvaluation,
     ruleProjection,
     resolution: facts.prepared.resolution,

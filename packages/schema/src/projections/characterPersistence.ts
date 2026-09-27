@@ -22,9 +22,11 @@ export const characterStoredRecordSchema = z.strictObject({
   documentJson: z.string(),
   checksum: projectionChecksumSchema,
   /**
-   * Effective maximum hit points from the Character's own rules evaluation, rewritten by every
-   * Character write (`characters/characterWrites`). Encounter projections display it; rules evaluate
-   * live. Published-content changes reach it on the Character's next write.
+   * Effective maximum hit points from the Character's own rules evaluation, before active-effect
+   * hit point maximum reductions, rewritten by every Character write (`characters/characterWrites`).
+   * Readers subtract the Character's active reductions (`characters/characterMaximumHitPoints`), so
+   * reduction effects never rewrite the row. Rules evaluate live. Published-content changes reach it
+   * on the Character's next write.
    */
   maximumHitPoints: z.number().check(z.int()).check(z.nonnegative()),
   /** Effective walking speed in feet, stored beside `maximumHitPoints` for the movement budget (D38). */

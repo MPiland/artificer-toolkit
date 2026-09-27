@@ -14,9 +14,14 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import {
+  activeEffectEndsOnRest,
   buildCharacterRestPreview,
   validateCharacterRestRollEvidence
 } from '@artificer-toolkit/rules-runtime/character/sheetRest'
+import {
+  listHitPointMaximumReductions,
+  reduceHitPointMaximum
+} from '@artificer-toolkit/rules-runtime/character/hitPointMaximumReductions'
 import { query, type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
@@ -108,8 +113,14 @@ export async function prepareCharacterRest(
     character: current.character,
     resolution: current.resolution,
     characterAdjustments: current.sheetState.adjustments,
-    effectiveMaximum: resolveCharacterEffectiveMaximumHitPoints(
-      restEvaluation.output.derivedStats.maxHitPoints.effective
+    // The maximum after the rest: reductions the rest ends no longer apply.
+    effectiveMaximum: reduceHitPointMaximum(
+      resolveCharacterEffectiveMaximumHitPoints(
+        restEvaluation.output.derivedStats.maxHitPoints.effective
+      ),
+      listHitPointMaximumReductions(
+        current.activeEffects.filter((effect) => !activeEffectEndsOnRest(effect, input.restKind))
+      )
     ),
     restPolicy: restEvaluation.output.rest,
     sheet: current.sheet,

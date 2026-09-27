@@ -140,6 +140,7 @@ describe('character sheet command contracts', () => {
           tempHitPoints: 0,
           maxHitPointsModifier: 0,
           maxHitPointsModifierAdjustmentId: null,
+          maxHitPointsReductions: [],
           maxHitPointsOverride: null,
           savingThrows: [
             {
@@ -300,6 +301,7 @@ describe('character sheet command contracts', () => {
           tempHitPoints: 0,
           maxHitPointsModifier: 0,
           maxHitPointsModifierAdjustmentId: null,
+          maxHitPointsReductions: [],
           maxHitPointsOverride: null,
           savingThrows: [
             {

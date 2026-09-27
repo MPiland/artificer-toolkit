@@ -5571,6 +5571,11 @@ export declare const api: {
               maxHitPointsModifier: number;
               maxHitPointsModifierAdjustmentId: string | null;
               maxHitPointsOverride: number | null;
+              maxHitPointsReductions: Array<{
+                amount: number;
+                id: string;
+                recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
+              }>;
               proficiencyBonus: number;
               savingThrows: Array<{
                 ability:
@@ -6809,6 +6814,11 @@ export declare const api: {
             maxHitPointsModifier: number;
             maxHitPointsModifierAdjustmentId: string | null;
             maxHitPointsOverride: number | null;
+            maxHitPointsReductions: Array<{
+              amount: number;
+              id: string;
+              recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
+            }>;
             proficiencyBonus: number;
             savingThrows: Array<{
               ability:
@@ -24663,6 +24673,11 @@ export declare const api: {
             maxHitPointsModifier: number;
             maxHitPointsModifierAdjustmentId: string | null;
             maxHitPointsOverride: number | null;
+            maxHitPointsReductions: Array<{
+              amount: number;
+              id: string;
+              recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
+            }>;
             proficiencyBonus: number;
             savingThrows: Array<{
               ability:
@@ -29239,6 +29254,11 @@ export declare const api: {
               maxHitPointsModifier: number;
               maxHitPointsModifierAdjustmentId: string | null;
               maxHitPointsOverride: number | null;
+              maxHitPointsReductions: Array<{
+                amount: number;
+                id: string;
+                recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
+              }>;
               proficiencyBonus: number;
               savingThrows: Array<{
                 ability:

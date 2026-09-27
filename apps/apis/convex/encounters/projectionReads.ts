@@ -21,6 +21,7 @@ import type { Doc } from '../_generated/dataModel'
 import { query, type QueryCtx } from '../_generated/server'
 import { internal } from '../_generated/api'
 import { requireCampaignAuthority } from '../campaigns/authority'
+import { readCharacterMaximumHitPoints } from '../characters/characterMaximumHitPoints'
 import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
 import {
@@ -129,7 +130,7 @@ export async function presentRun(
             ]
           }
         },
-        active.maximumHitPoints,
+        await readCharacterMaximumHitPoints(ctx, active),
         system?.conditionTypes ?? []
       )
       return {

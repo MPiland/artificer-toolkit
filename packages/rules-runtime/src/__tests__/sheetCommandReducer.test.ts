@@ -70,6 +70,7 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
       tempHitPoints: 0,
       maxHitPointsModifier: 0,
       maxHitPointsModifierAdjustmentId: null,
+      maxHitPointsReductions: [],
       maxHitPointsOverride: null,
       savingThrows: [],
       skills: [],

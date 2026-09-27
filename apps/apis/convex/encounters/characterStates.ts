@@ -4,15 +4,17 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import { clampCharacterCurrentHitPoints } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { QueryCtx } from '../_generated/server'
+import { readCharacterMaximumHitPoints } from '../characters/characterMaximumHitPoints'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { readRunProjection } from './documents'
 
 /**
- * Projects a Character's hit points over its stored effective maximum, and its Sheet conditions with
- * their System labels.
+ * Projects a Character's hit points over its effective maximum, as the Sheet shows them, and its
+ * Sheet conditions with their System labels.
  */
 export function characterProjectionState(
   character: Pick<CharacterAuthored, 'state'>,
@@ -21,7 +23,7 @@ export function characterProjectionState(
 ) {
   const { hitpoints, conditions = [] } = character.state
   return {
-    current: Math.max(hitpoints.current, 0),
+    current: clampCharacterCurrentHitPoints(hitpoints.current, maximumHitPoints),
     temporary: Math.max(hitpoints.temp ?? 0, 0),
     maximum: maximumHitPoints,
     conditions: conditions.map((condition) => {
@@ -71,7 +73,7 @@ export async function readEncounterCharacterStates(
         characterId,
         characterProjectionState(
           readCharacterRecord(record),
-          record.maximumHitPoints,
+          await readCharacterMaximumHitPoints(ctx, record),
           conditionTypes
         )
       )

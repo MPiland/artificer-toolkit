@@ -19,9 +19,10 @@ type CharacterRecordFields = Omit<
 /**
  * The single writer of a Character row. It stores the document, Sheet state and stream version the
  * caller supplies, then evaluates the written Character and stores its effective maximum hit points
- * and walking speed in the same transaction. A caller that already evaluated the written Character
- * passes those `stats` instead; `evaluateAs` lets a caller reuse the returned facts for its own Sheet
- * response. Callers own authority, replay, receipts and advancing the stream once per transaction.
+ * (before active-effect reductions) and walking speed in the same transaction. A caller that already
+ * evaluated the written Character passes those `stats` instead; `evaluateAs` lets a caller reuse the
+ * returned facts for its own Sheet response. Callers own authority, replay, receipts and advancing
+ * the stream once per transaction.
  */
 export async function writeCharacterRecord(
   ctx: MutationCtx,

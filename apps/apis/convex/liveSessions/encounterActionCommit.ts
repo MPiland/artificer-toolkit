@@ -36,7 +36,7 @@ import { insertRunCommand } from '../encounters/timelineEntries'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
-import { readLiveCharacterStoredMaximumHitPoints } from './encounterMovementTargetState'
+import { readLiveCharacterMaximumHitPoints } from './encounterMovementTargetState'
 import {
   prepareLiveEncounterActionMaintenance,
   persistLiveEncounterActionEffects
@@ -201,7 +201,7 @@ export const commit = internalMutation({
               targetCharacterId: source.sourceId
             }),
             applications: [],
-            effectiveMaximumHitPoints: await readLiveCharacterStoredMaximumHitPoints(
+            effectiveMaximumHitPoints: await readLiveCharacterMaximumHitPoints(
               ctx,
               state,
               source.sourceId

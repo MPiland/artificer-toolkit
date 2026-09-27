@@ -26,6 +26,7 @@ import {
 import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
 import { characterActionReasonCodeSchema } from './characterActionRules.js'
 import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
+import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 
 export { characterSheetReadInputSchema, type CharacterSheetReadInput } from './characterSheet.js'
 
@@ -132,6 +133,14 @@ export const characterSheetOverviewDtoSchema = z.object({
   maxHitPointsModifier: integerSchema,
   maxHitPointsModifierAdjustmentId: z.nullable(z.guid()),
   maxHitPointsOverride: z.nullable(integerSchema),
+  /** Active reductions already subtracted from `maxHitPoints` (Life Drain, D62), oldest first. */
+  maxHitPointsReductions: z.array(
+    z.strictObject({
+      id: z.guid(),
+      amount: integerSchema.check(z.positive()),
+      recoveryTags: hitPointMaximumReductionRecoveryTagsSchema
+    })
+  ),
   savingThrows: z.array(
     z.object({
       ability: abilityCodeSchema,

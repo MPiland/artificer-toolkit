@@ -1,5 +1,6 @@
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import type { QueryCtx } from '../_generated/server'
+import { listActiveRuleEffects } from '../rules/effectStore'
 import { loadCharacterSheetInputs, type CharacterSheetSourceContext } from './sheetInputs'
 
 export type { CharacterSheetSourceContext } from './sheetInputs'
@@ -34,6 +35,10 @@ export async function loadCharacterSheetFacts(
   return {
     ...loaded,
     ...evaluated,
+    activeEffects: await listActiveRuleEffects(ctx, {
+      kind: 'CHARACTER',
+      characterId: loaded.active.id
+    }),
     sourceContext: sourceContext ?? {
       ...loaded.sourceContext,
       sourcePreparation: evaluated.prepared.sourcePreparation

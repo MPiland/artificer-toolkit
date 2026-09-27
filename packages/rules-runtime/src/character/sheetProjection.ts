@@ -34,7 +34,12 @@ import type {
   VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import {
+  listHitPointMaximumReductions,
+  reduceHitPointMaximum
+} from './hitPointMaximumReductions.js'
 import {
   CHARACTER_ABILITY_ALIASES,
   DND5E_2014_EXHAUSTION_PRESENTATION,
@@ -837,6 +842,8 @@ export interface ProjectCharacterSheetBundleParams {
   creaturesById: ReadonlyMap<string, CreatureAuthored>
   vehiclesById: ReadonlyMap<string, VehicleAuthored>
   ruleEvaluation: Pick<CharacterRuleEvaluationResult, 'snapshot' | 'registry' | 'facts' | 'output'>
+  /** The Character's active effects; their hit point maximum reductions lower `maxHitPoints`. */
+  activeEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>[]
 }
 
 export interface CharacterSheetProjectionBundle {
@@ -885,8 +892,10 @@ export function projectCharacterSheetBundle(
     ])
   )
   const proficiencyBonus = ruleProjection.derivedStats.proficiencyBonus
-  const maxHitPoints = resolveCharacterEffectiveMaximumHitPoints(
-    ruleProjection.derivedStats.maxHitPoints
+  const hitPointMaximumReductions = listHitPointMaximumReductions(params.activeEffects)
+  const maxHitPoints = reduceHitPointMaximum(
+    resolveCharacterEffectiveMaximumHitPoints(ruleProjection.derivedStats.maxHitPoints),
+    hitPointMaximumReductions
   )
   const conditionOptions = (resolution.registry.system?.conditionTypes ?? []).map((condition) => ({
     id: condition.id,
@@ -1468,6 +1477,11 @@ export function projectCharacterSheetBundle(
           (adjustment) =>
             adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
         )?.id ?? null,
+      maxHitPointsReductions: hitPointMaximumReductions.map((reduction) => ({
+        id: reduction.activeEffectId,
+        amount: reduction.amount,
+        recoveryTags: reduction.recoveryTags
+      })),
       exhaustion: {
         label: DND5E_2014_EXHAUSTION_PRESENTATION.label,
         description: DND5E_2014_EXHAUSTION_PRESENTATION.description,

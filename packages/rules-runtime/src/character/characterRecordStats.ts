@@ -4,8 +4,8 @@ import { resolveWalkingSpeedFeet } from '../walkingSpeed.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 
 /**
- * The rules-derived values the Character row stores for display: effective maximum hit points (D7)
- * and walking speed in feet (D38). Rules keep evaluating both live.
+ * The rules-derived values the Character row stores for display: effective maximum hit points (D7),
+ * before active-effect reductions, and walking speed in feet (D38). Rules keep evaluating both live.
  */
 export function resolveCharacterRecordStats(
   evaluation: Pick<CharacterRuleEvaluationResult, 'facts' | 'output'>

@@ -44,6 +44,7 @@ export const characterSheetMulticlassFixture = {
     tempHitPoints: 0,
     maxHitPointsModifier: -2,
     maxHitPointsModifierAdjustmentId: '11111111-1111-4111-8111-111111111112',
+    maxHitPointsReductions: [],
     exhaustion: {
       label: 'Exhaustion',
       description: dnd5e2014ExhaustionDescription,

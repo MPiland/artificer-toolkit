@@ -33,7 +33,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { getProspectiveSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentCommands'
 import { getProspectiveSheetResourceUsage } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
-import { applyCompletedCharacterRest } from '@artificer-toolkit/rules-runtime/character/sheetRest'
+import {
+  activeEffectEndsOnRest,
+  applyCompletedCharacterRest
+} from '@artificer-toolkit/rules-runtime/character/sheetRest'
 import {
   getCharacterSpellKnownEligibleIdsByClass,
   getCharacterSpellPreparationEligibleIdsByClass
@@ -492,29 +495,11 @@ export async function executeCharacterSheetCommand(
   if (rest?.roll) await ctx.db.patch(rest.roll._id, { consumedAt: occurredAt })
 
   if (command.type === 'COMPLETE_REST' && completedRest) {
-    const restTriggers =
-      command.restKind === 'LONG'
-        ? new Set(['SHORT_REST', 'LONG_REST'] as const)
-        : new Set(['SHORT_REST'] as const)
     const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }
     const effectStore = createActiveRuleEffectStore(ctx)
-    const activeEffects = await effectStore.list(owner)
-    for (const effect of activeEffects) {
-      if (effect.definition.schemaVersion !== 2) continue
-      if (
-        !effect.definition.stateContributions.some(
-          (contribution) =>
-            (contribution.kind === 'SCALAR_REDUCTION' &&
-              contribution.recoveryTriggers.some((trigger) => restTriggers.has(trigger))) ||
-            // A Life Drain-style maximum reduction ends on a long rest (D62).
-            (contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
-              command.restKind === 'LONG' &&
-              contribution.recoveryTags.includes('LONG_REST'))
-        )
-      )
-        continue
-      await effectStore.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
-    }
+    for (const effect of initial.activeEffects)
+      if (activeEffectEndsOnRest(effect, command.restKind))
+        await effectStore.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
   }
 
   // The validated authored sources cannot change within this transaction. Reload only when the

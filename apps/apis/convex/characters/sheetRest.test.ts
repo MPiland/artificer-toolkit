@@ -401,9 +401,11 @@ describe('native Character rest preview and completion', () => {
     ).toHaveLength(2)
     expect(completed.streamVersion).toBe(3)
     expect(completed.sheet.overview.hitDice.find((die) => die.die === pool.die)?.used).toBe(1)
+    // Healing stops at the maximum the preserved Life Drain reduction still lowers.
+    expect(completed.sheet.overview.maxHitPoints).toBe(damaged.sheet.overview.maxHitPoints - 3)
     expect(completed.sheet.overview.currentHitPoints).toBe(
       Math.min(
-        damaged.sheet.overview.maxHitPoints,
+        damaged.sheet.overview.maxHitPoints - 3,
         damaged.sheet.overview.currentHitPoints + rolled.evidence.total
       )
     )
@@ -494,16 +496,6 @@ describe('native Character rest preview and completion', () => {
       id: character.id,
       input: { ...request('LONG', 5), resetMaximumHitPointModifier: true }
     }
-    const before = await readState()
-    const ordinary = await owner.caller.query(preview, {
-      ...input,
-      input: { ...input.input, resetMaximumHitPointModifier: false }
-    })
-    const projected = await owner.caller.query(preview, input)
-    expect(ordinary.hitPoints.maximum).toBe(originalSheet.overview.maxHitPoints + 5)
-    expect(projected.hitPoints.maximum).toBe(originalSheet.overview.maxHitPoints)
-    expect(projected.hitPoints.canResetMaximumHitPointModifier).toBe(true)
-    expect(await readState()).toEqual(before)
     const longEffectId = '00000000-0000-4000-8000-000000000121'
     const longMaximumEffectId = '00000000-0000-4000-8000-000000000122'
     const restorationOnlyEffectId = '00000000-0000-4000-8000-000000000123'
@@ -535,6 +527,17 @@ describe('native Character rest preview and completion', () => {
         lifecycle: { schemaVersion: 1, remainingTicks: null }
       })
     })
+    const before = await readState()
+    const ordinary = await owner.caller.query(preview, {
+      ...input,
+      input: { ...input.input, resetMaximumHitPointModifier: false }
+    })
+    const projected = await owner.caller.query(preview, input)
+    // Only the restoration-only reduction outlasts the long rest.
+    expect(ordinary.hitPoints.maximum).toBe(originalSheet.overview.maxHitPoints + 5 - 3)
+    expect(projected.hitPoints.maximum).toBe(originalSheet.overview.maxHitPoints - 3)
+    expect(projected.hitPoints.canResetMaximumHitPointModifier).toBe(true)
+    expect(await readState()).toEqual(before)
     const command = completion(input, projected)
     const original = evaluation.evaluateCharacterRules
     vi.spyOn(evaluation, 'evaluateCharacterRules').mockImplementation((facts) => {
@@ -559,8 +562,11 @@ describe('native Character rest preview and completion', () => {
       )
     ).toEqual([expect.objectContaining({ id: restorationOnlyEffectId })])
     expect(completed.sheet.overview).toMatchObject({
-      currentHitPoints: originalSheet.overview.maxHitPoints,
-      maxHitPoints: originalSheet.overview.maxHitPoints,
+      currentHitPoints: originalSheet.overview.maxHitPoints - 3,
+      maxHitPoints: originalSheet.overview.maxHitPoints - 3,
+      maxHitPointsReductions: [
+        { id: restorationOnlyEffectId, amount: 3, recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM'] }
+      ],
       tempHitPoints: 0,
       exhaustion: { level: 1 }
     })
