@@ -1701,8 +1701,19 @@ A Character mechanics receipt binds a reduction to its proposal (result path, so
 recovery tags), and a reduction whose damage dealt nothing has no application. The death clause
 ("dies if this reduces its hit point maximum to 0"): a Creature at a 0 maximum has 0 hit points and
 is defeated (D63); a Character only drops to 0 and is unconscious, because Character death is not
-modeled yet. The Wight's zombie rising is description-only. Known gap: the Character Sheet's
-maximum hit points ignore active reductions, which only the Encounter reads.
+modeled yet. The Wight's zombie rising is description-only.
+
+**CURRENT / Effective maximum hit points (D62).** One computation
+(`rules-runtime/character/hitPointMaximumReductions`) lists a Character's active reductions and
+subtracts them, never below 0. The Encounter's Character targets, the Sheet projection and the rest
+preview all use it, so the Sheet and the Encounter show the same maximum. The Sheet lists each
+reduction in hit point management (amount, and "until long rest" or "until restored"). Current hit
+points clamp to the reduced maximum in the Sheet, its commands and the Encounter projection. A rest
+preview's maximum leaves out the reductions that rest ends (`activeEffectEndsOnRest`, the same test
+the rest uses to delete them). The Character row's stored `maximumHitPoints` (D7) is the maximum
+_before_ reductions. Reduction effects are written separately from the Character row, in the room's
+commit paths and on rests, so the row never records them. Row readers subtract them through
+`characters/characterMaximumHitPoints`: the Encounter projections and a live resource-only batch.
 
 No unselected damage dice are requested. Each phase is independently acyclic and executes once with
 one evidence stage. Resource consumption, aggregate mutations, events, and terminal receipt changes
