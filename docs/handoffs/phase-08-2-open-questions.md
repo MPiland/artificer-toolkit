@@ -6,7 +6,11 @@
 
 ## Open
 
-_(none)_
+- **M8 follow-ups (D61).** Each has a recommendation; nothing below blocks M8.
+  1. **Ranged range.** M8's new ranged attacks author their normal range as a `DISTANCE` range, so they run and warn beyond it (D11); long range with disadvantage has no model. 32 older ranged attacks author `SPECIAL` range, and most stay allowlisted (`SPECIAL_RANGE`). Options: (a) move every ranged and thrown attack to its normal range now, and model long range later (Phase 8.3); (b) keep `SPECIAL` until long range exists. **Recommendation:** (a); the room already warns and lets the GM override.
+  2. **A timed condition with no repeat save.** The Homunculus Bite poisons "for 1 minute" with no repeat save, and D57 ruling 3 lets only a repeating save carry a duration, so the condition lasts until the GM removes it. Options: (a) let a one-time save's condition carry a duration; (b) keep it GM-removed. **Recommendation:** (a).
+  3. **Size limits on hit riders.** "If the target is Medium or smaller" (the Tyrannosaurus Rex and Otyugh grapples, the Gibbering Mouther's prone) and the Behir's "one Large or smaller creature" are not checked, so the rider applies to any size. **Recommendation:** check the printed size limit with the target-owned grapple (D57 ruling 2 option b).
+  4. **Swarm member size.** A Creature still has no `swarmOf` field, so the six swarms keep their member-size exception. **Recommendation:** add it when a feature reads it (squeezing, or the stat block header), not before.
 
 ## Decisions to review
 
@@ -188,6 +192,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     * Add a guard so no printed attack can lack an Effect again: the stat-block table's action names must map to an Effect or to a listed description-only Feature.
     * Add a swarm model: attacks at 0 ft reach against creatures in the swarm's space, and half damage dice once the swarm is at or below half its hit points.
     * Verify the Night Hag Etherealness rule reference.
+  * **M8 done.**
+    * **Attacks.** 42 printed attacks on 29 Creatures now author an Effect (the Dryad's Club and the Duergar's War Pick and Javelin were already authored through options, so the list above counted them wrongly). Riders use existing shapes: further damage parts, a bare grapple, and save-or-prone or save-or-poisoned. Thrown spears add a ranged Effect, and ranged attacks author their normal range. Also authored: the Behir's Lightning Breath (a DC 16 Dexterity save at `SPECIAL` range until area targeting) and the Gladiator's Parry (the shared parry reaction). All 45 new Effects run in the sweep, which now covers 573 attack Effects. The allowlist lost its 5 `SWARM_SPACE` entries and gained nothing.
+    * **Description-only riders (mechanics follow-up):** Fire Elemental and Magmin ignite, Gray Ooze armor corrosion, Gibbering Mouther absorption, the Otyugh's disease hit point maximum reduction, the Homunculus's "fails by 5" unconsciousness, and every "restrained until the grapple ends". Open questions 2 and 3 cover the Homunculus's 1-minute duration and printed size limits.
+    * **Guard.** The stat-block audit fails when a printed action, reaction or legendary action has an authored source with no Effect, unless `creatureDescriptionOnlyActions.ts` lists it with a reason: 62 Multiattacks, 17 unmodeled mechanics, 3 legendary options that use the Creature's own action (D51 B), and 10 chromatic dragons' Detect (the metallic dragons author one).
+    * **Swarms.** A melee attack may reach 0 ft., checked as overlapping footprints. An unscaled dice damage outcome may author `halfHitPointsDiceConfig`, rolled while the source has half of its hit points or fewer, from the source's locked hit points ([rules runtime](../architecture/rules-runtime.md)). The six swarms' bites run in the room, and a room test hits with the seeded Swarm of Rats at full and half hit points.
+    * **Rule references.** The Night Hag's Change Shape, Etherealness and Nightmare Haunting each ran the next Feature's closed rule, and the Darkmantle's Crush and Darkness Aura ran each other's. Both are fixed.
+    * **Manifest.** 37 of 1,057 subjects changed; no subject or definition was added or removed.
 * **D60 (blocks closed beta) Monster completeness, following the M6 audit.** The audit fixed 388 of 457 stat-block differences. The printed content that is still missing is queued as slice M7:
   - **Breath weapons:**
     - The metallic dragons share one Breath Weapons action with one Recharge 5–6, per the SRD. Today each breath has its own charge.
