@@ -850,7 +850,8 @@ the target's square, so an adjacent creature is one square (5 feet) away and dia
 effective grid's diagonal policy. A creature smaller than a square measures from its position; a
 gridless Scene has no squares and measures between footprint edges. Action range and reach,
 opportunity-attack reach, cleave reach and perception distance all use this one measure
-(`measureSceneTokenFootprintDistance`). The resolver also separates visual
+(`measureSceneTokenFootprintDistance`). A single-target Touch action is a 5-foot range that warns
+when out of reach, like any other range (D11). The resolver also separates visual
 obstruction from physical line of effect, applies barrier-aware lights before mechanical zone severity,
 and requires `sharedSurface` as an explicit authoritative fact. Light cones and zones currently sample
 the token anchor; only range uses the full footprint. Token vision remains presentation data and is not

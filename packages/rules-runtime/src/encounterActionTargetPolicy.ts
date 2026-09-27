@@ -10,6 +10,9 @@ import {
 
 type DispositionActor = { id: string; disposition: EncounterActorDispositionDto }
 
+/** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
+const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
+
 /**
  * How two Encounter actors stand toward each other, from their GM-set dispositions (Foundry token
  * disposition): a neutral actor is neutral to everyone, equal dispositions are allied, and friendly
@@ -46,7 +49,9 @@ export function evaluateEncounterActionTargetPolicy(input: {
       : [{ code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }]
   const { range, targeting } = policy
   if (
-    (range.rangeKind !== 'DISTANCE' && range.rangeKind !== 'UNLIMITED') ||
+    (range.rangeKind !== 'DISTANCE' &&
+      range.rangeKind !== 'TOUCH' &&
+      range.rangeKind !== 'UNLIMITED') ||
     targeting?.selectionKind !== 'SINGLE_TARGET' ||
     targeting.dispositionKind === undefined ||
     targeting.excludedCreatureTypeIds?.length
@@ -60,9 +65,12 @@ export function evaluateEncounterActionTargetPolicy(input: {
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' })
   else if (targeting.dispositionKind === 'HOSTILE' && relationship === 'ALLIED')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets hostile creatures.' })
-  if (range.rangeKind !== 'DISTANCE') return warnings
+  if (range.rangeKind === 'UNLIMITED') return warnings
   const distance = input.sceneContext
-    ? measuredDistance(input.sceneContext, { amount: range.amount, unit: range.unit })
+    ? measuredDistance(
+        input.sceneContext,
+        range.rangeKind === 'DISTANCE' ? { amount: range.amount, unit: range.unit } : TOUCH_RANGE
+      )
     : null
   if (distance === null)
     warnings.push({

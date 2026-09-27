@@ -356,6 +356,7 @@ function isSupportedTestTargetPolicy(
   if (invocation.activation.code === 'ACTION') {
     return (
       invocation.range.rangeKind === 'UNLIMITED' ||
+      invocation.range.rangeKind === 'TOUCH' ||
       (invocation.range.rangeKind === 'DISTANCE' &&
         Number.isSafeInteger(invocation.range.amount) &&
         invocation.range.amount > 0)
@@ -1646,8 +1647,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const invocation = effect.invocation
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
-  const supportsUnlimitedSingleTarget =
-    invocation.range.rangeKind === 'UNLIMITED' &&
+  const supportsSingleTarget =
+    (invocation.range.rangeKind === 'UNLIMITED' || invocation.range.rangeKind === 'TOUCH') &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
     invocation.targeting.dispositionKind === 'ANY' &&
     !invocation.targeting.excludedCreatureTypeIds?.length
@@ -1656,7 +1657,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     invocation.triggerCode !== 'ACTIVATED' ||
     (invocation.activation.code !== 'ACTION' && invocation.activation.code !== 'BONUS_ACTION') ||
     invocation.activation.amount !== 1 ||
-    (!supportsSelf && !supportsUnlimitedSingleTarget) ||
+    (!supportsSelf && !supportsSingleTarget) ||
     invocation.shape
   )
     unsupported('D&D Effect action is not the supported activated self action shape.')

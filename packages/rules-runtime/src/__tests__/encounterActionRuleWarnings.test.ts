@@ -10,6 +10,7 @@ import {
   SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
@@ -461,6 +462,32 @@ describe('encounter action rule warning gate', () => {
       kind: 'UNACKNOWLEDGED',
       warnings: [economyWarning, resourceWarning, dispositionWarning, rangeWarning]
     })
+  })
+
+  it("treats the SRD Unicorn's Healing Touch as a 5-foot range that warns, not refuses", async () => {
+    const healingTouch = unicorn.features?.find(({ label }) => label.startsWith('Healing Touch'))
+    if (!healingTouch) throw new Error('The SRD Healing Touch Feature is missing.')
+    const prepared = await prepareCreatureAction({
+      actor: creatureActor({ id: ACTOR_ID, label: 'Unicorn', features: [healingTouch] }),
+      target: creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] }),
+      featureId: healingTouch.id,
+      overridable: true
+    })
+    const gate = (targetColumn: number) =>
+      evaluateEncounterActionRuleWarnings({
+        preparedWarnings: prepared.ruleWarnings,
+        target: {
+          actor: prepared.actor,
+          target: prepared.target,
+          targetPolicy: prepared.targetPolicy,
+          sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
+        },
+        actionEconomy: null,
+        activationCode: 'ACTION',
+        acknowledged: []
+      })
+    expect(gate(1)).toEqual({ kind: 'ACCEPTED', overrides: [] })
+    expect(gate(2)).toEqual({ kind: 'UNACKNOWLEDGED', warnings: [rangeWarning] })
   })
 
   it('accepts a clean action with no overrides and refuses an unsupported target policy', () => {
