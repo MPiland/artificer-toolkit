@@ -38,6 +38,17 @@ without exactly one `ATTACK` roll, for SRD and homebrew alike.
 attack sweep holds every attack's resolved damage (dice plus the Creature's authored ability
 modifiers) to it; a printed bonus no ability explains is authored as a flat modifier in `diceConfig`.
 
+`src/srd/creatures/stat-blocks.ts` records every SRD Creature's printed stat block (D56): size, type,
+alignment, AC, hit points and dice, speeds, ability scores, saving throws, skills, damage and
+condition defenses, senses, passive Perception, languages, challenge rating and XP, and the names of
+its traits, actions, reactions and legendary actions. Regenerate it with
+`yarn workspace @artificer-toolkit/source-data generate:creature-stat-blocks`, which reads
+`SRD_CC_v5.1.pdf` a page column at a time with Poppler's `pdftotext` (the committed `.txt` interleaves
+neighbouring stat blocks), then format and review the diff. `creatureStatBlocks.test.ts` holds every
+authored Creature to it; `creatureStatBlockExceptions.ts` lists each known difference with its reason,
+and the test fails when one no longer applies. A skill whose printed bonus is twice the proficiency
+bonus is authored with `grantedSkillExpertise`.
+
 The local Convex importer now preserves all 1,051 roots and 50 reusable definitions. Repeat seeding
 is a no-op; read-back verifies complete-record hashes against this package. Authored version payloads
 use lossless canonical JSON text to accommodate deeply composed mechanics, with metadata kept

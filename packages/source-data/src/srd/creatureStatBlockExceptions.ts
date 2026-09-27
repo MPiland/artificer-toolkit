@@ -1,0 +1,116 @@
+/**
+ * Authored SRD Creature fields that knowingly differ from their printed stat block, keyed by
+ * `Creature label|field` (or `|features ±Name`, `|legendaryActions ±Name`) as the stat-block audit
+ * (creatureStatBlocks.test.ts) reports them, each with its reason. The audit fails when an entry no
+ * longer applies. Each reason names the follow-up that removes it (D56).
+ */
+
+const SEPARATE_BREATH =
+  'Breath weapons are authored as separate Features, each with its own Recharge 5-6 charge; the stat block prints one Breath Weapons action sharing one recharge. Merging them into one Feature is a follow-up (D56).'
+const UNAUTHORED_ACTION =
+  'The printed action is not authored yet; it needs Effects authoring (attack roll, damage, saves), a follow-up (D56).'
+const UNAUTHORED_REACTION =
+  'The printed reaction is not authored yet; it needs a reaction Effect, a follow-up (D56).'
+const UNAUTHORED_SPELLCASTING =
+  'The printed spellcasting trait is not authored yet; it needs spell grants, a follow-up (D56).'
+const UNAUTHORED_LEGENDARY =
+  'The printed legendary action option is not authored yet; the Creature has no legendary action options, a follow-up (D56).'
+const UNREACHABLE_SKILL =
+  'A printed skill bonus is neither proficiency nor expertise for the printed challenge rating, and a Creature proficiency grant has no flat bonus (model gap, D56).'
+const UNREPRESENTED_DEFENSE =
+  'The printed damage defense condition has no model (only bypass by magical, silvered or adamantine attacks), so the SRD import drops it (model gap, D56).'
+
+const entries = (reason: string, keys: readonly string[]) =>
+  keys.map((key) => [key, reason] as const)
+
+export const SRD_CREATURE_STAT_BLOCK_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
+  ...entries(SEPARATE_BREATH, [
+    'Adult Brass Dragon|features -Fire Breath',
+    'Adult Brass Dragon|features -Sleep Breath',
+    'Adult Bronze Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Adult Bronze Dragon|features -Lightning Breath (Recharge 5-6)',
+    'Adult Bronze Dragon|features -Repulsion Breath (Recharge 5-6)',
+    'Adult Copper Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Adult Copper Dragon|features -Acid Breath (Recharge 5-6)',
+    'Adult Copper Dragon|features -Slowing Breath (Recharge 5-6)',
+    'Adult Gold Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Adult Gold Dragon|features -Fire Breath (Recharge 5-6)',
+    'Adult Gold Dragon|features -Weakening Breath (Recharge 5-6)',
+    'Adult Silver Dragon|features -Cold Breath (Recharge 5-6)',
+    'Adult Silver Dragon|features -Paralyzing Breath (Recharge 5-6)',
+    'Ancient Brass Dragon|features -Fire Breath',
+    'Ancient Brass Dragon|features -Sleep Breath',
+    'Ancient Bronze Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Ancient Bronze Dragon|features -Lightning Breath (Recharge 5-6)',
+    'Ancient Bronze Dragon|features -Repulsion Breath (Recharge 5-6)',
+    'Ancient Copper Dragon|features -Acid Breath (Recharge 5-6)',
+    'Ancient Copper Dragon|features -Slowing Breath (Recharge 5-6)',
+    'Ancient Gold Dragon|features -Fire Breath (Recharge 5-6)',
+    'Ancient Gold Dragon|features -Weakening Breath (Recharge 5-6)',
+    'Ancient Silver Dragon|features -Cold Breath (Recharge 5-6)',
+    'Ancient Silver Dragon|features -Paralyzing Breath (Recharge 5-6)',
+    'Young Brass Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Young Brass Dragon|features -Fire Breath (Recharge 5-6)',
+    'Young Brass Dragon|features -Sleep Breath (Recharge 5-6)',
+    'Young Bronze Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Young Bronze Dragon|features -Lightning Breath (Recharge 5-6)',
+    'Young Bronze Dragon|features -Repulsion Breath (Recharge 5-6)',
+    'Young Copper Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Young Copper Dragon|features -Acid Breath',
+    'Young Gold Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Young Gold Dragon|features -Fire Breath',
+    'Young Silver Dragon|features +Breath Weapons (Recharge 5-6)',
+    'Young Silver Dragon|features -Cold Breath (Recharge 5-6)',
+    'Young Silver Dragon|features -Paralyzing Breath'
+  ]),
+  ...entries(UNAUTHORED_ACTION, [
+    'Aboleth|features +Tentacle',
+    'Aboleth|features +Tail',
+    'Aboleth|features +Enslave (3/Day)',
+    'Ice Devil|features +Wall of Ice (Recharge 6)',
+    'Kraken|features +Fling',
+    'Oni|features +Glaive',
+    'Solar|features +Flying Sword',
+    'Succubus/Incubus|features +Charm',
+    'Succubus/Incubus|features +Etherealness',
+    'Werebear|features +Greataxe (Humanoid or Hybrid Form Only)'
+  ]),
+  ...entries(UNAUTHORED_REACTION, [
+    'Marilith|features +Parry',
+    'Stone Giant|features +Rock Catching'
+  ]),
+  ...entries(UNAUTHORED_SPELLCASTING, [
+    'Androsphinx|features +Spellcasting',
+    'Solar|features +Innate Spellcasting'
+  ]),
+  ...entries(UNAUTHORED_LEGENDARY, [
+    'Aboleth|legendaryActions +Detect',
+    'Aboleth|legendaryActions +Tail Swipe',
+    'Aboleth|legendaryActions +Psychic Drain (Costs 2 Actions)',
+    'Kraken|legendaryActions +Tentacle Attack or Fling',
+    'Kraken|legendaryActions +Lightning Storm (Costs 2 Actions)',
+    'Kraken|legendaryActions +Ink Cloud (Costs 3 Actions)',
+    'Solar|legendaryActions +Teleport',
+    'Solar|legendaryActions +Searing Burst (Costs 2 Actions)',
+    'Solar|legendaryActions +Blinding Gaze (Costs 3 Actions)',
+    'Tarrasque|legendaryActions +Attack',
+    'Tarrasque|legendaryActions +Move',
+    'Tarrasque|legendaryActions +Chomp (Costs 2 Actions)'
+  ]),
+  ...entries(UNREACHABLE_SKILL, [
+    // Printed with the Veteran's +2 proficiency bonus, not the template's CR 5 (+3).
+    'Half-Red Dragon Veteran|skills',
+    // Arcana +18 with Intelligence +5 at CR 21 (+7).
+    'Lich|skills',
+    // Every skill printed with +4 proficiency at CR 5 (+3).
+    'Night Hag|skills',
+    // Religion +4 with Intelligence +1 at CR 2 (+2).
+    'Priest|skills'
+  ]),
+  ...entries(UNREPRESENTED_DEFENSE, [
+    // Resistance to "damage from spells" (the Archmage's precast stoneskin is authored).
+    'Archmage|unrepresentedDamageDefenses',
+    // Vulnerability to "piercing from magic weapons wielded by good creatures".
+    'Rakshasa|unrepresentedDamageDefenses'
+  ])
+])
