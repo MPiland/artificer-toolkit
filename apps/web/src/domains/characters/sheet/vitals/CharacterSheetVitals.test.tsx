@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -118,6 +118,35 @@ describe('Character Sheet vitals', () => {
       family: 'HIT_POINTS',
       expectedVersion: 5
     })
+  })
+
+  it('lists each active maximum reduction with how it ends', async () => {
+    const user = userEvent.setup()
+    const sheet = createSheet()
+    sheet.overview.maxHitPoints = 11
+    sheet.overview.currentHitPoints = 11
+    sheet.overview.maxHitPointsReductions = [
+      {
+        id: '11111111-1111-4111-8111-111111111121',
+        amount: 4,
+        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+      },
+      {
+        id: '11111111-1111-4111-8111-111111111122',
+        amount: 2,
+        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewVitals pending={false} sheet={sheet} submitCommand={vi.fn()} />
+    )
+
+    await openHpControls(user)
+    const reductions = screen.getByRole('list', { name: /maximum hit point reductions/i })
+    const [drain, golem] = within(reductions).getAllByRole('listitem')
+    expect(drain).toHaveTextContent(/maximum reduced\s*until long rest\s*-4/i)
+    expect(golem).toHaveTextContent(/maximum reduced\s*until restored\s*-2/i)
   })
 
   it('does not submit no-op hit point adjustments', async () => {

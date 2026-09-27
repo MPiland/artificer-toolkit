@@ -409,6 +409,54 @@ export const hpDeltaRow = style({
   }
 })
 
+export const hpReductionList = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      listStyle: 'none',
+      margin: 0,
+      padding: 0
+    }
+  }
+})
+
+export const hpReductionRow = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'baseline',
+      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'grid',
+      gap: '12px',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      paddingBlock: '8px',
+      selectors: {
+        '&:first-child': {
+          paddingBlockStart: 0
+        }
+      }
+    }
+  }
+})
+
+export const hpReductionRecovery = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      fontSize: '0.8125rem'
+    }
+  }
+})
+
+export const hpReductionAmount = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.primary,
+      fontVariantNumeric: 'tabular-nums',
+      fontWeight: 700
+    }
+  }
+})
+
 export const hpSettingsRow = style({
   '@layer': {
     [app]: {

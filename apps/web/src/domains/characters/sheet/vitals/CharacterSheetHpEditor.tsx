@@ -1,7 +1,7 @@
 import { Button, NumberInput, Text } from '@mantine/core'
 import { useRef, useState } from 'react'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
-import { toNumber } from '../core/characterSheet.utils'
+import { formatSigned, toNumber } from '../core/characterSheet.utils'
 import * as overviewStyles from '../overview/overview.css'
 import { sheetFieldClassNames } from '../shared/characterSheetFieldStyles'
 import * as rowStyles from '../shared/rows.css'
@@ -99,6 +99,25 @@ export function CharacterSheetHpEditor({
 
   return (
     <div className={overviewStyles.hpControlGrid}>
+      {sheet.overview.maxHitPointsReductions.length ? (
+        <ul aria-label='Maximum hit point reductions' className={overviewStyles.hpReductionList}>
+          {sheet.overview.maxHitPointsReductions.map((reduction, index) => (
+            <li className={overviewStyles.hpReductionRow} key={`${reduction.id}:${index}`}>
+              <div>
+                <Text>Maximum reduced</Text>
+                <Text className={overviewStyles.hpReductionRecovery}>
+                  {reduction.recoveryTags.includes('LONG_REST')
+                    ? 'Until long rest'
+                    : 'Until restored'}
+                </Text>
+              </div>
+              <Text className={overviewStyles.hpReductionAmount}>
+                {formatSigned(-reduction.amount)}
+              </Text>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className={overviewStyles.hpDeltaRow}>
         <Button
           className={rowStyles.hpControlTarget}
