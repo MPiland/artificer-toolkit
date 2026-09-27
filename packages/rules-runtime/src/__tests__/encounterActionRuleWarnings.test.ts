@@ -192,6 +192,11 @@ describe('encounter action economy warning', () => {
 
   it('distinguishes a suppressed allowance from a spent one', () => {
     expect(
+      encounterActionEconomyWarnings({ consumption: consumption(0), available: false }, 'ACTION')
+    ).toEqual([
+      { code: 'ACTION_ECONOMY_UNAVAILABLE', message: "This actor can't take an action right now." }
+    ])
+    expect(
       encounterActionEconomyWarnings(
         { consumption: consumption(0), available: false },
         'BONUS_ACTION'

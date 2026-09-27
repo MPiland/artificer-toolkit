@@ -40,13 +40,14 @@ export function encounterActionEconomyWarnings(
 ): EncounterRuleWarningDto[] {
   if (!economy || economy.available) return []
   const allowance = activationCode.toLowerCase().replaceAll('_', ' ')
+  const article = /^[aeiou]/.test(allowance) ? 'an' : 'a'
   return [
     {
       code: 'ACTION_ECONOMY_UNAVAILABLE',
       message:
         economy.consumption.beforeUsed >= economy.consumption.maximum
           ? `No ${allowance} left this turn.`
-          : `This actor can't take a ${allowance} right now.`
+          : `This actor can't take ${article} ${allowance} right now.`
     }
   ]
 }
