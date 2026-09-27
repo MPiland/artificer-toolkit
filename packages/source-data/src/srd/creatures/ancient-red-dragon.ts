@@ -421,51 +421,7 @@ export const ancientRedDragon: CreatureAuthored = {
           label: 'Tail Attack',
           description: 'The dragon makes a tail attack.',
           order: 2,
-          effects: [
-            {
-              id: '00000000-0005-0019-0070-001500000000',
-              order: 2,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'ACTIVATED',
-                activation: { code: 'FREE' },
-                range: { id: '00000000-0005-001a-0070-001500000000', rangeKind: 'SPECIAL' },
-                resourceUse: { chargeId: '00000000-0005-0015-0070-001500000000', cost: 1 }
-              },
-              paths: [
-                {
-                  id: '00000000-0005-001b-0070-001500000000',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '00000000-0005-001b-0070-001500000000__result',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '00000000-0005-001b-0070-001500000000',
-                        effectKind: 'DAMAGE',
-                        damageTypeId: '00000000-0000-0000-0004-000200000000',
-                        valueKind: 'DICE',
-                        scalingKind: 'NONE',
-                        diceConfig: '2d8',
-                        bonuses: [
-                          {
-                            id: '00000000-0005-001f-0070-001500000000',
-                            bonusKind: 'ABILITY_BONUS',
-                            ability: 'STRENGTH',
-                            order: 1
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          actionReference: { featureId: S.featureId(21, 5), chargeCost: 1 }
         },
         {
           id: '00000000-0005-00cb-0070-001500000000',

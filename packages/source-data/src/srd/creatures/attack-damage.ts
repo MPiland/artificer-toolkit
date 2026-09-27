@@ -2,8 +2,7 @@
 /**
  * The printed SRD hit damage of every attack-triggered Creature Effect, keyed by Effect ID: one
  * `[expression, damage type code]` per damage part, `XdY±Z` or a flat amount. A versatile or
- * alternate-form attack lists the printed variant its Effect authors; attacks that print no
- * damage of their own take their base attack’s.
+ * alternate-form attack lists the printed variant its Effect authors.
  */
 export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   string,
@@ -21,7 +20,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Adult Black Dragon: Bite
   ['00000000-0002-000f-0070-000300000000', [['2d6+6', 'SLASHING']]], // Adult Black Dragon: Claw
   ['00000000-0002-0013-0070-000300000000', [['2d8+6', 'BLUDGEONING']]], // Adult Black Dragon: Tail
-  ['00000000-0005-0019-0070-000300000000', [['2d8+6', 'BLUDGEONING']]], // Adult Black Dragon: Legendary Actions > Tail Attack (from Tail)
   [
     '00000000-0002-000a-0070-000400000000',
     [
@@ -31,11 +29,9 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Adult Blue Dragon: Bite
   ['00000000-0002-000f-0070-000400000000', [['2d6+7', 'SLASHING']]], // Adult Blue Dragon: Claw
   ['00000000-0002-0013-0070-000400000000', [['2d8+7', 'BLUDGEONING']]], // Adult Blue Dragon: Tail
-  ['00000000-0005-0019-0070-000400000000', [['2d8+7', 'BLUDGEONING']]], // Adult Blue Dragon: Legendary Actions > Tail Attack (from Tail)
   ['00000000-0002-000c-0070-000500000000', [['2d10+6', 'PIERCING']]], // Adult Brass Dragon: Bite
   ['00000000-0002-0010-0070-000500000000', [['2d6+6', 'SLASHING']]], // Adult Brass Dragon: Claw
   ['00000000-0002-0014-0070-000500000000', [['2d8+6', 'BLUDGEONING']]], // Adult Brass Dragon: Tail
-  ['00000000-0005-0019-0070-000500000000', [['2d8+6', 'BLUDGEONING']]], // Adult Brass Dragon: Legendary Actions > Tail Attack (from Tail)
   ['00000000-0002-000d-0070-000600000000', [['2d10+7', 'PIERCING']]], // Adult Bronze Dragon: Bite
   ['00000000-0002-0011-0070-000600000000', [['2d6+7', 'SLASHING']]], // Adult Bronze Dragon: Claw
   ['00000000-0002-0015-0070-000600000000', [['2d8+7', 'BLUDGEONING']]], // Adult Bronze Dragon: Tail
@@ -54,7 +50,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Adult Green Dragon: Bite
   ['00000000-0002-0012-0070-000900000000', [['2d6+6', 'SLASHING']]], // Adult Green Dragon: Claw
   ['00000000-0002-0016-0070-000900000000', [['2d8+6', 'BLUDGEONING']]], // Adult Green Dragon: Tail
-  ['00000000-0005-0019-0070-000900000000', [['2d8+6', 'BLUDGEONING']]], // Adult Green Dragon: Legendary Actions > Tail Attack (from Tail)
   [
     '00000000-0002-000d-0070-000a00000000',
     [
@@ -64,7 +59,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Adult Red Dragon: Bite
   ['00000000-0002-0012-0070-000a00000000', [['2d6+8', 'SLASHING']]], // Adult Red Dragon: Claw
   ['00000000-0002-0016-0070-000a00000000', [['2d8+8', 'BLUDGEONING']]], // Adult Red Dragon: Tail
-  ['00000000-0005-0019-0070-000a00000000', [['2d8+8', 'BLUDGEONING']]], // Adult Red Dragon: Legendary Actions > Tail Attack (from Tail)
   ['00000000-0002-000d-0070-000b00000000', [['2d10+8', 'PIERCING']]], // Adult Silver Dragon: Bite
   ['00000000-0002-0011-0070-000b00000000', [['2d6+8', 'SLASHING']]], // Adult Silver Dragon: Claw
   ['00000000-0002-0015-0070-000b00000000', [['2d8+8', 'BLUDGEONING']]], // Adult Silver Dragon: Tail
@@ -77,7 +71,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Adult White Dragon: Bite
   ['00000000-0002-0012-0070-000c00000000', [['2d6+6', 'SLASHING']]], // Adult White Dragon: Claw
   ['00000000-0002-0016-0070-000c00000000', [['2d8+6', 'BLUDGEONING']]], // Adult White Dragon: Tail
-  ['00000000-0005-0019-0070-000c00000000', [['2d8+6', 'BLUDGEONING']]], // Adult White Dragon: Legendary Actions > Tail Attack (from Tail)
   ['00000000-0002-0075-0070-000d00000000', [['2d8+5', 'BLUDGEONING']]], // Air Elemental: Slam
   [
     '00000000-0002-000d-0070-000e00000000',
@@ -88,7 +81,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Ancient Black Dragon: Bite
   ['00000000-0002-0012-0070-000e00000000', [['2d6+8', 'SLASHING']]], // Ancient Black Dragon: Claw
   ['00000000-0002-0016-0070-000e00000000', [['2d8+8', 'BLUDGEONING']]], // Ancient Black Dragon: Tail
-  ['00000000-0005-0019-0070-000e00000000', [['2d8+8', 'BLUDGEONING']]], // Ancient Black Dragon: Legendary Actions > Tail Attack (from Tail)
   [
     '00000000-0002-000d-0070-000f00000000',
     [
@@ -98,19 +90,15 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Ancient Blue Dragon: Bite
   ['00000000-0002-0012-0070-000f00000000', [['2d6+9', 'SLASHING']]], // Ancient Blue Dragon: Claw
   ['00000000-0002-0016-0070-000f00000000', [['2d8+9', 'BLUDGEONING']]], // Ancient Blue Dragon: Tail
-  ['00000000-0005-0019-0070-000f00000000', [['2d8+9', 'BLUDGEONING']]], // Ancient Blue Dragon: Legendary Actions > Tail Attack (from Tail)
   ['00000000-0002-000a-0070-001000000000', [['2d10+8', 'PIERCING']]], // Ancient Brass Dragon: Bite
   ['00000000-0002-000e-0070-001000000000', [['2d6+8', 'SLASHING']]], // Ancient Brass Dragon: Claw
   ['00000000-0002-0012-0070-001000000000', [['2d8+8', 'BLUDGEONING']]], // Ancient Brass Dragon: Tail
-  ['00000000-0005-0019-0070-001000000000', [['2d8+8', 'BLUDGEONING']]], // Ancient Brass Dragon: Legendary Actions > Tail Attack (from Tail)
   ['00000000-0002-000d-0070-151f00000000', [['2d10+9', 'PIERCING']]], // Ancient Bronze Dragon: Bite
   ['00000000-0002-0011-0070-151f00000000', [['2d6+9', 'SLASHING']]], // Ancient Bronze Dragon: Claw
   ['00000000-0002-0015-0070-151f00000000', [['2d8+9', 'BLUDGEONING']]], // Ancient Bronze Dragon: Tail
-  ['00000000-0005-0019-0070-151f00000000', [['2d8+9', 'BLUDGEONING']]], // Ancient Bronze Dragon: Legendary Actions > Tail Attack (from Tail)
   ['00000000-0002-000d-0070-164e00000000', [['2d10+8', 'PIERCING']]], // Ancient Copper Dragon: Bite
   ['00000000-0002-0011-0070-164e00000000', [['2d6+8', 'SLASHING']]], // Ancient Copper Dragon: Claw
   ['00000000-0002-0015-0070-164e00000000', [['2d8+8', 'BLUDGEONING']]], // Ancient Copper Dragon: Tail
-  ['00000000-0005-0019-0070-164e00000000', [['2d8+8', 'BLUDGEONING']]], // Ancient Copper Dragon: Legendary Actions > Tail Attack (from Tail)
   ['00000000-0002-000d-0070-001300000000', [['2d10+10', 'PIERCING']]], // Ancient Gold Dragon: Bite
   ['00000000-0002-0011-0070-001300000000', [['2d6+10', 'SLASHING']]], // Ancient Gold Dragon: Claw
   ['00000000-0002-0015-0070-001300000000', [['2d8+10', 'BLUDGEONING']]], // Ancient Gold Dragon: Tail
@@ -864,7 +852,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-000b-0070-011300000000', [['3d8+7', 'BLUDGEONING']]], // Tyrannosaurus Rex: Tail
   ['00000000-0002-0002-0070-011400000000', [['2d6+4', 'BLUDGEONING']]], // Unicorn: Hooves
   ['00000000-0002-0003-0070-011400000000', [['1d8+4', 'PIERCING']]], // Unicorn: Horn
-  ['00000000-0005-0002-0070-011400000000', [['2d6+4', 'BLUDGEONING']]], // Unicorn: Legendary Actions > Hooves (from Hooves)
   ['00000000-0002-00e0-0070-011500000000', [['1d8+4', 'BLUDGEONING']]], // Vampire: Unarmed Strike (Vampire Form Only)
   [
     '00000000-0002-00e6-0070-011500000000',

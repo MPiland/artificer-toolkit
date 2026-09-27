@@ -647,40 +647,7 @@ export const adultBronzeDragon: CreatureAuthored = {
           label: 'Tail Attack',
           description: 'The dragon makes a tail attack.',
           order: 2,
-          effects: [
-            {
-              id: '00000000-0005-0019-0070-000600000000',
-              order: 2,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'ACTIVATED',
-                activation: { code: 'FREE' },
-                range: { id: '00000000-0005-001a-0070-000600000000', rangeKind: 'SPECIAL' },
-                resourceUse: { chargeId: '00000000-0005-0015-0070-000600000000', cost: 1 }
-              },
-              paths: [
-                {
-                  id: '00000000-0005-001b-0070-000600000000',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '00000000-0005-001b-0070-000600000000__result',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '00000000-0005-001b-0070-000600000000',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'DRAGON_LEGENDARY_TAIL_ATTACK'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          actionReference: { featureId: S.featureId(6, 6), chargeCost: 1 }
         },
         {
           id: '00000000-0005-00cb-0070-000600000000',

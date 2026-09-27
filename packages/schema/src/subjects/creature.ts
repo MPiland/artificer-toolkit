@@ -240,6 +240,46 @@ function validateCreatureVersatileAttacks(
   }
 }
 
+/**
+ * An option that runs another action (D51 option B) names another action Feature of the same
+ * Creature and spends its own Feature's fixed charges.
+ */
+function validateCreatureActionReferences(
+  creature: { features?: z.infer<typeof featureDtoSchema>[] },
+  context: z.core.$RefinementCtx
+) {
+  const features = creature.features ?? []
+  for (const [featureIndex, feature] of features.entries()) {
+    for (const [optionIndex, option] of (feature.options ?? []).entries()) {
+      const reference = option.actionReference
+      if (!reference) continue
+      const path = ['features', featureIndex, 'options', optionIndex, 'actionReference']
+      const referenced = features.find((candidate) => candidate.id === reference.featureId)
+      if (
+        !referenced ||
+        referenced.id === feature.id ||
+        !(referenced.effects ?? []).some((effect) => effect.invocation.kind !== 'PASSIVE')
+      )
+        context.addIssue({
+          code: 'custom',
+          path: [...path, 'featureId'],
+          message: `"${option.label}" must name another action Feature of this Creature.`
+        })
+      const charges = feature.charges
+      if (
+        charges?.limitKind !== 'FIXED_AMOUNT' ||
+        charges.scalingKind !== 'NONE' ||
+        reference.chargeCost > charges.amount
+      )
+        context.addIssue({
+          code: 'custom',
+          path: [...path, 'chargeCost'],
+          message: `"${option.label}" must cost at most the fixed charges of "${feature.label}".`
+        })
+    }
+  }
+}
+
 const creatureAuthoredDtoObject = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
@@ -289,7 +329,8 @@ const creatureAuthoredDtoObject = z.object({
 
 const creatureAuthoredDtoSchemaBase = creatureAuthoredDtoObject.check(
   z.superRefine(validateCreatureEquipmentLoadout),
-  z.superRefine(validateCreatureVersatileAttacks)
+  z.superRefine(validateCreatureVersatileAttacks),
+  z.superRefine(validateCreatureActionReferences)
 )
 
 export type CreatureAuthoredDto = z.infer<typeof creatureAuthoredDtoSchemaBase>
@@ -304,7 +345,8 @@ export const creatureAuthoringInputDtoSchema = z
   .extend(creatureAuthoredDtoObject, { userId: z.optional(authoredIdentifierSchema) })
   .check(
     z.superRefine(validateCreatureEquipmentLoadout),
-    z.superRefine(validateCreatureVersatileAttacks)
+    z.superRefine(validateCreatureVersatileAttacks),
+    z.superRefine(validateCreatureActionReferences)
   )
 
 export type CreatureAuthoringInputDto = z.infer<typeof creatureAuthoringInputDtoSchema>

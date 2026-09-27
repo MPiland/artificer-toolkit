@@ -13,25 +13,6 @@ import type { FeatureBaseAuthored } from '@artificer-toolkit/shared'
 import { srdCreatureRecords } from '../src/srd/creatures/index.js'
 import { SRD_DAMAGE_TYPES } from '../src/srd/vocabulary.js'
 
-/**
- * Attacks that print no hit damage of their own ("The dragon makes a tail attack.") take it from
- * the named base attack of the same Creature, keyed by `Creature label|Feature or option label`.
- */
-const BASE_ATTACKS: Readonly<Record<string, string>> = {
-  'Adult Black Dragon|Tail Attack': 'Tail',
-  'Adult Blue Dragon|Tail Attack': 'Tail',
-  'Adult Brass Dragon|Tail Attack': 'Tail',
-  'Adult Green Dragon|Tail Attack': 'Tail',
-  'Adult Red Dragon|Tail Attack': 'Tail',
-  'Adult White Dragon|Tail Attack': 'Tail',
-  'Ancient Black Dragon|Tail Attack': 'Tail',
-  'Ancient Blue Dragon|Tail Attack': 'Tail',
-  'Ancient Brass Dragon|Tail Attack': 'Tail',
-  'Ancient Bronze Dragon|Tail Attack': 'Tail',
-  'Ancient Copper Dragon|Tail Attack': 'Tail',
-  'Unicorn|Hooves': 'Hooves'
-}
-
 /** One printed damage part: `2d4+2` or a flat `1`, and its damage type code. */
 type PrintedPart = readonly [expression: string, damageType: string]
 
@@ -139,10 +120,8 @@ function selectPrinted(
 
 const entries: { entry: string; comment: string }[] = []
 const review: string[] = []
-const usedBaseKeys = new Set<string>()
 for (const creature of srdCreatureRecords) {
-  const features = creature.features ?? []
-  const sources = features.flatMap((feature) => [
+  const sources = (creature.features ?? []).flatMap((feature) => [
     { source: feature, owner: null, path: feature.label },
     ...(feature.options ?? []).map((option) => ({
       source: option,
@@ -158,18 +137,10 @@ for (const creature of srdCreatureRecords) {
       )
         continue
       const label = `${creature.label}: ${path}`
-      // An option that prints no damage of its own reads its Feature's, else its base attack's.
+      // An option that prints no damage of its own reads its Feature's.
       let alternatives = printedAlternatives(source.description ?? '')
       if (alternatives.length === 0 && owner)
         alternatives = printedAlternatives(owner.description ?? '')
-      const baseKey = `${creature.label}|${source.label}`
-      const baseLabel = alternatives.length === 0 ? BASE_ATTACKS[baseKey] : undefined
-      if (baseLabel) {
-        usedBaseKeys.add(baseKey)
-        const base = features.find((feature) => feature.label === baseLabel)
-        if (!base) throw new Error(`${label} base attack "${baseLabel}" is missing.`)
-        alternatives = printedAlternatives(base.description ?? '')
-      }
       if (alternatives.length === 0) {
         review.push(`${label} prints no hit damage`)
         entries.push({ entry: `['${effect.id}', []]`, comment: `${label} (prints no hit damage)` })
@@ -192,16 +163,13 @@ for (const creature of srdCreatureRecords) {
         review.push(
           `${label} prints ${alternatives.length} alternatives; lists ${printed.length} parts`
         )
-      if (baseLabel) review.push(`${label} takes its damage from ${baseLabel}`)
       entries.push({
         entry: `['${effect.id}', [${printed.map(([expression, type]) => `['${expression}', '${type}']`).join(', ')}]]`,
-        comment: baseLabel ? `${label} (from ${baseLabel})` : label
+        comment: label
       })
     }
   }
 }
-const unusedBaseKeys = Object.keys(BASE_ATTACKS).filter((key) => !usedBaseKeys.has(key))
-if (unusedBaseKeys.length > 0) throw new Error(`Unused base attacks: ${unusedBaseKeys.join(', ')}.`)
 
 await writeFile(
   resolve(import.meta.dirname, '../src/srd/creatures/attack-damage.ts'),
@@ -210,8 +178,7 @@ await writeFile(
     '/**',
     ' * The printed SRD hit damage of every attack-triggered Creature Effect, keyed by Effect ID: one',
     ' * `[expression, damage type code]` per damage part, `XdY±Z` or a flat amount. A versatile or',
-    ' * alternate-form attack lists the printed variant its Effect authors; attacks that print no',
-    ' * damage of their own take their base attack’s.',
+    ' * alternate-form attack lists the printed variant its Effect authors.',
     ' */',
     'export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<',
     '  string,',

@@ -427,57 +427,7 @@ export const ancientBlackDragon: CreatureAuthored = {
           label: 'Tail Attack',
           description: 'The dragon makes a tail attack.',
           order: 2,
-          effects: [
-            {
-              id: '00000000-0005-0019-0070-000e00000000',
-              order: 2,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'MELEE_WEAPON_ATTACK',
-                activation: { code: 'FREE' },
-                range: {
-                  id: '00000000-0005-001a-0070-000e00000000',
-                  rangeKind: 'DISTANCE',
-                  amount: 20,
-                  unit: 'FEET'
-                },
-                targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
-                resourceUse: { chargeId: '00000000-0005-0015-0070-000e00000000', cost: 1 }
-              },
-              paths: [
-                {
-                  id: '00000000-0005-001b-0070-000e00000000',
-                  order: 1,
-                  pathCode: 'ON_HIT',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '00000000-0005-001b-0070-000e00000000__result',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '00000000-0005-001b-0070-000e00000000',
-                        effectKind: 'DAMAGE',
-                        damageTypeId: '00000000-0000-0000-0004-000200000000',
-                        valueKind: 'DICE',
-                        scalingKind: 'NONE',
-                        diceConfig: '2d8',
-                        bonuses: [
-                          {
-                            id: '00000000-0005-0022-0070-000e00000000',
-                            bonusKind: 'ABILITY_BONUS',
-                            ability: 'STRENGTH',
-                            order: 1
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          actionReference: { featureId: S.featureId(14, 6), chargeCost: 1 }
         },
         {
           id: '00000000-0005-00cb-0070-000e00000000',

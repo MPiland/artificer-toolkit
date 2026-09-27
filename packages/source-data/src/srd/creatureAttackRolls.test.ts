@@ -40,7 +40,7 @@ describe('SRD Creature attack rolls', () => {
         : [label]
     })
 
-    expect(attackSources).toHaveLength(547)
+    expect(attackSources).toHaveLength(535)
     expect(invalid).toEqual([])
   })
 
@@ -53,7 +53,7 @@ describe('SRD Creature attack rolls', () => {
   it('uses the printed bonus, or the base attack bonus when none is printed', () => {
     expect(attackBonuses('Wolf: Bite')).toEqual([4])
     expect(attackBonuses('Adult Black Dragon: Tail')).toEqual([11])
-    expect(attackBonuses('Adult Black Dragon: Tail Attack')).toEqual([11])
+    expect(attackBonuses('Drider: Multiattack')).toEqual([6])
     expect(attackBonuses('Druid: Quarterstaff')).toEqual([2])
     expect(attackBonuses('Dryad: Club (Shillelagh)')).toEqual([6])
   })

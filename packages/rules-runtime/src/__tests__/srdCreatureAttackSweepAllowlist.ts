@@ -4,14 +4,12 @@
  *   than the supported hit-rider shapes.
  * - EQUIPMENT_BASE_DAMAGE: the action's Equipment base damage does not match it, so discovery lists
  *   that action unavailable (D54).
- * - LEGENDARY_OPTION: Legendary options still resolve as RESOLVE_ACTION (D51).
  * - OUTCOME_KIND: an outcome the room does not execute yet: a CLOSED_RULE rider or other
  *   unsupported kind, or two conditions on one hit (a grapple that also restrains).
  */
 export type SrdCreatureAttackUnsupportedReason =
   | 'SPECIAL_RANGE'
   | 'EQUIPMENT_BASE_DAMAGE'
-  | 'LEGENDARY_OPTION'
   | 'OUTCOME_KIND'
 
 /**
@@ -48,19 +46,6 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   '00000000-0002-00d4-0070-010400000000': 'EQUIPMENT_BASE_DAMAGE', // Sprite: Shortbow
   '00000000-0002-0001-0070-0ceb00000000': 'EQUIPMENT_BASE_DAMAGE', // Stone Giant: Greatclub
   '00000000-0002-0004-0070-010a00000000': 'EQUIPMENT_BASE_DAMAGE', // Storm Giant: Greatsword
-  // LEGENDARY_OPTION
-  '00000000-0005-0019-0070-000300000000': 'LEGENDARY_OPTION', // Adult Black Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-000400000000': 'LEGENDARY_OPTION', // Adult Blue Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-000500000000': 'LEGENDARY_OPTION', // Adult Brass Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-000900000000': 'LEGENDARY_OPTION', // Adult Green Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-000a00000000': 'LEGENDARY_OPTION', // Adult Red Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-000c00000000': 'LEGENDARY_OPTION', // Adult White Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-000e00000000': 'LEGENDARY_OPTION', // Ancient Black Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-000f00000000': 'LEGENDARY_OPTION', // Ancient Blue Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-001000000000': 'LEGENDARY_OPTION', // Ancient Brass Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-151f00000000': 'LEGENDARY_OPTION', // Ancient Bronze Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0019-0070-164e00000000': 'LEGENDARY_OPTION', // Ancient Copper Dragon: Legendary Actions > Tail Attack
-  '00000000-0005-0002-0070-011400000000': 'LEGENDARY_OPTION', // Unicorn: Legendary Actions > Hooves
   // OUTCOME_KIND
   '00000000-0002-0001-0070-162100000000': 'OUTCOME_KIND', // Black Pudding: Dissolving Pseudopod
   '00000000-0002-0069-0070-003d00000000': 'OUTCOME_KIND', // Chain Devil: Chain

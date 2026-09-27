@@ -152,6 +152,7 @@ function rugSmotherCapability() {
     compiledEffect,
     ownerFeatureId: rugIds.feature,
     featureOptionId: null,
+    actionFeatureId: null,
     ownerRuleDefinitionIds: [],
     optionRuleDefinitionIds: [],
     sourceRevision: 1,

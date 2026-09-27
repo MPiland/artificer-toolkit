@@ -516,6 +516,8 @@ export function createDefaultAuthoringNodeValue(
       return createRange('DISTANCE')
     case 'resourceUse':
       return { chargeId: '', cost: 1 }
+    case 'featureOptionActionReference':
+      return { featureId: '', chargeCost: 1 }
     case 'scaling':
       return {
         scalingKind: 'BREAKPOINTS',

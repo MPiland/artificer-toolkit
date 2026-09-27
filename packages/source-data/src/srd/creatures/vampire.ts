@@ -567,13 +567,15 @@ export const vampire: CreatureAuthored = {
           id: '00000000-0005-00ca-0070-011500000000',
           label: 'Unarmed Strike',
           description: 'The vampire makes one unarmed strike.',
-          order: 2
+          order: 2,
+          actionReference: { featureId: S.featureId(277, 13), chargeCost: 1 }
         },
         {
           id: '00000000-0005-00cb-0070-011500000000',
           label: 'Bite (Costs 2 Actions)',
           description: 'The vampire makes one bite attack.',
-          order: 3
+          order: 3,
+          actionReference: { featureId: S.featureId(277, 14), chargeCost: 2 }
         }
       ],
       ruleDefinitionIds: [S.DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID],

@@ -483,40 +483,7 @@ export const androsphinx: CreatureAuthored = {
           label: 'Claw Attack',
           description: 'The sphinx makes one claw attack.',
           order: 1,
-          effects: [
-            {
-              id: '00000000-0005-0065-0070-001800000000',
-              order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'ACTIVATED',
-                activation: { code: 'FREE' },
-                range: { id: '00000000-0005-0066-0070-001800000000', rangeKind: 'SPECIAL' },
-                resourceUse: { chargeId: S.legendaryActionId(24, 99), cost: 1 }
-              },
-              paths: [
-                {
-                  id: '593bb636-10be-52b3-8d17-888bd1b1936d',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: 'ae7116ac-5928-5210-a999-41fbddf1d3ae',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '088faf18-5c8f-5d39-a682-e1b473f32963',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'CREATURE_ANDROSPHINX_LEGENDARY_ACTIONS'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          actionReference: { featureId: S.featureId(24, 4), chargeCost: 1 }
         },
         {
           id: '00000000-0005-00ca-0070-001800000000',

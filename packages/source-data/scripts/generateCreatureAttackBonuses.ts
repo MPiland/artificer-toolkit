@@ -13,21 +13,10 @@ import { creatureAttackRollId } from '../src/srd/creatures/attack-rolls.js'
 import { srdCreatureRecords } from '../src/srd/creatures/index.js'
 
 /**
- * Attacks that print no bonus of their own ("The dragon makes a tail attack.") take it from the
- * named base attacks of the same Creature, keyed by `Creature label|Feature or option label`.
+ * Attacks that print no bonus of their own (a Multiattack or Swallow) take it from the named
+ * base attacks of the same Creature, keyed by `Creature label|Feature or option label`.
  */
 const BASE_ATTACKS: Readonly<Record<string, readonly string[]>> = {
-  'Adult Black Dragon|Tail Attack': ['Tail'],
-  'Adult Blue Dragon|Tail Attack': ['Tail'],
-  'Adult Brass Dragon|Tail Attack': ['Tail'],
-  'Adult Green Dragon|Tail Attack': ['Tail'],
-  'Adult Red Dragon|Tail Attack': ['Tail'],
-  'Adult White Dragon|Tail Attack': ['Tail'],
-  'Ancient Black Dragon|Tail Attack': ['Tail'],
-  'Ancient Blue Dragon|Tail Attack': ['Tail'],
-  'Ancient Brass Dragon|Tail Attack': ['Tail'],
-  'Ancient Bronze Dragon|Tail Attack': ['Tail'],
-  'Ancient Copper Dragon|Tail Attack': ['Tail'],
   'Cult Fanatic|Multiattack': ['Dagger'],
   'Death Dog|Multiattack': ['Bite'],
   'Deva|Multiattack': ['Mace'],
@@ -43,8 +32,7 @@ const BASE_ATTACKS: Readonly<Record<string, readonly string[]>> = {
   'Ice Devil|Multiattack': ['Bite', 'Claws', 'Tail'],
   'Invisible Stalker|Multiattack': ['Slam'],
   'Remorhaz|Swallow': ['Bite'],
-  'Tarrasque|Swallow': ['Bite'],
-  'Unicorn|Hooves': ['Hooves']
+  'Tarrasque|Swallow': ['Bite']
 }
 
 const PRINTED_BONUS = /([+-]\d+) to hit/g

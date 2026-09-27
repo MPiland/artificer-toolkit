@@ -423,57 +423,7 @@ export const unicorn: CreatureAuthored = {
           label: 'Hooves',
           description: 'The unicorn makes one attack with its hooves.',
           order: 1,
-          effects: [
-            {
-              id: '00000000-0005-0002-0070-011400000000',
-              order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'MELEE_WEAPON_ATTACK',
-                activation: { code: 'FREE' },
-                range: {
-                  id: '00000000-0005-0004-0070-011400000000',
-                  rangeKind: 'DISTANCE',
-                  amount: 5,
-                  unit: 'FEET'
-                },
-                targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
-                resourceUse: { chargeId: '00000000-0005-0001-0070-011400000000', cost: 1 }
-              },
-              paths: [
-                {
-                  id: '00000000-0005-0005-0070-011400000000',
-                  order: 1,
-                  pathCode: 'ON_HIT',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '00000000-0005-0005-0070-011400000000__result',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '00000000-0005-0005-0070-011400000000',
-                        effectKind: 'DAMAGE',
-                        damageTypeId: '00000000-0000-0000-0004-000200000000',
-                        valueKind: 'DICE',
-                        scalingKind: 'NONE',
-                        diceConfig: '2d6',
-                        bonuses: [
-                          {
-                            id: '00000000-0005-000f-0070-011400000000',
-                            bonusKind: 'ABILITY_BONUS',
-                            ability: 'STRENGTH',
-                            order: 1
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          actionReference: { featureId: S.featureId(276, 7), chargeCost: 1 }
         },
         {
           id: '00000000-0005-00ca-0070-011400000000',

@@ -189,3 +189,66 @@ describe('Creature attack roll publication rule', () => {
     expect(creatureAuthoredDtoSchema.safeParse(withoutRoll).error?.issues).toBeUndefined()
   })
 })
+
+describe('Creature Legendary options that run an action (D51 option B)', () => {
+  const bite = feature({ triggerCode: 'MELEE_WEAPON_ATTACK', rollDefinitions: [attackRoll(30)] })
+  const legendary = (actionReference: { featureId: string; chargeCost: number }, extra = {}) => ({
+    id: uuid(50),
+    label: 'Legendary Actions',
+    description: 'Legendary Actions.',
+    order: 2,
+    charges: {
+      id: uuid(51),
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'MANUAL',
+      amount: 3
+    },
+    options: [
+      {
+        id: uuid(52),
+        label: 'Bite Attack',
+        description: 'The wolf makes a bite attack.',
+        order: 1,
+        actionReference,
+        ...extra
+      }
+    ]
+  })
+
+  it('names another action Feature of the Creature, at a cost its pool can pay', () => {
+    expect(
+      creaturePublicationDtoSchema.safeParse(
+        creature([bite, legendary({ featureId: uuid(10), chargeCost: 2 })])
+      ).error?.issues
+    ).toBeUndefined()
+  })
+
+  it.each([
+    ['a missing Feature', { featureId: uuid(99), chargeCost: 1 }, 'featureId'],
+    ['its own Feature', { featureId: uuid(50), chargeCost: 1 }, 'featureId'],
+    ['more than its pool', { featureId: uuid(10), chargeCost: 4 }, 'chargeCost']
+  ])('refuses %s', (_, reference, field) => {
+    expect(
+      creatureAuthoredDtoSchema.safeParse(creature([bite, legendary(reference)])).error?.issues
+    ).toEqual([
+      expect.objectContaining({
+        path: ['features', 1, 'options', 0, 'actionReference', field]
+      })
+    ])
+  })
+
+  it('authors no effects of its own', () => {
+    const effects = 'effects' in bite ? bite.effects : []
+    expect(
+      creatureAuthoredDtoSchema.safeParse(
+        creature([bite, legendary({ featureId: uuid(10), chargeCost: 1 }, { effects })])
+      ).error?.issues
+    ).toEqual([
+      expect.objectContaining({
+        path: ['features', 1, 'options', 0, 'effects'],
+        message: 'An option that runs another action authors no effects of its own.'
+      })
+    ])
+  })
+})

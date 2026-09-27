@@ -10,15 +10,12 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0004-0070-000300000000', 11], // Adult Black Dragon: Bite
   ['00000000-0001-0005-0070-000300000000', 11], // Adult Black Dragon: Claw
   ['00000000-0001-0006-0070-000300000000', 11], // Adult Black Dragon: Tail
-  ['00000000-0005-00ca-0070-000300000000', 11], // Adult Black Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0003-0070-000400000000', 12], // Adult Blue Dragon: Bite
   ['00000000-0001-0004-0070-000400000000', 12], // Adult Blue Dragon: Claw
   ['00000000-0001-0005-0070-000400000000', 12], // Adult Blue Dragon: Tail
-  ['00000000-0005-00ca-0070-000400000000', 12], // Adult Blue Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0003-0070-000500000000', 11], // Adult Brass Dragon: Bite
   ['00000000-0001-0004-0070-000500000000', 11], // Adult Brass Dragon: Claw
   ['00000000-0001-0005-0070-000500000000', 11], // Adult Brass Dragon: Tail
-  ['00000000-0005-00ca-0070-000500000000', 11], // Adult Brass Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0004-0070-000600000000', 12], // Adult Bronze Dragon: Bite
   ['00000000-0001-0005-0070-000600000000', 12], // Adult Bronze Dragon: Claw
   ['00000000-0001-0006-0070-000600000000', 12], // Adult Bronze Dragon: Tail
@@ -31,39 +28,31 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0004-0070-000900000000', 11], // Adult Green Dragon: Bite
   ['00000000-0001-0005-0070-000900000000', 11], // Adult Green Dragon: Claw
   ['00000000-0001-0006-0070-000900000000', 11], // Adult Green Dragon: Tail
-  ['00000000-0005-00ca-0070-000900000000', 11], // Adult Green Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0003-0070-000a00000000', 14], // Adult Red Dragon: Bite
   ['00000000-0001-0004-0070-000a00000000', 14], // Adult Red Dragon: Claw
   ['00000000-0001-0005-0070-000a00000000', 14], // Adult Red Dragon: Tail
-  ['00000000-0005-00ca-0070-000a00000000', 14], // Adult Red Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0003-0070-000b00000000', 13], // Adult Silver Dragon: Bite
   ['00000000-0001-0004-0070-000b00000000', 13], // Adult Silver Dragon: Claw
   ['00000000-0001-0005-0070-000b00000000', 13], // Adult Silver Dragon: Tail
   ['00000000-0001-0004-0070-000c00000000', 11], // Adult White Dragon: Bite
   ['00000000-0001-0005-0070-000c00000000', 11], // Adult White Dragon: Claw
   ['00000000-0001-0006-0070-000c00000000', 11], // Adult White Dragon: Tail
-  ['00000000-0005-00ca-0070-000c00000000', 11], // Adult White Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0004-0070-000d00000000', 8], // Air Elemental: Slam
   ['00000000-0001-0004-0070-000e00000000', 15], // Ancient Black Dragon: Bite
   ['00000000-0001-0005-0070-000e00000000', 15], // Ancient Black Dragon: Claw
   ['00000000-0001-0006-0070-000e00000000', 15], // Ancient Black Dragon: Tail
-  ['00000000-0005-00ca-0070-000e00000000', 15], // Ancient Black Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0003-0070-000f00000000', 16], // Ancient Blue Dragon: Bite
   ['00000000-0001-0004-0070-000f00000000', 16], // Ancient Blue Dragon: Claw
   ['00000000-0001-0005-0070-000f00000000', 16], // Ancient Blue Dragon: Tail
-  ['00000000-0005-00ca-0070-000f00000000', 16], // Ancient Blue Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0003-0070-001000000000', 14], // Ancient Brass Dragon: Bite
   ['00000000-0001-0004-0070-001000000000', 14], // Ancient Brass Dragon: Claw
   ['00000000-0001-0005-0070-001000000000', 14], // Ancient Brass Dragon: Tail
-  ['00000000-0005-00ca-0070-001000000000', 14], // Ancient Brass Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0004-0070-001100000000', 16], // Ancient Bronze Dragon: Bite
   ['00000000-0001-0005-0070-001100000000', 16], // Ancient Bronze Dragon: Claw
   ['00000000-0001-0006-0070-001100000000', 16], // Ancient Bronze Dragon: Tail
-  ['00000000-0005-00ca-0070-001100000000', 16], // Ancient Bronze Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0003-0070-001200000000', 15], // Ancient Copper Dragon: Bite
   ['00000000-0001-0004-0070-001200000000', 15], // Ancient Copper Dragon: Claw
   ['00000000-0001-0005-0070-001200000000', 15], // Ancient Copper Dragon: Tail
-  ['00000000-0005-00ca-0070-001200000000', 15], // Ancient Copper Dragon: Legendary Actions > Tail Attack (no printed bonus; from Tail)
   ['00000000-0001-0004-0070-001300000000', 17], // Ancient Gold Dragon: Bite
   ['00000000-0001-0005-0070-001300000000', 17], // Ancient Gold Dragon: Claw
   ['00000000-0001-0006-0070-001300000000', 17], // Ancient Gold Dragon: Tail
@@ -477,7 +466,6 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0003-0070-011300000000', 10], // Tyrannosaurus Rex: Tail
   ['00000000-0001-0007-0070-011400000000', 7], // Unicorn: Hooves
   ['00000000-0001-0008-0070-011400000000', 7], // Unicorn: Horn
-  ['00000000-0005-00c9-0070-011400000000', 7], // Unicorn: Legendary Actions > Hooves (no printed bonus; from Hooves)
   ['00000000-0001-000d-0070-011500000000', 9], // Vampire: Unarmed Strike (Vampire Form Only)
   ['00000000-0001-000e-0070-011500000000', 9], // Vampire: Bite (Bat or Vampire Form Only)
   ['00000000-0001-0003-0070-011600000000', 6], // Vampire Spawn: Bite

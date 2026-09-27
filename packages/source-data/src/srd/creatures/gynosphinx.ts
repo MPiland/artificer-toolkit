@@ -220,40 +220,7 @@ export const gynosphinx: CreatureAuthored = {
           label: 'Claw Attack',
           description: 'The sphinx makes one claw attack.',
           order: 1,
-          effects: [
-            {
-              id: '00000000-0005-00d1-0070-009d00000000',
-              order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'ACTIVATED',
-                activation: { code: 'ACTION', amount: 1 },
-                range: { id: '00000000-0002-04b6-0070-009d00000000', rangeKind: 'SPECIAL' },
-                resourceUse: { chargeId: S.legendaryActionId(157, 208), cost: 1 }
-              },
-              paths: [
-                {
-                  id: '9fcbe47c-2a83-5108-8a6d-6b240749d0a1',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '20d1f7e3-eb93-54ea-a8bc-05b4d3bd3e69',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: 'c3fbb00f-e1c4-5d76-8319-6df956d8299d',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          actionReference: { featureId: S.featureId(157, 5), chargeCost: 1 }
         },
         {
           id: '00000000-0005-00ca-0070-009d00000000',

@@ -1,9 +1,32 @@
-import type { OptionAuthored } from '#authored'
+import type { FeatureOptionActionReferenceAuthored, OptionAuthored } from '#authored'
 import { FEATURE_ATTRIBUTE_OPTIONS } from '#core'
 import { CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP, DETAIL_NODE_MAP } from '#maps'
 import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 import { FEATURE_EFFECT_NODE_MAP } from './effect.js'
 import { FEATURE_ROLL_DEFINITION_NODE_MAP } from './rollDefinition.js'
+
+const actionReference = buildNodeMap<FeatureOptionActionReferenceAuthored>()
+
+/** A Legendary option that runs another of the Creature's actions at its charge cost (D51). */
+const OPTION_ACTION_REFERENCE_NODE_MAP = actionReference.define(
+  'featureOptionActionReference',
+  ({ map, nodes }) => {
+    map
+      .set(
+        'featureId',
+        nodes.selectSingle(['featureId'], 'Action', {
+          kind: 'LOCAL_COLLECTION',
+          rootCollectionPath: ['features'],
+          valuePath: ['id'],
+          labelPath: ['label']
+        })
+      )
+      .set(
+        'chargeCost',
+        nodes.number(['chargeCost'], 'Charge cost', { constraints: { minimum: 1 } })
+      )
+  }
+)
 
 const option = buildNodeMap<OptionAuthored>()
 
@@ -73,6 +96,23 @@ export const OPTION_NODE_MAP = option.define('option', ({ map, nodes, cond }) =>
       })
     )
     .set('order', number(['order'], 'Order', { section: OPTION_SECTIONS.basics, order: 50 }))
+    .set(
+      'actionReference',
+      groupObject(['actionReference'], 'Runs Action', () => OPTION_ACTION_REFERENCE_NODE_MAP, {
+        presentation: 'inline',
+        section: OPTION_SECTIONS.effects,
+        order: 5,
+        authoring: {
+          actions: [
+            {
+              type: 'collection.add',
+              label: 'Add',
+              presentation: AUTHORING_ACTION_PRESENTATIONS.button
+            }
+          ]
+        }
+      })
+    )
     .set(
       'effects',
       groupArray(['effects'], 'Effects', () => FEATURE_EFFECT_NODE_MAP, {

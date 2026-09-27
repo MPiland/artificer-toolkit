@@ -311,7 +311,8 @@ export const lich: CreatureAuthored = {
           id: '00000000-0005-00ca-0070-00b700000000',
           label: 'Paralyzing Touch (Costs 2 Actions)',
           description: 'The lich uses its Paralyzing Touch.',
-          order: 2
+          order: 2,
+          actionReference: { featureId: S.featureId(183, 5), chargeCost: 2 }
         },
         {
           id: '00000000-0005-00cb-0070-00b700000000',

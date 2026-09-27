@@ -24,6 +24,11 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
   creatureSourceId: string
   ownerFeatureId: string
   featureOptionId: string | null
+  /**
+   * The action Feature a Legendary option runs (D51 option B): its effect, ATTACK roll and
+   * Equipment make the action, and the owner Feature's pool pays the option's cost. Null otherwise.
+   */
+  actionFeatureId: string | null
   ownerRuleDefinitionIds: readonly string[]
   optionRuleDefinitionIds: readonly string[]
   sourceRevision: number
@@ -66,15 +71,37 @@ export interface EncounterFeatureActionDiscovery {
   unavailable: readonly EncounterFeatureActionUnavailable[]
 }
 
-function featureResourceUse(input: {
+type FeatureOption = NonNullable<FeatureDto['options']>[number]
+
+/**
+ * One Effect a Creature can act with: its owner Feature (the action identity and charge pool), its
+ * option, and, for an option that runs another action, that action Feature, whose Effect, ATTACK roll
+ * and Equipment make the action.
+ */
+interface FeatureEffectEntry {
   ownerFeature: FeatureDto
+  featureOption: FeatureOption | null
+  actionFeature: FeatureDto | null
+  effect: EncounterFeatureEffect
+}
+
+/** The owner-Feature charges an action spends: its option's cost, or its Effect's authored use. */
+function featureResourceUse(
+  entry: FeatureEffectEntry,
   compiledEffect: CompiledEffectGroup
-}): { chargeId: string; cost: number } | null {
-  const invocation = input.compiledEffect.invocation
+): { chargeId: string; cost: number } | null {
+  const invocation = compiledEffect.invocation
   if (invocation.kind !== 'ACTION') return null
-  const resourceUse = invocation.resourceUse
-  if (resourceUse === null || resourceUse === undefined) return null
-  if (input.ownerFeature.charges?.id !== resourceUse.chargeId) {
+  const resourceUse = invocation.resourceUse ?? null
+  const reference = entry.featureOption?.actionReference
+  if (reference) {
+    const chargeId = entry.ownerFeature.charges?.id
+    if (resourceUse !== null || chargeId === undefined)
+      throw new Error('An option that runs another action spends only its own Feature charges.')
+    return { chargeId, cost: reference.chargeCost }
+  }
+  if (resourceUse === null) return null
+  if (entry.ownerFeature.charges?.id !== resourceUse.chargeId) {
     throw new Error('Encounter feature action resource use must bind its owner Feature charges.')
   }
   return { chargeId: resourceUse.chargeId, cost: resourceUse.cost }
@@ -89,14 +116,13 @@ interface EncounterFeatureSourceProvenance {
 
 type EncounterFeatureEffect = NonNullable<FeatureDto['effects']>[number]
 
-function featureAttackMechanic(input: {
-  ownerFeature: FeatureDto
-  featureOption: FeatureDto | null
+function featureAttackMechanic(
+  entry: FeatureEffectEntry,
   compiledEffect: CompiledEffectGroup
-}): EncounterFeatureActionCapabilityDescriptor['attackMechanic'] {
-  const invocation = input.compiledEffect.invocation
+): EncounterFeatureActionCapabilityDescriptor['attackMechanic'] {
+  const invocation = compiledEffect.invocation
   if (invocation.kind !== 'ACTION' || dnd5eAttackKind(invocation.triggerCode) === null) return null
-  const source = input.featureOption ?? input.ownerFeature
+  const source = entry.actionFeature ?? entry.featureOption ?? entry.ownerFeature
   const definitions = (source.rollDefinitions ?? []).filter(
     (definition) => definition.kind === 'ATTACK'
   )
@@ -131,7 +157,7 @@ export interface EncounterFeatureEffectCompilerInput {
   sourceVersionId: string
   sourceChecksum: string
   ownerFeature: FeatureDto
-  featureOption: FeatureDto | null
+  featureOption: FeatureOption | null
   compiledEffect: CompiledEffectGroup
   conditionDefinitionIds: readonly string[]
   abilityDefinitions: readonly { id: string; code: string }[]
@@ -432,21 +458,34 @@ export function resolveFeatureEquipmentAction(input: {
 export function assertEncounterCreatureEquipmentLoadoutCapabilities(
   actor: EncounterProjectionActorInput
 ): void {
-  for (const feature of snapshotFeatures(actor)) {
-    const featureEffects = featureEffectEntries(feature)
-      .map((entry) => compileEffect(entry.effect))
-      .filter((effect) => effect.invocation.kind === 'ACTION')
-    for (const entry of featureEffectEntries(feature)) {
+  const features = snapshotFeatures(actor)
+  for (const feature of features) {
+    for (const entry of featureEffectEntries(feature, features)) {
       const candidate = compileEffect(entry.effect)
       if (candidate.invocation.kind !== 'ACTION') continue
-      resolveFeatureEquipmentAction({
-        actor,
-        ownerFeature: entry.ownerFeature,
-        featureEffects,
-        candidate
-      })
+      resolveEntryEquipmentAction(actor, entry, candidate)
     }
   }
+}
+
+/** Resolves an entry's action against the Equipment its action Feature is bound to, if any. */
+function resolveEntryEquipmentAction(
+  actor: EncounterProjectionActorInput,
+  entry: FeatureEffectEntry,
+  candidate: CompiledEffectGroup
+): FeatureEquipmentResolution {
+  const equipmentFeature = entry.actionFeature ?? entry.ownerFeature
+  return resolveFeatureEquipmentAction({
+    actor,
+    ownerFeature: equipmentFeature,
+    featureEffects: [
+      ...(equipmentFeature.effects ?? []),
+      ...(equipmentFeature.options ?? []).flatMap((option) => option.effects ?? [])
+    ]
+      .map((effect) => compileEffect(effect))
+      .filter((effect) => effect.invocation.kind === 'ACTION'),
+    candidate
+  })
 }
 
 function actionId(
@@ -487,23 +526,19 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   ) {
     throw new Error('Encounter feature action capability source provenance is stale.')
   }
-  const ownerFeature = snapshotFeatures(actor).find(
-    (feature) => feature.id === capability.ownerFeatureId
-  )
+  const features = snapshotFeatures(actor)
+  const ownerFeature = features.find((feature) => feature.id === capability.ownerFeatureId)
   if (!ownerFeature || capability.sourceId !== ownerFeature.id) {
     throw new Error('Encounter feature action capability owner Feature is stale.')
   }
-  const featureOption =
-    capability.featureOptionId === null
-      ? null
-      : (ownerFeature.options?.find((option) => option.id === capability.featureOptionId) ?? null)
-  if (capability.featureOptionId !== null && featureOption === null) {
-    throw new Error('Encounter feature action capability Feature option is stale.')
-  }
-  const effects =
-    featureOption === null ? (ownerFeature.effects ?? []) : (featureOption.effects ?? [])
-  const effect = effects.find((candidate) => candidate.id === capability.effectId)
-  if (!effect) throw new Error('Encounter feature action capability Effect is stale.')
+  const entry = featureEffectEntries(ownerFeature, features).find(
+    (candidate) =>
+      (candidate.featureOption?.id ?? null) === capability.featureOptionId &&
+      candidate.effect.id === capability.effectId
+  )
+  if (!entry || (entry.actionFeature?.id ?? null) !== capability.actionFeatureId)
+    throw new Error('Encounter feature action capability Effect is stale.')
+  const { effect } = entry
   const featureCompiledEffect = compileEffect(effect)
   if (
     capability.entryPointDefinitionId !== effect.id ||
@@ -514,14 +549,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   ) {
     throw new Error('Encounter feature action capability authored Effect is stale.')
   }
-  const equipmentResolution = resolveFeatureEquipmentAction({
-    actor,
-    ownerFeature,
-    featureEffects: featureEffectEntries(ownerFeature)
-      .map((entry) => compileEffect(entry.effect))
-      .filter((candidate) => candidate.invocation.kind === 'ACTION'),
-    candidate: featureCompiledEffect
-  })
+  const equipmentResolution = resolveEntryEquipmentAction(actor, entry, featureCompiledEffect)
   const compiledEffect = equipmentResolution.effectiveCompiledEffect
   if (
     capability.compiledEffectChecksum !== checksumRuleDocument(compiledEffect) ||
@@ -531,7 +559,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   }
   if (
     JSON.stringify(capability.featureResourceUse) !==
-    JSON.stringify(featureResourceUse({ ownerFeature, compiledEffect }))
+    JSON.stringify(featureResourceUse(entry, compiledEffect))
   ) {
     throw new Error('Encounter feature action capability resource binding is stale.')
   }
@@ -543,24 +571,38 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   }
   if (
     JSON.stringify(capability.attackMechanic) !==
-    JSON.stringify(featureAttackMechanic({ ownerFeature, featureOption, compiledEffect }))
+    JSON.stringify(featureAttackMechanic(entry, compiledEffect))
   ) {
     throw new Error('Encounter feature action attack roll is stale.')
   }
 }
 
-function featureEffectEntries(feature: FeatureDto): readonly {
-  ownerFeature: FeatureDto
-  featureOption: FeatureDto | null
-  effect: EncounterFeatureEffect
-}[] {
+function featureEffectEntries(
+  feature: FeatureDto,
+  features: readonly FeatureDto[]
+): readonly FeatureEffectEntry[] {
   return [
     ...(feature.effects ?? []).map((effect) => ({
       ownerFeature: feature,
       featureOption: null,
+      actionFeature: null,
       effect
     })),
-    ...(feature.options ?? []).flatMap((featureOption) => {
+    ...(feature.options ?? []).flatMap((featureOption): FeatureEffectEntry[] => {
+      const reference = featureOption.actionReference
+      if (reference) {
+        const actionFeature = features.find((candidate) => candidate.id === reference.featureId)
+        if (!actionFeature || actionFeature.id === feature.id)
+          throw new Error(
+            'An Encounter feature option that runs another action must name another Feature of its Creature.'
+          )
+        return (actionFeature.effects ?? []).map((effect) => ({
+          ownerFeature: feature,
+          featureOption,
+          actionFeature,
+          effect
+        }))
+      }
       const actionEffectCount = (featureOption.effects ?? []).filter(
         (effect) => effect.invocation?.kind === 'ACTION'
       ).length
@@ -572,6 +614,7 @@ function featureEffectEntries(feature: FeatureDto): readonly {
       return (featureOption.effects ?? []).map((effect) => ({
         ownerFeature: feature,
         featureOption,
+        actionFeature: null,
         effect
       }))
     })
@@ -638,12 +681,13 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
       const available: EncounterFeatureActionCapabilityDescriptor[] = []
       const unavailable: EncounterFeatureActionUnavailable[] = []
       const actionIds = new Set<string>()
-      for (const feature of snapshotFeatures(input.actor)) {
+      const features = snapshotFeatures(input.actor)
+      for (const feature of features) {
         const ownerFeatureId = requireCanonicalUuid(feature.id, 'Creature feature identity')
         for (const featureOption of feature.options ?? []) {
           requireCanonicalUuid(featureOption.id, 'Creature feature option identity')
         }
-        for (const entry of featureEffectEntries(feature)) {
+        for (const entry of featureEffectEntries(feature, features)) {
           const featureOptionId =
             entry.featureOption === null
               ? null
@@ -662,14 +706,11 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           // One action's invalid authored mechanics make only that action unavailable (D54).
           try {
             const compiledEffect = compileEffect(effect)
-            const equipmentResolution = resolveFeatureEquipmentAction({
-              actor: input.actor,
-              ownerFeature: entry.ownerFeature,
-              featureEffects: featureEffectEntries(entry.ownerFeature)
-                .map((candidate) => compileEffect(candidate.effect))
-                .filter((candidate) => candidate.invocation.kind === 'ACTION'),
-              candidate: compiledEffect
-            })
+            const equipmentResolution = resolveEntryEquipmentAction(
+              input.actor,
+              entry,
+              compiledEffect
+            )
             const effectiveCompiledEffect = equipmentResolution.effectiveCompiledEffect
             const normalized = adapter.compile({
               encounterActorId: input.actor.id,
@@ -708,20 +749,14 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               encounterActorId: input.actor.id,
               ownerFeatureId,
               featureOptionId,
+              actionFeatureId: entry.actionFeature?.id ?? null,
               ownerRuleDefinitionIds: entry.ownerFeature.ruleDefinitionIds ?? [],
               optionRuleDefinitionIds: entry.featureOption?.ruleDefinitionIds ?? [],
               authoredEffectChecksum: checksumRuleDocument(effect),
               compiledEffectChecksum: checksumRuleDocument(effectiveCompiledEffect),
-              featureResourceUse: featureResourceUse({
-                ownerFeature: entry.ownerFeature,
-                compiledEffect: effectiveCompiledEffect
-              }),
+              featureResourceUse: featureResourceUse(entry, effectiveCompiledEffect),
               equipmentBinding: equipmentResolution.binding,
-              attackMechanic: featureAttackMechanic({
-                ownerFeature: entry.ownerFeature,
-                featureOption: entry.featureOption,
-                compiledEffect: effectiveCompiledEffect
-              }),
+              attackMechanic: featureAttackMechanic(entry, effectiveCompiledEffect),
               ...provenance
             })
           } catch (error) {

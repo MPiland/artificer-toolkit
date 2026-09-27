@@ -52,6 +52,7 @@ export type AuthoringDefaultKind =
   | 'option'
   | 'featureGrants'
   | 'featureOptionChoice'
+  | 'featureOptionActionReference'
   | 'featGrant'
   | 'featGrantLevel'
   | 'featGrantProgression'
@@ -174,6 +175,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   option: ['option'],
   featureGrants: ['featureGrants'],
   featureOptionChoice: ['featureOptionChoice'],
+  featureOptionActionReference: ['featureOptionActionReference'],
   featGrant: ['featGrant'],
   featGrantLevel: ['featGrantLevel'],
   featGrantProgression: ['featGrantProgression'],

@@ -160,9 +160,7 @@ function unsupportedReason(
 ): SrdCreatureAttackUnsupportedReason | `UNEXPECTED ${string}` {
   const message = error instanceof Error ? error.message : String(error)
   if (stage === 'DISCOVERY' && unit.equipmentBound) return 'EQUIPMENT_BASE_DAMAGE'
-  if (/unsupported bounded shape/.test(message)) {
-    return unit.owner.section === 'LEGENDARY_ACTION' ? 'LEGENDARY_OPTION' : 'SPECIAL_RANGE'
-  }
+  if (/unsupported bounded shape/.test(message)) return 'SPECIAL_RANGE'
   if (/outcome is not supported/.test(message)) return 'OUTCOME_KIND'
   return `UNEXPECTED ${stage}: ${message}`
 }
@@ -286,7 +284,7 @@ describe('SRD Creature attack sweep', () => {
       }
     }
 
-    expect(effectIds.size).toBe(575)
+    expect(effectIds.size).toBe(563)
     expect(failures).toEqual(SRD_CREATURE_ATTACK_UNSUPPORTED)
     expect(hits).toEqual(expectedHits)
     expect(criticalDice).toEqual(expectedCriticalDice)

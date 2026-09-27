@@ -225,20 +225,23 @@ export const get = query({
         label,
         reason
       }))
+      // A Legendary option that runs another action is used in its Legendary window, not here.
       actions = await Promise.all(
-        discovered.available.map(async (action) => ({
-          id: action.actionId,
-          label: action.label,
-          ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
-          grip: action.grip
-            ? {
-                value: action.grip,
-                attackKey: `${action.ownerFeatureId}:${action.featureOptionId ?? ''}:${action.mechanicFacts.invocation.triggerCode}`
-              }
-            : null,
-          wieldConflict: null,
-          warnings: await readEconomyWarnings(action.mechanicFacts.invocation.activation)
-        }))
+        discovered.available
+          .filter((action) => action.actionFeatureId === null)
+          .map(async (action) => ({
+            id: action.actionId,
+            label: action.label,
+            ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
+            grip: action.grip
+              ? {
+                  value: action.grip,
+                  attackKey: `${action.ownerFeatureId}:${action.featureOptionId ?? ''}:${action.mechanicFacts.invocation.triggerCode}`
+                }
+              : null,
+            wieldConflict: null,
+            warnings: await readEconomyWarnings(action.mechanicFacts.invocation.activation)
+          }))
       )
     }
     const basicActions = await Promise.all(
