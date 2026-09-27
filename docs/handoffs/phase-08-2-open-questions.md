@@ -180,6 +180,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
   * **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
+* **D54** D53 step 1 is merged: 290 of 491 SRD attack sources work (was 40), and 203 of 285 creatures have a working attack (was 31). Rulings on its findings:
+  1. **Blast radius.** A Creature whose attack action lacks an ATTACK roll is rejected at publication (authoring validation). At runtime, one Creature's invalid action is unavailable, with a reason, instead of throwing for every Creature on the map during movement-reaction discovery.
+  2. **Tests use seeded SRD records.** Tests and fixtures move from raw `srd/creatures/*.js` modules to the seeded records (T6).
+  3. **Ice Devil.** Its Bite and Claws are authored.
+  4. **Damage modifiers.** Creature damage matches the printed damage. Today the Wolf's Bite adds Strength +1, but it prints 2d4 + 2. The sweep asserts every SRD attack's damage expression against its printed damage, and any mismatches get fixed in authored data.
+
 * **D53 (blocks closed beta) SRD creature attacks.** The E4 investigation found that only 31 of 285 SRD creatures have a working attack in the room, and 451 of 491 attack units fail. The end-to-end tests hid it because they rewrote the Wolf into a supported shape.
   * **Failures by cause:**
 
