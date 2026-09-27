@@ -296,6 +296,48 @@ describe('Legendary Action choices offered at the end of a turn', () => {
     ).toEqual([])
   })
 
+  it('leaves out an SRD option it cannot execute instead of failing the whole window', async () => {
+    const srdDragon = (options: typeof srdLegendaryActions.options) =>
+      srdCreatureActor({
+        id: DRAGON_ID,
+        creature: {
+          ...ancientRedDragon,
+          features: ancientRedDragon.features?.map((feature) =>
+            feature.id === srdLegendaryActions.id ? { ...feature, options } : feature
+          )
+        },
+        featureCharges: { [srdLegendaryActions.id]: 0 }
+      })
+    // The SRD Tail Attack and Wing Attack are not yet executable Legendary Actions.
+    expect(
+      await offered({
+        actors: [srdDragon(srdLegendaryActions.options), wolfActor],
+        outgoingActorId: WOLF_ID
+      })
+    ).toEqual([])
+    const [, srdTailAttack] = srdLegendaryActions.options ?? []
+    const [, , executableWingAttack] = legendaryActions.options ?? []
+    if (!srdTailAttack || !executableWingAttack) throw new Error('Expected both options.')
+    expect(
+      await offered({
+        actors: [srdDragon([srdTailAttack, executableWingAttack]), wolfActor],
+        outgoingActorId: WOLF_ID
+      })
+    ).toEqual([
+      {
+        ownerActorId: DRAGON_ID,
+        options: [
+          {
+            label: 'Wing Attack (Costs 2 Actions)',
+            featureCost: 2,
+            poolBefore: 3,
+            poolRemaining: 1
+          }
+        ]
+      }
+    ])
+  })
+
   it('offers nothing at the end of the owner’s own turn or while the owner is incapacitated', async () => {
     expect(await offered({ actors: [dragon(), wolfActor], outgoingActorId: DRAGON_ID })).toEqual([])
     for (const condition of ['Incapacitated', 'Stunned', 'Paralyzed'])

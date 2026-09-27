@@ -1023,7 +1023,9 @@ checks. A synchronous turn without retained turn evidence preserves its existing
 response. Manual mode does not execute Recharge or Legendary Actions.
 
 Native ADVANCE_TURN stages one Legendary Action choice per eligible other Creature owner, in
-deterministic owner order. Decline, selected execution and Assisted d20 evidence remain occurrence-owned.
+deterministic owner order. The choice offers only the options the System can execute; an option whose
+authored shape it cannot execute yet (such as the SRD dragons' Tail Attack and Wing Attack, D50) is
+left out rather than failing the turn, and an owner with none gets no choice. Decline, selected execution and Assisted d20 evidence remain occurrence-owned.
 Every continuation reconstructs completed actions against current sources using the retained dice.
 The outgoing owner queue finishes before EACH_ROUND initiative starts. Incoming Legendary pool
 refresh and Recharge wait for the actual new current actor; actor changes, normalized initiative,
