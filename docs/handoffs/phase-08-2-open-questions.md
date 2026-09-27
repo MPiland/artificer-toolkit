@@ -173,6 +173,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     * The GM Window story's token-binding select must offer the fixture's actors.
   * **Fog exploration along a move (defect found by the T3 fast tests).** A move explores continuously along the walked line, as Foundry does and as the code comment says. Today `deriveSceneTokenPathExplorationPatch` (`packages/shared/src/domains/vtt/exploration.ts:361`) samples only the path's corner points. A straight drag is a two-point path, so short-sighted tokens leave the middle unexplored. Fix it with a test that fails today.
   * **No commits during the final R08 run.**
+* **D49** Rulings from the D47 fix batch:
+  * **Unbinding.** Deleting a prepared, bound Encounter while a room owns its Scene also goes through the room, the same way binding does.
+  * **Dimmed text.** Mantine's dimmed color now maps to the Forge secondary text token app-wide, raising contrast to at least 4.5:1 (light 6.26:1, dark 7.17:1). This is an accessibility improvement everywhere text is dimmed.
+  * **R08 drivers.** The Effects, Disarm and Campaign lifecycle drivers get a room binding helper in `DevelopmentHttpClient`.
+  * **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
+  * **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
+
 * **D48** Rules defects found by the T1 fast tests. All are to be fixed, each with a test that fails first:
   * **Half damage on a successful save.** An `ON_SAVE_SUCCESS` outcome's `multiplier` (for example 0.5) must apply to direct saving-throw actions, such as the Black Dragon Wyrmling's Acid Breath. Today only the nested follow-up save shape halves damage, so the tabletop disagrees with the Sheet.
   * **Several non-dice outcomes on one save result.** Two or more fixed or condition outcomes on the same result path must not crash. Give every outcome group a unique node id, as dice groups already have.
