@@ -88,6 +88,16 @@ interface LiveSessionSocket {
 
 const reconnectDelay = (attempt: number) => Math.min(1_000 * 2 ** attempt, 30_000)
 const webSocketOpenState = 1
+/** Each preview stream sends at most 10 samples a second (ADR 0035 Amendment 15). */
+const previewIntervalMs = 100
+
+/** A preview stream as the room keys it: per kind, per dragged token and per fog owner. */
+function previewStreamKey(envelope: SceneTransientEnvelopeDto): string {
+  if (envelope.kind === 'TOKEN_DRAG_PREVIEW') return `${envelope.kind}:${envelope.tokenId}`
+  if (envelope.kind === 'FOG_AREA_PREVIEW')
+    return `${envelope.kind}:${envelope.ownerUserId ?? 'SHARED_PARTY'}`
+  return envelope.kind
+}
 
 function applyRecipientDelta(
   state: LiveSessionRecipientStateDto,
@@ -152,6 +162,7 @@ export function createLiveSessionConnection(
   >()
   let requestedScene: SceneSynchronizationMessage | null = null
   let synchronizedScene: SceneSynchronizationMessage | null = null
+  const previewSentAt = new Map<string, number>()
 
   const send = (message: LiveSessionClientMessage): boolean => {
     if (socket?.readyState !== webSocketOpenState) return false
@@ -442,7 +453,16 @@ export function createLiveSessionConnection(
       })
     },
     sendTransient(envelope) {
-      return ready && send({ envelope, type: 'TRANSIENT' })
+      const key = previewStreamKey(envelope)
+      const now = performance.now()
+      if (
+        !ready ||
+        now - (previewSentAt.get(key) ?? Number.NEGATIVE_INFINITY) < previewIntervalMs ||
+        !send({ envelope, type: 'TRANSIENT' })
+      )
+        return false
+      previewSentAt.set(key, now)
+      return true
     },
     synchronizeScene(sceneId, version, expectedPresentationVersion) {
       requestedScene = {

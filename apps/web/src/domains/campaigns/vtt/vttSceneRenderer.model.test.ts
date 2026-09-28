@@ -7,6 +7,7 @@ import {
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
+  isPointerPreviewGesture,
   positionVttMapTiles,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
@@ -18,6 +19,14 @@ import {
 } from './vttSceneRenderer.model'
 
 describe('VTT scene renderer model', () => {
+  it('shares the pointer only during a pointing gesture, never on hover', () => {
+    expect(isPointerPreviewGesture({ buttons: 0, gesturing: false })).toBe(false)
+    expect(isPointerPreviewGesture({ buttons: 2, gesturing: false })).toBe(false)
+    expect(isPointerPreviewGesture({ buttons: 1, gesturing: true })).toBe(false)
+    expect(isPointerPreviewGesture({ buttons: 1, gesturing: false })).toBe(true)
+    expect(isPointerPreviewGesture({ buttons: 3, gesturing: false })).toBe(true)
+  })
+
   it('resolves symmetric, bounded, and safe zoom scales', () => {
     const zoomedIn = resolveVttZoomScale(1, 1.1)
 

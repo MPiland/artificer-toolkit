@@ -122,6 +122,7 @@ class FakeSocket extends EventTarget {
 afterEach(() => {
   FakeSocket.instances.length = 0
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 describe('live-session browser connection', () => {
@@ -180,6 +181,47 @@ describe('live-session browser connection', () => {
     const broadcast = { envelope, userId }
     socket.receive({ message: broadcast, type: 'TRANSIENT' })
     expect(transients).toEqual([broadcast])
+    connection.close()
+  })
+
+  it('sends each preview stream at most 10 times a second', async () => {
+    let now = 1_000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket-1' }),
+      onError: (error) => {
+        throw error
+      },
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+    const drag = {
+      ...envelope,
+      kind: 'TOKEN_DRAG_PREVIEW',
+      tokenId: '00000000-0000-4000-8000-000000000015'
+    } satisfies SceneTransientEnvelopeDto
+    const sentAt: Record<string, number[]> = {}
+    socket.send = (data) => {
+      const message = liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data))
+      if (message.type === 'TRANSIENT') (sentAt[message.envelope.kind] ??= []).push(now)
+    }
+
+    // A pointer and a token drag move together at 31 Hz for one second.
+    for (let frame = 1; frame <= 31; frame += 1) {
+      connection.sendTransient({ ...envelope, sequence: frame })
+      connection.sendTransient({ ...drag, sequence: frame })
+      now += 32
+    }
+    const tenHertz = [1_000, 1_128, 1_256, 1_384, 1_512, 1_640, 1_768, 1_896]
+    expect(sentAt).toEqual({ POINTER_PREVIEW: tenHertz, TOKEN_DRAG_PREVIEW: tenHertz })
     connection.close()
   })
 

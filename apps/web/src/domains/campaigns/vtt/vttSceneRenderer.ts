@@ -28,6 +28,7 @@ import {
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
+  isPointerPreviewGesture,
   positionVttMapTiles,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
@@ -1335,7 +1336,8 @@ export async function createVttSceneRenderer(
   })
 
   app.stage.on('pointermove', (event) => {
-    if (panStart || drag || gestureStart) return
+    const gesturing = panStart !== null || drag !== null || gestureStart !== null
+    if (!isPointerPreviewGesture({ buttons: event.buttons, gesturing })) return
     callbacks.onPointerPreview(worldPoint(event))
   })
 

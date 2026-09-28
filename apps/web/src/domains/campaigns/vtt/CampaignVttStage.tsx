@@ -218,7 +218,6 @@ export function CampaignVttStage({
   const sceneRef = useRef<CampaignSceneStateDto | undefined>(undefined)
   const commitTokenMoveRef = useRef(commitTokenMove)
   const transientSequence = useRef(0)
-  const transientSentAt = useRef(new Map<string, number>())
   const optimisticDoorCommands = useRef(new Map<string, string>())
   const [mode, setMode] = useState<CampaignVttMode>('PLAY')
   const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
@@ -635,14 +634,6 @@ export function CampaignVttStage({
     ) => {
       const current = sceneRef.current
       if (!current) return
-      const streamKey =
-        envelope.kind === 'TOKEN_DRAG_PREVIEW'
-          ? `${envelope.kind}:${envelope.tokenId}`
-          : envelope.kind === 'FOG_AREA_PREVIEW'
-            ? `${envelope.kind}:${envelope.ownerUserId ?? 'SHARED_PARTY'}`
-            : envelope.kind
-      const now = performance.now()
-      if (now - (transientSentAt.current.get(streamKey) ?? 0) < 32) return
       transientSequence.current += 1
       const metadata = {
         audience:
@@ -651,19 +642,15 @@ export function CampaignVttStage({
         sceneId: current.id,
         sequence: transientSequence.current
       }
-      if (
-        live.sendTransient(
-          envelope.kind === 'TOKEN_DRAG_PREVIEW'
-            ? {
-                ...envelope,
-                ...metadata,
-                previewUserId: gmPreviewUserId ?? undefined
-              }
-            : { ...envelope, ...metadata }
-        )
-      ) {
-        transientSentAt.current.set(streamKey, now)
-      }
+      live.sendTransient(
+        envelope.kind === 'TOKEN_DRAG_PREVIEW'
+          ? {
+              ...envelope,
+              ...metadata,
+              previewUserId: gmPreviewUserId ?? undefined
+            }
+          : { ...envelope, ...metadata }
+      )
     },
     [campaign.role, gmPreviewUserId, live, sharePreviews]
   )
