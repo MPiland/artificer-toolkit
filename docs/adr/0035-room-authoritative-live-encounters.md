@@ -83,6 +83,39 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
 
 **Unchanged:** rules and dice run in the room (D41); privacy projection; player control and GM override (ADR 0034); Campaign-owned play and the implicit live table (ADR 0033).
 
+## Amendments from implementation planning (2026-09-27)
+
+Accepted after the code mapping in [the implementation plan](../handoffs/adr-0035-implementation-plan.md).
+
+1. **Steady-state commands never call Convex. Lifecycle commands do.** START, COMPLETE, DELETE, and adding or removing a Character actor wait for a synchronous checkpoint before they acknowledge. The first command after an invalidation reloads only the stale inputs.
+2. **Rehydrating.**
+   - Within an authority epoch, the room rehydrates from its own storage.
+   - Across epochs, for example after an idle release, it starts from Convex's acknowledged final checkpoint. That is the normal path, not an incident.
+   - If storage is lost within an epoch, the room forces a new epoch and resynchronizes clients.
+3. **Character play state is explicit.** A `CharacterPlayState` contract names exactly the play-state fields held today in `characters.documentJson.state`, `sheetState.resourceUsage`, `campaignCharacterStates` and `characterActiveRuleEffects`.
+   - While a Character is held by a live Run (`liveCharacterHolds`), Convex refuses writes to those fields.
+   - Checkpoints merge only those fields and bump `streamVersion` once per checkpoint.
+   - Rests are refused while the Character is held.
+4. **Cadence.** A checkpoint is sent no later than N seconds after the first unsent change, and at every round boundary and lifecycle event.
+   - Checkpoints carry only the records that changed (deltas), never whole documents.
+   - N is a tunable constant sized by the Q16 budget (Convex I/O counts checkpoint bytes). The room's SQLite already makes acknowledged commands durable, so N only bounds how stale pages outside the room are.
+5. **Revocation has a bound.**
+   - The room holds authorization under a lease of about 60 s, renewed by each checkpoint response and token renewal.
+   - A lost `INVALIDATE_INPUTS` or eviction notification is therefore corrected within the lease.
+   - Membership departure and account deletion only evict and notify while a Run is held. The room applies the change, and checkpoints filter controller lists.
+6. **The Scene lane is included.**
+   - Bound moves, fog changes, movement decisions and Encounter binding become room commands.
+   - Scene publications fold into checkpoints, replacing per-command `state:publish` and the Convex-first external commit path (D27 and D52).
+   - Transient preview samples must not write a SQLite row per sample, because the free plan's rows-written limit is 100,000 a day.
+7. **Replay.** A same-sequence checkpoint retry returns `REPLAYED`. Command replay across epochs is served by a replay index loaded from Convex receipts at hydrate.
+8. **The broadcast fan-out is new work.** Other members see pending decisions, timeline entries and roll cards through the room with the privacy projection, not through Convex subscriptions. Chat roll cards go live through the room and are persisted to Convex chat by checkpoint with stable IDs.
+9. **Decision 9 budgets include Cloudflare.** They cover Durable Object requests, duration, rows written and CPU per command, alongside Convex I/O. Checked 2026-09-27: Durable Objects on Workers Free get 30 s of CPU per request (the 10 ms Workers Free limit does not apply); 100,000 requests a day; 13,000 GB-s a day; 5M rows read and 100,000 rows written a day; 5 GB stored.
+10. **Also superseded:**
+    - ADR 0034 §4's "the Sheet is the single writer of play state" while a Character is held;
+    - ADR 0029's Character authority amendment and per-publication Scene re-check for live Runs;
+    - ADR 0033's per-command outbox drain, which becomes a final checkpoint.
+11. **Until content snapshots (Q15 option a) land,** System content is loaded through the existing capture builders at hydrate.
+
 ## Also decided with this ADR
 
 - **Development and tests use the local backend only (Q15 option c).** Development, automated tests, load checks and agents run against the local Docker backend. Cloud deployments are touched only for a deliberate, approved staging smoke check.
