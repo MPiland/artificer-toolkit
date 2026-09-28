@@ -24,9 +24,13 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { removeAccountCharacterActors, removeEncounterActor } from './actorRemovalCommand'
+import {
+  removeAccountCharacterActors,
+  removeEncounterActor
+} from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { encounterWriteTransaction } from './encounterPorts'
 
 const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
   'encounters/commands:execute'
@@ -501,7 +505,7 @@ describe('native actor removal transaction', () => {
     const before = await capture(base)
     await expect(
       base.t.run(async (ctx) => {
-        await removeEncounterActor(ctx, command, base.owner.userId)
+        await removeEncounterActor(encounterWriteTransaction(ctx), command, base.owner.userId)
         const run = await ctx.db
           .query('encounterRuns')
           .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
@@ -599,7 +603,11 @@ describe('native actor removal transaction', () => {
     )
     const before = await capture(base)
     await base.t.run((ctx) =>
-      removeAccountCharacterActors(ctx, base.campaign.id, base.player.userId)
+      removeAccountCharacterActors(
+        encounterWriteTransaction(ctx),
+        base.campaign.id,
+        base.player.userId
+      )
     )
     const after = await capture(base)
     const run = after.runs.find((candidate) => candidate.id === base.run.id)
@@ -633,7 +641,13 @@ describe('native actor removal transaction', () => {
     if (!characterActor) throw new Error('Missing Character actor fixture.')
     const beforeScopeFailure = await capture(base)
     await expect(
-      base.t.run((ctx) => removeAccountCharacterActors(ctx, base.campaign.id, base.owner.userId))
+      base.t.run((ctx) =>
+        removeAccountCharacterActors(
+          encounterWriteTransaction(ctx),
+          base.campaign.id,
+          base.owner.userId
+        )
+      )
     ).rejects.toThrow('player membership')
     expect(await capture(base)).toEqual(beforeScopeFailure)
     await base.t.run(async (ctx) => {
@@ -673,7 +687,11 @@ describe('native actor removal transaction', () => {
     const otherRun = before.runs.find((run) => run.id !== base.run.id && run.status !== 'COMPLETED')
     if (!otherRun) throw new Error('Missing non-completed Run for archived cleanup.')
     await base.t.run((ctx) =>
-      removeAccountCharacterActors(ctx, base.campaign.id, base.player.userId)
+      removeAccountCharacterActors(
+        encounterWriteTransaction(ctx),
+        base.campaign.id,
+        base.player.userId
+      )
     )
     const after = await capture(base)
     expect(after.actors.some((actor) => actor.id === characterActor.id)).toBe(true)
@@ -692,7 +710,11 @@ describe('native actor removal transaction', () => {
     const before = await capture(base)
     await expect(
       base.t.run(async (ctx) => {
-        await removeAccountCharacterActors(ctx, base.campaign.id, base.player.userId)
+        await removeAccountCharacterActors(
+          encounterWriteTransaction(ctx),
+          base.campaign.id,
+          base.player.userId
+        )
         throw new Error('Abort after trusted actor cleanup')
       })
     ).rejects.toThrow('Abort after trusted actor cleanup')
@@ -711,7 +733,13 @@ describe('native actor removal transaction', () => {
     })
     const before = await capture(base)
     await expect(
-      base.t.run((ctx) => removeAccountCharacterActors(ctx, base.campaign.id, base.player.userId))
+      base.t.run((ctx) =>
+        removeAccountCharacterActors(
+          encounterWriteTransaction(ctx),
+          base.campaign.id,
+          base.player.userId
+        )
+      )
     ).rejects.toThrow('Character source is unavailable')
     expect(await capture(base)).toEqual(before)
   }, 30000)
@@ -734,7 +762,11 @@ describe('native actor removal transaction', () => {
       )
     expect(await characterActors()).not.toEqual([])
     await base.t.run((ctx) =>
-      removeAccountCharacterActors(ctx, base.campaign.id, base.player.userId)
+      removeAccountCharacterActors(
+        encounterWriteTransaction(ctx),
+        base.campaign.id,
+        base.player.userId
+      )
     )
     expect(await characterActors()).toEqual([])
   }, 30000)

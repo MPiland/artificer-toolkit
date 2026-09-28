@@ -15,7 +15,7 @@ import {
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation, memoizedInternalMutation } from '../lib/mutations'
-import { readRuleOccurrenceVoidDecline } from '../encounters/occurrenceVoid'
+import { readRuleOccurrenceVoidDecline } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { finishSceneGeometry } from '../scenes/geometryCommands'
 import { readGeometrySave } from '../scenes/geometryDocuments'
 import {
@@ -29,6 +29,7 @@ import { readEncounterCaptureBundle } from './encounterCaptureBundle'
 import { routeEncounterDecision } from './encounterRoute'
 import { commitLiveMovement } from './encounterMovementCommit'
 import { publishWithAuthorityAdvance } from './externalCommit'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /** The member's own receiving room save in this Campaign. */
 async function requireLiveSave(
@@ -60,7 +61,7 @@ async function beginLiveSceneCommand(
   ) {
     const command =
       input.command.type === 'VOID_RULE_OCCURRENCE'
-        ? await readRuleOccurrenceVoidDecline(ctx, input.command)
+        ? await readRuleOccurrenceVoidDecline(encounterWriteTransaction(ctx), input.command)
         : input.command
     const result = await beginMovementResolution(ctx, command, authority)
     if (!result) throw new Error('Live movement response requires a movement occurrence.')

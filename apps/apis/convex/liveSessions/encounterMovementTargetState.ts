@@ -6,7 +6,7 @@ import type {
 import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { MutationCtx } from '../_generated/server'
 import { readCampaignCharacterState } from '../campaigns/characterState'
-import { readCharacterMaximumHitPoints } from '../characters/characterMaximumHitPoints'
+import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import { readCharacterRecord } from '../characters/stateDocuments'
 
 async function readLiveCharacterRow(ctx: MutationCtx, state: EncounterRunState, id: string) {

@@ -8,11 +8,12 @@ import {
 import { internalQuery } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
-import { recordEncounterCommand } from '../encounters/commands'
+import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence/commands'
 import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { readEvidenceRollDice } from '../encounters/evidenceRolls'
+import { readEvidenceRollDice } from '@artificer-toolkit/encounter-persistence/evidenceRolls'
 import { readActorInitiativeRoll } from '../encounters/initiativeSources'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
+import { encounterReadTransaction, encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /**
  * The dice a room roll command draws (D41), as die sizes in draw order; none for a retried
@@ -30,7 +31,7 @@ export const dice = internalQuery({
     })
     if (command.type === 'ROLL_RULE_EVIDENCE')
       return liveSessionEncounterRollDiceSchema.parse({
-        dice: await readEvidenceRollDice(ctx, command, userId)
+        dice: await readEvidenceRollDice(encounterReadTransaction(ctx), command, userId)
       })
     if (membership.role !== 'OWNER') rejectDomain('GM_ONLY')
     // A retried command replays its recorded roll, so the room draws nothing for it.
@@ -78,12 +79,17 @@ export const commit = internalMutation({
       encounterId: command.encounterId
     })
     let drawn = 0
-    const result = await recordEncounterCommand(ctx, command, userId, (size) => {
-      const draw = draws[drawn++]
-      if (draw === undefined || draw >= size)
-        rejectDomain('VERSION_STALE', 'The roll changed; roll again.')
-      return draw
-    })
+    const result = await recordEncounterCommand(
+      encounterWriteTransaction(ctx),
+      command,
+      userId,
+      (size) => {
+        const draw = draws[drawn++]
+        if (draw === undefined || draw >= size)
+          rejectDomain('VERSION_STALE', 'The roll changed; roll again.')
+        return draw
+      }
+    )
     if (drawn !== 0 && drawn !== draws.length)
       rejectDomain('VERSION_STALE', 'The roll changed; roll again.')
     return result

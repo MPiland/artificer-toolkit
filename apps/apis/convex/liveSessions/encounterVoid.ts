@@ -8,8 +8,9 @@ import { internalMutation } from '../lib/mutations'
 import {
   prepareRuleOccurrenceVoid,
   recordDeclinedRuleOccurrenceVoid
-} from '../encounters/occurrenceVoid'
+} from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /**
  * A room GM void that declines nothing: a paused action cancelled whole, or a refusal. It evaluates
@@ -21,7 +22,7 @@ export const prepare = internalMutation({
   handler: async (ctx, args: unknown) => {
     const { command, ...scope } = liveSessionEncounterVoidInputSchema.parse(args)
     await requireLiveEncounterRun(ctx, { ...scope, encounterId: command.encounterId })
-    const prepared = await prepareRuleOccurrenceVoid(ctx, command)
+    const prepared = await prepareRuleOccurrenceVoid(encounterWriteTransaction(ctx), command)
     if (prepared.kind === 'DECLINE') throw new Error('A declining void is planned by the room.')
     return liveSessionEncounterVoidPreparedSchema.parse(prepared)
   }
@@ -34,6 +35,6 @@ export const record = internalMutation({
   handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const { command, ...scope } = liveSessionEncounterVoidInputSchema.parse(args)
     await requireLiveEncounterRun(ctx, { ...scope, encounterId: command.encounterId })
-    return recordDeclinedRuleOccurrenceVoid(ctx, command)
+    return recordDeclinedRuleOccurrenceVoid(encounterWriteTransaction(ctx), command)
   }
 })

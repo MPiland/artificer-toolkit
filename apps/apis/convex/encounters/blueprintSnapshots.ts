@@ -8,7 +8,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import { compileInstalledCreatureRuleFacts } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { pinCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
-import type { MutationCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
 import {
   canReadAuthoredRoot,
   readAuthoredVersion,
@@ -17,7 +17,7 @@ import {
 import { ensureSystemVocabularySnapshot } from '../content/systemVocabulary'
 
 export async function readEncounterSource(
-  ctx: MutationCtx,
+  ctx: QueryCtx,
   userId: string,
   systemId: string,
   id: string,

@@ -13,7 +13,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
-import { consumeEncounterAllyAdvantages } from '../encounters/allyAdvantage'
+import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-persistence/allyAdvantage'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import {
   prepareLiveEncounterActionMaintenance,

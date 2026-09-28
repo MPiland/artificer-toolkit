@@ -17,8 +17,8 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import {
   readNativeEncounterCommandReplay,
   readNativeEncounterCommandState
-} from '../encounters/commandReplay'
-import { readNativeTurnCommandPending } from '../encounters/turnCommandPending'
+} from '@artificer-toolkit/encounter-persistence/commandReplay'
+import { readNativeTurnCommandPending } from '@artificer-toolkit/encounter-persistence/turnCommandPending'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -29,15 +29,16 @@ import {
   prepareEncounterTurnResponse,
   matchesNativeTurnResponse
 } from '@artificer-toolkit/rules-runtime/encounterTurnResponse'
-import { readNativeTurnResponseReplay } from '../encounters/turnResponseReplay'
+import { readNativeTurnResponseReplay } from '@artificer-toolkit/encounter-persistence/turnResponseReplay'
 import { requireUnusedEvidenceCommandId } from '@artificer-toolkit/encounter-persistence/timelineEntries'
-import { requireTurnResponseController } from '../encounters/turnResponseAuthority'
+import { requireTurnResponseController } from '@artificer-toolkit/encounter-persistence/turnResponseAuthority'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import {
   readEncounterControlledActorIds,
   requireEncounterActorControl
-} from '../encounters/actorController'
+} from '@artificer-toolkit/encounter-persistence/actorController'
 import { readRunActor, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** Raw authorization and replay proof; turn rules are evaluated by the Session DO. */
 export async function readLiveEncounterTurnAdmission(
@@ -119,7 +120,7 @@ export async function readLiveEncounterTurnAdmission(
             )
             .unique()
         : null
-    await requireTurnResponseController(ctx, {
+    await requireTurnResponseController(encounterReadTransaction(ctx), {
       campaign,
       membership,
       state,
@@ -291,11 +292,14 @@ export async function readLiveEncounterTurnAdmission(
       command: input,
       userId,
       ownerUserId: campaign.ownerUserId,
-      responderControlledActorIds: await readEncounterControlledActorIds(ctx, {
-        campaign,
-        membership,
-        actors: await readRunActors(ctx, state)
-      }),
+      responderControlledActorIds: await readEncounterControlledActorIds(
+        encounterReadTransaction(ctx),
+        {
+          campaign,
+          membership,
+          actors: await readRunActors(ctx, state)
+        }
+      ),
       occurrence,
       encounterVersion: row.version
     })
@@ -372,7 +376,7 @@ export async function readLiveEncounterTurnAdmission(
         'Only active Encounters with a current actor can advance.'
       )
     // A player ends only the turn of an actor they control; the GM can end any turn.
-    await requireEncounterActorControl(ctx, {
+    await requireEncounterActorControl(encounterReadTransaction(ctx), {
       campaign,
       membership,
       actor: await readRunActor(ctx, state, state.currentActorId)

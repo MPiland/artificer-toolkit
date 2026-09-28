@@ -32,7 +32,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
 import { readNativeDisarmSelection } from './actionDisarmSelection'
-import { requireEncounterActorControl } from './actorController'
+import { requireEncounterActorControl } from '@artificer-toolkit/encounter-persistence/actorController'
 import { evaluateNativeActionEconomy } from './actionEconomy'
 import { encounterActionEconomyWarnings } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -41,6 +41,7 @@ import { readDefinitionRoot } from '../content/definitionStore'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { MAX_BASIC_ACTION_CHOICES } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import { encounterReadTransaction } from './encounterPorts'
 
 /**
  * The System's basic-action catalogue (Q11): its published platform entries, by label. User-authored
@@ -99,7 +100,7 @@ async function readActionChoicesRun(ctx: QueryCtx, input: GetEncounterActionChoi
     return null
   const actor = await readRunActor(ctx, state, input.actorId)
   // A player sees the choices of an actor they control; creature actions included only then.
-  await requireEncounterActorControl(ctx, { campaign, membership, actor })
+  await requireEncounterActorControl(encounterReadTransaction(ctx), { campaign, membership, actor })
   // A defeated actor has no choices (D63).
   if (isEncounterActorDefeated(actor)) return null
   return { state, actor, campaign, membership }

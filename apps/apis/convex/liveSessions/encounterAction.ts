@@ -6,12 +6,13 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation } from '../lib/mutations'
 import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
-import { nativeActionPendingResult } from '../encounters/actionPending'
+import { nativeActionPendingResult } from '@artificer-toolkit/encounter-persistence/actionPending'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** Stores only the Worker-computed pending root; terminal mechanics remain a separate transaction. */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
@@ -26,7 +27,7 @@ export const commitPending = internalMutation({
       throw new Error('Live Session Encounter scope mismatch.')
     // A lost response must return the stored outcome before checking inputs consumed by that write.
     if (admission.kind === 'REPLAY')
-      return presentEncounterResultForMember(ctx, {
+      return presentEncounterResultForMember(encounterReadTransaction(ctx), {
         campaign,
         membership,
         result: admission.result
@@ -129,7 +130,7 @@ export const commitPending = internalMutation({
             : {})
         }
       })
-    return presentEncounterResultForMember(ctx, {
+    return presentEncounterResultForMember(encounterReadTransaction(ctx), {
       campaign,
       membership,
       result: nativeActionPendingResult(run, occurrence)

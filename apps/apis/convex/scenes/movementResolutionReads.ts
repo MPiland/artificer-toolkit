@@ -7,13 +7,14 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
 import { type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   readStoredPendingSnapshot,
   storedPendingSnapshotChecksum
 } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** The published response's current-role result; never the private preparation. */
 export async function readMovementResponseResult(
@@ -56,7 +57,7 @@ export async function readMovementResponseResult(
     throw new Error('Movement response receipt is inconsistent.')
   if (storedPendingSnapshotChecksum(occurrence) !== occurrence.pendingSnapshotChecksum)
     throw new Error('Movement response occurrence checksum is inconsistent.')
-  return presentEncounterResultForMember(ctx, {
+  return presentEncounterResultForMember(encounterReadTransaction(ctx), {
     campaign,
     membership,
     result: encounterCommandResultDtoSchema.parse({

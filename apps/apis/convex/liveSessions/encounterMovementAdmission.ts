@@ -16,7 +16,8 @@ import { parseLiveEntity } from '../scenes/liveDocuments'
 import { assertMovementResolutionCurrent } from '../scenes/movementResolutionDocuments'
 import { readSessionVisionScope } from '../scenes/sessionVisionDocuments'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
-import { requireEncounterActorControl } from '../encounters/actorController'
+import { requireEncounterActorControl } from '@artificer-toolkit/encounter-persistence/actorController'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** Authorize raw movement reads against the staged Scene command and current Encounter. */
 export async function readLiveMovementAdmission(
@@ -174,7 +175,11 @@ export async function readLiveMovementAdmission(
     throw new Error('Members may only move an unlocked token they control.')
   if (!resolution) {
     const mover = await readRunActor(ctx, state, tokenBinding.actorId)
-    await requireEncounterActorControl(ctx, { campaign, membership, actor: mover })
+    await requireEncounterActorControl(encounterReadTransaction(ctx), {
+      campaign,
+      membership,
+      actor: mover
+    })
     // A defeated creature doesn't move itself (D63); the GM may still reposition its token.
     if (membership.role !== 'OWNER' && isEncounterActorDefeated(mover))
       rejectDomain('ACTOR_DEFEATED')

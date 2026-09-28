@@ -12,11 +12,12 @@ import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-ru
 import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
-import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
+import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
 import { internalMutation } from '../lib/mutations'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { readLiveEncounterTurnAdmission, assertLiveTurnRevisions } from './encounterTurnAdmission'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** Stores one DO-prepared pending turn without advancing the Run or Character state. */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
@@ -26,7 +27,7 @@ export const commitPending = internalMutation({
     const input = liveSessionEncounterTurnPendingInputSchema.parse(args)
     const admission = await readLiveEncounterTurnAdmission(ctx, input, input.command)
     if (admission.kind !== 'READY')
-      return presentEncounterResultForMember(ctx, {
+      return presentEncounterResultForMember(encounterReadTransaction(ctx), {
         campaign: admission.campaign,
         membership: admission.membership,
         result: admission.result
@@ -207,6 +208,10 @@ export const commitPending = internalMutation({
             })
       }
     })
-    return presentEncounterResultForMember(ctx, { campaign, membership, result })
+    return presentEncounterResultForMember(encounterReadTransaction(ctx), {
+      campaign,
+      membership,
+      result
+    })
   }
 })

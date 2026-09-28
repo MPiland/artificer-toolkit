@@ -20,10 +20,10 @@ import {
   readRunActors,
   readRunState
 } from '@artificer-toolkit/encounter-persistence/documents'
-import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
-import { readEncounterCleavingBindings } from '../encounters/cleavingSceneInputs'
-import { readNativeEncounterActionAdmission } from '../encounters/actionAdmission'
-import { readNativeEncounterActionResponseAdmission } from '../encounters/actionResumeAdmission'
+import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { readEncounterCleavingBindings } from '@artificer-toolkit/encounter-persistence/cleavingSceneInputs'
+import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
+import { readNativeEncounterActionResponseAdmission } from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { requireIdentity } from '../lib/identity'
 import { readAutoRollDice } from '../lib/rollPreferences'
@@ -42,14 +42,15 @@ import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRej
 import {
   readEncounterAutoRollByActorId,
   readEncounterControlledActorIds
-} from '../encounters/actorController'
+} from '@artificer-toolkit/encounter-persistence/actorController'
 import { readMovementResolution } from '../scenes/geometryDocuments'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { readLiveEncounterActionScope } from './encounterActionAdmission'
-import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
-import { readCleavingResponseAdmission } from '../encounters/cleavingResponseAdmission'
-import { readDisarmAdmission } from '../encounters/disarmAdmission'
-import { readBasicActionAdmission } from '../encounters/basicActionAdmission'
+import { readEncounterSettledAppRoll } from '@artificer-toolkit/encounter-persistence/evidenceRolls'
+import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
+import { readDisarmAdmission } from '@artificer-toolkit/encounter-persistence/disarmAdmission'
+import { readBasicActionAdmission } from '@artificer-toolkit/encounter-persistence/basicActionAdmission'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 type SemanticResponse = {
   [K in LiveSessionEncounterRulesResponse['kind']]: Omit<
@@ -79,13 +80,13 @@ export async function readEncounterRulesCapture(
       campaignOwnerUserId: admission.campaign.ownerUserId,
       autoRollDice: await readAutoRollDice(ctx, admission.campaign.ownerUserId),
       // The GM initiates every turn, so each actor's saves go to its controllers.
-      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+      autoRollByActorId: await readEncounterAutoRollByActorId(encounterReadTransaction(ctx), {
         campaign: admission.campaign,
         initiatorUserId: admission.campaign.ownerUserId,
         actors
       }),
       responderControlledActorIds: [
-        ...(await readEncounterControlledActorIds(ctx, {
+        ...(await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
           campaign: admission.campaign,
           membership: admission.membership,
           actors
@@ -93,7 +94,7 @@ export async function readEncounterRulesCapture(
       ].sort(),
       appRoll:
         admission.resume && admission.input.type === 'RESOLVE_RULE_OCCURRENCE'
-          ? await readEncounterSettledAppRoll(ctx, {
+          ? await readEncounterSettledAppRoll(encounterReadTransaction(ctx), {
               occurrence: admission.pending.occurrence,
               response: admission.input,
               userId: input.expectedUserId
@@ -105,7 +106,7 @@ export async function readEncounterRulesCapture(
       snapshot: admission.pending?.snapshot ?? null,
       result:
         admission.result &&
-        (await presentEncounterResultForMember(ctx, {
+        (await presentEncounterResultForMember(encounterReadTransaction(ctx), {
           campaign: admission.campaign,
           membership: admission.membership,
           result: admission.result
@@ -146,7 +147,7 @@ export async function readEncounterRulesCapture(
       checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
     )
       throw new Error('Live Session action scope mismatch.')
-    const admission = await readBasicActionAdmission(ctx, {
+    const admission = await readBasicActionAdmission(encounterReadTransaction(ctx), {
       ...input,
       command: input.request.command
     })
@@ -173,7 +174,7 @@ export async function readEncounterRulesCapture(
       checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
     )
       throw new Error('Live Session action scope mismatch.')
-    const admission = await readDisarmAdmission(ctx, {
+    const admission = await readDisarmAdmission(encounterReadTransaction(ctx), {
       ...input,
       command: input.request.command
     })
@@ -209,7 +210,7 @@ export async function readEncounterRulesCapture(
       checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
     )
       throw new Error('Live Session action scope mismatch.')
-    const admission = await readCleavingResponseAdmission(ctx, {
+    const admission = await readCleavingResponseAdmission(encounterReadTransaction(ctx), {
       ...input,
       response: input.request.response
     })
@@ -241,7 +242,7 @@ export async function readEncounterRulesCapture(
       kind: 'CONCENTRATION_RESPONSE',
       fingerprint: concentrationAdmission.fingerprint,
       // Each remaining check is its actor's save, so its primary controller's preference applies.
-      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+      autoRollByActorId: await readEncounterAutoRollByActorId(encounterReadTransaction(ctx), {
         campaign: concentrationAdmission.campaign,
         initiatorUserId: concentrationAdmission.campaign.ownerUserId,
         actors: concentrationAdmission.actors
@@ -291,7 +292,7 @@ export async function readEncounterRulesCapture(
         .unique()
       if (!run) throw new Error('Encounter Run was not found.')
       responseAdmission = await readNativeEncounterActionResponseAdmission(
-        ctx,
+        encounterReadTransaction(ctx),
         input.request.response,
         run,
         userId
@@ -301,7 +302,11 @@ export async function readEncounterRulesCapture(
     const admission =
       responseAdmission?.admission ??
       (input.request.kind === 'ACTION_COMMAND'
-        ? await readNativeEncounterActionAdmission(ctx, input.request.command, userId)
+        ? await readNativeEncounterActionAdmission(
+            encounterReadTransaction(ctx),
+            input.request.command,
+            userId
+          )
         : null)
     if (!admission) throw new Error('Action response admission is unavailable.')
     if (
@@ -326,7 +331,7 @@ export async function readEncounterRulesCapture(
         : { kind: 'ACTION_COMMAND' as const }),
       autoRollByActorId:
         admission.kind === 'READY'
-          ? await readEncounterAutoRollByActorId(ctx, {
+          ? await readEncounterAutoRollByActorId(encounterReadTransaction(ctx), {
               campaign: admission.campaign,
               initiatorUserId: admission.initiatorUserId,
               actors: await readRunActors(ctx, admission.state)
@@ -336,7 +341,7 @@ export async function readEncounterRulesCapture(
       fingerprint: admission.fingerprint,
       result:
         replay &&
-        (await presentEncounterResultForMember(ctx, {
+        (await presentEncounterResultForMember(encounterReadTransaction(ctx), {
           campaign: admission.campaign,
           membership: admission.membership,
           result: replay
@@ -524,7 +529,7 @@ async function readOrdinaryEncounterCapture(
     response = {
       kind: 'MOVEMENT_INPUTS',
       campaignOwnerUserId: campaign.ownerUserId,
-      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+      autoRollByActorId: await readEncounterAutoRollByActorId(encounterReadTransaction(ctx), {
         campaign,
         // A response continues the mover's command; its rolls keep the mover as initiator.
         initiatorUserId: movementAdmission.save.movementResolution

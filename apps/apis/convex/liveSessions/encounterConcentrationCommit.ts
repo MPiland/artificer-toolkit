@@ -14,21 +14,22 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { internalMutation } from '../lib/mutations'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
-import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import {
   persistNativeConcentrationResult,
   insertNativeCleavingChoice
-} from '../encounters/actionChildPersistence'
+} from '@artificer-toolkit/encounter-persistence/actionChildPersistence'
 import { persistLiveEncounterConcentrationChildren } from './encounterConcentrationChildrenCommit'
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
+import { encounterReadTransaction, encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /**
  * Commits one admitted check, its cleanup and receipt, the remaining checks it auto-rolled and the
@@ -280,7 +281,11 @@ export const commit = internalMutation({
               encounterId: state.id,
               round: state.round
             }),
-            characterStates: await readEncounterCharacterStates(ctx, nextState, actors)
+            characterStates: await readEncounterCharacterStates(
+              encounterReadTransaction(ctx),
+              nextState,
+              actors
+            )
           })
         : admission.projection
     const result = encounterCommandResultDtoSchema.parse({
@@ -323,7 +328,7 @@ export const commit = internalMutation({
         createdAt: input.occurredAt
       })
     )
-    await persistNativeConcentrationResult(ctx, {
+    await persistNativeConcentrationResult(encounterWriteTransaction(ctx), {
       state: nextState,
       result: execution,
       occurrence,
@@ -369,9 +374,14 @@ export const commit = internalMutation({
         choice.options.some((option) => !actors.some((actor) => actor.id === option.targetActorId))
       )
         throw new Error('Deferred Cleaving decision scope mismatch.')
-      await insertNativeCleavingChoice(ctx, nextState, cleaving, input.occurredAt)
+      await insertNativeCleavingChoice(
+        encounterWriteTransaction(ctx),
+        nextState,
+        cleaving,
+        input.occurredAt
+      )
     }
-    return presentEncounterResultForMember(ctx, {
+    return presentEncounterResultForMember(encounterReadTransaction(ctx), {
       campaign,
       membership,
       result: encounterCommandResultDtoSchema.parse({ ...result, projection })

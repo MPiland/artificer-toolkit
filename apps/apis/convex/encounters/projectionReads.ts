@@ -21,7 +21,7 @@ import type { Doc } from '../_generated/dataModel'
 import { query, type QueryCtx } from '../_generated/server'
 import { internal } from '../_generated/api'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { readCharacterMaximumHitPoints } from '../characters/characterMaximumHitPoints'
+import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
 import {
@@ -31,13 +31,14 @@ import {
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
-import { characterProjectionState } from './characterStates'
-import { readEncounterHealthViewer } from './healthViewer'
+import { characterProjectionState } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { readEncounterHealthViewer } from '@artificer-toolkit/encounter-persistence/healthViewer'
 import {
   readRunActors,
   readRunState,
   readValidatedRunProjection
 } from '@artificer-toolkit/encounter-persistence/documents'
+import { encounterReadTransaction } from './encounterPorts'
 type EncounterProjection = EncounterGmProjectionDto | EncounterPlayerProjectionDto
 const encounterStatusOrder = ['ACTIVE', 'PREPARED', 'COMPLETED'] as const
 
@@ -151,7 +152,7 @@ export async function presentRun(
   if (role === 'OWNER') return current
   return projectPlayerEncounterProjection(
     current,
-    await readEncounterHealthViewer(ctx, current, viewer.userId)
+    await readEncounterHealthViewer(encounterReadTransaction(ctx), current, viewer.userId)
   )
 }
 

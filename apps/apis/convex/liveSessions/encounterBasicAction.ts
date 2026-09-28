@@ -17,14 +17,15 @@ import {
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { internalMutation } from '../lib/mutations'
 import { readDefinitionRoot } from '../content/definitionStore'
-import { readBasicActionAdmission } from '../encounters/basicActionAdmission'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
+import { readBasicActionAdmission } from '@artificer-toolkit/encounter-persistence/basicActionAdmission'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readRunActors, replaceRunActor } from '@artificer-toolkit/encounter-persistence/documents'
-import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
-import { recordTurnSpeedBonus } from '../encounters/turnMovement'
+import { recordTurnSpeedBonus } from '@artificer-toolkit/encounter-persistence/turnMovement'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
+import { encounterReadTransaction, encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /**
  * Records the room's planned basic action (Q11): the allowance it spent, the effects its actor
@@ -35,7 +36,7 @@ export const commit = internalMutation({
   args: v.any(),
   handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterBasicActionCommitInputSchema.parse(args)
-    const admission = await readBasicActionAdmission(ctx, input)
+    const admission = await readBasicActionAdmission(encounterReadTransaction(ctx), input)
     // A lost acknowledgement replays before checking inputs its commit consumed.
     if (admission.kind === 'REPLAY') return admission.result
     const { run, state, campaign, membership, command, fingerprint } = admission
@@ -89,7 +90,8 @@ export const commit = internalMutation({
       ...input.effects
     ])
     await replaceRunActor(ctx, actor, settled)
-    if (input.speedMovementBonus) await recordTurnSpeedBonus(ctx, { state, actorId: actor.id })
+    if (input.speedMovementBonus)
+      await recordTurnSpeedBonus(encounterWriteTransaction(ctx), { state, actorId: actor.id })
     const nextActors = actors.map((entry) => (entry.id === settled.id ? settled : entry))
     const nextState = encounterRunStateSchema.parse({
       ...state,
@@ -104,7 +106,11 @@ export const commit = internalMutation({
         encounterId: state.id,
         round: state.round
       }),
-      characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
+      characterStates: await readEncounterCharacterStates(
+        encounterReadTransaction(ctx),
+        nextState,
+        nextActors
+      )
     })
     const result = encounterCommandResultDtoSchema.parse({
       projection,
@@ -146,6 +152,10 @@ export const commit = internalMutation({
         createdAt: input.occurredAt
       })
     )
-    return presentEncounterResultForMember(ctx, { campaign, membership, result })
+    return presentEncounterResultForMember(encounterReadTransaction(ctx), {
+      campaign,
+      membership,
+      result
+    })
   }
 })

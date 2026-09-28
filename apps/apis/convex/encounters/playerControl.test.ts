@@ -17,10 +17,11 @@ import {
   readEncounterActorControl,
   readEncounterControlledActorIds,
   requireBoundTokenMoveControl
-} from './actorController'
+} from '@artificer-toolkit/encounter-persistence/actorController'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { encounterReadTransaction } from './encounterPorts'
 
 const leaveCampaign = makeFunctionReference<
   'mutation',
@@ -65,9 +66,13 @@ async function controlMatrix(base: PlayerControlFixture, members: Record<string,
         ['enemy', base.enemy.id]
       ] as const) {
         const actor = await readRunActor(ctx, state, actorId)
-        matrix[name]![label] = await readEncounterActorControl(ctx, { campaign, membership, actor })
+        matrix[name]![label] = await readEncounterActorControl(encounterReadTransaction(ctx), {
+          campaign,
+          membership,
+          actor
+        })
       }
-      const controlled = await readEncounterControlledActorIds(ctx, {
+      const controlled = await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
         campaign,
         membership,
         actors: await Promise.all(state.actorIds.map((id) => readRunActor(ctx, state, id)))
@@ -353,7 +358,7 @@ describe('Encounter actor control', () => {
           )
           .unique()
         if (!campaign || !membership) throw new Error('Missing token control membership.')
-        return requireBoundTokenMoveControl(ctx, {
+        return requireBoundTokenMoveControl(encounterReadTransaction(ctx), {
           campaign,
           membership,
           encounterId: base.run.id,

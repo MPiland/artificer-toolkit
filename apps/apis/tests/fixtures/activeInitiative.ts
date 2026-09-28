@@ -10,7 +10,7 @@ import {
 import { settleEncounterInitiativeRound } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import type { MutationCtx } from '../../convex/_generated/server'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
-import { createEncounterInitiativeStore } from '../../convex/encounters/initiativeStore'
+import { createEncounterInitiativeStore } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 
 export async function seedActiveInitiative(
   ctx: MutationCtx,

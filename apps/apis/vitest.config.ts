@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  // One Convex copy for Convex code and workspace packages, so ConvexError identity holds in-process.
+  resolve: { dedupe: ['convex'] },
   test: {
     allowOnly: false,
     environment: 'edge-runtime',

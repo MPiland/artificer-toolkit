@@ -22,18 +22,19 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
-import { readNativeDisarmPending } from '../encounters/actionDisarmPending'
+import { readNativeDisarmPending } from '@artificer-toolkit/encounter-persistence/actionDisarmPending'
 import { settleDisarm } from '../encounters/actionDisarmSettlement'
-import { nativeActionPendingResult } from '../encounters/actionPending'
+import { nativeActionPendingResult } from '@artificer-toolkit/encounter-persistence/actionPending'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
-import { readDisarmAdmission } from '../encounters/disarmAdmission'
-import { consumeEncounterAllyAdvantages } from '../encounters/allyAdvantage'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { readDisarmAdmission } from '@artificer-toolkit/encounter-persistence/disarmAdmission'
+import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-persistence/allyAdvantage'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
-import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 type ReadyDisarm = Extract<Awaited<ReturnType<typeof readDisarmAdmission>>, { kind: 'READY' }>
 
@@ -65,7 +66,7 @@ export const commitPending = internalMutation({
   args: v.any(),
   handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterDisarmPendingInputSchema.parse(args)
-    const admission = await readDisarmAdmission(ctx, input)
+    const admission = await readDisarmAdmission(encounterReadTransaction(ctx), input)
     // A lost acknowledgement replays before checking inputs its commit consumed.
     if (admission.kind === 'REPLAY') return admission.result
     const { run, state, campaign, membership, root, response, fingerprint, occurrence } = admission
@@ -106,7 +107,7 @@ export const commitPending = internalMutation({
     if (!stored) throw new Error('The pending Disarm was not stored.')
     // The sealed contest must name its root and the participant it now waits on.
     const { policy } = readNativeDisarmPending(stored)
-    const result = await presentEncounterResultForMember(ctx, {
+    const result = await presentEncounterResultForMember(encounterReadTransaction(ctx), {
       campaign,
       membership,
       result: nativeActionPendingResult(run, stored)
@@ -138,7 +139,7 @@ export const commit = internalMutation({
   args: v.any(),
   handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterDisarmCommitInputSchema.parse(args)
-    const admission = await readDisarmAdmission(ctx, input)
+    const admission = await readDisarmAdmission(encounterReadTransaction(ctx), input)
     if (admission.kind === 'REPLAY') return admission.result
     const { run, state, campaign, membership, root, response, fingerprint, occurrence, prior } =
       admission
@@ -224,7 +225,11 @@ export const commit = internalMutation({
         encounterId: state.id,
         round: state.round
       }),
-      characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
+      characterStates: await readEncounterCharacterStates(
+        encounterReadTransaction(ctx),
+        nextState,
+        nextActors
+      )
     })
     const result = encounterCommandResultDtoSchema.parse({
       projection,
@@ -314,7 +319,11 @@ export const commit = internalMutation({
         createdAt: occurredAt
       })
     )
-    const presented = await presentEncounterResultForMember(ctx, { campaign, membership, result })
+    const presented = await presentEncounterResultForMember(encounterReadTransaction(ctx), {
+      campaign,
+      membership,
+      result
+    })
     const completedOccurrence = await ctx.db.get(completedId)
     if (!completedOccurrence) throw new Error('The completed Disarm was not stored.')
     if (response)

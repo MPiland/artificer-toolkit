@@ -27,8 +27,8 @@ import { movementPendingCharacterAggregateVersions } from '@artificer-toolkit/ru
 import { checksumSpatialCurrentness } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementCurrentness'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { readEncounterControlledActorIds } from '../encounters/actorController'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
+import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   insertRunCommand,
@@ -37,6 +37,7 @@ import {
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import type { readSpatialSceneGeometry } from './spatialGeometry'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 type SceneSpatialPrepareInput = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 type SpatialPendingGeometry = Awaited<ReturnType<typeof readSpatialSceneGeometry>>
@@ -176,7 +177,7 @@ export async function publishSpatialPending<TSettlement>(
       checksumCanonicalJson(initialEvaluation.outcome) !== checksumCanonicalJson(prepared))
   )
     throw new Error('Initial movement evaluation does not match retained preparation.')
-  const memberActorIds = await readEncounterControlledActorIds(ctx, {
+  const memberActorIds = await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
     campaign,
     membership,
     actors: await readRunActors(ctx, state)
@@ -583,7 +584,7 @@ async function advanceInitialAutomaticRun(
   const projection = project(
     nextState,
     actors,
-    await readEncounterCharacterStates(ctx, nextState, actors)
+    await readEncounterCharacterStates(encounterReadTransaction(ctx), nextState, actors)
   )
   await ctx.db.patch(run._id, {
     version: nextState.version,

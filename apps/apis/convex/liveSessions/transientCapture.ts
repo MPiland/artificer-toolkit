@@ -10,8 +10,8 @@ import {
 import type { Doc } from '../_generated/dataModel'
 import { internalQuery, type QueryCtx } from '../_generated/server'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { readEncounterControlledActorIds } from '../encounters/actorController'
-import { isEncounterMovementContext } from '../encounters/occurrenceOwner'
+import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
+import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
@@ -22,6 +22,7 @@ import {
   readSceneVisionFreshness,
   sceneVisionCharactersCurrent
 } from '../scenes/visionFreshness'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 function activeMember(
   membership: Doc<'campaignMemberships'>,
@@ -61,7 +62,10 @@ async function readBoundTokenControl(
       .collect(),
     readRunActors(ctx, readRunState(run))
   ])
-  const controlled = await readEncounterControlledActorIds(ctx, { ...input, actors })
+  const controlled = await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
+    ...input,
+    actors
+  })
   return bindings.map((binding) => ({
     tokenId: binding.tokenId,
     controlled: controlled.has(binding.actorId)

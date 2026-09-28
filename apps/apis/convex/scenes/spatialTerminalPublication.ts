@@ -21,7 +21,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { terminalMovementChangedAggregates } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
 import type { MutationCtx } from '../_generated/server'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import {
   readRunActors,
   readRunProjection,
@@ -32,6 +32,7 @@ import {
   presentTimelineEntry
 } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 type SceneSpatialPrepareInput = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 type SpatialTerminalGeometry = {
@@ -242,7 +243,7 @@ export async function publishSpatialTerminal(
   const projection = callbacks.project(
     nextState,
     actors,
-    await readEncounterCharacterStates(ctx, nextState, actors)
+    await readEncounterCharacterStates(encounterReadTransaction(ctx), nextState, actors)
   )
   const command = encounterCommandResultDtoSchema.parse({
     projection,

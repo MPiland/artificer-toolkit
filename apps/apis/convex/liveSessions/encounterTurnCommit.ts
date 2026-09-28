@@ -13,12 +13,12 @@ import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/enco
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { internalMutation } from '../lib/mutations'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
-import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
-import { correctInitiativeCursor } from '../encounters/initiativeCorrection'
+import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { correctInitiativeCursor } from '@artificer-toolkit/encounter-persistence/initiativeCorrection'
 import { completeNativeInitiativeOccurrence } from '../encounters/initiativeTerminalCompletion'
 import { readLiveEncounterTurnAdmission, assertLiveTurnRevisions } from './encounterTurnAdmission'
 import { persistLiveTurnEffects } from './encounterTurnEffectsCommit'
@@ -27,6 +27,7 @@ import {
   bindLiveConcentrationApplications,
   persistLiveEncounterConcentrationChildren
 } from './encounterConcentrationChildrenCommit'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** Commits a DO-computed turn in one transaction, using the native normalized writes and receipts. */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
@@ -36,7 +37,7 @@ export const commit = internalMutation({
     const input = liveSessionEncounterTurnCommitInputSchema.parse(args)
     const admission = await readLiveEncounterTurnAdmission(ctx, input, input.command)
     if (admission.kind !== 'READY')
-      return presentEncounterResultForMember(ctx, {
+      return presentEncounterResultForMember(encounterReadTransaction(ctx), {
         campaign: admission.campaign,
         membership: admission.membership,
         result: admission.result
@@ -196,7 +197,11 @@ export const commit = internalMutation({
         encounterId: state.id,
         round: nextState.round
       }),
-      characterStates: await readEncounterCharacterStates(ctx, nextState, actors)
+      characterStates: await readEncounterCharacterStates(
+        encounterReadTransaction(ctx),
+        nextState,
+        actors
+      )
     })
     const occurrenceId =
       admission.pending?.occurrence._id ??
@@ -257,6 +262,10 @@ export const commit = internalMutation({
       encounterVersion: nextState.version,
       updatedAt: input.occurredAt
     })
-    return presentEncounterResultForMember(ctx, { campaign, membership, result })
+    return presentEncounterResultForMember(encounterReadTransaction(ctx), {
+      campaign,
+      membership,
+      result
+    })
   }
 })

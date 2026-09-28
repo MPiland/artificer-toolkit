@@ -14,7 +14,7 @@ import {
 } from '../../tests/fixtures/concentration'
 import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { api } from '../_generated/api'
-import { classifyRuleOccurrenceVoid } from './occurrenceVoid'
+import { classifyRuleOccurrenceVoid } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { executeInRoom, planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 0) }))

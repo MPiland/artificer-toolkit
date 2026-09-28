@@ -33,8 +33,9 @@ import { publishFogLayer } from './fogPublication'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { readSpatialSceneGeometry } from './spatialGeometry'
 import { assertSceneVisionCharacters } from './visionFreshness'
-import { requireBoundTokenMoveControl } from '../encounters/actorController'
-import { recordTurnMovement } from '../encounters/turnMovement'
+import { requireBoundTokenMoveControl } from '@artificer-toolkit/encounter-persistence/actorController'
+import { recordTurnMovement } from '@artificer-toolkit/encounter-persistence/turnMovement'
+import { encounterReadTransaction, encounterWriteTransaction } from '../encounters/encounterPorts'
 
 type SceneGeometryFinishInput = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 type SceneGeometrySaveRead = Awaited<ReturnType<typeof readGeometrySave>>
@@ -264,7 +265,7 @@ export async function publishSceneGeometry(
     if (bound && preparation) {
       if (!movingToken || movingToken.locked)
         throw new Error('Members may only move an unlocked token they control.')
-      await requireBoundTokenMoveControl(ctx, {
+      await requireBoundTokenMoveControl(encounterReadTransaction(ctx), {
         campaign,
         membership,
         encounterId: preparation.encounterId,
@@ -304,7 +305,11 @@ export async function publishSceneGeometry(
       // An uncalibrated SQUARES Scene has no feet to count.
       const feet = sceneLengthInFeet(input.movementCost, header.grid)
       if (actorId && feet !== null)
-        await recordTurnMovement(ctx, { state: geometry.encounter, actorId, feet })
+        await recordTurnMovement(encounterWriteTransaction(ctx), {
+          state: geometry.encounter,
+          actorId,
+          feet
+        })
     }
   }
   const reduced = applySceneGeometryDelta(

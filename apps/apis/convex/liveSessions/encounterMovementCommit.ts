@@ -33,21 +33,22 @@ import {
 } from '../scenes/spatialTerminalPublication'
 import { publishSpatialPending } from '../scenes/spatialPendingPublication'
 import { publishMovementResponse } from '../scenes/movementResolutionPublication'
-import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersistence'
+import { consumeNativeActionEconomy } from '@artificer-toolkit/encounter-persistence/actionEconomyPersistence'
 import {
   postMovementDecisionSkipped,
   recordRuleOccurrenceVoid,
   voidDeclineCommandId
-} from '../encounters/occurrenceVoid'
+} from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { readMovementResponseResult } from '../scenes/movementResolutionReads'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveMovementWriteAdmission } from './encounterMovementWriteAdmission'
 import { persistLiveMovementSpatial } from './encounterMovementSpatialCommit'
 import { persistLiveMovementReaction } from './encounterMovementReactionCommit'
-import { consumeEncounterAllyAdvantages } from '../encounters/allyAdvantage'
+import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-persistence/allyAdvantage'
 import { persistLiveMovementConcentration } from './encounterMovementConcentrationCommit'
 import { publishWithAuthorityAdvance } from './externalCommit'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 function contactEvidence<T extends { concentrationChecks?: MovementConcentrationExecutionDto[] }>(
   value: T
@@ -477,10 +478,13 @@ export async function commitLiveMovement(
   if (!resolution) return { scene, encounter: null }
   if (!input.voidCommand)
     return { scene, encounter: await readMovementResponseResult(ctx, resolution.command) }
-  await postMovementDecisionSkipped(ctx, {
+  await postMovementDecisionSkipped(encounterWriteTransaction(ctx), {
     campaignId: input.campaignId,
     gmUserId: userId,
     voidCommand: input.voidCommand
   })
-  return { scene, encounter: await recordRuleOccurrenceVoid(ctx, input.voidCommand) }
+  return {
+    scene,
+    encounter: await recordRuleOccurrenceVoid(encounterWriteTransaction(ctx), input.voidCommand)
+  }
 }

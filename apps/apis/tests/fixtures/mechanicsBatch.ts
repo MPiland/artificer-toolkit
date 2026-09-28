@@ -9,10 +9,11 @@ import {
   readEncounterMechanicsBatchTarget,
   persistEncounterMechanicsBatchPlan,
   type EncounterMechanicsBatchResult
-} from '../../convex/encounters/mechanicsBatchPersistence'
+} from '@artificer-toolkit/encounter-persistence/mechanicsBatchPersistence'
+import { encounterWriteTransaction } from '../../convex/encounters/encounterPorts'
 
 export type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-export type { EncounterMechanicsBatchResult } from '../../convex/encounters/mechanicsBatchPersistence'
+export type { EncounterMechanicsBatchResult } from '@artificer-toolkit/encounter-persistence/mechanicsBatchPersistence'
 
 /**
  * Plans a batch against current state as the room does and persists it with Convex's writer in the
@@ -23,7 +24,7 @@ export async function applyEncounterMechanicsBatch(
   input: EncounterMechanicsBatchInput,
   sourceContext?: CharacterSheetSourceContext
 ): Promise<EncounterMechanicsBatchResult> {
-  const target = await readEncounterMechanicsBatchTarget(ctx, input)
+  const target = await readEncounterMechanicsBatchTarget(encounterWriteTransaction(ctx), input)
   const { actor, campaign, userId } = target
   if (sourceContext && actor.kind !== 'CHARACTER')
     throw new Error('Character Sheet source context requires a Character target.')
@@ -43,7 +44,7 @@ export async function applyEncounterMechanicsBatch(
     userId,
     characterFacts: loaded ?? undefined
   })
-  return persistEncounterMechanicsBatchPlan(ctx, target, {
+  return persistEncounterMechanicsBatchPlan(encounterWriteTransaction(ctx), target, {
     actor,
     character: loaded?.active ?? null,
     plan,

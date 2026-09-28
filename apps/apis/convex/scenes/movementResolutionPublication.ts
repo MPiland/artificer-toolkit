@@ -21,8 +21,8 @@ import { checksumSpatialCurrentness } from '@artificer-toolkit/rules-runtime/enc
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { readEncounterControlledActorIds } from '../encounters/actorController'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
+import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import {
   readRunActors,
   readRunProjection,
@@ -47,6 +47,7 @@ import type { SpatialPendingPublicationCallbacks } from './spatialPendingPublica
 import type { SpatialTerminalPublicationCallbacks } from './spatialTerminalPublication'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 type MovementSettlement = Awaited<ReturnType<SpatialPendingPublicationCallbacks<unknown>['settle']>>
 
@@ -244,7 +245,7 @@ async function projectCurrentOccurrence(
     },
     state.version,
     {
-      controlledActorIds: await readEncounterControlledActorIds(ctx, {
+      controlledActorIds: await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
         campaign: input.campaign,
         membership: input.membership,
         actors: await readRunActors(ctx, state)
@@ -467,7 +468,7 @@ export async function publishMovementResponse(
       },
       version,
       {
-        controlledActorIds: await readEncounterControlledActorIds(ctx, {
+        controlledActorIds: await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
           campaign: input.campaign,
           membership: input.membership,
           actors: await readRunActors(ctx, current.state)
@@ -683,7 +684,7 @@ async function advanceMovementResponseRun(
   const projection = project(
     nextState,
     actors,
-    await readEncounterCharacterStates(ctx, nextState, actors)
+    await readEncounterCharacterStates(encounterReadTransaction(ctx), nextState, actors)
   )
   await ctx.db.patch(current.run._id, {
     version,

@@ -13,7 +13,7 @@ import {
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { prepareNativeActionEconomy } from './actionEconomy'
-import { consumeNativeActionEconomy } from './actionEconomyPersistence'
+import { consumeNativeActionEconomy } from '@artificer-toolkit/encounter-persistence/actionEconomyPersistence'
 import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
 import {

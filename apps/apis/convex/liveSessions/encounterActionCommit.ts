@@ -29,9 +29,9 @@ import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
-import { consumeEncounterAllyAdvantages } from '../encounters/allyAdvantage'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
-import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
+import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-persistence/allyAdvantage'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
@@ -42,7 +42,8 @@ import {
   persistLiveEncounterActionEffects
 } from './encounterActionEffectsCommit'
 import { persistLiveEncounterActionChildren } from './encounterActionChildrenCommit'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** The DO computes rules; this transaction validates current authority and applies bounded outcomes. */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
@@ -57,7 +58,7 @@ export const commit = internalMutation({
       throw new Error('Live Session Encounter scope mismatch.')
     // A lost response replays before checking revisions consumed by the successful transaction.
     if (admission.kind === 'REPLAY')
-      return presentEncounterResultForMember(ctx, {
+      return presentEncounterResultForMember(encounterReadTransaction(ctx), {
         campaign,
         membership,
         result: admission.result
@@ -339,7 +340,11 @@ export const commit = internalMutation({
         encounterId: state.id,
         round: state.round
       }),
-      characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
+      characterStates: await readEncounterCharacterStates(
+        encounterReadTransaction(ctx),
+        nextState,
+        nextActors
+      )
     })
     const result = encounterCommandResultDtoSchema.parse({
       projection,
@@ -422,6 +427,10 @@ export const commit = internalMutation({
         rootInitiatorUserId: initiatorUserId,
         result: execution
       })
-    return presentEncounterResultForMember(ctx, { campaign, membership, result })
+    return presentEncounterResultForMember(encounterReadTransaction(ctx), {
+      campaign,
+      membership,
+      result
+    })
   }
 })

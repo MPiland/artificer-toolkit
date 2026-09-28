@@ -8,7 +8,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
-import { readEncounterControlledActorIds } from '../encounters/actorController'
+import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
@@ -22,8 +22,9 @@ import {
 } from './geometryDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
+import { readEncounterSettledAppRoll } from '@artificer-toolkit/encounter-persistence/evidenceRolls'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 export type Geometry = {
   sceneTokens: readonly SceneToken[]
@@ -142,7 +143,7 @@ export async function readMovementResponseAuthority(
     )
   }
   // The decision belongs to the controllers of the actor whose roll or choice it is.
-  const controlledActorIds = await readEncounterControlledActorIds(ctx, {
+  const controlledActorIds = await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
     campaign,
     membership,
     actors: await Promise.all(
@@ -190,7 +191,7 @@ export async function assertMovementResolutionCurrent(
     save.sessionVision?.campaignId !== current.campaign.id
   )
     throw new Error('Movement decision changed before Scene publication.')
-  const appRoll = await readEncounterSettledAppRoll(ctx, {
+  const appRoll = await readEncounterSettledAppRoll(encounterReadTransaction(ctx), {
     occurrence: current.occurrence,
     response: resolution.command,
     userId: current.userId

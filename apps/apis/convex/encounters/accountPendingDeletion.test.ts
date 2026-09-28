@@ -19,9 +19,10 @@ import {
   seedTurnSaveEffect,
   turnCharacterEffectFixture
 } from '../../tests/fixtures/turnActiveEffectFixtures'
-import { removeAccountCharacterActors } from './actorRemovalCommand'
+import { removeAccountCharacterActors } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { encounterWriteTransaction } from './encounterPorts'
 
 type Fixture = Awaited<ReturnType<typeof turnCharacterEffectFixture>>
 
@@ -287,7 +288,11 @@ describe('trusted account cleanup during another actor pending turn effect', () 
     expect(await capture(base)).toEqual(before)
 
     await base.t.run((ctx) =>
-      removeAccountCharacterActors(ctx, base.campaign.id, base.player.userId)
+      removeAccountCharacterActors(
+        encounterWriteTransaction(ctx),
+        base.campaign.id,
+        base.player.userId
+      )
     )
     const after = await capture(base)
     const completed = after.occurrences.find((occurrence) => occurrence.id === pendingOccurrence.id)
@@ -326,7 +331,7 @@ describe('trusted account cleanup during another actor pending turn effect', () 
     await expect(
       rollback.base.t.run(async (ctx) => {
         await removeAccountCharacterActors(
-          ctx,
+          encounterWriteTransaction(ctx),
           rollback.base.campaign.id,
           rollback.base.player.userId
         )

@@ -31,7 +31,7 @@ import { seedTurnSaveEffect } from '../../tests/fixtures/turnActiveEffectFixture
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { createEncounterInitiativeStore } from '../encounters/initiativeStore'
+import { createEncounterInitiativeStore } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { loadMovementTargets } from '../encounters/movementTargets'
 import { prepareNativeEncounterActionMechanics } from '../encounters/actionMechanicsPreparation'
 import { readNativeActionSceneContext } from '../encounters/actionSceneContext'

@@ -52,7 +52,7 @@ import { planNativeLiveConcentrationResponse } from '../../../session-worker/src
 import { planNativeLiveDisarm } from '../../../session-worker/src/nativeDisarm'
 import { planNativeLiveEncounterAction } from '../../../session-worker/src/nativeEncounterRules'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import { readNativeEncounterOccurrenceOwner } from '../../convex/encounters/occurrenceOwner'
+import { readNativeEncounterOccurrenceOwner } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { commitLiveMovement } from '../../convex/liveSessions/encounterMovementCommit'
 import {
   commitExternalSceneCommit,

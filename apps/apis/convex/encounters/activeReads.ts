@@ -12,9 +12,13 @@ import {
 import { query } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
-import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads'
+import {
+  readEncounterWaitingOn,
+  readPendingRunDecision
+} from '@artificer-toolkit/encounter-persistence/pendingReads'
 import { presentRun, readActiveRun } from './projectionReads'
-import { readTurnMovementView } from './turnMovement'
+import { readTurnMovementView } from '@artificer-toolkit/encounter-persistence/turnMovement'
+import { encounterReadTransaction } from './encounterPorts'
 
 /** One authenticated snapshot keeps the tabletop's active Campaign Run and pending decision in sync. */
 export const active = query({
@@ -31,12 +35,23 @@ export const active = query({
     const row = await readActiveRun(ctx, campaign.id)
     if (!row) return { encounter: null, pending: null, waitingOn: null, turnMovement: [] }
     const encounter = await presentRun(ctx, row, campaign, membership)
-    const pending = await readPendingRunDecision(ctx, row, campaign, membership)
+    const pending = await readPendingRunDecision(
+      encounterReadTransaction(ctx),
+      row,
+      campaign,
+      membership
+    )
     return encounterSessionStateDtoSchema.parse({
       encounter,
       pending,
-      waitingOn: pending ? null : await readEncounterWaitingOn(ctx, row, campaign),
-      turnMovement: await readTurnMovementView(ctx, { row, campaign, membership })
+      waitingOn: pending
+        ? null
+        : await readEncounterWaitingOn(encounterReadTransaction(ctx), row, campaign),
+      turnMovement: await readTurnMovementView(encounterReadTransaction(ctx), {
+        row,
+        campaign,
+        membership
+      })
     })
   }
 })

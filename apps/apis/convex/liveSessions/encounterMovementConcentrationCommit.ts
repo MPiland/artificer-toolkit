@@ -14,7 +14,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
-import { persistNativeConcentrationResult } from '../encounters/actionChildPersistence'
+import { persistNativeConcentrationResult } from '@artificer-toolkit/encounter-persistence/actionChildPersistence'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import {
@@ -22,6 +22,7 @@ import {
   readLiveCharacterStreamVersion,
   readLiveMovementTargetState
 } from './encounterMovementTargetState'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /**
  * Persists one DO-prepared child in its parent's mutation. The enclosing caller has already
@@ -136,7 +137,7 @@ export async function persistLiveMovementConcentration(
     )
       throw new Error('Live Session movement Concentration cleanup differs from its plan.')
   }
-  await persistNativeConcentrationResult(ctx, {
+  await persistNativeConcentrationResult(encounterWriteTransaction(ctx), {
     state,
     result,
     commandId: concentrationCommandId(expectedId),

@@ -1,10 +1,11 @@
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { QueryCtx } from '../_generated/server'
-import { readNativeConcentrationResponseAdmission } from '../encounters/concentrationResponseAdmission'
-import { verifyNativeCleavingParentChain } from '../encounters/cleavingParent'
+import { readNativeConcentrationResponseAdmission } from '@artificer-toolkit/encounter-persistence/concentrationResponseAdmission'
+import { verifyNativeCleavingParentChain } from '@artificer-toolkit/encounter-persistence/cleavingParent'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 type ConcentrationResponseScope = Omit<LiveSessionEncounterRulesInput, 'request'> & {
   concentrationResponse: ResolveRuleOccurrenceInputDto
@@ -27,7 +28,11 @@ export async function readLiveConcentrationResponseAdmission(
     campaignId: input.campaignId,
     epoch: input.authorityEpoch
   })
-  const admission = await readNativeConcentrationResponseAdmission(ctx, response, userId)
+  const admission = await readNativeConcentrationResponseAdmission(
+    encounterReadTransaction(ctx),
+    response,
+    userId
+  )
   if (
     !admission ||
     admission.state.id !== input.encounterId ||

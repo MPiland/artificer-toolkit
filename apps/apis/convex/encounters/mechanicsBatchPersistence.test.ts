@@ -7,7 +7,8 @@ import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import {
   persistEncounterMechanicsBatchPlan,
   readEncounterMechanicsBatchTarget
-} from './mechanicsBatchPersistence'
+} from '@artificer-toolkit/encounter-persistence/mechanicsBatchPersistence'
+import { encounterWriteTransaction } from './encounterPorts'
 
 async function storedState(
   ctx: MutationCtx,
@@ -88,7 +89,7 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
           }
         ]
       }
-      const target = await readEncounterMechanicsBatchTarget(ctx, input)
+      const target = await readEncounterMechanicsBatchTarget(encounterWriteTransaction(ctx), input)
       const loaded = await loadCharacterSheetFacts(
         ctx,
         fixture.owner.userId,
@@ -125,7 +126,7 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
 
       const before = await storedState(ctx, fixture)
       await expect(
-        persistEncounterMechanicsBatchPlan(ctx, target, {
+        persistEncounterMechanicsBatchPlan(encounterWriteTransaction(ctx), target, {
           actor: target.actor,
           character: loaded.active,
           plan

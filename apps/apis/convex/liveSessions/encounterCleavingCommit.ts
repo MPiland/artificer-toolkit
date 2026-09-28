@@ -20,12 +20,12 @@ import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtim
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { internalMutation } from '../lib/mutations'
-import { readCleavingResponseAdmission } from '../encounters/cleavingResponseAdmission'
-import { insertNativeCleavingChoice } from '../encounters/actionChildPersistence'
+import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
+import { insertNativeCleavingChoice } from '@artificer-toolkit/encounter-persistence/actionChildPersistence'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
-import { readEncounterCharacterStates } from '../encounters/characterStates'
-import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
-import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import {
@@ -34,6 +34,7 @@ import {
 } from './encounterConcentrationChildrenCommit'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
+import { encounterReadTransaction, encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /**
  * Records a room-planned Cleaving answer in one transaction: re-applies the retained damage to the
@@ -44,7 +45,7 @@ export const commit = internalMutation({
   args: v.any(),
   handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterCleavingCommitInputSchema.parse(args)
-    const admission = await readCleavingResponseAdmission(ctx, input)
+    const admission = await readCleavingResponseAdmission(encounterReadTransaction(ctx), input)
     // A lost acknowledgement replays before checking inputs its commit consumed.
     if (admission.kind === 'REPLAY') return admission.result
     const { run, state, campaign, membership, actors, occurrence, fingerprint, pending, selected } =
@@ -195,7 +196,11 @@ export const commit = internalMutation({
         encounterId: state.id,
         round: state.round
       }),
-      characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
+      characterStates: await readEncounterCharacterStates(
+        encounterReadTransaction(ctx),
+        nextState,
+        nextActors
+      )
     })
     const result = encounterCommandResultDtoSchema.parse({
       projection,
@@ -298,8 +303,12 @@ export const commit = internalMutation({
       )
         throw new Error('Live Session Cleaving choice scope mismatch.')
       // A pending Concentration check defers the choice until it settles.
-      await insertNativeCleavingChoice(ctx, nextState, child, occurredAt)
+      await insertNativeCleavingChoice(encounterWriteTransaction(ctx), nextState, child, occurredAt)
     }
-    return presentEncounterResultForMember(ctx, { campaign, membership, result })
+    return presentEncounterResultForMember(encounterReadTransaction(ctx), {
+      campaign,
+      membership,
+      result
+    })
   }
 })

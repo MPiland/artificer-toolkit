@@ -5,8 +5,9 @@ import {
   liveSessionEncounterCommandInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { internalMutation } from '../lib/mutations'
-import { recordEncounterCommand } from '../encounters/commands'
+import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence/commands'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 const recordedCommandTypes = new Set<string>(CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES)
 
@@ -25,7 +26,7 @@ export const execute = internalMutation({
     })
     if (!recordedCommandTypes.has(command.type))
       throw new Error('The Encounter command is planned in the Session room.')
-    return recordEncounterCommand(ctx, command, userId, () => {
+    return recordEncounterCommand(encounterWriteTransaction(ctx), command, userId, () => {
       throw new Error('Encounter dice are rolled in the Session room.')
     })
   }

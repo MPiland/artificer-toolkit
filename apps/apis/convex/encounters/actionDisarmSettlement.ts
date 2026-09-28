@@ -16,7 +16,7 @@ import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolk
 import type { MutationCtx } from '../_generated/server'
 import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
-import { consumeNativeActionEconomy } from './actionEconomyPersistence'
+import { consumeNativeActionEconomy } from '@artificer-toolkit/encounter-persistence/actionEconomyPersistence'
 
 type DisarmSettlementInput = Parameters<typeof disarmApplicationOutputs>[0]
 

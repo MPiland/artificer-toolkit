@@ -9,11 +9,12 @@ import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtim
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
-import { insertNativeCleavingChoice } from '../encounters/actionChildPersistence'
+import { insertNativeCleavingChoice } from '@artificer-toolkit/encounter-persistence/actionChildPersistence'
 import {
   bindLiveConcentrationApplications,
   persistLiveEncounterConcentrationChildren
 } from './encounterConcentrationChildrenCommit'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /** Persists only children of this completed action; all writes share the parent's transaction. */
 export async function persistLiveEncounterActionChildren(
@@ -84,7 +85,13 @@ export async function persistLiveEncounterActionChildren(
         checksumCanonicalJson(pending.deferredCleaving ?? null) !== checksumCanonicalJson(context)
       )
         throw new Error('Live Session deferred Cleaving mismatch.')
-    } else await insertNativeCleavingChoice(ctx, state, cleaving, input.occurredAt)
+    } else
+      await insertNativeCleavingChoice(
+        encounterWriteTransaction(ctx),
+        state,
+        cleaving,
+        input.occurredAt
+      )
   } else if (pending?.snapshotKind === 'KERNEL_EVIDENCE' && pending.deferredCleaving)
     throw new Error('Live Session deferred Cleaving is missing.')
   return actors

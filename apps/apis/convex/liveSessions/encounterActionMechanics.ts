@@ -13,7 +13,8 @@ import {
   persistEncounterMechanicsBatchPlan,
   readEncounterMechanicsBatchTarget,
   type EncounterMechanicsBatchResult
-} from '../encounters/mechanicsBatchPersistence'
+} from '@artificer-toolkit/encounter-persistence/mechanicsBatchPersistence'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /**
  * Applies a trusted normalized batch after the terminal has checked the root command replay,
@@ -26,7 +27,7 @@ export async function applyLiveEncounterMechanicsBatch(
   ctx: MutationCtx,
   input: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
 ): Promise<EncounterMechanicsBatchResult> {
-  const read = await readEncounterMechanicsBatchTarget(ctx, {
+  const read = await readEncounterMechanicsBatchTarget(encounterWriteTransaction(ctx), {
     ...input,
     expectedCharacterStreamVersion: null
   })
@@ -75,7 +76,7 @@ export async function applyLiveEncounterMechanicsBatch(
     userId,
     characterFacts
   })
-  return persistEncounterMechanicsBatchPlan(ctx, target, {
+  return persistEncounterMechanicsBatchPlan(encounterWriteTransaction(ctx), target, {
     actor,
     character: characterRecord,
     plan

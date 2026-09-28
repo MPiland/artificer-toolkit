@@ -15,10 +15,11 @@ import type { MutationCtx } from '../_generated/server'
 import {
   persistNativeConcentrationPending,
   persistNativeConcentrationResult
-} from '../encounters/actionChildPersistence'
+} from '@artificer-toolkit/encounter-persistence/actionChildPersistence'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 type ConcentrationDamageApplication = ReturnType<
   typeof nativeConcentrationDamageApplications
@@ -158,7 +159,7 @@ export async function persistLiveEncounterConcentrationChildren(
     const nextId = remaining[0] ? concentrationOccurrenceId(parentOccurrenceId, remaining[0]) : null
     if (output.nextOccurrenceId !== nextId)
       throw new Error('Live Session concentration child order mismatch.')
-    await persistNativeConcentrationResult(ctx, {
+    await persistNativeConcentrationResult(encounterWriteTransaction(ctx), {
       state,
       result,
       commandId: child.commandId,
@@ -213,7 +214,7 @@ export async function persistLiveEncounterConcentrationChildren(
         })
     )
       throw new Error('Live Session pending concentration scope mismatch.')
-    await persistNativeConcentrationPending(ctx, {
+    await persistNativeConcentrationPending(encounterWriteTransaction(ctx), {
       state,
       context,
       continuation: pending,

@@ -142,9 +142,7 @@ export interface EncounterStore extends EncounterStoreReader {
       value: EncounterStoreDocuments[Table]
     ) => Promise<void>
   }>
-  delete: PerTable<{
-    [Table in EncounterTableName]: (id: EncounterId<Table>) => Promise<void>
-  }>
+  delete(id: EncounterId<EncounterTableName>): Promise<void>
 }
 
 /** A transaction that reads the Encounter store; Convex's query and mutation contexts satisfy it. */

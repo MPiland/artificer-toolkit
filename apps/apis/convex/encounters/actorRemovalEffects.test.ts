@@ -14,10 +14,11 @@ import type {
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { cleanupRemovedActorEffects } from './actorRemovalEffects'
+import { cleanupRemovedActorEffects } from '@artificer-toolkit/encounter-persistence/actorRemovalEffects'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { encounterWriteTransaction } from './encounterPorts'
 
 const lifecycle: ActiveRuleEffectLifecycleDto = { schemaVersion: 1, remainingTicks: 3 }
 type EmptyPolicy = 'V1' | 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
@@ -396,7 +397,7 @@ describe('native actor maintained-effect cleanup', () => {
       })
     })
     const result = await fixture.t.run((ctx) =>
-      cleanupRemovedActorEffects(ctx, {
+      cleanupRemovedActorEffects(encounterWriteTransaction(ctx), {
         state,
         actorId: removedActor.id,
         occurredAt: '2026-09-13T00:00:00.000Z'
@@ -446,7 +447,7 @@ describe('native actor maintained-effect cleanup', () => {
     })
     const before = await records(fixture)
     const result = await fixture.t.run((ctx) =>
-      cleanupRemovedActorEffects(ctx, {
+      cleanupRemovedActorEffects(encounterWriteTransaction(ctx), {
         state,
         actorId: removedActor.id,
         occurredAt: '2026-09-13T00:00:00.000Z'
@@ -481,7 +482,7 @@ describe('native actor maintained-effect cleanup', () => {
     const before = await records(fixture)
     await expect(
       fixture.t.run((ctx) =>
-        cleanupRemovedActorEffects(ctx, {
+        cleanupRemovedActorEffects(encounterWriteTransaction(ctx), {
           state,
           actorId: removedActor.id,
           occurredAt: '2026-09-13T00:00:00.000Z'
@@ -516,7 +517,7 @@ describe('native actor maintained-effect cleanup', () => {
     const before = await records(fixture)
     await expect(
       fixture.t.run(async (ctx) => {
-        await cleanupRemovedActorEffects(ctx, {
+        await cleanupRemovedActorEffects(encounterWriteTransaction(ctx), {
           state,
           actorId: removedActor.id,
           occurredAt: '2026-09-13T00:00:00.000Z'
@@ -558,7 +559,7 @@ describe('native actor maintained-effect cleanup', () => {
     const before = await records(fixture)
     await expect(
       fixture.t.run((ctx) =>
-        cleanupRemovedActorEffects(ctx, {
+        cleanupRemovedActorEffects(encounterWriteTransaction(ctx), {
           state,
           actorId: removedActor.id,
           occurredAt: '2026-09-13T00:00:00.000Z'

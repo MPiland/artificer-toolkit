@@ -2,14 +2,15 @@ import type { LiveSessionEncounterActionPendingInput } from '@artificer-toolkit/
 import type { LiveSessionActionCaptureScope } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { QueryCtx } from '../_generated/server'
-import { readNativeEncounterActionAdmission } from '../encounters/actionAdmission'
-import { readNativeEncounterActionResponseAdmission } from '../encounters/actionResumeAdmission'
+import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
+import { readNativeEncounterActionResponseAdmission } from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
-import { readCleavingResponseAdmission } from '../encounters/cleavingResponseAdmission'
-import { readDisarmAdmission } from '../encounters/disarmAdmission'
-import { readBasicActionAdmission } from '../encounters/basicActionAdmission'
+import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
+import { readDisarmAdmission } from '@artificer-toolkit/encounter-persistence/disarmAdmission'
+import { readBasicActionAdmission } from '@artificer-toolkit/encounter-persistence/basicActionAdmission'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** Shared authorization and replay fences for the pending and terminal action transactions. */
 export async function readLiveEncounterActionAdmission(
@@ -41,7 +42,7 @@ export async function readLiveEncounterActionAdmission(
       .unique()
     if (!run) throw new Error('Encounter Run was not found.')
     responseAdmission = await readNativeEncounterActionResponseAdmission(
-      ctx,
+      encounterReadTransaction(ctx),
       input.response,
       run,
       userId
@@ -50,7 +51,7 @@ export async function readLiveEncounterActionAdmission(
   }
   const admission =
     responseAdmission?.admission ??
-    (await readNativeEncounterActionAdmission(ctx, input.command, userId))
+    (await readNativeEncounterActionAdmission(encounterReadTransaction(ctx), input.command, userId))
   if (
     admission.state.campaignId !== input.campaignId ||
     admission.membership.role !== input.expectedRole ||
@@ -84,7 +85,7 @@ export async function readLiveEncounterActionScope(
   }
 ) {
   if (input.action.kind === 'CLEAVING_RESPONSE') {
-    const cleaving = await readCleavingResponseAdmission(ctx, {
+    const cleaving = await readCleavingResponseAdmission(encounterReadTransaction(ctx), {
       ...input,
       response: input.action.response
     })
@@ -92,12 +93,18 @@ export async function readLiveEncounterActionScope(
     return cleaving
   }
   if (input.action.kind === 'DISARM') {
-    const disarm = await readDisarmAdmission(ctx, { ...input, command: input.action.command })
+    const disarm = await readDisarmAdmission(encounterReadTransaction(ctx), {
+      ...input,
+      command: input.action.command
+    })
     if (disarm.kind !== 'READY') throw new Error('The admitted Disarm is unavailable.')
     return disarm
   }
   if (input.action.kind === 'BASIC_ACTION') {
-    const basic = await readBasicActionAdmission(ctx, { ...input, command: input.action.command })
+    const basic = await readBasicActionAdmission(encounterReadTransaction(ctx), {
+      ...input,
+      command: input.action.command
+    })
     if (basic.kind !== 'READY') throw new Error('The admitted basic action is unavailable.')
     return basic
   }
@@ -110,14 +117,23 @@ export async function readLiveEncounterActionScope(
   if (!run) throw new Error('Encounter Run was not found.')
   const response =
     input.action.kind === 'ACTION_RESPONSE'
-      ? await readNativeEncounterActionResponseAdmission(ctx, input.action.response, run, userId)
+      ? await readNativeEncounterActionResponseAdmission(
+          encounterReadTransaction(ctx),
+          input.action.response,
+          run,
+          userId
+        )
       : null
   if (input.action.kind === 'ACTION_RESPONSE' && response?.kind !== 'READY')
     throw new Error('The admitted action response is unavailable.')
   const admission =
     response?.admission ??
     (input.action.kind === 'ACTION_COMMAND'
-      ? await readNativeEncounterActionAdmission(ctx, input.action.command, userId)
+      ? await readNativeEncounterActionAdmission(
+          encounterReadTransaction(ctx),
+          input.action.command,
+          userId
+        )
       : null)
   if (
     admission?.kind !== 'READY' ||

@@ -46,7 +46,8 @@ import {
 } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { beforeWrite } from '@artificer-toolkit/encounter-persistence/transactionReads'
-import { requireBoundTokenMoveControl } from '../encounters/actorController'
+import { requireBoundTokenMoveControl } from '@artificer-toolkit/encounter-persistence/actorController'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 const SAVE_WINDOW = 24 * 60 * 60_000
 const cleanupReference = makeFunctionReference<'mutation', { saveId: string }, null>(
@@ -162,7 +163,7 @@ export async function beginSceneGeometry(
   // A bound token follows its actor's controllers, never the Scene token's own list.
   if (bound && !movementResolution) {
     if (!sceneBinding) throw new Error('Bound Scene movement requires an Encounter binding.')
-    await requireBoundTokenMoveControl(ctx, {
+    await requireBoundTokenMoveControl(encounterReadTransaction(ctx), {
       campaign,
       membership,
       encounterId: sceneBinding.encounterId,

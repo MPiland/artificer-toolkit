@@ -30,7 +30,7 @@ import { internal } from '../_generated/api'
 import {
   classifyNativeEncounterOccurrence,
   type NativeEncounterOccurrenceFacts
-} from '../encounters/occurrenceOwner'
+} from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { executeInRoom, insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'

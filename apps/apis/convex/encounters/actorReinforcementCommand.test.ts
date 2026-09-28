@@ -7,9 +7,10 @@ import type {
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { reinforceEncounterActors } from './actorReinforcementCommand'
+import { reinforceEncounterActors } from '@artificer-toolkit/encounter-persistence/actorReinforcementCommand'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { encounterWriteTransaction } from './encounterPorts'
 
 const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
   'encounters/commands:execute'
@@ -284,7 +285,7 @@ describe('native actor reinforcement transaction', () => {
     const before = await capture(base)
     await expect(
       base.t.run(async (ctx) => {
-        await reinforceEncounterActors(ctx, rollback, base.owner.userId)
+        await reinforceEncounterActors(encounterWriteTransaction(ctx), rollback, base.owner.userId)
         throw new Error('Abort after reinforcement projection')
       })
     ).rejects.toThrow('Abort after reinforcement projection')

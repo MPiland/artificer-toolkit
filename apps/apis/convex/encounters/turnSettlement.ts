@@ -8,7 +8,7 @@ import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/enco
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
-import { createEncounterInitiativeStore } from './initiativeStore'
+import { createEncounterInitiativeStore } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 /** Validates the current normalized turn before either native or DO terminal persistence. */

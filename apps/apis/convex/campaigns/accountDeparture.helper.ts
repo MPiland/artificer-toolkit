@@ -1,11 +1,12 @@
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
-import { removeAccountCharacterActors } from '../encounters/actorRemovalCommand'
+import { removeAccountCharacterActors } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
 import { requireCampaignAuthority } from './authority'
 import { removeCampaignCharacterAssignment } from './characterDeparture'
 import { removeEncounterActorController } from '../encounters/actorControllerRemoval'
 import { removeCampaignSharesAndReconcile } from './contentShareRemoval'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /** Trusted account lifecycle producer; the native user-delete hook authorizes the caller. */
 export async function removeAccountCampaignMemberships(ctx: MutationCtx, userId: string) {
@@ -41,7 +42,7 @@ export async function removeAccountCampaignMemberships(ctx: MutationCtx, userId:
     if (!root) throw new Error('Stored Campaign membership has no Campaign.')
     const { campaign } = await requireCampaignAuthority(ctx, root.id, root.ownerUserId)
 
-    await removeAccountCharacterActors(ctx, campaign.id, userId)
+    await removeAccountCharacterActors(encounterWriteTransaction(ctx), campaign.id, userId)
 
     const freshRoot = await ctx.db
       .query('campaigns')
