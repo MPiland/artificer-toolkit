@@ -45635,44 +45635,220 @@ export declare const api: {
         "public",
         { characterId?: string; systemId: string },
         {
-          campaign: null | {
+          campaign: {
             contentMaturity: "STANDARD" | "MATURE";
-            head: null | {
-            builtRevision: number;
-            kinds: {
-              BACKGROUND?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              CLASS?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              CREATURE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              EQUIPMENT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              FEAT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              RACE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              SPELL?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              VEHICLE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-            };
-            revision: number;
-            scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
-            scopeId: string;
-          };
+            head: {
+              builtRevision: number;
+              kinds: {
+                BACKGROUND?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                CLASS?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                CREATURE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                EQUIPMENT?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                FEAT?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                RACE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                SPELL?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                VEHICLE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+              };
+              revision: number;
+              scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+              scopeId: string;
+            } | null;
             id: string;
-          };
+          } | null;
           sources: Array<{
             contentSourceId: string;
-            head: null | {
-            builtRevision: number;
-            kinds: {
-              BACKGROUND?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              CLASS?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              CREATURE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              EQUIPMENT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              FEAT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              RACE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              SPELL?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-              VEHICLE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-            };
-            revision: number;
-            scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
-            scopeId: string;
-          };
+            head: {
+              builtRevision: number;
+              kinds: {
+                BACKGROUND?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                CLASS?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                CREATURE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                EQUIPMENT?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                FEAT?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                RACE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                SPELL?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                VEHICLE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+              };
+              revision: number;
+              scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+              scopeId: string;
+            } | null;
             kind: "PLATFORM" | "USER";
           }>;
           systemId: string;
@@ -65195,11 +65371,7 @@ export declare const internal: {
         "query",
         "internal",
         { scope: "SOURCE" | "CAMPAIGN"; scopeId: string },
-        {
-          publicAccess: boolean;
-          revision: number;
-          scopeExists: boolean;
-        } | null
+        { publicAccess: boolean; revision: number; scopeExists: boolean } | null
       >;
       readScopeKind: FunctionReference<
         "query",
@@ -65233,7 +65405,11 @@ export declare const internal: {
         "query",
         "internal",
         {},
-        { campaignIds: Array<string>; sub: string; userSourceIds: Array<string> }
+        {
+          campaignIds: Array<string>;
+          sub: string;
+          userSourceIds: Array<string>;
+        }
       >;
     };
   };
