@@ -175,7 +175,43 @@ so the Session room can later run the same code against its own store. It depend
   through `executeEncounterCharacterCommand` instead of a nested internal mutation.
 - **Conformance.** `apps/apis/convex/encounters/encounterStoreConformance.test.ts` runs the same
   operations against Convex and the in-memory reference store (`memoryEncounterStore.ts`) and
-  compares their results and store changes with golden snapshots.
+  compares their results and store changes with golden snapshots. Both suites run the shared
+  corpus in `apps/apis/tests/fixtures/encounterConformanceCorpus.ts`.
+
+### Encounter record shapes (ADR 0035 Amendment 12)
+
+> Status: current local implementation of the Encounter part of Amendment 12. The Character
+> play-state split and packed history per checkpoint (S3) are not done yet.
+
+- **No stored projection.** `encounterRuns` holds the Run state only. Every projection is built on
+  read by `readEncounterGmProjection` (`nativeProjection.ts`) from the Run state, its
+  `encounterRunActors`, the current initiative round and each Character: the actor rules are
+  evaluated, then `projectCurrentEncounterGm` projects them. `presentRun` (`projectionReads`)
+  supplies each viewer's Character values itself and projects through `projectEncounterActors`, so
+  a Character document is read once per query. Command results use the same code, after the
+  command's writes; the live commit handlers still project in memory from the planner's rules.
+- **Character values outside play.** A Character actor reads its current Character while the Run
+  is open and the Character is assigned to the Campaign. It keeps `frozenState` (hit points and
+  conditions) for the times the Run stops reading it: the COMPLETE command freezes every Character,
+  and `removeCampaignCharacterAssignment` freezes the departing Character in the Campaign's open
+  Runs. A Character that returns is read live again.
+- **Replay receipts, not results.** `encounterRunCommands` stores `replayReceiptJson`: the
+  command's roll and occurrence summary (`encounterStoredReplayReceiptSchema`), a few hundred bytes.
+  The timeline reads its roll. Exact replay (`replayEncounterCommandResult`, `replayReceipts.ts`)
+  rebuilds the projection from the current records and adds the receipt. While the Run is still at
+  the command's version, which is the usual retry window, a replay returns the same bytes as the
+  original response. After later commands it returns the receipt over the Run's current projection,
+  as CREATE and decision replays already did. The Disarm evidence receipt stores its caller's
+  replay receipt the same way.
+- **Changed fields only.** Initiative round, participant and side updates and occurrence updates
+  patch only the fields that changed (`changedFields` in `documents.ts`), which is the delta a
+  checkpoint carries. A pending decision whose sealed snapshot changes (for example each tied
+  initiative-order choice) still rewrites that snapshot field.
+- **Live capture.** The Concentration response capture no longer carries a projection; the Worker
+  never read it.
+- **Cost.** An action writes about 20–24 KB instead of 58–395 KB, and a projection read costs about
+  1.5 times the bytes at 11 actors and 2.8 times at 100
+  ([record](../validation/phase-08-2/adr-0035-s1b-record-shapes-2026-09-28.md)).
 
 ## Oversized inventory cleanup — approved 2026-09-18
 
@@ -555,10 +591,11 @@ reads load the current Character; Convex-native paths read it in the writing tra
 room commits are fenced by the Character revision their capture recorded. Rules evaluate a
 Character's effective maximum live. Every GM projection build reads current Character hit points,
 Sheet conditions and the Character's stored effective maximum (`encounters/characterStates`); a
-detached Character grants no Sheet access and keeps its last projected values. Live Encounter reads
-replace the stored projection's Character hit points, temporary hit points, maximum, health band and
-conditions with current Character values; the health band uses current hit points over the stored
-maximum. Recursive state and the committed GM projection use validated JSON
+detached Character grants no Sheet access and keeps the values frozen into its actor
+(`frozenState`, see [Encounter record shapes](#encounter-record-shapes-adr-0035-amendment-12)).
+Live Encounter reads project each Character actor with current Character hit points, temporary hit
+points, maximum, health band and conditions; the health band uses current hit points over the stored
+maximum. The Run stores no projection. Recursive state uses validated JSON
 encoding with canonical checksums, preserving the existing authored nesting. The public projection
 keeps its existing shape and has a null legacy rule-pack revision. No GoRules revision is invented.
 The owner-only, version-checked actor-side query exposes all Run sides, including an empty side,
@@ -598,15 +635,14 @@ and feature sources: neither source rejects the other, and ending one preserves 
 outcomes change raw Sheet condition state; effective mechanics use the union with Campaign conditions.
 An ownership change advances the Character stream even when that effective union is unchanged.
 Player reads never inherit SECRET notes from another source of the same condition. Completed GM
-reads retain their stored projection after Character unassignment. Other reads retain an unassigned
+reads show the Character values frozen when the Run completed. Other reads retain an unassigned
 actor's Run identity with an empty condition list: the old Campaign cannot read its private Sheet or
 conditions from a later Campaign assignment, and stored GM conditions cannot supply a safe fallback.
 Native public journeys verify
 independent DM/rule removal, overlapping rule lifetimes, same-type Sheet baselines, stale responses,
 exact replay and player redaction. Split-party and simultaneous
 Encounter changes were explicitly deferred; existing lifecycle rules remain in scope. Creation replay
-now also verifies the stored Run's Session and System against its authorized Campaign/request,
-in addition to the stored projection identity and checksum.
+now also verifies the stored Run's Session and System against its authorized Campaign/request.
 
 Character mechanics settlement may reuse the complete authored-source context prepared earlier in
 the same mutation. It still rereads mutable Character state, current authority, assignment, overlays,

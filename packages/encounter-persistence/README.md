@@ -22,6 +22,11 @@ boundary: Convex's query and mutation builders (`apps/apis/convex/lib/queries.ts
 
 `transactionReads` memoizes identical reads and derivations within one transaction over any store.
 
+The Run stores no projection and a command stores no result (ADR 0035 Amendment 12).
+`nativeProjection` builds every projection from the Run's records, `replayReceipts` stores and
+replays each command's receipt, and `documents.changedFields` keeps updates to the fields that
+changed.
+
 Callers own authentication, authorization and every other guard; functions here receive what the
 guards resolved. See the [persistence guide](../../docs/architecture/persistence.md#encounter-persistence-package).
 

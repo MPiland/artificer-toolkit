@@ -140,8 +140,8 @@ concentration response for the GM or the assigned Character's player. Private ca
 Worker secret, current user identity, active DO epoch and that exact pending child.
 The DO prepares current facts, checks the sealed continuation and parent damage envelope, resumes
 the existing Kernel, and plans any cleanup or next decision. A successful save preserves the Run
-version and stored projection. A failed save atomically removes the exact maintained slot and
-dependents, reconciles Character/actor conditions, advances the Run once, and stores the new projection.
+version. A failed save atomically removes the exact maintained slot and dependents, reconciles
+Character/actor conditions and advances the Run once.
 Both outcomes store the response command, completed child and evidence receipt together; exact
 replay precedes consumed revisions and returns a recipient-safe result. Subsequent concentration
 checks retain their ordered parent damage, while deferred Cleaving is rebuilt after cleanup before
