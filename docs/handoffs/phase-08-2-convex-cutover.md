@@ -300,3 +300,22 @@ Run the native TypeScript compiler **alone** on this Windows machine: `GOMAXPROC
 Existing Docker container `phase82-convex-local-linux` (ports 3210/3211), media helper (8026), web (3000) and Worker (loopback 8787) are historical observations in the raw handoff, not current health checks. Verify the actual process and port before reuse; do not start a duplicate or erase SQLite state on a timeout. Docker Desktop startup is user-owned; an earlier daemon shutdown preserved its volume but lost the local R2 helper's in-memory objects, so missing objects after restart are not deletion proof. A loopback Worker launch succeeded after an all-interface launch was refused by automatic review. The last local deployment predates the new declaration work and is not current-source evidence. A prior V15 command-entry preflight produced two one-second CPU timeouts before handler entry; it did not isolate an initializer or pass the workload. Do not repeat it until the room integration warrants it.
 
 The 67 KB previous living handoff remains read-only in the detached worktree and in the copied local archive. Its dated historical checkpoints and process handles are superseded by this document, the current source, the fixed ledger and fresh verification. No remote staging or production step follows automatically from a local pass.
+
+## Paused 2026-09-28 (laptop transport): in-flight work to resume
+
+All agents were stopped cleanly. Their work sits uncommitted or unmerged in worktrees under `.claude/worktrees/`. The branch `codex/phase-08-2-convex-cutover` is clean and pushed at `04b3e46e4` (plus the docs commit for this note).
+
+- **ADR 0035 S1** (Encounter persistence package): `agent-a7995c8923eaefdb1`.
+  - 7 validated commits (`ed9841396`…`c7913f11f`), plus work in progress.
+  - The work in progress follows the ruling: the package defines its own `EncounterDomainRejection`, which the Convex function wrappers translate to `ConvexError` in one place. That removes the package's runtime `convex` import and the `resolve.dedupe` workaround in `apps/apis/vitest.config.ts`.
+  - To resume: finish that change, re-validate, merge, then codegen.
+- **ADR 0036 S6** (Builder evaluates in the browser): `agent-a203cdf0908189bd9`. Uncommitted work in progress (snapshot client, access cache tests).
+- **ADR 0036 S7** (commit reads only referenced content): `agent-a4f64ace2d4d3c19b`. Uncommitted work in progress (Convex `findEquipment` reader).
+- **Next after these,** in order:
+  1. The ADR 0035 Amendment 12 record-shape slice.
+  2. ADR 0035 S2 (room store).
+  3. ADR 0036 S8–S10.
+  4. D65 (Cloudflare web hosting).
+  5. The Q18 follow-ups.
+  6. The queued pre-beta rules work.
+- **Open questions:** Q19 (live cursors and ping).
