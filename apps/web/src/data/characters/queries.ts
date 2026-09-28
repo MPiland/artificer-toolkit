@@ -53,11 +53,10 @@ export function useGetCharacterList(enabled = true) {
   return { data, isLoading }
 }
 
-export function getCharacter(id: string) {
-  return convexQuery(convexApi.characters.builder.get, { id })
-}
-
-/** The active Character an edit draft replaces; the browser Builder evaluates against it. */
+/**
+ * The caller's active Character: the Builder route's first payload beside the draft, and the previous
+ * Character the browser Builder evaluates an edit draft against.
+ */
 export function getCharacterBuilderActiveCharacter(id: string) {
   return {
     ...convexQuery(convexApi.characters.builder.activeCharacter, { id }),

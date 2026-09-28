@@ -61,7 +61,10 @@ export function createFallbackCharacterFormValues(
   }
 }
 
-export function toCharacterFormValues(payload: CharacterBuilderPayloadDto): CharacterFormValues {
+/** Form values from a Builder payload or a stored draft payload. */
+export function toCharacterFormValues(
+  payload: Pick<CharacterBuilderPayloadDto, 'character' | 'builderIntent'>
+): CharacterFormValues {
   const abilities = payload.character.intent.abilities
   const formAbilities = toAbilityFormValues(abilities)
 

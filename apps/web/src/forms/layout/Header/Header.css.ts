@@ -148,6 +148,9 @@ export const saveState = style({
       lineHeight: '16px',
       whiteSpace: 'nowrap',
       selectors: {
+        '&[data-saving="true"]': {
+          color: foundationVars.color.text.muted
+        },
         '&[data-dirty="true"]': {
           color: foundationVars.color.status.warning,
           fontWeight: foundationVars.fontWeight.semibold

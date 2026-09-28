@@ -2,7 +2,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { describe, expect, it } from 'vitest'
 import {
-  getCharacter,
+  getCharacterBuilderActiveCharacter,
   getCharacterDraft,
   getCharacterPreparationOptions,
   getCharacterSheet,
@@ -15,9 +15,9 @@ import {
 const target = { kind: 'MOVEMENT' as const }
 
 describe('native character sheet query adapters', () => {
-  it('loads the native working Builder payload by the supplied route identity', () => {
-    expect(getCharacter('character-handle')).toEqual(
-      convexQuery(convexApi.characters.builder.get, { id: 'character-handle' })
+  it('loads the active Character by the supplied route identity', () => {
+    expect(getCharacterBuilderActiveCharacter('character-handle').queryKey).toEqual(
+      convexQuery(convexApi.characters.builder.activeCharacter, { id: 'character-handle' }).queryKey
     )
   })
 

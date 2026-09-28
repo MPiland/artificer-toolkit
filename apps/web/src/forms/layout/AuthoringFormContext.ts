@@ -25,6 +25,9 @@ import type { AuthoringNavigationNode, AuthoringNavigationTarget } from './autho
 
 export type AuthoringFormMode = 'create' | 'view' | 'edit'
 
+/** A draft that saves itself: unsaved edits, a save in flight, saved, or a failed save retrying. */
+export type AuthoringDraftSaveStatus = 'pending' | 'saving' | 'saved' | 'retrying'
+
 export type AuthoringFormAction = () => Promise<void> | void
 export type AuthoringFormValuesAction = (values: object) => Promise<boolean | void> | void
 
@@ -69,6 +72,8 @@ export type AuthoringFormStatePatch = {
   characterData?: unknown
   characterSession?: CharacterBuilderAuthoringSession
   deleteLabel?: string
+  /** Set by autosaving forms; the header shows it in place of the unsaved-changes state. */
+  draftSaveStatus?: AuthoringDraftSaveStatus
   domain?: AuthoredFormDomain
   domainData?: unknown
   fallbackLabel?: string
@@ -118,6 +123,7 @@ export type AuthoringFormSessionState = Pick<
   | 'characterData'
   | 'characterSession'
   | 'domain'
+  | 'draftSaveStatus'
   | 'domainData'
   | 'fallbackLabel'
   | 'fieldPathPrefix'

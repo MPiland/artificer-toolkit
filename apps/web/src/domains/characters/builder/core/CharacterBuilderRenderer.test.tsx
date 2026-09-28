@@ -21,7 +21,10 @@ import {
   CHARACTER_BUILDER_TIMING_MARK,
   CHARACTER_BUILDER_TIMING_MEASURE
 } from './characterBuilder.performance'
-import { getCharacterBuilderAuthoringState } from '../state/characterBuilderAuthoringState'
+import {
+  characterBuilderVisibleSteps,
+  getCharacterBuilderProgressState
+} from '../state/characterBuilderAuthoringState'
 import { CharacterBuilderRenderer } from './CharacterBuilderRenderer'
 
 beforeAll(() => {
@@ -174,54 +177,6 @@ describe('CharacterBuilderRenderer', () => {
     expect(
       performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.STEP_PANEL_COMMITTED, 'mark')
     ).toHaveLength(1)
-  })
-
-  it('keeps an immediate Race rail selection after renderer progress publication', async () => {
-    const user = userEvent.setup()
-    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED)
-
-    renderWithAppProviders(
-      <AuthoringLayout
-        data={{
-          characterId: characterBuilderPayloadFixture.character.id,
-          breadcrumbLabel: characterBuilderPayloadFixture.character.label,
-          payload: characterBuilderPayloadFixture,
-          draft: {
-            id: 'draft-generation',
-            characterId: characterBuilderPayloadFixture.character.id,
-            publicId: 'test-character',
-            systemId: characterBuilderPayloadFixture.character.systemId,
-            userId: characterBuilderPayloadFixture.character.userId,
-            label: characterBuilderPayloadFixture.character.label,
-            status: 'DRAFT',
-            draftState: 'DRAFT_ONLY',
-            mode: 'create',
-            payload: { character: characterBuilderPayloadFixture.character }
-          }
-        }}
-        kind='character-builder'
-        mode='edit'
-      />
-    )
-
-    const navigation = await screen.findByRole('navigation', { name: 'Authoring steps' })
-    expect(within(navigation).getByText('Basics', { exact: true }).closest('a')).toBeVisible()
-    expect(within(navigation).getByText('Review', { exact: true }).closest('a')).toBeVisible()
-
-    const raceLink = within(navigation).getByText('Race', { exact: true }).closest('a')
-    expect(raceLink).not.toBeNull()
-    await user.click(raceLink!)
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 2, name: 'Race' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Change Race' })).toBeInTheDocument()
-    })
-
-    await waitFor(() => {
-      expect(
-        performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED, 'mark')
-      ).toHaveLength(1)
-    })
   })
 
   it('uses draft readiness from the backend view to keep activation unavailable', async () => {
@@ -1775,11 +1730,11 @@ function CharacterBuilderTestHarness({
     onSubmit: async () => undefined
   })
   const initialAuthoringState = useMemo(
-    () =>
-      getCharacterBuilderAuthoringState({
-        payload,
-        values: toCharacterFormValues(payload)
-      }),
+    () => ({
+      activeStepId: payload.resolution.recommendedSectionId,
+      visibleSteps: characterBuilderVisibleSteps,
+      ...getCharacterBuilderProgressState(payload, toCharacterFormValues(payload))
+    }),
     [payload]
   )
 

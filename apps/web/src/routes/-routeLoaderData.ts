@@ -10,11 +10,9 @@ import type {
   SpellResponseDto,
   VehicleResponseDto
 } from '@artificer-toolkit/schema/api/content'
-import type {
-  CharacterBuilderDraftDto,
-  CharacterBuilderPayloadDto
-} from '@artificer-toolkit/schema/api/characterBuilder'
+import type { CharacterBuilderDraftDto } from '@artificer-toolkit/schema/api/characterBuilder'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
 import type {
   SystemListResponseDto,
   SystemResponseDto
@@ -161,7 +159,8 @@ export interface CharacterEditAuthoringData {
   breadcrumbLabel: string | null
   characterId: string
   draft: CharacterBuilderDraftDto | null
-  payload: CharacterBuilderPayloadDto | null
+  /** The active Character; the Builder opens an edit draft over it when no draft exists. */
+  activeCharacter: CharacterAuthoredDto | null
 }
 
 export type CharacterEditLoaderData = AuthoredFormRouteLoaderData<CharacterEditAuthoringData>

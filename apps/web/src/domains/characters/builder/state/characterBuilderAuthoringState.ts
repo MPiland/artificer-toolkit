@@ -15,22 +15,12 @@ import type { CharacterFormValues } from '../core/characterBuilder.types'
 import { getAssignedAbilityCodes } from '../steps/abilities/abilityGeneration'
 import { isHitpointProgressionComplete } from '../steps/abilities/characterAbilities'
 
-export type CharacterBuilderAuthoringState = {
-  activeStepId: CharacterBuilderStepId
-  activeStepLabel: string
+export type CharacterBuilderProgressState = {
   firstBlockingStatus?: Exclude<AuthoringStepProgressStatus, 'complete'>
   firstBlockingStepId?: CharacterBuilderStepId
-  isFirstStep: boolean
-  isLastStep: boolean
   progressSummary: AuthoringProgressSummary
   stepStatuses: AuthoringStepStatusMap
-  visibleSteps: VisibleAuthoringSteps
 }
-
-export type CharacterBuilderProgressState = Pick<
-  CharacterBuilderAuthoringState,
-  'firstBlockingStatus' | 'firstBlockingStepId' | 'progressSummary' | 'stepStatuses'
->
 
 export const characterBuilderVisibleSteps: VisibleAuthoringSteps = characterBuilderSteps.map(
   (step, index) => ({
@@ -45,29 +35,6 @@ const statusRank: Record<AuthoringStepProgressStatus, number> = {
   warning: 1,
   incomplete: 2,
   error: 3
-}
-
-export function getCharacterBuilderAuthoringState({
-  payload,
-  values,
-  activeStepId = payload.resolution.recommendedSectionId
-}: {
-  payload: CharacterBuilderPayloadDto
-  values: CharacterFormValues
-  activeStepId?: CharacterBuilderStepId
-}): CharacterBuilderAuthoringState {
-  const activeStep = getCharacterBuilderStep(activeStepId)
-  const progress = getCharacterBuilderProgressState(payload, values)
-  const activeStepIndex = characterBuilderSteps.findIndex((step) => step.id === activeStep.id)
-
-  return {
-    activeStepId: activeStep.id,
-    activeStepLabel: activeStep.label,
-    isFirstStep: activeStepIndex <= 0,
-    isLastStep: activeStepIndex === characterBuilderSteps.length - 1,
-    visibleSteps: characterBuilderVisibleSteps,
-    ...progress
-  }
 }
 
 export function getCharacterBuilderStep(stepId?: string) {

@@ -105,11 +105,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
     render(
       <TestRouterProvider initialPath='/backgrounds'>
         <ShellReturnHrefContext value='/spells'>
-          <AuthoringFormProvider
-            data={{ payload: characterBuilderPayloadFixture, systems: [] }}
-            kind='character-builder'
-            mode='create'
-          >
+          <AuthoringFormProvider data={{ systems: [] }} kind='character-builder' mode='create'>
             <CancelProbe hasChanges={false} />
           </AuthoringFormProvider>
         </ShellReturnHrefContext>
@@ -170,11 +166,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider
-          data={{ payload: characterBuilderPayloadFixture, systems: [] }}
-          kind='character-builder'
-          mode='create'
-        >
+        <AuthoringFormProvider data={{ systems: [] }} kind='character-builder' mode='create'>
           <CancelProbe hasChanges />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -252,11 +244,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider
-          data={{ payload: null, systems: [] }}
-          kind='character-builder'
-          mode='create'
-        >
+        <AuthoringFormProvider data={{ systems: [] }} kind='character-builder' mode='create'>
           <UnsavedNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -285,7 +273,7 @@ describe('AuthoringFormProvider URL navigation', () => {
           data={{
             characterId: characterBuilderPayloadFixture.character.id,
             draft: null,
-            payload: characterBuilderPayloadFixture
+            activeCharacter: characterBuilderPayloadFixture.character
           }}
           kind='character-builder'
           mode='edit'

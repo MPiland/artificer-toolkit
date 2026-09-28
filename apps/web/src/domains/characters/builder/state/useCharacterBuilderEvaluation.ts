@@ -21,6 +21,7 @@ import {
 } from '../evaluation/builderEvaluationClient'
 import type { BuilderEvaluationRequest } from '../evaluation/builderEvaluation.types'
 import { normalizeCharacterForDraft } from '../shared/formNormalization'
+import { normalizeBuilderIntent } from '../steps/abilities/abilityGeneration'
 import type { ReadyCharacterBuilderAuthoringSession } from './characterBuilderAuthoringSession'
 
 /** What the Builder shows about its content: still rebuilding, loading kinds, or a failure. */
@@ -56,7 +57,6 @@ export function useCharacterBuilderEvaluation(
   const { draft } = session
   const { id: expectedDraftId, mode, userId, publicId } = draft
   const baseActiveUpdatedAt = draft.baseActiveUpdatedAt ?? null
-  const { builderIntent } = draft.payload
   const manifest = useQuery(getContentSnapshotManifest(draft.systemId, draft.characterId))
   const system = useQuery(getSystem(draft.systemId))
   const active = useQuery({
@@ -102,8 +102,7 @@ export function useCharacterBuilderEvaluation(
       mode,
       userId,
       publicId,
-      baseActiveUpdatedAt,
-      builderIntent
+      baseActiveUpdatedAt
     }
     return async (
       operation: BuilderEvaluationRequest['operation'],
@@ -113,7 +112,8 @@ export function useCharacterBuilderEvaluation(
         operation,
         manifest: manifestData,
         system: systemData,
-        draft: draftInput,
+        // The form's own intent cache: autosave does not reload the draft (ADR 0036 S8).
+        draft: { ...draftInput, builderIntent: normalizeBuilderIntent(values) },
         character: normalizeCharacterForDraft(values),
         previousCharacter: previousCharacter ?? null
       })
@@ -123,7 +123,6 @@ export function useCharacterBuilderEvaluation(
     }
   }, [
     baseActiveUpdatedAt,
-    builderIntent,
     client,
     expectedDraftId,
     manifest.data,

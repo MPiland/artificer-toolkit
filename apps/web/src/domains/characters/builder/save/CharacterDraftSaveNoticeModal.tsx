@@ -3,13 +3,11 @@ import * as styles from './characterBuilderSave.css'
 
 export function CharacterDraftSaveNoticeModal({
   inactiveAbilityMethodLabels,
-  isSaving,
   opened,
   onClose,
   onConfirm
 }: {
   inactiveAbilityMethodLabels: string[]
-  isSaving: boolean
   opened: boolean
   onClose: () => void
   onConfirm: () => void
@@ -45,12 +43,7 @@ export function CharacterDraftSaveNoticeModal({
           >
             Cancel
           </Button>
-          <Button
-            className={styles.modalActionButton}
-            type='button'
-            loading={isSaving}
-            onClick={onConfirm}
-          >
+          <Button className={styles.modalActionButton} type='button' onClick={onConfirm}>
             Save Draft
           </Button>
         </Group>

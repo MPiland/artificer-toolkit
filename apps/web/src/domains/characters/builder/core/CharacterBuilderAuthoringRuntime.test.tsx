@@ -16,6 +16,7 @@ import {
 import type { ContentSnapshotManifestDto } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { normalizeCharacterForDraft } from '../shared/formNormalization'
 import type { BuilderEvaluationRequest } from '../evaluation/builderEvaluation.types'
+import { CHARACTER_BUILDER_TIMING_MARK } from './characterBuilder.performance'
 
 const mocks = vi.hoisted(() => ({
   commit: vi.fn(),
@@ -141,6 +142,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
 
     // The Builder evaluates the opened values once its content is ready, then once per edit.
     await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(1))
+    await user.click(await screen.findByRole('link', { name: 'Race' }))
     await chooseRace(user, 'Sea Elf', 'Choose Race')
     await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(2))
 
@@ -191,7 +193,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       <AuthoringLayout data={editData(payload)} kind='character-builder' mode='edit' />
     )
     await user.click(screen.getByRole('link', { name: 'Basics' }))
-    await user.type(screen.getByRole('textbox', { name: /character name/i }), 'Unsaved name')
+    await user.type(await screen.findByRole('textbox', { name: /character name/i }), 'Unsaved name')
     payload.character.label = 'Reopened draft'
     rerender(
       <AuthoringLayout
@@ -234,7 +236,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       const data = editData(characterBuilderPayloadFixture)
       renderWithAppProviders(<AuthoringLayout data={data} kind='character-builder' mode='edit' />)
       await user.click(screen.getByRole('link', { name: 'Basics' }))
-      const name = screen.getByRole('textbox', { name: /character name/i })
+      const name = await screen.findByRole('textbox', { name: /character name/i })
       await user.clear(name)
       await user.type(name, 'Saved name')
       await user.click(screen.getByRole('button', { name: 'Save Draft' }))
@@ -252,6 +254,61 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       await waitFor(() => expect(name).toHaveValue(`Saved name${pendingEdit}`))
     }
   )
+
+  it('autosaves after edits, at once on a step change, and shows the save state quietly', async () => {
+    const user = userEvent.setup()
+    const saving = deferred<CharacterBuilderDraftDto>()
+    mocks.saveDraft.mockReturnValueOnce(saving.promise)
+    const data = editData(characterBuilderPayloadFixture)
+    renderWithAppProviders(<AuthoringLayout data={data} kind='character-builder' mode='edit' />)
+    await user.click(screen.getByRole('link', { name: 'Basics' }))
+    const name = await screen.findByRole('textbox', { name: /character name/i })
+    await user.clear(name)
+    await user.type(name, 'Autosaved name')
+    expect(mocks.saveDraft).not.toHaveBeenCalled()
+    // A step change saves without waiting for the idle debounce.
+    await user.click(screen.getByRole('link', { name: 'Race' }))
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledTimes(1))
+    expect(mocks.saveDraft.mock.calls[0]?.[0]).toMatchObject({
+      expectedDraftId: 'draft-generation',
+      character: { label: 'Autosaved name', status: 'DRAFT' }
+    })
+    expect(await screen.findByText('Saving…')).toBeInTheDocument()
+    await act(async () => {
+      saving.resolve(data.draft)
+      await saving.promise
+    })
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
+  })
+
+  it('keeps an immediate Race rail selection after renderer progress publication', async () => {
+    const user = userEvent.setup()
+    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED)
+    renderWithAppProviders(
+      <AuthoringLayout
+        data={editData(characterBuilderPayloadFixture)}
+        kind='character-builder'
+        mode='edit'
+      />
+    )
+
+    const navigation = await screen.findByRole('navigation', { name: 'Authoring steps' })
+    expect(within(navigation).getByText('Basics', { exact: true }).closest('a')).toBeVisible()
+    expect(within(navigation).getByText('Review', { exact: true }).closest('a')).toBeVisible()
+    const raceLink = within(navigation).getByText('Race', { exact: true }).closest('a')
+    expect(raceLink).not.toBeNull()
+    await user.click(raceLink!)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Race' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Change Race' })).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(
+        performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED, 'mark')
+      ).toHaveLength(1)
+    })
+  })
 
   it('discards active draft from overflow actions with generation-bound draft id', async () => {
     const user = userEvent.setup()
@@ -297,7 +354,10 @@ describe('CharacterBuilderAuthoringRuntime', () => {
         mode='edit'
       />
     )
-    await user.click(screen.getByRole('button', { name: 'Activate' }))
+    const activate = screen.getByRole('button', { name: 'Activate' })
+    // Finalizing waits for the first evaluation in the browser.
+    await waitFor(() => expect(activate).toBeEnabled())
+    await user.click(activate)
     const dialog = await screen.findByRole('dialog', { name: 'Finalize Character' })
     expect(mocks.preview.mock.calls[0]?.[0]).toMatchObject({
       operation: 'preview',
@@ -382,6 +442,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     )
 
     await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(1))
+    await user.click(await screen.findByRole('link', { name: 'Race' }))
     await chooseRace(user, 'Sea Elf', 'Choose Race')
     await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(2))
     expect(mocks.resolve.mock.calls[1]?.[0]).toMatchObject({
@@ -420,7 +481,7 @@ function editData(
     characterId: payload.character.id,
     breadcrumbLabel: payload.character.label,
     draft,
-    payload
+    activeCharacter: mode === 'edit' ? payload.character : null
   }
 }
 

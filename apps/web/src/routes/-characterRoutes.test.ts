@@ -49,7 +49,7 @@ describe('character routes', () => {
     expect(source).not.toContain('removeQueries')
   })
 
-  it('loads the native working Builder payload without a second legacy resolution', () => {
+  it('loads the draft and the active Character without resolving the Builder on the server', () => {
     const source = readFileSync(
       join(
         process.cwd(),
@@ -58,11 +58,11 @@ describe('character routes', () => {
       'utf8'
     )
 
-    expect(source).toContain('ensureQueryData(getCharacter(routeCharacterId))')
-    expect(source).toContain('ensureQueryData(getCharacterDraft(routeCharacterId))')
     expect(source).toContain(
-      'z.nullable(characterBuilderPayloadDtoSchema).parse(serializedPayload)'
+      'ensureQueryData(getCharacterBuilderActiveCharacter(routeCharacterId))'
     )
+    expect(source).toContain('ensureQueryData(getCharacterDraft(routeCharacterId))')
+    expect(source).not.toContain('builder.get')
     expect(source).not.toContain('createServerApi')
     expect(source).not.toContain('characters.resolve')
     expect(source).not.toContain('setQueryData')

@@ -14,8 +14,8 @@ import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/ch
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
 /**
- * One Builder evaluation in the browser worker: the `builder.resolve` or `builder.preview` inputs
- * the server would read, taken from the open draft, the live manifest and the System (D67).
+ * One Builder evaluation in the browser worker (resolution or finalization preview), from the
+ * open draft, the form values, the live manifest and the System (D67).
  */
 export type BuilderEvaluationRequest = {
   operation: 'resolve' | 'preview'

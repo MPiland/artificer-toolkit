@@ -40,7 +40,7 @@ const meta = {
       characterId: character.id,
       breadcrumbLabel: character.label,
       draft,
-      payload: { ...characterBuilderPayloadFixture, character }
+      activeCharacter: character
     }
   },
   parameters: {
@@ -119,7 +119,7 @@ export const SaveAndReview: Story = {
         character: expect.objectContaining({ label: 'Native draft hero' })
       })
     )
-    await waitFor(() => expect(canvas.getByLabelText('All changes saved')).toBeVisible())
+    await waitFor(() => expect(canvas.getByLabelText('Saved')).toBeVisible())
     await expect(name).toHaveValue('Native draft hero')
     await userEvent.click(canvas.getByRole('button', { name: 'Activate' }))
     const dialog = await page.findByRole('dialog', { name: 'Finalize Character' })

@@ -7,7 +7,6 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormStatePatch
 } from '#forms/layout/AuthoringFormContext'
-import { InvalidDraftAlert } from '#forms/layout/Editor/SectionRow/InvalidDraftAlert'
 import {
   useCreateCharacterDraftMutation,
   useDiscardCharacterDraftMutation
@@ -96,7 +95,7 @@ export function CharacterBuilderAuthoringRuntime({
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
       activateLabel: 'Activate',
-      canSaveDraft: Boolean(session.payload && session.draft),
+      canSaveDraft: Boolean(session.draft),
       hasActiveDraft: session.hasActiveDraft,
       isDraft: session.isDraft,
       mode: session.mode,
@@ -110,7 +109,6 @@ export function CharacterBuilderAuthoringRuntime({
       session.hasActiveDraft,
       session.isDraft,
       session.mode,
-      session.payload,
       session.draft,
       session.readOnly,
       session.subjectKindLabel,
@@ -144,19 +142,6 @@ export function CharacterBuilderAuthoringRuntime({
     )
   }
 
-  if (session.invalidDraftOnly) {
-    return (
-      <Stack>
-        <InvalidDraftAlert
-          domainLabel='character'
-          isDiscarding={discardDraftMutation.isPending}
-          onDiscard={() => void handleDiscardDraft()}
-        />
-        <Button onClick={() => void handleCancel()}>Back to characters</Button>
-      </Stack>
-    )
-  }
-
   if (!session.draft && !session.notFound) {
     return (
       <Stack>
@@ -175,7 +160,7 @@ export function CharacterBuilderAuthoringRuntime({
     )
   }
 
-  if (session.notFound || !session.draft || !session.payload || !session.initialValues) {
+  if (session.notFound || !session.draft || !session.initialValues) {
     return (
       <Stack>
         <Alert color='yellow'>That character could not be found.</Alert>
@@ -187,8 +172,7 @@ export function CharacterBuilderAuthoringRuntime({
   const readySession: ReadyCharacterBuilderAuthoringSession = {
     ...session,
     draft: session.draft,
-    initialValues: session.initialValues,
-    payload: session.payload
+    initialValues: session.initialValues
   }
 
   return (
@@ -197,7 +181,6 @@ export function CharacterBuilderAuthoringRuntime({
       session={readySession}
       onCancel={handleCancel}
       onDiscardDraft={handleDiscardDraft}
-      isDiscardingDraft={discardDraftMutation.isPending}
     />
   )
 }

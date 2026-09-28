@@ -38,7 +38,7 @@ import type { BuilderEvaluationRequest } from './builderEvaluation.types'
 import { createBuilderEvaluator } from './builderEvaluator'
 
 // ADR 0036 S6. `builderSnapshotParity.test.ts` (apps/apis) proves the snapshot evaluation equals
-// `builder.resolve` and `builder.preview` over the S5 corpus; this proves the worker's manifest,
+// a pure full-pool evaluation over the S5 corpus; this proves the worker's manifest,
 // store and lazy loading add nothing to it.
 
 const KINDS = ['RACE', 'CLASS', 'BACKGROUND', 'FEAT', 'SPELL'] as const

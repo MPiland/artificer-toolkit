@@ -685,8 +685,7 @@ export function AuthoringFormProvider({
       requestedStepIdRef.current = stepId
 
       if (session.authoringKind === 'character-builder') {
-        const fallbackStepId =
-          session.characterSession?.initialAuthoringState?.activeStepId ?? session.activeStepId
+        const fallbackStepId = session.activeStepId
         const targetStep =
           visibleSteps.find((step) => areAuthoringStepIdsEqual(step.id, stepId)) ??
           visibleSteps.find((step) => step.id === fallbackStepId) ??
@@ -704,7 +703,6 @@ export function AuthoringFormProvider({
     [
       navigationTargets,
       session.authoringKind,
-      session.characterSession,
       setActiveNavigationTarget,
       setActiveProviderStep,
       visibleSteps

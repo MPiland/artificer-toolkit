@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useNavigate, useRouter } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
+import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characterBuilder'
 import type {
   CharacterBuilderFeatureSourceHint,
   CharacterBuilderPreviewOutput
@@ -12,7 +13,6 @@ import {
   useAuthoringForm,
   type AuthoringFormActionHandlers
 } from '#forms/layout/AuthoringFormContext'
-import { InvalidDraftAlert } from '#forms/layout/Editor/SectionRow/InvalidDraftAlert'
 import {
   useCommitCharacterBuilderMutation,
   useSaveCharacterDraftMutation
@@ -27,23 +27,22 @@ import { useCharacterBuilderEvaluation } from '../state/useCharacterBuilderEvalu
 import { CharacterBuilderContentNotice } from '../evaluation/CharacterBuilderContentNotice'
 import { CharacterBuilderStateSync } from '../state/CharacterBuilderStateSync'
 import { CharacterBuilderRenderer } from './CharacterBuilderRenderer'
+import { createDraftAutosave } from '../save/draftAutosave'
 import { CharacterDraftSaveNoticeModal } from '../save/CharacterDraftSaveNoticeModal'
 import { CharacterSavePreviewModal } from '../save/CharacterSavePreviewModal'
 
 export function CharacterBuilderFormRuntime({
-  isDiscardingDraft,
   onCancel,
   onDiscardDraft,
   session
 }: {
-  isDiscardingDraft: boolean
   onCancel: () => Promise<void>
   onDiscardDraft: () => Promise<void>
   session: ReadyCharacterBuilderAuthoringSession
 }) {
-  const router = useRouter()
   const navigate = useNavigate()
-  const [payload, setPayload] = useState(session.payload)
+  // Null until the first evaluation in the browser; nothing is evaluated during SSR (ADR 0036 S6).
+  const [payload, setPayload] = useState<CharacterBuilderPayloadDto | null>(null)
   const [draftSaveNoticeOpened, setDraftSaveNoticeOpened] = useState(false)
   const [draftSaveNoticeAcknowledged, setDraftSaveNoticeAcknowledged] = useState(false)
   const [draftSaveNoticeMethodLabels, setDraftSaveNoticeMethodLabels] = useState<string[]>([])
@@ -53,11 +52,11 @@ export function CharacterBuilderFormRuntime({
   } | null>(null)
   const preview = finalization?.preview ?? null
   const [previewOpened, setPreviewOpened] = useState(false)
-  const draftMutation = useSaveCharacterDraftMutation()
+  const { mutateAsync: saveDraft } = useSaveCharacterDraftMutation()
   const evaluation = useCharacterBuilderEvaluation(session)
   const previewMutation = useMutation({ mutationFn: evaluation.preview })
   const commitMutation = useCommitCharacterBuilderMutation()
-  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
+  const { activeStepId, updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
 
   const handlePreviewFinalize = useCallback(
     async (value: CharacterFormValues) => {
@@ -82,6 +81,43 @@ export function CharacterBuilderFormRuntime({
     }
   })
 
+  // One autosave per draft generation; the runtime is keyed by it (ADR 0036 S8).
+  const [autosave] = useState(() =>
+    createDraftAutosave<CharacterFormValues>({
+      save: async (values) => {
+        await saveDraft(buildCharacterDraftSaveInput(values, session.mode, session.draft.id))
+        // Saved values become the form's baseline unless the user edited meanwhile.
+        if (form.state.values !== values) return
+        defaultValuesRef.current = values
+        form.reset(values)
+      },
+      onStatus: (draftSaveStatus) => updateAuthoringFormState({ draftSaveStatus })
+    })
+  )
+
+  useEffect(() => {
+    let queued = form.state.values
+    const subscription = form.store.subscribe(() => {
+      const values = form.state.values
+      if (values === queued) return
+      queued = values
+      autosave.change(values)
+    })
+    // Best effort: the save may not reach the server before the page is gone.
+    const flushOnHide = () => void autosave.flush()
+    window.addEventListener('pagehide', flushOnHide)
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('pagehide', flushOnHide)
+      void autosave.flush().finally(autosave.cancel)
+    }
+  }, [autosave, form])
+
+  // A step change saves at once.
+  useEffect(() => {
+    void autosave.flush()
+  }, [activeStepId, autosave])
+
   const handleResolve = useLatestCharacterResolution({
     generation: `${session.draft.id}:${session.mode}`,
     resolve: evaluation.resolve,
@@ -94,29 +130,10 @@ export function CharacterBuilderFormRuntime({
   }, [form, handleResolve])
 
   const handleSaveDraftConfirmed = useCallback(async () => {
-    try {
-      const savedValues = form.state.values
-      const draft = await draftMutation.mutateAsync(
-        buildCharacterDraftSaveInput(savedValues, session.mode, session.draft.id)
-      )
-      if (form.state.values === savedValues) {
-        defaultValuesRef.current = savedValues
-        form.reset(savedValues)
-      }
-      setDraftSaveNoticeAcknowledged(true)
-      setDraftSaveNoticeOpened(false)
-      notifications.show({ color: 'green', message: 'Character draft saved.' })
-      await router.invalidate()
-      if (session.mode === 'create') {
-        await navigate({
-          params: buildCharacterRouteParams(draft.publicId, draft.label),
-          to: '/characters/$characterPublicId/$characterSlug/edit'
-        })
-      }
-    } catch {
-      notifications.show({ color: 'red', message: 'Could not save that character draft yet.' })
-    }
-  }, [draftMutation, form, navigate, router, session.draft.id, session.mode])
+    setDraftSaveNoticeAcknowledged(true)
+    setDraftSaveNoticeOpened(false)
+    await autosave.flush()
+  }, [autosave])
 
   const handleSaveDraft = useCallback(async () => {
     const inactiveAbilityMethodLabels = getInactiveAbilityIntentMethodLabels(form.state.values)
@@ -138,6 +155,8 @@ export function CharacterBuilderFormRuntime({
         mode: session.mode,
         featureSourceHints: finalization.featureSourceHints
       })
+      // The committed draft is gone; nothing is left to autosave.
+      autosave.cancel()
       notifications.show({ color: 'green', message: 'Character finalized.' })
       await navigate({
         params: buildCharacterRouteParams(response.publicId, response.character.label),
@@ -149,10 +168,10 @@ export function CharacterBuilderFormRuntime({
         message: 'Could not finalize the character. Try again, or save the draft and reload.'
       })
     }
-  }, [commitMutation, finalization, navigate, session.draft.id, session.mode])
+  }, [autosave, commitMutation, finalization, navigate, session.draft.id, session.mode])
 
   const handleActivate = useCallback(async () => {
-    if (!payload.view.review.ready) {
+    if (!payload?.view.review.ready) {
       notifications.show({
         color: 'red',
         message: 'This character is not ready to finalize yet.'
@@ -161,7 +180,7 @@ export function CharacterBuilderFormRuntime({
     }
 
     await handlePreviewFinalize(form.state.values)
-  }, [form, handlePreviewFinalize, payload.view.review.ready])
+  }, [form, handlePreviewFinalize, payload])
 
   const actions = useMemo<AuthoringFormActionHandlers>(
     () => ({
@@ -194,10 +213,7 @@ export function CharacterBuilderFormRuntime({
             canSubmit={formState.canSubmit}
             hasChanges={formState.hasChanges}
             isSubmitting={
-              formState.isSubmitting ||
-              draftMutation.isPending ||
-              previewMutation.isPending ||
-              commitMutation.isPending
+              formState.isSubmitting || previewMutation.isPending || commitMutation.isPending
             }
             payload={payload}
             session={session}
@@ -207,13 +223,6 @@ export function CharacterBuilderFormRuntime({
         )}
       </form.Subscribe>
       <Stack>
-        {session.hasInvalidDraft ? (
-          <InvalidDraftAlert
-            domainLabel='character'
-            isDiscarding={isDiscardingDraft}
-            onDiscard={() => void onDiscardDraft()}
-          />
-        ) : null}
         <CharacterBuilderContentNotice
           status={evaluation.status}
           onRetry={() => {
@@ -221,7 +230,9 @@ export function CharacterBuilderFormRuntime({
             void handleResolve(form.state.values)
           }}
         />
-        <CharacterBuilderRenderer form={form} payload={payload} onResolve={handleResolve} />
+        {payload ? (
+          <CharacterBuilderRenderer form={form} payload={payload} onResolve={handleResolve} />
+        ) : null}
       </Stack>
       <CharacterSavePreviewModal
         isCommitting={commitMutation.isPending}
@@ -232,7 +243,6 @@ export function CharacterBuilderFormRuntime({
       />
       <CharacterDraftSaveNoticeModal
         inactiveAbilityMethodLabels={draftSaveNoticeMethodLabels}
-        isSaving={draftMutation.isPending}
         opened={draftSaveNoticeOpened}
         onClose={() => setDraftSaveNoticeOpened(false)}
         onConfirm={() => void handleSaveDraftConfirmed()}

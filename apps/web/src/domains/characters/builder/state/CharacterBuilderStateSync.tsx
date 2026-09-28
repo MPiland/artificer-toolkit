@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characterBuilder'
 import type { AuthoringFormStatePatch } from '#forms/layout/AuthoringFormContext'
 import type { ReadyCharacterBuilderAuthoringSession } from './characterBuilderAuthoringSession'
 
@@ -14,19 +15,21 @@ export function CharacterBuilderStateSync({
   canSubmit: boolean
   hasChanges: boolean
   isSubmitting: boolean
-  payload: ReadyCharacterBuilderAuthoringSession['payload']
+  /** Null until the first browser evaluation. */
+  payload: CharacterBuilderPayloadDto | null
   session: ReadyCharacterBuilderAuthoringSession
   subjectLabel: string
   updateAuthoringFormState: (patch: AuthoringFormStatePatch) => void
 }) {
+  const ready = payload?.view.review.ready ?? false
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
       activateLabel: 'Activate',
-      canFinalize: payload.view.review.ready,
+      canFinalize: ready,
       canResetForm: hasChanges,
       canDelete: true,
       canSaveDraft: true,
-      canSubmit: canSubmit && payload.view.review.ready,
+      canSubmit: canSubmit && ready,
       hasActiveDraft: session.hasActiveDraft,
       hasChanges,
       isDraft: session.isDraft,
@@ -37,19 +40,19 @@ export function CharacterBuilderStateSync({
       saveDraftLabel: 'Save Draft',
       subjectKindLabel: session.subjectKindLabel,
       subjectLabel: subjectLabel.trim() || session.subjectLabel,
-      systemId: payload.character.systemId
+      systemId: session.draft.systemId
     }),
     [
       canSubmit,
       hasChanges,
       isSubmitting,
-      payload.character.systemId,
-      payload.view.review.ready,
+      ready,
       session.hasActiveDraft,
       session.isDraft,
       session.mode,
       session.readOnly,
       session.subjectKindLabel,
+      session.draft.systemId,
       session.subjectLabel,
       subjectLabel
     ]

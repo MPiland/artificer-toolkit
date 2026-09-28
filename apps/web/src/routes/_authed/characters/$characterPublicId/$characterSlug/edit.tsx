@@ -1,10 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import {
-  characterBuilderDraftDtoSchema,
-  characterBuilderPayloadDtoSchema
-} from '@artificer-toolkit/schema/api/characterBuilder'
+import { characterBuilderDraftDtoSchema } from '@artificer-toolkit/schema/api/characterBuilder'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { z } from 'zod/mini'
-import { getCharacter, getCharacterDraft } from '#app/data/characters/queries'
+import { getCharacterBuilderActiveCharacter, getCharacterDraft } from '#app/data/characters/queries'
 import {
   isCanonicalAuthoredRouteHandle,
   parseAuthoredRouteId
@@ -21,15 +19,16 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
   context: () => createCharacterBuilderRouteContext('edit'),
   loader: async ({ context, params }): Promise<CharacterEditLoaderData> => {
     const routeCharacterId = parseAuthoredRouteId(params.characterPublicId)
-    const [serializedPayload, serializedDraft] = await Promise.all([
-      context.queryClient.ensureQueryData(getCharacter(routeCharacterId)),
+    // The draft and the active Character only: the Builder evaluates in the browser (ADR 0036 S9).
+    const [serializedActive, serializedDraft] = await Promise.all([
+      context.queryClient.ensureQueryData(getCharacterBuilderActiveCharacter(routeCharacterId)),
       context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId))
     ])
     const draft = z.nullable(characterBuilderDraftDtoSchema).parse(serializedDraft)
-    const payload = z.nullable(characterBuilderPayloadDtoSchema).parse(serializedPayload)
-    const breadcrumbLabel = draft?.label ?? payload?.character.label ?? null
-    const characterPublicId = draft?.publicId ?? payload?.publicId ?? params.characterPublicId
-    const characterId = draft?.characterId ?? payload?.character.id ?? routeCharacterId
+    const activeCharacter = z.nullable(characterAuthoredDtoSchema).parse(serializedActive)
+    const breadcrumbLabel = draft?.label ?? activeCharacter?.label ?? null
+    const characterPublicId = draft?.publicId ?? params.characterPublicId
+    const characterId = draft?.characterId ?? activeCharacter?.id ?? routeCharacterId
     const routeSubject = breadcrumbLabel
       ? {
           id: characterId,
@@ -49,10 +48,10 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
     }
 
     return createAuthoringRouteLoaderData({
+      activeCharacter,
       breadcrumbLabel,
       characterId,
-      draft,
-      payload
+      draft
     })
   },
   component: AuthoringLayout

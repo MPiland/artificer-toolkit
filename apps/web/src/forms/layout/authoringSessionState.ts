@@ -3,6 +3,7 @@ import type { ConvexReactClient } from 'convex/react'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 import { createCharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
 import type { CharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
+import { characterBuilderVisibleSteps } from '#domains/characters/builder/state/characterBuilderAuthoringState'
 import type {
   AuthoringDomainRegistration,
   AuthoringFormSessionState,
@@ -36,6 +37,7 @@ export function isSameSession(left: AuthoringFormSessionState, right: AuthoringF
     left.characterData === right.characterData &&
     left.characterSession === right.characterSession &&
     left.deleteLabel === right.deleteLabel &&
+    left.draftSaveStatus === right.draftSaveStatus &&
     left.domain === right.domain &&
     left.domainData === right.domainData &&
     left.fallbackLabel === right.fallbackLabel &&
@@ -95,6 +97,7 @@ function getDomainRegistration(
     characterData: undefined,
     characterSession: undefined,
     domain,
+    draftSaveStatus: undefined,
     fallbackLabel: factory.fallbackLabel,
     mapId: factory.mapId,
     navigationTargets: undefined,
@@ -169,14 +172,12 @@ export function createCharacterBuilderRegistration(
           data,
           mode
         }))
-  const initialAuthoringState = nextCharacterSession?.initialAuthoringState
-  const initialStepId = initialAuthoringState?.activeStepId
 
   return {
     activeSectionId: undefined,
     activeNavigationTargetId: undefined,
-    activeStepId: initialAuthoringState?.activeStepId,
-    activeStepLabel: initialAuthoringState?.activeStepLabel,
+    activeStepId: undefined,
+    activeStepLabel: undefined,
     activateLabel: 'Finalize Character',
     authoredSession: undefined,
     authoringKind: 'character-builder',
@@ -191,37 +192,39 @@ export function createCharacterBuilderRegistration(
     canSubmit: false,
     characterData: data,
     characterSession: nextCharacterSession,
+    draftSaveStatus: undefined,
     domain: undefined,
     domainData: undefined,
     fallbackLabel: 'Untitled Character',
     fieldPathPrefix: undefined,
-    firstBlockingStatus: initialAuthoringState?.firstBlockingStatus,
-    firstBlockingStepId: initialAuthoringState?.firstBlockingStepId,
+    firstBlockingStatus: undefined,
+    firstBlockingStepId: undefined,
     hasChanges: false,
     hasActiveDraft: nextCharacterSession?.hasActiveDraft ?? false,
     hasStepChanges: false,
     isDraft: nextCharacterSession?.isDraft ?? false,
-    isFirstStep: initialAuthoringState?.isFirstStep ?? true,
-    isLastStep: initialAuthoringState?.isLastStep ?? true,
+    isFirstStep: true,
+    isLastStep: true,
     mapId: undefined,
     mode,
     navigationTargets: undefined,
     navigationTree: undefined,
-    progressSummary: initialAuthoringState?.progressSummary,
+    progressSummary: undefined,
     providedModel: undefined,
     readOnly: nextCharacterSession?.readOnly ?? false,
     resolveModel: false,
     resolvedModel: undefined,
     saveDraftLabel: 'Save Draft',
     stepDirty: EMPTY_STEP_DIRTY,
-    stepStatuses: initialAuthoringState?.stepStatuses ?? EMPTY_STEP_STATUSES,
+    stepStatuses: EMPTY_STEP_STATUSES,
     stepWarnings: EMPTY_STEP_WARNINGS,
     subjectKindLabel: 'Character',
     subjectLabel: nextCharacterSession?.subjectLabel,
     systemId: nextCharacterSession?.systemId,
     validationIssues: [],
-    visibleSteps: initialAuthoringState?.visibleSteps,
-    visitedStepIds: initialStepId ? new Set([initialStepId]) : new Set()
+    // Progress arrives with the first browser evaluation (ADR 0036 S6).
+    visibleSteps: nextCharacterSession ? characterBuilderVisibleSteps : undefined,
+    visitedStepIds: new Set()
   }
 }
 
@@ -251,16 +254,14 @@ export function getCharacterBuilderSessionSignature(
   return [
     session.mode,
     session.characterId ?? '',
-    session.payload?.character.id ?? '',
-    session.payload?.character.label ?? '',
+    session.initialValues?.id ?? '',
+    session.subjectLabel,
     session.systemId ?? '',
     session.formKey ?? '',
     String(session.hasActiveDraft),
-    String(session.hasInvalidDraft),
     String(session.isDraft),
     String(session.systemRequired),
     String(session.notFound),
-    String(session.invalidDraftOnly),
     String(session.readOnly)
   ].join('|')
 }
@@ -344,8 +345,7 @@ export function resolveRequestedNavigation(
   requestedStepId: string | undefined
 ): AuthoringFormSessionState {
   if (session.authoringKind === 'character-builder') {
-    const fallbackStepId =
-      session.activeStepId ?? session.characterSession?.initialAuthoringState?.activeStepId
+    const fallbackStepId = session.activeStepId
     const activeStep =
       session.visibleSteps?.find((step) => areAuthoringStepIdsEqual(step.id, requestedStepId)) ??
       session.visibleSteps?.find((step) => step.id === fallbackStepId) ??

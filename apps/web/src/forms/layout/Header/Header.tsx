@@ -22,7 +22,8 @@ export function Header({
   showStepsNavigation?: boolean
   title?: ReactNode
 }) {
-  const { hasChanges, authoredSession, subjectKindLabel, subjectLabel } = useAuthoringForm()
+  const { hasChanges, authoredSession, draftSaveStatus, subjectKindLabel, subjectLabel } =
+    useAuthoringForm()
   const { status } = useAuthoringLayout()
 
   const title = titleOverride ?? subjectLabel ?? subjectKindLabel
@@ -32,6 +33,19 @@ export function Header({
       : authoredSession?.provenanceKind === 'OWNED'
         ? 'Homebrew'
         : undefined
+  // An autosaving form reports its save; others report unsaved edits.
+  const saveStateLabel =
+    draftSaveStatus === 'saving'
+      ? 'Saving…'
+      : draftSaveStatus === 'retrying'
+        ? 'Couldn’t save, retrying'
+        : hasChanges
+          ? 'Unsaved changes'
+          : draftSaveStatus === 'saved'
+            ? 'Saved'
+            : 'All changes saved'
+  const isUnsaved = draftSaveStatus === 'retrying' || (draftSaveStatus !== 'saving' && hasChanges)
+  const isSaved = draftSaveStatus !== 'saving' && !isUnsaved
   return (
     <header className={styles.header}>
       <div className={styles.contextBar}>
@@ -57,13 +71,14 @@ export function Header({
         </div>
         <div className={styles.formActions}>
           <span
-            aria-label={hasChanges ? 'Unsaved changes' : 'All changes saved'}
+            aria-label={saveStateLabel}
             className={styles.saveState}
-            data-dirty={hasChanges ? 'true' : 'false'}
+            data-dirty={isUnsaved ? 'true' : 'false'}
+            data-saving={draftSaveStatus === 'saving' ? 'true' : undefined}
             aria-live='polite'
           >
-            {!hasChanges ? <CircleCheck size={15} aria-hidden='true' /> : null}
-            {hasChanges ? 'Unsaved changes' : 'All changes saved'}
+            {isSaved ? <CircleCheck size={15} aria-hidden='true' /> : null}
+            {saveStateLabel}
           </span>
           <div className={styles.utilityActions}>
             <ResetActionMenu />

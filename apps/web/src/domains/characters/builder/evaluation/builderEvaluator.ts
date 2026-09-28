@@ -22,7 +22,7 @@ import {
 } from '#app/data/contentSnapshots/manifestObjects'
 import type { BuilderEvaluationRequest, BuilderEvaluationResult } from './builderEvaluation.types'
 
-/** The server's view of the candidate: parsed as `builder.resolve` args, owned and a draft. */
+/** The candidate as commit reads it: parsed as its input, owned and a draft. */
 function toSnapshotInput(request: BuilderEvaluationRequest): SnapshotCharacterBuilderInput {
   const { draft } = request
   // Convex transport drops undefined fields before the server parses its args.
