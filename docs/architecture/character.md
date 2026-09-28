@@ -327,59 +327,76 @@ is implemented by the shared Sheet projection and native scoped command allowlis
 personal Character endpoint access. GM inspector text editors omit private notes and preserve original
 custom names for editing. Displayed shared names still receive Campaign maturity presentation.
 
-### Native Builder resolution — implemented, browser integration pending
+### Builder route and draft session — local implementation
 
-```mermaid
-flowchart LR
-  Session["Better Auth owner UUID"] --> Query["characters/builder get / resolve queries"]
-  Draft["Owned draft generation + immutable System binding"] --> Query
-  Query --> Context["Selected current rule registry + full authorized Builder selectors"]
-  Context --> Resolve["rules-runtime/character: choices, validation, readiness, view"]
-  Policy["Installed System Character eligibility policy"] --> Resolve
-  Resolve --> DTO["Existing CharacterBuilderPayloadDto"]
-```
+The server does not resolve the Builder (ADR 0036 S9): `builder.get`, `builder.resolve`,
+`builder.preview` and the server's `selectors` catalogue scope were removed. The Builder resolves
+and previews in the browser ([Browser Builder evaluation](#browser-builder-evaluation-adr-0036-s6--local-implementation-acceptance-pending)),
+and `commit` revalidates on the server.
 
-`get` accepts a Character UUID or reserved compact alias and prefers its owned draft over the active
-document. `resolve` evaluates an unsaved candidate only within its current owned draft generation;
-it checks create/edit mode and immutable System binding and replaces caller-supplied
-owner/status with the authenticated owner and `DRAFT`. Both are queries: neither saves a draft,
-rebases its active timestamp, nor writes active Character or Sheet state. Before evaluation, both
-use the current active Sheet state (or empty first-create state), ignoring stale or forged draft
-play state while preserving proposed structural intent.
-
-The browser edit loader now reads `builder.get` and `drafts.get` through the authenticated native
-SSR query bridge, parsing the shared DTOs at the app boundary. The loader exposes one working
-payload: it does not resolve the draft again through the legacy API or manually duplicate alias
-cache entries under UUID keys. Canonical handle redirects remain intact. The authoring session uses
-the persisted draft mode and draft state; a draft-only Character reopened through `/edit` remains
-in `create` mode and is not presented as an active Character with an edit draft. An active Character
-without a draft is read without creating one during SSR or preload. The mounted editor opens/reopens
-its private draft through `drafts.create`; `/characters/new` loads Systems only, then the mounted
-client creates one UUID-backed draft and navigates to its canonical edit route. Retry retains that
-Character UUID. An editable form requires the returned persisted draft generation.
+The edit loader reads `drafts.get` and `characters/builder.activeCharacter` through the
+authenticated SSR query bridge and parses the shared DTOs at the app boundary. Both are cheap:
+`activeCharacter` reads the active row and its route, never the draft, so an autosave does not re-run
+it. Canonical handle redirects remain intact. The form opens from the stored draft payload
+(`toCharacterFormValues(draft.payload)`); the Builder view appears with the first browser
+evaluation, and until then the page shows the content state. The authoring session uses the
+persisted draft mode and draft state; a draft-only Character reopened through `/edit` remains in
+`create` mode and is not presented as an active Character with an edit draft. An active Character
+without a draft is read without creating one during SSR or preload. The mounted editor
+opens/reopens its private draft through `drafts.create`; `/characters/new` loads Systems only, then
+the mounted client creates one UUID-backed draft and navigates to its canonical edit route. Retry
+retains that Character UUID. An editable form requires the returned persisted draft generation. The
+Builder opens on its first step (or the step in the URL); step progress arrives with the first
+evaluation.
 
 The form key includes Character UUID and draft generation, not save time. Same-generation loader
-updates preserve unsaved edits; a reopened generation creates a new form. Save marks submitted values
-clean only if the user has not edited them while the mutation was pending. Reset uses the saved form
-baseline. Cancel preserves private progress; successful discard exits to the list for a draft-only
-Character or the Sheet for an active Character, rather than immediately reopening a draft.
+updates preserve unsaved edits; a reopened generation creates a new form. An autosave marks the
+saved values clean only if the user has not edited them while it was in flight. Reset uses the
+saved form baseline. Cancel preserves private progress; successful discard exits to the list for a
+draft-only Character or the Sheet for an active Character, rather than immediately reopening a
+draft.
 
-One-shot candidate resolve/preview queries and the commit mutation carry the same generation.
-Resolution ignores superseded and unmounted responses. Finalization submits the exact reviewed
-preview Character without an intervening draft save; the server rechecks readiness, current sources
-and its own active baseline. The browser does not send a client baseline or a retired primary
-catalogue, authored-version upgrade token or target-status override.
+The commit mutation carries the draft generation. Resolution ignores superseded and unmounted
+responses. Finalization submits the exact reviewed preview Character; the server rechecks readiness,
+current sources and its own active baseline. The browser does not send a client baseline or a
+retired primary catalogue, authored-version upgrade token or target-status override.
 
-`characters/builderContext` loads full current readable Race/Class/Background/Equipment/Feat
-selectors separately from the selected mechanics registry. Unselected catalogue entries do not
-become mechanics or inventory. Spell catalogues remain conditional and all catalogue reads retain
-the existing complete-inline bounds. Published changes appear on the next resolution; authored
-working drafts and foreign personal publications remain excluded.
+#### Draft autosave (ADR 0036 S8) — local implementation
 
-Within one context load, selector enumeration reuses publications already validated for the selected
-registry under the same user, System, sources and query snapshot. This internal map is not a transport
-field and is rebuilt on the next load. Class publication parsing tries the known subclass schema
-first for valid subclasses and retains the original union parser for invalid input and its errors.
+The Builder saves its draft itself (`builder/save/draftAutosave.ts`). A change is saved once edits
+have been idle for 2 s, and no sooner than 10 s after the previous save began; a step change, page
+hide (best effort), leaving the Builder and "Save Draft" save at once. Saves never overlap, and a
+failed save retries the newest values with doubling backoff up to 30 s. The header's save state
+shows "Saving…", "Saved" or "Couldn't save, retrying" (`draftSaveStatus` in the authoring form
+state) in place of "Unsaved changes"; nothing else interrupts the form. Evaluation uses the form's
+own ability-intent cache, so autosave never reloads the route.
+
+`drafts.save` is structural only. It reads the draft head and checks the payload schema, the
+head's generation, owner, mode, System binding and base revision; the old payload, the System, the
+route and account usage are not read, since the head was bound to them when `drafts.create` opened
+it and commit revalidates everything. An edit draft also reads its active row, only for the returned
+`draftState` (a repair row has status `DRAFT`). It replaces the payload document
+in place through the head's `payloadDocumentId` and replaces the head; only a chunked old payload
+has chunks to delete. Draft rows are not Scene vision dependencies, so a save marks no Character
+revision. Measured (convex-test, 2026-09-28, `draftSaveBudget.test.ts`): a level-5 Wizard draft
+with 18 Spells, 15 inventory items and a long backstory (a 5.7 KB payload) reads 1.0 KB (the
+caller's profile, 0.4 KB, and the draft head, 0.6 KB) and writes 6.8 KB (the payload document and
+the head, replaced in place): 7.8 KB against the 32 KB budget. The same draft in edit mode also
+reads its 6.4 KB active row: 7.5 KB read and 6.9 KB written, 14.4 KB. See [persistence](persistence.md#character-draft-payloads-adr-0036-s8--local-implementation).
+
+#### Server Builder context
+
+`characters/builderContext` serves the server paths that still prepare the Builder: Sheet repairs,
+Campaign assignment, dependency updates and source-loss reconciliation (`resolution` scope), and the
+Sheet (`active` scope). The `resolution` scope reads the selected mechanics registry, the Class
+catalogue when a selected base class reaches its subclass level, and complete Equipment, Feat and
+conditional Spell pools for choice validation and Sheet options. Unselected catalogue entries do not
+become mechanics or inventory, and catalogue reads retain the existing complete-inline bounds.
+Within one context load, pool enumeration reuses publications already validated for the selected
+registry under the same user, System, sources and query snapshot. This internal map is not a
+transport field and is rebuilt on the next load. Class publication parsing tries the known subclass
+schema first for valid subclasses and retains the original union parser for invalid input and its
+errors.
 
 The shared native publication reader parses stored JSON once and preserves prototype-key
 normalization before checking integrity. For parsed JSON with finite numbers and recursively lexical
@@ -387,12 +404,7 @@ object-key enumeration, native serialization produces the existing canonical rul
 other input retains the sorted canonical serializer. Both paths use the same UTF-8 SHA-256 checksum
 and metadata checks. This changes no stored format, ownership check or publication contract.
 
-Preview, Sheet and source-loss preparation use the same loader's resolution scope (commit reads
-referenced content only; see [Referenced commit reads](#referenced-commit-reads-adr-0036-s7--local-implementation)): selected
-Race/Background records, with the Class catalogue included when a selected base class reaches its
-subclass selection level. Equipment, Feat and conditional Spell candidate pools stay complete for
-choice validation and Sheet options. Builder get/resolve retain all selectors. Preview returns the
-shared stripped resolution directly, avoiding construction of unused editor references and views.
+Commit reads referenced content only (see [Referenced commit reads](#referenced-commit-reads-adr-0036-s7--local-implementation)).
 First-create starting-equipment materialization reloads the selected mechanics registry and reuses the catalogue
 from the same transaction, so newly granted inventory contributes mechanics without a second full
 catalogue read. The reload repeats System/source admission and selected-root validation while reusing
@@ -410,19 +422,19 @@ These native API and browser read/write checks are implementation evidence, not 
 remaining source-loss producers, Campaign overlays and the complete local journey
 remain pending. Candidate resolution is not a commit authorization token.
 
-### Native structural preview — local implementation, acceptance pending
+### Structural preview — local implementation, acceptance pending
 
 ```mermaid
 flowchart LR
-  Proposal["Owned draft generation + proposed Builder intent"] --> Preview["characters/builder.preview query"]
+  Proposal["Draft values + proposed Builder intent"] --> Preview["previewSnapshotCharacterBuilder (browser worker)"]
   State["Current active Sheet state / empty first-create state"] --> Preview
-  Sources["Current authorized publications + installed System policy"] --> Preview
+  Sources["Content snapshots + installed System policy"] --> Preview
   Preview --> Repair["Neutral Builder reconciliation + readiness"]
   Repair --> Output["Reconciled Character + resolution + change preview"]
 ```
 
-`preview` applies the same ownership, generation, mode and immutable-binding checks as `resolve`.
-It replaces all proposed Sheet state with the current active document's state, or the existing empty
+The finalization preview runs in the browser worker (ADR 0036 S6); commit repeats the same
+reconciliation on the server. It replaces all proposed Sheet state with the current active document's state, or the existing empty
 Character factory state for first creation. Reconciliation initializes first-create HP from the
 System policy and preserves active current HP. It does not mutate the active record, draft or draft
 baseline, even when the active document has advanced since the draft opened.
@@ -463,14 +475,12 @@ existing 150 ms debounce, runs `resolveSnapshotCharacterBuilderPayload`, and Act
 `previewSnapshotCharacterBuilder` (`rules-runtime/character/snapshotBuilderEvaluation`). They are
 the S5 chain (`createLazySnapshotReaders` → `prepareCharacterRuleContext` →
 `assembleCharacterBuilderContext` → `resolveCharacterBuilderPayload`, or
-`prepareCharacterBuilderFromContext` → `toCharacterBuilderPreviewOutput`) and return the payloads
-`builder.resolve` and `builder.preview` return; `builder.preview` builds its output with the same
-`toCharacterBuilderPreviewOutput`. The worker parses the candidate as the server parses
-`builder.resolve` arguments and sets the draft owner and `DRAFT` status. The System comes from the
-existing `content.systems.get` query, since the System is not snapshotted yet (D67). An edit draft
-evaluates against the active Character it replaces, read by `characters/builder.activeCharacter`,
-which shares `builder.get`'s ownership and route checks; replacement allowances and the change
-preview compare against it, as `builder.resolve` does with its stored active document.
+`prepareCharacterBuilderFromContext` → `toCharacterBuilderPreviewOutput`). The worker parses the
+candidate as commit parses its input and sets the draft owner and `DRAFT` status. The System comes
+from the existing `content.systems.get` query, since the System is not snapshotted yet (D67). An
+edit draft evaluates against the active Character it replaces, read by
+`characters/builder.activeCharacter`; replacement allowances and the change preview compare
+against it, as commit does with its stored active document.
 
 - **Worker** (`domains/characters/builder/evaluation`). A module worker created after mount on the
   Builder route only, and started on its first evaluation; nothing evaluates during SSR. It keeps
@@ -483,20 +493,25 @@ preview compare against it, as `builder.resolve` does with its stored active doc
   checked against the manifest SHA-256 before it is parsed or kept in Cache Storage; a new manifest
   evicts the hashes it no longer names. The content origin is the session Worker's HTTP origin
   (`VITE_LIVE_SESSION_WEBSOCKET_URL`), also allowed in `connect-src`.
-- **States.** The Builder keeps showing the loaded payload while content prepares; it shows the
-  kinds being fetched, that content is still updating when a head's `revision` exceeds its
+- **States.** Until the first evaluation the Builder shows only its content state; afterwards it
+  keeps showing the last payload while content prepares. It shows the kinds being fetched, that content is still updating when a head's `revision` exceeds its
   `builtRevision`, and which kind failed to load, with a retry. The first ready evaluation and each
   manifest change re-resolve the current values.
 - **Sign-out.** Sign-out, a sign-in and an identity change seen by the root session check drop the
   cached content tokens, terminate Builder workers and delete the snapshot Cache Storage
   (`clearPrivateContentSnapshots`).
-- **Still on the server.** `builder.get` still loads the Builder, and `commit` stays authoritative
-  (S7 narrows its reads). `builder.resolve` and `builder.preview` have no web caller; S9 deletes them.
+- **On the server.** Only `commit` evaluates, and it stays authoritative (S7 narrows its reads).
 - **Gates.** `rulesRuntimeBoundary.test.ts` walks the web app's runtime imports and forbids
   `rules-runtime/encounter*`. `builderEvaluationWorker.size.test.ts` builds the worker entry and
   holds it to 300 KB gzipped. `builderSnapshotParity.test.ts` (apps/apis) runs the worker's
-  evaluation through lazy readers over the S5 corpus, compares resolve and preview with the server,
-  and holds warm evaluation p95 to 100 ms in Node.
+  evaluation through lazy readers over the S5 corpus and compares resolve and preview with a pure
+  full-pool evaluation over the publications Convex authorizes (`tests/fixtures/builderEvaluation.ts`:
+  picker facts straight from the documents, Equipment resolved from its documents), and holds warm
+  evaluation p95 to 100 ms in Node. `builderChoices.test.ts` exercises choices and readiness through
+  the same browser path. `rules-runtime/__tests__/builderCatalogueAssembly.test.ts` holds the
+  catalogue rules (Class and Equipment parents, projected against document Equipment facts, Feat
+  scope merging, and the `resolution` scope equal to `selectors` apart from its catalogue) over
+  snapshot objects.
 
 ### Native Builder commit — local implementation, acceptance pending
 
@@ -555,8 +570,8 @@ journeys remain required before the replacement lifecycle is accepted.
 
 #### Referenced commit reads (ADR 0036 S7) — local implementation
 
-Commit validates on the server from the content the Character references, not the complete pools
-that preview and resolve still read (until S9). `commit.commit` passes `prepareCharacterBuilder` one
+Commit validates on the server from the content the Character references, not the complete pools.
+`commit.commit` passes `prepareCharacterBuilder` one
 `CharacterReferencedReads` (feature hints plus per-transaction root, publication, System and source
 caches), which loads `loadCharacterReferencedContext` (`characters/referencedContext.ts`) for the
 first preparation and the post-materialization reload. Parent reads, held-Equipment rule retention and

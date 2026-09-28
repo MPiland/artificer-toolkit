@@ -188,14 +188,18 @@ The current loader still returns an assembled context, so it is not a raw-docume
 
 `assembleCharacterBuilderContext` (same module) builds the Builder catalogue over a prepared rule
 context in `selectors` or `resolution` scope: which pools to read, label order, subclass and
-Equipment parent checks, Equipment variant resolution, and Feat and Spell records. Its
-`CharacterBuilderCatalogueReaders` return each pool's picker facts in the content snapshot index
-shape (ADR 0036), with a subrace already joined to its base Race; vocabulary labels resolve through
-the System in `createCharacterBuilderCatalog`. Two reader sets implement it: the Convex
-`characters/builderContext` adapter, and `character/snapshotReaders` (`createSnapshotReaders`) over
-the parsed snapshot objects of one Character's manifest, where a `SOURCE` root shadows a Campaign
-share of the same root. `character/builderPayload` turns either context into the Builder payload.
-`characters/builderSnapshotParity.test.ts` proves both reader sets produce the same payload.
+Equipment parent checks, Equipment variant resolution, and Feat and Spell records. Its readers
+return each pool's picker facts in the content snapshot index shape (ADR 0036), with a subrace
+already joined to its base Race; vocabulary labels resolve through the System in
+`createCharacterBuilderCatalog`. The `selectors` scope takes `CharacterBuilderCatalogueReaders`
+(every picker pool) and is the browser Builder's: `character/snapshotReaders`
+(`createSnapshotReaders`) over the parsed snapshot objects of one Character's manifest, where a
+`SOURCE` root shadows a Campaign share of the same root. The `resolution` scope takes only
+`CharacterBuilderResolutionCatalogueReaders` (Classes, Equipment, Feats); the Convex
+`characters/builderContext` adapter implements it for the server's Sheet, assignment and source-loss
+paths (ADR 0036 S9 removed the server's `selectors` scope). `character/builderPayload` turns a
+context into the Builder payload. `characters/builderSnapshotParity.test.ts` proves the snapshot
+readers produce the payload of a pure full-pool evaluation over the publications Convex authorizes.
 
 The private `liveSessionCharacterRules` contract now supplies stored Character/Sheet/System/Campaign
 inputs, authorized source indexes and paged publication DTOs to Worker `nativeCharacterRules`.
@@ -1343,8 +1347,7 @@ else every other Encounter actor. It leaves out an option whose shape a turn can
 action that starts an active effect). The controller answers `LEGENDARY_OPTION` with the option and a
 target from its list; a player sees and may pick only public actors. The turn then prepares the action
 exactly as `RESOLVE_ACTION` does and runs it through `advanceNativeActionGraphs`: the TEST and OUTCOME
-phases, critical doubling, a hit's forced save (rolled by the target's controllers, ADR 0034 decision
-3) and damage dice each pause as `ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE` for their roller unless
+phases, critical doubling, a hit's forced save (rolled by the target's controllers, ADR 0034 decision 3) and damage dice each pause as `ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE` for their roller unless
 that roller auto-rolls. Each window plans its mechanics against the actors earlier windows changed,
 with the Character event ordinal of its window, and hands the projected actor facts to the later turn
 stages. Eligibility is checked again before each window against those changed actors, so an owner an

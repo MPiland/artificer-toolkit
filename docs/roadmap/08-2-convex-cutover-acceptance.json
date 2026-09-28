@@ -1519,7 +1519,10 @@
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0036); the entries below proved server-side Builder resolution and no longer prove this criterion",
                 ".codex/validation/movement-replay-duplicates-20260916/p02-root-session/accepted-proof.json",
-                "missing: ADR 0036 slices S5-S9 re-proof with the Builder budget gates"
+                "apps/apis/convex/characters/draftSaveBudget.test.ts (S8, convex-test 2026-09-28: autosave of a level-5 Wizard draft: 7.8 KB in create mode, 14.4 KB in edit mode, against 32 KB; never reads the old payload)",
+                "apps/web/src/domains/characters/builder/save/draftAutosave.test.ts (S8: 2 s idle debounce, 10 s minimum interval, immediate flush, no overlapping saves, retry with backoff)",
+                "apps/apis/convex/characters/builderSnapshotParity.test.ts (S9: browser snapshot evaluation equals a pure full-pool evaluation; builder.get, resolve and preview removed)",
+                "missing: local end-to-end Builder journey over snapshots with the Builder budget gates (S6 local bridge, S10)"
               ]
             },
             {

@@ -1,6 +1,6 @@
 # ADR 0036 implementation plan
 
-> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3, S4, S5, S6 and S7 (2026-09-28). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
+> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3 to S9 (2026-09-28). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
 
 ## What the code does today
 
@@ -141,6 +141,25 @@
   - **The written row is not reread.** `writeCharacterRecord` evaluates the stored stats over the row it wrote, `listActiveRuleEffects` skips its owner check when `loadCharacterSheetFacts` holds the row (`ownerVerified`), and `syncAccountUsage` takes the owner commit verified. Before this, those three read the new Character row back: 116 KB for the Fighter and 85 KB for the Wizard. The budget test counts every read.
   - Before the shared caches the Fighter commit read 1.1 MB (a second full rule context for materialization, the `active`-scope Class pool for the stats, and repeated parent and retention reads).
 
+## Autosave (S8, current)
+
+[Character](../architecture/character.md#draft-autosave-adr-0036-s8--local-implementation) describes the flow and [persistence](../architecture/persistence.md#character-draft-payloads-adr-0036-s8--local-implementation) the storage. Where S8 differs from the design summary:
+
+- **Debounce.** "After 2 s idle, at most every 10 s" is read as both limits: a save waits for 2 s without edits and for 10 s since the previous save began, so a steadily edited draft saves about six times a minute at most. Continuous typing without a 2 s pause saves at the next pause, step change, page hide or "Save Draft". The alternative (a 10 s maximum wait during continuous edits) would save more often.
+- **Retry.** A failed save retries the newest values after 2 s, doubling to 30 s, with no attempt limit. A draft replaced elsewhere (a new generation) fails every retry and the header keeps saying so; reopening the Builder recovers.
+- **Status.** The shared authoring header shows `draftSaveStatus` ("Saving…", "Saved", "Couldn't save, retrying") in place of its unsaved-changes state; other authoring forms leave it unset.
+- **Head.** The draft head gained `payloadDocumentId` (the payload document's storage id) and lost the inline `payloadJson` form; the payload document stays inline below 960 KiB. Pre-S8 draft rows fail the new schema: reset the local deployment before pushing it.
+- **Not read by save.** The System (31 KB for the SRD), the route and account usage are checked when `drafts.create` opens the draft, and commit revalidates. Draft tables no longer mark Scene vision revisions.
+- **Budget** (`characters/draftSaveBudget.test.ts`, counted with the S7 counting `ctx.db`, now shared as `tests/fixtures/databaseIo.ts`, beneath the triggers, plus writes at the JSON size written). Measured (convex-test, 2026-09-28) for a level-5 Wizard draft with 18 Spells, 15 inventory items and a long backstory (5.7 KB payload): reads 1.0 KB (the caller's profile 0.4 KB and the draft head 0.6 KB), writes 6.8 KB (two in-place replaces), 7.8 KB in total against 32 KB. In edit mode the save also reads the 6.4 KB active row for the returned `draftState` (a repair row is `DRAFT`): 7.5 KB read, 6.9 KB written, 14.4 KB. The test also requires that only those tables are read and nothing is inserted or deleted. A lean save receipt without `draftState` and the echoed payload would drop the active-row read; it changes the public return shape, so it is left as a follow-up.
+- **Subscriptions.** `drafts.get` still re-runs after each save while the Builder route keeps it cached (the draft head and payload, about the payload's size); `builder.activeCharacter` does not read the draft.
+
+## Removal (S9, current)
+
+- **Removed:** `builder.get`, `builder.resolve`, `builder.preview`, the Convex `selectors` scope and its Race and Background pool readers, `getCharacterBuilderAuthoringState` and the Builder session's server payload. `assembleCharacterBuilderContext` now takes `{scope, readers}`; the `resolution` scope needs only Class, Equipment and Feat readers (`CharacterBuilderResolutionCatalogueReaders`).
+- **Kept:** `builder.activeCharacter` (now the edit route's SSR read beside `drafts.get`, and it no longer reads the draft), the `resolution` and `active` scopes for the Sheet, Campaign assignment, dependency updates and source loss, and the referenced commit.
+- **First paint.** The Builder route renders the draft's form and the content state; the view and step progress arrive with the first browser evaluation. It opens on the first step (or the URL's step) instead of the server's recommended step.
+- **Tests.** The selector-payload tests became pure snapshot tests (`rules-runtime/__tests__/builderCatalogueAssembly.test.ts`); the Equipment and Feat catalogue tests now exercise the server `resolution` pools; the parity test compares the browser path with a pure full-pool evaluation over the publications Convex authorizes (`apps/apis/tests/fixtures/builderEvaluation.ts`); `builderChoices.test.ts` evaluates through the browser path.
+
 ## Budgets (estimates to verify in the slices)
 
 | Action                                        | Convex I/O                                                           | Network                                                         |
@@ -148,7 +167,7 @@
 | Edit                                          | 0                                                                    | 0 when cached                                                   |
 | Picker open                                   | 0                                                                    | Cache miss: one Worker request, 5–300 KB gzipped, once per hash |
 | Builder open                                  | Manifest ~10 KB, token ~5 KB, draft ~15 KB                           | Cold start about 1 MB gzipped (SRD), once                       |
-| Autosave (after 2 s idle, at most every 10 s) | ≤30 KB                                                               | —                                                               |
+| Autosave (after 2 s idle, at most every 10 s) | Measured (S8): 7.8 KB create, 14.4 KB edit (level-5 Wizard draft)    | —                                                               |
 | Commit                                        | Measured (S7): Fighter 5 145 KB, Wizard 5 257 KB, every read counted | —                                                               |
 | Whole build                                   | About 1.2–1.5 MB. 50 builds a month ≈ 75 MB                          | —                                                               |
 
@@ -164,8 +183,8 @@
 | S5    | `snapshotReaders` and the extracted `assembleCharacterBuilderContext`                                                                            | Golden parity with today's `builder.resolve` over a fixture corpus; snapshot/Convex round-trip                                                                                                            |
 | S6    | Web: snapshot client, Web Worker evaluation, local resolve and preview                                                                           | Bundle size gate (≤300 KB gzipped); import boundary forbidding `rules-runtime/encounter*` in the web app; evaluation p95 ≤100 ms                                                                          |
 | S7    | Commit reading only referenced content                                                                                                           | Differential test (browser against server validation); read budget                                                                                                                                        |
-| S8    | Debounced autosave and a cheaper `drafts.save`                                                                                                   | Budget test                                                                                                                                                                                               |
-| S9    | Delete `builder.get`, `resolve`, `preview`, the selector scope and the full-pool loading; update `character.md`, `media.md` and `persistence.md` | —                                                                                                                                                                                                         |
+| S8    | Debounced autosave and a cheaper `drafts.save`                                                                                                   | Budget test; debounce and flush; no reads of the old payload                                                                                                                                              |
+| S9    | Delete `builder.get`, `resolve`, `preview`, the selector scope and the full-pool loading; update `character.md`, `media.md` and `persistence.md` | Parity against a pure full-pool evaluation; catalogue rules as pure snapshot tests                                                                                                                        |
 | S10   | The room loads content from snapshots (after the ADR 0035 room slices)                                                                           | —                                                                                                                                                                                                         |
 
 ## Risks and open points

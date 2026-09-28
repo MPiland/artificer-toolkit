@@ -397,6 +397,33 @@ homebrew republish) reaches a Character's stored stats on that Character's
 next write, while the Sheet always shows the live value. Follow-up: a publish-time background
 recompute for Characters that use the republished source.
 
+## Character draft payloads (ADR 0036 S8) — local implementation
+
+A Character draft is a head (`characterDrafts`) and one payload document
+(`characterDraftPayloads`). The head holds the owner, System, mode, generation (`id`), base revision,
+label, checksum, the payload's own id (`payloadId`, which its chunks carry) and the payload
+document's storage id (`payloadDocumentId`). The payload JSON stays inline in the payload document
+up to `CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES` (960 KiB, below Convex's 1 MiB document limit);
+above it the document holds chunk metadata and `characterDraftPayloadChunks` hold 240 KiB chunks.
+The head no longer holds inline payload JSON, and every head has exactly one payload document.
+
+- **Open** (`drafts.create`, import staging, source-loss repair of an active Character without a
+  draft): inserts the payload document, then the head that names it.
+- **Save** (`drafts.save`, source-loss repair of an existing draft): `replaceCharacterDraftPayload`
+  replaces the payload document in place by `payloadDocumentId` under a new `payloadId`, without
+  reading it, and deletes chunks only when the old payload was chunked (found by the old
+  `payloadId`). `drafts.save` then replaces the head; beyond the head it reads only an edit draft's active row, for the returned `draftState` (see
+  [Character](character.md#draft-autosave-adr-0036-s8--local-implementation)).
+- **Read, delete** (`drafts.get`, commit, discard, account deletion): load the document by
+  `payloadDocumentId` and verify its `id`, Character and checksum against the head.
+- **Change tracking.** `characterDrafts` and `characterDraftPayloads` are not Scene vision
+  dependencies (`lib/mutations.ts`); Scene vision reads active Characters only, so a draft write
+  marks no revision and runs no trigger reads.
+- **Existing rows.** Pre-launch, draft heads written before S8 (without `payloadDocumentId`, or
+  with inline `payloadJson`) are not migrated; they fail the new schema, so the local deployment is
+  reset and reseeded before the S8 schema is pushed. Deleting draft rows alone would leave their
+  account-usage entries behind.
+
 ## Content snapshot heads and objects (ADR 0036 S2) — local implementation
 
 [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md) publishes content as
@@ -1041,7 +1068,11 @@ Convex document `_id`, which changes across import and export and leaks storage 
 Character source identities (`recordCharacterSourceIdentity`) and acquired Equipment rules read the
 public field.
 
-### Complete Character selector catalogues — locally validated
+### Complete Character catalogues — locally validated
+
+Since ADR 0036 S9 the Builder's picker pools come from content snapshots; these server pools serve
+the `resolution` scope (Sheet repairs, Campaign assignment, dependency updates and source loss) and
+the referenced commit's Equipment and Feat reads.
 
 `authoredRoots.equipmentOptions.builder` is an optional, checksum-bound projection of the effective
 Equipment selector fields: category, properties, container status, maximum stack and attunement.
