@@ -131,6 +131,8 @@ The lease is the backstop for lost notifications, because the control route give
 
 ## Open measurements (S0)
 
+Measured 2026-09-27 in the [S0 validation record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md), except the Worker bundle growth after the move. Its recommendations (the checkpoint record shapes, N = 120 s, a 240 s lease and memory-only previews) need architect approval.
+
 - Room CPU per command, and the cost of waking a hibernated room.
 - Checkpoint delta size at 11 and 100 actors.
 - Convex transaction limits for a checkpoint.

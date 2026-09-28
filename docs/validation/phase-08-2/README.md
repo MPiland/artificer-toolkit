@@ -23,6 +23,10 @@ One summary per gate gives each case's status, acceptance date, proof tier, crit
 - [D55 lazy schema spike, 2026-09-27](d55-lazy-schema-spike-2026-09-27.md): where per-call module load goes, the patterns tried and the rollout plan
 - [D59 lazy schema rollout, 2026-09-27](d59-lazy-schema-rollout-2026-09-27.md): module load 56–83% lower on five hot function graphs, zero differences against the merge base, and the gates run
 
+## ADR 0035
+
+- [S0 measurements, 2026-09-27](adr-0035-s0-2026-09-27.md): room CPU in workerd, the Durable Object cost model for V15, checkpoint delta sizes against the Convex free plan, the token lifetime and Convex transaction limits; recommends N = 120 s, a 240 s lease and memory-only previews
+
 ## Local checkpoints
 
 Complete output and manifests are retained under ignored `local-validation/phase82-goal-20260923/` in the regular checkout; the copy from the detached worktree completed successfully (robocopy exit 3). `local-validation/phase82-relocation-20260924/transfer-result.json` records the checkout transfer. This durable summary intentionally excludes raw logs, payloads and secrets.
