@@ -17,13 +17,26 @@ Q16 is the other side: what we pay hosting providers before revenue justifies a 
 - **The load unit is a table.** A Free or Player host runs 1 active Campaign with up to 5 player seats, which is the V15 table (1 GM and 5 players). A GM or Pro GM host allows 12 seats, which is the worst-case table.
 - **The break-even is a handful of subscribers.** A few GM subscriptions pay for a paid hosting plan, so the free hosting tier only has to carry the launch cohort until those first conversions.
 
-**Recommendation:**
-- **Capacity:** the free hosting tier carries 20 active tables, each playing four 4-hour sessions a month (mostly 6-person tables, with some 13-person tables), plus 50 Character builds a month.
-- **Budgets:** each monthly free allowance (Convex database I/O, Cloudflare Durable Object requests and duration, Netlify bandwidth), divided by that load, with 50% headroom.
-- **Gates:**
-  - V15 is measured at 6 people.
-  - A 13-person variant checks that per-session reads stay flat as seats grow.
-- **Before the budgets are set:** check the current free-tier limits.
+**Every tier limit is a load dimension, not only table size** (user correction, 2026-09-27):
+
+| Limit (Free / Player / GM / Pro GM) | What it drives on our side |
+| --- | --- |
+| Personal Characters: 6 / unlimited / unlimited / unlimited | Builder edits and saves, Character storage, Sheet reads outside play |
+| Owned homebrew roots: 20 / unlimited / … | Authoring edits, publications and content snapshots, database storage |
+| Media storage: 250 MB / 1 GB / 5 GB / 25 GB | R2 bytes and operations (maps and handouts); Convex holds only metadata |
+| Hosted Campaigns and seats: 1 × 5 / 1 × 5 / 5 × 12 / unlimited × 12 | Live play: room requests and duration, checkpoints, projections |
+| Saved Encounters: 3 / 3 / unlimited / unlimited | Database storage and prep reads |
+| Public listings: 1 / 1 / 5 / fair use | Social Hub reads (public, often unauthenticated, so they must be cheap and cached) |
+
+**Recommendation:** build a per-tier load model from these limits and a typical-use assumption. For example, a Free user:
+- builds or edits 2 Characters a month;
+- authors 5 homebrew items;
+- uploads 50 MB;
+- hosts or joins one table playing four sessions.
+
+Size the free hosting tier for a launch cohort: 100 Free users, of whom 20 host tables, plus the first handful of paid users.
+- **The budgets** (reads per Builder edit, per authoring save, per combat command and per session; storage and R2 operations per user) are each provider allowance divided by that model, with 50% headroom.
+- **Pressure point to check:** storage quota. Taken at its full limit, 250 MB per Free user fills a typical free object-storage allowance at a few dozen users. Either typical use is far lower, or the Free media limit should come down before launch. The current free-tier limits of Convex, Cloudflare (Durable Objects and R2) and Netlify need checking before the numbers are fixed.
 
 **Answer:**
 
