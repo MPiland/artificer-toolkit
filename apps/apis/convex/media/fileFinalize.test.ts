@@ -346,6 +346,47 @@ it('normalizes real UTF-8 bytes, settles actual quota once, attaches and retains
   )
 }, 20_000)
 
+it('counts a shared asset once and starts grace only when its last reference detaches', async () => {
+  const base = await setup()
+  const intent = await uploadIntent(base, Buffer.from('shared notes'))
+  await base.other.caller.action(finalizeAction, { assetId: intent.assetId })
+  const attachments = []
+  for (const displayName of ['Session one', 'Session two'])
+    attachments.push(
+      await base.other.caller.mutation(attach, {
+        campaignId: base.campaign.id,
+        assetId: intent.assetId,
+        displayName
+      })
+    )
+  async function usage() {
+    const snapshot = await base.snapshot()
+    return {
+      asset: snapshot.assets[0]!,
+      mediaBytes: snapshot.profiles.find((p) => p.userId === base.other.userId)?.mediaBytes
+    }
+  }
+  const attached = await usage()
+  expect(attached.mediaBytes).toBe(attached.asset.chargedBytes)
+  expect(attached.asset).toMatchObject({ status: 'READY', cleanupAt: null })
+
+  await base.other.caller.mutation(removeAttachment, {
+    campaignId: base.campaign.id,
+    attachmentId: attachments[0]!.id
+  })
+  expect(await usage()).toEqual(attached)
+
+  await base.other.caller.mutation(removeAttachment, {
+    campaignId: base.campaign.id,
+    attachmentId: attachments[1]!.id
+  })
+  const detached = await usage()
+  expect(detached.asset.status).toBe('READY')
+  expect(detached.asset.cleanupAt).toBe(Date.now() + 24 * 60 * 60_000)
+  await base.t.finishAllScheduledFunctions(vi.runAllTimers)
+  expect(await usage()).toMatchObject({ asset: { status: 'DELETED' }, mediaBytes: 0 })
+}, 20_000)
+
 it('creates three metadata-free image variants without introducing a crop and collects unattached output', async () => {
   const base = await setup()
   const body = await sharp({
