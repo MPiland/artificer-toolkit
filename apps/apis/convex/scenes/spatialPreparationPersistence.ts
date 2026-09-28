@@ -1,14 +1,14 @@
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
-import { readRunState } from '../encounters/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   assertGeometryReceiving,
   readGeometrySave,
   readSpatialPreparation
 } from './geometryDocuments'
 import { readSessionVisionScope } from './sessionVisionDocuments'
-import { beforeWrite } from '../lib/transactionReads'
+import { beforeWrite } from '@artificer-toolkit/encounter-persistence/transactionReads'
 
 /**
  * Internal staged evidence only. The parent validates token control and publishes all gameplay state.

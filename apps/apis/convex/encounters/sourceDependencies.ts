@@ -1,6 +1,6 @@
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { readRunState } from './documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 
 /** The Campaign update transaction owns the proposed source removal. */
 export async function requireEncounterPolicySources(

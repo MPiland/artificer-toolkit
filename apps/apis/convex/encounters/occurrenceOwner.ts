@@ -5,7 +5,7 @@ import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/e
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readStoredPendingSnapshot } from './pendingSnapshots'
+import { readStoredPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 
 type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext']
 

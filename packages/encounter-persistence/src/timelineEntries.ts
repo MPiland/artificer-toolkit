@@ -10,8 +10,8 @@ import {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import type { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from './domainRejections.js'
+import type { EncounterReadContext, EncounterWriteContext } from './store.js'
 
 type StoredCommand = z.infer<typeof encounterStoredRunCommandSchema>
 
@@ -61,7 +61,7 @@ function commandTimelineMetadata(command: StoredCommand) {
 }
 
 export async function requireUnusedEvidenceCommandId(
-  ctx: QueryCtx,
+  ctx: EncounterReadContext,
   campaignId: string,
   commandId: string
 ) {
@@ -74,7 +74,7 @@ export async function requireUnusedEvidenceCommandId(
   if (evidence?.commandType === 'RESOLVE_RULE_OCCURRENCE') rejectDomain('COMMAND_ID_REUSED')
 }
 
-export async function insertRunCommand(ctx: MutationCtx, command: StoredCommand) {
+export async function insertRunCommand(ctx: EncounterWriteContext, command: StoredCommand) {
   await requireUnusedEvidenceCommandId(ctx, command.campaignId, command.commandId)
   const metadata = commandTimelineMetadata(command)
   return command.commandType === 'CREATE'

@@ -2,7 +2,7 @@ import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/sy
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { deriveOnce } from '../lib/transactionReads'
+import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 
 export function readSystem(record: Doc<'systems'>) {
   if (checksumRuleDocument(record.document) !== record.checksum) {

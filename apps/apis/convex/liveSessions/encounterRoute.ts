@@ -6,11 +6,11 @@ import {
   type LiveSessionEncounterRouteResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { internalQuery, type QueryCtx } from '../_generated/server'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readNativeEncounterOccurrenceOwner } from '../encounters/occurrenceOwner'
 import { classifyRuleOccurrenceVoid, voidDeclineCommand } from '../encounters/occurrenceVoid'
 import { readPendingRunDecision } from '../encounters/pendingReads'
-import { readStoredPendingSnapshot } from '../encounters/pendingSnapshots'
+import { readStoredPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
 
 /**

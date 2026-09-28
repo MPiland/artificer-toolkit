@@ -10,7 +10,7 @@ import type { QueryCtx } from '../_generated/server'
 import { readCharacterMaximumHitPoints } from '../characters/characterMaximumHitPoints'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { requireSystem } from '../content/systemDocuments'
-import { readRunProjection } from './documents'
+import { readRunProjection } from '@artificer-toolkit/encounter-persistence/documents'
 
 /**
  * Projects a Character's hit points over its effective maximum, as the Sheet shows them, and its

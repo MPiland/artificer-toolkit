@@ -42,7 +42,7 @@ import {
 import { api, internal } from '../_generated/api'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 import { prepareNativeActionEconomy } from './actionEconomy'
-import { readRunActors, readRunState } from './documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { sourceImportBatches } from '../content/importBatches'

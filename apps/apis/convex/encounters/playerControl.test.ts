@@ -18,7 +18,7 @@ import {
   readEncounterControlledActorIds,
   requireBoundTokenMoveControl
 } from './actorController'
-import { readRunActor, readRunState } from './documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 

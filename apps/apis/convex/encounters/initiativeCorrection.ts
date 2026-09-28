@@ -6,7 +6,7 @@ import {
   type EncounterInitiativeRoundStateDto
 } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { MutationCtx } from '../_generated/server'
-import { readRunActors, readRunState } from './documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { createEncounterInitiativeStore } from './initiativeStore'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {

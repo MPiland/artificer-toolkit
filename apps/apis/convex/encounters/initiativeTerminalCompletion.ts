@@ -27,7 +27,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { insertRunCommand } from './timelineEntries'
+import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 type InitiativeRootCommand = Extract<EncounterCommandInputDto, { type: 'START' | 'ADVANCE_TURN' }>
 

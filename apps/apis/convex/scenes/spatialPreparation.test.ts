@@ -9,7 +9,7 @@ import {
 } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { createSpatialPreparationFixture as setup } from '../../tests/fixtures/spatialPreparation'
 import { internal } from '../_generated/api'
-import { readRunState } from '../encounters/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { advanceLiveState, readLiveScene } from './liveDocuments'

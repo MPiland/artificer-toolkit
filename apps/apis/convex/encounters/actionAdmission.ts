@@ -10,10 +10,17 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
-import { readRunActor, readRunProjection, readRunState } from './documents'
+import {
+  readRunActor,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { requireEncounterActorControl } from './actorController'
-import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries'
-import { rejectDomain } from '../lib/domainRejections'
+import {
+  presentTimelineEntry,
+  requireUnusedEvidenceCommandId
+} from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 /**
  * Authorizes one action and verifies sealed replay before any fresh execution. A fresh action needs

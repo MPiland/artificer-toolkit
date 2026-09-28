@@ -23,7 +23,7 @@ import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/proje
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { readRunProjection, readRunState } from '../encounters/documents'
+import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const claim = makeFunctionReference<'mutation', { campaignId: string }, { epoch: string }>(

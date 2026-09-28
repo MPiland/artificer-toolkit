@@ -26,12 +26,20 @@ import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { snapshotBlueprintEnemies } from './blueprintSnapshots'
 import { readEncounterCharacterStates } from './characterStates'
-import { readEncounterActorCore, readRunActors, readRunProjection, readRunState } from './documents'
+import {
+  readEncounterActorCore,
+  readRunActors,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { insertReinforcementInitiative } from './actorReinforcementInitiative'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries'
-import { rejectDomain } from '../lib/domainRejections'
+import {
+  insertRunCommand,
+  requireUnusedEvidenceCommandId
+} from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 type ReinforceCommand = Extract<EncounterExecuteInput['command'], { type: 'REINFORCE' }>
 

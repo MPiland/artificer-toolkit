@@ -2,7 +2,7 @@ import type { EncounterAllyAdvantageUseDto } from '@artificer-toolkit/schema/sha
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { withoutEncounterAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import type { MutationCtx } from '../_generated/server'
-import { replaceRunActor } from './documents'
+import { replaceRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 
 /**
  * Records the ally advantages (Help, Q11) a committed roll used: each leaves its helper. Only the

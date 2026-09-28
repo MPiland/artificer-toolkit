@@ -1,7 +1,3 @@
-import type { GenericDatabaseReader } from 'convex/server'
-import type { DataModel } from '../_generated/dataModel'
-
-type DatabaseReader = GenericDatabaseReader<DataModel>
 type Step = { method: 'withIndex' | 'order'; args: unknown[]; key: unknown[] }
 
 const terminals = new Set<PropertyKey>(['unique', 'first', 'collect', 'take', 'paginate'])
@@ -155,7 +151,7 @@ export function beforeWrite<Document extends object>(db: object, document: Docum
  * another caller's view, and `deriveOnce` caches their derivations. Filtered, search and streamed
  * reads pass through unmemoized.
  */
-export function memoizeTransactionReads<Database extends DatabaseReader>(db: Database): Database {
+export function memoizeTransactionReads<Database extends object>(db: Database): Database {
   return memoizeReads(db, true)
 }
 
@@ -174,11 +170,11 @@ export function memoizeTransactionReads<Database extends DatabaseReader>(db: Dat
  * (`memoizedInternalMutation`) so trigger writes invalidate it too; a written document is never
  * served stale.
  */
-export function memoizeMutationReads<Database extends DatabaseReader>(db: Database): Database {
+export function memoizeMutationReads<Database extends object>(db: Database): Database {
   return memoizeReads(db, false)
 }
 
-function memoizeReads<Database extends DatabaseReader>(db: Database, share: boolean): Database {
+function memoizeReads<Database extends object>(db: Database, share: boolean): Database {
   if (readerScopes.has(db)) return db
   const gets = new Map<string, Map<string, Promise<unknown>>>()
   const queries = new Map<unknown, Map<string, Promise<unknown>>>()

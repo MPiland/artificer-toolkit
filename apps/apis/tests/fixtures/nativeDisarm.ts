@@ -45,7 +45,7 @@ import {
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import type { QueryCtx } from '../../convex/_generated/server'
-import { rejectDomain } from '../../convex/lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { prepareNativeActionEconomy } from '../../convex/encounters/actionEconomy'
 import { prepareNativeEncounterActionMechanics } from '../../convex/encounters/actionMechanicsPreparation'
 import { readNativeActionSceneContext } from '../../convex/encounters/actionSceneContext'

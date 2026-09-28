@@ -11,7 +11,11 @@ import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
-import { readRunActor, readRunProjection, readRunState } from './documents'
+import {
+  readRunActor,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 
 /** Reads the sealed action root without exposing executable facts to recipients. */
 export function readNativeActionPending(occurrence: Doc<'encounterRuleOccurrences'>) {

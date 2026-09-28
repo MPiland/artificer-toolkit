@@ -54,7 +54,11 @@ import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
-import { readRunActor, readRunProjection, readRunState } from '../encounters/documents'
+import {
+  readRunActor,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,

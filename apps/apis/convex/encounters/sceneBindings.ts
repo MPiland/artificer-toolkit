@@ -18,11 +18,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mutation } from '../lib/mutations'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
-import { readRunProjection, readRunState } from './documents'
+import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { internalQuery, query, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { readRecipientContext } from '../scenes/recipientContext'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 async function readBoundSceneScope(
   ctx: QueryCtx,

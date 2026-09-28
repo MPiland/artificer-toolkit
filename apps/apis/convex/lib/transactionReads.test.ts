@@ -8,7 +8,7 @@ import {
   memoizeMutationReads,
   memoizeTransactionReads,
   beforeWrite
-} from './transactionReads'
+} from '@artificer-toolkit/encounter-persistence/transactionReads'
 
 it('serves identical reads once, frozen, and keeps different ranges apart', async () => {
   const t = convexTest(schema)

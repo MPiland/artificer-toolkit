@@ -6,7 +6,7 @@ import {
 } from '../../tests/fixtures/spatialPreparation'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { api, internal } from '../_generated/api'
-import { readRunState } from '../encounters/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   planMovementInRoom,
   planStagedMovementInRoom

@@ -1,7 +1,7 @@
 import { Migrations } from '@convex-dev/migrations'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
-import { presentTimelineEntry } from './timelineEntries'
+import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { internalMutation } from '../lib/mutations'
 
 const migrations = new Migrations(components.migrations, { schema, internalMutation })

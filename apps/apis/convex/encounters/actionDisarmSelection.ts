@@ -11,7 +11,7 @@ import type { QueryCtx } from '../_generated/server'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 import { prepareNativeActionEconomy } from './actionEconomy'
 import { readNativeActionSceneContext } from './actionSceneContext'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 /** The current Disarm choices for the optional-action drawer, from stored facts. */
 export async function readNativeDisarmSelection(

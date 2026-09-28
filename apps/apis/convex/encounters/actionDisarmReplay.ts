@@ -14,7 +14,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createDnd5eOptionalCombatContestGraph } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestGraph'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { presentTimelineEntry } from './timelineEntries'
+import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 /** Validates the original action and its terminal rule receipt without reevaluating changed facts. */
 export async function readNativeDisarmReplay(

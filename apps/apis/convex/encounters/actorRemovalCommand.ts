@@ -18,12 +18,20 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readCharacterRecord } from '../characters/stateDocuments'
-import { readEncounterActorCore, readRunActors, readRunProjection, readRunState } from './documents'
+import {
+  readEncounterActorCore,
+  readRunActors,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { cleanupRemovedActorEffects } from './actorRemovalEffects'
 import { removeActorInitiative } from './actorRemovalInitiative'
-import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries'
-import { rejectDomain } from '../lib/domainRejections'
+import {
+  insertRunCommand,
+  requireUnusedEvidenceCommandId
+} from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 type RemoveActorCommand = Extract<EncounterExecuteInput['command'], { type: 'REMOVE_ACTOR' }>
 type Campaign = Awaited<ReturnType<typeof requireCampaignAuthority>>['campaign']

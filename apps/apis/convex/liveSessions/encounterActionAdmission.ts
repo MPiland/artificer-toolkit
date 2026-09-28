@@ -6,7 +6,7 @@ import { readNativeEncounterActionAdmission } from '../encounters/actionAdmissio
 import { readNativeEncounterActionResponseAdmission } from '../encounters/actionResumeAdmission'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readCleavingResponseAdmission } from '../encounters/cleavingResponseAdmission'
 import { readDisarmAdmission } from '../encounters/disarmAdmission'
 import { readBasicActionAdmission } from '../encounters/basicActionAdmission'

@@ -22,6 +22,11 @@ import {
   encounterMaintainedEffectStateStoredSchema
 } from '@artificer-toolkit/schema/projections/activeRuleEffectStorage'
 import { encounterSpatialRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import {
+  campaignStoredAssignmentSchema,
+  campaignStoredMembershipSchema,
+  campaignStoredRecordSchema
+} from '@artificer-toolkit/schema/projections/campaignPersistence'
 
 /**
  * Each store table's stored document schema. The Convex schema defines the same tables from the
@@ -45,7 +50,10 @@ export const encounterStoreSchemas = {
   characterActiveRuleEffects: characterActiveRuleEffectStoredSchema,
   encounterActiveRuleEffects: encounterActiveRuleEffectStoredSchema,
   encounterMaintainedEffectStates: encounterMaintainedEffectStateStoredSchema,
-  encounterSpatialRuleEffects: encounterSpatialRuleEffectStoredSchema
+  encounterSpatialRuleEffects: encounterSpatialRuleEffectStoredSchema,
+  campaigns: campaignStoredRecordSchema,
+  campaignMemberships: campaignStoredMembershipSchema,
+  campaignCharacterAssignments: campaignStoredAssignmentSchema
 }
 
 export type EncounterStoreDocuments = {
@@ -156,6 +164,17 @@ export const encounterStoreIndexes = {
     by_publicId: ['id'],
     by_encounterId_sceneId_id: ['encounterId', 'sceneId', 'id'],
     by_encounterId_sceneId_createdOrdinal_id: ['encounterId', 'sceneId', 'createdOrdinal', 'id']
+  },
+  campaigns: { by_publicId: ['id'], by_ownerUserId_status: ['ownerUserId', 'status'] },
+  campaignMemberships: {
+    by_campaignId_userId: ['campaignId', 'userId'],
+    by_campaignId_status: ['campaignId', 'status'],
+    by_userId_status_joinedAt: ['userId', 'status', 'joinedAt']
+  },
+  campaignCharacterAssignments: {
+    by_campaignId_userId: ['campaignId', 'userId'],
+    by_campaignId: ['campaignId'],
+    by_characterId: ['characterId']
   }
 } as const satisfies {
   [Table in keyof EncounterStoreDocuments]: Record<

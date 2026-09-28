@@ -9,11 +9,11 @@ import { type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { readRunProjection, readRunState } from '../encounters/documents'
+import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   readStoredPendingSnapshot,
   storedPendingSnapshotChecksum
-} from '../encounters/pendingSnapshots'
+} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 
 /** The published response's current-role result; never the private preparation. */
 export async function readMovementResponseResult(

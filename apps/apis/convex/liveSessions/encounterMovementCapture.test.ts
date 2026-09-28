@@ -26,7 +26,7 @@ import {
   grantFixtureActorControl
 } from '../../tests/fixtures/spatialPreparation'
 import { readBundleAndSeparateCaptures } from '../../tests/fixtures/captureBundleParity'
-import { readRunProjection, readRunState } from '../encounters/documents'
+import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
 import {

@@ -20,7 +20,7 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { readEncounterSettledAppRoll } from './evidenceRolls'
 import { isNativeActionOccurrence } from './occurrenceOwner'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 /**
  * Returns null only for occurrences owned by another native coordinator. The responder must be

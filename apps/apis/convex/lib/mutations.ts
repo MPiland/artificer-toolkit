@@ -7,7 +7,7 @@ import {
   mutation as rawMutation
 } from '../_generated/server'
 import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
-import { memoizeMutationReads } from './transactionReads'
+import { memoizeMutationReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 import { markContentSnapshotScope, type ContentSnapshotScopeRef } from '../contentSnapshots/marking'
 

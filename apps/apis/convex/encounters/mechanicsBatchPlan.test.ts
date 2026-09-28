@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
-import { readRunActor, readRunState } from './documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   applyEncounterMechanicsBatch,
   type EncounterMechanicsBatchInput

@@ -9,7 +9,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
-import { readRunActors, readRunState } from './documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadNativeActionRelationshipFacts } from './actionRelationshipFacts'
 
 function relationshipEffect(input: {

@@ -10,11 +10,11 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { readEncounterControlledActorIds } from '../encounters/actorController'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { readRunActor, readRunState } from '../encounters/documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   readStoredPendingSnapshot,
   storedPendingSnapshotChecksum
-} from '../encounters/pendingSnapshots'
+} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   assertGeometryReceiving,
   readGeometrySave,
@@ -23,7 +23,7 @@ import {
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 export type Geometry = {
   sceneTokens: readonly SceneToken[]

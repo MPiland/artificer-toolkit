@@ -5,7 +5,7 @@ import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredL
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { MutationCtx } from '../_generated/server'
-import { readRunState } from '../encounters/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 import { normalizeSceneGeometryEntity } from './geometryValues'

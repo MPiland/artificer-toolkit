@@ -6,7 +6,7 @@ import {
   type LiveSessionEncounterCaptureBundle
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import { internalQuery, type QueryCtx } from '../_generated/server'
-import { memoizeTransactionReads } from '../lib/transactionReads'
+import { memoizeTransactionReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { admitCharacterInputsCaptures } from './characterRulesCapture'
 import { admitEncounterCaptureParts, readEncounterRulesCapture } from './encounterRulesCapture'
 

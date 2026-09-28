@@ -44,8 +44,8 @@ import {
   assertConvexOwnsSceneLiveState,
   requireActiveCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
-import { rejectDomain } from '../lib/domainRejections'
-import { beforeWrite } from '../lib/transactionReads'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { beforeWrite } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { requireBoundTokenMoveControl } from '../encounters/actorController'
 
 const SAVE_WINDOW = 24 * 60 * 60_000

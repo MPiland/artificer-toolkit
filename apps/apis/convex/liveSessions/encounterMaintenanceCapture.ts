@@ -3,7 +3,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readCharacterRecord, readCharacterSheetState } from '../characters/documents'
-import { readRunActor } from '../encounters/documents'
+import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readCharacterEffect, readEncounterEffect, readMaintainedState } from '../rules/effectStore'
 
 /** The private caller authorizes the GM or an issued response/movement scope, Session epoch and exact Run. */

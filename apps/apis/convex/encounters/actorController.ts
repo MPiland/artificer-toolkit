@@ -2,9 +2,9 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readAutoRollDice } from '../lib/rollPreferences'
-import { readRunActor, readRunState } from './documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 
 type ControlledActor = Pick<
   EncounterRunActorState,

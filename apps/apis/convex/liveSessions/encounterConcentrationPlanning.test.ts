@@ -21,7 +21,7 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
-import { readRunState } from '../encounters/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from '../encounters/movementTargets'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import {

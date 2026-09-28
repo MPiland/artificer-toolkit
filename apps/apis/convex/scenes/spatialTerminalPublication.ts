@@ -22,8 +22,15 @@ import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { terminalMovementChangedAggregates } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
 import type { MutationCtx } from '../_generated/server'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
-import { readRunActors, readRunProjection, readRunState } from '../encounters/documents'
-import { insertRunCommand, presentTimelineEntry } from '../encounters/timelineEntries'
+import {
+  readRunActors,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  insertRunCommand,
+  presentTimelineEntry
+} from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 
 type SceneSpatialPrepareInput = ReturnType<typeof sceneGeometryFinishInputSchema.parse>

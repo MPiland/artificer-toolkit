@@ -24,7 +24,7 @@ import type {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalQuery, type QueryCtx } from '../_generated/server'
 import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
-import { readRunActor, readRunState } from '../encounters/documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSceneVisionRevision } from './visionFreshness'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 

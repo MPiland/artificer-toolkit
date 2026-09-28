@@ -9,7 +9,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { QueryCtx } from '../_generated/server'
 import { loadCharacterEncounterInitiative } from '../characters/encounterInitiative'
-import { readRunActors } from './documents'
+import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import type { MovementTarget } from './movementTargets'
 
 export async function loadEncounterInitiativeSources(

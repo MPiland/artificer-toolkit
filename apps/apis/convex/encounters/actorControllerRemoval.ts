@@ -3,7 +3,7 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { readRunProjection, readRunState } from './documents'
+import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 
 /**
  * A departing member stops controlling every actor of the Campaign's open Runs, so rejoining later

@@ -1,7 +1,7 @@
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readEncounterActorControl } from './actorController'
-import { readRunActors, readRunState } from './documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { projectNativeActionPending, readNativeActionPending } from './actionPending'
 import { withEncounterRollModeReasons } from './rollModeReasons'
 

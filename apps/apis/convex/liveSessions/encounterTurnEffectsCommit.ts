@@ -20,7 +20,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
-import { readRunActor } from '../encounters/documents'
+import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'

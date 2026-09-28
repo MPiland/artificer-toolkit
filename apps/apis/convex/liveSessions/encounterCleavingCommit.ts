@@ -26,7 +26,7 @@ import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
-import { insertRunCommand } from '../encounters/timelineEntries'
+import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import {
   bindLiveConcentrationApplications,

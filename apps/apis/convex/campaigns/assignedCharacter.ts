@@ -3,7 +3,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
-import { deriveOnce } from '../lib/transactionReads'
+import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 
 export async function readCampaignAssignedCharacter(
   ctx: QueryCtx,

@@ -15,7 +15,7 @@ import {
 } from '../campaigns/conversationDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { retainUserRoll } from '../rollDocuments'
-import { readRunActor } from './documents'
+import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 
 /**
  * Logs one settled Concentration check, prompted or automatic, as a system roll entry. A hidden

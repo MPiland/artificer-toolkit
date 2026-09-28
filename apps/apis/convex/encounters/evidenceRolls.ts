@@ -28,12 +28,12 @@ import { query, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { requireSystem } from '../content/systemDocuments'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { requireIdentity } from '../lib/identity'
-import { readRunProjection } from './documents'
+import { readRunProjection } from '@artificer-toolkit/encounter-persistence/documents'
 import { readPendingRunDecision } from './pendingReads'
 import { presentEncounterResultForMember } from './resultPresentation'
-import { requireUnusedEvidenceCommandId } from './timelineEntries'
+import { requireUnusedEvidenceCommandId } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 /** Dice the table roll log can show; other integer ranges are recorded without a log entry. */
 const LOGGED_DICE = new Set([4, 6, 8, 10, 12, 20, 100])

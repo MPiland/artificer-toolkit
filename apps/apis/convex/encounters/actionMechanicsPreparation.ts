@@ -1,6 +1,10 @@
 import { loadNativeActionRelationshipFacts } from './actionRelationshipFacts'
 import { loadNativeEncounterActionSource } from './actionSources'
-import { readRunActor, readRunActors, readRunState } from './documents'
+import {
+  readRunActor,
+  readRunActors,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets, type MovementTarget } from './movementTargets'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import type { EncounterWieldConflictAcceptance } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'

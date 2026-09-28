@@ -14,15 +14,22 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import type { QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from '../liveSessions/authorityGuard'
 import { readEncounterAutoRollByActorId, readEncounterControlledActorIds } from './actorController'
 import { verifyNativeCleavingParentChain } from './cleavingParent'
 import { readNativeCleavingPending } from './cleavingPending'
-import { readRunActors, readRunProjection, readRunState } from './documents'
+import {
+  readRunActors,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { presentEncounterResultForMember } from './resultPresentation'
-import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries'
+import {
+  presentTimelineEntry,
+  requireUnusedEvidenceCommandId
+} from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 /**
  * Admits one Cleaving answer for the room: the responder controls the source actor, the choice is

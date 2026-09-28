@@ -1,9 +1,9 @@
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { Doc } from '../_generated/dataModel'
-import { deriveOnce } from '../lib/transactionReads'
+import { deriveOnce } from './transactionReads.js'
+import type { EncounterDocument } from './store.js'
 
-type StoredOccurrence = Pick<Doc<'encounterRuleOccurrences'>, 'pendingSnapshotJson'>
+type StoredOccurrence = Pick<EncounterDocument<'encounterRuleOccurrences'>, 'pendingSnapshotJson'>
 
 /**
  * An occurrence's stored pending snapshot, or null when it has none. In a memoized transaction it

@@ -10,7 +10,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { requireSystem } from '../content/systemDocuments'
 import { readEncounterControlledActorIds } from './actorController'
-import { readRunActors, readRunState } from './documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 
 type RunTurnState = Pick<EncounterRunState, 'id' | 'status' | 'round' | 'currentActorId'>
 

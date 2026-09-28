@@ -11,11 +11,8 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { Doc } from '../_generated/dataModel'
-import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { deriveOnce } from '../lib/transactionReads'
-
-type Context = MutationCtx | QueryCtx
+import { deriveOnce } from './transactionReads.js'
+import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 const actorCoreFields = z.omit(encounterGmActorDtoSchema, {
   statBlock: true,
@@ -49,7 +46,7 @@ export function readEncounterActorCore(actor: unknown) {
   return core.kind === 'CHARACTER' ? core : { ...core, ...runOwnedSchema.parse(actor) }
 }
 
-export function readRunProjection(row: Doc<'encounterRuns'>) {
+export function readRunProjection(row: EncounterDocument<'encounterRuns'>) {
   const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
   if (
     projection.id !== row.id ||
@@ -63,13 +60,16 @@ export function readRunProjection(row: Doc<'encounterRuns'>) {
   return projection
 }
 
-export function readValidatedRunProjection(row: Doc<'encounterRuns'>, campaign: Doc<'campaigns'>) {
+export function readValidatedRunProjection(
+  row: EncounterDocument<'encounterRuns'>,
+  campaign: EncounterDocument<'campaigns'>
+) {
   if (row.campaignId !== campaign.id || row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Stored Encounter ownership mismatch.')
   return readRunProjection(row)
 }
 
-export function readRunState(row: Doc<'encounterRuns'>) {
+export function readRunState(row: EncounterDocument<'encounterRuns'>) {
   const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
   if (
     state.id !== row.id ||
@@ -90,7 +90,7 @@ export function readRunState(row: Doc<'encounterRuns'>) {
   return state
 }
 
-export async function readRunActors(ctx: Context, state: EncounterRunState) {
+export async function readRunActors(ctx: EncounterReadContext, state: EncounterRunState) {
   const rows = await ctx.db
     .query('encounterRunActors')
     .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id))
@@ -114,14 +114,14 @@ export async function readRunActors(ctx: Context, state: EncounterRunState) {
   return actors
 }
 
-function readRunActorDocument(row: Doc<'encounterRunActors'>) {
+function readRunActorDocument(row: EncounterDocument<'encounterRunActors'>) {
   const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
   if (actor.id !== row.id || checksumCanonicalJson(actor) !== row.stateChecksum)
     throw new Error('Encounter actor state checksum mismatch.')
   return actor
 }
 
-function parseRunActor(row: Doc<'encounterRunActors'>, state: EncounterRunState) {
+function parseRunActor(row: EncounterDocument<'encounterRunActors'>, state: EncounterRunState) {
   const actor = deriveOnce(row, readRunActorDocument)
   if (actor.encounterId !== state.id) throw new Error('Encounter actor state checksum mismatch.')
   return actor
@@ -129,7 +129,7 @@ function parseRunActor(row: Doc<'encounterRunActors'>, state: EncounterRunState)
 
 /** Replaces one actor's stored state, refusing when it changed since `before` was read. */
 export async function replaceRunActor(
-  ctx: MutationCtx,
+  ctx: EncounterWriteContext,
   before: EncounterRunActorState,
   after: EncounterRunActorState
 ) {
@@ -153,7 +153,11 @@ export async function replaceRunActor(
 }
 
 /** Read one actor without hydrating unrelated actor snapshots. */
-export async function readRunActor(ctx: Context, state: EncounterRunState, actorId: string) {
+export async function readRunActor(
+  ctx: EncounterReadContext,
+  state: EncounterRunState,
+  actorId: string
+) {
   if (!state.actorIds.includes(actorId)) throw new Error('Encounter actor was not found.')
   const row = await ctx.db
     .query('encounterRunActors')

@@ -16,7 +16,7 @@ import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticScene
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
-import { readRunActors, readRunState } from '../encounters/documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { commitLiveMovement } from './encounterMovementCommit'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import {

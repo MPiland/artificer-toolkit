@@ -39,7 +39,7 @@ import {
 } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
-import { readRunActor, readRunState } from '../encounters/documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 
 const createBlueprint = makeFunctionReference<
   'mutation',

@@ -42,7 +42,11 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
-import { readRunActor, readRunActors, readRunState } from './documents'
+import {
+  readRunActor,
+  readRunActors,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
 
 const workerSecret = 'private-shield-stow-test-secret-at-least-32-bytes'

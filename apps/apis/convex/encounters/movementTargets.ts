@@ -5,12 +5,16 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { requireIdentity } from '../lib/identity'
 import { listActiveRuleEffects } from '../rules/effectStore'
-import { readRunActor, readRunActors, readRunState } from './documents'
+import {
+  readRunActor,
+  readRunActors,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import {
   buildMovementTarget,
   type MovementTarget as RuntimeMovementTarget
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 export type MovementTarget = RuntimeMovementTarget<
   NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts>>>

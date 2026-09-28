@@ -3,7 +3,7 @@ import { type QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 /** The room's forwarded user, role, active Campaign and DO_ACTIVE epoch must all match the Run. */
 export async function requireLiveEncounterRun(

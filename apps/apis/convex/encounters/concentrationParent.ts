@@ -10,7 +10,7 @@ import type { QueryCtx } from '../_generated/server'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import type { NativeConcentrationContext } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { nativeConcentrationParentDamage } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
-import { presentTimelineEntry } from './timelineEntries'
+import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 /**
  * A response commit with a failed check advances the Run once; every intervening command must belong

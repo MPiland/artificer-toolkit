@@ -17,7 +17,7 @@ import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
-import { insertRunCommand } from '../encounters/timelineEntries'
+import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import {
   persistNativeConcentrationResult,
   insertNativeCleavingChoice

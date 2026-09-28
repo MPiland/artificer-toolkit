@@ -30,7 +30,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import type { MutationCtx } from '../_generated/server'
 import { readDefinitionRoot } from '../content/definitionStore'
-import { readRunActor } from '../encounters/documents'
+import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 

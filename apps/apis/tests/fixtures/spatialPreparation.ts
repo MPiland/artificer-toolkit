@@ -9,7 +9,7 @@ import type { sceneTokenMovementCommandInputDtoSchema } from '@artificer-toolkit
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { MutationCtx } from '../../convex/_generated/server'
 import { createEncounterSceneFixture } from './encounterScene'
-import { readRunProjection, readRunState } from '../../convex/encounters/documents'
+import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
 import { readGeometrySave, readSpatialPreparation } from '../../convex/scenes/geometryDocuments'
 import { internal } from '../../convex/_generated/api'

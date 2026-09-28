@@ -1,7 +1,7 @@
 import type { LiveSessionMovementPrepareInput } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
-import { readRunActors } from '../encounters/documents'
+import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { readLiveMovementAdmission } from './encounterMovementAdmission'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'

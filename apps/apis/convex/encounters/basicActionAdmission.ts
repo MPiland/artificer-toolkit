@@ -7,13 +7,20 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from '../liveSessions/authorityGuard'
 import { requireEncounterActorControl } from './actorController'
-import { readRunActor, readRunProjection, readRunState } from './documents'
+import {
+  readRunActor,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { presentEncounterResultForMember } from './resultPresentation'
-import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries'
+import {
+  presentTimelineEntry,
+  requireUnusedEvidenceCommandId
+} from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 /**
  * Admits a basic action (Q11) for the room: the caller controls the current actor, a player's ally

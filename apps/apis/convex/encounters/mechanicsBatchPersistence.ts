@@ -11,7 +11,7 @@ import type { Doc } from '../_generated/dataModel'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
 import { requireIdentity } from '../lib/identity'
-import { readRunActor, readRunState } from './documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -20,7 +20,7 @@ import type {
   EncounterMechanicsBatchInput,
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 export type EncounterMechanicsBatchResult = {
   updatedActor: Awaited<ReturnType<typeof readRunActor>>

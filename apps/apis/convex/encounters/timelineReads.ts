@@ -9,8 +9,8 @@ import {
 import { query } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { readValidatedRunProjection } from './documents'
-import { presentTimelineEntry } from './timelineEntries'
+import { readValidatedRunProjection } from '@artificer-toolkit/encounter-persistence/documents'
+import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 export const timeline = query({
   args: zodToConvexFields(getEncounterTimelineInputDtoSchema.shape),

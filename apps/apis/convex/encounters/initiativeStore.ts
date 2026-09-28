@@ -13,7 +13,7 @@ import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredL
 import { EncounterConflictError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 
 import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { readRunActors, readRunState } from './documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 
 const storedRoundSchema = encounterInitiativeRoundDtoSchema.clone({
   ...encounterInitiativeRoundDtoSchema._zod.def,

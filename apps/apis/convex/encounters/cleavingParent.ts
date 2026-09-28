@@ -13,7 +13,7 @@ import {
   type CleavingContext
 } from '@artificer-toolkit/rules-runtime/encounterCleavingFacts'
 import type { QueryCtx } from '../_generated/server'
-import { presentTimelineEntry } from './timelineEntries'
+import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 async function terminalReceipt(
   ctx: QueryCtx,

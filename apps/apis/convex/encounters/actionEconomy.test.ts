@@ -14,7 +14,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { prepareNativeActionEconomy } from './actionEconomy'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence'
-import { readRunActor } from './documents'
+import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,

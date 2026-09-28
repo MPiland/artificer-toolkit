@@ -11,7 +11,7 @@ import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encou
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { readRunActors } from '../encounters/documents'
+import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
 import { internalMutation } from '../lib/mutations'

@@ -24,14 +24,19 @@ import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireSystem } from '../content/systemDocuments'
 import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
-import { readRunActor, readRunActors, readRunProjection, readRunState } from './documents'
+import {
+  readRunActor,
+  readRunActors,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
 import { readNativeDisarmSelection } from './actionDisarmSelection'
 import { requireEncounterActorControl } from './actorController'
 import { evaluateNativeActionEconomy } from './actionEconomy'
 import { encounterActionEconomyWarnings } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readDefinitionRoot } from '../content/definitionStore'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'

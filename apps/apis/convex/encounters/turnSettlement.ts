@@ -7,9 +7,9 @@ import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encou
 import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { readRunActors } from './documents'
+import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { createEncounterInitiativeStore } from './initiativeStore'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 /** Validates the current normalized turn before either native or DO terminal persistence. */
 export async function readNativeTurnSettlement(input: {

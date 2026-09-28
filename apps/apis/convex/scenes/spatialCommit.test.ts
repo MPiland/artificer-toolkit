@@ -10,7 +10,11 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 import { internal } from '../_generated/api'
-import { readRunActor, readRunProjection, readRunState } from '../encounters/documents'
+import {
+  readRunActor,
+  readRunProjection,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
 import { readGeometrySave } from './geometryDocuments'
 import { commitLiveMovement } from '../liveSessions/encounterMovementCommit'

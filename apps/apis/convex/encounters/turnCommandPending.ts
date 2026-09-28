@@ -9,7 +9,7 @@ import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rul
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { rejectDomain } from '../lib/domainRejections'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
 export async function readNativeTurnCommandPending(
   ctx: QueryCtx,

@@ -33,7 +33,11 @@ import { requireIdentity } from '../lib/identity'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { characterProjectionState } from './characterStates'
 import { readEncounterHealthViewer } from './healthViewer'
-import { readRunActors, readRunState, readValidatedRunProjection } from './documents'
+import {
+  readRunActors,
+  readRunState,
+  readValidatedRunProjection
+} from '@artificer-toolkit/encounter-persistence/documents'
 type EncounterProjection = EncounterGmProjectionDto | EncounterPlayerProjectionDto
 const encounterStatusOrder = ['ACTIVE', 'PREPARED', 'COMPLETED'] as const
 

@@ -6,7 +6,7 @@ import { turnPendingActorId } from '@artificer-toolkit/rules-runtime/encounterTu
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readRunActor } from './documents'
+import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { requireEncounterActorControl } from './actorController'
 
 /**

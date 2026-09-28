@@ -13,7 +13,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 
-import { readRunState } from './documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { cleanupRemovedActorEffects } from './actorRemovalEffects'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'

@@ -29,7 +29,7 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
-import { readRunActor, readRunState } from './documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import * as rollRandom from '../lib/rollRandom'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
