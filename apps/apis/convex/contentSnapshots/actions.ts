@@ -4,6 +4,7 @@ import { gzipSync } from 'node:zlib'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { v } from 'convex/values'
 import {
+  CONTENT_SNAPSHOT_PUBLIC_METADATA,
   contentSnapshotKindSchema,
   type ContentSnapshotHead
 } from '@artificer-toolkit/schema/api/contentSnapshots'
@@ -99,7 +100,8 @@ export const build = internalAction({
             Key: key,
             Body: gzipSync(json),
             ContentType: 'application/json',
-            ContentEncoding: 'gzip'
+            ContentEncoding: 'gzip',
+            ...(start.publicAccess ? { Metadata: { ...CONTENT_SNAPSHOT_PUBLIC_METADATA } } : {})
           })
         )
       }

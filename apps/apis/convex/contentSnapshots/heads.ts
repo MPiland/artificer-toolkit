@@ -54,24 +54,33 @@ const MAX_AUTOMATIC_RETRIES = 5
  */
 export const readBuildStart = internalQuery({
   args: vContentSnapshotScopeRef,
-  returns: v.union(v.object({ revision: v.number(), scopeExists: v.boolean() }), v.null()),
+  returns: v.union(
+    v.object({ revision: v.number(), scopeExists: v.boolean(), publicAccess: v.boolean() }),
+    v.null()
+  ),
   handler: async (ctx, { scope, scopeId }) => {
     const head = await ctx.db
       .query('contentSnapshotHeads')
       .withIndex('by_scope_scopeId', (q) => q.eq('scope', scope).eq('scopeId', scopeId))
       .unique()
     if (!head || head.revision <= head.builtRevision) return null
-    const subject =
-      scope === 'SOURCE'
-        ? await ctx.db
-            .query('contentSources')
-            .withIndex('by_publicId', (q) => q.eq('id', scopeId))
-            .unique()
-        : await ctx.db
-            .query('campaigns')
-            .withIndex('by_publicId', (q) => q.eq('id', scopeId))
-            .unique()
-    return { revision: head.revision, scopeExists: subject !== null }
+    if (scope === 'CAMPAIGN') {
+      const campaign = await ctx.db
+        .query('campaigns')
+        .withIndex('by_publicId', (q) => q.eq('id', scopeId))
+        .unique()
+      return { revision: head.revision, scopeExists: campaign !== null, publicAccess: false }
+    }
+    const source = await ctx.db
+      .query('contentSources')
+      .withIndex('by_publicId', (q) => q.eq('id', scopeId))
+      .unique()
+    // Only PLATFORM source objects are public (S3 delivery); a source's kind never changes.
+    return {
+      revision: head.revision,
+      scopeExists: source !== null,
+      publicAccess: source?.kind === 'PLATFORM'
+    }
   }
 })
 

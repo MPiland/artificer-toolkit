@@ -191,6 +191,14 @@ describe('content snapshot builds', () => {
       expect(Object.keys(before.user!.kinds).sort()).toEqual(['FEAT', 'RACE'])
       expect(before.user!.buildScheduledAt).toBeUndefined()
       expect(puts()).toBe(6)
+      // Only PLATFORM source objects carry the public marker the Worker serves publicly.
+      const access = [...server.contentSnapshotObjects].map(([key, object]) => [
+        key.split('/')[2],
+        object.metadata
+      ])
+      expect(access).toHaveLength(6)
+      for (const [scopeId, metadata] of access)
+        expect(metadata).toEqual(scopeId === SRD_CONTENT_SOURCE.id ? { access: 'public' } : {})
 
       await publish('RACE', { ...race, label: 'Wood-touched Elf' })
       await settle()

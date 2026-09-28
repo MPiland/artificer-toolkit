@@ -55,7 +55,13 @@ function validPutSignature(url: URL, request: IncomingMessage) {
 export async function startLocalR2(
   options: { port?: number; host?: '127.0.0.1' | '0.0.0.0' } = {}
 ) {
-  type StoredObject = { body: Buffer; contentType: string; modified: Date }
+  type StoredObject = {
+    body: Buffer
+    contentType: string
+    // S3 user metadata (`x-amz-meta-*`), which R2 exposes as custom metadata.
+    metadata?: Record<string, string>
+    modified: Date
+  }
   const objects = new Map<string, StoredObject>()
   // ADR 0036 content snapshots live in their own private bucket, apart from media.
   const contentSnapshotObjects = new Map<string, StoredObject>()
@@ -127,6 +133,13 @@ export async function startLocalR2(
         bucket.set(key, {
           body,
           contentType: request.headers['content-type'] ?? 'application/octet-stream',
+          metadata: Object.fromEntries(
+            Object.entries(request.headers).flatMap(([name, value]) =>
+              name.startsWith('x-amz-meta-') && typeof value === 'string'
+                ? [[name.slice('x-amz-meta-'.length), value]]
+                : []
+            )
+          ),
           modified: new Date()
         })
         response.setHeader('ETag', `"${createHash('md5').update(body).digest('hex')}"`)
