@@ -65021,7 +65021,12 @@ export declare const internal: {
         { scope: "SOURCE" | "CAMPAIGN"; scopeId: string },
         null
       >;
-      deleteSupersededObjects: FunctionReference<"action", "internal", {}, null>;
+      deleteSupersededObjects: FunctionReference<
+        "action",
+        "internal",
+        {},
+        null
+      >;
     };
     heads: {
       claimSupersededObjects: FunctionReference<
@@ -65035,14 +65040,70 @@ export declare const internal: {
         "internal",
         {
           kinds: {
-          BACKGROUND?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-          CLASS?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-          CREATURE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-          EQUIPMENT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-          FEAT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-          RACE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-          SPELL?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
-          VEHICLE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+            BACKGROUND?: {
+              documents: {
+                byteLength: number;
+                rootCount: number;
+                sha256: string;
+              };
+              index: { byteLength: number; rootCount: number; sha256: string };
+            };
+            CLASS?: {
+              documents: {
+                byteLength: number;
+                rootCount: number;
+                sha256: string;
+              };
+              index: { byteLength: number; rootCount: number; sha256: string };
+            };
+            CREATURE?: {
+              documents: {
+                byteLength: number;
+                rootCount: number;
+                sha256: string;
+              };
+              index: { byteLength: number; rootCount: number; sha256: string };
+            };
+            EQUIPMENT?: {
+              documents: {
+                byteLength: number;
+                rootCount: number;
+                sha256: string;
+              };
+              index: { byteLength: number; rootCount: number; sha256: string };
+            };
+            FEAT?: {
+              documents: {
+                byteLength: number;
+                rootCount: number;
+                sha256: string;
+              };
+              index: { byteLength: number; rootCount: number; sha256: string };
+            };
+            RACE?: {
+              documents: {
+                byteLength: number;
+                rootCount: number;
+                sha256: string;
+              };
+              index: { byteLength: number; rootCount: number; sha256: string };
+            };
+            SPELL?: {
+              documents: {
+                byteLength: number;
+                rootCount: number;
+                sha256: string;
+              };
+              index: { byteLength: number; rootCount: number; sha256: string };
+            };
+            VEHICLE?: {
+              documents: {
+                byteLength: number;
+                rootCount: number;
+                sha256: string;
+              };
+              index: { byteLength: number; rootCount: number; sha256: string };
+            };
           };
           revisionBuiltFrom: number;
           scope: "SOURCE" | "CAMPAIGN";
@@ -65074,7 +65135,7 @@ export declare const internal: {
         "query",
         "internal",
         { scope: "SOURCE" | "CAMPAIGN"; scopeId: string },
-        null | { revision: number; scopeExists: boolean }
+        { revision: number; scopeExists: boolean } | null
       >;
       readScopeKind: FunctionReference<
         "query",
