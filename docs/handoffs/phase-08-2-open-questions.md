@@ -6,7 +6,22 @@
 
 ## Open
 
-_(none)_
+### Q19 Showing other people's cursors on the map
+
+The free-tier preview fix (ADR 0035 Amendment 15, `792c2b858`) sends pointer previews only while the mouse button is held on empty map (a press-and-drag "point"), never on plain hover. Token-drag ghosts update at 10 Hz.
+
+**Competitors:**
+- Foundry shows other users' cursors on hover by default and has a long-press ping.
+- Roll20 has no live cursors, only a ping (long-press).
+
+**Cost:** broadcasting every cursor on hover at 10 Hz would take about 20,000 Durable Object requests per 4-hour session with 6 people, about a fifth of the Workers Free daily limit per session.
+
+**Recommendation:**
+1. Add a real ping tool (long-press, matching Foundry and Roll20).
+2. Add a per-person "Share my cursor" preference, off by default. When on, the cursor is sent at up to 4 Hz, only while the mouse is moving, which is about 2,000–4,000 requests per session.
+3. Smooth remote drag ghosts on the receiving side, so 10 Hz looks fluid.
+
+**Answer:**
 
 ## Decisions to review
 
