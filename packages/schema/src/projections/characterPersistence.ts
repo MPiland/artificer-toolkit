@@ -58,43 +58,38 @@ export const characterStoredRowSchema = lazySchema(() =>
   })
 )
 
-const characterStoredDraftHeadFields = lazySchemaParts(() => ({
-  id: uuid,
-  characterId: uuid,
-  userId: uuid,
-  systemId: postgresUuidSchema,
-  publicId: z.string(),
-  label: z.string(),
-  status: z.literal('DRAFT'),
-  mode: z.enum(['create', 'edit']),
-  baseActiveUpdatedAt: z.nullable(z.iso.datetime()),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
-  checksum: projectionChecksumSchema
-}))
-
-// Convex table validation needs optional fields during the inline-to-payload transition.
-// Runtime readers validate exactly one representation through characterStoredDraftSchema.
-export const characterStoredDraftHeadSchema = lazySchema(() =>
-  z.strictObject({
-    ...characterStoredDraftHeadFields(),
-    payloadJson: z.optional(z.string()),
-    payloadId: z.optional(uuid)
-  })
-)
-
+/** A Character draft head; its payload lives in `characterDraftPayloads`. */
 export const characterStoredDraftSchema = lazySchema(
   () =>
-    z.union([
-      z.strictObject({
-        ...characterStoredDraftHeadFields(),
-        payloadJson: z.string()
-      }),
-      z.strictObject({ ...characterStoredDraftHeadFields(), payloadId: uuid })
-    ]) satisfies z.ZodMiniType<Omit<CharacterBuilderDraftDto, 'payload' | 'draftState'>>
+    z.strictObject({
+      id: uuid,
+      characterId: uuid,
+      userId: uuid,
+      systemId: postgresUuidSchema,
+      publicId: z.string(),
+      label: z.string(),
+      status: z.literal('DRAFT'),
+      mode: z.enum(['create', 'edit']),
+      baseActiveUpdatedAt: z.nullable(z.iso.datetime()),
+      createdAt: z.iso.datetime(),
+      updatedAt: z.iso.datetime(),
+      checksum: projectionChecksumSchema,
+      /** The payload's own id, which its chunks carry. */
+      payloadId: uuid,
+      /**
+       * The payload document's storage id, so a save replaces it in place without reading it
+       * (ADR 0036 S8).
+       */
+      payloadDocumentId: z.string().check(z.minLength(1))
+    }) satisfies z.ZodMiniType<Omit<CharacterBuilderDraftDto, 'payload' | 'draftState'>>
 )
 
 export const CHARACTER_DRAFT_PAYLOAD_CHUNK_MAX_BYTES = 240 * 1024
+/**
+ * A payload up to this size stays inline in its one payload document, below Convex's 1 MiB
+ * document limit with room for the other fields; a larger one is chunked.
+ */
+export const CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES = 960 * 1024
 export const CHARACTER_DRAFT_PAYLOAD_MAX_CHUNKS = Math.ceil(
   IMPORT_MAX_ENTRY_BYTES / CHARACTER_DRAFT_PAYLOAD_CHUNK_MAX_BYTES
 )
@@ -107,7 +102,8 @@ const characterStoredDraftPayloadFields = lazySchemaParts(() => ({
   createdAt: z.iso.datetime()
 }))
 
-// Existing one-row payloads remain readable while new writes use the chunk metadata.
+// The table form of `characterStoredDraftPayloadSchema`: inline JSON, or chunk metadata above
+// `CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES`. Readers validate exactly one of the two.
 export const characterStoredDraftPayloadHeadSchema = lazySchema(() =>
   z.strictObject({
     ...characterStoredDraftPayloadFields(),

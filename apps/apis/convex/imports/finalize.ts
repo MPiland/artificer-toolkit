@@ -161,7 +161,7 @@ async function validateCharacterHead(
 ): Promise<CharacterHead> {
   const expected = characterExpectedStateSchema.parse(stored.expectedState)
   const output = characterHeadOutputSchema.parse(JSON.parse(stored.stage.outputJson))
-  if (!('payloadId' in output.draft) || output.draft.payloadId !== output.stagedPayloadId)
+  if (output.draft.payloadId !== output.stagedPayloadId)
     throw new Error('Staged Character draft payload is invalid.')
   const [active, draft, payload] = await Promise.all([
     ctx.db

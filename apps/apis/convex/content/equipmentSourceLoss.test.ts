@@ -293,7 +293,6 @@ describe('native Equipment deletion source-loss cleanup', () => {
     const characterRecord = after.character
     const draftRecord = after.characterDraft
     const active = characterAuthoredDtoSchema.parse(JSON.parse(characterRecord.documentJson))
-    if (!draftRecord.payloadId) throw new Error('Missing Character draft payload reference.')
     const savedCharacter = (
       await base.t.run((ctx) => readCharacterDraft(ctx, draftRecord, characterRecord))
     ).payload.character

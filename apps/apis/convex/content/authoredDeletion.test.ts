@@ -34,7 +34,7 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, components, internal } from '../_generated/api'
-import { readCharacterDraft } from '../characters/documents'
+import { insertCharacterDraftPayload, readCharacterDraft } from '../characters/documents'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 
@@ -849,7 +849,13 @@ describe('native authored deletion source-loss cleanup', () => {
         const payload = characterBuilderDraftPayloadDtoSchema.parse({
           character
         })
-        const encoded: unknown = JSON.parse(JSON.stringify(payload))
+        if (!template.createdAt) throw new Error('Missing draft template timestamp.')
+        const stored = await insertCharacterDraftPayload(
+          ctx,
+          characterId,
+          payload,
+          template.createdAt
+        )
         await ctx.db.insert(
           'characterDrafts',
           characterStoredDraftSchema.parse({
@@ -864,8 +870,9 @@ describe('native authored deletion source-loss cleanup', () => {
             baseActiveUpdatedAt: null,
             createdAt: template.createdAt,
             updatedAt: template.updatedAt,
-            payloadJson: JSON.stringify(encoded),
-            checksum: checksumRuleDocument(encoded)
+            payloadId: stored.payloadId,
+            payloadDocumentId: stored.payloadDocumentId,
+            checksum: stored.checksum
           })
         )
       }
@@ -900,7 +907,7 @@ describe('native authored deletion source-loss cleanup', () => {
     )
     expect(firstAfter).toEqual(firstBefore)
     const lastPayload = await base.t.run(async (ctx) => {
-      if (!lastAfter?.payloadId) throw new Error('Missing reconciled Character draft payload.')
+      if (!lastAfter) throw new Error('Missing reconciled Character draft payload.')
       return (await readCharacterDraft(ctx, lastAfter, null)).payload
     })
     expect(lastPayload.character.intent.background.backgroundId).toBe('')

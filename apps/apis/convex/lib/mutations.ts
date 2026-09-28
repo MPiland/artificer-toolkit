@@ -260,9 +260,9 @@ registerCampaignContentUsage('campaignAttachments', 'campaignEntriesPerCampaign'
 registerCampaignContentUsage('campaignVehicles', 'campaignEntriesPerCampaign')
 registerCampaignContentUsage('sceneDefinitions', 'scenesPerCampaign')
 
+// Scene vision reads active Characters only. Drafts are left untracked, so an autosave neither
+// stales Scene vision nor pays trigger reads of the old and new payload (ADR 0036 S8).
 registerScope('characters', (_, document) => characterScope(document.id))
-registerScope('characterDrafts', (_, document) => characterScope(document.characterId))
-registerScope('characterDraftPayloads', (_, document) => characterScope(document.characterId))
 registerScope('campaignCharacterStates', (_, document) => characterScope(document.characterId))
 registerScope('characterActiveRuleEffects', (_, document) => characterScope(document.characterId))
 registerScope('authoredRouteIds', (_, document) =>

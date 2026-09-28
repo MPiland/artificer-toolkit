@@ -211,7 +211,7 @@ describe('native Character working drafts', () => {
     expect(found.sort()).toEqual(expected.sort())
   })
 
-  it('rejects identity and immutable System changes, and checks current System integrity', async () => {
+  it('rejects identity and immutable System changes, and checks System integrity on open', async () => {
     const { t, owner } = await fixture()
     const request = input()
     const draft = await owner.caller.mutation(create, request)
@@ -254,14 +254,8 @@ describe('native Character working drafts', () => {
       if (!system) throw new Error('Missing System fixture.')
       await ctx.db.patch(system._id, { checksum: '0'.repeat(64) })
     })
-    await expect(
-      owner.caller.mutation(save, {
-        characterId: request.id,
-        character: draft.payload.character,
-        expectedDraftId: draft.id,
-        mode: 'create'
-      })
-    ).rejects.toThrow('System checksum mismatch')
+    // Autosave is structural and does not read the System; reopening checks it.
+    await expect(owner.caller.mutation(create, request)).rejects.toThrow('System checksum mismatch')
     expect(await owner.caller.query(get, { id: request.id })).toEqual(draft)
   })
 
@@ -352,7 +346,7 @@ describe('native Character working drafts', () => {
     expect(reopened.payload.character.state.hitpoints.current).toBe(7)
   })
 
-  it('fails closed on corrupted legacy payload identity and checksum', async () => {
+  it('fails closed on corrupted payload identity and checksum', async () => {
     const { t, owner, other } = await fixture()
     const draft = await owner.caller.mutation(create, input())
     await t.run(async (ctx) => {
@@ -361,11 +355,10 @@ describe('native Character working drafts', () => {
         .withIndex('by_characterId', (q) => q.eq('characterId', draft.characterId))
         .unique()
       if (!stored) throw new Error('Missing draft fixture.')
-      if (!stored.payloadId) throw new Error('Missing payload-backed draft fixture.')
       const payload = await ctx.db
         .query('characterDraftPayloads')
         .withIndex('by_characterId_id', (q) =>
-          q.eq('characterId', stored.characterId).eq('id', stored.payloadId!)
+          q.eq('characterId', stored.characterId).eq('id', stored.payloadId)
         )
         .unique()
       if (!payload) throw new Error('Missing draft payload fixture.')
@@ -394,14 +387,14 @@ describe('native Character working drafts', () => {
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', draft.characterId))
         .unique()
-      if (!stored?.payloadId) throw new Error('Missing payload-backed draft fixture.')
+      if (!stored) throw new Error('Missing payload-backed draft fixture.')
       const payload = await ctx.db
         .query('characterDraftPayloads')
         .withIndex('by_characterId_id', (q) =>
-          q.eq('characterId', stored.characterId).eq('id', stored.payloadId!)
+          q.eq('characterId', stored.characterId).eq('id', stored.payloadId)
         )
         .unique()
-      if (!payload?.payloadJson) throw new Error('Missing legacy draft payload fixture.')
+      if (!payload?.payloadJson) throw new Error('Missing inline draft payload fixture.')
       const checksum = checksumRuleDocument(JSON.parse(payload.payloadJson))
       await ctx.db.patch(payload._id, { checksum })
       await ctx.db.patch(stored._id, { checksum })
@@ -412,9 +405,10 @@ describe('native Character working drafts', () => {
     expect(await other.caller.query(get, { id: draft.characterId })).toBeNull()
   })
 
-  it('rolls back discard when a draft stores both payload representations', async () => {
+  it('rolls back discard when a draft head names another draft payload', async () => {
     const { t, owner } = await fixture()
     const draft = await owner.caller.mutation(create, input())
+    const other = await owner.caller.mutation(create, input())
     const snapshot = () =>
       t.run(async (ctx) => ({
         drafts: await ctx.db.query('characterDrafts').collect(),
@@ -422,20 +416,25 @@ describe('native Character working drafts', () => {
         chunks: await ctx.db.query('characterDraftPayloadChunks').collect()
       }))
     await t.run(async (ctx) => {
-      const stored = await ctx.db
-        .query('characterDrafts')
-        .withIndex('by_characterId', (query) => query.eq('characterId', draft.characterId))
-        .unique()
-      if (!stored?.payloadId) throw new Error('Missing payload-backed draft fixture.')
-      await ctx.db.patch(stored._id, { payloadJson: canonicalizeRuleDocument(draft.payload) })
+      const [stored, foreign] = await Promise.all(
+        [draft, other].map((row) =>
+          ctx.db
+            .query('characterDrafts')
+            .withIndex('by_characterId', (query) => query.eq('characterId', row.characterId))
+            .unique()
+        )
+      )
+      if (!stored || !foreign) throw new Error('Missing draft fixtures.')
+      await ctx.db.patch(stored._id, { payloadDocumentId: foreign.payloadDocumentId })
     })
     const corrupted = await snapshot()
 
     await expect(
       owner.caller.mutation(discard, { id: draft.characterId, expectedDraftId: draft.id })
-    ).rejects.toThrow('payload representation is invalid')
+    ).rejects.toThrow('payload identity mismatch')
     expect(await snapshot()).toEqual(corrupted)
   }, 15_000)
+
   it('rolls back route allocation when draft validation fails after the route write', async () => {
     const { t, owner } = await fixture()
     const request = input()
@@ -567,7 +566,7 @@ describe('native Character working drafts', () => {
           ...opened.payload,
           character: {
             ...opened.payload.character,
-            description: '🎲'.repeat(70_000)
+            description: '🎲'.repeat(300_000)
           }
         },
         createdAt
@@ -628,68 +627,65 @@ describe('native Character working drafts', () => {
       }))
     ).toEqual({ inline: null, chunked: null, chunks: [] })
   })
-  it('chunks multibyte payloads and rolls a replacement back when an old chunk is missing', async () => {
+  it('replaces the payload in place, inline below 960 KB and chunked above it', async () => {
     const { t, owner } = await fixture()
     const request = input()
     const opened = await owner.caller.mutation(create, request)
-    const oversized = {
-      ...opened.payload.character,
-      description: '🎲'.repeat(300_000)
-    }
-    await owner.caller.mutation(save, {
-      characterId: request.id,
-      character: oversized,
-      expectedDraftId: opened.id,
-      mode: 'create'
-    })
-    const stored = await t.run(async (ctx) => {
-      const draft = await ctx.db
-        .query('characterDrafts')
-        .withIndex('by_characterId', (q) => q.eq('characterId', request.id))
-        .unique()
-      if (!draft?.payloadId) throw new Error('Missing chunk-backed Character draft.')
-      const payload = await ctx.db
-        .query('characterDraftPayloads')
-        .withIndex('by_characterId_id', (q) =>
-          q.eq('characterId', draft.characterId).eq('id', draft.payloadId!)
-        )
-        .unique()
-      const chunkCount = payload?.chunkCount
-      if (!chunkCount || !payload.totalByteLength)
-        throw new Error('Missing Character draft chunk metadata.')
-      const chunks = await ctx.db
-        .query('characterDraftPayloadChunks')
-        .withIndex('by_characterId_payloadId_chunkIndex', (q) =>
-          q.eq('characterId', draft.characterId).eq('payloadId', payload.id)
-        )
-        .collect()
-      return { draft, payload, chunkCount, chunks }
-    })
-    expect(stored.payload.payloadJson).toBeUndefined()
-    expect(stored.payload.chunkCount).toBeGreaterThan(1)
-    expect(stored.chunks).toHaveLength(stored.chunkCount)
-    expect(stored.chunks.every((chunk, index) => chunk.chunkIndex === index)).toBe(true)
-
-    await t.run((ctx) => ctx.db.delete(stored.chunks[0]!._id))
-    const corrupted = await t.run(async (ctx) => ({
-      drafts: await ctx.db.query('characterDrafts').collect(),
-      payloads: await ctx.db.query('characterDraftPayloads').collect(),
-      chunks: await ctx.db.query('characterDraftPayloadChunks').collect()
-    }))
-    await expect(
+    const read = () =>
+      t.run(async (ctx) => {
+        const draft = await ctx.db
+          .query('characterDrafts')
+          .withIndex('by_characterId', (q) => q.eq('characterId', request.id))
+          .unique()
+        if (!draft) throw new Error('Missing Character draft.')
+        return {
+          draft,
+          payloads: await ctx.db.query('characterDraftPayloads').collect(),
+          chunks: await ctx.db.query('characterDraftPayloadChunks').collect()
+        }
+      })
+    const saveDescription = (description: string) =>
       owner.caller.mutation(save, {
         characterId: request.id,
-        character: { ...oversized, description: 'replacement must roll back' },
+        character: { ...opened.payload.character, description },
         expectedDraftId: opened.id,
         mode: 'create'
       })
-    ).rejects.toThrow('chunk count mismatch')
+    const initial = await read()
+    expect(initial.payloads).toHaveLength(1)
+    expect(initial.payloads[0]!.payloadJson).toBeDefined()
+    expect(initial.chunks).toEqual([])
+
+    // 1.2 MB of UTF-8 falls back to chunks in the same payload document.
+    const oversized = await saveDescription('🎲'.repeat(300_000))
+    const chunked = await read()
+    expect(chunked.draft.payloadDocumentId).toBe(initial.draft.payloadDocumentId)
+    expect(chunked.payloads).toHaveLength(1)
+    expect(chunked.payloads[0]!._id).toBe(initial.payloads[0]!._id)
+    expect(chunked.payloads[0]!.payloadJson).toBeUndefined()
+    expect(chunked.payloads[0]!.chunkCount).toBeGreaterThan(1)
+    expect(chunked.chunks).toHaveLength(chunked.payloads[0]!.chunkCount!)
     expect(
-      await t.run(async (ctx) => ({
-        drafts: await ctx.db.query('characterDrafts').collect(),
-        payloads: await ctx.db.query('characterDraftPayloads').collect(),
-        chunks: await ctx.db.query('characterDraftPayloadChunks').collect()
-      }))
-    ).toEqual(corrupted)
+      chunked.chunks.every(
+        (chunk, index) => chunk.payloadId === chunked.draft.payloadId && chunk.chunkIndex === index
+      )
+    ).toBe(true)
+    expect(await owner.caller.query(get, { id: request.id })).toEqual(oversized)
+
+    // A small save goes back inline and deletes the old chunks.
+    const small = await saveDescription('Back to one document')
+    const inline = await read()
+    expect(inline.payloads.map((payload) => payload._id)).toEqual([initial.payloads[0]!._id])
+    expect(inline.payloads[0]!.payloadJson).toBeDefined()
+    expect(inline.chunks).toEqual([])
+    expect(await owner.caller.query(get, { id: request.id })).toEqual(small)
+
+    // A missing chunk fails the read closed.
+    await saveDescription('🎲'.repeat(300_000))
+    const broken = await read()
+    await t.run((ctx) => ctx.db.delete(broken.chunks[0]!._id))
+    await expect(owner.caller.query(get, { id: request.id })).rejects.toThrow(
+      'chunk count mismatch'
+    )
   })
 })

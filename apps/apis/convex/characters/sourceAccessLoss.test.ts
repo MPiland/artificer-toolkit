@@ -15,7 +15,7 @@ import { fixture, input } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { readCharacterSourceAccessLoss } from './sourceAccessLoss'
-import { deleteCharacterDraftPayload, readCharacterDraft } from './documents'
+import { readCharacterDraft } from './documents'
 import {
   reconcileCharacterSourceLoss,
   reconcileCreateOnlyCharacterDraftSourceLoss
@@ -396,33 +396,13 @@ describe('Character authored source access loss', () => {
           .query('characterDrafts')
           .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
           .unique()
-        if (!draft?.payloadId) throw new Error('Missing Character draft payload.')
-        const initial = await readCharacterDraft(ctx, draft, null)
-        await deleteCharacterDraftPayload(ctx, draft)
-        await ctx.db.replace(draft._id, {
-          id: draft.id,
-          characterId: draft.characterId,
-          userId: draft.userId,
-          systemId: draft.systemId,
-          publicId: draft.publicId,
-          label: draft.label,
-          status: draft.status,
-          mode: draft.mode,
-          baseActiveUpdatedAt: draft.baseActiveUpdatedAt,
-          createdAt: draft.createdAt,
-          updatedAt: draft.updatedAt,
-          payloadJson: JSON.stringify(initial.payload),
-          checksum: draft.checksum
-        })
-        const legacyDraftRecord = await ctx.db.get(draft._id)
-        if (!legacyDraftRecord?.payloadJson)
-          throw new Error('Missing legacy Character draft fixture.')
+        if (!draft) throw new Error('Missing Character draft.')
         const targets = [{ subjectKind: 'FEAT' as const, subjectId: foreignFeatId }]
         if (mode === 'create-only') {
           expect(
             await reconcileCreateOnlyCharacterDraftSourceLoss({
               ctx,
-              draft: legacyDraftRecord,
+              draft,
               targets
             })
           ).toEqual(targets)
@@ -464,8 +444,9 @@ describe('Character authored source access loss', () => {
         }
         const afterDraft = await ctx.db.get(draft._id)
         if (!afterDraft) throw new Error('Missing reconciled draft.')
-        expect(afterDraft.payloadJson).toBeUndefined()
-        if (!afterDraft.payloadId) throw new Error('Missing reconciled draft payload reference.')
+        // The payload document is replaced in place.
+        expect(afterDraft.payloadDocumentId).toBe(draft.payloadDocumentId)
+        expect(afterDraft.payloadId).not.toBe(draft.payloadId)
         const active = await ctx.db
           .query('characters')
           .withIndex('by_publicId', (q) => q.eq('id', afterDraft.characterId))

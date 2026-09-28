@@ -35,10 +35,10 @@ describe('native Character System-only binding', () => {
       })
     )
     const activeBefore = await base.t.run((ctx) => ctx.db.get(active._id))
-    const readActive = await base.owner.caller.query(api.characters.builder.get, {
+    const readActive = await base.owner.caller.query(api.characters.builder.activeCharacter, {
       id: first.character.id
     })
-    expect(readActive?.character).not.toHaveProperty('primaryRulesCatalogueId')
+    expect(readActive).not.toHaveProperty('primaryRulesCatalogueId')
     expect(await base.t.run((ctx) => ctx.db.get(active._id))).toEqual(activeBefore)
 
     const draft = await base.owner.caller.mutation(api.characters.drafts.create, {
@@ -54,35 +54,25 @@ describe('native Character System-only binding', () => {
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', first.character.id))
         .unique()
-      if (!stored?.payloadId) throw new Error('Missing draft Character payload fixture.')
+      if (!stored) throw new Error('Missing draft Character payload fixture.')
       const payload = await ctx.db
         .query('characterDraftPayloads')
         .withIndex('by_characterId_id', (q) =>
-          q.eq('characterId', stored.characterId).eq('id', stored.payloadId!)
+          q.eq('characterId', stored.characterId).eq('id', stored.payloadId)
         )
         .unique()
       if (
-        !payload ||
+        !payload?.payloadJson ||
         payload.characterId !== stored.characterId ||
         payload.checksum !== stored.checksum
       )
         throw new Error('Stored Character draft payload mismatch.')
-      await ctx.db.replace(stored._id, {
-        id: stored.id,
-        characterId: stored.characterId,
-        userId: stored.userId,
-        systemId: stored.systemId,
-        publicId: stored.publicId,
-        label: stored.label,
-        status: stored.status,
-        mode: stored.mode,
-        baseActiveUpdatedAt: stored.baseActiveUpdatedAt,
-        createdAt: stored.createdAt,
-        updatedAt: stored.updatedAt,
+      const checksum = checksumRuleDocument(legacyDraftPayload)
+      await ctx.db.patch(payload._id, {
         payloadJson: canonicalizeRuleDocument(legacyDraftPayload),
-        checksum: checksumRuleDocument(legacyDraftPayload)
+        checksum
       })
-      await ctx.db.delete(payload._id)
+      await ctx.db.patch(stored._id, { checksum })
     })
     const draftBefore = await base.t.run((ctx) =>
       ctx.db

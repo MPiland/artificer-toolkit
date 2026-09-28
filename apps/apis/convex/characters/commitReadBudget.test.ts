@@ -16,6 +16,11 @@ import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { fixture, input } from '../../tests/fixtures/characters'
+import {
+  countDatabaseIo,
+  createDatabaseIoTotals,
+  type DatabaseIoTotals
+} from '../../tests/fixtures/databaseIo'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { prepareCharacterBuilder } from './builderPreparation'
@@ -25,67 +30,6 @@ import { commitCharacter } from './commit'
 const COMMIT_READ_BUDGET_BYTES = 300 * 1024
 
 type Test = Awaited<ReturnType<typeof fixture>>['t']
-type Totals = {
-  documents: number
-  bytes: number
-  byTable: Record<string, { documents: number; distinct: number; bytes: number }>
-}
-
-/** Counts every document a transaction reads through `db`, at its JSON size, per table. */
-function countReads<T extends object>(db: T, totals: Totals): T {
-  const seen = new Set<string>()
-  const count = (table: string, value: unknown) => {
-    const documents = Array.isArray(value)
-      ? value
-      : value !== null && typeof value === 'object' && 'page' in value && Array.isArray(value.page)
-        ? value.page
-        : [value]
-    for (const document of documents)
-      if (document !== null && typeof document === 'object' && '_id' in document) {
-        const bytes = JSON.stringify(document).length
-        const entry = (totals.byTable[table] ??= { documents: 0, distinct: 0, bytes: 0 })
-        entry.documents += 1
-        if (!seen.has(String(document._id))) entry.distinct += 1
-        seen.add(String(document._id))
-        entry.bytes += bytes
-        totals.documents += 1
-        totals.bytes += bytes
-      }
-  }
-  const wrap = <U extends object>(target: U, table: string): U =>
-    new Proxy(target, {
-      get(object, property) {
-        const value: unknown = Reflect.get(object, property)
-        if (typeof value !== 'function') return value
-        const method = value as (...args: unknown[]) => unknown
-        if (property === Symbol.asyncIterator)
-          return () => {
-            const iterator = method.call(object) as AsyncIterator<unknown>
-            return {
-              next: async () => {
-                const step = await iterator.next()
-                if (!step.done) count(table, step.value)
-                return step
-              },
-              [Symbol.asyncIterator]() {
-                return this
-              }
-            }
-          }
-        return (...args: unknown[]) => {
-          const result = method.apply(object, args)
-          const label = property === 'query' && typeof args[0] === 'string' ? args[0] : table
-          if (result instanceof Promise)
-            return result.then((resolved: unknown) => {
-              count(label, resolved)
-              return resolved
-            })
-          return result !== null && typeof result === 'object' ? wrap(result, label) : result
-        }
-      }
-    })
-  return wrap(db, 'get')
-}
 
 function startingDecision(
   source: 'CLASS' | 'BACKGROUND',
@@ -149,8 +93,7 @@ async function resolve(t: Test, character: CharacterAuthored) {
     const { resolution } = await prepareCharacterBuilder(ctx, {
       character: structuredClone(character),
       current: null,
-      mode: 'create',
-      catalogScope: 'selectors'
+      mode: 'create'
     })
     return JSON.stringify(pickResolution(resolution))
   })
@@ -288,7 +231,7 @@ describe('commit read budget', () => {
       )
     ])
 
-    const measured: Record<string, Totals & { kb: number }> = {}
+    const measured: Record<string, DatabaseIoTotals['reads'] & { kb: number }> = {}
     for (const [name, baseClass, subclass] of [
       ['martial', fighter, championMartialArchetype],
       ['caster', wizard, schoolOfEvocation]
@@ -332,21 +275,17 @@ describe('commit read budget', () => {
         }
       }) as CharacterAuthored
       const ready = await makeReady(t, character)
-      const totals: Totals = {
-        documents: 0,
-        bytes: 0,
-        byTable: {}
-      }
+      const totals = createDatabaseIoTotals()
       const result = await owner.caller.run((ctx) =>
         commitCharacter(
-          { ...ctx, db: countReads(ctx.db, totals) },
+          { ...ctx, db: countDatabaseIo(ctx.db, totals) },
           { expectedDraftId: draft.id, mode: 'create', character: ready }
         )
       )
       expect(result.character.status).toBe('ACTIVE')
-      measured[name] = { ...totals, kb: Math.round(totals.bytes / 102.4) / 10 }
+      measured[name] = { ...totals.reads, kb: Math.round(totals.reads.bytes / 102.4) / 10 }
       console.info('S7 commit reads', name, JSON.stringify(measured[name]))
-      expect(totals.bytes).toBeLessThanOrEqual(COMMIT_READ_BUDGET_BYTES)
+      expect(totals.reads.bytes).toBeLessThanOrEqual(COMMIT_READ_BUDGET_BYTES)
     }
     console.info('S7 commit reads', measured)
   }, 600_000)

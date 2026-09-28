@@ -196,7 +196,7 @@ export async function verifyCharacterConcurrency({
   })
   await assert.rejects(
     () => owner.mutation(api.characters.commit.commit, staleCandidate),
-    /Character draft generation changed; reopen it before resolving\./
+    /Character draft generation changed; reopen it before committing\./
   )
   assert.deepEqual(
     await owner.query(api.characters.drafts.get, { id: first.character.id }),

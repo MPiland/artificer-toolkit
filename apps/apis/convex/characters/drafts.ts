@@ -19,6 +19,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterBuilder'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
+import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
@@ -33,37 +34,30 @@ import {
   readCharacterDraft,
   readCharacterDraftSummary,
   readCharacterRecord,
+  replaceCharacterDraftPayload,
   resolveCharacterId
 } from './documents'
 
-async function saveDraft(
+function parseDraftPayload(
+  userId: string,
+  input: Pick<CharacterDraftSaveInput, 'character' | 'builderIntent'>
+) {
+  return characterBuilderDraftPayloadDtoSchema.parse({
+    character: { ...input.character, userId, status: 'DRAFT' },
+    ...(input.builderIntent ? { builderIntent: input.builderIntent } : {})
+  })
+}
+
+/** Opens a new draft over the active Character, or over an empty create-mode Character. */
+async function openDraft(
   ctx: MutationCtx,
   userId: string,
-  input: Omit<CharacterDraftSaveInput, 'expectedDraftId'>,
-  { active, draft }: Awaited<ReturnType<typeof loadCharacterState>>
+  characterId: string,
+  character: CharacterDraftSaveInput['character'],
+  active: Doc<'characters'> | null
 ): Promise<CharacterBuilderDraftDto> {
-  if ((active && active.userId !== userId) || (draft && draft.userId !== userId)) {
-    throw new Error('Character cannot be edited by the current user.')
-  }
-  const existing = draft ? await readCharacterDraft(ctx, draft, active) : null
-  const current = active ? readCharacterRecord(active) : null
-  for (const bound of [existing?.payload.character, current]) {
-    if (bound && bound.systemId !== input.character.systemId) {
-      throw new Error('Character Game System is immutable.')
-    }
-  }
-  await requireSystem(ctx, input.character.systemId)
-  const mode = active ? 'edit' : 'create'
-  if (input.mode !== mode || (existing && existing.mode !== mode))
-    throw new Error('Character draft mode does not match the current Character.')
-  const baseActiveUpdatedAt = draft ? draft.baseActiveUpdatedAt : (active?.updatedAt ?? null)
-  if (
-    (active && !draft && input.baseActiveUpdatedAt !== baseActiveUpdatedAt) ||
-    (input.baseActiveUpdatedAt !== undefined && input.baseActiveUpdatedAt !== baseActiveUpdatedAt)
-  ) {
-    throw new Error('Character draft base revision does not match; reopen the draft before saving.')
-  }
-  if (!active && !draft) {
+  await requireSystem(ctx, character.systemId)
+  if (!active) {
     const entitlement = await ctx.db
       .query('accountEntitlements')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
@@ -90,35 +84,85 @@ async function saveDraft(
       }
     }
   }
-  const payload = characterBuilderDraftPayloadDtoSchema.parse({
-    character: { ...input.character, userId, status: 'DRAFT' },
-    ...(input.builderIntent ? { builderIntent: input.builderIntent } : {})
-  })
-  const now = new Date(
-    Math.max(Date.now(), draft ? Date.parse(draft.updatedAt) + 1 : 0)
-  ).toISOString()
-  const publicId = await ensureAuthoredRouteId(ctx, 'CHARACTER', input.characterId, false, userId)
-  const payloadRecord = await insertCharacterDraftPayload(ctx, input.characterId, payload, now)
+  const payload = parseDraftPayload(userId, { character })
+  const now = new Date().toISOString()
+  const publicId = await ensureAuthoredRouteId(ctx, 'CHARACTER', characterId, false, userId)
+  const payloadRecord = await insertCharacterDraftPayload(ctx, characterId, payload, now)
   const stored = characterStoredDraftSchema.parse({
-    id: draft?.id ?? crypto.randomUUID(),
-    characterId: input.characterId,
+    id: crypto.randomUUID(),
+    characterId,
     userId,
-    systemId: input.character.systemId,
+    systemId: character.systemId,
     publicId,
-    label: input.character.label || 'Untitled Character',
+    label: character.label || 'Untitled Character',
     status: 'DRAFT',
-    mode,
-    baseActiveUpdatedAt,
-    createdAt: draft?.createdAt ?? now,
+    mode: active ? 'edit' : 'create',
+    baseActiveUpdatedAt: active?.updatedAt ?? null,
+    createdAt: now,
+    updatedAt: now,
+    payloadId: payloadRecord.payloadId,
+    payloadDocumentId: payloadRecord.payloadDocumentId,
+    checksum: payloadRecord.checksum
+  })
+  await ctx.db.insert('characterDrafts', stored)
+  await syncAccountUsage(ctx, 'personalCharacters', characterId)
+  return characterBuilderDraftDtoSchema.parse({
+    ...stored,
+    draftState: active?.status === 'ACTIVE' ? 'ACTIVE_WITH_DRAFT' : 'DRAFT_ONLY',
+    payload: payloadRecord.payload
+  })
+}
+
+/**
+ * Autosave (ADR 0036 S8): validates structure only, the payload schema and the head's generation,
+ * mode and System binding, from the draft head. The payload document is replaced in place; the old
+ * payload, the System and the route are not read, and an edit draft's active row is read only for
+ * the returned `draftState`. Commit revalidates everything.
+ */
+export async function saveCharacterDraft(
+  ctx: MutationCtx,
+  input: CharacterDraftSaveInput
+): Promise<CharacterBuilderDraftDto> {
+  const { userId } = await requireIdentity(ctx)
+  if (input.characterId !== input.character.id)
+    throw new Error('Character draft route and payload identities do not match.')
+  const draft = await ctx.db
+    .query('characterDrafts')
+    .withIndex('by_characterId', (q) => q.eq('characterId', input.characterId))
+    .unique()
+  if (!draft || draft.userId !== userId)
+    throw new Error('Character draft is unavailable for the current user; reopen it before saving.')
+  if (draft.id !== input.expectedDraftId)
+    throw new Error('Character draft generation changed; reopen it before saving.')
+  if (draft.systemId !== input.character.systemId)
+    throw new Error('Character Game System is immutable.')
+  if (input.mode !== draft.mode)
+    throw new Error('Character draft mode does not match the current Character.')
+  if (
+    input.baseActiveUpdatedAt !== undefined &&
+    input.baseActiveUpdatedAt !== draft.baseActiveUpdatedAt
+  )
+    throw new Error('Character draft base revision does not match; reopen the draft before saving.')
+  const payload = parseDraftPayload(userId, input)
+  const now = new Date(Math.max(Date.now(), Date.parse(draft.updatedAt) + 1)).toISOString()
+  const payloadRecord = await replaceCharacterDraftPayload(ctx, draft, payload, now)
+  const { _id, _creationTime, ...head } = draft
+  const stored = characterStoredDraftSchema.parse({
+    ...head,
+    label: input.character.label || 'Untitled Character',
     updatedAt: now,
     payloadId: payloadRecord.payloadId,
     checksum: payloadRecord.checksum
   })
-  if (draft) {
-    await ctx.db.replace(draft._id, stored)
-    await deleteCharacterDraftPayload(ctx, draft)
-  } else await ctx.db.insert('characterDrafts', stored)
-  await syncAccountUsage(ctx, 'personalCharacters', input.characterId)
+  await ctx.db.replace(_id, stored)
+  // Only an edit draft has an active row, whose status (a repair row is DRAFT) sets `draftState`.
+  const active =
+    draft.mode === 'edit'
+      ? await ctx.db
+          .query('characters')
+          .withIndex('by_publicId', (q) => q.eq('id', draft.characterId))
+          .unique()
+      : null
   return characterBuilderDraftDtoSchema.parse({
     ...stored,
     draftState: active?.status === 'ACTIVE' ? 'ACTIVE_WITH_DRAFT' : 'DRAFT_ONLY',
@@ -150,41 +194,14 @@ export const create = mutation({
       await requireSystem(ctx, input.systemId)
       return existing
     }
-    return saveDraft(
-      ctx,
-      userId,
-      {
-        characterId: input.id,
-        character,
-        mode: current ? 'edit' : 'create',
-        baseActiveUpdatedAt: state.active?.updatedAt ?? null
-      },
-      state
-    )
+    return openDraft(ctx, userId, input.id, character, state.active)
   }
 })
 
 export const save = mutation({
   args: zodToConvexFields(characterDraftSaveInputSchema.shape),
   returns: zodToConvex(characterBuilderDraftDtoSchema),
-  handler: async (ctx, args): Promise<CharacterBuilderDraftDto> => {
-    const { userId } = await requireIdentity(ctx)
-    const input = characterDraftSaveInputSchema.parse(args)
-    if (input.characterId !== input.character.id)
-      throw new Error('Character draft route and payload identities do not match.')
-    const state = await loadCharacterState(ctx, input.characterId)
-    if (
-      !state.draft ||
-      state.draft.userId !== userId ||
-      (state.active && state.active.userId !== userId)
-    )
-      throw new Error(
-        'Character draft is unavailable for the current user; reopen it before saving.'
-      )
-    if (state.draft.id !== input.expectedDraftId)
-      throw new Error('Character draft generation changed; reopen it before saving.')
-    return saveDraft(ctx, userId, input, state)
-  }
+  handler: (ctx, args) => saveCharacterDraft(ctx, characterDraftSaveInputSchema.parse(args))
 })
 
 export const get = query({

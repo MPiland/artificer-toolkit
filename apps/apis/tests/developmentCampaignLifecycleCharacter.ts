@@ -11,6 +11,7 @@ import type {
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { sceneVisionRevisionSchema } from '@artificer-toolkit/schema/projections/sceneVisionRevisions'
+import { CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { reconcileCharacterAuthoredSourceLoss } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -69,11 +70,11 @@ export async function populateCampaignLifecycleCharacter(input: {
     subjectId: backgroundDraft.subjectId
   })
   await player.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
-  const current = await player.query(api.characters.builder.get, { id: characterId })
+  const current = await player.query(api.characters.builder.activeCharacter, { id: characterId })
   assert.ok(current)
   const opened = await player.mutation(api.characters.drafts.create, {
     id: characterId,
-    systemId: current.character.systemId
+    systemId: current.systemId
   })
   const saved = await player.mutation(api.characters.drafts.save, {
     characterId,
@@ -83,10 +84,10 @@ export async function populateCampaignLifecycleCharacter(input: {
     character: {
       ...opened.payload.character,
       intent: {
-        ...current.character.intent,
+        ...current.intent,
         background: { backgroundId: backgroundDraft.subjectId },
         startingEquipment: {
-          ...current.character.intent.startingEquipment,
+          ...current.intent.startingEquipment,
           background: { source: 'BACKGROUND', tookGold: false, groups: [], applied: true }
         }
       }
@@ -114,13 +115,13 @@ export async function populateCampaignLifecycleCharacter(input: {
     assert.equal(result.streamVersion, before.meta.streamVersion + 1)
     return result
   }
-  const beforeBag = await player.query(api.characters.builder.get, { id: characterId })
+  const beforeBag = await player.query(api.characters.builder.activeCharacter, { id: characterId })
   assert.ok(beforeBag)
   await execute({ type: 'ADD_INVENTORY_ITEM', equipmentId: backpack.id, quantity: 1 })
-  const withBag = await player.query(api.characters.builder.get, { id: characterId })
+  const withBag = await player.query(api.characters.builder.activeCharacter, { id: characterId })
   assert.ok(withBag)
-  const addedBags = withBag.character.state.equipment.inventory.filter(
-    (row) => !beforeBag.character.state.equipment.inventory.some((old) => old.id === row.id)
+  const addedBags = withBag.state.equipment.inventory.filter(
+    (row) => !beforeBag.state.equipment.inventory.some((old) => old.id === row.id)
   )
   assert.equal(addedBags.length, 1)
   const bag = addedBags[0]!
@@ -181,7 +182,7 @@ export async function populateCampaignLifecycleCharacter(input: {
     return client.mutation(api.campaigns.inventoryTransfers.transfer, { input: command })
   }
   for (const vehicleId of [undefined, ...vehicleIds]) {
-    const before = await player.query(api.characters.builder.get, { id: characterId })
+    const before = await player.query(api.characters.builder.activeCharacter, { id: characterId })
     assert.ok(before)
     await execute({
       type: 'ADD_INVENTORY_ITEM',
@@ -189,10 +190,10 @@ export async function populateCampaignLifecycleCharacter(input: {
       quantity: 1,
       customName: 'P09 stable coin group container'
     })
-    const after = await player.query(api.characters.builder.get, { id: characterId })
+    const after = await player.query(api.characters.builder.activeCharacter, { id: characterId })
     assert.ok(after)
-    const bags = after.character.state.equipment.inventory.filter(
-      (item) => !before.character.state.equipment.inventory.some((old) => old.id === item.id)
+    const bags = after.state.equipment.inventory.filter(
+      (item) => !before.state.equipment.inventory.some((old) => old.id === item.id)
     )
     assert.equal(bags.length, 1)
     const movedBag = bags[0]!
@@ -207,11 +208,11 @@ export async function populateCampaignLifecycleCharacter(input: {
         amount,
         containerId: movedBag.id
       })
-    const populated = await player.query(api.characters.builder.get, { id: characterId })
+    const populated = await player.query(api.characters.builder.activeCharacter, {
+      id: characterId
+    })
     assert.ok(populated)
-    const groups = populated.character.state.currency.filter(
-      (group) => group.containerId === movedBag.id
-    )
+    const groups = populated.state.currency.filter((group) => group.containerId === movedBag.id)
     assert.equal(groups.length, 1)
     assert.deepEqual(
       groups
@@ -234,15 +235,17 @@ export async function populateCampaignLifecycleCharacter(input: {
     await transfer(player, { kind: 'CHARACTER', characterId }, partyOwner, movedBag.id)
     if (vehicleId !== undefined)
       await transfer(owner, partyOwner, { kind: 'VEHICLE', vehicleId }, movedBag.id)
-    const remaining = await player.query(api.characters.builder.get, { id: characterId })
+    const remaining = await player.query(api.characters.builder.activeCharacter, {
+      id: characterId
+    })
     assert.ok(remaining)
     assert.equal(
-      remaining.character.state.equipment.inventory.some((item) => item.id === movedBag.id),
+      remaining.state.equipment.inventory.some((item) => item.id === movedBag.id),
       false
     )
     for (const group of groups)
       assert.equal(
-        remaining.character.state.currency.some((row) => row.id === group.id),
+        remaining.state.currency.some((row) => row.id === group.id),
         false
       )
     const page =
@@ -298,7 +301,7 @@ export async function populateCampaignLifecycleCharacter(input: {
   })
   const privateDraft = await player.mutation(api.characters.drafts.create, {
     id: characterId,
-    systemId: current.character.systemId
+    systemId: current.systemId
   })
   const retainedDraft = await player.mutation(api.characters.drafts.save, {
     characterId,
@@ -310,7 +313,7 @@ export async function populateCampaignLifecycleCharacter(input: {
       ? {}
       : { builderIntent: privateDraft.payload.builderIntent })
   })
-  assert.equal(await owner.query(api.characters.builder.get, { id: characterId }), null)
+  assert.equal(await owner.query(api.characters.builder.activeCharacter, { id: characterId }), null)
   assert.equal(await owner.query(api.characters.sheet.get, { id: characterId }), null)
   const ownSheet = await player.query(api.characters.sheet.get, { id: characterId })
   const campaignSheet = await owner.query(api.campaigns.characterSheet.get, {
@@ -320,17 +323,24 @@ export async function populateCampaignLifecycleCharacter(input: {
   assert.ok(ownSheet && campaignSheet)
   assert.equal(JSON.stringify(ownSheet).includes(privateBody), true)
   assert.equal(JSON.stringify(campaignSheet).includes(privateBody), false)
-  const final = await player.query(api.characters.builder.get, { id: characterId })
-  assert.ok(final)
-  assert.equal(final.character.intent.background.backgroundId, backgroundDraft.subjectId)
+  const [final, finalDraft] = await Promise.all([
+    player.query(api.characters.builder.activeCharacter, { id: characterId }),
+    player.query(api.characters.drafts.get, { id: characterId })
+  ])
+  assert.ok(final && finalDraft)
+  assert.equal(final.intent.background.backgroundId, backgroundDraft.subjectId)
   assert.equal(
-    final.character.status,
-    'DRAFT',
-    'Builder returns the saved edit draft; the personal Sheet above proves current active play access.'
+    finalDraft.payload.character.intent.background.backgroundId,
+    backgroundDraft.subjectId
   )
-  assert.equal(final.character.label, 'P09 private saved draft')
-  assert.equal(final.character.state.hitpoints.current, 3)
-  for (const item of final.character.state.equipment.inventory) assert.ok(item.retainedRulesJson)
+  assert.equal(
+    finalDraft.payload.character.status,
+    'DRAFT',
+    'The saved edit draft stays a draft; the personal Sheet above proves current active play access.'
+  )
+  assert.equal(finalDraft.payload.character.label, 'P09 private saved draft')
+  assert.equal(final.state.hitpoints.current, 3)
+  for (const item of final.state.equipment.inventory) assert.ok(item.retainedRulesJson)
   return {
     characterId,
     backgroundId: backgroundDraft.subjectId,
@@ -340,38 +350,25 @@ export async function populateCampaignLifecycleCharacter(input: {
     denominationId: denomination.id,
     ownSheet,
     campaignSheet,
-    character: final.character,
+    character: final,
     savedDraft: retainedDraft,
     stableGroups
   }
 }
 
 function readNativeCharacterDraftPayload(tables: NativeTables, draft: Record<string, unknown>) {
-  const inlinePayloadJson = draft.payloadJson
   const payloadId = draft.payloadId
-  assert.equal(
-    Number(typeof inlinePayloadJson === 'string') + Number(typeof payloadId === 'string'),
-    1,
-    'Character draft must use exactly one Convex payload representation.'
-  )
+  const payloadDocumentId = draft.payloadDocumentId
+  assert.equal(typeof payloadId, 'string')
+  assert.equal(typeof payloadDocumentId, 'string')
   assert.equal(typeof draft.checksum, 'string')
   const payloadRows = tables.characterDraftPayloads
   const chunkRows = tables.characterDraftPayloadChunks
   assert.ok(payloadRows)
   assert.ok(chunkRows)
-  if (typeof inlinePayloadJson === 'string') {
-    const raw: unknown = JSON.parse(inlinePayloadJson)
-    assert.equal(checksumRuleDocument(raw), draft.checksum)
-    return {
-      payload: characterBuilderDraftPayloadDtoSchema.parse(raw),
-      payloadJson: inlinePayloadJson,
-      payloadRow: null,
-      chunks: [] as Record<string, unknown>[]
-    }
-  }
-
   const matches = payloadRows.filter(
-    (row) => row.id === payloadId && row.characterId === draft.characterId
+    (row) =>
+      row._id === payloadDocumentId && row.id === payloadId && row.characterId === draft.characterId
   )
   assert.equal(matches.length, 1)
   const payloadRow = matches[0]!
@@ -513,7 +510,7 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   assert.ok(Date.parse(draftUpdatedAt) > Date.parse(updatedAt))
   assert.ok(Date.parse(draftUpdatedAt) > Date.parse(draft.updatedAt as string))
   assert.equal(typeof actualDraft.payloadId, 'string')
-  const { payloadJson: _payloadJson, payloadId: previousPayloadId, ...stableDraft } = draft
+  const { payloadId: previousPayloadId, ...stableDraft } = draft
   const expectedDraft = {
     ...stableDraft,
     label: payload.character.label,
@@ -525,18 +522,24 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   assert.deepEqual(actualDraft, expectedDraft)
   const stored = readNativeCharacterDraftPayload(actual, actualDraft)
   assert.deepEqual(stored.payload, persistedPayload)
-  assert.ok(stored.payloadRow)
   const payloadJson = canonicalizeRuleDocument(encodedDraft)
-  const expectedChunks = encodeUtf8PayloadChunks(payloadJson)
-  const totalByteLength = expectedChunks.reduce((total, chunk) => total + chunk.byteLength, 0)
+  const totalByteLength = new TextEncoder().encode(payloadJson).byteLength
+  // Inline in its one payload document below the limit; chunked above it (ADR 0036 S8).
+  const expectedChunks =
+    totalByteLength > CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES
+      ? encodeUtf8PayloadChunks(payloadJson)
+      : []
   assert.equal(stored.payloadJson, payloadJson)
+  // The payload document is replaced in place.
+  assert.equal(stored.payloadRow._id, draft.payloadDocumentId)
   const expectedPayloadRow = {
     _id: stored.payloadRow._id,
     _creationTime: stored.payloadRow._creationTime,
     id: actualDraft.payloadId,
     characterId,
-    chunkCount: expectedChunks.length,
-    totalByteLength,
+    ...(expectedChunks.length > 0
+      ? { chunkCount: expectedChunks.length, totalByteLength }
+      : { payloadJson }),
     checksum: draftChecksum,
     createdAt: draftUpdatedAt
   }
@@ -569,7 +572,7 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
     row._id === draft._id ? actualDraft : row
   )
   expected.characterDraftPayloads = [
-    ...expected.characterDraftPayloads!.filter((row) => row.id !== previousPayloadId),
+    ...expected.characterDraftPayloads!.filter((row) => row._id !== stored.payloadRow._id),
     expectedPayloadRow
   ].sort((left, right) => String(left._id).localeCompare(String(right._id)))
   expected.characterDraftPayloadChunks = [

@@ -9,6 +9,7 @@ import {
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
+  CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES,
   CHARACTER_DRAFT_PAYLOAD_MAX_CHUNKS,
   characterStoredDraftPayloadSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
@@ -140,23 +141,15 @@ function requireCharacterDraftPayloadIdentity(
     throw new Error('Stored Character draft identity mismatch.')
 }
 
-export async function readCharacterDraftPayload(ctx: QueryCtx, record: StoredCharacterDraft) {
-  const hasInlinePayload = record.payloadJson !== undefined
-  const hasPayloadReference = record.payloadId !== undefined
-  if (hasInlinePayload === hasPayloadReference)
-    throw new Error('Stored Character draft payload representation is invalid.')
-  if (record.payloadJson !== undefined) {
-    const payload = parseCharacterDraftPayload(record.payloadJson, record.checksum)
-    requireCharacterDraftPayloadIdentity(record, payload)
-    return payload
-  }
+function requirePayloadDocumentId(ctx: QueryCtx, record: StoredCharacterDraft) {
+  const id = ctx.db.normalizeId('characterDraftPayloads', record.payloadDocumentId)
+  if (!id) throw new Error('Stored Character draft payload reference is invalid.')
+  return id
+}
 
-  const payload = await ctx.db
-    .query('characterDraftPayloads')
-    .withIndex('by_characterId_id', (q) =>
-      q.eq('characterId', record.characterId).eq('id', record.payloadId!)
-    )
-    .unique()
+/** The draft's payload document and chunks, verified against its head. */
+async function loadCharacterDraftPayloadOf(ctx: QueryCtx, record: StoredCharacterDraft) {
+  const payload = await ctx.db.get(requirePayloadDocumentId(ctx, record))
   if (!payload) throw new Error('Stored Character draft payload is missing.')
   const loaded = await loadStoredCharacterDraftPayload(ctx, payload)
   if (
@@ -166,9 +159,15 @@ export async function readCharacterDraftPayload(ctx: QueryCtx, record: StoredCha
   )
     throw new Error('Stored Character draft payload identity mismatch.')
   requireCharacterDraftPayloadIdentity(record, loaded.draftPayload)
-  return loaded.draftPayload
+  return { payload, ...loaded }
 }
-export async function insertCharacterDraftPayload(
+
+export async function readCharacterDraftPayload(ctx: QueryCtx, record: StoredCharacterDraft) {
+  return (await loadCharacterDraftPayloadOf(ctx, record)).draftPayload
+}
+
+/** A payload head, inline below `CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES`, after writing any chunks. */
+async function writeCharacterDraftPayloadHead(
   ctx: MutationCtx,
   characterId: string,
   payload: unknown,
@@ -177,26 +176,81 @@ export async function insertCharacterDraftPayload(
 ) {
   const encoded: unknown = JSON.parse(JSON.stringify(payload))
   const payloadJson = canonicalizeRuleDocument(encoded)
-  const chunks = encodeUtf8PayloadChunks(payloadJson)
-  const totalByteLength = chunks.reduce((total, chunk) => total + chunk.byteLength, 0)
-  const stored = characterStoredDraftPayloadSchema.parse({
-    id: crypto.randomUUID(),
-    characterId,
-    ...(importJobId !== undefined ? { importJobId } : {}),
-    chunkCount: chunks.length,
-    totalByteLength,
-    checksum: checksumRuleDocument(encoded),
-    createdAt
-  })
-  await ctx.db.insert('characterDraftPayloads', stored)
+  const byteLength = new TextEncoder().encode(payloadJson).byteLength
+  const id = crypto.randomUUID()
+  const chunks =
+    byteLength > CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES
+      ? encodeUtf8PayloadChunks(payloadJson)
+      : []
   for (const [chunkIndex, bytes] of chunks.entries())
     await ctx.db.insert('characterDraftPayloadChunks', {
       characterId,
-      payloadId: stored.id,
+      payloadId: id,
       chunkIndex,
       bytes
     })
-  return { payloadId: stored.id, checksum: stored.checksum, payload: encoded }
+  const stored = characterStoredDraftPayloadSchema.parse({
+    id,
+    characterId,
+    ...(importJobId !== undefined ? { importJobId } : {}),
+    ...(chunks.length > 0
+      ? { chunkCount: chunks.length, totalByteLength: byteLength }
+      : { payloadJson }),
+    checksum: checksumRuleDocument(encoded),
+    createdAt
+  })
+  return { stored, payload: encoded }
+}
+
+export async function insertCharacterDraftPayload(
+  ctx: MutationCtx,
+  characterId: string,
+  payload: unknown,
+  createdAt: string,
+  importJobId?: string
+) {
+  const written = await writeCharacterDraftPayloadHead(
+    ctx,
+    characterId,
+    payload,
+    createdAt,
+    importJobId
+  )
+  const payloadDocumentId = await ctx.db.insert('characterDraftPayloads', written.stored)
+  return {
+    payloadId: written.stored.id,
+    payloadDocumentId,
+    checksum: written.stored.checksum,
+    payload: written.payload
+  }
+}
+
+/**
+ * Replaces a draft's payload document in place by its stored id, without reading the old payload
+ * (ADR 0036 S8). Only a chunked old payload has chunks to delete.
+ */
+export async function replaceCharacterDraftPayload(
+  ctx: MutationCtx,
+  record: Doc<'characterDrafts'>,
+  payload: unknown,
+  createdAt: string
+) {
+  const payloadDocumentId = requirePayloadDocumentId(ctx, record)
+  const written = await writeCharacterDraftPayloadHead(ctx, record.characterId, payload, createdAt)
+  await ctx.db.replace(payloadDocumentId, written.stored)
+  const oldChunks = await ctx.db
+    .query('characterDraftPayloadChunks')
+    .withIndex('by_characterId_payloadId_chunkIndex', (q) =>
+      q.eq('characterId', record.characterId).eq('payloadId', record.payloadId)
+    )
+    .take(CHARACTER_DRAFT_PAYLOAD_MAX_CHUNKS)
+  for (const chunk of oldChunks) await ctx.db.delete(chunk._id)
+  return {
+    payloadId: written.stored.id,
+    payloadDocumentId,
+    checksum: written.stored.checksum,
+    payload: written.payload
+  }
 }
 
 async function deleteStoredCharacterDraftPayload(
@@ -212,27 +266,8 @@ export async function deleteCharacterDraftPayload(
   ctx: MutationCtx,
   record: Doc<'characterDrafts'>
 ) {
-  const hasInlinePayload = record.payloadJson !== undefined
-  const hasPayloadReference = record.payloadId !== undefined
-  if (hasInlinePayload === hasPayloadReference)
-    throw new Error('Stored Character draft payload representation is invalid.')
-  if (hasInlinePayload) return
-  const payload = await ctx.db
-    .query('characterDraftPayloads')
-    .withIndex('by_characterId_id', (q) =>
-      q.eq('characterId', record.characterId).eq('id', record.payloadId!)
-    )
-    .unique()
-  if (!payload) throw new Error('Stored Character draft payload is missing.')
-  const loaded = await loadStoredCharacterDraftPayload(ctx, payload)
-  if (
-    loaded.stored.id !== record.payloadId ||
-    loaded.stored.characterId !== record.characterId ||
-    loaded.stored.checksum !== record.checksum
-  )
-    throw new Error('Stored Character draft payload identity mismatch.')
-  requireCharacterDraftPayloadIdentity(record, loaded.draftPayload)
-  await deleteStoredCharacterDraftPayload(ctx, payload, loaded.chunks)
+  const { payload, chunks } = await loadCharacterDraftPayloadOf(ctx, record)
+  await deleteStoredCharacterDraftPayload(ctx, payload, chunks)
 }
 
 export async function deleteCharacterDraftPayloadByHead(
@@ -254,7 +289,7 @@ export async function loadCharacterDraftCandidate(
   if (!draft || draft.userId !== userId || (active && active.userId !== userId))
     throw new Error('Character draft is unavailable for the current user.')
   if (draft.id !== input.expectedDraftId)
-    throw new Error('Character draft generation changed; reopen it before resolving.')
+    throw new Error('Character draft generation changed; reopen it before committing.')
   const working = await readCharacterDraft(ctx, draft, active)
   const current = active ? readCharacterRecord(active) : null
   if (input.mode !== (active ? 'edit' : 'create') || input.mode !== working.mode)

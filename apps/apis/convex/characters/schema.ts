@@ -3,9 +3,9 @@ import { v } from 'convex/values'
 import { zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   characterStoredCommandReceiptSchema,
-  characterStoredDraftHeadSchema,
   characterStoredDraftPayloadChunkSchema,
   characterStoredDraftPayloadHeadSchema,
+  characterStoredDraftSchema,
   characterStoredRecordSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
 
@@ -15,7 +15,7 @@ export const characterTables = {
     .index('by_userId', ['userId'])
     .index('by_portraitAssetId', ['portraitAssetId'])
     .index('by_userId_systemId_id', ['userId', 'systemId', 'id']),
-  characterDrafts: defineTable(zodToConvexFields(characterStoredDraftHeadSchema.shape))
+  characterDrafts: defineTable(zodToConvexFields(characterStoredDraftSchema.shape))
     .index('by_characterId', ['characterId'])
     .index('by_userId_systemId_characterId', ['userId', 'systemId', 'characterId'])
     .index('by_userId_updatedAt', ['userId', 'updatedAt']),

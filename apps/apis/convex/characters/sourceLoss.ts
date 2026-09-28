@@ -13,11 +13,11 @@ import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import {
-  deleteCharacterDraftPayload,
   insertCharacterDraftPayload,
   readCharacterDraft,
   readCharacterRecord,
-  readCharacterSheetState
+  readCharacterSheetState,
+  replaceCharacterDraftPayload
 } from './documents'
 import { prepareCharacterBuilder } from './builderPreparation'
 import { readCampaignCharacterState } from '../campaigns/characterState'
@@ -101,8 +101,8 @@ async function saveDraft(input: {
     ...(input.builderIntent ? { builderIntent: input.builderIntent } : {})
   })
   const now = nextTimestamp(input.active.updatedAt, input.draft?.updatedAt)
-  const payloadRecord = await insertCharacterDraftPayload(input.ctx, input.active.id, payload, now)
   if (input.draft) {
+    const payloadRecord = await replaceCharacterDraftPayload(input.ctx, input.draft, payload, now)
     await input.ctx.db.replace(
       input.draft._id,
       characterStoredDraftSchema.parse({
@@ -111,12 +111,13 @@ async function saveDraft(input: {
         baseActiveUpdatedAt: input.baseActiveUpdatedAt,
         updatedAt: now,
         payloadId: payloadRecord.payloadId,
+        payloadDocumentId: payloadRecord.payloadDocumentId,
         checksum: payloadRecord.checksum
       })
     )
-    await deleteCharacterDraftPayload(input.ctx, input.draft)
     return
   }
+  const payloadRecord = await insertCharacterDraftPayload(input.ctx, input.active.id, payload, now)
   const route = await readVisibleAuthoredRouteId(input.ctx, { subjectId: input.active.id })
   if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== input.active.userId)
     throw new Error('Stored Character route identity mismatch.')
@@ -135,6 +136,7 @@ async function saveDraft(input: {
       createdAt: now,
       updatedAt: now,
       payloadId: payloadRecord.payloadId,
+      payloadDocumentId: payloadRecord.payloadDocumentId,
       checksum: payloadRecord.checksum
     })
   )
@@ -344,12 +346,7 @@ export async function reconcileCreateOnlyCharacterDraftSourceLoss(input: {
     ...(draft.payload.builderIntent ? { builderIntent: draft.payload.builderIntent } : {})
   })
   const now = nextTimestamp(input.draft.updatedAt)
-  const payloadRecord = await insertCharacterDraftPayload(
-    input.ctx,
-    input.draft.characterId,
-    payload,
-    now
-  )
+  const payloadRecord = await replaceCharacterDraftPayload(input.ctx, input.draft, payload, now)
   await input.ctx.db.replace(
     input.draft._id,
     characterStoredDraftSchema.parse({
@@ -357,10 +354,10 @@ export async function reconcileCreateOnlyCharacterDraftSourceLoss(input: {
       label: payload.character.label || 'Untitled Character',
       updatedAt: now,
       payloadId: payloadRecord.payloadId,
+      payloadDocumentId: payloadRecord.payloadDocumentId,
       checksum: payloadRecord.checksum
     })
   )
-  await deleteCharacterDraftPayload(input.ctx, input.draft)
   return canonicalTargets(losses)
 }
 

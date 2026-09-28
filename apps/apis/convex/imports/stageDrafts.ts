@@ -156,11 +156,11 @@ async function ensureUsage(
 }
 
 async function readOldCharacterPayloadHead(ctx: MutationCtx, draft: Doc<'characterDrafts'> | null) {
-  if (!draft?.payloadId) return null
+  if (!draft) return null
   return await ctx.db
     .query('characterDraftPayloads')
     .withIndex('by_characterId_id', (query) =>
-      query.eq('characterId', draft.characterId).eq('id', draft.payloadId!)
+      query.eq('characterId', draft.characterId).eq('id', draft.payloadId)
     )
     .unique()
 }
@@ -243,8 +243,7 @@ export const stageCharacterHead = internalMutation({
       draft: importRowIdentity(draft)
     }
     const oldPayloadHead = await readOldCharacterPayloadHead(ctx, draft)
-    if (draft?.payloadId && !oldPayloadHead)
-      throw new Error('Stored Character draft payload is missing.')
+    if (draft && !oldPayloadHead) throw new Error('Stored Character draft payload is missing.')
     const publicId = await ensureAuthoredRouteId(
       ctx,
       'CHARACTER',
@@ -289,6 +288,7 @@ export const stageCharacterHead = internalMutation({
       createdAt: draft?.createdAt ?? now,
       updatedAt: now,
       payloadId: storedPayload.payloadId,
+      payloadDocumentId: storedPayload.payloadDocumentId,
       checksum: storedPayload.checksum
     })
     const output = {
