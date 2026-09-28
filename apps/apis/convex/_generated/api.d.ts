@@ -18757,6 +18757,7 @@ export declare const api: {
             userId: string;
           };
           expectedDraftId: string;
+          featureSourceHints?: Array<{ featureId: string; rootId: string }>;
           mode: "create" | "edit";
         },
         {
