@@ -7,13 +7,9 @@ import {
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import {
-  serverRuleExecutionPendingOccurrenceId,
-  serverRuleExecutionPendingSnapshotDtoSchema
-} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { canAnswerNativeActionEvidence, projectNativeActionPending } from './actionPending'
 import { projectNativeDisarmPendingForMember } from './actionDisarmPending'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
 import type { Doc } from '../_generated/dataModel'
@@ -25,6 +21,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectNativeCleavingPending } from './cleavingPending'
 import { projectNativeConcentrationPending } from './concentrationPending'
+import { readStoredPendingSnapshot, storedPendingSnapshotChecksum } from './pendingSnapshots'
 import {
   readEncounterActorPrimaryController,
   readEncounterControlledActorIds
@@ -123,11 +120,9 @@ export async function readPendingRunDecision(
     occurrence.pendingSnapshotChecksum === null
   )
     throw new Error('Stored Encounter occurrence state is invalid.')
-  const pendingSnapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-    JSON.parse(occurrence.pendingSnapshotJson)
-  )
+  const pendingSnapshot = readStoredPendingSnapshot(occurrence)!
   if (
-    checksumCanonicalJson(pendingSnapshot) !== occurrence.pendingSnapshotChecksum ||
+    storedPendingSnapshotChecksum(occurrence) !== occurrence.pendingSnapshotChecksum ||
     serverRuleExecutionPendingOccurrenceId(pendingSnapshot) !== occurrence.id
   )
     throw new Error('Stored Encounter occurrence state is invalid.')

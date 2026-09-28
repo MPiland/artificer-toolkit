@@ -2,7 +2,6 @@ import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/en
 import type { z } from 'zod'
 import { resolveRuleOccurrenceInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
@@ -11,6 +10,10 @@ import { requireIdentity } from '../lib/identity'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunProjection, readRunState } from '../encounters/documents'
+import {
+  readStoredPendingSnapshot,
+  storedPendingSnapshotChecksum
+} from '../encounters/pendingSnapshots'
 
 /** The published response's current-role result; never the private preparation. */
 export async function readMovementResponseResult(
@@ -51,13 +54,7 @@ export async function readMovementResponseResult(
       )
   )
     throw new Error('Movement response receipt is inconsistent.')
-  const pendingSnapshot = occurrence.pendingSnapshotJson
-    ? serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(occurrence.pendingSnapshotJson))
-    : null
-  if (
-    (pendingSnapshot ? checksumCanonicalJson(pendingSnapshot) : null) !==
-    occurrence.pendingSnapshotChecksum
-  )
+  if (storedPendingSnapshotChecksum(occurrence) !== occurrence.pendingSnapshotChecksum)
     throw new Error('Movement response occurrence checksum is inconsistent.')
   return presentEncounterResultForMember(ctx, {
     campaign,
@@ -70,7 +67,7 @@ export async function readMovementResponseResult(
           id: occurrence.id,
           version: occurrence.version,
           state: occurrence.state,
-          pendingSnapshot
+          pendingSnapshot: readStoredPendingSnapshot(occurrence)
         },
         run.version,
         { controlledActorIds: new Set(readRunState(run).actorIds) }

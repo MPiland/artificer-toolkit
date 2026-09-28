@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import {
   liveSessionEncounterRulesInputSchema,
+  liveSessionEncounterRulesRequestSchema,
   liveSessionEncounterRulesResponseSchema,
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesRequest,
@@ -35,8 +36,7 @@ import {
   readEncounterAutoRollByActorId,
   readEncounterControlledActorIds
 } from '../encounters/actorController'
-import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { readMovementResolution } from '../scenes/geometryDocuments'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { readLiveEncounterActionScope } from './encounterActionAdmission'
 import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
@@ -384,7 +384,8 @@ type BundledEncounterRequest = Extract<
 /**
  * Admits one capture scope once for a capture bundle's ordinary parts. Every guard the separate
  * reads apply to these request kinds is request-independent, so each part is still exactly the
- * response its separate read returns, with the same read checksum and revisions.
+ * response its separate read returns, with the same read checksum and revisions. `scope` is the
+ * caller's parsed input, so each part validates only its request.
  */
 export async function admitEncounterCaptureParts(
   ctx: QueryCtx,
@@ -396,8 +397,7 @@ export async function admitEncounterCaptureParts(
     await admitEncounterCaptureScope(ctx, scope)
   )
   return (request: BundledEncounterRequest) => {
-    const input = liveSessionEncounterRulesInputSchema.parse({ ...scope, request })
-    const parsed = input.request
+    const parsed = liveSessionEncounterRulesRequestSchema.parse(request)
     if (
       parsed.kind === 'TURN_COMMAND' ||
       parsed.kind === 'CONCENTRATION_RESPONSE' ||
@@ -408,7 +408,7 @@ export async function admitEncounterCaptureParts(
       parsed.kind === 'BASIC_ACTION'
     )
       throw new Error('A command admission admits its own scope.')
-    return readOrdinaryEncounterCapture(ctx, { ...input, request: parsed }, admission)
+    return readOrdinaryEncounterCapture(ctx, { ...scope, request: parsed }, admission)
   }
 }
 
@@ -521,11 +521,7 @@ async function readOrdinaryEncounterCapture(
         campaign,
         // A response continues the mover's command; its rolls keep the mover as initiator.
         initiatorUserId: movementAdmission.save.movementResolution
-          ? readEncounterMovementPendingContext(
-              serverRuleExecutionPendingSnapshotDtoSchema.parse(
-                JSON.parse(movementAdmission.save.movementResolution.pendingSnapshotJson)
-              )
-            ).root.initiatorUserId
+          ? readMovementResolution(movementAdmission.save)!.root.initiatorUserId
           : movementAdmission.save.actorUserId,
         actors: await readRunActors(ctx, state)
       }),

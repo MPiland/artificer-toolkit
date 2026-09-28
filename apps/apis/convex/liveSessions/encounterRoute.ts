@@ -7,10 +7,10 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { internalQuery, type QueryCtx } from '../_generated/server'
 import { rejectDomain } from '../lib/domainRejections'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { readNativeEncounterOccurrenceOwner } from '../encounters/occurrenceOwner'
 import { classifyRuleOccurrenceVoid, voidDeclineCommand } from '../encounters/occurrenceVoid'
 import { readPendingRunDecision } from '../encounters/pendingReads'
+import { readStoredPendingSnapshot } from '../encounters/pendingSnapshots'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
 
 /**
@@ -43,11 +43,7 @@ export async function routeEncounterDecision(
   if (command.type === 'VOID_RULE_OCCURRENCE') {
     const voided =
       membership.role === 'OWNER' && occurrence.pendingSnapshotJson !== null
-        ? classifyRuleOccurrenceVoid(
-            serverRuleExecutionPendingSnapshotDtoSchema.parse(
-              JSON.parse(occurrence.pendingSnapshotJson)
-            ).applicationContext
-          )
+        ? classifyRuleOccurrenceVoid(readStoredPendingSnapshot(occurrence)!.applicationContext)
         : null
     // A GM void that declines a decision settles through the room like the GM's decline (D26);
     // Convex records every other void, refusing a player's.

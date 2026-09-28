@@ -1,13 +1,11 @@
 import { DND5E_DISARM_OPERATION_KEY } from '@artificer-toolkit/schema/shared/optionalCombat'
-import {
-  serverRuleExecutionPendingSnapshotDtoSchema,
-  type ServerRuleExecutionPendingSnapshotDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { type ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { readStoredPendingSnapshot } from './pendingSnapshots'
 
 type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext']
 
@@ -103,12 +101,7 @@ export async function readNativeEncounterOccurrenceOwner(
     .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
     .unique()
   if (!occurrence) return 'OTHER'
-  const context =
-    occurrence.pendingSnapshotJson === null
-      ? null
-      : serverRuleExecutionPendingSnapshotDtoSchema.parse(
-          JSON.parse(occurrence.pendingSnapshotJson)
-        ).applicationContext
+  const context = readStoredPendingSnapshot(occurrence)?.applicationContext ?? null
   const rootReceipt = await ctx.db
     .query('encounterRunCommands')
     .withIndex('by_campaignId_commandId', (q) =>

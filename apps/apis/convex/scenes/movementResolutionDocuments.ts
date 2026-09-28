@@ -2,10 +2,7 @@ import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/ap
 import type { SceneStoredGeometrySave } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import {
-  isServerKernelRuleExecutionPendingSnapshot,
-  serverRuleExecutionPendingSnapshotDtoSchema
-} from '@artificer-toolkit/schema/shared/rulesExecution'
+import { isServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
@@ -14,6 +11,10 @@ import { requireIdentity } from '../lib/identity'
 import { readEncounterControlledActorIds } from '../encounters/actorController'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunActor, readRunState } from '../encounters/documents'
+import {
+  readStoredPendingSnapshot,
+  storedPendingSnapshotChecksum
+} from '../encounters/pendingSnapshots'
 import {
   assertGeometryReceiving,
   readGeometrySave,
@@ -98,14 +99,12 @@ export async function readMovementResponseAuthority(
     !occurrence.pendingSnapshotChecksum
   )
     throw new Error('Movement response occurrence is stale.')
-  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-    JSON.parse(occurrence.pendingSnapshotJson)
-  )
+  const snapshot = readStoredPendingSnapshot(occurrence)!
   const { context, root } = readEncounterMovementPendingContext(snapshot)
   const kernelSnapshot = isServerKernelRuleExecutionPendingSnapshot(snapshot) ? snapshot : null
   if (
     (context.kind !== 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' && !kernelSnapshot) ||
-    checksumCanonicalJson(snapshot) !== occurrence.pendingSnapshotChecksum ||
+    storedPendingSnapshotChecksum(occurrence) !== occurrence.pendingSnapshotChecksum ||
     serverRuleExecutionPendingOccurrenceId(snapshot) !== occurrence.id ||
     root.encounterId !== state.id ||
     root.commandId !== occurrence.rootCommandId ||

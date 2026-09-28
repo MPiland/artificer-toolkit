@@ -4,7 +4,6 @@ import {
   sceneGeometryExecuteInputSchema,
   type SceneGeometryBeginResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
@@ -12,6 +11,7 @@ import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
 import { isEncounterMovementContext } from '../encounters/occurrenceOwner'
+import { readStoredPendingSnapshot } from '../encounters/pendingSnapshots'
 import { beginSceneGeometry } from './geometryStaging'
 import { parseGeometrySave, readMovementResolution } from './geometryDocuments'
 import { readMovementResponseAuthority } from './movementResolutionDocuments'
@@ -49,9 +49,7 @@ export async function beginMovementResolution(
         JSON.parse(receipt.commandMetadataJson)
       )
     : null
-  const snapshot = occurrence.pendingSnapshotJson
-    ? serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(occurrence.pendingSnapshotJson))
-    : null
+  const snapshot = readStoredPendingSnapshot(occurrence)
   const context = snapshot?.applicationContext
   const pending =
     snapshot && isEncounterMovementContext(context)
