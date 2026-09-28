@@ -1,3 +1,4 @@
+import { changedFields } from './documents.js'
 import {
   encounterInitiativeRoundStateDtoSchema,
   type EncounterInitiativeRoundStateDto
@@ -105,7 +106,7 @@ export async function removeActorInitiative(
     .unique()
   if (!round || round.version !== current.round.version)
     throw new Error('The normalized initiative round changed before actor removal.')
-  await ctx.db.replace(round._id, result.round)
+  await ctx.db.patch(round._id, changedFields(round, result.round))
   for (const participant of result.participants) {
     const row = await ctx.db
       .query('encounterInitiativeParticipants')
@@ -115,7 +116,7 @@ export async function removeActorInitiative(
       .unique()
     if (!row || row.version !== participant.version - 1)
       throw new Error('Initiative participant changed before actor removal.')
-    await ctx.db.replace(row._id, participant)
+    await ctx.db.patch(row._id, changedFields(row, participant))
   }
   for (const previous of current.sides) {
     const row = await ctx.db
@@ -127,7 +128,7 @@ export async function removeActorInitiative(
     if (!row || row.version !== previous.version)
       throw new Error('Initiative side changed before actor removal.')
     const next = result.sides.find((side) => side.sideId === previous.sideId)
-    if (next) await ctx.db.replace(row._id, next)
+    if (next) await ctx.db.patch(row._id, changedFields(row, next))
     else await ctx.db.delete(row._id)
   }
   return result

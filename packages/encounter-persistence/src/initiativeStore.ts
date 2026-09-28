@@ -12,7 +12,7 @@ import {
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { EncounterConflictError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 
-import { readRunActors, readRunState } from './documents.js'
+import { readRunActors, readRunState, changedFields } from './documents.js'
 import type { EncounterReadContext, EncounterWriteContext } from './store.js'
 
 const storedRoundSchema = encounterInitiativeRoundDtoSchema.clone({
@@ -198,7 +198,7 @@ export function createEncounterInitiativeStore(ctx: EncounterWriteContext) {
         createdAt: existing?.createdAt ?? now,
         updatedAt: now
       })
-      if (existing) await ctx.db.replace(existing._id, round)
+      if (existing) await ctx.db.patch(existing._id, changedFields(existing, round))
       else await ctx.db.insert('encounterInitiativeRounds', round)
       for (const participant of staged.participants) {
         const previous = existingParticipants.find((row) => row.actorId === participant.actorId)
@@ -208,7 +208,7 @@ export function createEncounterInitiativeStore(ctx: EncounterWriteContext) {
           createdAt: previous?.createdAt ?? now,
           updatedAt: now
         })
-        if (previous) await ctx.db.replace(previous._id, value)
+        if (previous) await ctx.db.patch(previous._id, changedFields(previous, value))
         else await ctx.db.insert('encounterInitiativeParticipants', value)
       }
       for (const participant of existingParticipants)
@@ -222,7 +222,7 @@ export function createEncounterInitiativeStore(ctx: EncounterWriteContext) {
           createdAt: previous?.createdAt ?? now,
           updatedAt: now
         })
-        if (previous) await ctx.db.replace(previous._id, value)
+        if (previous) await ctx.db.patch(previous._id, changedFields(previous, value))
         else await ctx.db.insert('encounterInitiativeSides', value)
       }
       for (const side of existingSides)
@@ -325,7 +325,7 @@ export function createEncounterInitiativeStore(ctx: EncounterWriteContext) {
         version: row.version + 1,
         updatedAt: new Date().toISOString()
       })
-      await ctx.db.replace(row._id, updated)
+      await ctx.db.patch(row._id, changedFields(row, updated))
       return updated
     },
     async updateInitiativeParticipant(input: unknown) {
@@ -371,7 +371,7 @@ export function createEncounterInitiativeStore(ctx: EncounterWriteContext) {
         version: row.version + 1,
         updatedAt: new Date().toISOString()
       })
-      await ctx.db.replace(row._id, updated)
+      await ctx.db.patch(row._id, changedFields(row, updated))
       return updated
     },
     async updateInitiativeSide(input: unknown) {
@@ -412,7 +412,7 @@ export function createEncounterInitiativeStore(ctx: EncounterWriteContext) {
         version: row.version + 1,
         updatedAt: new Date().toISOString()
       })
-      await ctx.db.replace(row._id, updated)
+      await ctx.db.patch(row._id, changedFields(row, updated))
       return updated
     }
   }

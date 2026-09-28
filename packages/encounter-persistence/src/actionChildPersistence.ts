@@ -20,6 +20,7 @@ import type {
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import type { EncounterDocument } from './store.js'
+import { changedFields } from './documents.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
 export async function persistNativeConcentrationResult(
@@ -51,7 +52,8 @@ export async function persistNativeConcentrationResult(
     createdAt: input.occurrence?.createdAt ?? input.occurredAt,
     updatedAt: input.occurredAt
   })
-  if (input.occurrence) await ctx.db.patch(input.occurrence._id, occurrence)
+  if (input.occurrence)
+    await ctx.db.patch(input.occurrence._id, changedFields(input.occurrence, occurrence))
   else await ctx.db.insert('encounterRuleOccurrences', occurrence)
   await ctx.db.insert(
     'encounterRuleReceipts',

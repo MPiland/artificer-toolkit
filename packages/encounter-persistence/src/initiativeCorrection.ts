@@ -5,7 +5,7 @@ import {
   encounterInitiativeSideDtoSchema,
   type EncounterInitiativeRoundStateDto
 } from '@artificer-toolkit/schema/shared/initiativeState'
-import { readRunActors, readRunState } from './documents.js'
+import { readRunActors, readRunState, changedFields } from './documents.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
@@ -170,12 +170,12 @@ export async function correctInitiativeCursor(input: {
     allowedSideIds: runState.sides.map((side) => side.id)
   })
   if (target) {
-    await input.ctx.db.replace(targetRoundRow!._id, round)
+    await input.ctx.db.patch(targetRoundRow!._id, changedFields(targetRoundRow!, round))
     for (const participant of participants) {
       const row = targetParticipantRows.find(
         (candidate) => candidate.actorId === participant.actorId
       )
-      if (row) await input.ctx.db.replace(row._id, participant)
+      if (row) await input.ctx.db.patch(row._id, changedFields(row, participant))
       else await input.ctx.db.insert('encounterInitiativeParticipants', participant)
     }
     for (const row of targetParticipantRows)
@@ -183,7 +183,7 @@ export async function correctInitiativeCursor(input: {
         await input.ctx.db.delete(row._id)
     for (const side of sides) {
       const row = targetSideRows.find((candidate) => candidate.sideId === side.sideId)
-      if (row) await input.ctx.db.replace(row._id, side)
+      if (row) await input.ctx.db.patch(row._id, changedFields(row, side))
       else await input.ctx.db.insert('encounterInitiativeSides', side)
     }
     for (const row of targetSideRows)

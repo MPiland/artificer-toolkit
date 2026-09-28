@@ -1,3 +1,4 @@
+import { changedFields } from './documents.js'
 import {
   encounterInitiativeParticipantDtoSchema,
   encounterInitiativeRoundStateDtoSchema,
@@ -313,7 +314,7 @@ export async function insertReinforcementInitiative(input: {
     .unique()
   if (!roundRow || roundRow.version !== current.round.version)
     throw new Error('The normalized initiative round changed before reinforcement.')
-  await input.ctx.db.replace(roundRow._id, result.round)
+  await input.ctx.db.patch(roundRow._id, changedFields(roundRow, result.round))
   for (const participant of result.participants) {
     const previous = current.participants.find((row) => row.actorId === participant.actorId)
     if (!previous) {
@@ -332,7 +333,7 @@ export async function insertReinforcementInitiative(input: {
       .unique()
     if (!row || row.version !== previous.version)
       throw new Error('Initiative participant changed before reinforcement.')
-    await input.ctx.db.replace(row._id, participant)
+    await input.ctx.db.patch(row._id, changedFields(row, participant))
   }
   for (const side of result.sides) {
     const previous = current.sides.find((row) => row.sideId === side.sideId)
@@ -349,7 +350,7 @@ export async function insertReinforcementInitiative(input: {
       .unique()
     if (!row || row.version !== previous.version)
       throw new Error('Initiative side changed before reinforcement.')
-    await input.ctx.db.replace(row._id, side)
+    await input.ctx.db.patch(row._id, changedFields(row, side))
   }
   const orderedActors = result.participants.map((participant) => {
     const currentActor = actorById.get(participant.actorId)

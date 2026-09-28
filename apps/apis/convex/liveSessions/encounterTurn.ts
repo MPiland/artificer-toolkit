@@ -11,7 +11,7 @@ import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encou
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { changedFields, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
@@ -180,7 +180,11 @@ export const commitPending = internalMutation({
       createdAt: admission.pending?.occurrence.createdAt ?? updatedAt,
       updatedAt
     })
-    if (admission.pending) await ctx.db.patch(admission.pending.occurrence._id, record)
+    if (admission.pending)
+      await ctx.db.patch(
+        admission.pending.occurrence._id,
+        changedFields(admission.pending.occurrence, record)
+      )
     else await ctx.db.insert('encounterRuleOccurrences', record)
     const turnPending =
       context.kind === 'ENCOUNTER_TURN_RECHARGE' ||

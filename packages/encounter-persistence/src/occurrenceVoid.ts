@@ -18,7 +18,7 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { rejectDomain } from './domainRejections.js'
-import { readRunState } from './documents.js'
+import { changedFields, readRunState } from './documents.js'
 import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
@@ -310,7 +310,7 @@ export async function prepareRuleOccurrenceVoid(
     completedAt: updatedAt,
     updatedAt
   })
-  await ctx.db.patch(_id, voided)
+  await ctx.db.patch(_id, changedFields(occurrence, voided))
   return {
     kind: 'COMPLETE',
     result: await recordVoid(

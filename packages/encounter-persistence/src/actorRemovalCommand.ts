@@ -14,7 +14,7 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import type { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { readRunActors, readRunState } from './documents.js'
+import { changedFields, readRunActors, readRunState } from './documents.js'
 import {
   encounterReplayReceipt,
   readEncounterReplayReceipt,
@@ -396,7 +396,7 @@ async function removeEncounterActorCore(
       createdAt: pending?.createdAt ?? now,
       updatedAt: now
     })
-    if (pending) await ctx.db.replace(pending._id, occurrence)
+    if (pending) await ctx.db.patch(pending._id, changedFields(pending, occurrence))
     else await ctx.db.insert('encounterRuleOccurrences', occurrence)
     const metadata = serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
       schemaVersion: 1,

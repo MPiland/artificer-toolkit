@@ -29,7 +29,7 @@ import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readDisarmAdmission } from '@artificer-toolkit/encounter-persistence/disarmAdmission'
 import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-persistence/allyAdvantage'
-import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { changedFields, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
@@ -103,7 +103,7 @@ export const commitPending = internalMutation({
       updatedAt
     })
     const id = occurrence?._id ?? (await ctx.db.insert('encounterRuleOccurrences', value))
-    if (occurrence) await ctx.db.patch(id, value)
+    if (occurrence) await ctx.db.patch(id, changedFields(occurrence, value))
     const stored = await ctx.db.get(id)
     if (!stored) throw new Error('The pending Disarm was not stored.')
     // The sealed contest must name its root and the participant it now waits on.
@@ -266,7 +266,7 @@ export const commit = internalMutation({
     })
     const completedId =
       occurrence?._id ?? (await ctx.db.insert('encounterRuleOccurrences', completed))
-    if (occurrence) await ctx.db.patch(completedId, completed)
+    if (occurrence) await ctx.db.patch(completedId, changedFields(occurrence, completed))
     await ctx.db.insert(
       'encounterRuleReceipts',
       encounterStoredRuleReceiptSchema.parse({

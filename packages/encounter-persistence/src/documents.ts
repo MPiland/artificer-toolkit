@@ -9,6 +9,20 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveOnce } from './transactionReads.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
+/**
+ * The fields of `next` that differ from `current`, for a patch that writes only what a command
+ * changed: the delta a checkpoint carries (ADR 0035 Amendment 12).
+ */
+export function changedFields<Fields extends object>(
+  current: NoInfer<Fields>,
+  next: Fields
+): Partial<Fields> {
+  const changed: Partial<Fields> = {}
+  for (const key of Object.keys(next) as (keyof Fields)[])
+    if (JSON.stringify(current[key]) !== JSON.stringify(next[key])) changed[key] = next[key]
+  return changed
+}
+
 /** Reads a Run's state after checking that it belongs to `campaign` and its Game System. */
 export function readCampaignRunState(
   row: EncounterDocument<'encounterRuns'>,

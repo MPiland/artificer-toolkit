@@ -8,7 +8,7 @@ import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
 import { nativeActionPendingResult } from '@artificer-toolkit/encounter-persistence/actionPending'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
-import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { changedFields, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
@@ -104,7 +104,7 @@ export const commitPending = internalMutation({
       updatedAt
     })
     const id = resume?.occurrence._id ?? (await ctx.db.insert('encounterRuleOccurrences', value))
-    if (resume) await ctx.db.patch(id, value)
+    if (resume) await ctx.db.patch(id, changedFields(resume.occurrence, value))
     const occurrence = await ctx.db.get(id)
     if (!occurrence) throw new Error('The pending action was not stored.')
     if (resume && input.response)

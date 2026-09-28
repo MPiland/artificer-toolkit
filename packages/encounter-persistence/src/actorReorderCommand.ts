@@ -13,7 +13,7 @@ import {
   type EncounterInitiativeRoundStateDto
 } from '@artificer-toolkit/schema/shared/initiativeState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { readRunActors, readRunState } from './documents.js'
+import { readRunActors, readRunState, changedFields } from './documents.js'
 import {
   encounterReplayReceipt,
   readEncounterReplayReceipt,
@@ -176,7 +176,7 @@ export async function reorderEncounterActors(
       .unique()
     if (!round || round.version !== current.round.version)
       throw new Error('Initiative round changed before reorder.')
-    await ctx.db.replace(round._id, initiative.round)
+    await ctx.db.patch(round._id, changedFields(round, initiative.round))
     for (const participant of initiative.participants) {
       const stored = await ctx.db
         .query('encounterInitiativeParticipants')
@@ -186,7 +186,7 @@ export async function reorderEncounterActors(
         .unique()
       if (!stored || stored.version !== participant.version - 1)
         throw new Error('Initiative participant changed before reorder.')
-      await ctx.db.replace(stored._id, participant)
+      await ctx.db.patch(stored._id, changedFields(stored, participant))
     }
     for (const side of initiative.sides) {
       const stored = await ctx.db
@@ -197,7 +197,7 @@ export async function reorderEncounterActors(
         .unique()
       if (!stored || stored.version !== side.version - 1)
         throw new Error('Initiative side changed before reorder.')
-      await ctx.db.replace(stored._id, side)
+      await ctx.db.patch(stored._id, changedFields(stored, side))
     }
   }
   for (const actor of actors) {

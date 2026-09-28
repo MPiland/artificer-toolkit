@@ -28,7 +28,7 @@ import { internalMutation } from '../lib/mutations'
 import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
-import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { changedFields, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-persistence/allyAdvantage'
 import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
@@ -322,7 +322,11 @@ export const commit = internalMutation({
       createdAt: resume?.occurrence.createdAt ?? input.occurredAt,
       updatedAt: input.occurredAt
     })
-    if (resume) await ctx.db.patch(resume.occurrence._id, completedOccurrence)
+    if (resume)
+      await ctx.db.patch(
+        resume.occurrence._id,
+        changedFields(resume.occurrence, completedOccurrence)
+      )
     else await ctx.db.insert('encounterRuleOccurrences', completedOccurrence)
     nextActors = await persistLiveEncounterActionChildren(ctx, {
       input,
