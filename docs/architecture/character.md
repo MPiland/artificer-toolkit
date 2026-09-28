@@ -448,15 +448,16 @@ No current preview proof constitutes P02 or P03 acceptance.
 flowchart LR
   Manifest["contentSnapshots.manifest (live)"] --> Page["Builder page"]
   System["content.systems.get (D67)"] --> Page
+  Active["characters.builder.activeCharacter (edit drafts)"] --> Page
   Token["contentSnapshots.issueAccess (cached)"] --> Page
-  Page -- "values, draft, manifest, System" --> Worker["Builder Web Worker"]
+  Page -- "values, draft, previous Character, manifest, System" --> Worker["Builder Web Worker"]
   Worker -- "index first, documents per kind" --> Content["session Worker GET /content/{key}"]
   Worker --> Cache[("Cache Storage by SHA-256")]
   Worker --> Eval["rules-runtime snapshotBuilderEvaluation"]
   Eval -- "CharacterBuilderPayloadDto / preview" --> Page
 ```
 
-A draft in `create` mode resolves and previews in the browser: each edit, after the Builder's
+The Builder resolves and previews in the browser: each edit, after the Builder's
 existing 150 ms debounce, runs `resolveSnapshotCharacterBuilderPayload`, and Activate runs
 `previewSnapshotCharacterBuilder` (`rules-runtime/character/snapshotBuilderEvaluation`). They are
 the S5 chain (`createLazySnapshotReaders` → `prepareCharacterRuleContext` →
@@ -465,7 +466,10 @@ the S5 chain (`createLazySnapshotReaders` → `prepareCharacterRuleContext` →
 `builder.resolve` and `builder.preview` return; `builder.preview` builds its output with the same
 `toCharacterBuilderPreviewOutput`. The worker parses the candidate as the server parses
 `builder.resolve` arguments and sets the draft owner and `DRAFT` status. The System comes from the
-existing `content.systems.get` query, since the System is not snapshotted yet (D67).
+existing `content.systems.get` query, since the System is not snapshotted yet (D67). An edit draft
+evaluates against the active Character it replaces, read by `characters/builder.activeCharacter`,
+which shares `builder.get`'s ownership and route checks; replacement allowances and the change
+preview compare against it, as `builder.resolve` does with its stored active document.
 
 - **Worker** (`domains/characters/builder/evaluation`). A module worker created after mount on the
   Builder route only, and started on its first evaluation; nothing evaluates during SSR. It keeps
@@ -482,10 +486,11 @@ existing `content.systems.get` query, since the System is not snapshotted yet (D
   kinds being fetched, that content is still updating when a head's `revision` exceeds its
   `builtRevision`, and which kind failed to load, with a retry. The first ready evaluation and each
   manifest change re-resolve the current values.
-- **Still on the server.** A draft in `edit` mode (an active Character) resolves and previews through
-  `builder.resolve` and `builder.preview`: local evaluation needs the active Character as
-  `previousCharacter`, and no client query returns it yet. `builder.get` still loads the Builder,
-  and `commit` stays authoritative (S7 narrows its reads).
+- **Sign-out.** Sign-out, a sign-in and an identity change seen by the root session check drop the
+  cached content tokens, terminate Builder workers and delete the snapshot Cache Storage
+  (`clearPrivateContentSnapshots`).
+- **Still on the server.** `builder.get` still loads the Builder, and `commit` stays authoritative
+  (S7 narrows its reads). `builder.resolve` and `builder.preview` have no web caller; S9 deletes them.
 - **Gates.** `rulesRuntimeBoundary.test.ts` walks the web app's runtime imports and forbids
   `rules-runtime/encounter*`. `builderEvaluationWorker.size.test.ts` builds the worker entry and
   holds it to 300 KB gzipped. `builderSnapshotParity.test.ts` (apps/apis) runs the worker's

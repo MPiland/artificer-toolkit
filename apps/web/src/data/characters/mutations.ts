@@ -3,15 +3,11 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useConvex, useMutation as useConvexMutation } from 'convex/react'
 import {
   characterBuilderCommitOutputSchema,
-  characterBuilderPreviewOutputSchema,
   characterBuilderResolveInputSchema,
   type CharacterBuilderCommitOutput,
   type CharacterBuilderResolveInput
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
-import {
-  characterBuilderDraftDtoSchema,
-  characterBuilderPayloadDtoSchema
-} from '@artificer-toolkit/schema/api/characterBuilder'
+import { characterBuilderDraftDtoSchema } from '@artificer-toolkit/schema/api/characterBuilder'
 import {
   characterDraftCreateInputSchema,
   characterDraftDiscardInputSchema,
@@ -55,32 +51,6 @@ export function useDiscardCharacterDraftMutation() {
   return useMutation({
     mutationFn: (input: CharacterDraftDiscardInput) =>
       discard(characterDraftDiscardInputSchema.parse(input))
-  })
-}
-
-export function useResolveCharacterBuilderMutation() {
-  const convex = useConvex()
-  return useMutation({
-    mutationFn: (input: CharacterBuilderResolveInput) =>
-      convex
-        .query(
-          convexApi.characters.builder.resolve,
-          JSON.parse(JSON.stringify(characterBuilderResolveInputSchema.parse(input)))
-        )
-        .then((response) => characterBuilderPayloadDtoSchema.parse(response))
-  })
-}
-
-export function usePreviewCharacterSaveMutation() {
-  const convex = useConvex()
-  return useMutation({
-    mutationFn: (input: CharacterBuilderResolveInput) =>
-      convex
-        .query(
-          convexApi.characters.builder.preview,
-          JSON.parse(JSON.stringify(characterBuilderResolveInputSchema.parse(input)))
-        )
-        .then((response) => characterBuilderPreviewOutputSchema.parse(response))
   })
 }
 

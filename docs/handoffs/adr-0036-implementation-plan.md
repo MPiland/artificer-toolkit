@@ -109,7 +109,7 @@
 
 [Character](../architecture/character.md#browser-builder-evaluation-adr-0036-s6--local-implementation-acceptance-pending) describes the flow. Where S6 differs from the design summary:
 
-- **Create mode only.** A draft in `create` mode resolves and previews in the browser worker. A draft in `edit` mode (an active Character) still calls `builder.resolve` and `builder.preview`, because local evaluation needs the active Character as `previousCharacter` (replacement allowances and the change preview read it) and no client query returns it. Adding one needs a Convex function and a local codegen push, which this slice could not run. Recommendation: the query that replaces `builder.get` in S9 returns the draft and the active Character together; the worker already takes `previousCharacter`.
+- **Edit drafts.** An edit draft evaluates against the active Character it replaces (`previousCharacter`: replacement allowances and the change preview read it), from the new `characters/builder.activeCharacter` query, which shares `builder.get`'s ownership and route checks. Its `_generated/api.d.ts` entry was written by hand in the codegen format; the next local codegen push regenerates it. The web app no longer calls `builder.resolve` or `builder.preview`; S9 deletes them.
 - **System input.** The System comes from the existing `content.systems.get` query (D67); no new query.
 - **Shared evaluation.** `rules-runtime/character/snapshotBuilderEvaluation` (`resolveSnapshotCharacterBuilderPayload`, `previewSnapshotCharacterBuilder`) is what the worker runs. `toCharacterBuilderPreviewOutput` (`builderPayload.ts`) now builds `builder.preview`'s output too, so both paths share it.
 - **Lazy readers.** `createLazySnapshotReaders(indexObjects, loadDocuments)` wraps `createSnapshotReaders`: the index names each root's kind, so a publication read loads that kind's documents; parents load their kind; the feature scan loads every feature-bearing kind; the Spell catalogue loads SPELL. A Fighter loads RACE, CLASS and BACKGROUND documents only.
@@ -119,7 +119,7 @@
 - **Chunk gate.** A Vitest test (`builderEvaluationWorker.size.test.ts`) builds the worker entry alone with Vite, since the repo has no bundle-size tooling. Measured (2026-09-28): 161 KB gzipped in the test and 162 KB gzipped (597 KB minified) for `builderEvaluation.worker-*.js` in the web app build, one self-contained chunk absent from the server bundle.
 - **Evaluation time.** Warm evaluation over the S5 corpus through the lazy readers, in Node: p95 3.5 ms (6 scenarios x 5 runs), against the 100 ms gate. Cold time (first fetch and parse of a manifest's objects) is not measured.
 - **Not bridged locally.** S3's local gaps remain: the local Worker gets no `CONTENT_SNAPSHOT_TOKEN_SECRET`, and its `CONTENT_SNAPSHOTS` is a Miniflare bucket, not the fixture the local Convex build writes. The browser path is covered by unit tests, not yet by a local end-to-end run.
-- **Private objects at rest.** Verified private objects stay in Cache Storage (keyed by hash, so only a manifest naming them reads them) until a later manifest drops them; nothing clears them at sign-out yet.
+- **Sign-out.** `clearPrivateContentSnapshots` drops cached content tokens, terminates Builder workers and deletes the whole snapshot Cache Storage (public objects are simply fetched again). It runs after a successful sign-out, before the post-sign-in redirect, and when the root session check sees another identity.
 
 ## Budgets (estimates to verify in the slices)
 

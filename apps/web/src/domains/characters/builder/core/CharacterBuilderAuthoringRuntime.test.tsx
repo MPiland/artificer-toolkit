@@ -6,6 +6,7 @@ import type {
   CharacterBuilderPayloadDto
 } from '@artificer-toolkit/schema/api/characters'
 import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
+import { ConvexReactClient } from 'convex/react'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   characterBuilderDraftPayloadFixture,
@@ -25,8 +26,7 @@ const mocks = vi.hoisted(() => ({
   preview: vi.fn(),
   resolve: vi.fn(),
   saveDraft: vi.fn(),
-  serverPreview: vi.fn(),
-  serverResolve: vi.fn()
+  activeCharacter: vi.fn()
 }))
 
 vi.mock('#app/data/characters/mutations', () => ({
@@ -39,12 +39,16 @@ vi.mock('#app/data/characters/mutations', () => ({
     isPending: false,
     mutateAsync: mocks.discard
   }),
-  usePreviewCharacterSaveMutation: () => ({ mutateAsync: mocks.serverPreview }),
-  useResolveCharacterBuilderMutation: () => ({ mutateAsync: mocks.serverResolve }),
   useSaveCharacterDraftMutation: () => ({ mutateAsync: mocks.saveDraft })
 }))
 
-// A new Character evaluates in the browser worker (ADR 0036 S6); the worker client is the seam.
+// The Builder evaluates in the browser worker (ADR 0036 S6); the worker client is the seam.
+vi.mock('#app/data/characters/queries', () => ({
+  getCharacterBuilderActiveCharacter: () => ({
+    queryKey: ['builder-active-character'],
+    queryFn: async () => mocks.activeCharacter()
+  })
+}))
 vi.mock('#app/data/contentSnapshots/queries', () => ({
   getContentSnapshotManifest: () => ({
     queryKey: ['content-snapshot-manifest'],
@@ -74,6 +78,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
   beforeEach(() => {
     Object.values(mocks).forEach((mock) => mock.mockReset())
     mocks.manifest.mockReturnValue(builtManifest)
+    mocks.activeCharacter.mockReturnValue(characterBuilderPayloadFixture.character)
     mocks.resolve.mockResolvedValue(characterBuilderPayloadFixture)
     mocks.evaluate.mockImplementation(async (request: BuilderEvaluationRequest) =>
       request.operation === 'resolve'
@@ -152,7 +157,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       operation: 'resolve',
       draft: { expectedDraftId: 'draft-generation', mode: 'create' }
     })
-    expect(mocks.serverResolve).not.toHaveBeenCalled()
     expect(mocks.create).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -283,7 +287,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       draft: { expectedDraftId: 'draft-generation' },
       character: { status: 'DRAFT' }
     })
-    expect(mocks.serverPreview).not.toHaveBeenCalled()
     await user.click(within(dialog).getByRole('button', { name: 'Finalize' }))
     await waitFor(() =>
       expect(mocks.commit).toHaveBeenCalledWith({
@@ -341,27 +344,40 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     await waitFor(() =>
       expect(screen.queryByText(/could not load spells/i)).not.toBeInTheDocument()
     )
-    expect(mocks.serverResolve).not.toHaveBeenCalled()
   })
 
-  it('resolves edits of an active Character on the server until it has the active record', async () => {
+  it('evaluates edits of an active Character locally against it, without Convex resolve or preview', async () => {
     const user = userEvent.setup()
-    mocks.serverResolve.mockResolvedValue(characterBuilderDraftPayloadFixture)
+    const active = { ...characterBuilderDraftPayloadFixture.character, label: 'Active record' }
+    mocks.activeCharacter.mockReturnValue(active)
+    mocks.resolve.mockResolvedValueOnce(characterBuilderDraftPayloadFixture)
+    mocks.preview.mockResolvedValue(characterPreviewFixture)
+    const convexClient = new ConvexReactClient('https://tests.convex.cloud')
+    const convexQuery = vi.spyOn(convexClient, 'query')
     renderWithAppProviders(
       <AuthoringLayout
         data={editData(characterBuilderDraftPayloadFixture, 'draft-generation', 'edit')}
         kind='character-builder'
         mode='edit'
-      />
+      />,
+      { convexClient }
     )
 
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(1))
     await chooseRace(user, 'Sea Elf', 'Choose Race')
-    await waitFor(() => expect(mocks.serverResolve).toHaveBeenCalledTimes(1))
-    expect(mocks.serverResolve.mock.calls[0]?.[0]).toMatchObject({
-      expectedDraftId: 'draft-generation',
-      mode: 'edit'
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(2))
+    expect(mocks.resolve.mock.calls[1]?.[0]).toMatchObject({
+      operation: 'resolve',
+      draft: { expectedDraftId: 'draft-generation', mode: 'edit' },
+      previousCharacter: { label: 'Active record' }
     })
-    expect(mocks.evaluate).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Activate' }))
+    await waitFor(() => expect(mocks.preview).toHaveBeenCalledTimes(1))
+    expect(mocks.preview.mock.calls[0]?.[0]).toMatchObject({
+      operation: 'preview',
+      previousCharacter: { label: 'Active record' }
+    })
+    expect(convexQuery).not.toHaveBeenCalled()
   })
 })
 

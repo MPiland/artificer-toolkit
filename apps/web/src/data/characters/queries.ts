@@ -3,6 +3,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import type { UseQueryOptions } from '@tanstack/react-query'
 import type { FunctionReturnType } from 'convex/server'
 import type { CharacterListResponseDto } from '@artificer-toolkit/schema/api/characterBuilder'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { usePaginatedQuery } from 'convex/react'
 import { useEffect } from 'react'
 import type { CharacterSheetExtraCatalogInputDto } from '@artificer-toolkit/schema/api/characterSheetData'
@@ -54,6 +55,15 @@ export function useGetCharacterList(enabled = true) {
 
 export function getCharacter(id: string) {
   return convexQuery(convexApi.characters.builder.get, { id })
+}
+
+/** The active Character an edit draft replaces; the browser Builder evaluates against it. */
+export function getCharacterBuilderActiveCharacter(id: string) {
+  return {
+    ...convexQuery(convexApi.characters.builder.activeCharacter, { id }),
+    select: (character: FunctionReturnType<typeof convexApi.characters.builder.activeCharacter>) =>
+      character && characterAuthoredDtoSchema.parse(character)
+  }
 }
 
 export function getCharacterDraft(id: string) {

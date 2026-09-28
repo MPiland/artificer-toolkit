@@ -47,7 +47,7 @@ import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { importedSubject, makePublishedRootOwned } from '../../tests/fixtures/publication'
-import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, internal } from '../_generated/api'
 import { readAuthoredVersion, readPublishedDocument } from '../content/documents'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
@@ -135,7 +135,10 @@ async function resolveBothWays(
   const input: SnapshotCharacterBuilderInput = {
     // Validated Character DTOs use literal starting-equipment sources for the authored string enum.
     character: candidate.character as CharacterAuthored,
-    previousCharacter: candidate.current as CharacterAuthored | null,
+    // The browser reads the previous Character through `builder.activeCharacter`.
+    previousCharacter: (await caller.query(api.characters.builder.activeCharacter, {
+      id: request.character.id
+    })) as CharacterAuthored | null,
     mode: request.mode,
     system,
     builderIntent: candidate.draft.payload.builderIntent,
@@ -475,5 +478,101 @@ describe('Builder resolution from content snapshots', () => {
     expect(JSON.stringify(server.view)).toContain(sharedSubclass)
     expect(JSON.stringify(server)).not.toContain('Shitstorm')
     await expectDocumentsRoundTrip(t, objects)
+  }, 120_000)
+
+  it('matches builder.resolve for level-up edits of an active Character and its replacement allowance', async () => {
+    const base = await readyCharacterFixture()
+    const { t, owner, other, baseClass } = base
+    const featureId = crypto.randomUUID()
+    const noviceId = crypto.randomUUID()
+    const veteranId = crypto.randomUUID()
+    // One option at level 1, and one replacement allowed on reaching level 2.
+    const race = {
+      ...human,
+      id: crypto.randomUUID(),
+      label: 'Trained human',
+      features: [
+        {
+          id: featureId,
+          label: 'Training',
+          description: '',
+          order: 0,
+          availableAtLevel: 1,
+          optionChoices: [
+            { level: 1, count: 1 },
+            { level: 2, count: 0, replaceCount: 1 }
+          ],
+          options: [
+            { id: noviceId, label: 'Novice', description: '', order: 0 },
+            { id: veteranId, label: 'Veteran', description: '', order: 1 }
+          ]
+        }
+      ]
+    }
+    await importSrd(t, [importedSubject({ subjectKind: 'RACE', ...race, document: race })])
+    const training = (optionId: string) => ({
+      id: crypto.randomUUID(),
+      featureId,
+      source: { kind: 'RACE' as const, raceId: race.id },
+      timing: { kind: 'CHARACTER_LEVEL' as const, level: 1 },
+      selections: [{ selectionKey: 'options', values: [{ kind: 'IDS' as const, ids: [optionId] }] }]
+    })
+    const { draft, character } = await base.createCharacter()
+    await owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: draft.id,
+      mode: 'create',
+      character: characterAuthoredDtoSchema.parse({
+        ...character,
+        intent: {
+          ...character.intent,
+          race: { raceId: race.id },
+          featureAcquisitions: [training(noviceId)]
+        }
+      })
+    })
+    expect(
+      await other.caller.query(api.characters.builder.activeCharacter, { id: character.id })
+    ).toBeNull()
+    const edit = await owner.caller.mutation(api.characters.drafts.create, {
+      ...input(),
+      id: character.id
+    })
+    const edited = (classLevel: number) =>
+      characterAuthoredDtoSchema.parse({
+        ...edit.payload.character,
+        intent: {
+          ...edit.payload.character.intent,
+          classes: [{ classId: baseClass.id, classLevel }],
+          hitpoints: {
+            method: 'FIXED',
+            levels: [
+              { level: 1, classId: baseClass.id, classLevel: 1, value: 10 },
+              ...(classLevel === 2
+                ? [{ level: 2, classId: baseClass.id, classLevel: 2, value: 6 }]
+                : [])
+            ]
+          },
+          featureAcquisitions: [training(veteranId)]
+        }
+      })
+
+    const replacementCode = 'FEATURE_SELECTION_REPLACEMENT_OVER_LIMIT'
+    for (const [classLevel, overLimit] of [
+      [2, false],
+      [1, true]
+    ] as const) {
+      const { server, local, serverPreview, localPreview } = await resolveBothWays(
+        t,
+        owner.caller,
+        owner.userId,
+        { expectedDraftId: edit.id, mode: 'edit', character: edited(classLevel) }
+      )
+      expect(local).toEqual(server)
+      expect(localPreview).toEqual(serverPreview)
+      // The swap is allowed only by the level reached since the active Character.
+      expect(server.resolution.validations.some((issue) => issue.code === replacementCode)).toBe(
+        overLimit
+      )
+    }
   }, 120_000)
 })

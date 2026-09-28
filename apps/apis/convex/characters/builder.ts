@@ -11,6 +11,10 @@ import {
   type CharacterBuilderPreviewOutput
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { characterDraftLookupInputSchema } from '@artificer-toolkit/schema/api/characterDrafts'
+import {
+  characterAuthoredDtoSchema,
+  type CharacterAuthoredDto
+} from '@artificer-toolkit/schema/subjects/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   resolveCharacterBuilderPayload,
@@ -53,26 +57,49 @@ async function resolvePayload(
   })
 }
 
+/** The caller's own Character state for the Builder, or null when it is absent or not theirs. */
+async function readOwnedBuilderState(ctx: QueryCtx, args: unknown) {
+  const { userId } = await requireIdentity(ctx)
+  const { id: lookupId } = characterDraftLookupInputSchema.parse(args)
+  const id = await resolveCharacterId(ctx, lookupId)
+  if (!id) return null
+  const { active, draft } = await loadCharacterState(ctx, id)
+  if (
+    (!active && !draft) ||
+    (active && active.userId !== userId) ||
+    (draft && draft.userId !== userId)
+  )
+    return null
+  const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
+  if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== userId)
+    throw new Error('Stored Character route identity mismatch.')
+  return { active, draft, route }
+}
+
+/**
+ * The active Character an edit draft replaces, which the browser Builder evaluates against as its
+ * previous Character (ADR 0036 S6). Null for a draft-only Character.
+ */
+export const activeCharacter = query({
+  args: zodToConvexFields(characterDraftLookupInputSchema.shape),
+  get returns(): Validator<CharacterAuthoredDto | null, 'required', string> {
+    return v.union(v.null(), zodToConvex(characterAuthoredDtoSchema))
+  },
+  handler: async (ctx, args): Promise<CharacterAuthoredDto | null> => {
+    const state = await readOwnedBuilderState(ctx, args)
+    return state?.active ? readCharacterRecord(state.active) : null
+  }
+})
+
 export const get = query({
   args: zodToConvexFields(characterDraftLookupInputSchema.shape),
   get returns(): Validator<CharacterBuilderPayloadDto | null, 'required', string> {
     return v.union(v.null(), zodToConvex(characterBuilderPayloadDtoSchema))
   },
   handler: async (ctx, args): Promise<CharacterBuilderPayloadDto | null> => {
-    const { userId } = await requireIdentity(ctx)
-    const { id: lookupId } = characterDraftLookupInputSchema.parse(args)
-    const id = await resolveCharacterId(ctx, lookupId)
-    if (!id) return null
-    const { active, draft } = await loadCharacterState(ctx, id)
-    if (
-      (!active && !draft) ||
-      (active && active.userId !== userId) ||
-      (draft && draft.userId !== userId)
-    )
-      return null
-    const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
-    if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== userId)
-      throw new Error('Stored Character route identity mismatch.')
+    const state = await readOwnedBuilderState(ctx, args)
+    if (!state) return null
+    const { active, draft, route } = state
     const current = active ? readCharacterRecord(active) : null
     const working = draft ? await readCharacterDraft(ctx, draft, active) : null
     const character = working?.payload.character ?? current

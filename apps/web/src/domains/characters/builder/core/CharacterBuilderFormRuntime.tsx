@@ -84,8 +84,8 @@ export function CharacterBuilderFormRuntime({
 
   // The first ready local evaluation, and each content change after it, re-resolves current values.
   useEffect(() => {
-    if (evaluation.local) void handleResolve(form.state.values)
-  }, [evaluation.local, form, handleResolve])
+    void handleResolve(form.state.values)
+  }, [form, handleResolve])
 
   const handleSaveDraftConfirmed = useCallback(async () => {
     try {

@@ -4,10 +4,7 @@ import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
-import {
-  characterBuilderPayloadFixture,
-  characterPreviewFixture
-} from '#domains/characters/builder/fixtures/characterBuilder.fixtures'
+import { characterBuilderPayloadFixture } from '#domains/characters/builder/fixtures/characterBuilder.fixtures'
 import {
   normalizeCharacterForDraft,
   toCharacterFormValues
@@ -17,8 +14,6 @@ import {
   useCommitCharacterBuilderMutation,
   useCreateCharacterDraftMutation,
   useDiscardCharacterDraftMutation,
-  usePreviewCharacterSaveMutation,
-  useResolveCharacterBuilderMutation,
   useSaveCharacterDraftMutation
 } from './mutations'
 
@@ -38,9 +33,6 @@ const input = {
   mode: 'edit' as const,
   expectedDraftId: '00000000-0000-4000-8000-000000000201'
 }
-
-const nativePayload = { ...characterBuilderPayloadFixture, character: input.character }
-const nativePreview = { ...characterPreviewFixture, character: input.character }
 
 const draft = {
   characterId: input.character.id,
@@ -113,29 +105,6 @@ describe('native character Builder mutations', () => {
     create.unmount()
     save.unmount()
     discard.unmount()
-    queryClient.clear()
-    await client.close()
-  })
-
-  it('queries resolve and preview with the generated native references and draft generation', async () => {
-    const { client, queryClient, wrapper } = setup()
-    const query = vi
-      .spyOn(client, 'query')
-      .mockResolvedValueOnce(nativePayload)
-      .mockResolvedValueOnce(nativePreview)
-    const resolve = renderHook(() => useResolveCharacterBuilderMutation(), { wrapper })
-    const preview = renderHook(() => usePreviewCharacterSaveMutation(), { wrapper })
-    await act(async () => {
-      await resolve.result.current.mutateAsync(input)
-      await preview.result.current.mutateAsync(input)
-    })
-    expect(query).toHaveBeenNthCalledWith(1, convexApi.characters.builder.resolve, input)
-    expect(query).toHaveBeenNthCalledWith(2, convexApi.characters.builder.preview, input)
-    expect(input).toHaveProperty('expectedDraftId')
-    expect(input).not.toHaveProperty('targetStatus')
-    expect(input).not.toHaveProperty('authoredContentUpgradePreviewChecksum')
-    resolve.unmount()
-    preview.unmount()
     queryClient.clear()
     await client.close()
   })

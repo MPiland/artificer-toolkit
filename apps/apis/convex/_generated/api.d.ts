@@ -13530,6 +13530,378 @@ export declare const api: {
   };
   characters: {
     builder: {
+      activeCharacter: FunctionReference<
+        "query",
+        "public",
+        { id: string },
+        null | {
+          description?: string;
+          id: string;
+          intent: {
+            abilities:
+              | {
+                  assignments: Array<{
+                    ability:
+                      | "CHARISMA"
+                      | "CONSTITUTION"
+                      | "DEXTERITY"
+                      | "INTELLIGENCE"
+                      | "STRENGTH"
+                      | "WISDOM";
+                    option: "8" | "10" | "12" | "13" | "14" | "15";
+                  }>;
+                  method: "STANDARD_ARRAY";
+                }
+              | {
+                  assignments: Array<{
+                    ability:
+                      | "CHARISMA"
+                      | "CONSTITUTION"
+                      | "DEXTERITY"
+                      | "INTELLIGENCE"
+                      | "STRENGTH"
+                      | "WISDOM";
+                    option:
+                      "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
+                  }>;
+                  method: "POINT_BUY";
+                }
+              | {
+                  method: "MANUAL_ROLLED";
+                  state: {
+                    assignments: Array<{
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      score: number;
+                    }>;
+                    configuration?: string;
+                    rollGroups?: Array<{
+                      applied?: boolean;
+                      assignedAbility?:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      id: string;
+                      kept: Array<{ die: number; value: number }>;
+                      rolling?: boolean;
+                      rolls: Array<{ die: number; value: number }>;
+                      score: number;
+                    }>;
+                  };
+                };
+            advancement:
+              | { experience?: number; method: "EXPERIENCE" }
+              | { method: "MILESTONE" };
+            ancestrySelections?: Array<{
+              ancestryId: string;
+              id: string;
+              optionId: string;
+              source:
+                | { kind: "RACE"; raceId: string }
+                | { kind: "SUBRACE"; subraceId: string };
+              timing:
+                | { kind: "IMMEDIATE" }
+                | {
+                    classId: string;
+                    classLevel: number;
+                    kind: "CLASS_LEVEL";
+                  };
+            }>;
+            background: { backgroundId: string };
+            chosenGrantSelections?: Array<{
+              grantId: string;
+              id: string;
+              progressionLevel?: number;
+              source:
+                | { classId: string; classLevel?: number; kind: "CLASS" }
+                | {
+                    classLevel?: number;
+                    kind: "SUBCLASS";
+                    subclassId: string;
+                  }
+                | { kind: "RACE"; raceId: string }
+                | { kind: "SUBRACE"; subraceId: string }
+                | { ancestryId: string; kind: "ANCESTRY"; optionId: string }
+                | { backgroundId: string; kind: "BACKGROUND" }
+                | { featId: string; kind: "FEAT" }
+                | { featureId: string; kind: "FEATURE" }
+                | {
+                    acquiredParentId: string;
+                    kind: "OPTION";
+                    optionId: string;
+                  }
+                | { kind: "MANUAL"; reason?: string };
+              targetIds: Array<string>;
+              timing:
+                | { kind: "IMMEDIATE" }
+                | { kind: "CHARACTER_LEVEL"; level: number }
+                | {
+                    classId: string;
+                    classLevel: number;
+                    kind: "CLASS_LEVEL";
+                  };
+            }>;
+            classes: Array<{
+              classId: string;
+              classLevel: number;
+              specializationId?: string;
+              subclassId?: string;
+            }>;
+            featureAcquisitions: Array<{
+              featureId: string;
+              id: string;
+              selections?: Array<{
+                selectionKey: string;
+                values: Array<
+                  | { id: string; kind: "ID" }
+                  | { ids: Array<string>; kind: "IDS" }
+                  | { kind: "NUMBER"; value: number }
+                  | { kind: "BOOLEAN"; value: boolean }
+                >;
+              }>;
+              source:
+                | { classId: string; classLevel?: number; kind: "CLASS" }
+                | {
+                    classLevel?: number;
+                    kind: "SUBCLASS";
+                    subclassId: string;
+                  }
+                | { kind: "RACE"; raceId: string }
+                | { kind: "SUBRACE"; subraceId: string }
+                | { ancestryId: string; kind: "ANCESTRY"; optionId: string }
+                | { backgroundId: string; kind: "BACKGROUND" }
+                | { featId: string; kind: "FEAT" }
+                | { featureId: string; kind: "FEATURE" }
+                | {
+                    acquiredParentId: string;
+                    kind: "OPTION";
+                    optionId: string;
+                  }
+                | { kind: "MANUAL"; reason?: string };
+              timing:
+                | { kind: "IMMEDIATE" }
+                | { kind: "CHARACTER_LEVEL"; level: number }
+                | {
+                    classId: string;
+                    classLevel: number;
+                    kind: "CLASS_LEVEL";
+                  };
+            }>;
+            hitpoints: {
+              levels: Array<{
+                classId: string;
+                classLevel: number;
+                level: number;
+                overridden?: boolean;
+                rolls?: Array<{ die: number; value: number }>;
+                value: number;
+              }>;
+              method: "FIXED" | "MANUAL";
+            };
+            race: { raceId: string; subraceId?: string };
+            resourceGrants?: Array<{
+              id: string;
+              resourceId: string;
+              source:
+                | { classId: string; classLevel?: number; kind: "CLASS" }
+                | {
+                    classLevel?: number;
+                    kind: "SUBCLASS";
+                    subclassId: string;
+                  }
+                | { featureId: string; kind: "FEATURE" }
+                | {
+                    acquiredParentId: string;
+                    kind: "OPTION";
+                    optionId: string;
+                  };
+              timing:
+                | { kind: "IMMEDIATE" }
+                | { kind: "CHARACTER_LEVEL"; level: number }
+                | {
+                    classId: string;
+                    classLevel: number;
+                    kind: "CLASS_LEVEL";
+                  };
+            }>;
+            spellSelections?: Array<{
+              id: string;
+              replacedSelectionId?: string;
+              source:
+                | { classId: string; classLevel?: number; kind: "CLASS" }
+                | {
+                    classLevel?: number;
+                    kind: "SUBCLASS";
+                    subclassId: string;
+                  }
+                | { featureId: string; kind: "FEATURE" }
+                | {
+                    acquiredParentId: string;
+                    kind: "OPTION";
+                    optionId: string;
+                  };
+              spells: Array<string>;
+              timing:
+                | { kind: "IMMEDIATE" }
+                | { kind: "CHARACTER_LEVEL"; level: number }
+                | {
+                    classId: string;
+                    classLevel: number;
+                    kind: "CLASS_LEVEL";
+                  };
+            }>;
+            startingEquipment?: {
+              background?: {
+                applied?: boolean;
+                gold?: { goldOption: string; totalGold: number };
+                groups?: Array<{
+                  groupId: string;
+                  optionId: string;
+                  selections?: Array<{
+                    equipmentId: string;
+                    quantity: number;
+                    selectionKey: string;
+                  }>;
+                }>;
+                source: "CLASS" | "BACKGROUND";
+                tookGold: boolean;
+              };
+              class?: {
+                applied?: boolean;
+                gold?: { goldOption: string; totalGold: number };
+                groups?: Array<{
+                  groupId: string;
+                  optionId: string;
+                  selections?: Array<{
+                    equipmentId: string;
+                    quantity: number;
+                    selectionKey: string;
+                  }>;
+                }>;
+                source: "CLASS" | "BACKGROUND";
+                tookGold: boolean;
+              };
+            };
+          };
+          label: string;
+          primaryRulesCatalogueId?: string;
+          profile: {
+            age?: string;
+            alignmentId?: string;
+            allies?: string;
+            backstory?: string;
+            bonds?: string;
+            enemies?: string;
+            eyes?: string;
+            faith?: string;
+            flaws?: string;
+            gender?: string;
+            hair?: string;
+            height?: string;
+            ideals?: string;
+            lifestyleId?: string;
+            notes?: string;
+            organizations?: string;
+            personalityTraits?: string;
+            physicalCharacteristics?: string;
+            skin?: string;
+            weight?: string;
+          };
+          state: {
+            classes?: Array<{
+              classId: string;
+              spells?: { learned?: Array<string>; prepared?: Array<string> };
+            }>;
+            conditions?: Array<{ conditionTypeId: string; notes?: string }>;
+            creatureEquipment?: Record<
+              string,
+              Array<{ equipmentItemId: string }>
+            >;
+            creatures?: Array<{
+              creatureId: string;
+              currentHitPoints?: number;
+              customName?: string;
+              hitDice?: Array<{ die: number; total: number; used: number }>;
+              id: string;
+              isActive?: boolean;
+              notes?: string;
+              originKind: "WORLD" | "SUMMONED";
+              relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
+              tempHitPoints?: number;
+            }>;
+            currency: Array<{
+              containerId?: string;
+              currencies: Array<{
+                amount: number;
+                campaignCurrencySystemId?: string;
+                currencyId: string;
+                kind?: "RULESET" | "CAMPAIGN";
+              }>;
+              id: string;
+            }>;
+            equipment: {
+              attuned: Array<string>;
+              equipped: Array<string>;
+              inventory: Array<{
+                containerId?: string;
+                customName?: string;
+                equipmentId: string;
+                id: string;
+                notes?: string;
+                quantity: number;
+                retainedRulesJson?: string;
+              }>;
+            };
+            exhaustion?: { level: number; notes?: string };
+            hitpoints: {
+              current: number;
+              hitDice: Array<{ die: number; total: number; used: number }>;
+              temp?: number;
+            };
+            inspiration?: boolean;
+            noteGroups?: Array<{
+              id: string;
+              kind: "SESSION" | "LOOT" | "CHARACTERS" | "PLACES" | "CUSTOM";
+              label: string;
+              sortOrder: number;
+            }>;
+            notes?: Array<{
+              body?: string;
+              createdAt: string;
+              groupId: string;
+              id: string;
+              pinned?: boolean;
+              title: string;
+              updatedAt: string;
+            }>;
+            resources?: Array<{ resourceGrantId: string; used: number }>;
+            spellSlots?: Array<{ slotKey: string; used: number }>;
+            vehicleEquipment?: Record<
+              string,
+              Array<{ equipmentItemId: string }>
+            >;
+            vehicles?: Array<{
+              currentHitPoints?: number;
+              customName?: string;
+              id: string;
+              isActive?: boolean;
+              notes?: string;
+              vehicleId: string;
+            }>;
+          };
+          status?: "DRAFT" | "ACTIVE";
+          systemId: string;
+          userId: string;
+        }
+      >;
       get: FunctionReference<
         "query",
         "public",
