@@ -96,28 +96,31 @@ describe('media processing', () => {
     ['AUTHORED_IMAGE', 2048, 1024],
     ['CAMPAIGN_FILE', 2048, 1024],
     ['CAMPAIGN_HANDOUT_MAP', 4096, 2048]
-  ] as const)('normalizes %s to a %ipx source and does not crop', async (profile, width, height) => {
-    const source = await image(4200, 2100).png().toBuffer()
-    const result = await processMedia(source, profile, 'image/png')
-    expect([result.width, result.height]).toEqual([width, height])
-    expect(
-      result.variants.map(({ kind, width, height }) => ({
-        kind,
-        width,
-        height
-      }))
-    ).toEqual([
-      { kind: 'SOURCE', width, height },
-      { kind: 'DISPLAY', width: 1600, height: 800 },
-      { kind: 'THUMBNAIL', width: 320, height: 160 }
-    ])
-    for (const variant of result.variants) {
-      expect(await sharp(variant.bytes).metadata()).toMatchObject({
-        width: variant.width,
-        height: variant.height
-      })
+  ] as const)(
+    'normalizes %s to a %ipx source and does not crop',
+    async (profile, width, height) => {
+      const source = await image(4200, 2100).png().toBuffer()
+      const result = await processMedia(source, profile, 'image/png')
+      expect([result.width, result.height]).toEqual([width, height])
+      expect(
+        result.variants.map(({ kind, width, height }) => ({
+          kind,
+          width,
+          height
+        }))
+      ).toEqual([
+        { kind: 'SOURCE', width, height },
+        { kind: 'DISPLAY', width: 1600, height: 800 },
+        { kind: 'THUMBNAIL', width: 320, height: 160 }
+      ])
+      for (const variant of result.variants) {
+        expect(await sharp(variant.bytes).metadata()).toMatchObject({
+          width: variant.width,
+          height: variant.height
+        })
+      }
     }
-  })
+  )
 
   it('applies EXIF orientation and removes the source EXIF and ICC from every result', async () => {
     const source = await image()
