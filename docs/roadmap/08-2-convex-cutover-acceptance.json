@@ -493,7 +493,7 @@
           "id": "F12",
           "title": "Account deletion",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "READY_FOR_ACCEPTANCE",
+          "status": "IN_PROGRESS",
           "acceptedAt": "2026-09-19",
           "evidence": [
             ".codex/validation/phase82-gate-progress-20260917/f12-native-account-delete-20260918/live-account-deletion-20260919/account-deletion-browser12.manifest.json",
@@ -503,7 +503,7 @@
             ".codex/validation/local-convex-linux-20260915/f12-account-deletion-browser12.source-parity.json",
             ".codex/validation/phase82-gate-progress-20260917/f12-native-account-delete-20260918/live-account-deletion-20260919/account-deletion-browser12.evidence/diagnostics.json"
           ],
-          "notes": "Reopened 2026-09-24 under ADR 0033 (user-approved amendment: Campaign-owned Encounter Runs, Campaign-keyed live table, Sessions as an optional log). The prior evidence below proves the superseded Session-scoped contract and is historical; this case must pass again on the final source. Accepted at LOCAL_INTEGRATION. One native account-settings browser journey proves exact wrong-password and owned ACTIVE/ARCHIVED Campaign refusals with complete no-write captures, then deletes through Better Auth, revokes both sessions and stale JWT access, removes private Characters/authored/Profile/Social/notification/usage/media state, and preserves shared chat, rolls, finished Session/Run history and retained handout delivery with Deleted user attribution. Complete deferred state converges twice identically; native logs show successful media, notification and Social cleanup execution. The injected native rollback preserves the complete captured persisted catalogue. Retained Campaign attachments remain deletable after storage ownership transfers away from a deleted uploader. Strict diagnostics contain only the two expected 400 responses, source parity matches, fixture cleanup is complete, and no legacy product request is present.",
+          "notes": "Reopened by the acceptance rewording user-approved 2026-09-27 (ADR 0035): F12.3 and F12.4 now include held Runs, which their READY evidence does not cover. Their other clauses keep that evidence. Reopened 2026-09-24 under ADR 0033 (user-approved amendment: Campaign-owned Encounter Runs, Campaign-keyed live table, Sessions as an optional log). The prior evidence below proves the superseded Session-scoped contract and is historical; this case must pass again on the final source. Accepted at LOCAL_INTEGRATION. One native account-settings browser journey proves exact wrong-password and owned ACTIVE/ARCHIVED Campaign refusals with complete no-write captures, then deletes through Better Auth, revokes both sessions and stale JWT access, removes private Characters/authored/Profile/Social/notification/usage/media state, and preserves shared chat, rolls, finished Session/Run history and retained handout delivery with Deleted user attribution. Complete deferred state converges twice identically; native logs show successful media, notification and Social cleanup execution. The injected native rollback preserves the complete captured persisted catalogue. Retained Campaign attachments remain deletable after storage ownership transfers away from a deleted uploader. Strict diagnostics contain only the two expected 400 responses, source parity matches, fixture cleanup is complete, and no legacy product request is present.",
           "criteria": [
             {
               "id": "F12.1",
@@ -536,24 +536,28 @@
             },
             {
               "id": "F12.3",
-              "text": "Shared chat, rolls, the Session log, Campaign-owned Encounter Run history (ADR 0033) and retained handout delivery survive with Deleted user attribution.",
-              "status": "READY_FOR_ACCEPTANCE",
+              "text": "Shared chat, rolls, the Session log, Campaign-owned Encounter Run history (ADR 0033), including held Runs (ADR 0035), and retained handout delivery survive with Deleted user attribution.",
+              "status": "IN_PROGRESS",
               "proof": [
                 "apps/apis/convex/campaigns/deletedMemberHistory.test.ts › keeps the Session log, Encounter Run history and handout delivery attributed to the deleted account id (after auth onDelete and media purgeAccount: shared Session notes and handouts read Deleted user, RSVPs and the Run timeline keep the opaque account id, handout delivery unchanged)",
                 "apps/apis/convex/campaigns/chat.test.ts › masks a removed profile while retaining OOC, roleplay, and roll snapshots (chat and roll entries read Deleted user once the profile is gone)",
                 "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and preserves finished Encounter history: %s",
-                "impl: apps/apis/convex/campaigns/authorLabels.ts (readCampaignAuthorLabels, shared by chat, rolls, Session notes and attachments), apps/apis/convex/campaigns/sessionNotes.ts, apps/apis/convex/campaigns/attachments.ts, apps/apis/convex/lib/authTriggers.helper.ts"
+                "impl: apps/apis/convex/campaigns/authorLabels.ts (readCampaignAuthorLabels, shared by chat, rolls, Session notes and attachments), apps/apis/convex/campaigns/sessionNotes.ts, apps/apis/convex/campaigns/attachments.ts, apps/apis/convex/lib/authTriggers.helper.ts",
+                "reworded, user-approved 2026-09-27 (ADR 0035): the entries above still prove the clause for Runs Convex owns; a Run held by the room is not covered",
+                "missing: account deletion while the room holds the Run, with its history reaching Convex by checkpoint (ADR 0035 plan S4, S6)"
               ]
             },
             {
               "id": "F12.4",
-              "text": "Account deletion evicts the exact user from the Campaign live table (ADR 0033).",
-              "status": "READY_FOR_ACCEPTANCE",
+              "text": "Account deletion evicts the exact user from the Campaign live table, including held Runs (ADR 0033, ADR 0035).",
+              "status": "IN_PROGRESS",
               "proof": [
                 "apps/apis/convex/campaigns/accountDeparture.test.ts › detaches a trusted account from an %s Campaign while retaining Campaign history (asserts the exact liveSessions/control:evictUser schedule)",
                 "apps/apis/convex/liveSessions/control.test.ts › evicts one membership epoch from the Campaign room without any Session",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › evicts only the exact departed membership epoch through private room control",
-                "impl: apps/apis/convex/campaigns/accountDeparture.helper.ts, apps/apis/convex/liveSessions/controlScheduling.ts"
+                "impl: apps/apis/convex/campaigns/accountDeparture.helper.ts, apps/apis/convex/liveSessions/controlScheduling.ts",
+                "reworded, user-approved 2026-09-27 (ADR 0035): the entries above still prove eviction from the live table; a Run held by the room is not covered",
+                "missing: deletion during a held Run evicts and notifies only, closing the socket and refusing queued commands (ADR 0035 plan S4)"
               ]
             },
             {
@@ -1625,9 +1629,12 @@
             },
             {
               "id": "P04.3",
-              "text": "Sheet commands write state, version and receipt atomically, and exact replay returns the current Sheet.",
+              "text": "Outside live play, Sheet commands write state, version and receipt atomically, and exact replay returns the current Sheet (ADR 0035).",
               "status": "ACCEPTED",
-              "proof": [".codex/validation/phase82-sheet-receipts/local-progress.md"]
+              "proof": [
+                ".codex/validation/phase82-sheet-receipts/local-progress.md",
+                "reworded, user-approved 2026-09-27 (ADR 0035): \"outside live play\" narrows the clause; the entries above still prove it"
+              ]
             },
             {
               "id": "P04.4",
@@ -1802,9 +1809,12 @@
             },
             {
               "id": "P08.2",
-              "text": "Conflicting same-version Sheet commands have one winner; stale baselines, mismatched replay and anonymous or foreign calls are rejected without changing state.",
+              "text": "Outside live play, conflicting same-version Sheet commands have one winner; stale baselines, mismatched replay and anonymous or foreign calls are rejected without changing state (ADR 0035).",
               "status": "ACCEPTED",
-              "proof": [".codex/validation/phase82-character-concurrency/acceptance.md"]
+              "proof": [
+                ".codex/validation/phase82-character-concurrency/acceptance.md",
+                "reworded, user-approved 2026-09-27 (ADR 0035): \"outside live play\" narrows the clause; the entries above still prove it"
+              ]
             },
             {
               "id": "P08.3",
@@ -1816,9 +1826,12 @@
             },
             {
               "id": "P08.4",
-              "text": "Post-write failures roll back state, version, receipts and nested Encounter updates.",
+              "text": "Outside live play, post-write failures roll back state, version, receipts and nested Encounter updates (ADR 0035).",
               "status": "ACCEPTED",
-              "proof": [".codex/validation/phase82-character-concurrency/acceptance.md"]
+              "proof": [
+                ".codex/validation/phase82-character-concurrency/acceptance.md",
+                "reworded, user-approved 2026-09-27 (ADR 0035): \"outside live play\" narrows the clause; the entries above still prove it"
+              ]
             }
           ]
         },
@@ -2167,11 +2180,12 @@
             },
             {
               "id": "P15.4",
-              "text": "GM adjustment and condition contention, effective projection, secret masking and removal pass, and archived authorization is checked before replay.",
+              "text": "Outside live play, GM adjustment and condition contention, effective projection, secret masking and removal pass, and archived authorization is checked before replay (ADR 0035).",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/campaigns/developmentSessionControl.test.ts › runs Session, Clock and GM control contention, replay and authority through public commands (adjustment and condition races with one winner each, effective maximum HP, SECRET adjustment hidden from the player, removal, archived Campaign refuses Clock and finish replays before replaying)",
-                "impl: apps/apis/convex/campaigns/gmWrites.ts, gmReads.ts, clock.ts, sessionFinish.ts"
+                "impl: apps/apis/convex/campaigns/gmWrites.ts, gmReads.ts, clock.ts, sessionFinish.ts",
+                "reworded, user-approved 2026-09-27 (ADR 0035): \"outside live play\" narrows the clause; the entries above still prove it"
               ]
             }
           ]
@@ -2555,7 +2569,7 @@
           "id": "V05",
           "title": "Session admission and presence",
           "proofTier": "AUTHORIZATION",
-          "status": "READY_FOR_ACCEPTANCE",
+          "status": "IN_PROGRESS",
           "acceptedAt": "2026-09-09",
           "evidence": [
             ".codex/validation/phase82-v05-final/acceptance.md",
@@ -2565,7 +2579,7 @@
             ".codex/validation/phase82-v05-final/session-worker-ticket.log",
             ".codex/validation/phase82-v05-final/session-worker-auth.log"
           ],
-          "notes": "Reopened 2026-09-24 under ADR 0033 (user-approved amendment: Campaign-owned Encounter Runs, Campaign-keyed live table, Sessions as an optional log). The prior evidence below proves the superseded Session-scoped contract and is historical; this case must pass again on the final source. Accepted at AUTHORIZATION. The authenticated Campaign API checks current Campaign authority, writable state, open Session identity and role before issuing a signed single-use one-minute room-bound ticket. The Durable Object rejects invalid origins, signatures, claims, rooms and replay, then performs a locked current-authority renewal before READY. Renewal closes removed or stale-role sockets while preserving valid users and rotates authority to another current member. Fresh current-source checks pass 12 focused assertions across Functions, the API seam and the session worker; independent security review found no V05-owned defect and confirmed the locked renewal closes the stale-ticket window. Native Session control, browser/reconnect, broad concurrency/performance and release proof retain their owning cases.",
+          "notes": "Reopened by the acceptance rewording user-approved 2026-09-27 (ADR 0035): live Encounter state and the play state of Characters in an ACTIVE Run are room-authoritative and reach Convex by checkpoint. V05.5 is reworded; its READY evidence proved the per-command Convex path; that evidence is historical and must be re-proved on the final source. Earlier notes below describe the superseded contract. Reopened 2026-09-24 under ADR 0033 (user-approved amendment: Campaign-owned Encounter Runs, Campaign-keyed live table, Sessions as an optional log). The prior evidence below proves the superseded Session-scoped contract and is historical; this case must pass again on the final source. Accepted at AUTHORIZATION. The authenticated Campaign API checks current Campaign authority, writable state, open Session identity and role before issuing a signed single-use one-minute room-bound ticket. The Durable Object rejects invalid origins, signatures, claims, rooms and replay, then performs a locked current-authority renewal before READY. Renewal closes removed or stale-role sockets while preserving valid users and rotates authority to another current member. Fresh current-source checks pass 12 focused assertions across Functions, the API seam and the session worker; independent security review found no V05-owned defect and confirmed the locked renewal closes the stale-ticket window. Native Session control, browser/reconnect, broad concurrency/performance and release proof retain their owning cases.",
           "criteria": [
             {
               "id": "V05.1",
@@ -2617,16 +2631,18 @@
             },
             {
               "id": "V05.5",
-              "text": "The room activates on the first admitted socket, drains its outbox and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033).",
-              "status": "READY_FOR_ACCEPTANCE",
+              "text": "The room activates on the first admitted socket, commits its final checkpoint and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033, ADR 0035).",
+              "status": "IN_PROGRESS",
               "proof": [
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › drains and releases authority after five minutes without an admitted socket (no release while a socket is admitted; the next admitted socket activates a fresh epoch)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › cancels the idle release when a member reconnects inside the window",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › publishes the pending outbox before an idle room releases its authority",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › closes every socket when the live Session ends (CLOSE_ROOM drains and releases)",
                 "apps/apis/convex/campaigns/lifecycle.test.ts › archives only with current owner authority and version, preserving member reads and stored data (schedules CLOSE_ROOM)",
                 "apps/apis/convex/campaigns/deletionLifecycle.test.ts › retains the root through a %s room close and retries the captured authority (deletion closes the room before purge)",
-                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts (room_idle_release, alarm), apps/session-worker/src/roomLimits.ts, apps/apis/convex/liveSessions/controlScheduling.ts, apps/apis/convex/campaigns/deletionJobs.ts"
+                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts (room_idle_release, alarm), apps/session-worker/src/roomLimits.ts, apps/apis/convex/liveSessions/controlScheduling.ts, apps/apis/convex/campaigns/deletionJobs.ts",
+                "missing: drain and release gated on the final checkpoint (ADR 0035 plan S3)"
               ]
             }
           ]
@@ -2673,7 +2689,7 @@
           "id": "V07",
           "title": "Committed token movement and multi-client convergence",
           "proofTier": "LOCAL_E2E",
-          "status": "READY_FOR_ACCEPTANCE",
+          "status": "IN_PROGRESS",
           "evidence": [
             ".codex/validation/phase82-ultra-continuation-20260911/v07-standalone-movement-01/completion.md",
             ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
@@ -2681,15 +2697,17 @@
             ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/gameplay-completed-audit.json",
             ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/native-integrity.json"
           ],
-          "notes": "Reopened 2026-09-25 for ADR 0034 player agency criteria. Local standalone native movement now publishes validated sampled-path movement and fog atomically, with current member/owner authority, canonical token control, Scene/Session/Character fences and replay. Thirteen new movement cases pass within 29 native tests; 45 legacy/shared tests, Convex and Functions types, and focused lint pass. Native standalone undo now passes 52 combined native movement/geometry/fog/Session tests, Convex types and focused lint, with no independent persistence review findings; evidence is retained in .codex/validation/phase82-ultra-continuation-20260911/v07-undo-01/completion.md. The local Passage integration packet adds native Overrun/Tumble choice/decline, Automatic and Assisted two-d20 continuation, ordered spatial/reaction/Legendary Resistance continuation, exact replay and rollback/retry proofs. Browser Passage/combined frozen journeys, multi-client convergence and generated API refresh remain pending for V07 LOCAL_E2E acceptance. The complete final-source local lifecycle belongs to R08 RELEASE and remains mandatory before staging promotion, as required by the frozen proof tiers and top-level development runtime policy. LOCAL_E2E acceptance is not claimed; fixed total remains 75. Accepted LOCAL_E2E on 2026-09-17: movement-browser-29 and passage-browser-23 pass bound/standalone movement, reactions and Passage continuation, stopped-path fog, GM undo, exact replay, peer convergence, actual reconnect/reload, current departure refusal, strict diagnostics, and exact account/data cleanup. The guarded official local deployment and all four proofs match the same 5,830-entry validated source; 59 affected native cases, strict lint, and eight fresh Turbo build/typecheck tasks pass. Native collectors are ready/completed, exits are zero, and no execution timeout remains. Earlier notes above describe historical intermediate state. Physical media deletion remains governed by the existing provider fence; R08 final-source release and external promotion/retirement gates remain required. Scope clarification 2026-09-24: this feature retains its established acceptance. The missing DO-to-Convex live Encounter movement route is a new authority integration gap tracked under R06; the upstream refusal alone does not invalidate this scoped proof. The complete final-source combined journeys remain required under R08 and V15. See .codex/validation/phase82-goal-20260923/movement-acceptance-reopen.md.",
+          "notes": "Reopened by the acceptance rewording user-approved 2026-09-27 (ADR 0035): live Encounter state and the play state of Characters in an ACTIVE Run are room-authoritative and reach Convex by checkpoint. V07.1 is reworded; its ACCEPTED evidence proved the per-command Convex path; that evidence is historical and must be re-proved on the final source. Earlier notes below describe the superseded contract. Reopened 2026-09-25 for ADR 0034 player agency criteria. Local standalone native movement now publishes validated sampled-path movement and fog atomically, with current member/owner authority, canonical token control, Scene/Session/Character fences and replay. Thirteen new movement cases pass within 29 native tests; 45 legacy/shared tests, Convex and Functions types, and focused lint pass. Native standalone undo now passes 52 combined native movement/geometry/fog/Session tests, Convex types and focused lint, with no independent persistence review findings; evidence is retained in .codex/validation/phase82-ultra-continuation-20260911/v07-undo-01/completion.md. The local Passage integration packet adds native Overrun/Tumble choice/decline, Automatic and Assisted two-d20 continuation, ordered spatial/reaction/Legendary Resistance continuation, exact replay and rollback/retry proofs. Browser Passage/combined frozen journeys, multi-client convergence and generated API refresh remain pending for V07 LOCAL_E2E acceptance. The complete final-source local lifecycle belongs to R08 RELEASE and remains mandatory before staging promotion, as required by the frozen proof tiers and top-level development runtime policy. LOCAL_E2E acceptance is not claimed; fixed total remains 75. Accepted LOCAL_E2E on 2026-09-17: movement-browser-29 and passage-browser-23 pass bound/standalone movement, reactions and Passage continuation, stopped-path fog, GM undo, exact replay, peer convergence, actual reconnect/reload, current departure refusal, strict diagnostics, and exact account/data cleanup. The guarded official local deployment and all four proofs match the same 5,830-entry validated source; 59 affected native cases, strict lint, and eight fresh Turbo build/typecheck tasks pass. Native collectors are ready/completed, exits are zero, and no execution timeout remains. Earlier notes above describe historical intermediate state. Physical media deletion remains governed by the existing provider fence; R08 final-source release and external promotion/retirement gates remain required. Scope clarification 2026-09-24: this feature retains its established acceptance. The missing DO-to-Convex live Encounter movement route is a new authority integration gap tracked under R06; the upstream refusal alone does not invalidate this scoped proof. The complete final-source combined journeys remain required under R08 and V15. See .codex/validation/phase82-goal-20260923/movement-acceptance-reopen.md.",
           "criteria": [
             {
               "id": "V07.1",
-              "text": "Bound and standalone movement publish validated sampled paths and fog atomically, with current authority, token control, fences and replay.",
-              "status": "ACCEPTED",
+              "text": "Bound and standalone movement commit validated sampled paths and fog atomically in the room and reach Convex by checkpoint, with current authority, token control, fences and replay (ADR 0035).",
+              "status": "IN_PROGRESS",
               "proof": [
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "browser suite movement-browser-29",
-                ".codex/validation/phase82-ultra-continuation-20260911/v07-standalone-movement-01/completion.md"
+                ".codex/validation/phase82-ultra-continuation-20260911/v07-standalone-movement-01/completion.md",
+                "missing: room-committed bound and standalone movement reaching Convex by checkpoint (ADR 0035 plan S3, S6)"
               ]
             },
             {
@@ -3258,37 +3276,43 @@
           "id": "V13",
           "title": "Receipts, replay, and reconnect",
           "proofTier": "LOCAL_E2E",
-          "status": "ACCEPTED",
+          "status": "IN_PROGRESS",
           "evidence": [
             ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
             ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
             ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/gameplay-completed-audit.json",
             ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/native-integrity.json"
           ],
-          "notes": "Local native Passage integration proves retained exact replay, no-spend-before-terminal and same-mutation rollback/retry across Automatic and Assisted two-d20 continuation. Browser reconnect and the complete frozen receipt workload remain open; no acceptance or promotion is claimed. Accepted LOCAL_E2E on 2026-09-17: all four current gameplay journeys pass retained exact root/terminal/evidence comparisons, applicable retry/refusal and no double spend/reroll/recharge, GM undo, actual reconnect/reload, current authority/privacy, strict diagnostics, and exact account/data cleanup. The guarded official local deployment and all four proofs match the same 5,830-entry validated source; 59 affected native cases, strict lint, and eight fresh Turbo build/typecheck tasks pass. Native collectors are ready/completed, exits are zero, and no execution timeout remains. Earlier notes above describe historical intermediate state. Physical media deletion remains governed by the existing provider fence; R08 final-source release and external promotion/retirement gates remain required. Scope clarification 2026-09-24: this feature retains its established acceptance. The missing DO-to-Convex live Encounter movement route is a new authority integration gap tracked under R06; the upstream refusal alone does not invalidate this scoped proof. The complete final-source combined journeys remain required under R08 and V15. See .codex/validation/phase82-goal-20260923/movement-acceptance-reopen.md.",
+          "notes": "Reopened by the acceptance rewording user-approved 2026-09-27 (ADR 0035): live Encounter state and the play state of Characters in an ACTIVE Run are room-authoritative and reach Convex by checkpoint. V13.1-V13.3 keep their text; their ACCEPTED evidence proved the per-command Convex path; that evidence is historical and must be re-proved on the final source. Earlier notes below describe the superseded contract. Local native Passage integration proves retained exact replay, no-spend-before-terminal and same-mutation rollback/retry across Automatic and Assisted two-d20 continuation. Browser reconnect and the complete frozen receipt workload remain open; no acceptance or promotion is claimed. Accepted LOCAL_E2E on 2026-09-17: all four current gameplay journeys pass retained exact root/terminal/evidence comparisons, applicable retry/refusal and no double spend/reroll/recharge, GM undo, actual reconnect/reload, current authority/privacy, strict diagnostics, and exact account/data cleanup. The guarded official local deployment and all four proofs match the same 5,830-entry validated source; 59 affected native cases, strict lint, and eight fresh Turbo build/typecheck tasks pass. Native collectors are ready/completed, exits are zero, and no execution timeout remains. Earlier notes above describe historical intermediate state. Physical media deletion remains governed by the existing provider fence; R08 final-source release and external promotion/retirement gates remain required. Scope clarification 2026-09-24: this feature retains its established acceptance. The missing DO-to-Convex live Encounter movement route is a new authority integration gap tracked under R06; the upstream refusal alone does not invalidate this scoped proof. The complete final-source combined journeys remain required under R08 and V15. See .codex/validation/phase82-goal-20260923/movement-acceptance-reopen.md.",
           "criteria": [
             {
               "id": "V13.1",
               "text": "Four gameplay journeys retain exact root, terminal and evidence comparisons, with no double spend, reroll or recharge.",
-              "status": "ACCEPTED",
+              "status": "IN_PROGRESS",
               "proof": [
-                ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md"
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
+                ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
+                "missing: re-proof on the room-authoritative path, including replay across a restart or release (ADR 0035 plan S6)"
               ]
             },
             {
               "id": "V13.2",
               "text": "Retry and refusal, GM undo, and current authority and privacy hold after an actual reconnect and reload.",
-              "status": "ACCEPTED",
+              "status": "IN_PROGRESS",
               "proof": [
-                ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md"
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
+                ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
+                "missing: re-proof on the room-authoritative path, including replay across a restart or release (ADR 0035 plan S6)"
               ]
             },
             {
               "id": "V13.3",
               "text": "Passage continuation spends nothing before the terminal step and rolls back and retries within the same mutation.",
-              "status": "ACCEPTED",
+              "status": "IN_PROGRESS",
               "proof": [
-                ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json"
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
+                ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
+                "missing: re-proof on the room-authoritative path, including replay across a restart or release (ADR 0035 plan S6)"
               ]
             }
           ]
@@ -3297,8 +3321,8 @@
           "id": "V14",
           "title": "Same-aggregate contention and unrelated concurrency",
           "proofTier": "CONCURRENCY",
-          "status": "READY_FOR_ACCEPTANCE",
-          "notes": "Reopened 2026-09-24 under ADR 0033 (user-approved amendment: Campaign-owned Encounter Runs, Campaign-keyed live table, Sessions as an optional log). The prior evidence below proves the superseded Session-scoped contract and is historical; this case must pass again on the final source. Accepted at the frozen CONCURRENCY tier. Retained real09 lifecycle/binding/presentation/ownership/Session-finish and rollback schedules, same-Scene movement contention, distinct-Scene writes, and action02 same-Run/independent-Run proofs are joined by final-source Disarm03 and reaction12 terminal contention. Reaction12 races every outcome request: one winner, one recognized stale loser, one reaction spend and one mechanics receipt; winner/root replay and loser retry preserve complete Run, timeline, Character and recipient Scene state. A completed-response receipt lookup bug found by reaction11 was corrected and passes targeted native regressions plus the actual rerun. Exact fixture/account cleanup and unchanged source pass; reaction12 provider deletion remains tracked behind its normal fence. Acceptance packet: .codex/validation/v14-acceptance-20260916/acceptance.md. V15 measured workload, V07/V13 browser/reconnect and R08 release lifecycle remain open.",
+          "status": "IN_PROGRESS",
+          "notes": "Reopened by the acceptance rewording user-approved 2026-09-27 (ADR 0035): live Encounter state and the play state of Characters in an ACTIVE Run are room-authoritative and reach Convex by checkpoint. V14.5 is reworded; its READY evidence proved the per-command Convex path; that evidence is historical and must be re-proved on the final source. Earlier notes below describe the superseded contract. Reopened 2026-09-24 under ADR 0033 (user-approved amendment: Campaign-owned Encounter Runs, Campaign-keyed live table, Sessions as an optional log). The prior evidence below proves the superseded Session-scoped contract and is historical; this case must pass again on the final source. Accepted at the frozen CONCURRENCY tier. Retained real09 lifecycle/binding/presentation/ownership/Session-finish and rollback schedules, same-Scene movement contention, distinct-Scene writes, and action02 same-Run/independent-Run proofs are joined by final-source Disarm03 and reaction12 terminal contention. Reaction12 races every outcome request: one winner, one recognized stale loser, one reaction spend and one mechanics receipt; winner/root replay and loser retry preserve complete Run, timeline, Character and recipient Scene state. A completed-response receipt lookup bug found by reaction11 was corrected and passes targeted native regressions plus the actual rerun. Exact fixture/account cleanup and unchanged source pass; reaction12 provider deletion remains tracked behind its normal fence. Acceptance packet: .codex/validation/v14-acceptance-20260916/acceptance.md. V15 measured workload, V07/V13 browser/reconnect and R08 release lifecycle remain open.",
           "evidence": [
             ".codex/validation/phase82-ultra-continuation-20260911/workstreams/v14-real-20260913/real-09/evidence.json",
             ".codex/validation/v14-acceptance-20260916/acceptance.md"
@@ -3343,14 +3367,16 @@
             },
             {
               "id": "V14.5",
-              "text": "An Encounter reads a Character's HP and state live from the Character at capture time, fenced by the captured revisions; the Run keeps no Character HP, maximum, condition or stream-version mirror, so a Sheet write no longer refuses that Character's Encounter commands (ADR 0034).",
-              "status": "READY_FOR_ACCEPTANCE",
+              "text": "The room holds Character play state; outside edits reload at the next command boundary without losing play state (ADR 0035).",
+              "status": "IN_PROGRESS",
               "proof": [
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/encounters/liveCharacterState.test.ts › keeps Encounter commands and projections current after Sheet edits made after Run creation",
                 "apps/apis/convex/encounters/liveCharacterState.test.ts › shows a changed Character maximum without blocking Encounter commands on it",
                 "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan",
                 "apps/apis/convex/encounters/runs.test.ts › atomically snapshots assigned Characters and enemies, and replays without source reads (Character actor stores no currentHitPoints or sourceRevision)",
-                "impl: apps/apis/convex/encounters/documents.ts, apps/apis/convex/liveSessions/encounterRulesCapture.ts"
+                "impl: apps/apis/convex/encounters/documents.ts, apps/apis/convex/liveSessions/encounterRulesCapture.ts",
+                "missing: room-held play state, with a Builder save and a room HP change both surviving and a level-up clamping HP (ADR 0035 plan S7)"
               ]
             }
           ]
@@ -3365,22 +3391,26 @@
           "criteria": [
             {
               "id": "V15.1",
-              "text": "The frozen local workload (one GM, five players, eleven actors, eight rounds, up to two actions and one reaction per actor turn) completes with same-aggregate conflicts, unrelated concurrency, replay, rollback and privacy.",
+              "text": "The frozen local workload (one GM, five players, eleven actors, eight rounds, up to two actions and one reaction per actor turn) completes with same-aggregate conflicts, unrelated concurrency, replay, rollback and privacy, and makes zero Convex calls per command (ADR 0035).",
               "status": "IN_PROGRESS",
               "proof": [
+                "reworded, user-approved 2026-09-27 (ADR 0035); the partial runs below measured the per-command Convex path and are historical",
                 ".codex/validation/phase82-goal-20260923/v15-05-analysis/outcome.md (failed attempt V15-20260924-05, superseded)",
                 "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (browserless runs on the room architecture completed the full frozen schedule, then exited 1 on the command p95 assertion, before and after D52)",
                 "partial: apps/apis/convex/encounters/cutoverConcurrency.test.ts › runs one frozen eight-round schedule across two concurrent Encounters (schedule shape and workload accounting only; commands are simulated)",
-                "missing: a local workload run that exits 0 with the full driver assertions"
+                "missing: a local workload run that exits 0 with the full driver assertions",
+                "missing: a Convex call count of zero per command in the workload"
               ]
             },
             {
               "id": "V15.2",
-              "text": "Local measurements meet ephemeral preview p95 of 150 ms or less, warm durable convergence p95 of 250 ms or less and p99 of 500 ms or less, and gameplay command p95 of one second or less.",
+              "text": "Local measurements meet ephemeral preview p95 of 150 ms or less, warm durable convergence p95 of 250 ms or less and p99 of 500 ms or less, and gameplay command p95 of one second or less, and Convex reads and writes per session stay within the Q16 budgets (ADR 0035 Decision 9).",
               "status": "IN_PROGRESS",
               "proof": [
+                "reworded, user-approved 2026-09-27 (ADR 0035); the partial runs below measured the per-command Convex path and are historical",
                 "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (after D52: gameplay command p95 1,089-1,090 ms, budget 1,000, missed; warm durable convergence p95 251-252 ms, budget 250, missed; p99 met; ephemeral preview not measured)",
-                "missing: command p95 at or under 1 s, durable convergence p95 at or under 250 ms, and a measured ephemeral preview p95"
+                "missing: command p95 at or under 1 s, durable convergence p95 at or under 250 ms, and a measured ephemeral preview p95",
+                "missing: measured Convex reads and writes per session against the Q16 budgets"
               ]
             },
             {
@@ -3416,7 +3446,7 @@
           "evidence": [
             ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
           ],
-          "notes": "The local legacy runtime removal is complete and the retained subscriptions/ticket/Worker path passes focused contract tests, affected typecheck, fresh package builds and a zero-consumer scan. Complete same-source R08 product journeys and release audit remain required.",
+          "notes": "R01.2 reworded, user-approved 2026-09-27 (ADR 0035): Convex is the durable record and live Encounter state reaches it by checkpoint. The local legacy runtime removal is complete and the retained subscriptions/ticket/Worker path passes focused contract tests, affected typecheck, fresh package builds and a zero-consumer scan. Complete same-source R08 product journeys and release audit remain required.",
           "criteria": [
             {
               "id": "R01.1",
@@ -3433,7 +3463,7 @@
             },
             {
               "id": "R01.2",
-              "text": "Complete same-source R08 product journeys and the release audit show that all product data flows through Convex.",
+              "text": "Complete same-source R08 product journeys and the release audit show that Convex is the durable record for all product data; live Encounter state reaches it by checkpoint (ADR 0035).",
               "status": "NOT_STARTED",
               "proof": null
             }
@@ -3484,7 +3514,8 @@
               "proof": [
                 "node scripts/auditNativeBoundaries.mjs passes at aa68fd681 (packages/db absent, no .sql file, no kysely/pg/postgres import or sql template and no forbidden kysely/pg/postgres dependency in any workspace manifest; yarn.lock keeps only Better Auth's transitive kysely, pg and @better-auth/kysely-adapter)",
                 ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json (historical removal evidence)",
-                "local-validation/s6/m7-m8-d51b/summary.txt: seed=0 audit=0 at aa68fd681 — content/seed:audit verifies the seeded corpus against the current SRD manifest checksum (apps/apis/convex/content/srdManifest.generated.ts); apps/apis/convex/content/seed.test.ts and packages/source-data semantic audit pass", "git log 7bbc04287..HEAD -- packages/source-data/src/srd: all 21 corpus commits cite a recorded ruling (Q11/D45, D50, D53-D62) in their subject; Q13 restated the clause (option a, user 2026-09-27)"
+                "local-validation/s6/m7-m8-d51b/summary.txt: seed=0 audit=0 at aa68fd681 — content/seed:audit verifies the seeded corpus against the current SRD manifest checksum (apps/apis/convex/content/srdManifest.generated.ts); apps/apis/convex/content/seed.test.ts and packages/source-data semantic audit pass",
+                "git log 7bbc04287..HEAD -- packages/source-data/src/srd: all 21 corpus commits cite a recorded ruling (Q11/D45, D50, D53-D62) in their subject; Q13 restated the clause (option a, user 2026-09-27)"
               ]
             },
             {
@@ -3556,20 +3587,21 @@
           "id": "R06",
           "title": "Session Durable Object is the active live-command authority",
           "proofTier": "REVIEW",
-          "status": "READY_FOR_ACCEPTANCE",
+          "status": "IN_PROGRESS",
           "evidence": [
             ".codex/validation/phase82-gate-progress-20260917/live-authority-release/token-move-worker",
             ".codex/validation/phase82-gate-progress-20260917/live-authority-release/token-move-convex",
             ".codex/validation/local-convex-linux-20260915/vtt-rule-convergence-session-do-12.*",
             ".codex/validation/phase82-goal-20260923/r06-amended-acceptance.md"
           ],
-          "notes": "Ownership review is reopened after V15-20260924-05 exposed a missing live Encounter movement path. The user reaffirmed that heavy live rule evaluation and fact preparation belong in the DO; earlier options retaining that computation in Convex are superseded. The Character-in-Convex write amendment remains approved. R06 must complete ordered DO evaluation with authorized capture and validated atomic Convex commits, preserving replay, version checks and required Character/Encounter/Scene atomicity. The fixed 75-case denominator and scoped feature acceptance are unchanged; combined verification remains R08/V15.",
+          "notes": "Reopened by the acceptance rewording user-approved 2026-09-27 (ADR 0035): live Encounter state and the play state of Characters in an ACTIVE Run are room-authoritative and reach Convex by checkpoint. R06.1-R06.4 are reworded; their READY evidence proved the per-command Convex path; that evidence is historical and must be re-proved on the final source. Earlier notes below describe the superseded contract. The Character-in-Convex write amendment below is superseded for Characters in an ACTIVE Run. Ownership review is reopened after V15-20260924-05 exposed a missing live Encounter movement path. The user reaffirmed that heavy live rule evaluation and fact preparation belong in the DO; earlier options retaining that computation in Convex are superseded. The Character-in-Convex write amendment remains approved. R06 must complete ordered DO evaluation with authorized capture and validated atomic Convex commits, preserving replay, version checks and required Character/Encounter/Scene atomicity. The fixed 75-case denominator and scoped feature acceptance are unchanged; combined verification remains R08/V15.",
           "criteria": [
             {
               "id": "R06.1",
-              "text": "The Durable Object runs heavy live rule evaluation and fact preparation in order, with authorized capture and validated atomic Convex commits that preserve replay, version checks and Character/Encounter/Scene atomicity.",
-              "status": "READY_FOR_ACCEPTANCE",
+              "text": "The room evaluates rules, prepares facts and commits state, receipts and replay evidence to its SQLite in one transaction before acknowledging; Convex receives idempotent epoch/sequence-fenced checkpoints (ADR 0035).",
+              "status": "IN_PROGRESS",
               "proof": [
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/session-worker/src/nativeRoomEncounterCommand.test.ts › sends only the GM tools Convex records to it and plans or rolls every other command in the room",
                 "apps/apis/convex/liveSessions/encounterRoute.test.ts › classifies the pending declaration, and Convex runs only the listed GM commands",
                 "apps/apis/convex/encounters/commands.test.ts › names the dice a room roll draws and refuses draws that do not match them",
@@ -3581,14 +3613,16 @@
                 "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan",
                 "apps/apis/convex/liveSessions/encounterActorCap.test.ts › starts and advances a turn in a Run at the actor cap through the room",
                 "structure: every Encounter command enters through the room (encounters/commands:execute is internal); the room plans actions, basic actions, turns, Legendary windows, Concentration, Cleaving, Disarm and movement and draws every dice command's dice (D41); liveSessions/encounterCommand:execute records only CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES (GM tools with no dice) with a throwing random source; S4-e (8b7459d6d, D43/D44) deleted scenes/spatialPreparation, encounters/spatialMovement, movementConcentration and the Convex movement perception/reaction code, and Convex no longer re-runs movement rules at commit; the only Convex random source left is lib/rollRandom.ts, used by free-form personal and Campaign rolls (rolls.ts, campaigns/rolls.ts) and Character Sheet rolls (rollDocuments.ts, R06.3)",
-                "impl: apps/apis/convex/scenes/geometryStaging.ts (beginSceneGeometry: SCENE_NOT_PRESENTED without a live room), apps/apis/convex/scenes/geometryDocuments.ts (assertStandaloneMovement refuses an unbound claim for a token bound in an ACTIVE Run), apps/apis/convex/liveSessions/encounterCommand.ts, packages/schema/src/api/liveSessionEncounterCommand.ts (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES), apps/session-worker/src/nativeRoomEncounterCommand.ts"
+                "impl: apps/apis/convex/scenes/geometryStaging.ts (beginSceneGeometry: SCENE_NOT_PRESENTED without a live room), apps/apis/convex/scenes/geometryDocuments.ts (assertStandaloneMovement refuses an unbound claim for a token bound in an ACTIVE Run), apps/apis/convex/liveSessions/encounterCommand.ts, packages/schema/src/api/liveSessionEncounterCommand.ts (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES), apps/session-worker/src/nativeRoomEncounterCommand.ts",
+                "missing: the room SQLite commit before acknowledgement and the fenced, idempotent checkpoint (ADR 0035 plan S3, S6)"
               ]
             },
             {
               "id": "R06.2",
-              "text": "Live Encounter-bound movement has a working Durable Object-to-Convex route (the gap exposed by V15-20260924-05).",
-              "status": "READY_FOR_ACCEPTANCE",
+              "text": "Encounter-bound movement and its decisions are room commands (ADR 0035).",
+              "status": "IN_PROGRESS",
               "proof": [
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › runs a bound move, its answer and a GM skip through the room pipeline, advancing the sequence each time (D26, D27)",
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit then fails",
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (replaces the pre-D52 private staging refusal test: bad secret, identity or epoch and a non-controller are refused with nothing staged; the native-path parity test was deleted with that path in S4-e, D43)",
@@ -3598,28 +3632,33 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › holds moves and door changes on a Scene waiting on a movement decision, and keeps the chain free (D26)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits bound moves and moves on a bound Scene to Convex first, and holds a Scene with a pending movement decision (D26)",
                 "apps/session-worker/test/nativeDurableCommandJournal.test.ts › journals a Convex-first commit write-ahead and completes it with no outbox row (D27)",
-                "impl: apps/session-worker/src/nativeExternalSceneCommit.ts, apps/session-worker/src/durableCommandJournal.ts, apps/session-worker/src/nativeLiveSessionRoom.ts, apps/apis/convex/liveSessions/externalCommit.ts, apps/apis/convex/liveSessions/encounterMovementCommit.ts, apps/apis/convex/liveSessions/stateHttp.ts"
+                "impl: apps/session-worker/src/nativeExternalSceneCommit.ts, apps/session-worker/src/durableCommandJournal.ts, apps/session-worker/src/nativeLiveSessionRoom.ts, apps/apis/convex/liveSessions/externalCommit.ts, apps/apis/convex/liveSessions/encounterMovementCommit.ts, apps/apis/convex/liveSessions/stateHttp.ts",
+                "missing: bound moves, fog, movement decisions and binding committed as room commands (ADR 0035 plan S6)"
               ]
             },
             {
               "id": "R06.3",
-              "text": "Character Sheet writes stay in Convex under the approved Character authority amendment.",
-              "status": "READY_FOR_ACCEPTANCE",
+              "text": "While a Character is in the live ACTIVE Run, its play state is room-owned and the Sheet acts through the room; otherwise Sheet writes stay in Convex (ADR 0035).",
+              "status": "IN_PROGRESS",
               "proof": [
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/liveSessions/state.test.ts › keeps Character Sheet commands in Convex while Scene authority is active and draining",
-                "impl: apps/apis/convex/characters/sheetCommands.ts"
+                "impl: apps/apis/convex/characters/sheetCommands.ts",
+                "missing: held Characters' play commands running in the room and direct Convex play writes refused while held (ADR 0035 plan S7)"
               ]
             },
             {
               "id": "R06.4",
-              "text": "While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, and the direct-write fence covers only the presented Scene (ADR 0033).",
-              "status": "READY_FOR_ACCEPTANCE",
+              "text": "While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, the direct-write fence covers only the presented Scene (ADR 0033), and the room owns ACTIVE Runs and their Characters' play state (ADR 0035).",
+              "status": "IN_PROGRESS",
               "proof": [
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/campaigns/campaignPlay.test.ts › fences direct writes only to the presented Scene while room authority is live",
                 "apps/apis/convex/scenes/presentations.test.ts › fences direct writes and commits a live presentation only at the matching room state",
                 "apps/apis/convex/encounters/sceneBindings.test.ts › rejects a new binding while the Campaign live table owns the presented Scene",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › forwards an unplanned Encounter command in room order and acknowledges only its initiator",
-                "impl: apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsSceneLiveState), apps/apis/convex/encounters/commands.ts (execute is internal; only the room route reaches it)"
+                "impl: apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsSceneLiveState), apps/apis/convex/encounters/commands.ts (execute is internal; only the room route reaches it)",
+                "missing: room ownership of ACTIVE Runs and their Characters' play state, with the Convex Run and play-state fences (ADR 0035 plan S6, S7)"
               ]
             }
           ]

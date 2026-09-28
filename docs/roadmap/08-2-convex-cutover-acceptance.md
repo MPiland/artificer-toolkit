@@ -9,7 +9,7 @@
 
 Work resumed on 2026-09-09. The exact workspace, completed architecture corrections, personal-development
 deployment and ordered next steps are recorded in [the resume checkpoint](08-2-convex-cutover-resume.md).
-Acceptance is 53/75 cases and 195/276 criteria (2026-09-27). A further 64 criteria and 12 cases (F12, P06, V03, V05, V07, V08, V09, V10, V11, V12, V14, R06) are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](../validation/phase-08-2/gate-readiness-2026-09-25.md), last updated against `aa68fd681` in its fifth pass). The 22 open cases are P15, V05, V08, V09, V14, F12 (ADR 0033), P06, V03, V07, V10, V11, V12 (ADR 0034), V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
+Acceptance is 52/75 cases and 191/276 criteria (2026-09-27, after the ADR 0035 rewording below). A further 57 criteria and 7 cases (P06, V03, V08, V09, V10, V11, V12) are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](../validation/phase-08-2/gate-readiness-2026-09-25.md), last updated against `aa68fd681` in its fifth pass). The 23 open cases are P15, V05, V08, V09, V14, F12 (ADR 0033), P06, V03, V07, V10, V11, V12 (ADR 0034), V13 (ADR 0035), V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
 
 Status meanings (the same for cases and criteria):
 
@@ -29,6 +29,8 @@ ledger (criteria present, statuses valid, IDs unique, the fixed 75-case total) a
 it is invalid. Per-gate evidence summaries are in [Phase 8.2 validation](../validation/phase-08-2/README.md).
 
 **ADR 0033 amendment (user-approved 2026-09-24).** The user approved making Encounter Runs Campaign-owned, keying the live table by Campaign and making Sessions an optional log before launch, and approved amending the affected acceptance criteria. P15 (Sessions and control), V05 (admission), V08 (Encounter lifecycle), V09 (actors and initiative), V14 (contention schedules) and F12 (account deletion history) now prove the [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) contract: no open Session gates tickets, room authority, presentation or Encounter commands; finishing a Session leaves Runs, presentation and the table untouched; Runs take their party from ACTIVE Character assignments and a PREPARED Run can be deleted. Their earlier evidence proves the superseded Session-scoped contract and is historical, so each is reopened until it passes on the final source. Proof tiers, the remaining scenarios and the 75-case denominator are unchanged.
+
+**ADR 0035 rewording (user-approved 2026-09-27).** The user approved the acceptance rewordings in the [ADR 0035 implementation plan](../handoffs/adr-0035-implementation-plan.md#acceptance-rewordings-need-approval): live Encounter state and the play state of Characters in an ACTIVE Run are room-authoritative, commit to the room's SQLite and reach Convex by fenced checkpoints ([ADR 0035](../adr/0035-room-authoritative-live-encounters.md)). R06.1–R06.4, V14.5, V05.5 and V07.1 are reworded; their evidence proved the per-command Convex path, so it is kept as historical in each `proof` and they return to IN_PROGRESS. V13 keeps its text, but its evidence becomes historical and it is re-proved, so V13 and its criteria return to IN_PROGRESS. F12.3 and F12.4 now include held Runs, which their evidence does not cover, so they return to IN_PROGRESS. P04.3, P08.2, P08.4 and P15.4 gain "outside live play", which narrows them; their evidence still proves them and they keep their status. V15.1 gains zero Convex calls per command and V15.2 per-session Convex read and write budgets (Q16), inside the existing criteria. R01.2 is reworded and stays NOT_STARTED. The F12, V05, V07, V13, V14 and R06 cases return to IN_PROGRESS. Criterion and case counts (276 and 75) are unchanged.
 
 **S6b player-controlled actors (2026-09-25).** Players act for the actors they control (Foundry
 ownership), rolls go to the controllers of the actor making them, and players never receive GM data or
@@ -57,7 +59,8 @@ preserving Convex Sheet write ownership. The earlier options keeping heavy Encou
 Convex are superseded. The 75-case denominator is unchanged; V15 and R08 remain open. Since S4-d and
 S4-e (D41–D44) every Encounter command's rules and dice run in the room and Convex refuses
 Encounter-bound moves without a live room, so all four R06 criteria are READY_FOR_ACCEPTANCE
-(2026-09-27, fifth readiness pass); acceptance still needs the R08 run.
+(2026-09-27, fifth readiness pass); acceptance still needs the R08 run. The ADR 0035 rewording
+above then reopened all four R06 criteria to IN_PROGRESS the same day; that READY evidence is historical.
 
 The user clarified acceptance scope on 2026-09-24: each feature case proves its own stated contract;
 the combined system is proved by the separate integration/release gates. A failure at a dependency
@@ -1243,6 +1246,8 @@ and updated optimized-build timings are recorded in Progress; no performance cas
 - Ephemeral peer preview p95 is at most 150 ms.
 - Warm durable peer convergence p95 is at most 250 ms and p99 at most 500 ms.
 - No normal authoritative gameplay command has p95 above one second.
+- Live commands make zero Convex calls, and Convex reads and writes per session stay within the Q16
+  budgets (ADR 0035 Decision 9; user-approved 2026-09-27).
 - The fixed load is one GM, five players, eleven actors, eight rounds, and up to two actions plus one
   reaction per actor turn.
 - Same-aggregate conflicts, unrelated concurrency, replay, rollback, and privacy are included.
