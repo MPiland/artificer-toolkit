@@ -582,8 +582,19 @@ the stored-stat evaluation reuse the same caches and context, so a commit reads 
   Vehicles keep their existing source-loss handling.
 
 The [implementation plan](../handoffs/adr-0036-implementation-plan.md#referenced-commit-s7-current)
-records the equivalence argument, the differential corpus and the measured reads. The browser does
-not send hints yet (S6), so a draft with a standalone feature cannot commit until it does.
+records the equivalence argument, the differential corpus and the measured reads.
+
+The browser derives the hints in the Builder worker: a finalization preview also returns
+`collectCharacterFeatureSourceHints` (`rules-runtime/character/featureSourceHints`) over the
+previewed Character and the snapshot readers, and the Builder sends them with `commit.commit`. The
+helper shares the provenance rule (`characterFeatureProvenanceRootId`) and the feature membership
+(`publicationFeatureIds`) with the server, and takes the least root id when several roots hold a
+feature, so the browser's snapshot scan and the server's pool agree.
+
+Writing the committed row no longer rereads it: `writeCharacterRecord` evaluates its stored stats
+over the row it wrote (`loadCharacterSheetFacts` and `loadCharacterSheetInputs` take the written
+row), `loadCharacterSheetFacts` asks `listActiveRuleEffects` not to re-verify an owner it just
+loaded or wrote, and commit passes the verified owner to `syncAccountUsage`.
 
 ### Neutral Sheet commands — extraction, native persistence pending
 
