@@ -1,6 +1,6 @@
 # ADR 0036 implementation plan
 
-> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3, S4 and S5 (2026-09-28). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
+> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3, S4, S5 and S6 (2026-09-28). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
 
 ## What the code does today
 
@@ -116,7 +116,8 @@
 - **Debounce.** The Builder renderer's existing 150 ms debounce applies; the worker does not add one. The worker keeps the readers, and the documents they loaded, until the manifest's hashes change.
 - **First evaluation.** When the manifest and System arrive, the Builder re-resolves the opened values locally, which also prefetches the index objects; each manifest change re-resolves again.
 - **Object integrity.** The browser checks the SHA-256 and the header, and does not re-parse objects with the part schemas: the hash binds the object the build validated.
-- **Chunk gate.** A Vitest test (`builderEvaluationWorker.size.test.ts`) builds the worker entry alone with Vite; the repo has no bundle-size tooling. Measured: see the S6 validation below.
+- **Chunk gate.** A Vitest test (`builderEvaluationWorker.size.test.ts`) builds the worker entry alone with Vite, since the repo has no bundle-size tooling. Measured (2026-09-28): 161 KB gzipped in the test and 162 KB gzipped (597 KB minified) for `builderEvaluation.worker-*.js` in the web app build, one self-contained chunk absent from the server bundle.
+- **Evaluation time.** Warm evaluation over the S5 corpus through the lazy readers, in Node: p95 3.5 ms (6 scenarios x 5 runs), against the 100 ms gate. Cold time (first fetch and parse of a manifest's objects) is not measured.
 - **Not bridged locally.** S3's local gaps remain: the local Worker gets no `CONTENT_SNAPSHOT_TOKEN_SECRET`, and its `CONTENT_SNAPSHOTS` is a Miniflare bucket, not the fixture the local Convex build writes. The browser path is covered by unit tests, not yet by a local end-to-end run.
 - **Private objects at rest.** Verified private objects stay in Cache Storage (keyed by hash, so only a manifest naming them reads them) until a later manifest drops them; nothing clears them at sign-out yet.
 
@@ -156,7 +157,7 @@
   - the accepted exposure is at most one token lifetime.
 - **Pool-size rules.** Checked in S5: two rules depend on whether a pool is empty, and both read complete snapshot pools, so no count fact is carried. Revisit if S6 evaluates from a partial pool.
 - **Unmeasured:**
-  - browser bundle size and evaluation CPU;
+  - browser evaluation CPU (S6 measured Node only) and cold manifest load time;
   - System and vocabulary document size;
   - whether R2 responses need manual `Content-Encoding`;
   - Durable Object memory with large bundles;
