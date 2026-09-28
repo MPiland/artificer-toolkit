@@ -1,0 +1,191 @@
+# Tier research and proposed redesign (2026-09-27)
+
+- **Status:** proposal for Q18 in [the Phase 8.2 open questions](../handoffs/phase-08-2-open-questions.md). Nothing here is decided until the user answers Q18.
+- **Current baseline:** `ENTITLEMENT_LIMITS` and `ENTITLEMENT_PRICING` in `packages/shared/src/domains/account/entitlementPolicy.ts`, and "Initial launch plans" in [the roadmap](README.md#initial-launch-plans).
+- **Constraints used:** [PRODUCT.md](../../PRODUCT.md) (every plan joins unlimited Campaigns and uses Encounters and VTT), Q16, Q17 and D65 in the open questions, and [ADR 0035](../adr/0035-room-authoritative-live-encounters.md) Decision 9.
+
+## 1. Competitors
+
+All pages were checked on 2026-09-27. "Not verified" means the official page did not state it or could not be read.
+
+| Product | Price (USD) | Storage | Player seats | Campaigns / worlds | Entity or content limits | Characters | Do players pay? | Compendium / content sharing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Roll20** ([Feature Breakdown](https://help.roll20.net/hc/en-us/articles/360037774633-Feature-Breakdown), updated 2025-11-17) | Free; Plus $5.99/mo or $59.99/yr; Pro $10.99/mo or $109.99/yr; Elite $14.99/mo or $149.99/yr | 100 MB / 4 GB / 10 GB / 50 GB; max upload 20 / 50 / 100 / 100 MB | Unlimited players on every plan | Unlimited games on every plan | None stated | Vault limits not verified; Free gets 3 Character transfers per game | No. Games created by Plus and above confer "Shared Table Features" to players and co-GMs | Owned content shares in 1 game with 5 players (Free), 3 games × 10 (Plus), 5 × 15 (Pro), 20 × 15 (Elite). Plus includes Demiplane Unlimited. LFG listings: Free 2, Plus unlimited |
+| **Foundry VTT** ([purchase](https://foundryvtt.com/purchase/), [FAQ](https://foundryvtt.com/article/faq/)) | $50 one-time perpetual license, updates included | Self-hosted | Unlimited; "players do not need to purchase the software" | Unlimited worlds | None | None | No, one license per GM server | Modules and compendia installed per world |
+| **The Forge** (Foundry host, [plans](https://forge-vtt.com/plans)) | Player free; Game Master $4.49/mo or $47.99/yr; Story Teller $8.99/mo or $96.99/yr; World Builder $12.99/mo or $139.99/yr; plus a Foundry license | Game data 0 / 500 MB / 1 GB / 2 GB; assets 100 MB / 5 / 10 / 20 GB; add-ons $12.99/yr per 500 MB data or 5 GB assets | Not stated | Paid plans: unlimited games | None | None | No, the Player plan is free forever with a personal asset library | D&D Beyond import on Story Teller |
+| **Molten Hosting** (Foundry host, [home page](https://moltenhosting.com/)) | Basic $4, Pro $8, Elite $12 per month; plus a Foundry license | 5 / 10 / 20 GB | Not stated | Unlimited worlds | None | None | No (Foundry licensing) | Not applicable |
+| **Fantasy Grounds** ([Unity page](https://www.fantasygrounds.com/home/FantasyGroundsUnity.php), [Classic subscriptions](https://www.fantasygrounds.com/home/Subscriptions.php)) | The software is now "completely FREE to use"; revenue is rulesets and adventures in the store. Legacy FG Classic subscriptions remain at $3.99 (Standard) and $9.99 (Ultimate) a month | Local, self-hosted | Not stated | Unlimited, local | None | None | No. Under the old model only the Ultimate host paid | Purchased modules shared by the host at the table (details not verified for the free model) |
+| **D&D Beyond** ([subscribe](https://www.dndbeyond.com/en/subscribe)) | Free; Hero $2.99/mo (from $2.17/mo annual); Master $5.99/mo (from $4.58/mo annual) | Master: custom map uploads up to 10 GB | 12 per campaign (forum sources; official page not verified) | Not verified | Free: homebrew creation and use; Hero adds community homebrew sharing | Free 6 slots; Hero and Master unlimited | No; Free players can join campaigns and Maps | Master shares purchased books "with up to 12 people across 5 campaigns". Books are bought separately |
+| **D&D Beyond Maps** (same page) | Included in all tiers | Master: 10 GB of uploaded maps | See above | Free can host Maps games | Hero: 250+ components; Master: custom maps and homebrew monster tokens | — | No | Tied to Master sharing |
+| **Owlbear Rodeo** ([pricing](https://www.owlbear.rodeo/pricing)) | Nestling free; Fledgling $3.99/mo ($3.33/mo yearly); Bestling $7.99/mo ($6.66/mo yearly) | 200 MB / 5 GB / 10 GB | Not stated | Rooms: 2 / 10 / 25 | Image 25 / 25 / 50 MB and 67 / 67 / 144 MP; video 50 / 100 / 100 MB | Not applicable | No, players join rooms free | Not applicable |
+| **Alchemy RPG** ([home page pricing section](https://alchemyrpg.com/)) | "Free Unlimited" at $0; optional "Alchemist" supporter tier (price not captured: the page animates it) | "Unlimited Asset Uploads" | Not stated | "Unlimited Games", "Unlimited Universes" | None; homebrew system builder free | "Unlimited Characters" | No | Store content; sharing rules not verified |
+| **Demiplane** ([subscription benefits](https://www.demiplane.com/blog/subscription-benefits), post dated 2024-11-24; [app page](https://app.demiplane.com/subscription) did not render) | Subscription "less than $5.00 a month", monthly or yearly | Not stated | Not stated | Not stated | Not stated | Free 7; subscriber unlimited | No; free players keep 7 slots while using shared content | Subscriber shares with "up to 24 people at a time" across all games |
+| **World Anvil** ([pricing](https://www.worldanvil.com/pricing), [features](https://www.worldanvil.com/learn/account/list-features), [free limits post](https://blog.worldanvil.com/announcements/update-free-account-changes/) dated 2024-04-08) | Freeman free; Master $4.50/mo, Grandmaster $8.25/mo, Sage $25.00/mo (all billed annually, excl. VAT) | 100 MB / 2 GB / 5 GB / 15 GB | Subscribers (readers/players): Master 10, Grandmaster 100, Sage 1,000; co-authors 4 / 9 / 20 | RPG campaigns 1 / 10 / 20 / unlimited; worlds 2 / 10 / unlimited / unlimited | **Freeman:** 42 articles, 5 drafts, 15 categories, 2 maps, 10 markers, 2 map layers, 2 timelines, 10 historical events, 20 statblocks. Paid: unlimited | Not applicable | Players are "subscribers" counted against the owner's tier | Owner-controlled private content from Master up |
+| **Kanka** ([pricing](https://kanka.io/pricing)) | Kobold free; Owlbear $4.99/mo, Wyvern $9.99/mo, Elemental $24.99/mo (about 17% off yearly) | Per campaign: 150 MiB standard; premium 3 / 10 / 25 GiB | Standard campaign: 10 members; premium unlimited | Unlimited campaigns; premium campaigns 1 / 3 / 7 | **"Unlimited entries"** on every plan; standard campaigns get 0 custom categories, 3 roles, 3 files per entity | Not applicable | No. Premium perks are unlocked "for all members of a campaign" | Not applicable |
+| **LegendKeeper** ([pricing](https://www.legendkeeper.com/pricing/)) | $9/mo or $90/yr ($7.50/mo); 14-day trial; free Basic plan cannot create | Unlimited on Pro | Unlimited guests | Unlimited projects on Pro; Basic can only view and export | None on Pro | Not applicable | No: "Only the project owner needs an active subscription" | Not applicable |
+
+**Could not verify:**
+
+- Roll20's Character vault limits and its main pricing page (Cloudflare bot challenge);
+- D&D Beyond's per-DM campaign count and its official 12-player campaign cap;
+- player caps for Owlbear Rodeo, The Forge and Molten;
+- Alchemy's supporter price;
+- Demiplane's exact price and whether its 2024 figures are current;
+- whether World Anvil's April 2024 Freeman limits are current. The pricing page does not list them.
+
+## 2. Patterns
+
+**What the market gives away:**
+
+1. **Playing.** Every competitor lets players join free. Only the host's plan matters, and several push the host's benefits down to the table: Roll20 Shared Table Features, Kanka premium campaigns, LegendKeeper guests, Foundry's one license per server. None charges a player to sit at a paid GM's table.
+2. **Headcount.** Roll20 and Foundry allow unlimited players. Seat caps show up only as content-sharing reach (Roll20 5 / 10 / 15; D&D Beyond 12; Demiplane 24), not as a limit on who can connect.
+3. **Text content.** Only World Anvil caps entity counts on its free plan (42 articles, 2 maps, 20 statblocks). Kanka advertises "Unlimited entries" as its headline free feature, Alchemy calls itself "no limits", and Roll20, Foundry and Owlbear have no entity caps at all.
+4. **A first hosted game.** Roll20, Alchemy and Kanka allow unlimited games free. Owlbear allows 2 rooms and World Anvil 1 campaign.
+
+**What the market charges for:**
+
+1. **Storage**, which every hosted product tiers. The free floor clusters at 100–200 MB (Roll20 100 MB, World Anvil 100 MB, Forge players 100 MB, Kanka 150 MiB per campaign, Owlbear 200 MB). The first paid tier gets 2–5 GB, and the top tier 10–50 GB.
+2. **How many games a GM runs at once** (Owlbear 2 / 10 / 25 rooms; World Anvil 1 / 10 / 20 campaigns; Roll20 sharing in 1 / 3 / 5 / 20 games; Kanka 1 / 3 / 7 premium campaigns).
+3. **Content-sharing reach**, which is the core of D&D Beyond Master and Demiplane.
+4. **Character slots for players:** D&D Beyond (6 free) and Demiplane (7 free) sell unlimited Characters for $2.99 to under $5 a month.
+5. **Power-user features** such as dynamic lighting (Roll20 Plus), API and mods (Roll20 Pro), custom templates, CSS and white-labelling (World Anvil).
+
+**Price bands:**
+
+| Plan | Market prices | Summary |
+| --- | --- | --- |
+| Player | D&D Beyond Hero $2.99; Demiplane under $5 | $3–5 |
+| First GM tier | Owlbear $3.99; Forge $4.49; World Anvil about $4.50; Kanka $4.99; D&D Beyond Master $5.99; Roll20 Plus $5.99 | $4–6 |
+| Second GM tier | Owlbear $7.99; Forge $8.99; LegendKeeper $9; Kanka $9.99; Roll20 Pro $10.99 | $8–11 |
+| Top tier | Roll20 Elite $14.99; World Anvil Sage $25; Kanka Elemental $24.99 | $13–25 |
+
+No competitor charges $50 a month.
+
+## 3. Proposed tier matrix
+
+Names stay Free, Player, GM and Pro GM. They describe the buyer clearly, and renaming Player to "Hero" would echo D&D Beyond.
+
+| Limit | Free | Player | GM | Pro GM |
+| --- | --- | --- | --- | --- |
+| **Price** | $0 | **$2.99/mo or $29.99/yr** | $9.99/mo or $99.99/yr | **$24.99/mo or $249.99/yr** |
+| Personal Characters | 6 | Unlimited (fair use) | Unlimited | Unlimited |
+| Owned homebrew roots | 20 | Unlimited (fair use) | Unlimited | Unlimited |
+| Media storage | **100 MB** | 1 GB | 5 GB | 25 GB |
+| Active hosted Campaigns | 1 | 1 | 5 | **25** (hard safety cap) |
+| Player seats per Campaign | 5 | 5 | 12 | 12 |
+| **Campaign entries per hosted Campaign (new)** | **150** | 150 | Unlimited (safety cap) | Unlimited (safety cap) |
+| **Scenes per hosted Campaign (new)** | **5** | 5 | Unlimited (safety cap) | Unlimited (safety cap) |
+| Saved Encounters (owned blueprints) | **10** | **10** | Unlimited | Unlimited |
+| Public listings | 1 | 1 | 5 | Unlimited (fair use) |
+| Paid tables | No | No | Yes, 10% platform fee | Yes, 0% platform fee |
+| Joining Campaigns, Encounters, VTT | Unlimited on every plan | Same | Same | Same |
+
+Here is the reasoning for each limit.
+
+- **Price: Player drops from $4.99 to $2.99.**
+  - Player unlocks only unlimited Characters, homebrew and 1 GB. D&D Beyond sells unlimited Characters for $2.99.
+  - At $4.99, Player costs more than Demiplane's Characters-plus-sharing bundle and about as much as Roll20 Plus, a full GM tier. It would sell poorly.
+  - At $2.99 it is an easy impulse buy for the many players who will never host.
+- **Price: GM stays at $9.99.** That sits in the second-tier band (Roll20 Pro $10.99, Kanka Wyvern $9.99, Forge Story Teller $8.99). Artificer's GM plan bundles what those products split across a VTT, a campaign manager and a rules engine.
+- **Price: Pro GM drops from $49.99 to $24.99.**
+  - Pro GM's only real difference is the 0% platform fee. Everything else it adds is storage and capacity that competitors sell for $15–25.
+  - Against the GM plan's 10% fee, $49.99 breaks even at $400 a month of table revenue. $24.99 breaks even at $150, about one weekly paid table of 3–4 players.
+  - At $49.99 most professional GMs would stay on GM and pay the fee, or take bookings off-platform. The tier would exist only on paper.
+  - **Pushback:** if the aim is revenue from professional GMs, the fee is the lever, not a $50 subscription.
+- **Characters: 6 on Free.** This matches D&D Beyond (6) and Demiplane (7). Characters are small documents, so the limit exists for upgrade pressure, not cost.
+- **Homebrew roots: 20 on Free.** Homebrew is Artificer's differentiator and draws people into the product. Twenty roots lets someone build a small subclass-and-spells package and feel the Builder integrate it. Roots count once; children do not count.
+- **Media: 100 MB on Free** (Q17). This is the market floor (Roll20 and World Anvil 100 MB, Owlbear 200 MB); going lower would read as stingy. See the hosting cost estimate below for why this is the tightest free allowance.
+- **Active hosted Campaigns: 1 on Free and Player.** This is the strongest upgrade lever and the one most tied to cost, because live-table cost scales with active hosted tables, not with accounts. It is stricter than Roll20, Alchemy and Kanka, but in line with World Anvil (1) and Owlbear (2).
+  - Pro GM changes from unlimited to a hard cap of 25, which matches Owlbear's top tier and exceeds Roll20 Elite's 20. "Unlimited under fair use" is an unenforced promise, and each live table uses the room's Durable Object budget.
+- **Seats: 5 on Free, 12 on GM.** A typical table is 4–5 players plus the GM. D&D Beyond caps campaigns at 12. Seats cost Durable Object messages only while a table is live, so no tier needs more than 12.
+  - Pro GM stays at 12. A higher seat count would sell convention play, which is not a launch goal.
+- **Campaign entries: 150 per Campaign on Free (new).**
+  - **Pushback: the Campaign model has no Locations or NPCs.** Campaign content today is notebook sections, attachments and handouts, vehicles, scenes, content shares (references to owned homebrew, which homebrew roots already count), sessions, and conversations. A limit on "locations and NPCs" has nothing to count until those kinds exist.
+  - An entry is defined as one of:
+    - a notebook section (private or shared);
+    - an attachment or handout;
+    - a Campaign vehicle;
+    - any future Location or NPC kind.
+  - Excluded from the count:
+    - sessions, session notes and RSVPs, because they record play, and capping them would penalise play itself;
+    - chat, which already keeps 500 entries per conversation;
+    - Encounters and the Encounter timeline;
+    - content shares, because homebrew roots already count them.
+  - **Why 150:** a weekly game adding about 5 entries a session reaches about 120 in six months. That covers a first campaign and nudges an established one toward GM. It is about 3.5 times World Anvil's 42 articles, which is the one precedent for a count cap on text content.
+  - **Cost:** at roughly 5 KB per entry, 150 entries is about 0.75 MB. This limit is mainly an upgrade lever, not a cost control. The user asked for both, so be honest that text entries are nearly free to host.
+- **Scenes: 5 per Campaign on Free (new).**
+  - This is a separate, smaller count, because scenes are the costly content: full-resolution maps (Q17 keeps maps at full resolution), geometry, fog chunks and vision revisions.
+  - It matches the market lever (Owlbear 2 rooms, World Anvil 2 maps) and fits a one-shot or a short arc.
+  - Archived scenes count; deleting one frees the slot.
+- **Saved Encounters: raised from 3 to 10 on Free.**
+  - One dungeon session commonly has 3–5 prepared fights, so 3 blueprints hits a new GM during their first session prep, the worst moment to hit a wall.
+  - Blueprints are small JSON documents. PRODUCT.md promises Encounters on every plan, and a limit that blocks normal prep contradicts that promise in spirit.
+- **Public listings: 1 on Free, 5 on GM.**
+  - Listings supply the Social Hub, whose table formation is viability gate 1, so the limit should never block a Free GM from recruiting for their one Campaign.
+  - One listing matches one active hosted Campaign. Roll20 allows 2 free, but a Free GM here cannot run a second table anyway.
+- **Paid tables: GM and Pro GM only,** unchanged. Commerce needs a paid, identity-verified account (Stripe Connect onboarding), and the platform fee is the business model.
+- **Joining, Encounters and VTT on every plan: keep this.** It is the universal market norm: every competitor researched lets players join free, and Roll20, Kanka and LegendKeeper extend the host's benefits to the table.
+  - Charging players to play would cut the Social Hub loop at its source.
+  - Hosting cost belongs to the host's active-table limit, not to the player's plan.
+  - **Recommend adding** that Campaign entries, scenes and media uploaded into a hosted Campaign count against the **host's** plan, not the contributor's. This is the Roll20 and Kanka model. It removes the case where a Free player cannot upload a handout to their GM's Campaign.
+  - **Conflict to resolve:** Q17 counts each asset once, against its owner. Assigning a Campaign upload's quota to the host needs a ruling.
+
+### Hosting cost of a Free user under ADR 0035
+
+The inputs come from Q16: 100 Free users, of whom 20 host four 4-hour sessions a month (80 sessions), plus 50 Character builds a month, with 50% headroom, against the allowances verified on 2026-09-27.
+
+| Resource | Free allowance | Usable with 50% headroom | Per Free user (average of 100) | Notes |
+| --- | --- | --- | --- | --- |
+| Convex database I/O (binding) | 1 GB/mo | about 683 MB/mo | about 6.8 MB/mo | If live play gets half: about 341 MB ÷ 80 sessions ≈ **4.3 MB per 4-hour session**. The old per-command path measured about 300 MB per session (ADR 0035), about 70 times over. The S9 budget gate must enforce this figure. |
+| Convex database storage | 0.5 GB | about 341 MB | about 3.4 MB | The SRD source corpus is about 5.8 MB on disk before indexes and snapshots. A Free host with 6 Characters, 20 roots, 150 entries, 5 scenes and 3 full chat logs is plausibly 3–8 MB (estimate; scene fog and geometry sizes are unmeasured). A non-host is about 1 MB. 20 × 6 + 80 × 1 ≈ 200 MB fits. |
+| Convex function calls | 1M/mo | about 667k | about 6.7k | Under ADR 0035, live commands make no Convex calls. |
+| R2 storage | 10 GB-month | about 6.7 GB | **67 MB** | **The tightest allowance.** 100 users at the full 100 MB quota fill 100% of R2 with no headroom. It fits only if the average fill stays at or below two-thirds of the quota. |
+| Durable Objects | 100k requests/day, 13,000 GB-s/day, 5 GB | Wide headroom (Q16) | — | About 2.7 sessions a day on average; WebSocket messages count 20:1. |
+
+**Dollars at pay-as-you-go rates.**
+
+- A Free host's month costs about:
+  - 20 MB of Convex I/O at $0.22/GB: about $0.004;
+  - about 7k function calls at $2.20 per 1M: about $0.015;
+  - 100 MB of R2 at Cloudflare's standard storage rate (about $0.015/GB-month, not re-verified in this pass): about $0.0015.
+- That is **about $0.02 a month per Free host**, and less for a Free player.
+- **Pushback on the constraint:** Convex Starter is pay-as-you-go (Q16), so leaving the free allowance is not a cliff to a $25 bill.
+  - "Stay on free tiers" would be more useful restated as "a Free user costs under $0.05 a month at pay-as-you-go rates", with the free allowance as a launch target rather than a hard wall.
+  - Otherwise the R2 figure above pushes toward a Free media quota below the market floor for a saving of cents.
+
+## 4. Changes against today's `ENTITLEMENT_LIMITS`
+
+| Field | Tier | Today | Proposed | Why |
+| --- | --- | --- | --- | --- |
+| `storageBytes` | FREE | 250 MiB | **100 MiB** | Q17 already decided this; the code is stale. Decide whether "MB" in docs means MiB, since the code uses `MEBIBYTE`. |
+| `savedEncounters` | FREE, PLAYER | 3 | **10** | Avoid blocking first-session prep |
+| `activeHostedCampaigns` | PRO_GM | `null` | **25** | An enforceable cap instead of unenforced fair use |
+| `campaignEntriesPerCampaign` (new) | FREE, PLAYER / GM, PRO_GM | — | **150** / `null` plus a hidden safety cap | Q17 upgrade and cost lever; needs a counter per Campaign |
+| `scenesPerCampaign` (new) | FREE, PLAYER / GM, PRO_GM | — | **5** / `null` plus a hidden safety cap | Scenes are the costly Campaign content |
+| `ENTITLEMENT_PRICING.PLAYER` | — | 499 / 4999 | **299 / 2999** | Market band for a Characters-only plan |
+| `ENTITLEMENT_PRICING.PRO_GM` | — | 4999 / 49999 | **2499 / 24999** | Fee break-even at $150/mo of table revenue instead of $400 |
+| All other fields | — | unchanged | unchanged | Characters 6, roots 20, seats 5 / 12, listings 1 / 1 / 5 / `null`, paid tables and fees |
+
+Implementation notes for whoever takes this forward, if accepted:
+
+- The two new limits count against the hosting owner's entitlement, per Campaign. Like `savedEncounters`, they need `syncAccountUsage`-style counters, but those are per-Campaign usage rows, not per-account ones.
+- The "hidden safety caps" for `null` limits are the Q17 invisible abuse guards. They belong in the same policy file as named constants, not in a UI.
+- Update [the roadmap plan table](README.md#initial-launch-plans), and the PRODUCT.md line if the host-pays rule is adopted.
+- Per the pre-launch rule, downgrades need a defined over-limit behaviour, not a compatibility shim. The recommended behaviour is read-only over-limit content, as LegendKeeper and Kanka do; never deletion.
+
+## 5. Open risks
+
+1. **Count limits can feel punitive to worldbuilders.** World Anvil is the only competitor that caps free entities. It had to publish a follow-up explaining that "the majority of our Free users fall below the threshold". Kanka markets unlimited entries against it.
+   - **Mitigation:** exclude play records (sessions, notes, chat, Encounters) from the count; show the count in the Campaign header before it matters; make over-limit content read-only, never hidden or deleted.
+   - A worldbuilder who needs more than 150 entries in one Campaign is the GM plan's buyer.
+2. **Alchemy gives everything away free.** It offers unlimited games, Characters, universes and asset uploads, and funds itself from store content. Fantasy Grounds made its software free as well. A free-with-limits plan will be compared against these.
+   - Artificer's answer is rules automation and the Builder, not capacity. Launch messaging should lead with what Free includes, not what it lacks.
+3. **Roll20 Elite offers 50 GB for $14.99; Pro GM offers 25 GB for $24.99.** Pro GM must be sold on the 0% fee, not storage, or it will look overpriced.
+4. **R2 at full Free quota.** If Free users fill media faster than expected, 100 users exhaust R2's free 10 GB. This costs cents, but breaks the letter of the stay-free constraint (see the pushback in section 3).
+5. **The scene and storage estimates are unmeasured.** The size of scene fog, geometry and vision documents, and of long Encounter timelines, was not measured. Measure one realistic 6-month Campaign before fixing the scene and entry numbers.
+6. **One active hosted Campaign is stricter than Roll20, Alchemy and Kanka.** A Free GM who wants a one-shot beside their main game must archive one or upgrade. Consider letting Free host one extra "one-shot" Campaign that auto-archives after 7 days. This is not in the matrix above: it adds a lifecycle rule, and should be decided only if the Social Hub data shows one-shot demand.
+7. **Host-pays for Campaign content conflicts with Q17's owner-counted assets.** It needs a ruling before implementation (section 3).
+8. **Competitor data has gaps and ages quickly.** Roll20's main pricing page, Alchemy's supporter price and the Demiplane and World Anvil free figures (2024 posts) should be re-checked before public launch. The list of what could not be verified is in section 1.
+9. **The Player plan may not earn its place.** Even at $2.99, the Player plan's value depends on how many players exceed 6 Characters or 20 homebrew roots.
+   - Consider folding Player into GM if conversion data shows Player buyers are rare: Roll20 and Owlbear have no player tier.
+   - D&D Beyond and Demiplane do sell one, so the plan stays in this proposal pending evidence.

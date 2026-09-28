@@ -14,6 +14,24 @@ The user approved redesigning the Free, Player, GM and Pro GM tiers from competi
 
 A research pass compares Roll20, Foundry VTT, Fantasy Grounds, D&D Beyond (including Maps), Owlbear Rodeo, Alchemy RPG, Demiplane and World Anvil. It is recorded in `docs/roadmap/tier-research-2026-09-27.md`, with a proposed tier matrix.
 
+**Research done:** [tier research](../roadmap/tier-research-2026-09-27.md). The proposal:
+
+| | Free | Player | GM | Pro GM |
+| --- | --- | --- | --- | --- |
+| Price | $0 | $2.99 (was $4.99) | $9.99 | $24.99 (was $49.99) |
+| Media | 100 MB | 1 GB | 5 GB | 25 GB |
+| Active hosted Campaigns | 1 | 1 | 5 | 25 (was unlimited) |
+| Campaign entries per Campaign (new) | 150 | 150 | unlimited, with a hidden safety cap | same as GM |
+| Scenes per Campaign (new) | 5 | 5 | unlimited, with a hidden safety cap | same as GM |
+| Saved Encounters | 10 (was 3) | 10 (was 3) | unlimited | unlimited |
+
+Characters, homebrew roots, seats, listings, paid tables and fees are unchanged. Every plan still joins Campaigns and plays for free, as all the researched competitors allow.
+
+**Claude's review:**
+- **Accept:** the prices, since no competitor charges $50 and Pro GM's fee break-even drops from $400 to $150 of table revenue a month; the entry and Scene limits as upgrade levers; 10 saved Encounters; and read-only (never deleted) content after a downgrade.
+- **Disagree: counting a Campaign upload against the hosting GM.** Keep Q17's rule that an asset counts against whoever uploaded it. A player's portrait should use the player's quota, not the GM's, and a GM's maps already count against the GM. One rule everywhere is simpler.
+- **For the user to decide:** the research restates "stay on free tiers" as "under $0.05 per Free user a month", because Convex Starter bills small pay-as-you-go overages rather than forcing a $25 plan. That keeps the market-standard 100 MB of storage, even though 100 users at the full quota would fill R2's free 10 GB.
+
 **Answer:**
 
 ## Decisions to review
