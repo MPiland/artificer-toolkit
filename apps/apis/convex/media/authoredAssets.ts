@@ -1,29 +1,38 @@
 import * as zMini from 'zod/mini'
-import { v } from 'convex/values'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
+import type { NormalizedImageCrop } from '@artificer-toolkit/schema/api/media'
 import {
   authoredImageLookupSchema,
   authoredImageTargetSchema,
   authoredImageUploadSchema,
   authoredImageSaveSchema,
-  authoredImageProcessClaimSchema,
-  authoredImageOperationSchema,
   avatarBindingSchema,
+  mediaProcessClaimSchema,
+  mediaReferencedImageSchema,
   mediaSinglePutUploadSchema,
-  mediaStoredAssetSchema,
-  mediaStoredVariantSchema,
   type AuthoredImageLookup,
-  type AuthoredImageTarget
+  type AuthoredImageTarget,
+  type AvatarBindingDto,
+  type MediaProcessClaim
 } from '@artificer-toolkit/schema/api/mediaAssets'
-import { query, internalQuery, type QueryCtx } from '../_generated/server'
+import type { Doc } from '../_generated/dataModel'
+import { query, internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { mutation, internalMutation } from '../lib/mutations'
-import { internal } from '../_generated/api'
 import { getAuthenticatedProfile } from '../lib/identity'
 import { canReadAuthoredRoot } from '../content/documents'
-import { readImageSlot, ensureDraftImageSlot, retireOrphanImage } from '../content/imageSlots'
-import { createMediaUpload, findAsset, ownedAsset, charge } from './assets'
+import { readImageSlot, ensureDraftImageSlot } from '../content/imageSlots'
+import {
+  beginImageUpload,
+  createMediaUpload,
+  findAsset,
+  ownedAsset,
+  releaseAsset,
+  requireAttachableImage,
+  storedImage
+} from './assets'
+import { sameCrop } from './crops'
 
-async function ownedDraft(ctx: QueryCtx, target: AuthoredImageTarget) {
+export async function ownedDraft(ctx: QueryCtx, target: AuthoredImageTarget) {
   const authenticated = await getAuthenticatedProfile(ctx)
   if (!authenticated) throw new Error('Unauthenticated')
   const draft = await ctx.db
@@ -84,6 +93,50 @@ async function readableSlot(ctx: QueryCtx, target: AuthoredImageLookup) {
   return slot
 }
 
+async function touchDraft(ctx: MutationCtx, draft: Doc<'authoredDrafts'>) {
+  await ctx.db.patch(draft._id, {
+    updatedAt: new Date(
+      Math.max(Date.now(), (draft.updatedAt ? Date.parse(draft.updatedAt) : 0) + 1)
+    ).toISOString()
+  })
+}
+
+/** Artwork changes only the draft slot; ACTIVE keeps its own asset and framing until publication. */
+export async function bindArtwork(
+  ctx: MutationCtx,
+  draft: Doc<'authoredDrafts'>,
+  slot: Doc<'authoredImageSlots'>,
+  asset: Doc<'mediaAssets'>,
+  crop: NormalizedImageCrop
+): Promise<AvatarBindingDto> {
+  const revision = slot.revision + 1
+  await ctx.db.patch(slot._id, { assetId: asset.id, crop, revision })
+  await ctx.db.patch(asset._id, { cleanupAt: null })
+  await touchDraft(ctx, draft)
+  if (slot.assetId) await releaseAsset(ctx, slot.assetId)
+  return { assetId: asset.id, revision }
+}
+
+export async function attachArtwork(
+  ctx: MutationCtx,
+  target: AuthoredImageTarget,
+  assetId: string,
+  crop: NormalizedImageCrop
+) {
+  const { authenticated, draft } = await ownedDraft(ctx, target)
+  const { asset } = await ownedAsset(ctx, assetId)
+  const slot = await ensureDraftImageSlot(ctx, target)
+  if (slot.assetId === asset.id && sameCrop(slot.crop, crop))
+    return { assetId: asset.id, revision: slot.revision }
+  return bindArtwork(
+    ctx,
+    draft,
+    slot,
+    requireAttachableImage(asset, authenticated.identity.userId),
+    crop
+  )
+}
+
 export const binding = query({
   args: zodToConvexFields(authoredImageLookupSchema.shape),
   returns: zodToConvex(avatarBindingSchema),
@@ -95,22 +148,14 @@ export const binding = query({
 
 export const read = internalQuery({
   args: zodToConvexFields(authoredImageLookupSchema.shape),
-  returns: zodToConvex(zMini.nullable(mediaStoredAssetSchema)),
+  returns: zodToConvex(zMini.nullable(mediaReferencedImageSchema)),
   handler: async (ctx, args) => {
-    const target = authoredImageLookupSchema.parse(args)
-    const slot = await readableSlot(ctx, target)
+    const slot = await readableSlot(ctx, authoredImageLookupSchema.parse(args))
     if (!slot?.assetId) return null
     const asset = await findAsset(ctx, slot.assetId)
-    if (
-      !asset ||
-      asset.profile !== 'AUTHORED_IMAGE' ||
-      asset.status !== 'READY' ||
-      asset.authoredTarget?.subjectId !== target.subjectId ||
-      asset.authoredTarget.subjectKind !== target.subjectKind
-    )
+    if (!asset || asset.profileClass !== 'CONTENT_ART' || asset.status !== 'READY')
       throw new Error('Image is unavailable.')
-    const { _id, _creationTime, ...stored } = asset
-    return mediaStoredAssetSchema.parse(stored)
+    return { asset: storedImage(asset), crop: slot.crop }
   }
 })
 
@@ -126,162 +171,23 @@ export const createUpload = mutation({
 
 export const beginSave = internalMutation({
   args: zodToConvexFields(authoredImageSaveSchema.shape),
-  returns: zodToConvex(authoredImageProcessClaimSchema),
-  handler: async (ctx, args) => {
+  returns: zodToConvex(mediaProcessClaimSchema),
+  handler: async (ctx, args): Promise<MediaProcessClaim> => {
     const input = authoredImageSaveSchema.parse(args)
-    const { authenticated, draft } = await ownedDraft(ctx, input.target)
-    const { asset: source } = await ownedAsset(ctx, input.assetId)
-    if (
-      source.profile !== 'AUTHORED_IMAGE' ||
-      source.authoredTarget?.subjectId !== input.target.subjectId ||
-      source.authoredTarget.subjectKind !== input.target.subjectKind ||
-      source.operation ||
-      (source.status !== 'READY' && source.status !== 'PENDING_UPLOAD')
-    )
-      throw new Error('Image is unavailable.')
+    const { draft } = await ownedDraft(ctx, input.target)
+    const { asset } = await ownedAsset(ctx, input.assetId)
+    if (asset.status === 'READY')
+      return {
+        kind: 'CURRENT',
+        binding: await attachArtwork(ctx, input.target, asset.id, input.crop)
+      }
     const slot = await ensureDraftImageSlot(ctx, input.target)
-    const current = slot.assetId ? await findAsset(ctx, slot.assetId) : null
-    if (
-      current?.status === 'READY' &&
-      current.profile === 'AUTHORED_IMAGE' &&
-      (current.id === source.id || current.copiedFromAssetId === source.id) &&
-      current.crop?.x === input.crop.x &&
-      current.crop.y === input.crop.y &&
-      current.crop.width === input.crop.width &&
-      current.crop.height === input.crop.height
-    )
-      return { kind: 'CURRENT' as const, binding: { assetId: current.id, revision: slot.revision } }
-    if (source.status === 'READY' && slot.assetId !== source.id)
-      throw new Error('Artwork changed. Reload before cropping.')
-    if (source.status === 'PENDING_UPLOAD' && Date.now() > source.uploadExpiresAt)
-      throw new Error('Upload expired.')
-    let asset = source
-    const sourceVariant =
-      source.status === 'READY' ? source.variants.find((item) => item.kind === 'SOURCE') : undefined
-    const displayVariant =
-      source.status === 'READY'
-        ? source.variants.find((item) => item.kind === 'DISPLAY')
-        : undefined
-    if (source.status === 'READY') {
-      if (!sourceVariant || !displayVariant) throw new Error('Image source is unavailable.')
-      // Never recrop in place: ACTIVE and DRAFT may still share the source asset.
-      await charge(ctx, authenticated.profile, 6 * 1024 * 1024)
-      const id = crypto.randomUUID()
-      const rowId = await ctx.db.insert('mediaAssets', {
-        id,
-        ownerUserId: source.ownerUserId,
-        profile: 'AUTHORED_IMAGE',
-        authoredTarget: input.target,
-        copiedFromAssetId: source.id,
-        upload: { ...source.upload, idempotencyKey: crypto.randomUUID() },
-        status: 'PROCESSING',
-        rawObjectKey: null,
-        uploadExpiresAt: Date.now(),
-        chargedBytes: 6 * 1024 * 1024,
-        variants: [],
-        crop: null,
-        operation: null,
-        cleanupAt: Date.now() + 24 * 60 * 60_000
-      })
-      const inserted = await ctx.db.get(rowId)
-      if (!inserted || inserted.profile !== 'AUTHORED_IMAGE')
-        throw new Error('Image is unavailable.')
-      asset = inserted
-    }
-    const operationId = crypto.randomUUID()
-    const operation = authoredImageOperationSchema.parse({
-      id: operationId,
-      kind: 'INITIAL',
-      crop: input.crop,
-      target: input.target,
+    return beginImageUpload(ctx, asset, {
+      ...input.target,
       draftId: draft._id,
-      expectedSlotRevision: slot.revision,
-      expiresAt: Date.now() + 15 * 60_000,
-      ...(sourceVariant && displayVariant
-        ? { sourceVariants: { source: sourceVariant, display: displayVariant } }
-        : {}),
-      outputs: (['SOURCE', 'DISPLAY', 'THUMBNAIL'] as const).map((kind) => ({
-        kind,
-        objectKey: `ready/${asset.id}/${operationId}/${kind.toLowerCase()}.webp`
-      }))
+      crop: input.crop,
+      expectedRevision: slot.revision
     })
-    await ctx.db.patch(asset._id, { status: 'PROCESSING', operation })
-    await ctx.scheduler.runAt(operation.expiresAt, internal.media.assets.expireOperation, {
-      assetId: asset.id,
-      operationId
-    })
-    const { _id, _creationTime, ...stored } = asset
-    return { kind: 'PROCESS' as const, asset: mediaStoredAssetSchema.parse(stored), operation }
-  }
-})
-
-export const finishSave = internalMutation({
-  args: {
-    assetId: v.string(),
-    operationId: v.string(),
-    variants: v.array(zodToConvex(mediaStoredVariantSchema))
-  },
-  returns: zodToConvex(avatarBindingSchema),
-  handler: async (ctx, args) => {
-    const { asset } = await ownedAsset(ctx, args.assetId)
-    const operation = asset.operation
-    if (
-      asset.profile !== 'AUTHORED_IMAGE' ||
-      !operation ||
-      !('draftId' in operation) ||
-      operation.id !== args.operationId ||
-      Date.now() >= operation.expiresAt
-    )
-      throw new Error('Image processing is no longer current.')
-    const { authenticated, draft } = await ownedDraft(ctx, operation.target)
-    const slot = await readImageSlot(ctx, operation.target.subjectId, 'DRAFT')
-    if (
-      draft._id !== operation.draftId ||
-      !slot ||
-      slot.revision !== operation.expectedSlotRevision ||
-      slot.subjectKind !== operation.target.subjectKind
-    )
-      throw new Error('Artwork changed during processing.')
-    const variants = args.variants.map((item) => mediaStoredVariantSchema.parse(item))
-    if (
-      variants.length !== 3 ||
-      new Set(variants.map((item) => item.kind)).size !== 3 ||
-      variants.some(
-        (item) =>
-          !operation.outputs.some(
-            (expected) => expected.kind === item.kind && expected.objectKey === item.objectKey
-          )
-      )
-    )
-      throw new Error('Processed image output mismatch.')
-    await charge(
-      ctx,
-      authenticated.profile,
-      variants.reduce((sum, item) => sum + item.byteSize, 0) - asset.chargedBytes
-    )
-    await ctx.db.patch(asset._id, {
-      status: 'READY',
-      variants,
-      crop: operation.crop,
-      operation: null,
-      chargedBytes: variants.reduce((sum, item) => sum + item.byteSize, 0),
-      cleanupAt: null
-    })
-    const revision = slot.revision + 1
-    await ctx.db.patch(slot._id, { assetId: asset.id, revision })
-    await ctx.db.patch(draft._id, {
-      updatedAt: new Date(
-        Math.max(Date.now(), (draft.updatedAt ? Date.parse(draft.updatedAt) : 0) + 1)
-      ).toISOString()
-    })
-    if (slot.assetId && slot.assetId !== asset.id) await retireOrphanImage(ctx, slot.assetId)
-    if (asset.rawObjectKey)
-      await ctx.scheduler.runAt(
-        asset.uploadExpiresAt + 15 * 60_000,
-        internal.media.assets.cleanupRaw,
-        { assetId: asset.id }
-      )
-    return { assetId: asset.id, revision }
   }
 })
 
@@ -293,13 +199,9 @@ export const remove = mutation({
     const { draft } = await ownedDraft(ctx, target)
     const slot = await ensureDraftImageSlot(ctx, target)
     const revision = slot.revision + 1
-    await ctx.db.patch(slot._id, { assetId: null, revision })
-    await ctx.db.patch(draft._id, {
-      updatedAt: new Date(
-        Math.max(Date.now(), (draft.updatedAt ? Date.parse(draft.updatedAt) : 0) + 1)
-      ).toISOString()
-    })
-    if (slot.assetId) await retireOrphanImage(ctx, slot.assetId)
+    await ctx.db.patch(slot._id, { assetId: null, crop: null, revision })
+    await touchDraft(ctx, draft)
+    if (slot.assetId) await releaseAsset(ctx, slot.assetId)
     return { assetId: null, revision }
   }
 })

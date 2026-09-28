@@ -186,11 +186,12 @@ it('rejects missing, foreign, unready and forged maps before creating a save', a
       .withIndex('by_publicId', (q) => q.eq('id', base.input.settings.map.assetId))
       .unique()
   )
-  await base.t.run((ctx) => ctx.db.patch(asset!._id, { campaignId: crypto.randomUUID() }))
+  // Another user's map the Campaign does not already use is not attachable.
+  await base.t.run((ctx) => ctx.db.patch(asset!._id, { ownerUserId: base.other.userId }))
   await expect(base.owner.caller.mutation(begin, base.input)).rejects.toThrow('map')
   await base.t.run((ctx) =>
     ctx.db.patch(asset!._id, {
-      campaignId: base.campaign.id,
+      ownerUserId: base.owner.userId,
       status: 'REJECTED'
     })
   )

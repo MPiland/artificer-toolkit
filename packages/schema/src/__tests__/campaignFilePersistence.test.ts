@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { mediaStoredAssetSchema } from '../api/mediaAssets.js'
 import {
-  campaignStoredFileAssetSchema,
   campaignFileFinalizeInputSchema,
   campaignFileProcessClaimSchema,
   campaignFileDeliverySourceSchema,
   campaignStoredAttachmentSchema
 } from '../projections/campaignFilePersistence.js'
+import { vttMapStoredAssetSchema } from '../projections/vttMapPersistence.js'
 import {
   campaignAttachmentDtoSchema,
   campaignAttachmentListInputSchema,
@@ -14,11 +14,12 @@ import {
 } from '../api/campaignAttachments.js'
 
 const id = '550e8400-e29b-41d4-a716-446655440000'
+const hash = 'a'.repeat(64)
 const textAsset = {
   id,
   ownerUserId: id,
-  campaignId: id.toUpperCase(),
-  profile: 'CAMPAIGN_FILE',
+  storageAssetId: id,
+  profileClass: 'TEXT_FILE',
   upload: {
     originalFileName: 'notes.txt',
     declaredMimeType: 'text/plain',
@@ -29,6 +30,7 @@ const textAsset = {
   rawObjectKey: null,
   uploadExpiresAt: 0,
   chargedBytes: 12,
+  contentHash: hash,
   variants: [
     {
       kind: 'SOURCE',
@@ -39,9 +41,23 @@ const textAsset = {
       height: null
     }
   ],
-  crop: null,
+  cropThumbnails: [],
   operation: null,
   cleanupAt: null
+}
+const imageVariants = ['SOURCE', 'DISPLAY', 'THUMBNAIL'].map((kind) => ({
+  kind,
+  objectKey: `ready/file/${kind}.webp`,
+  byteSize: 12,
+  mimeType: 'image/webp',
+  width: 40,
+  height: 20
+}))
+const imageAsset = {
+  ...textAsset,
+  profileClass: 'CONTENT_ART',
+  upload: { ...textAsset.upload, originalFileName: 'art.png', declaredMimeType: 'image/png' },
+  variants: imageVariants
 }
 
 describe('native Campaign file persistence contracts', () => {
@@ -66,12 +82,12 @@ describe('native Campaign file persistence contracts', () => {
       )
   })
 
-  it('keeps internal processing claims and settlement strict, bounded and UUID-backed', () => {
+  it('keeps internal processing claims and settlement strict, bounded and hashed', () => {
     const operation = {
       id,
-      kind: 'INITIAL',
       expiresAt: 1000,
-      outputs: [{ kind: 'SOURCE', objectKey: 'ready/file/source.txt' }]
+      outputs: [{ kind: 'SOURCE', objectKey: 'ready/file/source.txt' }],
+      binding: null
     }
     const claim = {
       kind: 'PROCESS',
@@ -91,90 +107,94 @@ describe('native Campaign file persistence contracts', () => {
       campaignFileProcessClaimSchema.safeParse({ ...claim, url: 'https://untrusted.invalid' })
         .success
     ).toBe(false)
-    const finish = { assetId: id, operationId: id, variants: textAsset.variants }
+    const finish = {
+      assetId: id,
+      operationId: id,
+      variants: textAsset.variants,
+      contentHash: hash
+    }
     expect(campaignFileFinalizeInputSchema.safeParse(finish).success).toBe(true)
     for (const patch of [
       { operationId: 'not-a-uuid' },
       { variants: [] },
       { variants: Array(4).fill(textAsset.variants[0]) },
+      { contentHash: 'A'.repeat(64) },
+      { contentHash: undefined },
       { ownerUserId: id }
     ])
       expect(campaignFileFinalizeInputSchema.safeParse({ ...finish, ...patch }).success).toBe(false)
   })
 
-  it('keeps strict text variants separate from the existing image-only asset contract', () => {
-    expect(campaignStoredFileAssetSchema.parse(textAsset)).toEqual({ ...textAsset, campaignId: id })
-    expect(mediaStoredAssetSchema.safeParse(textAsset).success).toBe(false)
+  it('stores owner-scoped assets without a target, Campaign or crop', () => {
+    expect(mediaStoredAssetSchema.parse(textAsset)).toEqual(textAsset)
+    expect(mediaStoredAssetSchema.parse(imageAsset)).toEqual(imageAsset)
     for (const patch of [
-      { campaignId: 'not-a-uuid' },
-      { profile: 'ACCOUNT_AVATAR' },
-      { profile: 'CAMPAIGN_HANDOUT_MAP' },
+      { campaignId: id },
+      { profile: 'CAMPAIGN_FILE' },
       { authoredTarget: { type: 'AUTHORED_IMAGE', subjectId: id, subjectKind: 'BACKGROUND' } },
       { crop: { x: 0, y: 0, width: 1, height: 1 } },
-      { upload: { ...textAsset.upload, declaredBytes: 6 * 1024 * 1024 + 1 } },
-      { upload: { ...textAsset.upload, declaredMimeType: 'application/pdf' } }
+      { contentHash: 'not-a-hash' },
+      { upload: { ...imageAsset.upload, declaredBytes: 6 * 1024 * 1024 + 1 } },
+      { upload: { ...imageAsset.upload, declaredMimeType: 'application/pdf' } }
     ])
-      expect(campaignStoredFileAssetSchema.safeParse({ ...textAsset, ...patch }).success).toBe(
-        false
-      )
-    for (const patch of [{ kind: 'THUMBNAIL' }, { width: 1 }, { height: 1 }, { byteSize: 0 }])
-      expect(
-        campaignStoredFileAssetSchema.safeParse({
-          ...textAsset,
-          variants: [{ ...textAsset.variants[0], ...patch }]
-        }).success
-      ).toBe(false)
+      expect(mediaStoredAssetSchema.safeParse({ ...imageAsset, ...patch }).success).toBe(false)
   })
 
-  it('accepts normalized file/handout image variants without allowing text, crops or authored operations', () => {
-    const imageAsset = {
-      ...textAsset,
-      profile: 'CAMPAIGN_HANDOUT_MAP',
-      upload: { ...textAsset.upload, originalFileName: 'map.png', declaredMimeType: 'image/png' },
-      variants: ['SOURCE', 'DISPLAY', 'THUMBNAIL'].map((kind) => ({
-        kind,
-        objectKey: `ready/file/${kind}.webp`,
-        byteSize: 12,
-        mimeType: 'image/webp',
-        width: 40,
-        height: 20
-      })),
-      operation: {
-        id,
-        kind: 'INITIAL',
-        expiresAt: 1000,
-        outputs: [{ kind: 'SOURCE', objectKey: 'ready/file/source.webp' }]
-      }
+  it('keeps text, images and framing within their class', () => {
+    expect(
+      mediaStoredAssetSchema.safeParse({ ...textAsset, profileClass: 'CONTENT_ART' }).success
+    ).toBe(false)
+    expect(
+      mediaStoredAssetSchema.safeParse({ ...imageAsset, profileClass: 'TEXT_FILE' }).success
+    ).toBe(false)
+    expect(
+      mediaStoredAssetSchema.safeParse({ ...imageAsset, profileClass: 'HANDOUT_MAP' }).success
+    ).toBe(true)
+    expect(
+      mediaStoredAssetSchema.safeParse({ ...imageAsset, variants: textAsset.variants }).success
+    ).toBe(false)
+    const cropThumbnail = {
+      cropHash: hash,
+      crop: { x: 0, y: 0, width: 0.5, height: 1 },
+      variant: { ...imageVariants[2], objectKey: 'ready/file/crop.webp' }
     }
-    expect(campaignStoredFileAssetSchema.safeParse(imageAsset).success).toBe(true)
     expect(
-      campaignStoredFileAssetSchema.safeParse({ ...imageAsset, profile: 'CAMPAIGN_FILE' }).success
+      mediaStoredAssetSchema.safeParse({ ...imageAsset, cropThumbnails: [cropThumbnail] }).success
     ).toBe(true)
     expect(
-      campaignStoredFileAssetSchema.safeParse({ ...imageAsset, variants: textAsset.variants })
-        .success
-    ).toBe(false)
-    expect(
-      campaignStoredFileAssetSchema.safeParse({ ...textAsset, variants: imageAsset.variants })
-        .success
-    ).toBe(false)
-    expect(
-      campaignStoredFileAssetSchema.safeParse({
+      mediaStoredAssetSchema.safeParse({
         ...imageAsset,
-        operation: { ...imageAsset.operation, kind: 'CROP' }
+        profileClass: 'HANDOUT_MAP',
+        cropThumbnails: [cropThumbnail]
       }).success
     ).toBe(false)
+    const binding = {
+      type: 'ACCOUNT_AVATAR',
+      crop: cropThumbnail.crop,
+      expectedRevision: 0
+    }
+    const operation = { id, expiresAt: 1, outputs: [{ kind: 'SOURCE', objectKey: 'k' }], binding }
     expect(
-      campaignStoredFileAssetSchema.safeParse({
-        ...imageAsset,
-        operation: { ...imageAsset.operation, expectedAvatarRevision: 1 }
-      }).success
-    ).toBe(false)
-    const { campaignId: _campaignId, ...imageOnly } = imageAsset
-    expect(
-      mediaStoredAssetSchema.safeParse({ ...imageOnly, profile: 'ACCOUNT_AVATAR', operation: null })
-        .success
+      mediaStoredAssetSchema.safeParse({ ...imageAsset, status: 'PROCESSING', operation }).success
     ).toBe(true)
+    expect(
+      mediaStoredAssetSchema.safeParse({ ...textAsset, status: 'PROCESSING', operation }).success
+    ).toBe(false)
+  })
+
+  it('stores maps without a Campaign binding or crops', () => {
+    const map = {
+      ...imageAsset,
+      profileClass: 'VTT_MAP',
+      upload: { ...imageAsset.upload, declaredBytes: 20 * 1024 * 1024 },
+      width: 40,
+      height: 20,
+      variants: imageVariants.slice(1)
+    }
+    const { cropThumbnails: _cropThumbnails, ...stored } = map
+    expect(vttMapStoredAssetSchema.safeParse(stored).success).toBe(true)
+    expect(vttMapStoredAssetSchema.safeParse({ ...stored, campaignId: id }).success).toBe(false)
+    expect(vttMapStoredAssetSchema.safeParse(map).success).toBe(false)
   })
 
   it('uses the shared bounded-page metadata without adding a total attachment cap', () => {

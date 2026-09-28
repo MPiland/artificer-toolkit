@@ -1,10 +1,8 @@
 import { v } from 'convex/values'
 import { internalMutation } from '../lib/mutations'
-import { internal } from '../_generated/api'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { syncAccountUsage } from '../lib/accountUsage'
-
-const MEDIA_GRACE = 24 * 60 * 60_000
+import { releaseAsset } from '../media/assets'
 
 // This is not personal Character/account deletion. It only retires isolated test data.
 export const removePersonalFixtureCharacter = internalMutation({
@@ -75,18 +73,9 @@ export const removePersonalFixtureCharacter = internalMutation({
         .query('mediaAssets')
         .withIndex('by_publicId', (q) => q.eq('id', portraitAssetId))
         .unique()
-      if (
-        !portrait ||
-        portrait.ownerUserId !== userId ||
-        portrait.profile !== 'CHARACTER_PORTRAIT' ||
-        portrait.characterTarget?.characterId !== character.id
-      )
+      if (!portrait || portrait.ownerUserId !== userId)
         throw new Error('Fixture Character portrait ownership mismatch.')
-      const cleanupAt = Date.now() + MEDIA_GRACE
-      await ctx.db.patch(portrait._id, { cleanupAt })
-      await ctx.scheduler.runAt(cleanupAt, internal.media.assets.cleanup, {
-        assetId: portrait.id
-      })
+      await releaseAsset(ctx, portrait.id)
     }
     if (draft) await ctx.db.delete(draft._id)
     if (character) await ctx.db.delete(character._id)

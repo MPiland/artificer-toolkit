@@ -15,7 +15,7 @@ export const backfill = internalMutation({
     let processed = 0
     const orphanedReferencedMapIds: string[] = []
     for (const asset of page.page) {
-      if (asset.profile !== 'VTT_MAP') continue
+      if (asset.profileClass !== 'VTT_MAP') continue
       processed += 1
       const hasSceneReferences = await mapIsReferenced(ctx, asset.id)
       if (asset.hasSceneReferences !== hasSceneReferences)

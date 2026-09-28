@@ -1,17 +1,17 @@
 'use node'
 
+import { createHash } from 'node:crypto'
 import sharp from 'sharp'
 import type { z } from 'zod'
 import { normalizedImageCropSchema } from '@artificer-toolkit/schema/api/media'
 import type {
   campaignFileMimeTypeSchema,
   imageMimeTypeSchema,
-  mediaProfileSchema,
   MediaVariantKind
 } from '@artificer-toolkit/schema/api/media'
 import type { NormalizedImageCrop } from '@artificer-toolkit/schema/api/media'
+import type { MediaProfileClass } from '@artificer-toolkit/schema/api/mediaAssets'
 
-type MediaProfile = z.infer<typeof mediaProfileSchema>
 type ImageMimeType = z.infer<typeof imageMimeTypeSchema>
 type MediaMimeType = z.infer<typeof campaignFileMimeTypeSchema>
 
@@ -19,6 +19,8 @@ export interface ProcessedMedia {
   originalByteSize: number
   verifiedByteSize: number
   verifiedMimeType: MediaMimeType
+  /** SHA-256 of the normalized bytes; the same owner's identical content de-duplicates on it. */
+  contentHash: string
   width: number | null
   height: number | null
   variants: {
@@ -96,10 +98,10 @@ export async function cropMediaThumbnail(
 /** Returns only normalized media; original image bytes and metadata never leave this helper. */
 export async function processMedia(
   bytes: Uint8Array,
-  profile: MediaProfile,
+  profileClass: MediaProfileClass,
   declaredMimeType: MediaMimeType
 ): Promise<ProcessedMedia> {
-  const isMap = profile === 'VTT_MAP'
+  const isMap = profileClass === 'VTT_MAP'
   const isText = declaredMimeType === 'text/plain'
   const label = isMap ? 'Map' : isText ? 'File' : 'Image'
   const maxBytes = (isMap ? 25 : 6) * 1024 * 1024
@@ -111,10 +113,10 @@ export async function processMedia(
   const source = Buffer.from(bytes)
 
   if (isText) {
-    if (profile === 'CAMPAIGN_HANDOUT_MAP') {
+    if (profileClass === 'HANDOUT_MAP') {
       throw new MediaValidationError('Handout maps must be images.')
     }
-    if (profile !== 'CAMPAIGN_FILE') {
+    if (profileClass !== 'TEXT_FILE') {
       throw new MediaValidationError(
         `${isMap ? 'Map' : 'Image'} format or dimensions are not supported.`
       )
@@ -137,6 +139,7 @@ export async function processMedia(
       originalByteSize: source.byteLength,
       verifiedByteSize: body.byteLength,
       verifiedMimeType: 'text/plain',
+      contentHash: createHash('sha256').update(body).digest('hex'),
       width: null,
       height: null,
       variants: [
@@ -192,7 +195,7 @@ export async function processMedia(
   }
 
   // Content art is capped at 2048 px; handout maps keep 4096 px and VTT maps keep full size (Q17).
-  const sourceLimit = profile === 'CAMPAIGN_HANDOUT_MAP' ? 4096 : 2048
+  const sourceLimit = profileClass === 'HANDOUT_MAP' ? 4096 : 2048
   const pipeline = sharp(source, { limitInputPixels: maxPixels }).rotate()
   if (!isMap) pipeline.resize(sourceLimit, sourceLimit, { fit: 'inside', withoutEnlargement: true })
   const normalized = await pipeline
@@ -270,6 +273,7 @@ export async function processMedia(
     originalByteSize: source.byteLength,
     verifiedByteSize: source.byteLength,
     verifiedMimeType: mime,
+    contentHash: createHash('sha256').update(normalized.data).digest('hex'),
     width,
     height,
     variants,

@@ -1,9 +1,7 @@
 import type { AuthoredImageTarget } from '@artificer-toolkit/schema/api/mediaAssets'
-import { internal } from '../_generated/api'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { isImportRowVisible } from '../imports/visibility'
-
-const GRACE = 24 * 60 * 60 * 1000
+import { releaseAsset } from '../media/assets'
 
 export async function readImageSlot(
   ctx: QueryCtx | MutationCtx,
@@ -26,22 +24,6 @@ function assertSlotKind(
     throw new Error('Stored authored image slot mismatch.')
 }
 
-export async function retireOrphanImage(ctx: MutationCtx, assetId: string) {
-  const reference = await ctx.db
-    .query('authoredImageSlots')
-    .withIndex('by_assetId', (q) => q.eq('assetId', assetId))
-    .take(1)
-  if (reference.length) return
-  const asset = await ctx.db
-    .query('mediaAssets')
-    .withIndex('by_publicId', (q) => q.eq('id', assetId))
-    .unique()
-  if (!asset) return
-  const cleanupAt = Date.now() + GRACE
-  await ctx.db.patch(asset._id, { cleanupAt })
-  await ctx.scheduler.runAt(cleanupAt, internal.media.assets.cleanup, { assetId })
-}
-
 export async function ensureDraftImageSlot(
   ctx: MutationCtx,
   target: { subjectId: string; subjectKind: AuthoredImageTarget['subjectKind'] },
@@ -60,6 +42,7 @@ export async function ensureDraftImageSlot(
     ...(currentImportJobId !== undefined ? { importJobId: currentImportJobId } : {}),
     scope: 'DRAFT',
     assetId: active?.assetId ?? null,
+    crop: active?.crop ?? null,
     revision: 0
   })
   const slot = await ctx.db.get(id)
@@ -75,7 +58,7 @@ export async function dropImageSlot(
   const slot = await readImageSlot(ctx, subjectId, scope)
   if (!slot) return
   await ctx.db.delete(slot._id)
-  if (slot.assetId) await retireOrphanImage(ctx, slot.assetId)
+  if (slot.assetId) await releaseAsset(ctx, slot.assetId)
 }
 
 export async function promoteDraftImageSlot(
@@ -87,7 +70,11 @@ export async function promoteDraftImageSlot(
   const active = await readImageSlot(ctx, target.subjectId, 'ACTIVE', currentImportJobId)
   if (active) {
     assertSlotKind(active, target)
-    await ctx.db.patch(active._id, { assetId: draft.assetId, revision: active.revision + 1 })
+    await ctx.db.patch(active._id, {
+      assetId: draft.assetId,
+      crop: draft.crop,
+      revision: active.revision + 1
+    })
   } else {
     await ctx.db.insert('authoredImageSlots', {
       subjectId: target.subjectId,
@@ -95,10 +82,11 @@ export async function promoteDraftImageSlot(
       ...(currentImportJobId !== undefined ? { importJobId: currentImportJobId } : {}),
       scope: 'ACTIVE',
       assetId: draft.assetId,
+      crop: draft.crop,
       revision: 1
     })
   }
   await ctx.db.delete(draft._id)
-  if (active?.assetId && active.assetId !== draft.assetId)
-    await retireOrphanImage(ctx, active.assetId)
+  // Re-evaluates the replaced artwork: it retires if unused, or drops the framing ACTIVE no longer uses.
+  if (active?.assetId) await releaseAsset(ctx, active.assetId)
 }

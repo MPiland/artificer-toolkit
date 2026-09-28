@@ -292,8 +292,9 @@ async function seedPreservedSceneRows(base: Awaited<ReturnType<typeof setup>>) {
       vttMapStoredAssetSchema.parse({
         id: scene.map.assetId,
         ownerUserId: base.other.userId,
-        profile: 'VTT_MAP',
-        campaignId: base.campaign.id,
+        storageAssetId: scene.map.assetId,
+        profileClass: 'VTT_MAP',
+        contentHash: null,
         upload: {
           originalFileName: 'fixture-map.png',
           declaredMimeType: 'image/png',
@@ -307,7 +308,6 @@ async function seedPreservedSceneRows(base: Awaited<ReturnType<typeof setup>>) {
         width: scene.map.width,
         height: scene.map.height,
         variants: [],
-        crop: null,
         operation: null,
         cleanupAt: null,
         hasSceneReferences: true

@@ -22,8 +22,8 @@ import { encounterTables } from './encounters/schema'
 import { sceneTables } from './scenes/schema'
 import { ruleEffectTables } from './rules/schema'
 import { importTables } from './imports/schema'
+import { normalizedImageCropSchema } from '@artificer-toolkit/schema/api/media'
 import { mediaStoredAssetSchema } from '@artificer-toolkit/schema/api/mediaAssets'
-import { campaignStoredFileAssetSchema } from '@artificer-toolkit/schema/projections/campaignFilePersistence'
 import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/vttMapPersistence'
 
 export default defineSchema({
@@ -39,6 +39,7 @@ export default defineSchema({
     notificationPreferences: v.optional(zodToConvex(notificationPreferencesDtoSchema)),
     avatarAssetId: v.optional(v.string()),
     avatarRevision: v.optional(v.number()),
+    avatarCrop: v.optional(zodToConvex(normalizedImageCropSchema)),
     mediaBytes: v.optional(v.number()),
     entitlementUsage: zodToConvex(accountUsageSchema),
     entitlementUsageReady: v.boolean(),
@@ -83,20 +84,24 @@ export default defineSchema({
     .index('by_userId_createdAt_id', ['userId', 'createdAt', 'id'])
     .index('by_userId_id', ['userId', 'id']),
   mediaAssets: defineTable(
-    v.union(
-      zodToConvex(mediaStoredAssetSchema),
-      zodToConvex(campaignStoredFileAssetSchema),
-      zodToConvex(vttMapStoredAssetSchema)
-    )
+    v.union(zodToConvex(mediaStoredAssetSchema), zodToConvex(vttMapStoredAssetSchema))
   )
     .index('by_publicId', ['id'])
     .index('by_ownerUserId_idempotencyKey', ['ownerUserId', 'upload.idempotencyKey'])
     .index('by_ownerUserId', ['ownerUserId'])
-    .index('by_ownerUserId_profile_hasSceneReferences', [
+    .index('by_ownerUserId_profileClass_hasSceneReferences', [
       'ownerUserId',
-      'profile',
+      'profileClass',
       'hasSceneReferences'
-    ]),
+    ])
+    .index('by_ownerUserId_profileClass_contentHash_status', [
+      'ownerUserId',
+      'profileClass',
+      'contentHash',
+      'status'
+    ])
+    .index('by_ownerUserId_profileClass_status', ['ownerUserId', 'profileClass', 'status'])
+    .index('by_storageAssetId', ['storageAssetId']),
   ...buildContentTables(),
   ...characterTables,
   ...campaignTables,

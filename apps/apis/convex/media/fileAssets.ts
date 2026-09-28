@@ -6,9 +6,11 @@ import {
   finalizeImageUploadOutputSchema,
   type FinalizeImageUploadOutput
 } from '@artificer-toolkit/schema/api/media'
-import { mediaSinglePutUploadSchema } from '@artificer-toolkit/schema/api/mediaAssets'
 import {
-  campaignStoredFileAssetSchema,
+  mediaProcessingOperationSchema,
+  mediaSinglePutUploadSchema
+} from '@artificer-toolkit/schema/api/mediaAssets'
+import {
   campaignFileProcessClaimSchema,
   campaignFileFinalizeInputSchema,
   type CampaignFileProcessClaim
@@ -17,7 +19,16 @@ import { mutation, internalMutation } from '../lib/mutations'
 import { internal } from '../_generated/api'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { createMediaUpload, findAsset, ownedAsset, charge, MediaQuotaError } from './assets'
+import {
+  createMediaUpload,
+  findAsset,
+  ownedAsset,
+  charge,
+  MediaQuotaError,
+  reuseDuplicate,
+  reusedAsset,
+  storedImage
+} from './assets'
 
 export const createUpload = mutation({
   args: zodToConvexFields(createCampaignFileUploadIntentInputSchema.shape),
@@ -36,45 +47,52 @@ export const createUpload = mutation({
   }
 })
 
+/**
+ * Processing an upload is the owner's own business; which Campaign may reference the file is
+ * decided when it is attached (ADR 0012 amendment).
+ */
 export const beginFinalize = internalMutation({
   args: zodToConvexFields(finalizeImageUploadInputSchema.shape),
   returns: zodToConvex(campaignFileProcessClaimSchema),
   handler: async (ctx, args): Promise<CampaignFileProcessClaim> => {
     const input = finalizeImageUploadInputSchema.parse(args)
-    const { authenticated, asset } = await ownedAsset(ctx, input.assetId.toLowerCase())
-    if (asset.profile !== 'CAMPAIGN_FILE' && asset.profile !== 'CAMPAIGN_HANDOUT_MAP')
-      throw new Error('File is unavailable.')
-    await requireCampaignAuthority(ctx, asset.campaignId, authenticated.identity.userId)
+    const { userId } = await requireIdentity(ctx)
+    const found = await findAsset(ctx, input.assetId.toLowerCase())
+    if (found?.ownerUserId === userId) {
+      const reused = await reusedAsset(ctx, found)
+      if (reused)
+        return { kind: 'CURRENT', result: { assetId: reused.id, status: 'READY', preview: null } }
+    }
+    const { asset } = await ownedAsset(ctx, input.assetId.toLowerCase())
+    if (asset.profileClass === 'VTT_MAP') throw new Error('File is unavailable.')
     if (asset.operation) throw new Error('File processing is still running. Try again shortly.')
     if (asset.status === 'READY')
       return { kind: 'CURRENT', result: { assetId: asset.id, status: 'READY', preview: null } }
     if (asset.status !== 'PENDING_UPLOAD' || !asset.rawObjectKey)
       throw new Error('File is unavailable.')
-    const text = asset.upload.declaredMimeType === 'text/plain'
+    const text = asset.profileClass === 'TEXT_FILE'
     const operationId = crypto.randomUUID()
-    const operation = {
+    const operation = mediaProcessingOperationSchema.parse({
       id: operationId,
-      kind: 'INITIAL' as const,
       expiresAt: Date.now() + 15 * 60_000,
       outputs: (text ? (['SOURCE'] as const) : (['SOURCE', 'DISPLAY', 'THUMBNAIL'] as const)).map(
         (kind) => ({
           kind,
           objectKey: `ready/${asset.id}/${operationId}/${kind.toLowerCase()}.${text ? 'txt' : 'webp'}`
         })
-      )
-    }
-    const { _id, _creationTime, ...stored } = asset
-    const processing = campaignStoredFileAssetSchema.parse({
-      ...stored,
-      status: 'PROCESSING',
-      operation
+      ),
+      binding: null
     })
     await ctx.db.patch(asset._id, { status: 'PROCESSING', operation })
     await ctx.scheduler.runAt(operation.expiresAt, internal.media.assets.expireOperation, {
       assetId: asset.id,
       operationId: operation.id
     })
-    return { kind: 'PROCESS', asset: processing, operation }
+    return {
+      kind: 'PROCESS',
+      asset: storedImage({ ...asset, status: 'PROCESSING', operation }),
+      operation
+    }
   }
 })
 
@@ -84,13 +102,12 @@ export const finishFinalize = internalMutation({
   handler: async (ctx, args): Promise<FinalizeImageUploadOutput> => {
     const input = campaignFileFinalizeInputSchema.parse(args)
     const { authenticated, asset } = await ownedAsset(ctx, input.assetId.toLowerCase())
-    if (asset.profile !== 'CAMPAIGN_FILE' && asset.profile !== 'CAMPAIGN_HANDOUT_MAP')
-      throw new Error('File is unavailable.')
-    await requireCampaignAuthority(ctx, asset.campaignId, authenticated.identity.userId)
-    const operation = asset.operation
+    const operation = asset.profileClass === 'VTT_MAP' ? null : asset.operation
     if (
+      asset.profileClass === 'VTT_MAP' ||
       asset.status !== 'PROCESSING' ||
       !operation ||
+      operation.binding !== null ||
       operation.id !== input.operationId ||
       Date.now() >= operation.expiresAt
     )
@@ -106,13 +123,21 @@ export const finishFinalize = internalMutation({
       )
     )
       throw new Error('Processed file output mismatch.')
-    const { _id, _creationTime, ...stored } = asset
+    const duplicate = await reuseDuplicate(
+      ctx,
+      authenticated.profile,
+      asset,
+      input.contentHash,
+      input.variants.map((variant) => variant.objectKey)
+    )
+    if (duplicate) return { assetId: duplicate.id, status: 'READY', preview: null }
     const bytes = input.variants.reduce((sum, variant) => sum + variant.byteSize, 0)
     const cleanupAt = Date.now() + 24 * 60 * 60_000
-    const ready = campaignStoredFileAssetSchema.parse({
-      ...stored,
+    const ready = storedImage({
+      ...asset,
       status: 'READY',
       variants: input.variants,
+      contentHash: input.contentHash,
       chargedBytes: bytes,
       operation: null,
       cleanupAt
@@ -127,6 +152,7 @@ export const finishFinalize = internalMutation({
     await ctx.db.patch(asset._id, {
       status: 'READY',
       variants: ready.variants,
+      contentHash: input.contentHash,
       chargedBytes: bytes,
       operation: null,
       cleanupAt
@@ -146,14 +172,10 @@ export const rejectFinalize = internalMutation({
   args: { assetId: v.string(), operationId: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Internal action failure may arrive after membership/session revocation. It can
-    // reject only its pre-issued operation, never choose keys or affect a replacement.
+    // Internal action failure may arrive after session revocation. It can reject only its
+    // pre-issued operation, never choose keys or affect a replacement.
     const asset = await findAsset(ctx, args.assetId)
-    if (
-      !asset ||
-      (asset.profile !== 'CAMPAIGN_FILE' && asset.profile !== 'CAMPAIGN_HANDOUT_MAP') ||
-      asset.operation?.id !== args.operationId
-    )
+    if (!asset || asset.profileClass === 'VTT_MAP' || asset.operation?.id !== args.operationId)
       return null
     await ctx.db.patch(asset._id, { status: 'REJECTED' })
     return null

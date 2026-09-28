@@ -241,22 +241,25 @@ it('rejects forged processing outputs, competing avatar updates, and revoked-ses
     owner.client.mutation(internal.media.assets.beginSave, { assetId: first.assetId, crop })
   ).rejects.toThrow('still running')
   await expect(
-    owner.client.mutation(internal.media.assets.finishSave, {
+    owner.client.mutation(internal.media.imageSaves.finish, {
       assetId: first.assetId,
       operationId: one.operation.id,
-      variants: outputs(one).map((item) => ({ ...item, objectKey: 'forged' }))
+      variants: outputs(one).map((item) => ({ ...item, objectKey: 'forged' })),
+      contentHash: 'a'.repeat(64)
     })
   ).rejects.toThrow('mismatch')
-  await owner.client.mutation(internal.media.assets.finishSave, {
+  await owner.client.mutation(internal.media.imageSaves.finish, {
     assetId: first.assetId,
     operationId: one.operation.id,
-    variants: outputs(one)
+    variants: outputs(one),
+    contentHash: 'a'.repeat(64)
   })
   await expect(
-    owner.client.mutation(internal.media.assets.finishSave, {
+    owner.client.mutation(internal.media.imageSaves.finish, {
       assetId: second.assetId,
       operationId: two.operation.id,
-      variants: outputs(two)
+      variants: outputs(two),
+      contentHash: 'b'.repeat(64)
     })
   ).rejects.toThrow('changed during processing')
   expect(await owner.client.query(api.media.assets.avatar, {})).toEqual({
@@ -269,10 +272,11 @@ it('rejects forged processing outputs, competing avatar updates, and revoked-ses
     })
   )
   await expect(
-    owner.client.mutation(internal.media.assets.finishSave, {
+    owner.client.mutation(internal.media.imageSaves.finish, {
       assetId: second.assetId,
       operationId: two.operation.id,
-      variants: outputs(two)
+      variants: outputs(two),
+      contentHash: 'b'.repeat(64)
     })
   ).rejects.toThrow('Unauthenticated')
 })

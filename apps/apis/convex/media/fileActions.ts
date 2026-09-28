@@ -32,10 +32,10 @@ export const finalize = action({
     if (claim.kind === 'CURRENT') return claim.result
     const operation = { assetId: claim.asset.id, operationId: claim.operation.id }
     try {
-      const variants = await processCampaignFileClaim(ctx, claim.asset, claim.operation)
+      const processed = await processCampaignFileClaim(ctx, claim.asset, claim.operation)
       return await ctx.runMutation(internal.media.fileAssets.finishFinalize, {
         ...operation,
-        variants
+        ...processed
       })
     } catch (error) {
       if (error instanceof MediaValidationError) {

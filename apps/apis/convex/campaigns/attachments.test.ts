@@ -114,8 +114,8 @@ describe('native Campaign attachments', () => {
       content: ''
     })
     const session = await owner.caller.mutation(createSession, { campaignId: campaign.id })
-    const file = await readyCampaignFile(t, other.userId, campaign.id)
-    const handout = await readyCampaignFile(t, owner.userId, campaign.id, 'CAMPAIGN_HANDOUT_MAP')
+    const file = await readyCampaignFile(t, other.userId)
+    const handout = await readyCampaignFile(t, owner.userId, 'HANDOUT_MAP')
     const attachments: CampaignAttachmentDto[] = []
     for (let index = 0; index < 5; index++) {
       attachments.push(
@@ -214,7 +214,7 @@ describe('native Campaign attachments', () => {
     await expect(t.query(readDelivery, deliveryInput)).rejects.toThrow('Unauthenticated')
   })
 
-  it('denies foreign, unready and wrong-profile assets and cross-Campaign associations without writes', async () => {
+  it('denies foreign, unready and map assets and cross-Campaign associations without writes', async () => {
     const { t, owner, other, campaign } = await setup()
     const foreignCampaign = await other.caller.mutation(createCampaign, {
       name: 'Elsewhere',
@@ -232,20 +232,20 @@ describe('native Campaign attachments', () => {
     const foreignSession = await other.caller.mutation(createSession, {
       campaignId: foreignCampaign.id
     })
-    const ownFile = await readyCampaignFile(t, owner.userId, campaign.id)
-    const wrongCampaign = await readyCampaignFile(t, owner.userId, foreignCampaign.id)
-    const otherFile = await readyCampaignFile(t, other.userId, campaign.id)
-    const pending = await readyCampaignFile(t, owner.userId, campaign.id)
+    const ownFile = await readyCampaignFile(t, owner.userId)
+    const otherFile = await readyCampaignFile(t, other.userId)
+    const pending = await readyCampaignFile(t, owner.userId)
     await t.run((ctx) => ctx.db.patch(pending.rowId, { status: 'PENDING_UPLOAD' }))
-    const avatarId = await t.run(async (ctx) => {
+    const mapId = await t.run(async (ctx) => {
       const id = crypto.randomUUID()
       await ctx.db.insert('mediaAssets', {
         id,
         ownerUserId: owner.userId,
-        profile: 'ACCOUNT_AVATAR',
+        storageAssetId: id,
+        profileClass: 'VTT_MAP',
         status: 'READY',
         upload: {
-          originalFileName: 'avatar.png',
+          originalFileName: 'map.png',
           declaredMimeType: 'image/png',
           declaredBytes: 12,
           idempotencyKey: crypto.randomUUID()
@@ -253,19 +253,21 @@ describe('native Campaign attachments', () => {
         rawObjectKey: null,
         uploadExpiresAt: 0,
         chargedBytes: 0,
+        contentHash: null,
+        width: 40,
+        height: 20,
         variants: [],
-        crop: null,
         operation: null,
         cleanupAt: null
       })
       return id
     })
     const before = await t.run((ctx) => ctx.db.query('mediaAssets').collect())
+    // Another user's asset, an unfinished upload and a scene map never attach as Campaign files.
     for (const input of [
       { assetId: otherFile.id },
-      { assetId: wrongCampaign.id },
       { assetId: pending.id },
-      { assetId: avatarId },
+      { assetId: mapId },
       { assetId: ownFile.id, sessionId: foreignSession.id },
       { assetId: ownFile.id, noteSectionId: foreignNote.id },
       { assetId: ownFile.id, noteSectionId: crypto.randomUUID() }
@@ -304,7 +306,7 @@ describe('native Campaign attachments', () => {
 
   it('removes a retained attachment after its storage ownership transfers', async () => {
     const { t, owner, other, campaign } = await setup()
-    const file = await readyCampaignFile(t, other.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId)
     const attachment = await other.caller.mutation(create, {
       campaignId: campaign.id,
       assetId: file.id,
@@ -312,8 +314,7 @@ describe('native Campaign attachments', () => {
     })
     await t.run((ctx) =>
       ctx.db.patch(file.rowId, {
-        ownerUserId: owner.userId,
-        retainedFromUserId: other.userId
+        ownerUserId: owner.userId
       })
     )
 
@@ -325,7 +326,7 @@ describe('native Campaign attachments', () => {
 
   it('restricts deletion and protects shared references through rollback, reattachment and quota cleanup', async () => {
     const { t, owner, other, campaign } = await setup()
-    const file = await readyCampaignFile(t, owner.userId, campaign.id)
+    const file = await readyCampaignFile(t, owner.userId)
     const input = { campaignId: campaign.id, assetId: file.id, displayName: 'Keep bytes' }
     const first = await owner.caller.mutation(create, input)
     const second = await owner.caller.mutation(create, input)
@@ -343,7 +344,7 @@ describe('native Campaign attachments', () => {
       owner.caller.mutation(async (ctx) => {
         await ctx.runMutation(remove, { campaignId: campaign.id, attachmentId: first.id })
         await ctx.runMutation(remove, { campaignId: campaign.id, attachmentId: second.id })
-        expect((await ctx.db.get(file.rowId))?.cleanupAt).not.toBeNull()
+        expect(await ctx.db.query('campaignAttachments').collect()).toEqual([])
         throw new Error('Injected attachment rollback')
       })
     ).rejects.toThrow('Injected attachment rollback')
@@ -360,6 +361,8 @@ describe('native Campaign attachments', () => {
       await other.caller.query(readDelivery, { campaignId: campaign.id, attachmentId: second.id })
     ).toMatchObject({ assetId: file.id })
     await owner.caller.mutation(remove, { campaignId: campaign.id, attachmentId: second.id })
+    // The scheduled re-evaluation starts grace once the last reference is gone.
+    await t.mutation(internal.media.assets.cleanup, { assetId: file.id })
     const detached = (await snapshot()).asset!
     await expect(
       owner.caller.query(readDelivery, { campaignId: campaign.id, attachmentId: second.id })
@@ -372,6 +375,7 @@ describe('native Campaign attachments', () => {
     await t.mutation(internal.media.assets.cleanup, { assetId: file.id })
     expect((await snapshot()).asset?.status).toBe('READY')
     await owner.caller.mutation(remove, { campaignId: campaign.id, attachmentId: reattached.id })
+    await t.mutation(internal.media.assets.cleanup, { assetId: file.id })
     const deadline = (await snapshot()).asset!.cleanupAt!
     vi.useFakeTimers()
     vi.setSystemTime(deadline + 1)
@@ -394,7 +398,7 @@ describe('native Campaign attachments', () => {
 
   it('fails closed on unavailable or inconsistent attached asset records without selecting raw or preview bytes', async () => {
     const { t, owner, other, campaign } = await setup()
-    const file = await readyCampaignFile(t, owner.userId, campaign.id)
+    const file = await readyCampaignFile(t, owner.userId)
     const attachment = await owner.caller.mutation(create, {
       campaignId: campaign.id,
       assetId: file.id,
@@ -410,9 +414,7 @@ describe('native Campaign attachments', () => {
       { status: 'REJECTED' as const },
       { status: 'DELETED' as const },
       { variants: [] },
-      { campaignId: crypto.randomUUID() },
-      { ownerUserId: other.userId },
-      { profile: 'CAMPAIGN_HANDOUT_MAP' as const }
+      { profileClass: 'HANDOUT_MAP' as const }
     ]) {
       await t.run((ctx) => ctx.db.patch(file.rowId, patch))
       await expect(other.caller.query(readDelivery, input)).rejects.toThrow()
@@ -437,7 +439,7 @@ describe('native Campaign attachments', () => {
       title: 'Keep',
       content: ''
     })
-    const file = await readyCampaignFile(t, other.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId)
     const input = { campaignId: campaign.id, assetId: file.id, displayName: 'Player file' }
     for (let index = 0; index < 51; index++)
       await other.caller.mutation(create, { ...input, noteSectionId: note.id })
@@ -467,13 +469,14 @@ describe('native Campaign attachments', () => {
     expect(after.asset?.cleanupAt).toBeNull()
     // The GM can remove another uploader's surviving attachment.
     await owner.caller.mutation(remove, { campaignId: campaign.id, attachmentId: retained.id })
+    await t.mutation(internal.media.assets.cleanup, { assetId: file.id })
     expect((await read()).asset?.cleanupAt).toBeGreaterThan(Date.now())
   })
 
   it('purges deleted-account attachment references in bounded batches before retiring asset keys', async () => {
     const { t, owner, other, campaign } = await setup()
-    const file = await readyCampaignFile(t, other.userId, campaign.id)
-    const keepFile = await readyCampaignFile(t, owner.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId)
+    const keepFile = await readyCampaignFile(t, owner.userId)
     for (let index = 0; index < 35; index++)
       await other.caller.mutation(create, {
         campaignId: campaign.id,

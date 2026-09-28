@@ -50774,6 +50774,80 @@ export declare const api: {
         { assetId: string; expiresAt: string; method: "PUT"; url: string }
       >;
     };
+    library: {
+      attachImage: FunctionReference<
+        "mutation",
+        "public",
+        {
+          assetId: string;
+          crop: { height: number; width: number; x: number; y: number };
+          target:
+            | { type: "ACCOUNT_AVATAR" }
+            | { characterId: string; type: "CHARACTER_PORTRAIT" }
+            | {
+                subjectId: string;
+                subjectKind:
+                  | "BACKGROUND"
+                  | "CLASS"
+                  | "CREATURE"
+                  | "EQUIPMENT"
+                  | "FEAT"
+                  | "RACE"
+                  | "SPELL"
+                  | "VEHICLE";
+                type: "AUTHORED_IMAGE";
+              };
+        },
+        { assetId: string | null; revision: number }
+      >;
+      list: FunctionReference<
+        "query",
+        "public",
+        {
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            numItems: number;
+          };
+          profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP" | "VTT_MAP";
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            assetId: string;
+            createdAt: string;
+            height: number | null;
+            originalFileName: string;
+            profileClass:
+              "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP" | "VTT_MAP";
+            width: number | null;
+          }>;
+          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+          splitCursor?: string | null;
+        }
+      >;
+    };
+    libraryActions: {
+      getImage: FunctionReference<
+        "action",
+        "public",
+        { assetId: string; variantKind: "SOURCE" | "DISPLAY" | "THUMBNAIL" },
+        {
+          altText: string | null;
+          assetId: string;
+          crop: { height: number; width: number; x: number; y: number } | null;
+          expiresAt: string;
+          height: number;
+          isDecorative: boolean;
+          mimeType: "image/jpeg" | "image/png" | "image/webp";
+          url: string;
+          variantKind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+          width: number;
+        }
+      >;
+    };
     vttMapActions: {
       finalize: FunctionReference<
         "action",
@@ -70638,85 +70712,54 @@ export declare const internal: {
           }
         | {
             asset: {
-              authoredTarget?: {
-                subjectId: string;
-                subjectKind:
-                  | "BACKGROUND"
-                  | "CLASS"
-                  | "CREATURE"
-                  | "EQUIPMENT"
-                  | "FEAT"
-                  | "RACE"
-                  | "SPELL"
-                  | "VEHICLE";
-                type: "AUTHORED_IMAGE";
-              };
-              characterTarget?: {
-                characterId: string;
-                type: "CHARACTER_PORTRAIT";
-              };
               chargedBytes: number;
               cleanupAt: number | null;
-              copiedFromAssetId?: string;
-              crop: {
-                height: number;
-                width: number;
-                x: number;
-                y: number;
-              } | null;
+              contentHash: string | null;
+              cropThumbnails: Array<{
+                crop: { height: number; width: number; x: number; y: number };
+                cropHash: string;
+                variant: {
+                  byteSize: number;
+                  height: number;
+                  kind: "THUMBNAIL";
+                  mimeType: "image/webp";
+                  objectKey: string;
+                  width: number;
+                };
+              }>;
               id: string;
-              operation:
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    expectedAvatarRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                  }
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    draftId: string;
-                    expectedSlotRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                    sourceVariants?: {
-                      display: {
-                        byteSize: number;
+              operation: {
+                binding:
+                  | {
+                      crop: {
                         height: number;
-                        kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                        mimeType: "image/webp";
-                        objectKey: string;
                         width: number;
+                        x: number;
+                        y: number;
                       };
-                      source: {
-                        byteSize: number;
+                      expectedRevision: number;
+                      type: "ACCOUNT_AVATAR";
+                    }
+                  | {
+                      characterId: string;
+                      crop: {
                         height: number;
-                        kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                        mimeType: "image/webp";
-                        objectKey: string;
                         width: number;
+                        x: number;
+                        y: number;
                       };
-                    };
-                    target: {
+                      expectedRevision: number;
+                      type: "CHARACTER_PORTRAIT";
+                    }
+                  | {
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      draftId: string;
+                      expectedRevision: number;
                       subjectId: string;
                       subjectKind:
                         | "BACKGROUND"
@@ -70728,7 +70771,75 @@ export declare const internal: {
                         | "SPELL"
                         | "VEHICLE";
                       type: "AUTHORED_IMAGE";
+                    }
+                  | null;
+                expiresAt: number;
+                id: string;
+                outputs: Array<{
+                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                  objectKey: string;
+                }>;
+              } | null;
+              ownerUserId: string;
+              profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+              rawObjectKey: string | null;
+              status:
+                | "PENDING_UPLOAD"
+                | "PROCESSING"
+                | "READY"
+                | "REJECTED"
+                | "DELETED";
+              storageAssetId: string;
+              upload: {
+                declaredBytes: number;
+                declaredMimeType:
+                  "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+                idempotencyKey: string;
+                originalFileName: string;
+              };
+              uploadExpiresAt: number;
+              variants: Array<
+                | {
+                    byteSize: number;
+                    height: number;
+                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                    mimeType: "image/webp";
+                    objectKey: string;
+                    width: number;
+                  }
+                | {
+                    byteSize: number;
+                    height: null;
+                    kind: "SOURCE";
+                    mimeType: "text/plain";
+                    objectKey: string;
+                    width: null;
+                  }
+              >;
+            };
+            kind: "PROCESS";
+            operation: {
+              binding:
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
                     };
+                    expectedRevision: number;
+                    type: "ACCOUNT_AVATAR";
+                  }
+                | {
+                    characterId: string;
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "CHARACTER_PORTRAIT";
                   }
                 | {
                     crop: {
@@ -70737,51 +70848,23 @@ export declare const internal: {
                       x: number;
                       y: number;
                     };
-                    expectedPortraitRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                    target: { characterId: string; type: "CHARACTER_PORTRAIT" };
+                    draftId: string;
+                    expectedRevision: number;
+                    subjectId: string;
+                    subjectKind:
+                      | "BACKGROUND"
+                      | "CLASS"
+                      | "CREATURE"
+                      | "EQUIPMENT"
+                      | "FEAT"
+                      | "RACE"
+                      | "SPELL"
+                      | "VEHICLE";
+                    type: "AUTHORED_IMAGE";
                   }
                 | null;
-              ownerUserId: string;
-              profile:
-                "ACCOUNT_AVATAR" | "CHARACTER_PORTRAIT" | "AUTHORED_IMAGE";
-              rawObjectKey: string | null;
-              retainedFromUserId?: string;
-              status:
-                | "PENDING_UPLOAD"
-                | "PROCESSING"
-                | "READY"
-                | "REJECTED"
-                | "DELETED";
-              upload: {
-                declaredBytes: number;
-                declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
-                idempotencyKey: string;
-                originalFileName: string;
-              };
-              uploadExpiresAt: number;
-              variants: Array<{
-                byteSize: number;
-                height: number;
-                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                mimeType: "image/webp";
-                objectKey: string;
-                width: number;
-              }>;
-            };
-            kind: "PROCESS";
-            operation: {
-              crop: { height: number; width: number; x: number; y: number };
-              expectedAvatarRevision: number;
               expiresAt: number;
               id: string;
-              kind: "INITIAL" | "CROP";
               outputs: Array<{
                 kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
                 objectKey: string;
@@ -70819,23 +70902,6 @@ export declare const internal: {
         { assetId: string; operationId: string },
         null
       >;
-      finishSave: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          assetId: string;
-          operationId: string;
-          variants: Array<{
-            byteSize: number;
-            height: number;
-            kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-            mimeType: "image/webp";
-            objectKey: string;
-            width: number;
-          }>;
-        },
-        { assetId: string | null; revision: number }
-      >;
       purgeAccount: FunctionReference<
         "mutation",
         "internal",
@@ -70847,114 +70913,113 @@ export declare const internal: {
         "internal",
         {},
         null | {
-          authoredTarget?: {
-            subjectId: string;
-            subjectKind:
-              | "BACKGROUND"
-              | "CLASS"
-              | "CREATURE"
-              | "EQUIPMENT"
-              | "FEAT"
-              | "RACE"
-              | "SPELL"
-              | "VEHICLE";
-            type: "AUTHORED_IMAGE";
+          asset: {
+            chargedBytes: number;
+            cleanupAt: number | null;
+            contentHash: string | null;
+            cropThumbnails: Array<{
+              crop: { height: number; width: number; x: number; y: number };
+              cropHash: string;
+              variant: {
+                byteSize: number;
+                height: number;
+                kind: "THUMBNAIL";
+                mimeType: "image/webp";
+                objectKey: string;
+                width: number;
+              };
+            }>;
+            id: string;
+            operation: {
+              binding:
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "ACCOUNT_AVATAR";
+                  }
+                | {
+                    characterId: string;
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "CHARACTER_PORTRAIT";
+                  }
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    draftId: string;
+                    expectedRevision: number;
+                    subjectId: string;
+                    subjectKind:
+                      | "BACKGROUND"
+                      | "CLASS"
+                      | "CREATURE"
+                      | "EQUIPMENT"
+                      | "FEAT"
+                      | "RACE"
+                      | "SPELL"
+                      | "VEHICLE";
+                    type: "AUTHORED_IMAGE";
+                  }
+                | null;
+              expiresAt: number;
+              id: string;
+              outputs: Array<{
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                objectKey: string;
+              }>;
+            } | null;
+            ownerUserId: string;
+            profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+            rawObjectKey: string | null;
+            status:
+              | "PENDING_UPLOAD"
+              | "PROCESSING"
+              | "READY"
+              | "REJECTED"
+              | "DELETED";
+            storageAssetId: string;
+            upload: {
+              declaredBytes: number;
+              declaredMimeType:
+                "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+              idempotencyKey: string;
+              originalFileName: string;
+            };
+            uploadExpiresAt: number;
+            variants: Array<
+              | {
+                  byteSize: number;
+                  height: number;
+                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                  mimeType: "image/webp";
+                  objectKey: string;
+                  width: number;
+                }
+              | {
+                  byteSize: number;
+                  height: null;
+                  kind: "SOURCE";
+                  mimeType: "text/plain";
+                  objectKey: string;
+                  width: null;
+                }
+            >;
           };
-          characterTarget?: { characterId: string; type: "CHARACTER_PORTRAIT" };
-          chargedBytes: number;
-          cleanupAt: number | null;
-          copiedFromAssetId?: string;
           crop: { height: number; width: number; x: number; y: number } | null;
-          id: string;
-          operation:
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                expectedAvatarRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-              }
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                draftId: string;
-                expectedSlotRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-                sourceVariants?: {
-                  display: {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  };
-                  source: {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  };
-                };
-                target: {
-                  subjectId: string;
-                  subjectKind:
-                    | "BACKGROUND"
-                    | "CLASS"
-                    | "CREATURE"
-                    | "EQUIPMENT"
-                    | "FEAT"
-                    | "RACE"
-                    | "SPELL"
-                    | "VEHICLE";
-                  type: "AUTHORED_IMAGE";
-                };
-              }
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                expectedPortraitRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-                target: { characterId: string; type: "CHARACTER_PORTRAIT" };
-              }
-            | null;
-          ownerUserId: string;
-          profile: "ACCOUNT_AVATAR" | "CHARACTER_PORTRAIT" | "AUTHORED_IMAGE";
-          rawObjectKey: string | null;
-          retainedFromUserId?: string;
-          status:
-            "PENDING_UPLOAD" | "PROCESSING" | "READY" | "REJECTED" | "DELETED";
-          upload: {
-            declaredBytes: number;
-            declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
-            idempotencyKey: string;
-            originalFileName: string;
-          };
-          uploadExpiresAt: number;
-          variants: Array<{
-            byteSize: number;
-            height: number;
-            kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-            mimeType: "image/webp";
-            objectKey: string;
-            width: number;
-          }>;
         }
       >;
     };
@@ -70985,686 +71050,84 @@ export declare const internal: {
           }
         | {
             asset: {
-              authoredTarget?: {
-                subjectId: string;
-                subjectKind:
-                  | "BACKGROUND"
-                  | "CLASS"
-                  | "CREATURE"
-                  | "EQUIPMENT"
-                  | "FEAT"
-                  | "RACE"
-                  | "SPELL"
-                  | "VEHICLE";
-                type: "AUTHORED_IMAGE";
-              };
-              characterTarget?: {
-                characterId: string;
-                type: "CHARACTER_PORTRAIT";
-              };
               chargedBytes: number;
               cleanupAt: number | null;
-              copiedFromAssetId?: string;
-              crop: {
-                height: number;
-                width: number;
-                x: number;
-                y: number;
-              } | null;
-              id: string;
-              operation:
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    expectedAvatarRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                  }
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    draftId: string;
-                    expectedSlotRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                    sourceVariants?: {
-                      display: {
-                        byteSize: number;
-                        height: number;
-                        kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                        mimeType: "image/webp";
-                        objectKey: string;
-                        width: number;
-                      };
-                      source: {
-                        byteSize: number;
-                        height: number;
-                        kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                        mimeType: "image/webp";
-                        objectKey: string;
-                        width: number;
-                      };
-                    };
-                    target: {
-                      subjectId: string;
-                      subjectKind:
-                        | "BACKGROUND"
-                        | "CLASS"
-                        | "CREATURE"
-                        | "EQUIPMENT"
-                        | "FEAT"
-                        | "RACE"
-                        | "SPELL"
-                        | "VEHICLE";
-                      type: "AUTHORED_IMAGE";
-                    };
-                  }
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    expectedPortraitRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                    target: { characterId: string; type: "CHARACTER_PORTRAIT" };
-                  }
-                | null;
-              ownerUserId: string;
-              profile:
-                "ACCOUNT_AVATAR" | "CHARACTER_PORTRAIT" | "AUTHORED_IMAGE";
-              rawObjectKey: string | null;
-              retainedFromUserId?: string;
-              status:
-                | "PENDING_UPLOAD"
-                | "PROCESSING"
-                | "READY"
-                | "REJECTED"
-                | "DELETED";
-              upload: {
-                declaredBytes: number;
-                declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
-                idempotencyKey: string;
-                originalFileName: string;
-              };
-              uploadExpiresAt: number;
-              variants: Array<{
-                byteSize: number;
-                height: number;
-                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                mimeType: "image/webp";
-                objectKey: string;
-                width: number;
-              }>;
-            };
-            kind: "PROCESS";
-            operation: {
-              crop: { height: number; width: number; x: number; y: number };
-              draftId: string;
-              expectedSlotRevision: number;
-              expiresAt: number;
-              id: string;
-              kind: "INITIAL" | "CROP";
-              outputs: Array<{
-                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                objectKey: string;
-              }>;
-              sourceVariants?: {
-                display: {
+              contentHash: string | null;
+              cropThumbnails: Array<{
+                crop: { height: number; width: number; x: number; y: number };
+                cropHash: string;
+                variant: {
                   byteSize: number;
                   height: number;
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                  kind: "THUMBNAIL";
                   mimeType: "image/webp";
                   objectKey: string;
                   width: number;
                 };
-                source: {
-                  byteSize: number;
-                  height: number;
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  mimeType: "image/webp";
-                  objectKey: string;
-                  width: number;
-                };
-              };
-              target: {
-                subjectId: string;
-                subjectKind:
-                  | "BACKGROUND"
-                  | "CLASS"
-                  | "CREATURE"
-                  | "EQUIPMENT"
-                  | "FEAT"
-                  | "RACE"
-                  | "SPELL"
-                  | "VEHICLE";
-                type: "AUTHORED_IMAGE";
-              };
-            };
-          }
-      >;
-      finishSave: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          assetId: string;
-          operationId: string;
-          variants: Array<{
-            byteSize: number;
-            height: number;
-            kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-            mimeType: "image/webp";
-            objectKey: string;
-            width: number;
-          }>;
-        },
-        { assetId: string | null; revision: number }
-      >;
-      read: FunctionReference<
-        "query",
-        "internal",
-        {
-          scope: "ACTIVE" | "DRAFT";
-          subjectId: string;
-          subjectKind:
-            | "BACKGROUND"
-            | "CLASS"
-            | "CREATURE"
-            | "EQUIPMENT"
-            | "FEAT"
-            | "RACE"
-            | "SPELL"
-            | "VEHICLE";
-          type: "AUTHORED_IMAGE";
-        },
-        {
-          authoredTarget?: {
-            subjectId: string;
-            subjectKind:
-              | "BACKGROUND"
-              | "CLASS"
-              | "CREATURE"
-              | "EQUIPMENT"
-              | "FEAT"
-              | "RACE"
-              | "SPELL"
-              | "VEHICLE";
-            type: "AUTHORED_IMAGE";
-          };
-          characterTarget?: { characterId: string; type: "CHARACTER_PORTRAIT" };
-          chargedBytes: number;
-          cleanupAt: number | null;
-          copiedFromAssetId?: string;
-          crop: { height: number; width: number; x: number; y: number } | null;
-          id: string;
-          operation:
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                expectedAvatarRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-              }
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                draftId: string;
-                expectedSlotRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-                sourceVariants?: {
-                  display: {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  };
-                  source: {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  };
-                };
-                target: {
-                  subjectId: string;
-                  subjectKind:
-                    | "BACKGROUND"
-                    | "CLASS"
-                    | "CREATURE"
-                    | "EQUIPMENT"
-                    | "FEAT"
-                    | "RACE"
-                    | "SPELL"
-                    | "VEHICLE";
-                  type: "AUTHORED_IMAGE";
-                };
-              }
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                expectedPortraitRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-                target: { characterId: string; type: "CHARACTER_PORTRAIT" };
-              }
-            | null;
-          ownerUserId: string;
-          profile: "ACCOUNT_AVATAR" | "CHARACTER_PORTRAIT" | "AUTHORED_IMAGE";
-          rawObjectKey: string | null;
-          retainedFromUserId?: string;
-          status:
-            "PENDING_UPLOAD" | "PROCESSING" | "READY" | "REJECTED" | "DELETED";
-          upload: {
-            declaredBytes: number;
-            declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
-            idempotencyKey: string;
-            originalFileName: string;
-          };
-          uploadExpiresAt: number;
-          variants: Array<{
-            byteSize: number;
-            height: number;
-            kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-            mimeType: "image/webp";
-            objectKey: string;
-            width: number;
-          }>;
-        } | null
-      >;
-    };
-    avatarActions: {
-      deleteObjectBytes: FunctionReference<
-        "action",
-        "internal",
-        { keys: Array<string> },
-        null
-      >;
-    };
-    characterPortraitAssets: {
-      beginSave: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          assetId: string;
-          crop: { height: number; width: number; x: number; y: number };
-          target: { characterId: string; type: "CHARACTER_PORTRAIT" };
-        },
-        | {
-            binding: { assetId: string | null; revision: number };
-            kind: "CURRENT";
-          }
-        | {
-            asset: {
-              authoredTarget?: {
-                subjectId: string;
-                subjectKind:
-                  | "BACKGROUND"
-                  | "CLASS"
-                  | "CREATURE"
-                  | "EQUIPMENT"
-                  | "FEAT"
-                  | "RACE"
-                  | "SPELL"
-                  | "VEHICLE";
-                type: "AUTHORED_IMAGE";
-              };
-              characterTarget?: {
-                characterId: string;
-                type: "CHARACTER_PORTRAIT";
-              };
-              chargedBytes: number;
-              cleanupAt: number | null;
-              copiedFromAssetId?: string;
-              crop: {
-                height: number;
-                width: number;
-                x: number;
-                y: number;
-              } | null;
-              id: string;
-              operation:
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    expectedAvatarRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                  }
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    draftId: string;
-                    expectedSlotRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                    sourceVariants?: {
-                      display: {
-                        byteSize: number;
-                        height: number;
-                        kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                        mimeType: "image/webp";
-                        objectKey: string;
-                        width: number;
-                      };
-                      source: {
-                        byteSize: number;
-                        height: number;
-                        kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                        mimeType: "image/webp";
-                        objectKey: string;
-                        width: number;
-                      };
-                    };
-                    target: {
-                      subjectId: string;
-                      subjectKind:
-                        | "BACKGROUND"
-                        | "CLASS"
-                        | "CREATURE"
-                        | "EQUIPMENT"
-                        | "FEAT"
-                        | "RACE"
-                        | "SPELL"
-                        | "VEHICLE";
-                      type: "AUTHORED_IMAGE";
-                    };
-                  }
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    expectedPortraitRevision: number;
-                    expiresAt: number;
-                    id: string;
-                    kind: "INITIAL" | "CROP";
-                    outputs: Array<{
-                      kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                      objectKey: string;
-                    }>;
-                    target: { characterId: string; type: "CHARACTER_PORTRAIT" };
-                  }
-                | null;
-              ownerUserId: string;
-              profile:
-                "ACCOUNT_AVATAR" | "CHARACTER_PORTRAIT" | "AUTHORED_IMAGE";
-              rawObjectKey: string | null;
-              retainedFromUserId?: string;
-              status:
-                | "PENDING_UPLOAD"
-                | "PROCESSING"
-                | "READY"
-                | "REJECTED"
-                | "DELETED";
-              upload: {
-                declaredBytes: number;
-                declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
-                idempotencyKey: string;
-                originalFileName: string;
-              };
-              uploadExpiresAt: number;
-              variants: Array<{
-                byteSize: number;
-                height: number;
-                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                mimeType: "image/webp";
-                objectKey: string;
-                width: number;
               }>;
-            };
-            kind: "PROCESS";
-            operation: {
-              crop: { height: number; width: number; x: number; y: number };
-              expectedPortraitRevision: number;
-              expiresAt: number;
-              id: string;
-              kind: "INITIAL" | "CROP";
-              outputs: Array<{
-                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                objectKey: string;
-              }>;
-              target: { characterId: string; type: "CHARACTER_PORTRAIT" };
-            };
-          }
-      >;
-      finishSave: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          assetId: string;
-          operationId: string;
-          variants: Array<{
-            byteSize: number;
-            height: number;
-            kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-            mimeType: "image/webp";
-            objectKey: string;
-            width: number;
-          }>;
-        },
-        { assetId: string | null; revision: number }
-      >;
-      read: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId?: string;
-          characterId: string;
-          type: "CHARACTER_PORTRAIT";
-        },
-        {
-          authoredTarget?: {
-            subjectId: string;
-            subjectKind:
-              | "BACKGROUND"
-              | "CLASS"
-              | "CREATURE"
-              | "EQUIPMENT"
-              | "FEAT"
-              | "RACE"
-              | "SPELL"
-              | "VEHICLE";
-            type: "AUTHORED_IMAGE";
-          };
-          characterTarget?: { characterId: string; type: "CHARACTER_PORTRAIT" };
-          chargedBytes: number;
-          cleanupAt: number | null;
-          copiedFromAssetId?: string;
-          crop: { height: number; width: number; x: number; y: number } | null;
-          id: string;
-          operation:
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                expectedAvatarRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-              }
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                draftId: string;
-                expectedSlotRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-                sourceVariants?: {
-                  display: {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  };
-                  source: {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  };
-                };
-                target: {
-                  subjectId: string;
-                  subjectKind:
-                    | "BACKGROUND"
-                    | "CLASS"
-                    | "CREATURE"
-                    | "EQUIPMENT"
-                    | "FEAT"
-                    | "RACE"
-                    | "SPELL"
-                    | "VEHICLE";
-                  type: "AUTHORED_IMAGE";
-                };
-              }
-            | {
-                crop: { height: number; width: number; x: number; y: number };
-                expectedPortraitRevision: number;
-                expiresAt: number;
-                id: string;
-                kind: "INITIAL" | "CROP";
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-                target: { characterId: string; type: "CHARACTER_PORTRAIT" };
-              }
-            | null;
-          ownerUserId: string;
-          profile: "ACCOUNT_AVATAR" | "CHARACTER_PORTRAIT" | "AUTHORED_IMAGE";
-          rawObjectKey: string | null;
-          retainedFromUserId?: string;
-          status:
-            "PENDING_UPLOAD" | "PROCESSING" | "READY" | "REJECTED" | "DELETED";
-          upload: {
-            declaredBytes: number;
-            declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
-            idempotencyKey: string;
-            originalFileName: string;
-          };
-          uploadExpiresAt: number;
-          variants: Array<{
-            byteSize: number;
-            height: number;
-            kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-            mimeType: "image/webp";
-            objectKey: string;
-            width: number;
-          }>;
-        } | null
-      >;
-    };
-    fileAssets: {
-      beginFinalize: FunctionReference<
-        "mutation",
-        "internal",
-        { assetId: string },
-        | {
-            kind: "CURRENT";
-            result: { assetId: string; preview: null; status: "READY" };
-          }
-        | {
-            asset: {
-              campaignId: string;
-              characterTarget?: {
-                characterId: string;
-                type: "CHARACTER_PORTRAIT";
-              };
-              chargedBytes: number;
-              cleanupAt: number | null;
-              crop: null;
               id: string;
               operation: {
+                binding:
+                  | {
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      expectedRevision: number;
+                      type: "ACCOUNT_AVATAR";
+                    }
+                  | {
+                      characterId: string;
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      expectedRevision: number;
+                      type: "CHARACTER_PORTRAIT";
+                    }
+                  | {
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      draftId: string;
+                      expectedRevision: number;
+                      subjectId: string;
+                      subjectKind:
+                        | "BACKGROUND"
+                        | "CLASS"
+                        | "CREATURE"
+                        | "EQUIPMENT"
+                        | "FEAT"
+                        | "RACE"
+                        | "SPELL"
+                        | "VEHICLE";
+                      type: "AUTHORED_IMAGE";
+                    }
+                  | null;
                 expiresAt: number;
                 id: string;
-                kind: "INITIAL";
                 outputs: Array<{
                   kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
                   objectKey: string;
                 }>;
               } | null;
               ownerUserId: string;
-              profile: "CAMPAIGN_FILE" | "CAMPAIGN_HANDOUT_MAP";
+              profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
               rawObjectKey: string | null;
-              retainedFromUserId?: string;
               status:
                 | "PENDING_UPLOAD"
                 | "PROCESSING"
                 | "READY"
                 | "REJECTED"
                 | "DELETED";
+              storageAssetId: string;
               upload: {
                 declaredBytes: number;
                 declaredMimeType:
@@ -71694,9 +71157,705 @@ export declare const internal: {
             };
             kind: "PROCESS";
             operation: {
+              binding:
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "ACCOUNT_AVATAR";
+                  }
+                | {
+                    characterId: string;
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "CHARACTER_PORTRAIT";
+                  }
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    draftId: string;
+                    expectedRevision: number;
+                    subjectId: string;
+                    subjectKind:
+                      | "BACKGROUND"
+                      | "CLASS"
+                      | "CREATURE"
+                      | "EQUIPMENT"
+                      | "FEAT"
+                      | "RACE"
+                      | "SPELL"
+                      | "VEHICLE";
+                    type: "AUTHORED_IMAGE";
+                  }
+                | null;
               expiresAt: number;
               id: string;
-              kind: "INITIAL";
+              outputs: Array<{
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                objectKey: string;
+              }>;
+            };
+          }
+      >;
+      read: FunctionReference<
+        "query",
+        "internal",
+        {
+          scope: "ACTIVE" | "DRAFT";
+          subjectId: string;
+          subjectKind:
+            | "BACKGROUND"
+            | "CLASS"
+            | "CREATURE"
+            | "EQUIPMENT"
+            | "FEAT"
+            | "RACE"
+            | "SPELL"
+            | "VEHICLE";
+          type: "AUTHORED_IMAGE";
+        },
+        {
+          asset: {
+            chargedBytes: number;
+            cleanupAt: number | null;
+            contentHash: string | null;
+            cropThumbnails: Array<{
+              crop: { height: number; width: number; x: number; y: number };
+              cropHash: string;
+              variant: {
+                byteSize: number;
+                height: number;
+                kind: "THUMBNAIL";
+                mimeType: "image/webp";
+                objectKey: string;
+                width: number;
+              };
+            }>;
+            id: string;
+            operation: {
+              binding:
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "ACCOUNT_AVATAR";
+                  }
+                | {
+                    characterId: string;
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "CHARACTER_PORTRAIT";
+                  }
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    draftId: string;
+                    expectedRevision: number;
+                    subjectId: string;
+                    subjectKind:
+                      | "BACKGROUND"
+                      | "CLASS"
+                      | "CREATURE"
+                      | "EQUIPMENT"
+                      | "FEAT"
+                      | "RACE"
+                      | "SPELL"
+                      | "VEHICLE";
+                    type: "AUTHORED_IMAGE";
+                  }
+                | null;
+              expiresAt: number;
+              id: string;
+              outputs: Array<{
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                objectKey: string;
+              }>;
+            } | null;
+            ownerUserId: string;
+            profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+            rawObjectKey: string | null;
+            status:
+              | "PENDING_UPLOAD"
+              | "PROCESSING"
+              | "READY"
+              | "REJECTED"
+              | "DELETED";
+            storageAssetId: string;
+            upload: {
+              declaredBytes: number;
+              declaredMimeType:
+                "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+              idempotencyKey: string;
+              originalFileName: string;
+            };
+            uploadExpiresAt: number;
+            variants: Array<
+              | {
+                  byteSize: number;
+                  height: number;
+                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                  mimeType: "image/webp";
+                  objectKey: string;
+                  width: number;
+                }
+              | {
+                  byteSize: number;
+                  height: null;
+                  kind: "SOURCE";
+                  mimeType: "text/plain";
+                  objectKey: string;
+                  width: null;
+                }
+            >;
+          };
+          crop: { height: number; width: number; x: number; y: number } | null;
+        } | null
+      >;
+    };
+    avatarActions: {
+      deleteObjectBytes: FunctionReference<
+        "action",
+        "internal",
+        { keys: Array<string> },
+        null
+      >;
+    };
+    characterPortraitAssets: {
+      beginSave: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          assetId: string;
+          crop: { height: number; width: number; x: number; y: number };
+          target: { characterId: string; type: "CHARACTER_PORTRAIT" };
+        },
+        | {
+            binding: { assetId: string | null; revision: number };
+            kind: "CURRENT";
+          }
+        | {
+            asset: {
+              chargedBytes: number;
+              cleanupAt: number | null;
+              contentHash: string | null;
+              cropThumbnails: Array<{
+                crop: { height: number; width: number; x: number; y: number };
+                cropHash: string;
+                variant: {
+                  byteSize: number;
+                  height: number;
+                  kind: "THUMBNAIL";
+                  mimeType: "image/webp";
+                  objectKey: string;
+                  width: number;
+                };
+              }>;
+              id: string;
+              operation: {
+                binding:
+                  | {
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      expectedRevision: number;
+                      type: "ACCOUNT_AVATAR";
+                    }
+                  | {
+                      characterId: string;
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      expectedRevision: number;
+                      type: "CHARACTER_PORTRAIT";
+                    }
+                  | {
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      draftId: string;
+                      expectedRevision: number;
+                      subjectId: string;
+                      subjectKind:
+                        | "BACKGROUND"
+                        | "CLASS"
+                        | "CREATURE"
+                        | "EQUIPMENT"
+                        | "FEAT"
+                        | "RACE"
+                        | "SPELL"
+                        | "VEHICLE";
+                      type: "AUTHORED_IMAGE";
+                    }
+                  | null;
+                expiresAt: number;
+                id: string;
+                outputs: Array<{
+                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                  objectKey: string;
+                }>;
+              } | null;
+              ownerUserId: string;
+              profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+              rawObjectKey: string | null;
+              status:
+                | "PENDING_UPLOAD"
+                | "PROCESSING"
+                | "READY"
+                | "REJECTED"
+                | "DELETED";
+              storageAssetId: string;
+              upload: {
+                declaredBytes: number;
+                declaredMimeType:
+                  "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+                idempotencyKey: string;
+                originalFileName: string;
+              };
+              uploadExpiresAt: number;
+              variants: Array<
+                | {
+                    byteSize: number;
+                    height: number;
+                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                    mimeType: "image/webp";
+                    objectKey: string;
+                    width: number;
+                  }
+                | {
+                    byteSize: number;
+                    height: null;
+                    kind: "SOURCE";
+                    mimeType: "text/plain";
+                    objectKey: string;
+                    width: null;
+                  }
+              >;
+            };
+            kind: "PROCESS";
+            operation: {
+              binding:
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "ACCOUNT_AVATAR";
+                  }
+                | {
+                    characterId: string;
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "CHARACTER_PORTRAIT";
+                  }
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    draftId: string;
+                    expectedRevision: number;
+                    subjectId: string;
+                    subjectKind:
+                      | "BACKGROUND"
+                      | "CLASS"
+                      | "CREATURE"
+                      | "EQUIPMENT"
+                      | "FEAT"
+                      | "RACE"
+                      | "SPELL"
+                      | "VEHICLE";
+                    type: "AUTHORED_IMAGE";
+                  }
+                | null;
+              expiresAt: number;
+              id: string;
+              outputs: Array<{
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                objectKey: string;
+              }>;
+            };
+          }
+      >;
+      read: FunctionReference<
+        "query",
+        "internal",
+        {
+          campaignId?: string;
+          characterId: string;
+          type: "CHARACTER_PORTRAIT";
+        },
+        {
+          asset: {
+            chargedBytes: number;
+            cleanupAt: number | null;
+            contentHash: string | null;
+            cropThumbnails: Array<{
+              crop: { height: number; width: number; x: number; y: number };
+              cropHash: string;
+              variant: {
+                byteSize: number;
+                height: number;
+                kind: "THUMBNAIL";
+                mimeType: "image/webp";
+                objectKey: string;
+                width: number;
+              };
+            }>;
+            id: string;
+            operation: {
+              binding:
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "ACCOUNT_AVATAR";
+                  }
+                | {
+                    characterId: string;
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "CHARACTER_PORTRAIT";
+                  }
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    draftId: string;
+                    expectedRevision: number;
+                    subjectId: string;
+                    subjectKind:
+                      | "BACKGROUND"
+                      | "CLASS"
+                      | "CREATURE"
+                      | "EQUIPMENT"
+                      | "FEAT"
+                      | "RACE"
+                      | "SPELL"
+                      | "VEHICLE";
+                    type: "AUTHORED_IMAGE";
+                  }
+                | null;
+              expiresAt: number;
+              id: string;
+              outputs: Array<{
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                objectKey: string;
+              }>;
+            } | null;
+            ownerUserId: string;
+            profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+            rawObjectKey: string | null;
+            status:
+              | "PENDING_UPLOAD"
+              | "PROCESSING"
+              | "READY"
+              | "REJECTED"
+              | "DELETED";
+            storageAssetId: string;
+            upload: {
+              declaredBytes: number;
+              declaredMimeType:
+                "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+              idempotencyKey: string;
+              originalFileName: string;
+            };
+            uploadExpiresAt: number;
+            variants: Array<
+              | {
+                  byteSize: number;
+                  height: number;
+                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                  mimeType: "image/webp";
+                  objectKey: string;
+                  width: number;
+                }
+              | {
+                  byteSize: number;
+                  height: null;
+                  kind: "SOURCE";
+                  mimeType: "text/plain";
+                  objectKey: string;
+                  width: null;
+                }
+            >;
+          };
+          crop: { height: number; width: number; x: number; y: number } | null;
+        } | null
+      >;
+    };
+    cropThumbnails: {
+      claim: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          assetId: string;
+          crop: { height: number; width: number; x: number; y: number };
+        },
+        | {
+            kind: "READY";
+            variant: {
+              byteSize: number;
+              height: number;
+              kind: "THUMBNAIL";
+              mimeType: "image/webp";
+              objectKey: string;
+              width: number;
+            };
+          }
+        | { kind: "GENERATE"; objectKey: string }
+      >;
+      record: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          assetId: string;
+          crop: { height: number; width: number; x: number; y: number };
+          variant: {
+            byteSize: number;
+            height: number;
+            kind: "THUMBNAIL";
+            mimeType: "image/webp";
+            objectKey: string;
+            width: number;
+          };
+        },
+        {
+          byteSize: number;
+          height: number;
+          kind: "THUMBNAIL";
+          mimeType: "image/webp";
+          objectKey: string;
+          width: number;
+        }
+      >;
+      retireUnrecorded: FunctionReference<
+        "mutation",
+        "internal",
+        { assetId: string; objectKey: string },
+        null
+      >;
+    };
+    fileAssets: {
+      beginFinalize: FunctionReference<
+        "mutation",
+        "internal",
+        { assetId: string },
+        | {
+            kind: "CURRENT";
+            result: { assetId: string; preview: null; status: "READY" };
+          }
+        | {
+            asset: {
+              chargedBytes: number;
+              cleanupAt: number | null;
+              contentHash: string | null;
+              cropThumbnails: Array<{
+                crop: { height: number; width: number; x: number; y: number };
+                cropHash: string;
+                variant: {
+                  byteSize: number;
+                  height: number;
+                  kind: "THUMBNAIL";
+                  mimeType: "image/webp";
+                  objectKey: string;
+                  width: number;
+                };
+              }>;
+              id: string;
+              operation: {
+                binding:
+                  | {
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      expectedRevision: number;
+                      type: "ACCOUNT_AVATAR";
+                    }
+                  | {
+                      characterId: string;
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      expectedRevision: number;
+                      type: "CHARACTER_PORTRAIT";
+                    }
+                  | {
+                      crop: {
+                        height: number;
+                        width: number;
+                        x: number;
+                        y: number;
+                      };
+                      draftId: string;
+                      expectedRevision: number;
+                      subjectId: string;
+                      subjectKind:
+                        | "BACKGROUND"
+                        | "CLASS"
+                        | "CREATURE"
+                        | "EQUIPMENT"
+                        | "FEAT"
+                        | "RACE"
+                        | "SPELL"
+                        | "VEHICLE";
+                      type: "AUTHORED_IMAGE";
+                    }
+                  | null;
+                expiresAt: number;
+                id: string;
+                outputs: Array<{
+                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                  objectKey: string;
+                }>;
+              } | null;
+              ownerUserId: string;
+              profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+              rawObjectKey: string | null;
+              status:
+                | "PENDING_UPLOAD"
+                | "PROCESSING"
+                | "READY"
+                | "REJECTED"
+                | "DELETED";
+              storageAssetId: string;
+              upload: {
+                declaredBytes: number;
+                declaredMimeType:
+                  "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+                idempotencyKey: string;
+                originalFileName: string;
+              };
+              uploadExpiresAt: number;
+              variants: Array<
+                | {
+                    byteSize: number;
+                    height: number;
+                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                    mimeType: "image/webp";
+                    objectKey: string;
+                    width: number;
+                  }
+                | {
+                    byteSize: number;
+                    height: null;
+                    kind: "SOURCE";
+                    mimeType: "text/plain";
+                    objectKey: string;
+                    width: null;
+                  }
+              >;
+            };
+            kind: "PROCESS";
+            operation: {
+              binding:
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "ACCOUNT_AVATAR";
+                  }
+                | {
+                    characterId: string;
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "CHARACTER_PORTRAIT";
+                  }
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    draftId: string;
+                    expectedRevision: number;
+                    subjectId: string;
+                    subjectKind:
+                      | "BACKGROUND"
+                      | "CLASS"
+                      | "CREATURE"
+                      | "EQUIPMENT"
+                      | "FEAT"
+                      | "RACE"
+                      | "SPELL"
+                      | "VEHICLE";
+                    type: "AUTHORED_IMAGE";
+                  }
+                | null;
+              expiresAt: number;
+              id: string;
               outputs: Array<{
                 kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
                 objectKey: string;
@@ -71709,6 +71868,7 @@ export declare const internal: {
         "internal",
         {
           assetId: string;
+          contentHash: string;
           operationId: string;
           variants: Array<
             | {
@@ -71759,6 +71919,113 @@ export declare const internal: {
         null
       >;
     };
+    imageSaves: {
+      finish: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          assetId: string;
+          contentHash: string;
+          operationId: string;
+          variants: Array<{
+            byteSize: number;
+            height: number;
+            kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+            mimeType: "image/webp";
+            objectKey: string;
+            width: number;
+          }>;
+        },
+        { assetId: string | null; revision: number }
+      >;
+    };
+    library: {
+      readOwnedVariant: FunctionReference<
+        "query",
+        "internal",
+        { assetId: string; variantKind: "SOURCE" | "DISPLAY" | "THUMBNAIL" },
+        {
+          byteSize: number;
+          height: number;
+          kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+          mimeType: "image/webp";
+          objectKey: string;
+          width: number;
+        } | null
+      >;
+    };
+    migrations: {
+      assets: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      avatarCrops: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      portraitCrops: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      slotCrops: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
     vttMapAssets: {
       beginFinalize: FunctionReference<
         "mutation",
@@ -71767,29 +72034,27 @@ export declare const internal: {
         | { kind: "CURRENT"; result: { assetId: string; status: "READY" } }
         | {
             asset: {
-              campaignId: string;
               chargedBytes: number;
               cleanupAt: number | null;
-              crop: null;
+              contentHash: string | null;
               hasSceneReferences?: boolean;
               height: number | null;
               id: string;
               operation: {
                 expiresAt: number;
                 id: string;
-                kind: "INITIAL";
                 outputs: Array<{ objectKey: string }>;
               } | null;
               ownerUserId: string;
-              profile: "VTT_MAP";
+              profileClass: "VTT_MAP";
               rawObjectKey: string | null;
-              retainedFromUserId?: string;
               status:
                 | "PENDING_UPLOAD"
                 | "PROCESSING"
                 | "READY"
                 | "REJECTED"
                 | "DELETED";
+              storageAssetId: string;
               upload: {
                 declaredBytes: number;
                 declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
@@ -71831,7 +72096,6 @@ export declare const internal: {
             operation: {
               expiresAt: number;
               id: string;
-              kind: "INITIAL";
               outputs: Array<{ objectKey: string }>;
             };
           }
@@ -71841,6 +72105,7 @@ export declare const internal: {
         "internal",
         {
           assetId: string;
+          contentHash: string;
           height: number;
           operationId: string;
           variants: Array<
@@ -71880,25 +72145,23 @@ export declare const internal: {
         "internal",
         { assetId: string },
         {
-          campaignId: string;
           chargedBytes: number;
           cleanupAt: number | null;
-          crop: null;
+          contentHash: string | null;
           hasSceneReferences?: boolean;
           height: number | null;
           id: string;
           operation: {
             expiresAt: number;
             id: string;
-            kind: "INITIAL";
             outputs: Array<{ objectKey: string }>;
           } | null;
           ownerUserId: string;
-          profile: "VTT_MAP";
+          profileClass: "VTT_MAP";
           rawObjectKey: string | null;
-          retainedFromUserId?: string;
           status:
             "PENDING_UPLOAD" | "PROCESSING" | "READY" | "REJECTED" | "DELETED";
+          storageAssetId: string;
           upload: {
             declaredBytes: number;
             declaredMimeType: "image/jpeg" | "image/png" | "image/webp";

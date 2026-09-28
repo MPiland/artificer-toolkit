@@ -52,8 +52,9 @@ export async function createSceneDefinitionFixture() {
       vttMapStoredAssetSchema.parse({
         id: mapId,
         ownerUserId: base.owner.userId,
-        profile: 'VTT_MAP',
-        campaignId: campaign.id,
+        storageAssetId: mapId,
+        profileClass: 'VTT_MAP',
+        contentHash: null,
         upload: {
           originalFileName: 'map.png',
           declaredMimeType: 'image/png',
@@ -66,7 +67,6 @@ export async function createSceneDefinitionFixture() {
         chargedBytes: 3,
         width: 1000,
         height: 1000,
-        crop: null,
         operation: null,
         cleanupAt: Date.now() + 86_400_000,
         variants: [

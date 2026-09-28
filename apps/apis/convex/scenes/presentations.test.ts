@@ -109,8 +109,9 @@ async function seedReadyMapScene(base: Awaited<ReturnType<typeof setup>>) {
       vttMapStoredAssetSchema.parse({
         id: mapId,
         ownerUserId: base.owner.userId,
-        profile: 'VTT_MAP',
-        campaignId: base.campaign.id,
+        storageAssetId: mapId,
+        profileClass: 'VTT_MAP',
+        contentHash: null,
         upload: {
           originalFileName: 'map.png',
           declaredMimeType: 'image/png',
@@ -151,7 +152,6 @@ async function seedReadyMapScene(base: Awaited<ReturnType<typeof setup>>) {
             mimeType: 'image/webp'
           }
         ],
-        crop: null,
         operation: null,
         cleanupAt: null
       })

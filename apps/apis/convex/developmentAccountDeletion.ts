@@ -1143,8 +1143,23 @@ async function readDeferred(
       )
     )
   ])
+  // Retention gives Campaign owners copies that share a known asset's stored objects.
+  const retainedCopies = await Promise.all(
+    union(
+      ownedAssets.map((row) => row.id),
+      known.mediaAssetIds
+    ).map((id) =>
+      bounded(
+        ctx.db
+          .query('mediaAssets')
+          .withIndex('by_storageAssetId', (q) => q.eq('storageAssetId', id)),
+        8,
+        'mediaAssets by stored objects'
+      )
+    )
+  )
   const assetIds = union(
-    ownedAssets.map((row) => row.id),
+    [...ownedAssets, ...retainedCopies.flat()].map((row) => row.id),
     known.mediaAssetIds
   )
   const profileIds = union(

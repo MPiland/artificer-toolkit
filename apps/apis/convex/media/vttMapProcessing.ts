@@ -16,7 +16,12 @@ export async function processVttMapClaim(
   ctx: ActionCtx,
   asset: VttMapStoredAsset,
   operation: NonNullable<VttMapStoredAsset['operation']>
-): Promise<{ width: number; height: number; variants: VttMapStoredVariant[] }> {
+): Promise<{
+  width: number
+  height: number
+  variants: VttMapStoredVariant[]
+  contentHash: string
+}> {
   if (!asset.rawObjectKey) throw new MediaValidationError('Map upload is unavailable.')
   const storage = createMediaStorage()
   const bytes = await readMediaBytes(
@@ -72,5 +77,10 @@ export async function processVttMapClaim(
     })
     variants.push(stored)
   }
-  return { width: processed.width, height: processed.height, variants }
+  return {
+    width: processed.width,
+    height: processed.height,
+    variants,
+    contentHash: processed.contentHash
+  }
 }

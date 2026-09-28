@@ -1,23 +1,22 @@
 import {
-  campaignStoredFileAssetSchema,
-  type CampaignStoredFileAsset
-} from '@artificer-toolkit/schema/projections/campaignFilePersistence'
+  mediaStoredAssetSchema,
+  type MediaStoredAsset
+} from '@artificer-toolkit/schema/api/mediaAssets'
 import type { fixture } from './characters'
 
-/** A READY Campaign file or handout map owned by `userId`, charged to their media usage. */
+/** A READY text file or handout map image owned by `userId`, charged to their media usage. */
 export async function readyCampaignFile(
   t: Awaited<ReturnType<typeof fixture>>['t'],
   userId: string,
-  campaignId: string,
-  profile: CampaignStoredFileAsset['profile'] = 'CAMPAIGN_FILE'
+  profileClass: MediaStoredAsset['profileClass'] = 'TEXT_FILE'
 ) {
   const id = crypto.randomUUID()
-  const text = profile === 'CAMPAIGN_FILE'
-  const asset = campaignStoredFileAssetSchema.parse({
+  const text = profileClass === 'TEXT_FILE'
+  const asset = mediaStoredAssetSchema.parse({
     id,
     ownerUserId: userId,
-    campaignId,
-    profile,
+    storageAssetId: id,
+    profileClass,
     upload: {
       originalFileName: text ? 'notes.txt' : 'handout.png',
       declaredMimeType: text ? 'text/plain' : 'image/png',
@@ -28,6 +27,7 @@ export async function readyCampaignFile(
     rawObjectKey: null,
     uploadExpiresAt: 0,
     chargedBytes: 12,
+    contentHash: null,
     variants: [
       {
         kind: 'SOURCE',
@@ -38,7 +38,7 @@ export async function readyCampaignFile(
         height: text ? null : 20
       }
     ],
-    crop: null,
+    cropThumbnails: [],
     operation: null,
     cleanupAt: Date.now() + 86_400_000
   })

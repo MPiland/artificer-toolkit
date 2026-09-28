@@ -388,13 +388,13 @@ describe('native Campaign deletion', () => {
           .query('mediaAssets')
           .withIndex('by_publicId', (q) => q.eq('id', base.input.settings.map.assetId))
           .unique()
-        if (!map || map.profile !== 'VTT_MAP') throw new Error('Missing map.')
+        if (!map || map.profileClass !== 'VTT_MAP') throw new Error('Missing map.')
         const { _id, _creationTime, ...stored } = map
         await ctx.db.insert('mediaAssets', {
           ...stored,
           id: unrelatedMapId,
           ownerUserId: base.other.userId,
-          campaignId: unrelated.id,
+          storageAssetId: unrelatedMapId,
           hasSceneReferences: false,
           variants: stored.variants.map((variant) => ({
             ...variant,
@@ -466,7 +466,7 @@ describe('native Campaign deletion', () => {
       }
       const maps = await base.t.run((ctx) => ctx.db.query('mediaAssets').collect())
       const detached = maps.find((row) => row.id === base.input.settings.map.assetId)
-      if (!detached || detached.profile !== 'VTT_MAP') throw new Error('Missing retained map.')
+      if (!detached || detached.profileClass !== 'VTT_MAP') throw new Error('Missing retained map.')
       expect(detached).toMatchObject({
         status: 'READY',
         hasSceneReferences: false,

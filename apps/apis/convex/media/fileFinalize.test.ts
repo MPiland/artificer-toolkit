@@ -281,7 +281,7 @@ it('signs campaign delivery for current members, serves bytes, and denies remove
 it('normalizes real UTF-8 bytes, settles actual quota once, attaches and retains only verified content', async () => {
   const base = await setup()
   const claim = await upload(base, Buffer.from('\uFEFFRésumé 🐉\r\n'))
-  const variants = await base.other.caller.action((ctx) =>
+  const { variants, contentHash } = await base.other.caller.action((ctx) =>
     processCampaignFileClaim(ctx, claim.asset, claim.operation)
   )
   expect(variants).toHaveLength(1)
@@ -296,14 +296,15 @@ it('normalizes real UTF-8 bytes, settles actual quota once, attaches and retains
   const result = await base.other.caller.mutation(finish, {
     assetId: claim.asset.id,
     operationId: claim.operation.id,
-    variants
+    variants,
+    contentHash
   })
   expect(result).toEqual({ assetId: claim.asset.id, status: 'READY', preview: null })
   const ready = await base.snapshot()
   expect(ready.assets[0]).toMatchObject({
     status: 'READY',
     chargedBytes: source.byteSize,
-    crop: null,
+    contentHash,
     operation: null
   })
   expect(ready.profiles.find((p) => p.userId === base.other.userId)?.mediaBytes).toBe(
@@ -341,9 +342,18 @@ it('normalizes real UTF-8 bytes, settles actual quota once, attaches and retains
   await base.t.run((ctx) =>
     ctx.db.patch(base.membershipId, { status: 'LEFT', leftAt: new Date().toISOString() })
   )
-  await expect(base.other.caller.mutation(begin, { assetId: claim.asset.id })).rejects.toThrow(
-    'Campaign not found'
-  )
+  // The finished file stays its owner's; only attaching it needs Campaign membership.
+  expect(await base.other.caller.mutation(begin, { assetId: claim.asset.id })).toEqual({
+    kind: 'CURRENT',
+    result
+  })
+  await expect(
+    base.other.caller.mutation(attach, {
+      campaignId: base.campaign.id,
+      assetId: claim.asset.id,
+      displayName: 'After leaving'
+    })
+  ).rejects.toThrow('Campaign not found')
 }, 20_000)
 
 it('counts a shared asset once and starts grace only when its last reference detaches', async () => {
@@ -380,6 +390,8 @@ it('counts a shared asset once and starts grace only when its last reference det
     campaignId: base.campaign.id,
     attachmentId: attachments[1]!.id
   })
+  // Detaching queues a re-evaluation, which starts grace now that nothing references the asset.
+  await base.t.mutation(internal.media.assets.cleanup, { assetId: intent.assetId })
   const detached = await usage()
   expect(detached.asset.status).toBe('READY')
   expect(detached.asset.cleanupAt).toBe(Date.now() + 24 * 60 * 60_000)
@@ -396,7 +408,7 @@ it('creates three metadata-free image variants without introducing a crop and co
     .png()
     .toBuffer()
   const claim = await upload(base, body, true)
-  const variants = await base.other.caller.action((ctx) =>
+  const { variants, contentHash } = await base.other.caller.action((ctx) =>
     processCampaignFileClaim(ctx, claim.asset, claim.operation)
   )
   expect(variants.map((v) => v.kind).sort()).toEqual(['DISPLAY', 'SOURCE', 'THUMBNAIL'])
@@ -412,7 +424,8 @@ it('creates three metadata-free image variants without introducing a crop and co
       base.other.caller.mutation(finish, {
         assetId: claim.asset.id,
         operationId: claim.operation.id,
-        variants: invalid
+        variants: invalid,
+        contentHash
       })
     ).rejects.toThrow('output mismatch')
   }
@@ -420,10 +433,11 @@ it('creates three metadata-free image variants without introducing a crop and co
   await base.other.caller.mutation(finish, {
     assetId: claim.asset.id,
     operationId: claim.operation.id,
-    variants
+    variants,
+    contentHash
   })
   const ready = (await base.snapshot()).assets[0]!
-  expect(ready.crop).toBeNull()
+  expect(ready).toMatchObject({ profileClass: 'HANDOUT_MAP', cropThumbnails: [] })
   expect(ready.chargedBytes).toBe(variants.reduce((sum, v) => sum + v.byteSize, 0))
   await base.t.finishAllScheduledFunctions(vi.runAllTimers)
   expect(server.objects.size).toBe(0)
@@ -433,10 +447,15 @@ it('creates three metadata-free image variants without introducing a crop and co
 it('rejects stale, forged and incomplete settlement without writes and rolls back the complete transaction', async () => {
   const base = await setup()
   const claim = await upload(base, Buffer.from('valid text'))
-  const variants = await base.other.caller.action((ctx) =>
+  const { variants, contentHash } = await base.other.caller.action((ctx) =>
     processCampaignFileClaim(ctx, claim.asset, claim.operation)
   )
-  const input = { assetId: claim.asset.id, operationId: claim.operation.id, variants }
+  const input = {
+    assetId: claim.asset.id,
+    operationId: claim.operation.id,
+    variants,
+    contentHash
+  }
   const before = await base.snapshot()
   await expect(base.owner.caller.mutation(begin, { assetId: claim.asset.id })).rejects.toThrow(
     'unavailable'
@@ -472,9 +491,15 @@ it('rejects stale, forged and incomplete settlement without writes and rolls bac
   await base.t.run((ctx) =>
     ctx.db.patch(base.membershipId, { status: 'LEFT', leftAt: new Date().toISOString() })
   )
-  const revoked = await base.snapshot()
-  await expect(base.other.caller.mutation(finish, input)).rejects.toThrow('Campaign not found')
-  expect(await base.snapshot()).toEqual(revoked)
+  // Processing is the uploader's own; leaving the Campaign only stops attaching there.
+  expect(await base.other.caller.mutation(finish, input)).toMatchObject({ status: 'READY' })
+  await expect(
+    base.other.caller.mutation(attach, {
+      campaignId: base.campaign.id,
+      assetId: claim.asset.id,
+      displayName: 'After leaving'
+    })
+  ).rejects.toThrow('Campaign not found')
 })
 
 it('retains explicit quota rejection until the write fence, then deletes bytes and releases only its reservation', async () => {
@@ -496,11 +521,13 @@ it('retains explicit quota rejection until the write fence, then deletes bytes a
     height: null,
     byteSize: 6 * 1024 * 1024 + 1
   }))
+  const contentHash = 'a'.repeat(64)
   expect(
     await base.other.caller.mutation(finish, {
       assetId: claim.asset.id,
       operationId: claim.operation.id,
-      variants
+      variants,
+      contentHash
     })
   ).toEqual({ assetId: claim.asset.id, status: 'REJECTED', preview: null })
   expect((await base.snapshot()).assets[0]).toMatchObject({
@@ -512,7 +539,8 @@ it('retains explicit quota rejection until the write fence, then deletes bytes a
     base.other.caller.mutation(finish, {
       assetId: claim.asset.id,
       operationId: claim.operation.id,
-      variants
+      variants,
+      contentHash
     })
   ).rejects.toThrow('no longer current')
   await base.t.finishAllScheduledFunctions(vi.runAllTimers)
@@ -551,13 +579,14 @@ it('recovers from a real partial provider PUT failure without leaking its earlie
   server.faults.rejectPutKey = null
   const retry = await base.other.caller.mutation(begin, { assetId: claim.asset.id })
   if (retry.kind !== 'PROCESS') throw new Error('Expected retry claim.')
-  const variants = await base.other.caller.action((ctx) =>
+  const { variants, contentHash } = await base.other.caller.action((ctx) =>
     processCampaignFileClaim(ctx, retry.asset, retry.operation)
   )
   await base.other.caller.mutation(finish, {
     assetId: claim.asset.id,
     operationId: retry.operation.id,
-    variants
+    variants,
+    contentHash
   })
   await base.other.caller.mutation(attach, {
     campaignId: base.campaign.id,
@@ -589,14 +618,15 @@ it('preserves retryable uploads when storage reads fail operationally', async ()
   server.faults.getStatus = null
   const retry = await base.other.caller.mutation(begin, { assetId: claim.asset.id })
   if (retry.kind !== 'PROCESS') throw new Error('Expected retry claim.')
-  const variants = await base.other.caller.action((ctx) =>
+  const { variants, contentHash } = await base.other.caller.action((ctx) =>
     processCampaignFileClaim(ctx, retry.asset, retry.operation)
   )
   expect(
     await base.other.caller.mutation(finish, {
       assetId: claim.asset.id,
       operationId: retry.operation.id,
-      variants
+      variants,
+      contentHash
     })
   ).toMatchObject({ status: 'READY' })
 }, 20_000)
@@ -634,7 +664,7 @@ it.each(['failed', 'killed'])(
     const base = await setup()
     const claim = await upload(base, Buffer.from('retry these bytes'))
     // A write can finish even when its action never reports success.
-    const oldVariants = await base.other.caller.action((ctx) =>
+    const { variants: oldVariants, contentHash: oldHash } = await base.other.caller.action((ctx) =>
       processCampaignFileClaim(ctx, claim.asset, claim.operation)
     )
     const args = { assetId: claim.asset.id, operationId: claim.operation.id }
@@ -662,16 +692,17 @@ it.each(['failed', 'killed'])(
     await base.t.mutation(internal.media.assets.failSave, args)
     await base.t.mutation(internal.media.assets.expireOperation, args)
     await expect(
-      base.other.caller.mutation(finish, { ...args, variants: oldVariants })
+      base.other.caller.mutation(finish, { ...args, variants: oldVariants, contentHash: oldHash })
     ).rejects.toThrow('no longer current')
     expect(await base.snapshot()).toEqual(before)
-    const variants = await base.other.caller.action((ctx) =>
+    const { variants, contentHash } = await base.other.caller.action((ctx) =>
       processCampaignFileClaim(ctx, retry.asset, retry.operation)
     )
     await base.other.caller.mutation(finish, {
       assetId: retry.asset.id,
       operationId: retry.operation.id,
-      variants
+      variants,
+      contentHash
     })
     await base.other.caller.mutation(attach, {
       campaignId: base.campaign.id,

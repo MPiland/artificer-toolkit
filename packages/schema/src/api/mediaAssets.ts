@@ -1,5 +1,7 @@
 import { z, lazySchema } from '../zod.js'
+import { authoredDraftListInputSchema } from './authoredDrafts.js'
 import {
+  campaignFileMimeTypeSchema,
   imageMimeTypeSchema,
   normalizedImageCropSchema,
   mediaAssetStatusSchema,
@@ -7,6 +9,16 @@ import {
   mediaTargetSchema,
   imageLookupTargetSchema
 } from './media.js'
+
+/**
+ * Assets are interchangeable within a class (ADR 0012, 2026-09-27 amendment): content art serves
+ * avatars, portraits, authored artwork and Campaign file images; maps and text files stay apart.
+ */
+export const mediaProfileClassSchema = lazySchema(() =>
+  z.enum(['CONTENT_ART', 'TEXT_FILE', 'HANDOUT_MAP', 'VTT_MAP'])
+)
+/** SHA-256 hex digest: normalized bytes for de-duplication, or a canonical crop. */
+export const mediaSha256Schema = lazySchema(() => z.string().check(z.regex(/^[0-9a-f]{64}$/)))
 
 export const avatarUploadInputSchema = lazySchema(() =>
   z.strictObject({
@@ -50,14 +62,67 @@ export const mediaStoredVariantSchema = lazySchema(() =>
     mimeType: z.literal('image/webp')
   })
 )
+/** Normalized WebP image variants, or the single verified UTF-8 SOURCE of a text file. */
+export const mediaStoredFileVariantSchema = lazySchema(() =>
+  z.discriminatedUnion('mimeType', [
+    mediaStoredVariantSchema,
+    z.extend(mediaStoredVariantSchema, {
+      kind: z.literal('SOURCE'),
+      mimeType: z.literal('text/plain'),
+      width: z.null(),
+      height: z.null()
+    })
+  ])
+)
+/** A thumbnail derived from SOURCE for one crop; any reference using that crop shares it. */
+export const mediaCropThumbnailSchema = lazySchema(() =>
+  z.strictObject({
+    cropHash: mediaSha256Schema,
+    crop: normalizedImageCropSchema,
+    variant: z.extend(mediaStoredVariantSchema, { kind: z.literal('THUMBNAIL') })
+  })
+)
+
+export const authoredImageTargetSchema = lazySchema(() => mediaTargetSchema._zod.def.options[2])
+export const authoredImageLookupSchema = lazySchema(
+  () => imageLookupTargetSchema._zod.def.options[2]
+)
+export const characterPortraitTargetSchema = lazySchema(() => mediaTargetSchema._zod.def.options[1])
+export const characterPortraitLookupSchema = lazySchema(
+  () => imageLookupTargetSchema._zod.def.options[1]
+)
+/** The cropped image slots a user fills with their own content art. */
+export const mediaImageSlotTargetSchema = lazySchema(() =>
+  z.discriminatedUnion('type', [
+    mediaTargetSchema._zod.def.options[0],
+    characterPortraitTargetSchema,
+    authoredImageTargetSchema
+  ])
+)
+/** Server-only: the slot an upload binds to once processing settles, fenced by its revision. */
+export const mediaImageBindingSchema = lazySchema(() =>
+  z.discriminatedUnion('type', [
+    z.strictObject({
+      type: z.literal('ACCOUNT_AVATAR'),
+      crop: normalizedImageCropSchema,
+      expectedRevision: z.number().check(z.int()).check(z.nonnegative())
+    }),
+    z.extend(characterPortraitTargetSchema, {
+      crop: normalizedImageCropSchema,
+      expectedRevision: z.number().check(z.int()).check(z.nonnegative())
+    }),
+    z.extend(authoredImageTargetSchema, {
+      draftId: z.string().check(z.minLength(1)),
+      crop: normalizedImageCropSchema,
+      expectedRevision: z.number().check(z.int()).check(z.nonnegative())
+    })
+  ])
+)
 
 // Server-only processing state; never an action argument or public media projection.
 export const mediaProcessingOperationSchema = lazySchema(() =>
   z.strictObject({
     id: z.string().check(z.uuid()),
-    kind: z.enum(['INITIAL', 'CROP']),
-    crop: normalizedImageCropSchema,
-    expectedAvatarRevision: z.number().check(z.int()).check(z.nonnegative()),
     expiresAt: z.number(),
     outputs: z
       .array(
@@ -67,16 +132,9 @@ export const mediaProcessingOperationSchema = lazySchema(() =>
         })
       )
       .check(z.minLength(1))
-      .check(z.maxLength(3))
+      .check(z.maxLength(3)),
+    binding: z.nullable(mediaImageBindingSchema)
   })
-)
-export const authoredImageTargetSchema = lazySchema(() => mediaTargetSchema._zod.def.options[2])
-export const authoredImageLookupSchema = lazySchema(
-  () => imageLookupTargetSchema._zod.def.options[2]
-)
-export const characterPortraitTargetSchema = lazySchema(() => mediaTargetSchema._zod.def.options[1])
-export const characterPortraitLookupSchema = lazySchema(
-  () => imageLookupTargetSchema._zod.def.options[1]
 )
 export const authoredImageUploadSchema = lazySchema(() =>
   z.extend(avatarUploadInputSchema, {
@@ -99,69 +157,77 @@ export const characterPortraitSaveSchema = lazySchema(() =>
   })
 )
 export const authoredImageSlotSchema = lazySchema(() =>
-  z.strictObject({
-    subjectKind: authoredImageTargetSchema.shape.subjectKind,
-    subjectId: authoredImageTargetSchema.shape.subjectId,
-    importJobId: z.optional(z.string().check(z.uuid())),
-    scope: z.enum(['ACTIVE', 'DRAFT']),
-    assetId: z.nullable(z.string().check(z.uuid())),
-    revision: z.number().check(z.int()).check(z.nonnegative())
-  })
-)
-export const authoredImageOperationSchema = lazySchema(() =>
-  z.extend(z.omit(mediaProcessingOperationSchema, { expectedAvatarRevision: true }), {
-    target: authoredImageTargetSchema,
-    draftId: z.string().check(z.minLength(1)),
-    expectedSlotRevision: z.number().check(z.int()).check(z.nonnegative()),
-    sourceVariants: z.optional(
-      z.strictObject({
-        source: mediaStoredVariantSchema,
-        display: mediaStoredVariantSchema
+  z
+    .strictObject({
+      subjectKind: authoredImageTargetSchema.shape.subjectKind,
+      subjectId: authoredImageTargetSchema.shape.subjectId,
+      importJobId: z.optional(z.string().check(z.uuid())),
+      scope: z.enum(['ACTIVE', 'DRAFT']),
+      assetId: z.nullable(z.string().check(z.uuid())),
+      crop: z.nullable(normalizedImageCropSchema),
+      revision: z.number().check(z.int()).check(z.nonnegative())
+    })
+    .check(
+      z.superRefine((slot, context) => {
+        if ((slot.assetId === null) !== (slot.crop === null))
+          context.addIssue({
+            code: 'custom',
+            path: ['crop'],
+            message: 'Artwork framing belongs to the attached image.'
+          })
       })
     )
-  })
 )
-export const characterPortraitOperationSchema = lazySchema(() =>
-  z.extend(z.omit(mediaProcessingOperationSchema, { expectedAvatarRevision: true }), {
-    target: characterPortraitTargetSchema,
-    expectedPortraitRevision: z.number().check(z.int()).check(z.nonnegative())
-  })
-)
-export const mediaStoredAssetSchema = lazySchema(() =>
+/** Unrefined stored fields, for map rows to extend; image and file rows use the refined schema. */
+export const mediaStoredAssetFieldsSchema = lazySchema(() =>
   z.strictObject({
     id: z.string().check(z.uuid()),
     ownerUserId: z.string().check(z.uuid()),
-    retainedFromUserId: z.optional(z.string().check(z.uuid())),
-    profile: z.enum(['ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE']),
-    authoredTarget: z.optional(authoredImageTargetSchema),
-    characterTarget: z.optional(characterPortraitTargetSchema),
-    copiedFromAssetId: z.optional(z.string().check(z.uuid())),
-    upload: avatarUploadInputSchema,
+    /** The asset whose stored objects these variants are; a retained Campaign copy shares its source's. */
+    storageAssetId: z.string().check(z.uuid()),
+    profileClass: z.enum(['CONTENT_ART', 'TEXT_FILE', 'HANDOUT_MAP']),
+    upload: z.extend(avatarUploadInputSchema, { declaredMimeType: campaignFileMimeTypeSchema }),
     status: mediaAssetStatusSchema,
     rawObjectKey: z.nullable(z.string()),
     uploadExpiresAt: z.number(),
     chargedBytes: z.number().check(z.int()).check(z.nonnegative()),
-    variants: z.array(mediaStoredVariantSchema).check(z.maxLength(3)),
-    crop: z.nullable(normalizedImageCropSchema),
-    operation: z.nullable(
-      z.union([
-        mediaProcessingOperationSchema,
-        authoredImageOperationSchema,
-        characterPortraitOperationSchema
-      ])
-    ),
+    contentHash: z.nullable(mediaSha256Schema),
+    variants: z.array(mediaStoredFileVariantSchema).check(z.maxLength(3)),
+    cropThumbnails: z.array(mediaCropThumbnailSchema).check(z.maxLength(32)),
+    operation: z.nullable(mediaProcessingOperationSchema),
     cleanupAt: z.nullable(z.number())
   })
 )
-export const authoredImageProcessClaimSchema = lazySchema(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({ kind: z.literal('CURRENT'), binding: avatarBindingSchema }),
-    z.strictObject({
-      kind: z.literal('PROCESS'),
-      asset: mediaStoredAssetSchema,
-      operation: authoredImageOperationSchema
+export const mediaStoredAssetSchema = lazySchema(() =>
+  mediaStoredAssetFieldsSchema.check(
+    z.superRefine((asset, context) => {
+      const text = asset.profileClass === 'TEXT_FILE'
+      if ((asset.upload.declaredMimeType === 'text/plain') !== text)
+        context.addIssue({
+          code: 'custom',
+          path: ['upload'],
+          message: 'Only text files accept text uploads.'
+        })
+      if (asset.variants.some((variant) => (variant.mimeType === 'text/plain') !== text))
+        context.addIssue({
+          code: 'custom',
+          path: ['variants'],
+          message: 'File variants must match the upload type.'
+        })
+      if (asset.profileClass !== 'CONTENT_ART' && asset.cropThumbnails.length > 0)
+        context.addIssue({
+          code: 'custom',
+          path: ['cropThumbnails'],
+          message: 'Only content art is cropped.'
+        })
+      if (asset.profileClass !== 'CONTENT_ART' && asset.operation?.binding)
+        context.addIssue({
+          code: 'custom',
+          path: ['operation'],
+          message: 'Only content art binds an image slot.'
+        })
     })
-  ])
+  )
 )
 export const mediaProcessClaimSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -173,27 +239,86 @@ export const mediaProcessClaimSchema = lazySchema(() =>
     })
   ])
 )
-export const characterPortraitProcessClaimSchema = lazySchema(() =>
+export const mediaImageSaveSettlementSchema = lazySchema(() =>
+  z.strictObject({
+    assetId: z.string().check(z.uuid()),
+    operationId: z.string().check(z.uuid()),
+    variants: z.array(mediaStoredVariantSchema).check(z.minLength(3)).check(z.maxLength(3)),
+    contentHash: mediaSha256Schema
+  })
+)
+/** A slot's asset with that slot's own crop; reads never borrow another reference's framing. */
+export const mediaReferencedImageSchema = lazySchema(() =>
+  z.strictObject({
+    asset: mediaStoredAssetSchema,
+    crop: z.nullable(normalizedImageCropSchema)
+  })
+)
+export const mediaCropThumbnailClaimSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('CURRENT'),
-      binding: avatarBindingSchema
-    }),
-    z.strictObject({
-      kind: z.literal('PROCESS'),
-      asset: mediaStoredAssetSchema,
-      operation: characterPortraitOperationSchema
-    })
+    z.strictObject({ kind: z.literal('READY'), variant: mediaCropThumbnailSchema.shape.variant }),
+    z.strictObject({ kind: z.literal('GENERATE'), objectKey: z.string().check(z.minLength(1)) })
   ])
 )
+
+export const mediaLibraryListInputSchema = lazySchema(() =>
+  z.strictObject({
+    profileClass: mediaProfileClassSchema,
+    paginationOpts: authoredDraftListInputSchema.shape.paginationOpts
+  })
+)
+export const mediaLibraryItemDtoSchema = lazySchema(() =>
+  z.strictObject({
+    assetId: z.string().check(z.uuid()),
+    profileClass: mediaProfileClassSchema,
+    originalFileName: avatarUploadInputSchema.shape.originalFileName,
+    width: z.nullable(z.number().check(z.int()).check(z.positive())),
+    height: z.nullable(z.number().check(z.int()).check(z.positive())),
+    createdAt: z.iso.datetime()
+  })
+)
+export const mediaLibraryPageSchema = lazySchema(() =>
+  z.strictObject({
+    page: z.array(mediaLibraryItemDtoSchema),
+    isDone: z.boolean(),
+    continueCursor: z.string(),
+    splitCursor: z.optional(z.nullable(z.string())),
+    pageStatus: z.optional(z.nullable(z.enum(['SplitRecommended', 'SplitRequired'])))
+  })
+)
+export const mediaLibraryImageInputSchema = lazySchema(() =>
+  z.strictObject({
+    assetId: z.string().check(z.uuid()),
+    variantKind: mediaVariantKindSchema
+  })
+)
+export const mediaImageAttachInputSchema = lazySchema(() =>
+  z.strictObject({
+    target: mediaImageSlotTargetSchema,
+    assetId: z.string().check(z.uuid()),
+    crop: normalizedImageCropSchema
+  })
+)
+
+export type MediaProfileClass = z.infer<typeof mediaProfileClassSchema>
 export type MediaStoredAsset = z.infer<typeof mediaStoredAssetSchema>
 export type MediaStoredVariant = z.infer<typeof mediaStoredVariantSchema>
+export type MediaStoredFileVariant = z.infer<typeof mediaStoredFileVariantSchema>
+export type MediaCropThumbnail = z.infer<typeof mediaCropThumbnailSchema>
+export type MediaCropThumbnailClaim = z.infer<typeof mediaCropThumbnailClaimSchema>
+export type MediaProcessingOperation = z.infer<typeof mediaProcessingOperationSchema>
+export type MediaImageBinding = z.infer<typeof mediaImageBindingSchema>
+export type MediaImageSlotTarget = z.infer<typeof mediaImageSlotTargetSchema>
+export type MediaReferencedImage = z.infer<typeof mediaReferencedImageSchema>
+export type MediaImageSaveSettlement = z.infer<typeof mediaImageSaveSettlementSchema>
 export type AvatarBindingDto = z.infer<typeof avatarBindingSchema>
 export type ImageUploadMetadata = z.infer<typeof avatarUploadInputSchema>
 export type MediaProcessClaim = z.infer<typeof mediaProcessClaimSchema>
 export type AuthoredImageTarget = z.infer<typeof authoredImageTargetSchema>
 export type AuthoredImageLookup = z.infer<typeof authoredImageLookupSchema>
-export type AuthoredImageProcessClaim = z.infer<typeof authoredImageProcessClaimSchema>
 export type CharacterPortraitTarget = z.infer<typeof characterPortraitTargetSchema>
 export type CharacterPortraitLookup = z.infer<typeof characterPortraitLookupSchema>
-export type CharacterPortraitProcessClaim = z.infer<typeof characterPortraitProcessClaimSchema>
+export type MediaLibraryListInput = z.infer<typeof mediaLibraryListInputSchema>
+export type MediaLibraryItemDto = z.infer<typeof mediaLibraryItemDtoSchema>
+export type MediaLibraryPage = z.infer<typeof mediaLibraryPageSchema>
+export type MediaImageAttachInput = z.infer<typeof mediaImageAttachInputSchema>

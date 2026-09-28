@@ -13,13 +13,21 @@ import {
   vttMapStoredAssetSchema,
   type VttMapProcessClaim
 } from '@artificer-toolkit/schema/projections/vttMapPersistence'
-import { internalQuery } from '../_generated/server'
+import { internalQuery, type QueryCtx } from '../_generated/server'
 import { mutation, internalMutation } from '../lib/mutations'
 import { internal } from '../_generated/api'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { charge, createMediaUpload, findAsset, MediaQuotaError, ownedAsset } from './assets'
-import { requireMapUploader, requireSceneMap } from './vttMapDocuments'
+import {
+  charge,
+  createMediaUpload,
+  findAsset,
+  MediaQuotaError,
+  ownedAsset,
+  reuseDuplicate,
+  reusedAsset
+} from './assets'
+import { mapCampaignIds, requireMapUploader, requireSceneMap } from './vttMapDocuments'
 
 const OPERATION_WINDOW = 15 * 60_000
 const GRACE = 24 * 60 * 60_000
@@ -31,34 +39,47 @@ export const readDelivery = internalQuery({
     const { assetId } = finalizeImageUploadInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
     const asset = await findAsset(ctx, assetId.toLowerCase())
-    if (!asset || asset.profile !== 'VTT_MAP' || asset.status !== 'READY')
+    if (!asset || asset.profileClass !== 'VTT_MAP' || asset.status !== 'READY')
       throw new Error('Map is unavailable.')
-    const { campaign, membership } = await requireCampaignAuthority(ctx, asset.campaignId, userId)
     await requireMapUploader(ctx, asset.ownerUserId)
-    if (membership.role !== 'OWNER') {
-      const presentation = await ctx.db
-        .query('campaignScenePresentations')
-        .withIndex('by_campaignId_activeMapAssetId', (q) =>
-          q.eq('campaignId', campaign.id).eq('activeMapAssetId', asset.id)
-        )
-        .first()
-      if (!presentation || presentation.sceneId === null) throw new Error('Map is unavailable.')
-      const scene = await ctx.db
-        .query('campaignScenes')
-        .withIndex('by_publicId', (q) => q.eq('id', presentation.sceneId!))
-        .unique()
-      if (
-        !scene ||
-        scene.campaignId !== campaign.id ||
-        scene.map.assetId.toLowerCase() !== asset.id
-      )
-        throw new Error('Map is unavailable.')
-      await requireSceneMap(ctx, campaign.id, scene.map)
-    }
+    if (asset.ownerUserId !== userId && !(await readsCampaignMap(ctx, asset.id, userId)))
+      throw new Error('Map is unavailable.')
     const { _id, _creationTime, ...stored } = asset
     return vttMapStoredAssetSchema.parse(stored)
   }
 })
+
+/**
+ * Its uploader reads a map anywhere. Otherwise a Campaign that references it grants the read: its
+ * owner always, a player only while an open Session presents that exact map.
+ */
+async function readsCampaignMap(ctx: QueryCtx, assetId: string, userId: string) {
+  for (const campaignId of await mapCampaignIds(ctx, assetId)) {
+    const membership = await ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_userId', (q) => q.eq('campaignId', campaignId).eq('userId', userId))
+      .unique()
+    if (membership?.status !== 'ACTIVE') continue
+    const { campaign } = await requireCampaignAuthority(ctx, campaignId, userId)
+    if (membership.role === 'OWNER') return true
+    const presentation = await ctx.db
+      .query('campaignScenePresentations')
+      .withIndex('by_campaignId_activeMapAssetId', (q) =>
+        q.eq('campaignId', campaign.id).eq('activeMapAssetId', assetId)
+      )
+      .first()
+    if (!presentation || presentation.sceneId === null) continue
+    const scene = await ctx.db
+      .query('campaignScenes')
+      .withIndex('by_publicId', (q) => q.eq('id', presentation.sceneId!))
+      .unique()
+    if (!scene || scene.campaignId !== campaign.id || scene.map.assetId.toLowerCase() !== assetId)
+      continue
+    await requireSceneMap(ctx, campaign.id, scene.map, null)
+    return true
+  }
+  return false
+}
 
 function outputKeys(assetId: string, operationId: string) {
   const prefix = `ready/${assetId}/${operationId}`
@@ -102,9 +123,15 @@ export const beginFinalize = internalMutation({
   args: { assetId: v.string() },
   returns: zodToConvex(vttMapProcessClaimSchema),
   handler: async (ctx, args): Promise<VttMapProcessClaim> => {
-    const { authenticated, asset } = await ownedAsset(ctx, args.assetId.toLowerCase())
-    if (asset.profile !== 'VTT_MAP') throw new Error('Map is unavailable.')
-    await requireActiveOwner(ctx, asset.campaignId, authenticated.identity.userId)
+    const { userId } = await requireIdentity(ctx)
+    const found = await findAsset(ctx, args.assetId.toLowerCase())
+    if (found?.ownerUserId === userId && found.profileClass === 'VTT_MAP') {
+      const reused = await reusedAsset(ctx, found)
+      if (reused) return { kind: 'CURRENT', result: { assetId: reused.id, status: 'READY' } }
+    }
+    // Processing is the uploader's own; which Scene uses the map is authorized when it is attached.
+    const { asset } = await ownedAsset(ctx, args.assetId.toLowerCase())
+    if (asset.profileClass !== 'VTT_MAP') throw new Error('Map is unavailable.')
     if (asset.operation) throw new Error('Map processing is still running. Try again shortly.')
     if (asset.status === 'READY')
       return {
@@ -116,7 +143,6 @@ export const beginFinalize = internalMutation({
     const operationId = crypto.randomUUID()
     const operation = {
       id: operationId,
-      kind: 'INITIAL' as const,
       expiresAt: Date.now() + OPERATION_WINDOW,
       outputs: outputKeys(asset.id, operationId).map((objectKey) => ({
         objectKey
@@ -143,8 +169,7 @@ export const finishFinalize = internalMutation({
   handler: async (ctx, args): Promise<FinalizeVttMapUploadOutput> => {
     const input = vttMapFinalizeInputSchema.parse(args)
     const { authenticated, asset } = await ownedAsset(ctx, input.assetId.toLowerCase())
-    if (asset.profile !== 'VTT_MAP') throw new Error('Map is unavailable.')
-    await requireActiveOwner(ctx, asset.campaignId, authenticated.identity.userId)
+    if (asset.profileClass !== 'VTT_MAP') throw new Error('Map is unavailable.')
     const operation = asset.operation
     if (
       asset.status !== 'PROCESSING' ||
@@ -183,6 +208,14 @@ export const finishFinalize = internalMutation({
       }) &&
       new Set(tiles.map((tile) => `${tile.row}:${tile.column}`)).size === tiles.length
     if (!validVariants) throw new Error('Processed map output mismatch.')
+    const duplicate = await reuseDuplicate(
+      ctx,
+      authenticated.profile,
+      asset,
+      input.contentHash,
+      operation.outputs.map((output) => output.objectKey)
+    )
+    if (duplicate) return { assetId: duplicate.id, status: 'READY' }
 
     const variants = input.variants
     const bytes = variants.reduce((total, variant) => total + variant.byteSize, 0)
@@ -199,6 +232,7 @@ export const finishFinalize = internalMutation({
       width: input.width,
       height: input.height,
       variants,
+      contentHash: input.contentHash,
       chargedBytes: bytes,
       operation: null,
       cleanupAt
@@ -229,7 +263,7 @@ export const rejectFinalize = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const asset = await findAsset(ctx, args.assetId)
-    if (asset?.profile === 'VTT_MAP' && asset.operation?.id === args.operationId)
+    if (asset?.profileClass === 'VTT_MAP' && asset.operation?.id === args.operationId)
       await ctx.db.patch(asset._id, { status: 'REJECTED' })
     return null
   }

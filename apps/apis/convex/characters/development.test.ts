@@ -2,7 +2,7 @@ import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { api, components } from '../_generated/api'
+import { api, components, internal } from '../_generated/api'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { removePersonalFixtureCharacter } from './development'
 
@@ -154,8 +154,8 @@ it('schedules the bound portrait for cleanup when removing its fixture Character
     const rowId = await ctx.db.insert('mediaAssets', {
       id: assetId,
       ownerUserId: base.owner.userId,
-      profile: 'CHARACTER_PORTRAIT',
-      characterTarget: { type: 'CHARACTER_PORTRAIT', characterId: base.character.id },
+      storageAssetId: assetId,
+      profileClass: 'CONTENT_ART',
       upload: {
         originalFileName: 'portrait.png',
         declaredMimeType: 'image/png',
@@ -166,16 +166,23 @@ it('schedules the bound portrait for cleanup when removing its fixture Character
       rawObjectKey: null,
       uploadExpiresAt: 0,
       chargedBytes: 1,
+      contentHash: null,
       variants: [],
-      crop: null,
+      cropThumbnails: [],
       operation: null,
       cleanupAt: null
     })
-    await ctx.db.patch(character._id, { portraitAssetId: assetId, portraitRevision: 1 })
+    await ctx.db.patch(character._id, {
+      portraitAssetId: assetId,
+      portraitCrop: { x: 0, y: 0, width: 1, height: 1 },
+      portraitRevision: 1
+    })
     return rowId
   })
   const before = Date.now()
   await base.t.mutation(remove, { userId: base.owner.userId, characterId: base.character.id })
+  // Removal queues re-evaluation; with the Character gone the portrait starts its grace period.
+  await base.t.mutation(internal.media.assets.cleanup, { assetId })
   await base.t.run(async (ctx) => {
     const asset = await ctx.db.get(rowId)
     expect(asset?.cleanupAt).toBeGreaterThanOrEqual(before + 86_400_000)

@@ -11,6 +11,11 @@ function image(width = 40, height = 20) {
   })
 }
 
+async function sha256(bytes: Uint8Array) {
+  const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes))
+  return Buffer.from(digest).toString('hex')
+}
+
 describe('media processing', () => {
   it('crops a square thumbnail and reports verified output dimensions', async () => {
     const pixels = Buffer.alloc(640 * 640 * 3)
@@ -61,7 +66,7 @@ describe('media processing', () => {
     'verifies %s and produces metadata-free WebP without enlarging',
     async (format) => {
       const source = await image().toFormat(format).toBuffer()
-      const result = await processMedia(source, 'ACCOUNT_AVATAR', `image/${format}`)
+      const result = await processMedia(source, 'CONTENT_ART', `image/${format}`)
 
       expect(result).toMatchObject({
         originalByteSize: source.byteLength,
@@ -91,11 +96,8 @@ describe('media processing', () => {
   )
 
   it.each([
-    ['ACCOUNT_AVATAR', 2048, 1024],
-    ['CHARACTER_PORTRAIT', 2048, 1024],
-    ['AUTHORED_IMAGE', 2048, 1024],
-    ['CAMPAIGN_FILE', 2048, 1024],
-    ['CAMPAIGN_HANDOUT_MAP', 4096, 2048]
+    ['CONTENT_ART', 2048, 1024],
+    ['HANDOUT_MAP', 4096, 2048]
   ] as const)(
     'normalizes %s to a %ipx source and does not crop',
     async (profile, width, height) => {
@@ -122,6 +124,23 @@ describe('media processing', () => {
     }
   )
 
+  it('hashes the normalized bytes, so re-encoded copies of one image share a content hash', async () => {
+    const png = await image(300, 200).png().toBuffer()
+    const first = await processMedia(png, 'CONTENT_ART', 'image/png')
+    const again = await processMedia(png, 'CONTENT_ART', 'image/png')
+    const source = first.variants.find((variant) => variant.kind === 'SOURCE')!
+    expect(first.contentHash).toBe(await sha256(source.bytes))
+    expect(again.contentHash).toBe(first.contentHash)
+    const other = await processMedia(
+      await image(300, 201).png().toBuffer(),
+      'CONTENT_ART',
+      'image/png'
+    )
+    expect(other.contentHash).not.toBe(first.contentHash)
+    const text = await processMedia(Buffer.from('notes'), 'TEXT_FILE', 'text/plain')
+    expect(text.contentHash).toBe(await sha256(Buffer.from('notes')))
+  })
+
   it('applies EXIF orientation and removes the source EXIF and ICC from every result', async () => {
     const source = await image()
       .jpeg()
@@ -138,7 +157,7 @@ describe('media processing', () => {
     expect(inputMetadata.exif).toBeDefined()
     expect(inputMetadata.icc).toBeDefined()
 
-    const result = await processMedia(source, 'AUTHORED_IMAGE', 'image/jpeg')
+    const result = await processMedia(source, 'CONTENT_ART', 'image/jpeg')
     expect([result.width, result.height]).toEqual([20, 40])
     for (const variant of result.variants) {
       const metadata = await sharp(variant.bytes).metadata()
@@ -152,24 +171,24 @@ describe('media processing', () => {
 
   it('rejects MIME mismatch and invalid or unsupported input', async () => {
     const source = await image().png().toBuffer()
-    await expect(processMedia(source, 'AUTHORED_IMAGE', 'image/jpeg')).rejects.toThrow(
+    await expect(processMedia(source, 'CONTENT_ART', 'image/jpeg')).rejects.toThrow(
       'Image type does not match the upload intent.'
     )
     await expect(processMedia(source, 'VTT_MAP', 'image/webp')).rejects.toThrow(
       'Map type does not match the upload intent.'
     )
     await expect(
-      processMedia(Buffer.from('not an image'), 'ACCOUNT_AVATAR', 'image/png')
+      processMedia(Buffer.from('not an image'), 'CONTENT_ART', 'image/png')
     ).rejects.toThrow('Image data could not be decoded.')
     await expect(
       processMedia(
         Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'),
-        'ACCOUNT_AVATAR',
+        'CONTENT_ART',
         'image/png'
       )
     ).rejects.toThrow('Image format or dimensions are not supported.')
     await expect(
-      processMedia(source.subarray(0, 24), 'ACCOUNT_AVATAR', 'image/png')
+      processMedia(source.subarray(0, 24), 'CONTENT_ART', 'image/png')
     ).rejects.toBeInstanceOf(MediaValidationError)
   })
 
@@ -180,7 +199,7 @@ describe('media processing', () => {
       .webp({ loop: 0, delay: [100, 100] })
       .toBuffer()
     expect((await sharp(source, { animated: true }).metadata()).pages).toBe(2)
-    await expect(processMedia(source, 'ACCOUNT_AVATAR', 'image/webp')).rejects.toThrow(
+    await expect(processMedia(source, 'CONTENT_ART', 'image/webp')).rejects.toThrow(
       'Image format or dimensions are not supported.'
     )
     await expect(processMedia(source, 'VTT_MAP', 'image/webp')).rejects.toThrow(
@@ -189,20 +208,20 @@ describe('media processing', () => {
   })
 
   it('rejects empty input and the profile-specific byte limits before decoding', async () => {
-    await expect(processMedia(Buffer.alloc(0), 'ACCOUNT_AVATAR', 'image/png')).rejects.toThrow(
+    await expect(processMedia(Buffer.alloc(0), 'CONTENT_ART', 'image/png')).rejects.toThrow(
       'Upload data is empty.'
     )
-    await expect(processMedia(Buffer.alloc(0), 'CAMPAIGN_FILE', 'text/plain')).rejects.toThrow(
+    await expect(processMedia(Buffer.alloc(0), 'TEXT_FILE', 'text/plain')).rejects.toThrow(
       'Upload data is empty.'
     )
     await expect(
-      processMedia(Buffer.from('\uFEFF', 'utf8'), 'CAMPAIGN_FILE', 'text/plain')
+      processMedia(Buffer.from('\uFEFF', 'utf8'), 'TEXT_FILE', 'text/plain')
     ).rejects.toThrow('Upload data is empty.')
     await expect(
-      processMedia(Buffer.alloc(6 * 1024 * 1024 + 1), 'ACCOUNT_AVATAR', 'image/png')
+      processMedia(Buffer.alloc(6 * 1024 * 1024 + 1), 'CONTENT_ART', 'image/png')
     ).rejects.toThrow('Image exceeds the 6 MiB limit.')
     await expect(
-      processMedia(Buffer.alloc(6 * 1024 * 1024 + 1), 'CAMPAIGN_FILE', 'text/plain')
+      processMedia(Buffer.alloc(6 * 1024 * 1024 + 1), 'TEXT_FILE', 'text/plain')
     ).rejects.toThrow('File exceeds the 6 MiB limit.')
     await expect(
       processMedia(Buffer.alloc(25 * 1024 * 1024 + 1), 'VTT_MAP', 'image/png')
@@ -210,8 +229,8 @@ describe('media processing', () => {
   })
 
   it.each([
-    { profile: 'ACCOUNT_AVATAR', width: 8193, height: 1, label: 'Image' },
-    { profile: 'ACCOUNT_AVATAR', width: 5001, height: 5000, label: 'Image' },
+    { profile: 'CONTENT_ART', width: 8193, height: 1, label: 'Image' },
+    { profile: 'CONTENT_ART', width: 5001, height: 5000, label: 'Image' },
     { profile: 'VTT_MAP', width: 1, height: 8193, label: 'Map' },
     { profile: 'VTT_MAP', width: 8001, height: 8000, label: 'Map' }
   ] as const)(
@@ -280,12 +299,13 @@ describe('media processing', () => {
 
   it('normalizes UTF-8 campaign files without image dimensions and retains original byte size', async () => {
     const source = Buffer.from('\uFEFFNotes\r\n\tRésumé 🐉\n', 'utf8')
-    const result = await processMedia(source, 'CAMPAIGN_FILE', 'text/plain')
+    const result = await processMedia(source, 'TEXT_FILE', 'text/plain')
     const normalized = Buffer.from('Notes\r\n\tRésumé 🐉\n', 'utf8')
     expect(result).toEqual({
       originalByteSize: source.byteLength,
       verifiedByteSize: normalized.byteLength,
       verifiedMimeType: 'text/plain',
+      contentHash: await sha256(normalized),
       width: null,
       height: null,
       variants: [
@@ -303,29 +323,22 @@ describe('media processing', () => {
 
   it('rejects malformed UTF-8 and all forbidden C0/DEL text controls', async () => {
     await expect(
-      processMedia(Buffer.from([0xc3, 0x28]), 'CAMPAIGN_FILE', 'text/plain')
+      processMedia(Buffer.from([0xc3, 0x28]), 'TEXT_FILE', 'text/plain')
     ).rejects.toThrow('Text files must use valid UTF-8.')
     for (const code of [...Array.from({ length: 32 }, (_, value) => value), 127]) {
       if (code === 9 || code === 10 || code === 13) continue
       await expect(
-        processMedia(
-          Buffer.from(`notes${String.fromCharCode(code)}`),
-          'CAMPAIGN_FILE',
-          'text/plain'
-        )
+        processMedia(Buffer.from(`notes${String.fromCharCode(code)}`), 'TEXT_FILE', 'text/plain')
       ).rejects.toThrow('Text files cannot contain control characters.')
     }
   })
 
-  it.each([
-    'ACCOUNT_AVATAR',
-    'CHARACTER_PORTRAIT',
-    'AUTHORED_IMAGE',
-    'CAMPAIGN_HANDOUT_MAP',
-    'VTT_MAP'
-  ] as const)('does not accept text for %s', async (profile) => {
-    await expect(processMedia(Buffer.from('notes'), profile, 'text/plain')).rejects.toBeInstanceOf(
-      MediaValidationError
-    )
-  })
+  it.each(['CONTENT_ART', 'HANDOUT_MAP', 'VTT_MAP'] as const)(
+    'does not accept text for %s',
+    async (profile) => {
+      await expect(
+        processMedia(Buffer.from('notes'), profile, 'text/plain')
+      ).rejects.toBeInstanceOf(MediaValidationError)
+    }
+  )
 })

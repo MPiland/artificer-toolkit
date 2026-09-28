@@ -7,6 +7,7 @@ import { api, internal } from '../_generated/api'
 import { startLocalR2 } from '../../tests/localR2'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
+import { cropHash } from './crops'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -70,11 +71,20 @@ it.each(['remove', 'purge'] as const)(
     expect(
       await base.owner.caller.mutation(api.media.characterPortraitAssets.createUpload, firstUpload)
     ).toMatchObject({ assetId: firstIntent.assetId })
+    // Uploads belong to their owner, not a slot: the same command replays from any image slot.
+    expect(
+      await base.owner.caller.mutation(api.media.assets.createAvatarUpload, {
+        originalFileName: firstUpload.originalFileName,
+        declaredMimeType: firstUpload.declaredMimeType,
+        declaredBytes: firstUpload.declaredBytes,
+        idempotencyKey: firstUpload.idempotencyKey
+      })
+    ).toMatchObject({ assetId: firstIntent.assetId })
     await expect(
       base.owner.caller.mutation(api.media.assets.createAvatarUpload, {
         originalFileName: firstUpload.originalFileName,
         declaredMimeType: firstUpload.declaredMimeType,
-        declaredBytes: firstUpload.declaredBytes,
+        declaredBytes: firstUpload.declaredBytes + 1,
         idempotencyKey: firstUpload.idempotencyKey
       })
     ).rejects.toThrow('already been used')
@@ -146,16 +156,18 @@ it.each(['remove', 'purge'] as const)(
         height: 320,
         mimeType: 'image/webp' as const
       }))
-    await base.owner.caller.mutation(internal.media.characterPortraitAssets.finishSave, {
+    await base.owner.caller.mutation(internal.media.imageSaves.finish, {
       assetId: secondIntent.assetId,
       operationId: firstClaim.operation.id,
-      variants: outputs(firstClaim)
+      variants: outputs(firstClaim),
+      contentHash: 'a'.repeat(64)
     })
     await expect(
-      base.owner.caller.mutation(internal.media.characterPortraitAssets.finishSave, {
+      base.owner.caller.mutation(internal.media.imageSaves.finish, {
         assetId: thirdIntent.assetId,
         operationId: secondClaim.operation.id,
-        variants: outputs(secondClaim)
+        variants: outputs(secondClaim),
+        contentHash: 'b'.repeat(64)
       })
     ).rejects.toThrow('changed during processing')
     expect(
@@ -294,7 +306,7 @@ it('lets only active members read the portrait of a Character assigned in their 
     target: ownerTarget
   })
   if (claim.kind !== 'PROCESS') throw new Error('Missing portrait claim')
-  await base.owner.caller.mutation(internal.media.characterPortraitAssets.finishSave, {
+  await base.owner.caller.mutation(internal.media.imageSaves.finish, {
     assetId: intent.assetId,
     operationId: claim.operation.id,
     variants: claim.operation.outputs.map((output) => ({
@@ -303,7 +315,32 @@ it('lets only active members read the portrait of a Character assigned in their 
       width: 320,
       height: 320,
       mimeType: 'image/webp' as const
-    }))
+    })),
+    contentHash: 'c'.repeat(64)
+  })
+  // The portrait's own framing is already derived, so reads sign it without regenerating bytes.
+  await base.t.run(async (ctx) => {
+    const asset = await ctx.db
+      .query('mediaAssets')
+      .withIndex('by_publicId', (q) => q.eq('id', intent.assetId))
+      .unique()
+    if (asset?.profileClass !== 'CONTENT_ART') throw new Error('Missing portrait asset')
+    await ctx.db.patch(asset._id, {
+      cropThumbnails: [
+        {
+          cropHash: await cropHash(crop),
+          crop,
+          variant: {
+            kind: 'THUMBNAIL',
+            objectKey: `ready/${asset.id}/crop.webp`,
+            byteSize: 10,
+            width: 320,
+            height: 320,
+            mimeType: 'image/webp'
+          }
+        }
+      ]
+    })
   })
 
   const campaign = await base.other.caller.mutation(api.campaigns.create.create, {

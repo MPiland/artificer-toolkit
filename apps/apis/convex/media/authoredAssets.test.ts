@@ -232,6 +232,7 @@ describe('authored image media', () => {
         subjectKind: 'CREATURE',
         scope: 'ACTIVE',
         assetId: null,
+        crop: null,
         revision: 7
       })
     )
@@ -412,14 +413,15 @@ describe('authored image media', () => {
         })
       ).toEqual({ assetId: null, revision: 0 })
     }
+    // The owner's artwork attaches to another of their drafts without a new upload.
     const otherDraft = await draft(owner.client)
-    await expect(
-      owner.client.action(api.media.authoredActions.save, {
+    expect(
+      await owner.client.action(api.media.authoredActions.save, {
         target: target(otherDraft),
         assetId: firstBinding.assetId!,
         crop
       })
-    ).rejects.toThrow('unavailable')
+    ).toEqual({ assetId: firstBinding.assetId, revision: 1 })
     await expect(
       foreign.client.mutation(api.media.authoredAssets.createUpload, {
         target: target(first),
@@ -438,19 +440,6 @@ describe('authored image media', () => {
         idempotencyKey: crypto.randomUUID()
       })
     ).rejects.toThrow('owned draft')
-    const avatar = await owner.client.mutation(api.media.assets.createAvatarUpload, {
-      originalFileName: 'avatar.png',
-      declaredMimeType: 'image/png',
-      declaredBytes: 1,
-      idempotencyKey: crypto.randomUUID()
-    })
-    await expect(
-      owner.client.action(api.media.authoredActions.save, {
-        target: target(first),
-        assetId: avatar.assetId,
-        crop
-      })
-    ).rejects.toThrow('unavailable')
     await owner.client.mutation(
       publish,
       publicationInput(
@@ -494,7 +483,11 @@ describe('authored image media', () => {
       assetId: secondBinding.assetId!,
       crop: { ...crop, x: 1 / 3 }
     })
-    expect(recropped.assetId).not.toBe(secondBinding.assetId)
+    // Recropping reframes the draft slot only; the asset and its stored bytes stay the same.
+    expect(recropped).toEqual({
+      assetId: secondBinding.assetId,
+      revision: secondBinding.revision + 1
+    })
     for (const [i, variantKind] of (['SOURCE', 'DISPLAY'] as const).entries()) {
       const image = await owner.client.action(api.media.authoredActions.getImage, {
         target: { ...target(edit), scope: 'DRAFT' },
@@ -612,7 +605,7 @@ describe('authored image media', () => {
       payload: first.payload
     })
     await expect(
-      owner.client.mutation(internal.media.authoredAssets.finishSave, {
+      owner.client.mutation(internal.media.imageSaves.finish, {
         assetId: claim.asset.id,
         operationId: claim.operation.id,
         variants: claim.operation.outputs.map((output) => ({
@@ -621,7 +614,8 @@ describe('authored image media', () => {
           width: 1,
           height: 1,
           mimeType: 'image/webp' as const
-        }))
+        })),
+        contentHash: 'a'.repeat(64)
       })
     ).rejects.toThrow('Artwork changed during processing')
     expect(

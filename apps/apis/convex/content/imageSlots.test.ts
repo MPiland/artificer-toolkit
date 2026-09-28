@@ -2,6 +2,7 @@
 import { convexTest } from 'convex-test'
 import { describe, expect, it } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { internal } from '../_generated/api'
 import schema from '../schema'
 import {
   dropImageSlot,
@@ -16,6 +17,7 @@ const target = {
   subjectKind: 'BACKGROUND' as const
 }
 const assetId = '00000000-0000-0000-0000-000000000002'
+const crop = { x: 0.25, y: 0, width: 0.5, height: 1 }
 
 function test() {
   return convexTest(schema, modules)
@@ -26,7 +28,8 @@ async function insertAsset(t: ReturnType<typeof test>, id = assetId) {
     ctx.db.insert('mediaAssets', {
       id,
       ownerUserId: '00000000-0000-0000-0000-000000000003',
-      profile: 'AUTHORED_IMAGE',
+      storageAssetId: id,
+      profileClass: 'CONTENT_ART',
       upload: {
         originalFileName: 'art.png',
         declaredMimeType: 'image/png',
@@ -37,8 +40,9 @@ async function insertAsset(t: ReturnType<typeof test>, id = assetId) {
       rawObjectKey: null,
       uploadExpiresAt: Date.now(),
       chargedBytes: 1,
+      contentHash: null,
       variants: [],
-      crop: null,
+      cropThumbnails: [],
       operation: null,
       cleanupAt: null
     })
@@ -53,13 +57,15 @@ describe('authored image slots', () => {
         ...target,
         scope: 'ACTIVE',
         assetId,
+        crop,
         revision: 4
       })
     )
     const first = await t.run((ctx) => ensureDraftImageSlot(ctx, target))
-    await t.run((ctx) => ctx.db.patch(first._id, { assetId: null, revision: 5 }))
+    expect(first).toMatchObject({ assetId, crop })
+    await t.run((ctx) => ctx.db.patch(first._id, { assetId: null, crop: null, revision: 5 }))
     const second = await t.run((ctx) => ensureDraftImageSlot(ctx, target))
-    expect(second).toMatchObject({ scope: 'DRAFT', assetId: null, revision: 5 })
+    expect(second).toMatchObject({ scope: 'DRAFT', assetId: null, crop: null, revision: 5 })
   })
 
   it('promotes an explicit empty draft without falling back to active artwork', async () => {
@@ -69,6 +75,7 @@ describe('authored image slots', () => {
         ...target,
         scope: 'ACTIVE',
         assetId,
+        crop,
         revision: 4
       })
     )
@@ -76,14 +83,16 @@ describe('authored image slots', () => {
     await t.run((ctx) => promoteDraftImageSlot(ctx, target))
     expect(await t.run((ctx) => readImageSlot(ctx, target.subjectId, 'ACTIVE'))).toMatchObject({
       assetId,
+      crop,
       revision: 5
     })
 
     const draft = await t.run((ctx) => ensureDraftImageSlot(ctx, target))
-    await t.run((ctx) => ctx.db.patch(draft._id, { assetId: null, revision: 1 }))
+    await t.run((ctx) => ctx.db.patch(draft._id, { assetId: null, crop: null, revision: 1 }))
     await t.run((ctx) => promoteDraftImageSlot(ctx, target))
     expect(await t.run((ctx) => readImageSlot(ctx, target.subjectId, 'ACTIVE'))).toMatchObject({
       assetId: null,
+      crop: null,
       revision: 6
     })
   })
@@ -96,6 +105,7 @@ describe('authored image slots', () => {
         ...target,
         scope: 'ACTIVE',
         assetId,
+        crop,
         revision: 1
       })
     )
@@ -104,6 +114,7 @@ describe('authored image slots', () => {
     expect(await t.run((ctx) => readImageSlot(ctx, target.subjectId, 'ACTIVE'))).toBeTruthy()
     await t.run((ctx) => dropImageSlot(ctx, target.subjectId, 'ACTIVE'))
     expect(await t.run((ctx) => readImageSlot(ctx, target.subjectId, 'ACTIVE'))).toBeNull()
+    await t.mutation(internal.media.assets.cleanup, { assetId })
     expect(
       await t.run((ctx) =>
         ctx.db

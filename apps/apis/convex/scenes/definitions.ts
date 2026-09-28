@@ -131,7 +131,7 @@ export const begin = mutation({
       if (definition.version !== input.expectedVersion)
         throw new Error('Scene definition changed before this save began.')
     }
-    await requireSceneMap(ctx, campaign.id, input.settings.map)
+    await requireSceneMap(ctx, campaign.id, input.settings.map, userId)
     const now = new Date().toISOString()
     const expiresAt = Date.now() + SAVE_WINDOW
     const save = sceneStoredDefinitionSaveSchema.parse({
@@ -260,11 +260,8 @@ export const publish = mutation({
   returns: zodToConvex(sceneDefinitionSaveProgressSchema),
   handler: async (ctx, args): Promise<SceneDefinitionSaveProgress> => {
     const input = sceneDefinitionSaveLookupSchema.parse(args)
-    const { row, save } = await ownedSave(
-      ctx,
-      lower(input.saveId),
-      (await requireIdentity(ctx)).userId
-    )
+    const { userId } = await requireIdentity(ctx)
+    const { row, save } = await ownedSave(ctx, lower(input.saveId), userId)
     const { campaign } = await writableCampaign(ctx, save.settings.campaignId)
     if (save.status === 'PUBLISHED') return progress(save)
     if (save.status !== 'RECEIVING' || save.entitiesRemoved || save.expiresAt <= Date.now())
@@ -277,7 +274,7 @@ export const publish = mutation({
       save.received.tokens !== save.counts.tokens
     )
       throw new Error('Scene definition is incomplete.')
-    await requireSceneMap(ctx, campaign.id, save.settings.map)
+    await requireSceneMap(ctx, campaign.id, save.settings.map, userId)
     const existing = await ctx.db
       .query('sceneDefinitions')
       .withIndex('by_publicId', (q) => q.eq('id', save.definitionId))

@@ -114,12 +114,12 @@ function save(ownerUserId: string, campaignId: string, definitionId: string = cr
   })
 }
 
-function map(ownerUserId: string, campaignId: string, id: string) {
+function map(ownerUserId: string, id: string) {
   return vttMapStoredAssetSchema.parse({
     id,
     ownerUserId,
-    profile: 'VTT_MAP',
-    campaignId,
+    storageAssetId: id,
+    profileClass: 'VTT_MAP',
     upload: {
       originalFileName: 'fixture-map.png',
       declaredMimeType: 'image/png',
@@ -130,10 +130,10 @@ function map(ownerUserId: string, campaignId: string, id: string) {
     rawObjectKey: null,
     uploadExpiresAt: 0,
     chargedBytes: 3,
+    contentHash: null,
     width: 100,
     height: 100,
     variants: [],
-    crop: null,
     operation: null,
     cleanupAt: null,
     hasSceneReferences: true
@@ -147,14 +147,8 @@ async function seedOwnerScene(
 ) {
   const now = new Date().toISOString()
   await base.t.run(async (ctx) => {
-    await ctx.db.insert(
-      'mediaAssets',
-      map(base.owner.userId, base.campaign.id, initial.settings.map.assetId)
-    )
-    await ctx.db.insert(
-      'mediaAssets',
-      map(base.owner.userId, base.campaign.id, edited.settings.map.assetId)
-    )
+    await ctx.db.insert('mediaAssets', map(base.owner.userId, initial.settings.map.assetId))
+    await ctx.db.insert('mediaAssets', map(base.owner.userId, edited.settings.map.assetId))
     for (const current of [initial, edited]) {
       await ctx.db.insert('sceneDefinitionSaves', current)
       await ctx.db.insert(

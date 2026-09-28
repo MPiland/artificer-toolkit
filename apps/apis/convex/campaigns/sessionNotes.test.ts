@@ -385,7 +385,7 @@ describe('native Session finish and notes', () => {
         kind: 'SHARED_NOTE'
       })
     ).rejects.toThrow(usernameRequired)
-    const file = await readyCampaignFile(t, other.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId)
     await expect(
       other.caller.mutation(api.campaigns.attachments.create, {
         campaignId: campaign.id,

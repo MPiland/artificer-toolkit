@@ -4875,13 +4875,16 @@ try {
     const assertFinalDeferredCleanup = (captured: DeletionCapture) => {
       const finalTables = catalogue(captured)
       const retainedAssets = finalTables.mediaAssets ?? []
+      // The Campaign owner holds a copy sharing the handout's stored objects; the subject's own
+      // asset is purged, never transferred (ADR 0012 amendment).
       assert.equal(retainedAssets.length, 1)
-      assert.equal(retainedAssets[0]?.id, fixture.ids.handoutAssetId)
+      assert.notEqual(retainedAssets[0]?.id, fixture.ids.handoutAssetId)
+      assert.equal(retainedAssets[0]?.storageAssetId, fixture.ids.handoutAssetId)
       assert.equal(retainedAssets[0]?.ownerUserId, fixture.auditor.identity.userId)
-      assert.equal(retainedAssets[0]?.retainedFromUserId, fixture.subject.identity.userId)
       const retainedAttachments = finalTables.campaignAttachments ?? []
       assert.equal(retainedAttachments.length, 1)
       assert.equal(retainedAttachments[0]?.id, fixture.ids.handoutAttachmentId)
+      assert.equal(retainedAttachments[0]?.assetId, retainedAssets[0]?.id)
       assert.equal(retainedAttachments[0]?.uploaderUserId, fixture.subject.identity.userId)
       assert.equal(
         retainedAssets.some((row) => row.id === fixture.ids.subjectSceneAssetId),

@@ -42,7 +42,7 @@ describe('deleted member Campaign history', () => {
       kind: 'SHARED_NOTE'
     })
     expect(note).toMatchObject({ authorLabel: 'Mira' })
-    const file = await readyCampaignFile(t, departing.userId, campaign.id, 'CAMPAIGN_HANDOUT_MAP')
+    const file = await readyCampaignFile(t, departing.userId, 'HANDOUT_MAP')
     const handout = await departing.caller.mutation(api.campaigns.attachments.create, {
       campaignId: campaign.id,
       assetId: file.id,
@@ -108,9 +108,14 @@ describe('deleted member Campaign history', () => {
     await t.mutation(internal.media.assets.purgeAccount, { userId: departing.userId })
 
     // Every retained record keeps the opaque account id; no current member or profile resolves it,
-    // so the deleted author's username is replaced while current members stay named.
-    expect(await readHistory()).toEqual({
+    // so the deleted author's username is replaced while current members stay named. The handout
+    // now names the GM's copy, which serves the same stored bytes (ADR 0012 amendment).
+    const after = await readHistory()
+    const copyId = after.delivery.assetId
+    expect(copyId).not.toBe(file.id)
+    expect(after).toEqual({
       ...before,
+      delivery: { ...before.delivery, assetId: copyId },
       notes: {
         ...before.notes,
         page: before.notes.page.map((row) =>
@@ -121,6 +126,7 @@ describe('deleted member Campaign history', () => {
         ...before.handouts,
         page: before.handouts.page.map((row) => ({
           ...row,
+          assetId: copyId,
           uploaderLabel: deletedCampaignAuthorLabel
         }))
       }

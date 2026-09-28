@@ -9,7 +9,7 @@ import {
   avatarSaveInputSchema,
   type AvatarBindingDto,
   type MediaProcessClaim,
-  type MediaStoredAsset
+  type MediaReferencedImage
 } from '@artificer-toolkit/schema/api/mediaAssets'
 import {
   mediaVariantKindSchema,
@@ -20,7 +20,7 @@ import { action, internalAction } from '../_generated/server'
 import { components, internal } from '../_generated/api'
 import { createMediaStorage } from './storage'
 import { MediaValidationError } from './processing'
-import { processImageClaim } from './imageProcessing'
+import { deliverReferencedImage, processImageClaim } from './imageProcessing'
 
 export const deleteObjectBytes = internalAction({
   args: { keys: v.array(v.string()) },
@@ -51,11 +51,11 @@ export const saveAvatar = action({
     if (claim.kind === 'CURRENT') return claim.binding
     const { asset, operation } = claim
     try {
-      const outputs = await processImageClaim(ctx, asset, operation)
-      return await ctx.runMutation(internal.media.assets.finishSave, {
+      const processed = await processImageClaim(ctx, asset, operation)
+      return await ctx.runMutation(internal.media.imageSaves.finish, {
         assetId: asset.id,
         operationId: operation.id,
-        variants: outputs
+        ...processed
       })
     } catch (error) {
       await ctx.runMutation(internal.media.assets.failSave, {
@@ -75,21 +75,10 @@ export const getAvatarImage = action({
   args: { variantKind: zodToConvex(mediaVariantKindSchema) },
   returns: zodToConvex(zMini.nullable(signedImageDeliveryDtoSchema)),
   handler: async (ctx, { variantKind }): Promise<SignedImageDeliveryDto | null> => {
-    const asset: MediaStoredAsset | null = await ctx.runQuery(internal.media.assets.readAvatar, {})
-    if (!asset) return null
-    const variant = asset.variants.find((item) => item.kind === variantKind)
-    if (!variant) throw new Error('Image is unavailable.')
-    return signedImageDeliveryDtoSchema.parse({
-      assetId: asset.id,
-      variantKind,
-      url: await createMediaStorage().getUrl(variant.objectKey, { expiresIn: 300 }),
-      expiresAt: new Date(Date.now() + 300_000).toISOString(),
-      width: variant.width,
-      height: variant.height,
-      mimeType: variant.mimeType,
-      crop: asset.crop,
-      altText: null,
-      isDecorative: false
-    })
+    const image: MediaReferencedImage | null = await ctx.runQuery(
+      internal.media.assets.readAvatar,
+      {}
+    )
+    return deliverReferencedImage(ctx, image, variantKind, false)
   }
 })

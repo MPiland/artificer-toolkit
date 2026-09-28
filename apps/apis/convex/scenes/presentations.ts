@@ -190,7 +190,7 @@ async function setPresentation(
       .unique()
     if (!scene || scene.campaignId !== campaign.id)
       throw new Error('Campaign live Scene was not found.')
-    await requireSceneMap(ctx, campaign.id, scene.map)
+    await requireSceneMap(ctx, campaign.id, scene.map, null)
     activeMapAssetId = scene.map.assetId.toLowerCase()
   }
   const current = await readPresentation(ctx, campaign.id)

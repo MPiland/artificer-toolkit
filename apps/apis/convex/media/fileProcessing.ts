@@ -2,19 +2,19 @@
 
 import type { ActionCtx } from '../_generated/server'
 import {
-  campaignStoredFileVariantSchema,
-  type CampaignStoredFileAsset,
-  type CampaignStoredFileVariant
-} from '@artificer-toolkit/schema/projections/campaignFilePersistence'
+  mediaStoredFileVariantSchema,
+  type MediaStoredAsset,
+  type MediaStoredFileVariant
+} from '@artificer-toolkit/schema/api/mediaAssets'
 import { readMediaBytes } from './byteTransfer'
 import { processMedia, MediaValidationError } from './processing'
 import { createMediaStorage } from './storage'
 
 export async function processCampaignFileClaim(
   ctx: ActionCtx,
-  asset: CampaignStoredFileAsset,
-  operation: NonNullable<CampaignStoredFileAsset['operation']>
-): Promise<CampaignStoredFileVariant[]> {
+  asset: MediaStoredAsset,
+  operation: NonNullable<MediaStoredAsset['operation']>
+): Promise<{ variants: MediaStoredFileVariant[]; contentHash: string }> {
   if (!asset.rawObjectKey) throw new MediaValidationError('Upload is unavailable.')
   const storage = createMediaStorage()
   const bytes = await readMediaBytes(
@@ -24,13 +24,13 @@ export async function processCampaignFileClaim(
   )
   if (bytes.byteLength !== asset.upload.declaredBytes)
     throw new MediaValidationError('File byte count does not match the upload intent.')
-  const processed = await processMedia(bytes, asset.profile, asset.upload.declaredMimeType)
-  const variants: CampaignStoredFileVariant[] = []
+  const processed = await processMedia(bytes, asset.profileClass, asset.upload.declaredMimeType)
+  const variants: MediaStoredFileVariant[] = []
   // Persist only preclaimed keys, sequentially; late writes remain covered by the operation fence.
   for (const variant of processed.variants) {
     const output = operation.outputs.find((item) => item.kind === variant.kind)
     if (!output) throw new MediaValidationError('File output is unavailable.')
-    const stored = campaignStoredFileVariantSchema.parse({
+    const stored = mediaStoredFileVariantSchema.parse({
       kind: variant.kind,
       objectKey: output.objectKey,
       byteSize: variant.bytes.byteLength,
@@ -41,5 +41,5 @@ export async function processCampaignFileClaim(
     await storage.store(ctx, variant.bytes, { key: stored.objectKey, type: stored.mimeType })
     variants.push(stored)
   }
-  return variants
+  return { variants, contentHash: processed.contentHash }
 }

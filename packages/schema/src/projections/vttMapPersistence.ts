@@ -1,5 +1,9 @@
 import { z, lazySchema } from '../zod.js'
-import { mediaStoredAssetSchema, mediaStoredVariantSchema } from '../api/mediaAssets.js'
+import {
+  mediaSha256Schema,
+  mediaStoredAssetFieldsSchema,
+  mediaStoredVariantSchema
+} from '../api/mediaAssets.js'
 import {
   createVttMapUploadIntentInputSchema,
   finalizeImageUploadInputSchema,
@@ -25,7 +29,6 @@ export const vttMapStoredVariantSchema = lazySchema(() =>
 export const vttMapProcessingOperationSchema = lazySchema(() =>
   z.strictObject({
     id: postgresUuidSchema,
-    kind: z.literal('INITIAL'),
     expiresAt: z.number(),
     // Claim all possible output keys before Node work so interrupted writes are fenced.
     outputs: z
@@ -36,14 +39,11 @@ export const vttMapProcessingOperationSchema = lazySchema(() =>
 )
 export const vttMapStoredAssetSchema = lazySchema(() =>
   z.extend(
-    z.omit(mediaStoredAssetSchema, {
-      authoredTarget: true,
-      characterTarget: true,
-      copiedFromAssetId: true
+    z.omit(mediaStoredAssetFieldsSchema, {
+      cropThumbnails: true
     }),
     {
-      profile: z.literal('VTT_MAP'),
-      campaignId: postgresUuidSchema,
+      profileClass: z.literal('VTT_MAP'),
       hasSceneReferences: z.optional(z.boolean()),
       upload: z.strictObject({
         originalFileName: createVttMapUploadIntentInputSchema.shape.originalFileName,
@@ -54,7 +54,6 @@ export const vttMapStoredAssetSchema = lazySchema(() =>
       width: z.nullable(dimension),
       height: z.nullable(dimension),
       variants: z.array(vttMapStoredVariantSchema).check(z.maxLength(66)),
-      crop: z.null(),
       operation: z.nullable(vttMapProcessingOperationSchema)
     }
   )
@@ -64,7 +63,8 @@ export const vttMapFinalizeInputSchema = lazySchema(() =>
     operationId: postgresUuidSchema,
     width: dimension,
     height: dimension,
-    variants: z.array(vttMapStoredVariantSchema).check(z.minLength(3)).check(z.maxLength(66))
+    variants: z.array(vttMapStoredVariantSchema).check(z.minLength(3)).check(z.maxLength(66)),
+    contentHash: mediaSha256Schema
   })
 )
 export const vttMapProcessClaimSchema = lazySchema(() =>

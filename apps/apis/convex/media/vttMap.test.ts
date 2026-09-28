@@ -87,6 +87,7 @@ const finishFinalize = makeFunctionReference<
     width: number
     height: number
     variants: VttMapStoredVariant[]
+    contentHash: string
   },
   FinalizeVttMapUploadOutput
 >('media/vttMapAssets:finishFinalize')
@@ -428,7 +429,7 @@ it('fences a partial provider write, deletes its old output, and retries the sam
   )
 }, 20_000)
 
-it('denies foreign and archived finalization and rolls quota rejection back to the reservation', async () => {
+it('denies foreign finalization and rolls quota rejection back to the reservation', async () => {
   const base = await setup()
   const intent = await uploadMap(base, await mapPng())
   await expect(base.other.caller.action(finalize, { assetId: intent.assetId })).rejects.toThrow(
@@ -441,26 +442,6 @@ it('denies foreign and archived finalization and rolls quota rejection back to t
   const processed = await base.owner.caller.action((ctx) =>
     processVttMapClaim(ctx, claim.asset, claim.operation)
   )
-  const campaignRow = await base.t.run((ctx) =>
-    ctx.db
-      .query('campaigns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
-      .unique()
-  )
-  await base.t.run((ctx) => ctx.db.patch(campaignRow!._id, { status: 'ARCHIVED' }))
-  await expect(
-    base.owner.caller.mutation(finishFinalize, {
-      assetId: intent.assetId,
-      operationId: claim.operation.id,
-      ...processed
-    })
-  ).rejects.toThrow('read-only')
-  expect(await readAsset(base, intent.assetId)).toMatchObject({
-    status: 'PROCESSING',
-    operation: claim.operation,
-    variants: []
-  })
-  await base.t.run((ctx) => ctx.db.patch(campaignRow!._id, { status: 'ACTIVE' }))
   await base.t.run(async (ctx) => {
     const profile = await ctx.db
       .query('userProfiles')
@@ -486,16 +467,6 @@ it('denies foreign and archived finalization and rolls quota rejection back to t
     chargedBytes: 25 * 1024 * 1024,
     operation: claim.operation
   })
-  await base.t.run(async (ctx) => {
-    const campaign = await ctx.db
-      .query('campaigns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
-      .unique()
-    await ctx.db.patch(campaign!._id, { status: 'ARCHIVED' })
-  })
-  await expect(base.owner.caller.action(finalize, { assetId: intent.assetId })).rejects.toThrow(
-    'read-only'
-  )
 }, 20_000)
 
 it('rejects forged tile coverage and edge dimensions without changing the processing claim', async () => {
@@ -539,7 +510,8 @@ it('rejects forged tile coverage and edge dimensions without changing the proces
       operationId: claim.operation.id,
       width: 64,
       height: 64,
-      variants
+      variants,
+      contentHash: 'a'.repeat(64)
     })
   ).rejects.toThrow('output mismatch')
   expect(await readAsset(base, intent.assetId)).toMatchObject({
@@ -610,6 +582,13 @@ it('releases ready map bytes only after both published definition and initial li
       .unique()
     await ctx.db.delete(scene!._id)
   })
+  await base.t.mutation(internal.media.assets.cleanup, {
+    assetId: intent.assetId
+  })
+  // The last detached reference starts a fresh recovery grace period.
+  const graced = await readAsset(base, intent.assetId)
+  expect(graced).toMatchObject({ status: 'READY', cleanupAt: Date.now() + 24 * 60 * 60_000 })
+  vi.setSystemTime(graced!.cleanupAt!)
   await base.t.mutation(internal.media.assets.cleanup, {
     assetId: intent.assetId
   })

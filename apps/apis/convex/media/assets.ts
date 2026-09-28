@@ -8,18 +8,19 @@ import {
   avatarSaveInputSchema,
   avatarUploadInputSchema,
   mediaProcessClaimSchema,
+  mediaProcessingOperationSchema,
+  mediaReferencedImageSchema,
   mediaSinglePutUploadSchema,
+  mediaStoredAssetFieldsSchema,
   mediaStoredAssetSchema,
-  mediaStoredVariantSchema,
-  type ImageUploadMetadata,
-  type AuthoredImageTarget,
-  type CharacterPortraitTarget
+  type AvatarBindingDto,
+  type MediaImageBinding,
+  type MediaImageSaveSettlement,
+  type MediaProcessClaim,
+  type MediaProfileClass,
+  type MediaStoredAsset
 } from '@artificer-toolkit/schema/api/mediaAssets'
-import type {
-  CreateCampaignFileUploadIntentInput,
-  CreateVttMapUploadIntentInput
-} from '@artificer-toolkit/schema/api/media'
-import { campaignStoredFileAssetSchema } from '@artificer-toolkit/schema/projections/campaignFilePersistence'
+import type { MediaTarget, NormalizedImageCrop } from '@artificer-toolkit/schema/api/media'
 import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/vttMapPersistence'
 import { query, internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { mutation, internalMutation } from '../lib/mutations'
@@ -28,6 +29,8 @@ import type { Doc } from '../_generated/dataModel'
 import { getAuthenticatedProfile } from '../lib/identity'
 import { createMediaStorage } from './storage'
 import { mapIsReferenced } from './vttMapDocuments'
+import { pruneCropThumbnails } from './cropThumbnails'
+import { sameCrop } from './crops'
 
 const MIB = 1024 * 1024
 const GRACE = 24 * 60 * 60_000
@@ -35,6 +38,87 @@ const GRACE = 24 * 60 * 60_000
 // a killed/failed action cannot write objects after its tracked keys are deleted.
 const OPERATION_WINDOW = 15 * 60_000
 const assetIdArgs = { assetId: v.string() }
+
+type StoredImage = Doc<'mediaAssets'> & { profileClass: MediaStoredAsset['profileClass'] }
+
+export function storedImage(asset: StoredImage): MediaStoredAsset {
+  const { _id, _creationTime, ...stored } = asset
+  return mediaStoredAssetSchema.parse(stored)
+}
+
+/** Attaching requires the caller's own READY content art; the slot's rules are checked by its domain. */
+export function requireAttachableImage(asset: Doc<'mediaAssets'>, userId: string): StoredImage {
+  if (
+    asset.ownerUserId !== userId ||
+    asset.status !== 'READY' ||
+    asset.profileClass !== 'CONTENT_ART'
+  )
+    throw new Error('Image is unavailable.')
+  return asset
+}
+
+/** Re-evaluates an asset after a reference changed: prunes unused framing or starts its grace. */
+export async function releaseAsset(ctx: MutationCtx, assetId: string) {
+  await ctx.scheduler.runAfter(0, internal.media.assets.cleanup, { assetId })
+}
+
+function readyDuplicate(ctx: QueryCtx, asset: Doc<'mediaAssets'>, contentHash: string) {
+  return ctx.db
+    .query('mediaAssets')
+    .withIndex('by_ownerUserId_profileClass_contentHash_status', (q) =>
+      q
+        .eq('ownerUserId', asset.ownerUserId)
+        .eq('profileClass', asset.profileClass)
+        .eq('contentHash', contentHash)
+        .eq('status', 'READY')
+    )
+    .first()
+}
+
+/**
+ * Finishing an upload whose normalized content matches the owner's READY asset of the same class
+ * returns that asset and discards this upload's outputs and reservation (ADR 0012 amendment).
+ */
+export async function reuseDuplicate(
+  ctx: MutationCtx,
+  profile: Doc<'userProfiles'>,
+  asset: Doc<'mediaAssets'>,
+  contentHash: string,
+  outputKeys: string[]
+) {
+  const existing = await readyDuplicate(ctx, asset, contentHash)
+  if (!existing || existing.id === asset.id) return null
+  await charge(ctx, profile, -asset.chargedBytes)
+  await ctx.db.patch(asset._id, {
+    status: 'DELETED',
+    contentHash,
+    variants: [],
+    operation: null,
+    chargedBytes: 0,
+    cleanupAt: null
+  })
+  if (outputKeys.length)
+    await ctx.scheduler.runAfter(0, internal.media.assets.deleteObjects, { keys: outputKeys })
+  if (asset.rawObjectKey)
+    await ctx.scheduler.runAt(
+      Math.max(Date.now(), asset.uploadExpiresAt + OPERATION_WINDOW),
+      internal.media.assets.cleanupRaw,
+      { assetId: asset.id }
+    )
+  // An unattached match gets a fresh grace period, as a newly finished upload would.
+  if (existing.cleanupAt !== null) {
+    const cleanupAt = Date.now() + GRACE
+    await ctx.db.patch(existing._id, { cleanupAt })
+    await ctx.scheduler.runAt(cleanupAt, internal.media.assets.cleanup, { assetId: existing.id })
+  }
+  return existing
+}
+
+/** A replayed finish for an upload that was de-duplicated resolves to the asset it reused. */
+export async function reusedAsset(ctx: QueryCtx, asset: Doc<'mediaAssets'>) {
+  if (asset.status !== 'DELETED' || asset.contentHash === null) return null
+  return readyDuplicate(ctx, asset, asset.contentHash)
+}
 
 export async function findAsset(ctx: QueryCtx | MutationCtx, id: string) {
   return ctx.db
@@ -85,27 +169,28 @@ export const avatar = query({
 export const createAvatarUpload = mutation({
   args: zodToConvexFields(avatarUploadInputSchema.shape),
   returns: zodToConvex(mediaSinglePutUploadSchema),
-  handler: (ctx, args) => createMediaUpload(ctx, args)
+  handler: (ctx, args) => createMediaUpload(ctx, args, { type: 'ACCOUNT_AVATAR' })
 })
 
-// Called only after the owning domain has authorized its exact target.
-export async function createMediaUpload(
-  ctx: MutationCtx,
-  args: ImageUploadMetadata | Omit<CreateCampaignFileUploadIntentInput, 'profile' | 'target'>,
-  target?:
-    | AuthoredImageTarget
-    | CharacterPortraitTarget
-    | CreateCampaignFileUploadIntentInput['target']
-    | CreateVttMapUploadIntentInput['target']
-) {
-  const mapTarget = target?.type === 'VTT_MAP' ? target : undefined
-  const campaignTarget =
-    target?.type === 'CAMPAIGN_FILE' || target?.type === 'CAMPAIGN_HANDOUT_MAP' ? target : undefined
-  const input = mapTarget
-    ? vttMapStoredAssetSchema.shape.upload.parse(args)
-    : campaignTarget
-      ? campaignStoredFileAssetSchema.shape.upload.parse(args)
-      : avatarUploadInputSchema.parse(args)
+/**
+ * Called only after the owning domain has authorized a write to `target`. The asset belongs to its
+ * uploader, not the target: the target only chooses the upload limits and the asset's class.
+ */
+export async function createMediaUpload(ctx: MutationCtx, args: unknown, target: MediaTarget) {
+  const input =
+    target.type === 'VTT_MAP'
+      ? vttMapStoredAssetSchema.shape.upload.parse(args)
+      : target.type === 'CAMPAIGN_FILE' || target.type === 'CAMPAIGN_HANDOUT_MAP'
+        ? mediaStoredAssetFieldsSchema.shape.upload.parse(args)
+        : avatarUploadInputSchema.parse(args)
+  const profileClass: MediaProfileClass =
+    target.type === 'VTT_MAP'
+      ? 'VTT_MAP'
+      : target.type === 'CAMPAIGN_HANDOUT_MAP'
+        ? 'HANDOUT_MAP'
+        : input.declaredMimeType === 'text/plain'
+          ? 'TEXT_FILE'
+          : 'CONTENT_ART'
   const authenticated = await getAuthenticatedProfile(ctx)
   if (!authenticated) throw new Error('Unauthenticated')
   const userId = authenticated.identity.userId
@@ -115,72 +200,43 @@ export async function createMediaUpload(
       q.eq('ownerUserId', userId).eq('upload.idempotencyKey', input.idempotencyKey)
     )
     .unique()
-  if (asset) {
-    const campaignMediaTarget = mapTarget ?? campaignTarget
-    const matchesTarget = campaignMediaTarget
-      ? asset.profile === campaignMediaTarget.type &&
-        'campaignId' in asset &&
-        asset.campaignId === campaignMediaTarget.campaignId
-      : target?.type === 'AUTHORED_IMAGE'
-        ? asset.profile === 'AUTHORED_IMAGE' &&
-          asset.authoredTarget?.subjectId === target.subjectId &&
-          asset.authoredTarget.subjectKind === target.subjectKind
-        : target?.type === 'CHARACTER_PORTRAIT'
-          ? asset.profile === 'CHARACTER_PORTRAIT' &&
-            asset.characterTarget?.characterId === target.characterId
-          : asset.profile === 'ACCOUNT_AVATAR'
-    if (
-      asset.status !== 'PENDING_UPLOAD' ||
-      !matchesTarget ||
+  if (
+    asset &&
+    (asset.status !== 'PENDING_UPLOAD' ||
+      asset.profileClass !== profileClass ||
       asset.upload.originalFileName !== input.originalFileName ||
       asset.upload.declaredMimeType !== input.declaredMimeType ||
-      asset.upload.declaredBytes !== input.declaredBytes
-    )
-      throw new Error('Upload command has already been used.')
-  }
+      asset.upload.declaredBytes !== input.declaredBytes)
+  )
+    throw new Error('Upload command has already been used.')
   if (!asset) {
-    const reservationBytes = (mapTarget ? 25 : 6) * MIB
+    const reservationBytes = (profileClass === 'VTT_MAP' ? 25 : 6) * MIB
     await charge(ctx, authenticated.profile, reservationBytes)
     const id = crypto.randomUUID()
     const pending = {
       id,
       ownerUserId: userId,
+      storageAssetId: id,
       upload: input,
       status: 'PENDING_UPLOAD',
       rawObjectKey: `pending/${id}/${crypto.randomUUID()}`,
       uploadExpiresAt: 0,
       chargedBytes: reservationBytes,
+      contentHash: null,
       variants: [],
-      crop: null,
       operation: null,
       cleanupAt: null
     }
-    const row = mapTarget
-      ? vttMapStoredAssetSchema.parse({
-          ...pending,
-          profile: 'VTT_MAP',
-          campaignId: mapTarget.campaignId,
-          hasSceneReferences: false,
-          width: null,
-          height: null
-        })
-      : campaignTarget
-        ? campaignStoredFileAssetSchema.parse({
+    const row =
+      profileClass === 'VTT_MAP'
+        ? vttMapStoredAssetSchema.parse({
             ...pending,
-            profile: campaignTarget.type,
-            campaignId: campaignTarget.campaignId
+            profileClass,
+            hasSceneReferences: false,
+            width: null,
+            height: null
           })
-        : mediaStoredAssetSchema.parse({
-            ...pending,
-            profile:
-              target?.type === 'CHARACTER_PORTRAIT'
-                ? 'CHARACTER_PORTRAIT'
-                : target
-                  ? 'AUTHORED_IMAGE'
-                  : 'ACCOUNT_AVATAR',
-            ...(target?.type === 'AUTHORED_IMAGE' ? { authoredTarget: target } : {}),
-            ...(target?.type === 'CHARACTER_PORTRAIT' ? { characterTarget: target } : {})
-          })
+        : mediaStoredAssetSchema.parse({ ...pending, profileClass, cropThumbnails: [] })
     const rowId = await ctx.db.insert('mediaAssets', row)
     asset = await ctx.db.get(rowId)
   }
@@ -218,151 +274,152 @@ export async function createMediaUpload(
   })
 }
 
+/** Claims processing of the caller's pending upload for a slot the domain has already authorized. */
+export async function beginImageUpload(
+  ctx: MutationCtx,
+  asset: Doc<'mediaAssets'>,
+  binding: MediaImageBinding
+): Promise<MediaProcessClaim> {
+  if (asset.profileClass !== 'CONTENT_ART') throw new Error('Image is unavailable.')
+  if (asset.operation) throw new Error('Image processing is still running. Try again shortly.')
+  if (asset.status !== 'PENDING_UPLOAD') throw new Error('Image is unavailable.')
+  if (Date.now() > asset.uploadExpiresAt) throw new Error('Upload expired. Choose the image again.')
+  const id = crypto.randomUUID()
+  const operation = mediaProcessingOperationSchema.parse({
+    id,
+    expiresAt: Date.now() + OPERATION_WINDOW,
+    outputs: (['SOURCE', 'DISPLAY', 'THUMBNAIL'] as const).map((kind) => ({
+      kind,
+      objectKey: `ready/${asset.id}/${id}/${kind.toLowerCase()}.webp`
+    })),
+    binding
+  })
+  await ctx.db.patch(asset._id, { status: 'PROCESSING', operation })
+  await ctx.scheduler.runAt(operation.expiresAt, internal.media.assets.expireOperation, {
+    assetId: asset.id,
+    operationId: id
+  })
+  return { kind: 'PROCESS', asset: storedImage(asset), operation }
+}
+
+/**
+ * Verifies an image upload's exact outputs and settles it: a READY duplicate of the owner's content
+ * is reused, otherwise the upload becomes READY with its actual charge. The caller binds the slot.
+ */
+export async function settleImageUpload(ctx: MutationCtx, input: MediaImageSaveSettlement) {
+  const { authenticated, asset } = await ownedAsset(ctx, input.assetId)
+  const operation = asset.profileClass === 'CONTENT_ART' ? asset.operation : null
+  if (
+    asset.profileClass !== 'CONTENT_ART' ||
+    asset.status !== 'PROCESSING' ||
+    !operation?.binding ||
+    operation.id !== input.operationId ||
+    Date.now() >= operation.expiresAt
+  )
+    throw new Error('Image processing is no longer current.')
+  if (
+    input.variants.length !== operation.outputs.length ||
+    new Set(input.variants.map((item) => item.kind)).size !== input.variants.length ||
+    input.variants.some(
+      (item) =>
+        !operation.outputs.some(
+          (expected) => expected.kind === item.kind && expected.objectKey === item.objectKey
+        )
+    )
+  )
+    throw new Error('Processed image output mismatch.')
+  const userId = authenticated.identity.userId
+  const duplicate = await reuseDuplicate(
+    ctx,
+    authenticated.profile,
+    asset,
+    input.contentHash,
+    input.variants.map((item) => item.objectKey)
+  )
+  if (duplicate)
+    return {
+      authenticated,
+      asset: requireAttachableImage(duplicate, userId),
+      binding: operation.binding
+    }
+  const bytes = input.variants.reduce((sum, item) => sum + item.byteSize, 0)
+  await charge(ctx, authenticated.profile, bytes - asset.chargedBytes)
+  const ready = {
+    status: 'READY' as const,
+    variants: input.variants,
+    contentHash: input.contentHash,
+    chargedBytes: bytes,
+    operation: null,
+    cleanupAt: null
+  }
+  await ctx.db.patch(asset._id, ready)
+  if (asset.rawObjectKey)
+    await ctx.scheduler.runAt(
+      Math.max(Date.now(), asset.uploadExpiresAt + OPERATION_WINDOW),
+      internal.media.assets.cleanupRaw,
+      { assetId: asset.id }
+    )
+  return { authenticated, asset: { ...asset, ...ready }, binding: operation.binding }
+}
+
+export async function bindAvatar(
+  ctx: MutationCtx,
+  profile: Doc<'userProfiles'>,
+  asset: StoredImage,
+  crop: NormalizedImageCrop
+): Promise<AvatarBindingDto> {
+  const revision = (profile.avatarRevision ?? 0) + 1
+  await ctx.db.patch(profile._id, {
+    avatarAssetId: asset.id,
+    avatarCrop: crop,
+    avatarRevision: revision
+  })
+  await ctx.db.patch(asset._id, { cleanupAt: null })
+  if (profile.avatarAssetId) await releaseAsset(ctx, profile.avatarAssetId)
+  return { assetId: asset.id, revision }
+}
+
+export async function attachAvatar(ctx: MutationCtx, assetId: string, crop: NormalizedImageCrop) {
+  const { authenticated, asset } = await ownedAsset(ctx, assetId)
+  const profile = authenticated.profile
+  if (profile.avatarAssetId === asset.id && sameCrop(profile.avatarCrop ?? null, crop))
+    return binding(profile)
+  return bindAvatar(
+    ctx,
+    profile,
+    requireAttachableImage(asset, authenticated.identity.userId),
+    crop
+  )
+}
+
 export const beginSave = internalMutation({
   args: zodToConvexFields(avatarSaveInputSchema.shape),
   returns: zodToConvex(mediaProcessClaimSchema),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<MediaProcessClaim> => {
     const input = avatarSaveInputSchema.parse(args)
     const { authenticated, asset } = await ownedAsset(ctx, input.assetId)
-    if (asset.profile !== 'ACCOUNT_AVATAR') throw new Error('Image is unavailable.')
-    if (asset.operation) throw new Error('Image processing is still running. Try again shortly.')
-    if (asset.status !== 'PENDING_UPLOAD' && asset.status !== 'READY')
-      throw new Error('Image is unavailable.')
-    if (asset.status === 'PENDING_UPLOAD' && Date.now() > asset.uploadExpiresAt)
-      throw new Error('Upload expired. Choose the image again.')
-    if (
-      asset.status === 'READY' &&
-      authenticated.profile.avatarAssetId === asset.id &&
-      asset.crop?.x === input.crop.x &&
-      asset.crop.y === input.crop.y &&
-      asset.crop.width === input.crop.width &&
-      asset.crop.height === input.crop.height
-    ) {
-      return {
-        kind: 'CURRENT' as const,
-        binding: binding(authenticated.profile)
-      }
-    }
-    const id = crypto.randomUUID()
-    const initial = asset.status === 'PENDING_UPLOAD'
-    const kinds = initial ? (['SOURCE', 'DISPLAY', 'THUMBNAIL'] as const) : (['THUMBNAIL'] as const)
-    const operation = {
-      id,
-      kind: initial ? ('INITIAL' as const) : ('CROP' as const),
+    if (asset.status === 'READY')
+      return { kind: 'CURRENT', binding: await attachAvatar(ctx, asset.id, input.crop) }
+    return beginImageUpload(ctx, asset, {
+      type: 'ACCOUNT_AVATAR',
       crop: input.crop,
-      expectedAvatarRevision: authenticated.profile.avatarRevision ?? 0,
-      expiresAt: Date.now() + OPERATION_WINDOW,
-      outputs: kinds.map((kind) => ({
-        kind,
-        objectKey: `ready/${asset.id}/${id}/${kind.toLowerCase()}.webp`
-      }))
-    }
-    await ctx.db.patch(asset._id, {
-      status: initial ? 'PROCESSING' : 'READY',
-      operation
+      expectedRevision: authenticated.profile.avatarRevision ?? 0
     })
-    await ctx.scheduler.runAt(operation.expiresAt, internal.media.assets.expireOperation, {
-      assetId: asset.id,
-      operationId: id
-    })
-    const { _id, _creationTime, ...stored } = asset
-    return {
-      kind: 'PROCESS' as const,
-      asset: mediaStoredAssetSchema.parse(stored),
-      operation
-    }
-  }
-})
-
-export const finishSave = internalMutation({
-  args: {
-    assetId: v.string(),
-    operationId: v.string(),
-    variants: v.array(zodToConvex(mediaStoredVariantSchema))
-  },
-  returns: zodToConvex(avatarBindingSchema),
-  handler: async (ctx, args) => {
-    const { authenticated, asset } = await ownedAsset(ctx, args.assetId)
-    if (asset.profile !== 'ACCOUNT_AVATAR') throw new Error('Image is unavailable.')
-    const operation = asset.operation
-    if (operation && 'target' in operation) throw new Error('Image is unavailable.')
-    if (!operation || operation.id !== args.operationId || Date.now() >= operation.expiresAt)
-      throw new Error('Image processing is no longer current.')
-    if ((authenticated.profile.avatarRevision ?? 0) !== operation.expectedAvatarRevision)
-      throw new Error('Avatar changed during processing. Try again.')
-    const outputs = args.variants.map((item) => mediaStoredVariantSchema.parse(item))
-    if (
-      outputs.length !== operation.outputs.length ||
-      new Set(outputs.map((item) => item.kind)).size !== outputs.length ||
-      outputs.some(
-        (item) =>
-          !operation.outputs.some(
-            (expected) => expected.kind === item.kind && expected.objectKey === item.objectKey
-          )
-      )
-    ) {
-      throw new Error('Processed image output mismatch.')
-    }
-    const variants = [
-      ...asset.variants.filter((item) => !outputs.some((next) => next.kind === item.kind)),
-      ...outputs
-    ]
-    if (variants.length !== 3) throw new Error('Processed image variants are incomplete.')
-    const bytes = variants.reduce((sum, item) => sum + item.byteSize, 0)
-    await charge(ctx, authenticated.profile, bytes - asset.chargedBytes)
-    const previousId = authenticated.profile.avatarAssetId
-    if (previousId && previousId !== asset.id) {
-      const previous = await findAsset(ctx, previousId)
-      if (!previous || previous.ownerUserId !== asset.ownerUserId)
-        throw new Error('Stored avatar ownership mismatch.')
-      const cleanupAt = Date.now() + GRACE
-      await ctx.db.patch(previous._id, { cleanupAt })
-      await ctx.scheduler.runAt(cleanupAt, internal.media.assets.cleanup, {
-        assetId: previous.id
-      })
-    }
-    const retiredKeys = asset.variants
-      .filter((old) => outputs.some((next) => next.kind === old.kind))
-      .map((old) => old.objectKey)
-    if (retiredKeys.length)
-      await ctx.scheduler.runAfter(0, internal.media.assets.deleteObjects, {
-        keys: retiredKeys
-      })
-    await ctx.db.patch(asset._id, {
-      status: 'READY',
-      variants,
-      crop: operation.crop,
-      chargedBytes: bytes,
-      operation: null,
-      cleanupAt: null
-    })
-    const revision = (authenticated.profile.avatarRevision ?? 0) + 1
-    await ctx.db.patch(authenticated.profile._id, {
-      avatarAssetId: asset.id,
-      avatarRevision: revision
-    })
-    if (asset.rawObjectKey)
-      await ctx.scheduler.runAt(
-        Math.max(Date.now(), asset.uploadExpiresAt + OPERATION_WINDOW),
-        internal.media.assets.cleanupRaw,
-        { assetId: asset.id }
-      )
-    return { assetId: asset.id, revision }
   }
 })
 
 export const readAvatar = internalQuery({
   args: {},
-  returns: v.union(v.null(), zodToConvex(mediaStoredAssetSchema)),
+  returns: v.union(v.null(), zodToConvex(mediaReferencedImageSchema)),
   handler: async (ctx) => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
-    if (!authenticated.profile.avatarAssetId) return null
-    const { asset } = await ownedAsset(ctx, authenticated.profile.avatarAssetId)
-    if (asset.status !== 'READY' || asset.profile !== 'ACCOUNT_AVATAR')
+    const profile = authenticated.profile
+    if (!profile.avatarAssetId) return null
+    const { asset } = await ownedAsset(ctx, profile.avatarAssetId)
+    if (asset.status !== 'READY' || asset.profileClass !== 'CONTENT_ART')
       throw new Error('Image is unavailable.')
-    const { _id, _creationTime, ...stored } = asset
-    return mediaStoredAssetSchema.parse(stored)
+    return { asset: storedImage(asset), crop: profile.avatarCrop ?? null }
   }
 })
 
@@ -374,17 +431,13 @@ export const removeAvatar = mutation({
     if (!authenticated) throw new Error('Unauthenticated')
     const profile = authenticated.profile
     if (!profile.avatarAssetId) return binding(profile)
-    const { asset } = await ownedAsset(ctx, profile.avatarAssetId)
-    const cleanupAt = Date.now() + GRACE
-    await ctx.db.patch(asset._id, { cleanupAt })
-    await ctx.scheduler.runAt(cleanupAt, internal.media.assets.cleanup, {
-      assetId: asset.id
-    })
     const revision = (profile.avatarRevision ?? 0) + 1
     await ctx.db.patch(profile._id, {
       avatarAssetId: undefined,
+      avatarCrop: undefined,
       avatarRevision: revision
     })
+    await releaseAsset(ctx, profile.avatarAssetId)
     return { assetId: null, revision }
   }
 })
@@ -406,21 +459,17 @@ export const expireOperation = internalMutation({
     await ctx.scheduler.runAfter(0, internal.media.assets.deleteObjects, {
       keys: asset.operation.outputs.map((item) => item.objectKey)
     })
-    const initial = asset.operation.kind === 'INITIAL'
-    const retryFile =
-      (asset.profile === 'CAMPAIGN_FILE' ||
-        asset.profile === 'CAMPAIGN_HANDOUT_MAP' ||
-        asset.profile === 'VTT_MAP') &&
-      asset.status === 'PROCESSING'
+    const slotSave = asset.profileClass !== 'VTT_MAP' && asset.operation.binding !== null
+    const retryFile = asset.status === 'PROCESSING' && !slotSave
     await ctx.db.patch(asset._id, {
-      status: retryFile ? 'PENDING_UPLOAD' : initial ? 'REJECTED' : 'READY',
+      status: retryFile ? 'PENDING_UPLOAD' : slotSave ? 'REJECTED' : asset.status,
       operation: null,
       cleanupAt: retryFile ? Date.now() + GRACE : (asset.cleanupAt ?? Date.now() + GRACE)
     })
-    // File operational failures retain their upload for retry after the write fence.
+    // File and map operational failures retain their upload for retry after the write fence.
     // Explicit validation/quota rejection sets REJECTED before this expiry callback.
-    // Initial image failures release reserved quota and original bytes at the existing
-    // upload-expiry deadline; recrop failures leave the attached image unchanged.
+    // Failed slot saves release reserved quota and original bytes at the existing
+    // upload-expiry deadline; the slot keeps its current image.
     await ctx.scheduler.runAfter(0, internal.media.assets.cleanup, {
       assetId: asset.id
     })
@@ -473,34 +522,25 @@ export const cleanup = internalMutation({
   returns: v.null(),
   handler: async (ctx, { assetId }) => {
     const asset = await findAsset(ctx, assetId)
-    if (!asset || asset.cleanupAt === null || asset.status === 'DELETED') return null
+    if (!asset || asset.status === 'DELETED') return null
     const profile = await ctx.db
       .query('userProfiles')
       .withIndex('by_userId', (q) => q.eq('userId', asset.ownerUserId))
       .unique()
-    if (profile?.avatarAssetId === asset.id) return null
-    if (asset.profile === 'VTT_MAP' && (await mapIsReferenced(ctx, asset.id))) return null
-    if (
-      await ctx.db
-        .query('characters')
-        .withIndex('by_portraitAssetId', (q) => q.eq('portraitAssetId', asset.id))
-        .first()
-    )
+    if (await assetIsReferenced(ctx, asset, profile)) {
+      // A reference changed: drop framing no slot uses, and cancel any pending retirement.
+      await pruneCropThumbnails(ctx, asset)
+      if (asset.cleanupAt !== null) await ctx.db.patch(asset._id, { cleanupAt: null })
       return null
-    if (
-      await ctx.db
-        .query('campaignAttachments')
-        .withIndex('by_assetId', (q) => q.eq('assetId', asset.id))
-        .first()
-    )
+    }
+    if (asset.cleanupAt === null) {
+      // The last reference detached: READY content starts its recovery grace period.
+      if (asset.status !== 'READY') return null
+      const cleanupAt = Date.now() + GRACE
+      await ctx.db.patch(asset._id, { cleanupAt })
+      await ctx.scheduler.runAt(cleanupAt, internal.media.assets.cleanup, { assetId })
       return null
-    if (
-      await ctx.db
-        .query('authoredImageSlots')
-        .withIndex('by_assetId', (q) => q.eq('assetId', asset.id))
-        .first()
-    )
-      return null
+    }
     const deadline = Math.max(
       asset.cleanupAt,
       asset.uploadExpiresAt + OPERATION_WINDOW,
@@ -512,20 +552,14 @@ export const cleanup = internalMutation({
       })
       return null
     }
-    const keys = [
-      asset.rawObjectKey,
-      ...asset.variants.map((item) => item.objectKey),
-      ...(asset.operation?.outputs.map((item) => item.objectKey) ?? [])
-    ].filter((key): key is string => key !== null)
-    if (keys.length)
-      await ctx.scheduler.runAfter(0, internal.media.assets.deleteObjects, {
-        keys: [...new Set(keys)]
-      })
+    const keys = await ownedObjectKeys(ctx, asset)
+    if (keys.length) await ctx.scheduler.runAfter(0, internal.media.assets.deleteObjects, { keys })
     if (profile) await charge(ctx, profile, -asset.chargedBytes)
     await ctx.db.patch(asset._id, {
       status: 'DELETED',
       rawObjectKey: null,
       variants: [],
+      ...(asset.profileClass === 'VTT_MAP' ? {} : { cropThumbnails: [] }),
       operation: null,
       chargedBytes: 0,
       cleanupAt: null
@@ -533,6 +567,52 @@ export const cleanup = internalMutation({
     return null
   }
 })
+
+/** Any domain reference keeps an asset; cropped slots only ever reference their owner's art. */
+async function assetIsReferenced(
+  ctx: QueryCtx,
+  asset: Doc<'mediaAssets'>,
+  profile: Doc<'userProfiles'> | null
+) {
+  if (profile?.avatarAssetId === asset.id) return true
+  if (asset.profileClass === 'VTT_MAP') return mapIsReferenced(ctx, asset.id)
+  const [portrait, attachment, slot] = await Promise.all([
+    ctx.db
+      .query('characters')
+      .withIndex('by_portraitAssetId', (q) => q.eq('portraitAssetId', asset.id))
+      .first(),
+    ctx.db
+      .query('campaignAttachments')
+      .withIndex('by_assetId', (q) => q.eq('assetId', asset.id))
+      .first(),
+    ctx.db
+      .query('authoredImageSlots')
+      .withIndex('by_assetId', (q) => q.eq('assetId', asset.id))
+      .first()
+  ])
+  return portrait !== null || attachment !== null || slot !== null
+}
+
+/**
+ * The object keys retiring this asset may delete. Variants stay while another live row shares the
+ * same stored objects (a retained Campaign copy or its source).
+ */
+async function ownedObjectKeys(ctx: QueryCtx, asset: Doc<'mediaAssets'>) {
+  const sharers = await ctx.db
+    .query('mediaAssets')
+    .withIndex('by_storageAssetId', (q) => q.eq('storageAssetId', asset.storageAssetId))
+    .take(16)
+  const shared = sharers.some((row) => row._id !== asset._id && row.status !== 'DELETED')
+  const keys = [
+    asset.rawObjectKey,
+    ...(shared ? [] : asset.variants.map((item) => item.objectKey)),
+    ...(asset.profileClass === 'VTT_MAP'
+      ? []
+      : asset.cropThumbnails.map((thumbnail) => thumbnail.variant.objectKey)),
+    ...(asset.operation?.outputs.map((item) => item.objectKey) ?? [])
+  ].filter((key): key is string => key !== null)
+  return [...new Set(keys)]
+}
 
 export const deleteObjects = internalMutation({
   args: {
@@ -586,21 +666,17 @@ export const purgeAccount = internalMutation({
     for (const asset of assets) {
       // F12 must resolve retained Campaign media before deleting its uploader.
       // A stale cleanup job must never erase a still-referenced Scene map.
-      if (asset.profile === 'VTT_MAP' && (await mapIsReferenced(ctx, asset.id)))
+      if (asset.profileClass === 'VTT_MAP' && (await mapIsReferenced(ctx, asset.id)))
         throw new Error('Account media cleanup is restricted by retained Scene maps.')
       const portraits = await ctx.db
         .query('characters')
         .withIndex('by_portraitAssetId', (q) => q.eq('portraitAssetId', asset.id))
         .take(32)
       for (const character of portraits) {
-        if (
-          character.userId !== userId ||
-          asset.profile !== 'CHARACTER_PORTRAIT' ||
-          asset.characterTarget?.characterId !== character.id
-        )
-          throw new Error('Stored portrait ownership mismatch.')
+        if (character.userId !== userId) throw new Error('Stored portrait ownership mismatch.')
         await ctx.db.patch(character._id, {
           portraitAssetId: undefined,
+          portraitCrop: undefined,
           portraitRevision: (character.portraitRevision ?? 0) + 1
         })
       }
@@ -621,11 +697,7 @@ export const purgeAccount = internalMutation({
         })
         return null
       }
-      const keys = [
-        asset.rawObjectKey,
-        ...asset.variants.map((item) => item.objectKey),
-        ...(asset.operation?.outputs.map((item) => item.objectKey) ?? [])
-      ].filter((key): key is string => key !== null)
+      const keys = await ownedObjectKeys(ctx, asset)
       if (keys.length) {
         const deadline = Math.max(
           Date.now() + OPERATION_WINDOW,

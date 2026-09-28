@@ -1,6 +1,7 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import type { CharacterBuilderDraftDto } from '../api/characterBuilder.js'
 import { IMPORT_MAX_ENTRY_BYTES } from '../api/imports.js'
+import { normalizedImageCropSchema } from '../api/media.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
 
@@ -36,6 +37,8 @@ export const characterStoredRecordSchema = lazySchema(() =>
     walkingSpeed: z.number().check(z.nonnegative()),
     portraitAssetId: z.optional(uuid),
     portraitRevision: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+    /** The portrait's own framing; the same image framed differently elsewhere is unaffected. */
+    portraitCrop: z.optional(normalizedImageCropSchema),
     sheetState: z.optional(
       z.strictObject({
         documentJson: z.string(),

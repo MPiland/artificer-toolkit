@@ -116,12 +116,13 @@ describe('native Campaign file upload intents', () => {
     expect(before.assets[0]).toMatchObject({
       id: intent.assetId,
       ownerUserId: other.userId,
-      campaignId: campaign.id,
-      profile: 'CAMPAIGN_FILE',
+      storageAssetId: intent.assetId,
+      profileClass: 'TEXT_FILE',
       status: 'PENDING_UPLOAD',
       chargedBytes: 6 * 1024 * 1024,
+      contentHash: null,
       variants: [],
-      crop: null,
+      cropThumbnails: [],
       operation: null
     })
     expect(before.profile?.mediaBytes).toBe(6 * 1024 * 1024)
@@ -216,7 +217,7 @@ describe('native Campaign file upload intents', () => {
     expect(await t.run((ctx) => ctx.db.query('mediaAssets').collect())).toEqual(before)
   })
 
-  it('binds owner-scoped replay to the exact target, profile and immutable upload metadata', async () => {
+  it('binds owner-scoped replay to the upload class and immutable metadata, not its Campaign', async () => {
     const { t, owner, other, campaign } = await setup()
     const request: CreateCampaignFileUploadIntentInput = {
       ...input(campaign.id),
@@ -259,18 +260,24 @@ describe('native Campaign file upload intents', () => {
         ...request,
         profile: 'CAMPAIGN_HANDOUT_MAP' as const,
         target: { type: 'CAMPAIGN_HANDOUT_MAP' as const, campaignId: campaign.id }
-      },
-      { ...request, target: { ...request.target, campaignId: otherCampaign.id } }
+      }
     ])
       await expect(owner.caller.mutation(createUpload, next)).rejects.toThrow('already been used')
+    expect(await snapshot()).toEqual(before)
+    // The pending upload is the owner's: it replays for another Campaign or an image slot.
+    expect(
+      await owner.caller.mutation(createUpload, {
+        ...request,
+        target: { ...request.target, campaignId: otherCampaign.id }
+      })
+    ).toMatchObject({ assetId: first.assetId })
     const { profile: _profile, target: _target, ...metadata } = request
-    await expect(
-      owner.caller.mutation(api.media.assets.createAvatarUpload, {
+    expect(
+      await owner.caller.mutation(api.media.assets.createAvatarUpload, {
         ...metadata,
         declaredMimeType: 'image/png'
       })
-    ).rejects.toThrow('already been used')
-    expect(await snapshot()).toEqual(before)
+    ).toMatchObject({ assetId: first.assetId })
     await t.run(async (ctx) => {
       const row = await ctx.db
         .query('mediaAssets')

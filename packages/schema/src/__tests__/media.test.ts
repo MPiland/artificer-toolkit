@@ -159,9 +159,24 @@ describe('media contracts', () => {
         subjectId: canonicalOwlId.toUpperCase(),
         scope: 'ACTIVE',
         assetId: null,
+        crop: null,
         revision: 0
       }).subjectId
     ).toBe(canonicalOwlId)
+    // The slot owns its framing: an image needs one, an empty slot has none.
+    for (const slot of [
+      { assetId: '550e8400-e29b-41d4-a716-446655440000', crop: null },
+      { assetId: null, crop: { x: 0, y: 0, width: 1, height: 1 } }
+    ])
+      expect(
+        authoredImageSlotSchema.safeParse({
+          subjectKind: 'CREATURE',
+          subjectId: canonicalOwlId,
+          scope: 'DRAFT',
+          revision: 1,
+          ...slot
+        }).success
+      ).toBe(false)
     expect(
       imageLookupInputSchema.safeParse({
         target: {

@@ -10,18 +10,24 @@ import {
   type CampaignAttachmentDto,
   type CampaignAttachmentListPage
 } from '@artificer-toolkit/schema/api/campaignAttachments'
+import type { CampaignFileProfile } from '@artificer-toolkit/schema/api/media'
+import type { MediaStoredAsset } from '@artificer-toolkit/schema/api/mediaAssets'
 import {
   campaignFileDeliverySourceSchema,
-  campaignStoredAttachmentSchema,
-  campaignStoredFileAssetSchema
+  campaignStoredAttachmentSchema
 } from '@artificer-toolkit/schema/projections/campaignFilePersistence'
 import { query, internalQuery } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
+import { storedImage } from '../media/assets'
 import { readCampaignAuthorLabels, requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import { removeCampaignAttachment } from './attachmentDocuments'
 import { assertCampaignContentAllowed } from './contentUsage'
+
+function attachmentProfile(profileClass: MediaStoredAsset['profileClass']): CampaignFileProfile {
+  return profileClass === 'HANDOUT_MAP' ? 'CAMPAIGN_HANDOUT_MAP' : 'CAMPAIGN_FILE'
+}
 
 export const readDelivery = internalQuery({
   args: zodToConvexFields(getCampaignAttachmentDeliveryInputSchema.shape),
@@ -44,17 +50,13 @@ export const readDelivery = internalQuery({
     if (
       !asset ||
       asset.status !== 'READY' ||
-      (asset.profile !== 'CAMPAIGN_FILE' && asset.profile !== 'CAMPAIGN_HANDOUT_MAP') ||
-      asset.campaignId !== campaign.id ||
-      asset.profile !== attachment.profile ||
-      (asset.ownerUserId !== attachment.uploaderUserId &&
-        asset.retainedFromUserId !== attachment.uploaderUserId)
+      asset.profileClass === 'VTT_MAP' ||
+      attachmentProfile(asset.profileClass) !== attachment.profile
     )
       throw new Error('Campaign attachment is unavailable.')
     // Reading a shared attachment requires membership, not uploader ownership or
     // access to the optionally associated notebook. Only verified SOURCE is signable.
-    const { _id, _creationTime, ...stored } = asset
-    const file = campaignStoredFileAssetSchema.parse(stored)
+    const file = storedImage(asset)
     const source = file.variants.find((variant) => variant.kind === 'SOURCE')
     if (!source) throw new Error('Campaign attachment is unavailable.')
     return campaignFileDeliverySourceSchema.parse({
@@ -129,12 +131,13 @@ export const create = mutation({
       .query('mediaAssets')
       .withIndex('by_publicId', (q) => q.eq('id', input.assetId.toLowerCase()))
       .unique()
+    // Attaching needs Campaign write access and the caller's own READY file or image (any class
+    // but maps); the same asset may already serve other Campaigns or the caller's own slots.
     if (
       !asset ||
       asset.ownerUserId !== userId ||
       asset.status !== 'READY' ||
-      (asset.profile !== 'CAMPAIGN_FILE' && asset.profile !== 'CAMPAIGN_HANDOUT_MAP') ||
-      asset.campaignId !== campaign.id
+      asset.profileClass === 'VTT_MAP'
     )
       throw new Error('Campaign attachment is unavailable.')
     const attachment = campaignStoredAttachmentSchema.parse({
@@ -142,7 +145,7 @@ export const create = mutation({
       campaignId: campaign.id,
       assetId: asset.id,
       uploaderUserId: userId,
-      profile: asset.profile,
+      profile: attachmentProfile(asset.profileClass),
       displayName: input.displayName,
       description: input.description ?? null,
       sessionId,

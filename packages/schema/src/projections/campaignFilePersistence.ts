@@ -1,19 +1,17 @@
 import { z, lazySchema } from '../zod.js'
 import {
-  avatarUploadInputSchema,
+  mediaSha256Schema,
   mediaStoredAssetSchema,
+  mediaStoredFileVariantSchema,
   mediaStoredVariantSchema,
   mediaProcessingOperationSchema
 } from '../api/mediaAssets.js'
 import {
-  campaignFileMimeTypeSchema,
-  campaignFileProfileSchema,
   finalizeImageUploadInputSchema,
   finalizeImageUploadOutputSchema,
   signedCampaignFileDeliveryDtoSchema
 } from '../api/media.js'
 import { campaignAttachmentDtoSchema } from '../api/campaignAttachments.js'
-import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 /** The uploader label is resolved on read so a deleted account never keeps its username. */
 export const campaignStoredAttachmentSchema = lazySchema(() =>
@@ -22,59 +20,11 @@ export const campaignStoredAttachmentSchema = lazySchema(() =>
   })
 )
 
-export const campaignStoredFileVariantSchema = lazySchema(() =>
-  z.discriminatedUnion('mimeType', [
-    mediaStoredVariantSchema,
-    z.extend(mediaStoredVariantSchema, {
-      kind: z.literal('SOURCE'),
-      mimeType: z.literal('text/plain'),
-      width: z.null(),
-      height: z.null()
-    })
-  ])
-)
-
-export const campaignStoredFileAssetSchema = lazySchema(() =>
-  z
-    .extend(z.omit(mediaStoredAssetSchema, { authoredTarget: true, copiedFromAssetId: true }), {
-      profile: campaignFileProfileSchema,
-      campaignId: postgresUuidSchema,
-      upload: z.extend(avatarUploadInputSchema, { declaredMimeType: campaignFileMimeTypeSchema }),
-      variants: z.array(campaignStoredFileVariantSchema).check(z.maxLength(3)),
-      crop: z.null(),
-      operation: z.nullable(
-        z.extend(
-          z.omit(mediaProcessingOperationSchema, { crop: true, expectedAvatarRevision: true }),
-          { kind: z.literal('INITIAL') }
-        )
-      )
-    })
-    .check(
-      z.superRefine((asset, ctx) => {
-        const text = asset.upload.declaredMimeType === 'text/plain'
-        if (text && asset.profile !== 'CAMPAIGN_FILE')
-          ctx.addIssue({
-            code: 'custom',
-            path: ['upload'],
-            message: 'Handout maps must be images.'
-          })
-        if (asset.variants.some((variant) => (variant.mimeType === 'text/plain') !== text))
-          ctx.addIssue({
-            code: 'custom',
-            path: ['variants'],
-            message: 'File variants must match the upload type.'
-          })
-      })
-    )
-)
-
-export type CampaignStoredFileAsset = z.infer<typeof campaignStoredFileAssetSchema>
-export type CampaignStoredFileVariant = z.infer<typeof campaignStoredFileVariantSchema>
-
 export const campaignFileFinalizeInputSchema = lazySchema(() =>
   z.extend(finalizeImageUploadInputSchema, {
     operationId: z.string().check(z.uuid()),
-    variants: z.array(campaignStoredFileVariantSchema).check(z.minLength(1)).check(z.maxLength(3))
+    variants: z.array(mediaStoredFileVariantSchema).check(z.minLength(1)).check(z.maxLength(3)),
+    contentHash: mediaSha256Schema
   })
 )
 export const campaignFileProcessClaimSchema = lazySchema(() =>
@@ -88,8 +38,8 @@ export const campaignFileProcessClaimSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('PROCESS'),
-      asset: campaignStoredFileAssetSchema,
-      operation: campaignStoredFileAssetSchema.shape.operation._zod.def.innerType
+      asset: mediaStoredAssetSchema,
+      operation: mediaProcessingOperationSchema
     })
   ])
 )
