@@ -137,10 +137,11 @@ const createRun = makeFunctionReference<
  * An ACTIVE Assisted Encounter with the GM (owner), a player whose assigned Character is in the Run,
  * a second player without a Character, a companion Creature and an enemy Creature (both GM-controlled
  * until granted) and a hidden custom actor. The companion acts first; everyone auto-rolls unless
- * `promptRolls` turns it off for the GM and both players.
+ * `promptRolls` turns it off for the GM and both players. `additionalCreatures` adds more enemy
+ * Creatures, which act last.
  */
 export async function playerControlFixture(
-  options: { bite?: PlayerControlBite; promptRolls?: boolean } = {}
+  options: { bite?: PlayerControlBite; promptRolls?: boolean; additionalCreatures?: number } = {}
 ) {
   const bite = options.bite ?? 'ACTIVATED'
   const base = await setupCharacterRun()
@@ -173,7 +174,11 @@ export async function playerControlFixture(
     enemies: [
       { kind: 'CREATURE', sourceId: creature.id },
       { kind: 'CREATURE', sourceId: creature.id },
-      { kind: 'CUSTOM', label: 'Lurker', maxHitPoints: 10 }
+      { kind: 'CUSTOM', label: 'Lurker', maxHitPoints: 10 },
+      ...Array.from({ length: options.additionalCreatures ?? 0 }, () => ({
+        kind: 'CREATURE' as const,
+        sourceId: creature.id
+      }))
     ]
   })
   const created = await base.owner.caller.mutation(createRun, {
@@ -181,7 +186,9 @@ export async function playerControlFixture(
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  const [companion, enemy] = created.actors.filter((actor) => actor.kind === 'CREATURE')
+  const [companion, enemy, ...additional] = created.actors.filter(
+    (actor) => actor.kind === 'CREATURE'
+  )
   const lurker = created.actors.find((actor) => actor.kind === 'CUSTOM')
   const character = created.actors.find((actor) => actor.kind === 'CHARACTER')
   if (!companion || !enemy || !lurker || !character)
@@ -213,7 +220,13 @@ export async function playerControlFixture(
       projectionJson: JSON.stringify(projection),
       projectionChecksum: checksumCanonicalJson(projection)
     })
-    await seedActiveInitiative(ctx, active, [companion.id, character.id, enemy.id, lurker.id])
+    await seedActiveInitiative(ctx, active, [
+      companion.id,
+      character.id,
+      enemy.id,
+      lurker.id,
+      ...additional.map((actor) => actor.id)
+    ])
     const actorRow = await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (query) =>
