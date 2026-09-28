@@ -26,7 +26,7 @@ import {
   grantFixtureActorControl
 } from '../../tests/fixtures/spatialPreparation'
 import { readBundleAndSeparateCaptures } from '../../tests/fixtures/captureBundleParity'
-import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
 import {
@@ -175,12 +175,9 @@ it('prepares Worker movement from current private captures and rejects stale roo
       .unique()
     if (!row) throw new Error('Missing fixture Run.')
     const state = { ...readRunState(row), automationMode: 'ASSISTED' as const }
-    const projection = { ...readRunProjection(row), automationMode: 'ASSISTED' as const }
     await ctx.db.patch(row._id, {
       stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
+      stateChecksum: checksumCanonicalJson(state)
     })
   })
   const staged = await base.other.caller.mutation(stage, base.ownerStage)

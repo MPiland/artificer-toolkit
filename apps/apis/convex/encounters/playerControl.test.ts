@@ -19,6 +19,7 @@ import {
   requireBoundTokenMoveControl
 } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 import { encounterReadTransaction } from './encounterPorts'
@@ -182,7 +183,10 @@ describe('Encounter actor control', () => {
         .unique()
       if (!row) throw new Error('Missing player control Run.')
       return {
-        projection: encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson)),
+        projection: await readEncounterGmProjection(
+          encounterReadTransaction(ctx),
+          readRunState(row)
+        ),
         companion: await readRunActor(ctx, readRunState(row), base.companion.id)
       }
     })

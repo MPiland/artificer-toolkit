@@ -18,7 +18,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mutation } from '../lib/mutations'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
-import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { internalQuery, query } from '../lib/queries'
 import { readRecipientContext } from '../scenes/recipientContext'
@@ -50,7 +50,6 @@ async function readBoundSceneScope(
   )
     rejectDomain('VERSION_STALE')
   readRunState(run)
-  readRunProjection(run)
 
   const { capture } = await readRecipientContext(ctx, input.sceneId, input.expectedVersion, userId)
   if (capture.header.campaignId !== campaign.id)
@@ -156,7 +155,6 @@ export async function bindEncounterToPresentedScene(
   if (encounter.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
   readRunState(encounter)
-  readRunProjection(encounter)
   const commandFingerprint = checksumCanonicalJson(input)
   const existing = await ctx.db
     .query('encounterSceneBindings')

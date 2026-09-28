@@ -1,7 +1,6 @@
 import {
   encounterCommandInputDtoSchema,
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -14,12 +13,13 @@ import {
   type EncounterInitiativeRoundStateDto
 } from '@artificer-toolkit/schema/shared/initiativeState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readRunActors, readRunState } from './documents.js'
 import {
-  readEncounterActorCore,
-  readRunActors,
-  readRunProjection,
-  readRunState
-} from './documents.js'
+  encounterReplayReceipt,
+  readEncounterReplayReceipt,
+  replayEncounterCommandResult
+} from './replayReceipts.js'
+import { readEncounterGmProjection } from './nativeProjection.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -64,30 +64,18 @@ export async function reorderEncounterActors(
       prior.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
-    const projection = encounterGmProjectionDtoSchema.parse(result.projection)
+    const replayReceipt = readEncounterReplayReceipt(prior)
     if (
       checksumCanonicalJson(encounterCommandInputDtoSchema.parse(JSON.parse(prior.commandJson))) !==
         fingerprint ||
-      checksumCanonicalJson(result) !== prior.resultChecksum ||
-      projection.id !== row.id ||
-      projection.campaignId !== campaign.id ||
-      projection.gameSystemId !== campaign.gameSystemId ||
-      projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||
-      projection.actors.length !== input.actorIds.length ||
-      projection.actors.some(
-        (actor, index) => actor.id !== input.actorIds[index] || actor.manualOrder !== index
-      ) ||
+      prior.version > row.version ||
       new Set(input.actorIds).size !== input.actorIds.length ||
-      result.roll !== null ||
-      result.occurrence !== null
+      replayReceipt.roll !== null ||
+      replayReceipt.occurrence !== null
     )
       throw new Error('Stored Encounter reorder receipt mismatch.')
-    if (
-      (prior.initiativeStateJson === null) !== (prior.initiativeStateChecksum === null) ||
-      (projection.status === 'ACTIVE') !== (prior.initiativeStateJson !== null)
-    )
+    if ((prior.initiativeStateJson === null) !== (prior.initiativeStateChecksum === null))
       throw new Error('Stored Encounter reorder initiative receipt mismatch.')
     if (prior.initiativeStateJson !== null) {
       const initiative = encounterInitiativeRoundStateDtoSchema.parse(
@@ -96,25 +84,17 @@ export async function reorderEncounterActors(
       if (
         checksumCanonicalJson(initiative) !== prior.initiativeStateChecksum ||
         initiative.round.encounterId !== row.id ||
-        initiative.round.round !== projection.round ||
         [...initiative.participants]
           .sort((a, b) => a.turnOrderOrdinal! - b.turnOrderOrdinal!)
           .some((participant, index) => participant.actorId !== input.actorIds[index])
       )
         throw new Error('Stored Encounter reorder initiative receipt mismatch.')
-      validateInitiativeCursor({
-        state: initiative,
-        currentActorId: projection.currentActorId,
-        actorIds: input.actorIds,
-        allowedSideIds: initiative.participants.map((participant) => participant.sideId)
-      })
     }
-    return result
+    return replayEncounterCommandResult(ctx, readRunState(row), prior)
   }
   if (row.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
   if (row.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   const state = readRunState(row)
-  const projection = readRunProjection(row)
   const actors = await readRunActors(ctx, state)
   const requested = [...input.actorIds].sort()
   const expected = [...state.actorIds].sort()
@@ -125,22 +105,6 @@ export async function reorderEncounterActors(
   )
     throw new Error('Reorder must contain every Encounter actor exactly once.')
   for (const actor of actors) requireSnapshotIdentity(actor)
-  if (
-    projection.actors.length !== actors.length ||
-    new Set(projection.actors.map((actor) => actor.id)).size !== actors.length ||
-    projection.actors.some((actor) => {
-      const stored = actors.find((candidate) => candidate.id === actor.id)
-      return (
-        !stored ||
-        checksumCanonicalJson(readEncounterActorCore(stored)) !==
-          checksumCanonicalJson(readEncounterActorCore(actor))
-      )
-    }) ||
-    projection.currentActorId !== state.currentActorId ||
-    projection.round !== state.round ||
-    checksumCanonicalJson(projection.reminders) !== checksumCanonicalJson(state.reminders)
-  )
-    throw new Error('Stored Encounter projection does not match the Run.')
   const pending = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', row.id).eq('state', 'PENDING'))
@@ -260,27 +224,16 @@ export async function reorderEncounterActors(
     version,
     updatedAt: now
   })
-  const nextProjection = encounterGmProjectionDtoSchema.parse({
-    ...projection,
-    actors: input.actorIds.map((id, index) => ({
-      ...projection.actors.find((actor) => actor.id === id)!,
-      manualOrder: index
-    })),
-    version,
-    updatedAt: now
-  })
-  const result = encounterCommandResultDtoSchema.parse({
-    projection: nextProjection,
-    roll: null,
-    occurrence: null
-  })
   await ctx.db.patch(row._id, {
     version,
     updatedAt: now,
     stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    projectionJson: JSON.stringify(nextProjection),
-    projectionChecksum: checksumCanonicalJson(nextProjection)
+    stateChecksum: checksumCanonicalJson(nextState)
+  })
+  const result = encounterCommandResultDtoSchema.parse({
+    projection: await readEncounterGmProjection(ctx, nextState),
+    roll: null,
+    occurrence: null
   })
   await insertRunCommand(
     ctx,
@@ -294,8 +247,7 @@ export async function reorderEncounterActors(
       actorUserId: userId,
       version,
       commandJson: JSON.stringify(input),
-      resultJson: JSON.stringify(result),
-      resultChecksum: checksumCanonicalJson(result),
+      ...encounterReplayReceipt(result),
       createdAt: now,
       initiativeStateJson: initiative === null ? null : JSON.stringify(initiative),
       initiativeStateChecksum: initiative === null ? null : checksumCanonicalJson(initiative)

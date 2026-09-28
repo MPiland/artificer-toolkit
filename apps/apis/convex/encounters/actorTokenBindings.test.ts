@@ -1,10 +1,9 @@
 import type { z } from 'zod'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto,
-  type EncounterTimelineDto
+import type {
+  EncounterCommandResultDto,
+  EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   BindEncounterToPresentedSceneInputDto,
@@ -377,13 +376,16 @@ it('follows native geometry token removal and restoration for Encounter binding'
     }
   })
   expect(rebound.projection.version).toBe(first.projection.version + 1)
-  expect(await base.other.caller.mutation(execute, { input: base.input })).toEqual(first)
+  expect(await base.other.caller.mutation(execute, { input: base.input })).toEqual({
+    ...first,
+    projection: rebound.projection
+  })
   expect(
     await base.t.run((ctx) => ctx.db.query('encounterActorTokenBindings').collect())
   ).toMatchObject([{ actorId: base.input.actorId, tokenId: tokenId.toLowerCase() }])
 }, 60000)
 
-it('sets and replaces tokens, preserves exact historical replay and exposes binding receipts in timeline', async () => {
+it('sets and replaces tokens, replays the first receipt and exposes binding receipts in timeline', async () => {
   const base = await boundFixture()
   const before = await snapshot(base)
   const first = await base.other.caller.mutation(execute, { input: base.input })
@@ -408,7 +410,7 @@ it('sets and replaces tokens, preserves exact historical replay and exposes bind
         tokenId: base.tokens[0]!.id.toLowerCase()
       }
     })
-  ).toEqual(first)
+  ).toEqual({ ...first, projection: replaced.projection })
   const after = await snapshot(base)
   expect(after.bindings).toMatchObject([
     { actorId: base.input.actorId, tokenId: base.tokens[1]!.id }
@@ -479,36 +481,6 @@ it('rejects a Scene movement receipt with a bad fingerprint or expected Encounte
       commandJson: JSON.stringify(mismatchedVersion)
     })
   )
-  await expect(
-    base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
-  ).rejects.toThrow('Stored Encounter command receipt mismatch.')
-})
-
-it('rejects a Scene movement receipt whose result belongs to another Encounter', async () => {
-  const base = await boundFixture()
-  await replaceBindingReceiptWithMovement(base)
-  const command = await base.t.run((ctx) =>
-    ctx.db
-      .query('encounterRunCommands')
-      .withIndex('by_campaignId_commandId', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('commandId', base.input.commandId)
-      )
-      .unique()
-  )
-  if (!command || command.commandType !== 'MOVE_SCENE_TOKEN')
-    throw new Error('Missing movement receipt')
-  const result = encounterCommandResultDtoSchema.parse(JSON.parse(command.resultJson))
-  const mismatched = encounterCommandResultDtoSchema.parse({
-    ...result,
-    projection: { ...result.projection, id: crypto.randomUUID() }
-  })
-  await base.t.run((ctx) =>
-    ctx.db.patch(command._id, {
-      resultJson: JSON.stringify(mismatched),
-      resultChecksum: checksumCanonicalJson(mismatched)
-    })
-  )
-
   await expect(
     base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
   ).rejects.toThrow('Stored Encounter command receipt mismatch.')
@@ -594,23 +566,14 @@ it('rejects stale, divergent, missing and corrupt inputs and atomically rolls ba
     'token was not found'
   )
   await base.t.run((ctx) => ctx.db.delete(duplicateId))
-  const first = await base.other.caller.mutation(execute, { input: base.input })
+  await base.other.caller.mutation(execute, { input: base.input })
   await expect(
     base.other.caller.mutation(execute, { input: { ...base.input, tokenId: base.tokens[1]!.id } })
   ).rejects.toThrow('different input')
   const receipt = (await snapshot(base)).commands.find(
     (row) => row.commandId === base.input.commandId
   )!
-  const invalidResult = {
-    ...first,
-    projection: { ...first.projection, campaignId: crypto.randomUUID() }
-  }
-  await base.t.run((ctx) =>
-    ctx.db.patch(receipt._id, {
-      resultJson: JSON.stringify(invalidResult),
-      resultChecksum: checksumCanonicalJson(invalidResult)
-    })
-  )
+  await base.t.run((ctx) => ctx.db.patch(receipt._id, { replayReceiptChecksum: '0'.repeat(64) }))
   await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
     'receipt mismatch'
   )
@@ -648,14 +611,11 @@ it('rejects anonymous, player, revoked, pending and completed fresh writes', asy
   const first = await base.other.caller.mutation(execute, { input: base.input })
   const run = (await snapshot(base)).runs[0]!
   const state = { ...encounterRunStateSchema.parse(JSON.parse(run.stateJson)), status: 'COMPLETED' }
-  const projection = { ...first.projection, status: 'COMPLETED' }
   await base.t.run((ctx) =>
     ctx.db.patch(run._id, {
       status: 'COMPLETED',
       stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
+      stateChecksum: checksumCanonicalJson(state)
     })
   )
   await expect(
@@ -667,7 +627,10 @@ it('rejects anonymous, player, revoked, pending and completed fresh writes', asy
       }
     })
   ).rejects.toThrow('Completed')
-  expect(await base.other.caller.mutation(execute, { input: base.input })).toEqual(first)
+  expect(await base.other.caller.mutation(execute, { input: base.input })).toEqual({
+    ...first,
+    projection: { ...first.projection, status: 'COMPLETED' }
+  })
   await base.t.run(async (ctx) => {
     const member = await ctx.db
       .query('campaignMemberships')

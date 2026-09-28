@@ -23,15 +23,12 @@ import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
-import {
-  readRunActors,
-  readRunProjection,
-  readRunState
-} from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   insertRunCommand,
   requireUnusedEvidenceCommandId
 } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import {
   parseGeometryCommand,
   readGeometrySave,
@@ -376,7 +373,6 @@ export async function publishMovementResponse(
 
   const response = await readResponse(ctx, saveId, geometry)
   const { current } = response
-  readRunProjection(current.run)
   if (
     preparation.encounterId !== current.state.id ||
     preparation.occurrenceId !== current.occurrence.id ||
@@ -690,9 +686,7 @@ async function advanceMovementResponseRun(
     version,
     updatedAt: occurredAt,
     stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    projectionJson: JSON.stringify(projection),
-    projectionChecksum: checksumCanonicalJson(projection)
+    stateChecksum: checksumCanonicalJson(nextState)
   })
   return projection
 }
@@ -706,7 +700,6 @@ async function insertMovementResponseCommand(
   occurredAt: string
 ) {
   const version = current.state.version + 1
-  // The stored result is the DTO the timeline re-parses, so its checksum covers defaulted fields.
   const result = encounterCommandResultDtoSchema.parse({ projection, roll: null, occurrence })
   await insertRunCommand(
     ctx,
@@ -720,8 +713,7 @@ async function insertMovementResponseCommand(
       actorUserId: current.userId,
       version,
       commandJson: JSON.stringify(current.command),
-      resultJson: JSON.stringify(result),
-      resultChecksum: checksumCanonicalJson(result),
+      ...encounterReplayReceipt(result),
       ruleOccurrenceId: current.occurrence.id,
       ruleResultChecksum: resultChecksum,
       optionalCombatSnapshotChecksum: current.state.optionalCombatSnapshotChecksum,

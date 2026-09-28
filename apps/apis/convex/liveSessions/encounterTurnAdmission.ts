@@ -14,10 +14,8 @@ import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/enc
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { QueryCtx, MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import {
-  readNativeEncounterCommandReplay,
-  readNativeEncounterCommandState
-} from '@artificer-toolkit/encounter-persistence/commandReplay'
+import { readNativeEncounterCommandReplay } from '@artificer-toolkit/encounter-persistence/commandReplay'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readNativeTurnCommandPending } from '@artificer-toolkit/encounter-persistence/turnCommandPending'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
@@ -37,7 +35,11 @@ import {
   readEncounterControlledActorIds,
   requireEncounterActorControl
 } from '@artificer-toolkit/encounter-persistence/actorController'
-import { readRunActor, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  readRunActor,
+  readRunActors,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** Raw authorization and replay proof; turn rules are evaluated by the Session DO. */
@@ -83,13 +85,11 @@ export async function readLiveEncounterTurnAdmission(
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
-  const { fingerprint, result } = await readNativeEncounterCommandReplay(ctx, {
-    input,
-    row,
-    campaign,
-    userId
-  })
-  const { state, projection } = readNativeEncounterCommandState(row)
+  const { fingerprint, result } = await readNativeEncounterCommandReplay(
+    encounterReadTransaction(ctx),
+    { input, row, campaign, userId }
+  )
+  const state = readRunState(row)
   if (result && input.type !== 'RESOLVE_RULE_OCCURRENCE')
     return {
       input,
@@ -97,7 +97,6 @@ export async function readLiveEncounterTurnAdmission(
       campaign,
       membership,
       state,
-      projection,
       fingerprint,
       kind: 'REPLAY' as const,
       result,
@@ -129,13 +128,12 @@ export async function readLiveEncounterTurnAdmission(
       command: input,
       fingerprint
     })
-    const replay = await readNativeTurnResponseReplay(ctx, {
+    const replay = await readNativeTurnResponseReplay(encounterReadTransaction(ctx), {
       occurrence,
       row,
       campaign,
       command: input,
       userId,
-      projection,
       receipt: completedReceipt
     })
     if (replay)
@@ -145,7 +143,6 @@ export async function readLiveEncounterTurnAdmission(
         campaign,
         membership,
         state,
-        projection,
         fingerprint,
         kind: 'REPLAY' as const,
         result: replay,
@@ -250,7 +247,7 @@ export async function readLiveEncounterTurnAdmission(
       )
         throw new Error('Rule occurrence is unavailable.')
       const result = encounterCommandResultDtoSchema.parse({
-        projection,
+        projection: await readEncounterGmProjection(encounterReadTransaction(ctx), state),
         roll: null,
         occurrence: {
           occurrenceId: occurrence.id,
@@ -279,7 +276,6 @@ export async function readLiveEncounterTurnAdmission(
         campaign,
         membership,
         state,
-        projection,
         fingerprint,
         kind: 'PENDING' as const,
         result,
@@ -318,7 +314,6 @@ export async function readLiveEncounterTurnAdmission(
       campaign,
       membership,
       state,
-      projection,
       fingerprint,
       kind: 'READY' as const,
       result: null,
@@ -326,13 +321,12 @@ export async function readLiveEncounterTurnAdmission(
       resume: prepared
     }
   }
-  const pending = await readNativeTurnCommandPending(ctx, {
+  const pending = await readNativeTurnCommandPending(encounterReadTransaction(ctx), {
     input,
     row,
     campaign,
     userId,
-    commandFingerprint: fingerprint,
-    projection
+    commandFingerprint: fingerprint
   })
   if (pending)
     return {
@@ -341,7 +335,6 @@ export async function readLiveEncounterTurnAdmission(
       campaign,
       membership,
       state,
-      projection,
       fingerprint,
       kind: 'PENDING' as const,
       result: pending.result,
@@ -388,7 +381,6 @@ export async function readLiveEncounterTurnAdmission(
     campaign,
     membership,
     state,
-    projection,
     fingerprint,
     kind: 'READY' as const,
     result: null,

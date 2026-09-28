@@ -15,12 +15,7 @@ import {
   planMovementInRoom,
   planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
-import {
-  encounterGmProjectionDtoSchema,
-  type EncounterSessionStateDto
-} from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -307,35 +302,20 @@ it("shows a player their own actor's turn movement against its Character walking
   // The budget is the Character's stored walking speed.
   expect(walkingSpeed).toBeGreaterThan(0)
   // It is the player's Character's turn.
-  await value.base.t.run(async (ctx) => {
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
-      .unique()
-    if (!run) throw new Error('Expected the movement fixture Run.')
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(run.stateJson),
-      currentActorId: moverId
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(run.projectionJson),
-      currentActorId: moverId
-    })
-    await ctx.db.patch(run._id, {
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [
-      moverId,
-      ...state.actorIds.filter((actorId) => actorId !== moverId)
-    ])
+  const turn = await executeInRoom(value.owner.caller, {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: value.base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: value.rootInput.expectedEncounterVersion
+    }
   })
+  expect(turn.projection.currentActorId).toBe(moverId)
   // One cell down stays in the reactor's reach, so no reaction interrupts the move.
   const move = await planMovementInRoom(value.player.caller, {
     ...value.rootInput,
     commandId: crypto.randomUUID(),
+    expectedEncounterVersion: turn.projection.version,
     path: [
       { x: 150, y: 50 },
       { x: 150, y: 150 }

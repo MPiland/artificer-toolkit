@@ -5,15 +5,11 @@ import type {
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
@@ -49,24 +45,7 @@ async function moverTurn(withHelper = false) {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_BASIC_ACTION_DEFINITIONS
   })
-  const helper = base.additionalReactorActor
-  const order = [...(helper ? [helper.id] : []), base.mover.id, base.reactor.id]
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
-    if (!row) throw new Error('Missing reaction Run.')
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(row.stateJson),
-      currentActorId: order[0]
-    })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state)
-    })
-    await seedActiveInitiative(ctx, state, order)
-  })
+  await setCurrentActor(base, base.additionalReactorActor?.id ?? base.mover.id)
   return base
 }
 

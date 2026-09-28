@@ -1,7 +1,6 @@
 import type { z } from 'zod'
 import {
   encounterCommandInputDtoSchema,
-  encounterCommandResultDtoSchema,
   type EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -10,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import type { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readEncounterReplayReceipt } from './replayReceipts.js'
 import { rejectDomain } from './domainRejections.js'
 import type { EncounterReadContext, EncounterWriteContext } from './store.js'
 
@@ -86,23 +86,13 @@ export function presentTimelineEntry(
   command: StoredCommand
 ): EncounterTimelineDto['entries'][number] {
   const metadata = commandTimelineMetadata(command)
-  const result =
-    command.commandType === 'CREATE'
-      ? null
-      : encounterCommandResultDtoSchema.parse(JSON.parse(command.resultJson))
-  if (
-    command.commandType !== 'CREATE' &&
-    (checksumCanonicalJson(result) !== command.resultChecksum ||
-      result?.projection.id !== command.encounterId ||
-      result.projection.version !== command.version)
-  )
-    throw new Error('Stored Encounter command receipt mismatch.')
+  const receipt = command.commandType === 'CREATE' ? null : readEncounterReplayReceipt(command)
   return {
     ...metadata,
     commandType: command.commandType,
     actorUserId: command.actorUserId,
     createdAt: command.createdAt,
-    roll: result?.roll ?? null,
+    roll: receipt?.roll ?? null,
     label: command.commandType === 'USE_BASIC_ACTION' ? command.label : null,
     ruleOverrides:
       command.commandType === 'RESOLVE_ACTION' || command.commandType === 'USE_BASIC_ACTION'

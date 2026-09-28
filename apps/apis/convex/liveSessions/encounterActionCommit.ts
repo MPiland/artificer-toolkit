@@ -33,6 +33,7 @@ import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-per
 import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
@@ -357,14 +358,11 @@ export const commit = internalMutation({
         pending: null
       }
     })
-    const resultChecksum = checksumCanonicalJson(result)
     const ruleResultChecksum = checksumRuleDocument(execution)
     await ctx.db.patch(run._id, {
       version: nextState.version,
       stateJson: JSON.stringify(nextState),
       stateChecksum: checksumCanonicalJson(nextState),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection),
       updatedAt: input.occurredAt
     })
     await ctx.db.insert(
@@ -412,8 +410,7 @@ export const commit = internalMutation({
         actorUserId: initiatorUserId,
         version: nextState.version,
         commandJson: JSON.stringify(command),
-        resultJson: JSON.stringify(result),
-        resultChecksum,
+        ...encounterReplayReceipt(result),
         createdAt: input.occurredAt
       })
     )

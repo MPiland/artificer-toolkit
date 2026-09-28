@@ -19,7 +19,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { selectEncounterActionD20Natural } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { rejectDomain } from './domainRejections.js'
-import { readRunProjection } from './documents.js'
+import { readRunActor, readRunState } from './documents.js'
+import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { requireUnusedEvidenceCommandId } from './timelineEntries.js'
@@ -110,7 +111,7 @@ async function admitEvidenceRoll(
         campaign,
         membership,
         result: encounterCommandResultDtoSchema.parse({
-          projection: readRunProjection(run),
+          projection: await readEncounterGmProjection(ctx, readRunState(run)),
           roll: null,
           evidenceRoll: presentEvidenceRoll(readStoredRoll(prior))
         })
@@ -212,10 +213,10 @@ export async function rollEncounterRuleEvidence(
   })
   await ctx.db.insert('encounterEvidenceRolls', roll)
   // Every attempt goes to the table log unless it would reveal a hidden actor.
-  const projection = readRunProjection(run)
+  const state = readRunState(run)
   const roller =
     'rollerActorId' in pending && pending.rollerActorId
-      ? projection.actors.find((actor) => actor.id === pending.rollerActorId)
+      ? await readRunActor(ctx, state, pending.rollerActorId)
       : null
   let tableRoll: RollRecordDto | null = null
   if (evaluated && roller?.public !== false) {
@@ -247,7 +248,7 @@ export async function rollEncounterRuleEvidence(
     campaign,
     membership,
     result: encounterCommandResultDtoSchema.parse({
-      projection,
+      projection: await readEncounterGmProjection(ctx, state),
       roll: tableRoll,
       occurrence: {
         occurrenceId: pending.occurrenceId,

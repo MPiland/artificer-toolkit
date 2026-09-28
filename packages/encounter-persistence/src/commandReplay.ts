@@ -1,9 +1,6 @@
-import * as zMini from 'zod/mini'
-import {
-  encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
-  type EncounterCommandInputDto,
-  type EncounterCommandResultDto
+import type {
+  EncounterCommandInputDto,
+  EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { encounterCreatureEquipmentReplacementSchema } from '@artificer-toolkit/schema/projections/encounterCreatureEquipment'
@@ -14,21 +11,12 @@ import type {
   EncounterInitiativeSettlementDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionInitiative'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
-import { readRunProjection, readRunState } from './documents.js'
+import { readRunState } from './documents.js'
+import { readEncounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
-import type { EncounterDocument, EncounterReadContext } from './store.js'
-
-const projectionMetadataFields = zMini.omit(encounterGmProjectionDtoSchema, {
-  actors: true,
-  initiativePolicy: true,
-  optionalCombatRules: true
-})
-const projectionMetadataSchema = projectionMetadataFields.clone({
-  ...projectionMetadataFields._zod.def,
-  catchall: undefined
-})
+import type { EncounterDocument } from './store.js'
+import type { EncounterReadTransaction } from './ports.js'
 
 export function requireInitiativeTransition(
   commandType: 'START' | 'ADVANCE_TURN',
@@ -62,7 +50,7 @@ export function enemyActionRollLabel(featureLabel: string, definitionLabel: stri
 }
 
 export async function readNativeEncounterCommandReplay(
-  ctx: EncounterReadContext,
+  ctx: EncounterReadTransaction,
   {
     input,
     row,
@@ -93,27 +81,22 @@ export async function readNativeEncounterCommandReplay(
       prior.actorUserId !== userId
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
-    const projection = encounterGmProjectionDtoSchema.parse(result.projection)
+    const receipt = readEncounterReplayReceipt(prior)
     if (
       checksumCanonicalJson(JSON.parse(prior.commandJson)) !== commandFingerprint ||
-      checksumCanonicalJson(result) !== prior.resultChecksum ||
-      projection.id !== row.id ||
-      projection.campaignId !== campaign.id ||
-      projection.gameSystemId !== campaign.gameSystemId ||
-      projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||
+      prior.version > row.version ||
       (prior.commandType === 'ROLL_ACTOR_INITIATIVE' || prior.commandType === 'ROLL_ENEMY_ACTION'
-        ? result.roll === null
-        : result.roll !== null) ||
+        ? receipt.roll === null
+        : receipt.roll !== null) ||
       (prior.commandType !== 'START' &&
         prior.commandType !== 'ADVANCE_TURN' &&
-        result.occurrence !== null) ||
+        receipt.occurrence !== null) ||
       ((prior.commandType === 'START' || prior.commandType === 'ADVANCE_TURN') &&
-        result.occurrence !== null &&
-        (result.occurrence.status !== 'COMPLETE' ||
-          result.occurrence.pending !== null ||
-          result.occurrence.outcome !== null)) ||
+        receipt.occurrence !== null &&
+        (receipt.occurrence.status !== 'COMPLETE' ||
+          receipt.occurrence.pending !== null ||
+          receipt.occurrence.outcome !== null)) ||
       (prior.commandType === 'UPDATE_ACTOR' &&
         (input.type !== 'UPDATE_ACTOR' ||
           (input.characterCommand === undefined
@@ -129,45 +112,18 @@ export async function readNativeEncounterCommandReplay(
         input.type !== 'REPLACE_CREATURE_EQUIPMENT' ||
         provenance.actorId !== input.actorId ||
         provenance.loadoutEntryId !== input.loadoutEntryId ||
-        provenance.equipmentId !== input.equipmentId ||
-        !projection.actors.some((actor) => actor.id === input.actorId && actor.kind === 'CREATURE')
+        provenance.equipmentId !== input.equipmentId
       )
         throw new Error('Stored Encounter Equipment replacement receipt mismatch.')
     }
-    if (prior.commandType === 'ROLL_ACTOR_INITIATIVE') {
-      if (input.type !== 'ROLL_ACTOR_INITIATIVE')
-        throw new Error('Stored Encounter initiative roll receipt mismatch.')
-      const target = projection.actors.find((actor) => actor.id === input.actorId)
-      if (
-        !target ||
-        !result.roll ||
-        result.roll.source.kind !== 'INITIATIVE' ||
-        result.roll.characterId !== (target.kind === 'CHARACTER' ? target.sourceId : null) ||
-        result.roll.ruleset.systemId !== campaign.gameSystemId
-      )
-        throw new Error('Stored Encounter initiative roll receipt mismatch.')
-    }
-    if (prior.commandType === 'ROLL_ENEMY_ACTION') {
-      if (input.type !== 'ROLL_ENEMY_ACTION')
-        throw new Error('Stored Encounter enemy action receipt mismatch.')
-      const target = projection.actors.find((actor) => actor.id === input.actorId)
-      if (!target || !result.roll || target.kind === 'CHARACTER')
-        throw new Error('Stored Encounter enemy action receipt mismatch.')
-      const feature = target.features.find((candidate) => candidate.id === input.featureId)
-      const definition = feature?.rollDefinitions?.find(
-        (candidate) => candidate.id === input.rollDefinitionId
-      )
-      if (
-        !feature ||
-        !definition ||
-        result.roll.characterId !== null ||
-        result.roll.characterLabel !== target.label ||
-        result.roll.source.kind !== definition.kind ||
-        result.roll.source.label !== enemyActionRollLabel(feature.label, definition.label) ||
-        result.roll.ruleset.systemId !== campaign.gameSystemId
-      )
-        throw new Error('Stored Encounter enemy action receipt mismatch.')
-    }
+    if (
+      (prior.commandType === 'ROLL_ACTOR_INITIATIVE' &&
+        (input.type !== 'ROLL_ACTOR_INITIATIVE' || receipt.roll?.source.kind !== 'INITIATIVE')) ||
+      (prior.commandType === 'ROLL_ENEMY_ACTION' &&
+        (input.type !== 'ROLL_ENEMY_ACTION' || receipt.roll?.characterId !== null)) ||
+      (receipt.roll !== null && receipt.roll.ruleset.systemId !== campaign.gameSystemId)
+    )
+      throw new Error('Stored Encounter roll receipt mismatch.')
     if (
       prior.commandType === 'PREVIOUS_TURN' ||
       prior.commandType === 'SET_CURRENT_ACTOR' ||
@@ -179,22 +135,9 @@ export async function readNativeEncounterCommandReplay(
       if (
         checksumCanonicalJson(snapshot) !== prior.initiativeStateChecksum ||
         snapshot.round.encounterId !== row.id ||
-        snapshot.round.round !== projection.round ||
-        projection.status !== 'ACTIVE' ||
-        snapshot.round.status !== 'ACTIVE' ||
-        snapshot.participants.length !== projection.actors.length ||
-        snapshot.participants.some(
-          (participant) => !projection.actors.some((actor) => actor.id === participant.actorId)
-        )
+        snapshot.round.status !== 'ACTIVE'
       )
         throw new Error('Stored Encounter initiative correction receipt is invalid.')
-      validateInitiativeCursor({
-        state: snapshot,
-        currentActorId: projection.currentActorId,
-        actorIds: snapshot.participants.map((participant) => participant.actorId),
-        // Historical side assignments live in the checksummed initiative snapshot.
-        allowedSideIds: snapshot.participants.map((participant) => participant.sideId)
-      })
     }
     const storedReceipt = await ctx.db
       .query('encounterRuleReceipts')
@@ -269,32 +212,17 @@ export async function readNativeEncounterCommandReplay(
           (storedRuleResult.initiativeAdvance === null ||
             metadata.initiativeAdvanceChecksum !==
               checksumCanonicalJson(storedRuleResult.initiativeAdvance))) ||
-        (result.occurrence !== null &&
-          (result.occurrence.occurrenceId !== occurrence.id ||
-            result.occurrence.occurrenceVersion !== occurrence.version))
+        (receipt.occurrence !== null &&
+          (receipt.occurrence.occurrenceId !== occurrence.id ||
+            receipt.occurrence.occurrenceVersion !== occurrence.version))
       )
         throw new Error('Encounter replay rule receipt is invalid.')
       requireInitiativeTransition(prior.commandType, initiative, storedRuleResult.initiativeAdvance)
     }
-    return { fingerprint: commandFingerprint, result }
+    return {
+      fingerprint: commandFingerprint,
+      result: await replayEncounterCommandResult(ctx, readRunState(row), prior)
+    }
   }
   return { fingerprint: commandFingerprint, result: null }
-}
-
-export function readNativeEncounterCommandState(row: EncounterDocument<'encounterRuns'>) {
-  const state = readRunState(row)
-  const projection = readRunProjection(row)
-  const actorIds = new Set(projection.actors.map((actor) => actor.id))
-  if (
-    checksumCanonicalJson(projectionMetadataSchema.parse(state)) !==
-      checksumCanonicalJson(projectionMetadataSchema.parse(projection)) ||
-    actorIds.size !== projection.actors.length ||
-    new Set(state.actorIds).size !== state.actorIds.length ||
-    actorIds.size !== state.actorIds.length ||
-    state.actorIds.some((id) => !actorIds.has(id)) ||
-    projection.actors.some((actor) => actor.encounterId !== row.id) ||
-    new Set(state.reminders.map((reminder) => reminder.id)).size !== state.reminders.length
-  )
-    throw new Error('Stored Encounter state and projection mismatch.')
-  return { state, projection, actorIds }
 }

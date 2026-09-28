@@ -8,8 +8,11 @@ import {
   encounterBasicActionEffectsDtoSchema
 } from '../shared/basicActions.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
+import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
+import { rollRecordDtoSchema } from '../api/rolls.js'
 
-// Keep the Convex table schema independent of recursive authored snapshots.
+// Keep the Convex table schema independent of recursive authored snapshots. Projections are built
+// on read from the Run state and its actors (ADR 0035 Amendment 12), so the Run stores neither.
 export const encounterStoredRunSchema = lazySchema(() =>
   z.strictObject({
     id: postgresUuidSchema,
@@ -19,12 +22,23 @@ export const encounterStoredRunSchema = lazySchema(() =>
     version: z.number().check(z.int()).check(z.nonnegative()),
     stateJson: z.string(),
     stateChecksum: projectionChecksumSchema,
-    projectionJson: z.string(),
-    projectionChecksum: projectionChecksumSchema,
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime()
   })
 )
+
+/**
+ * What a settled command returned besides its projection: the roll and the occurrence summary.
+ * Exact replay rebuilds the projection from the Run's records and adds these; the timeline shows
+ * the roll.
+ */
+export const encounterStoredReplayReceiptSchema = lazySchema(() =>
+  z.strictObject({
+    roll: z.nullable(rollRecordDtoSchema),
+    occurrence: z.nullable(encounterRuleOccurrenceSummaryDtoSchema)
+  })
+)
+export type EncounterStoredReplayReceipt = z.infer<typeof encounterStoredReplayReceiptSchema>
 
 export const encounterStoredRunActorSchema = lazySchema(() =>
   z.strictObject({
@@ -126,8 +140,9 @@ const encounterStoredRunCommandResultSchema = lazySchema(() =>
     id: postgresUuidSchema,
     version: z.number().check(z.int()).check(z.positive()),
     commandJson: z.string(),
-    resultJson: z.string(),
-    resultChecksum: projectionChecksumSchema
+    /** An `encounterStoredReplayReceiptSchema` document. */
+    replayReceiptJson: z.string(),
+    replayReceiptChecksum: projectionChecksumSchema
   })
 )
 

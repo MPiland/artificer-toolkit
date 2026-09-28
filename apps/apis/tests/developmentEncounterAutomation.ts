@@ -433,7 +433,10 @@ export async function verifyEncounterAutomation({
       limit: 100
     })
     for (const { input, result } of terminalRoots) {
-      assert.deepEqual(await owner.mutation(executeEncounterCommand, input), result)
+      assert.deepEqual(await owner.mutation(executeEncounterCommand, input), {
+        ...result,
+        projection
+      })
     }
     // A settled decision is no longer routable: the room refuses its retry as stale.
     for (const input of resolutionInputs)
@@ -453,7 +456,10 @@ export async function verifyEncounterAutomation({
       ...sceneBinding,
       replayed: true
     })
-    assert.deepEqual(await owner.mutation(bindToken, { input: tokenBindingInput }), tokenBinding)
+    assert.deepEqual(await owner.mutation(bindToken, { input: tokenBindingInput }), {
+      ...tokenBinding,
+      projection
+    })
     assert.deepEqual(
       await owner.query(api.scenes.definitionReads.get, { campaignId, sceneId: scene.sceneId }),
       originalHeader

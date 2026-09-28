@@ -20,7 +20,6 @@ import {
   seedConcentration,
   setupConcentration
 } from '../../tests/fixtures/concentration'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from '../encounters/movementTargets'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -29,6 +28,7 @@ import {
   stubLiveSessionFetch,
   workerEnvironment
 } from '../../tests/fixtures/liveSessionWorker'
+import { api } from '../_generated/api'
 
 const workerSecret = 'private-concentration-planning-test-secret-at-least-32-bytes'
 const authSecret = 'private-concentration-continuation-test-secret-at-least-32-bytes'
@@ -61,19 +61,13 @@ it.each([
   async ({ rolls, face, outcome }) => {
     const fixture = await setupConcentration(rolls)
     const seeded = await seedConcentration(fixture)
-    await fixture.t.run(async (ctx) => {
-      const run = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (query) => query.eq('id', fixture.run.id))
-        .unique()
-      if (!run) throw new Error('Concentration fixture Run is unavailable.')
-      await seedActiveInitiative(ctx, readRunState(run), [fixture.actor.id, fixture.target.id])
-      await insertActiveLiveAuthority(ctx, {
+    await fixture.t.run((ctx) =>
+      insertActiveLiveAuthority(ctx, {
         campaignId: fixture.campaign.id,
         epoch: fixture.run.id,
         createdAt: fixture.campaign.createdAt
       })
-    })
+    )
     vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
     stubLiveSessionFetch((pathname, init) => fixture.owner.caller.fetch(pathname, init))
@@ -229,19 +223,13 @@ it.each([
   async ({ face, outcome }) => {
     const fixture = await setupConcentration('AUTO_ROLL')
     const seeded = await seedConcentration(fixture)
-    await fixture.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.run.id))
-        .unique()
-      if (!row) throw new Error('Concentration fixture Run is unavailable.')
-      await seedActiveInitiative(ctx, readRunState(row), [fixture.actor.id, fixture.target.id])
-      await insertActiveLiveAuthority(ctx, {
+    await fixture.t.run((ctx) =>
+      insertActiveLiveAuthority(ctx, {
         campaignId: fixture.campaign.id,
         epoch: fixture.run.id,
         createdAt: fixture.campaign.createdAt
       })
-    })
+    )
     vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
     stubLiveSessionFetch((pathname, init) => fixture.owner.caller.fetch(pathname, init))
@@ -331,8 +319,11 @@ it.each([
     ).rejects.toThrow()
     const after = await concentrationRecords(fixture)
     expect(after.run?.version).toBe(before.run!.version + 1)
-    expect(JSON.parse(after.run!.projectionJson!)).toEqual(committed.projection)
-    expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(committed.projection))
+    expect(
+      await fixture.owner.caller.query(api.encounters.projectionReads.get, {
+        encounterId: fixture.run.id
+      })
+    ).toEqual(committed.projection)
     expect(after.character?.streamVersion).toBe(
       before.character!.streamVersion + (outcome === 'SAVE_FAILURE' ? 2 : 1)
     )

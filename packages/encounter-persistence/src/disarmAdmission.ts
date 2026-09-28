@@ -3,7 +3,6 @@ import {
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterPlayerProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -16,7 +15,8 @@ import {
 } from './actionDisarmPending.js'
 import { readNativeDisarmEvidenceReplay, readNativeDisarmReplay } from './actionDisarmReplay.js'
 import { nativeActionPendingResult } from './actionPending.js'
-import { readRunActor, readRunActors, readRunProjection, readRunState } from './documents.js'
+import { readRunActor, readRunActors, readRunState } from './documents.js'
+import { replayEncounterCommandResult } from './replayReceipts.js'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { requireUnusedEvidenceCommandId } from './timelineEntries.js'
@@ -79,7 +79,6 @@ export async function readDisarmAdmission(
     .unique()
   if (!run) throw new Error('Encounter Run was not found.')
   const state = readRunState(run)
-  readRunProjection(run)
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(
     state.campaignId,
     userId
@@ -154,10 +153,7 @@ export async function readDisarmAdmission(
           checksumRuleDocument(evidence.payload) !== checksumRuleDocument(rootReplay.payload))
       )
         throw new Error('Stored Disarm terminal evidence receipt mismatch.')
-      // The stored answer was already shaped for this member when it was recorded.
-      if (membership.role !== 'OWNER')
-        encounterPlayerProjectionDtoSchema.parse(evidence.result.projection)
-      return { ...scope, kind: 'REPLAY' as const, result: evidence.result }
+      return replay(await replayEncounterCommandResult(ctx, state, evidence.replayReceipt))
     }
     if (
       !pending ||
@@ -195,9 +191,12 @@ export async function readDisarmAdmission(
     .unique()
   if (rootReceipt) {
     if (response || rootReceipt.actorUserId !== userId) rejectDomain('COMMAND_ID_REUSED')
-    return replay(
-      (await readNativeDisarmReplay(ctx, { run, command: root, receipt: rootReceipt })).result
-    )
+    const { receipt } = await readNativeDisarmReplay(ctx, {
+      run,
+      command: root,
+      receipt: rootReceipt
+    })
+    return replay(await replayEncounterCommandResult(ctx, state, receipt))
   }
   if (!response) {
     const [actor, target] = await Promise.all([
@@ -226,7 +225,7 @@ export async function readDisarmAdmission(
   if (prior && prior.context.commandFingerprint !== fingerprint) rejectDomain('COMMAND_ID_REUSED')
   if (!response && prior) {
     if (initiatorUserId !== userId) rejectDomain('COMMAND_ID_REUSED')
-    return replay(nativeActionPendingResult(run, occurrence!))
+    return replay(await nativeActionPendingResult(ctx, run, occurrence!))
   }
   if (response) {
     if (

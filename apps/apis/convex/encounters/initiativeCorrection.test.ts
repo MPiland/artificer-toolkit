@@ -401,7 +401,8 @@ describe('native initiative corrections', () => {
         }
       })
     ).rejects.toThrow('Encounter version is stale')
-    await expect(replayInRoom(base.owner.caller, setRound)).resolves.toEqual(setRoundResult)
+    const replayedSetRound = { ...setRoundResult, projection: result.projection }
+    await expect(replayInRoom(base.owner.caller, setRound)).resolves.toEqual(replayedSetRound)
     await expect(
       replayInRoom(base.owner.caller, {
         command: {
@@ -410,7 +411,7 @@ describe('native initiative corrections', () => {
           encounterId: run.id.toUpperCase()
         }
       })
-    ).resolves.toEqual(setRoundResult)
+    ).resolves.toEqual(replayedSetRound)
     await expect(
       executeInRoom(base.owner.caller, {
         command: {

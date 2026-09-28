@@ -28,7 +28,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { fixture } from '../../tests/fixtures/characters'
 import { toCreatureFeatureEffects } from '../../tests/fixtures/creatureWeaponEffects'
 import { importedSubject } from '../../tests/fixtures/publication'
-import { internal } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
@@ -330,7 +330,12 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
           commandId: command.command.commandId.toLowerCase()
         }
       })
-    ).resolves.toEqual(first)
+    ).resolves.toEqual({
+      ...first,
+      projection: await owner.caller.query(api.encounters.projectionReads.get, {
+        encounterId: run.id
+      })
+    })
   }, 30000)
 
   it('rejects invalid, stale, wrong-kind, and incompatible replacement requests without writes', async () => {

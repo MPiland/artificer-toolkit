@@ -40,6 +40,7 @@ import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunState, replaceRunActor } from './documents.js'
 import { removeTurnSpeedBonus } from './turnMovement.js'
 import { projectNativeGm } from './nativeProjection.js'
+import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterWriteTransaction } from './ports.js'
@@ -105,7 +106,7 @@ export async function revertLastEncounterAction(
     )
       rejectDomain('COMMAND_ID_REUSED')
     presentTimelineEntry(prior)
-    return encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
+    return replayEncounterCommandResult(ctx, readRunState(run), prior)
   }
   const state = readRunState(run)
   if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
@@ -471,8 +472,6 @@ async function commitRevert(
     version: nextState.version,
     stateJson: JSON.stringify(nextState),
     stateChecksum: checksumCanonicalJson(nextState),
-    projectionJson: JSON.stringify(projection),
-    projectionChecksum: checksumCanonicalJson(projection),
     updatedAt
   })
   await insertRunCommand(
@@ -489,8 +488,7 @@ async function commitRevert(
       actorUserId: input.userId,
       version: nextState.version,
       commandJson: JSON.stringify(input.input),
-      resultJson: JSON.stringify(result),
-      resultChecksum: checksumCanonicalJson(result),
+      ...encounterReplayReceipt(result),
       createdAt: updatedAt
     })
   )

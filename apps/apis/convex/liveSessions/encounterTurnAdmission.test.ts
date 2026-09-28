@@ -416,7 +416,16 @@ it('returns exact native pending and terminal turn replays while blocking unrela
     expectedVersion: first.command.expectedVersion,
     request: { kind: 'TURN_COMMAND', command: first.command }
   })
-  expect(earlierReplay).toMatchObject({ kind: 'TURN_COMMAND', snapshot: null, result: advanced })
+  // After later commands a replay carries its receipt over the Run's current projection.
+  expect(earlierReplay).toMatchObject({
+    kind: 'TURN_COMMAND',
+    snapshot: null,
+    result: {
+      roll: advanced.roll,
+      occurrence: advanced.occurrence,
+      projection: settled.projection
+    }
+  })
 }, 60_000)
 
 it('plans a same-round turn through private raw captures without writing Convex state', async () => {

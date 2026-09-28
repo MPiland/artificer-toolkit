@@ -125,7 +125,7 @@ export async function readNativeEncounterActionResponseAdmission(
       return {
         kind: 'REPLAY' as const,
         admission,
-        result: nativeActionPendingResult(run, occurrence)
+        result: await nativeActionPendingResult(ctx, run, occurrence)
       }
     }
     if (admission.kind !== 'REPLAY')

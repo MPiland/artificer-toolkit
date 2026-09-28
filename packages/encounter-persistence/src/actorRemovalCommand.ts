@@ -1,6 +1,5 @@
 import {
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -15,13 +14,13 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import type { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readRunActors, readRunState } from './documents.js'
 import {
-  readEncounterActorCore,
-  readRunActors,
-  readRunProjection,
-  readRunState
-} from './documents.js'
-import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+  encounterReplayReceipt,
+  readEncounterReplayReceipt,
+  replayEncounterCommandResult
+} from './replayReceipts.js'
+import { readEncounterGmProjection } from './nativeProjection.js'
 import { cleanupRemovedActorEffects } from './actorRemovalEffects.js'
 import { removeActorInitiative } from './actorRemovalInitiative.js'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
@@ -200,27 +199,18 @@ async function removeEncounterActorCore(
       prior.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
-    const projection = encounterGmProjectionDtoSchema.parse(result.projection)
+    const replayReceipt = readEncounterReplayReceipt(prior)
+    const state = readRunState(row)
     if (
       checksumCanonicalJson(JSON.parse(prior.commandJson)) !== fingerprint ||
-      checksumCanonicalJson(result) !== prior.resultChecksum ||
-      projection.id !== row.id ||
-      projection.campaignId !== campaign.id ||
-      projection.gameSystemId !== campaign.gameSystemId ||
-      projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||
-      projection.actors.some((actor) => actor.id === input.actorId) ||
-      projection.reminders.some((reminder) => reminder.actorId === input.actorId) ||
-      projection.currentActorId === input.actorId ||
-      result.roll !== null ||
-      result.occurrence !== null
+      prior.version > row.version ||
+      state.actorIds.includes(input.actorId) ||
+      replayReceipt.roll !== null ||
+      replayReceipt.occurrence !== null
     )
       throw new Error('Stored actor removal receipt mismatch.')
-    if (
-      (prior.initiativeStateJson === null) !== (prior.initiativeStateChecksum === null) ||
-      (projection.status === 'ACTIVE') !== (prior.initiativeStateJson !== null)
-    )
+    if ((prior.initiativeStateJson === null) !== (prior.initiativeStateChecksum === null))
       throw new Error('Stored actor removal initiative receipt mismatch.')
     if (prior.initiativeStateJson !== null) {
       const initiative = encounterInitiativeRoundStateDtoSchema.parse(
@@ -229,16 +219,9 @@ async function removeEncounterActorCore(
       if (
         checksumCanonicalJson(initiative) !== prior.initiativeStateChecksum ||
         initiative.round.encounterId !== row.id ||
-        initiative.round.round !== projection.round
+        initiative.participants.some((participant) => participant.actorId === input.actorId)
       )
         throw new Error('Stored actor removal initiative receipt mismatch.')
-      validateInitiativeCursor({
-        state: initiative,
-        currentActorId: projection.currentActorId,
-        actorIds: projection.actors.map((actor) => actor.id),
-        // Historical side assignments are retained in this checksummed snapshot.
-        allowedSideIds: initiative.participants.map((participant) => participant.sideId)
-      })
     }
     if ((prior.ruleOccurrenceId === null) !== (prior.ruleResultChecksum === null))
       throw new Error('Stored actor removal maintenance receipt mismatch.')
@@ -296,33 +279,16 @@ async function removeEncounterActorCore(
       )
         throw new Error('Stored actor removal maintenance receipt mismatch.')
     }
-    return result
+    return replayEncounterCommandResult(ctx, state, prior)
   }
 
   if (row.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
   if (row.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   const state = readRunState(row)
-  const projection = readRunProjection(row)
   const actors = await readRunActors(ctx, state)
   const removed = actors.find((actor) => actor.id === input.actorId)
   if (!removed) throw new Error('Encounter actor was not found.')
   if (mode === 'ACCOUNT_CLEANUP') await requireOwnedCharacterActor(ctx, removed, userId)
-  if (
-    projection.actors.length !== actors.length ||
-    new Set(projection.actors.map((actor) => actor.id)).size !== actors.length ||
-    projection.actors.some((actor) => {
-      const stored = actors.find((candidate) => candidate.id === actor.id)
-      return (
-        !stored ||
-        checksumCanonicalJson(readEncounterActorCore(stored)) !==
-          checksumCanonicalJson(readEncounterActorCore(actor))
-      )
-    }) ||
-    projection.currentActorId !== state.currentActorId ||
-    projection.round !== state.round ||
-    checksumCanonicalJson(projection.reminders) !== checksumCanonicalJson(state.reminders)
-  )
-    throw new Error('Stored Encounter projection does not match the Run.')
   const pendingRows = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', row.id).eq('state', 'PENDING'))
@@ -383,7 +349,6 @@ async function removeEncounterActorCore(
   )
     throw new Error('Pending concentration cleanup did not terminate its maintained state.')
 
-  const projectedActors = projection.actors.filter((actor) => actor.id !== input.actorId)
   const initiative = await removeActorInitiative(ctx, state, input.actorId, now)
   const actorRow = await ctx.db
     .query('encounterRunActors')
@@ -474,26 +439,16 @@ async function removeEncounterActorCore(
     version,
     updatedAt: now
   })
-  const nextProjection = encounterGmProjectionDtoSchema.parse({
-    ...projection,
-    actors: projectedActors,
-    currentActorId,
-    reminders,
-    version,
-    updatedAt: now
-  })
-  const result = encounterCommandResultDtoSchema.parse({
-    projection: nextProjection,
-    roll: null,
-    occurrence: null
-  })
   await ctx.db.patch(row._id, {
     version,
     updatedAt: now,
     stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    projectionJson: JSON.stringify(nextProjection),
-    projectionChecksum: checksumCanonicalJson(nextProjection)
+    stateChecksum: checksumCanonicalJson(nextState)
+  })
+  const result = encounterCommandResultDtoSchema.parse({
+    projection: await readEncounterGmProjection(ctx, nextState),
+    roll: null,
+    occurrence: null
   })
   await insertRunCommand(
     ctx,
@@ -507,8 +462,7 @@ async function removeEncounterActorCore(
       actorUserId: userId,
       version,
       commandJson: JSON.stringify(input),
-      resultJson: JSON.stringify(result),
-      resultChecksum: checksumCanonicalJson(result),
+      ...encounterReplayReceipt(result),
       createdAt: now,
       ruleOccurrenceId,
       ruleResultChecksum,

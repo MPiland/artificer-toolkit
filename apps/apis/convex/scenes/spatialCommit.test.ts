@@ -1,20 +1,16 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { makeFunctionReference } from 'convex/server'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterTimelineDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterTimelineDto } from '@artificer-toolkit/schema/api/encounters'
 import { sceneGeometryCommandResultSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 import { internal } from '../_generated/api'
-import {
-  readRunActor,
-  readRunProjection,
-  readRunState
-} from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { readEncounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { readGeometrySave } from './geometryDocuments'
 import { commitLiveMovement } from '../liveSessions/encounterMovementCommit'
@@ -89,7 +85,7 @@ async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixtu
       .unique()
     if (!row) throw new Error('Fixture Run missing')
     const state = readRunState(row)
-    const projection = readRunProjection(row)
+    const projection = await readEncounterGmProjection(encounterReadTransaction(ctx), state)
     const scope = await createSpatialRuleEffectStore(ctx).scope({
       encounterId: state.id,
       sceneId: value.base.sceneId
@@ -397,11 +393,10 @@ it('rejects a terminal replay whose stored command omits its occurrence summary'
       .unique()
     if (!command || command.commandType !== 'MOVE_SCENE_TOKEN')
       throw new Error('Terminal command missing')
-    const stored = encounterCommandResultDtoSchema.parse(JSON.parse(command.resultJson))
-    const tampered = encounterCommandResultDtoSchema.parse({ ...stored, occurrence: null })
+    const tampered = { ...readEncounterReplayReceipt(command), occurrence: null }
     await ctx.db.patch(command._id, {
-      resultJson: JSON.stringify(tampered),
-      resultChecksum: checksumCanonicalJson(tampered)
+      replayReceiptJson: JSON.stringify(tampered),
+      replayReceiptChecksum: checksumCanonicalJson(tampered)
     })
   })
   const before = await current(value)

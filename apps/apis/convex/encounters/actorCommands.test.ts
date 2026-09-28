@@ -8,24 +8,23 @@ import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import {
-  encounterGmProjectionDtoSchema,
-  type CreateEncounterBlueprintInputDto,
-  type CreateEncounterInputDto,
-  type EncounterBlueprintDto,
-  type EncounterExecuteInput,
-  type EncounterGmProjectionDto
+import type {
+  CreateEncounterBlueprintInputDto,
+  CreateEncounterInputDto,
+  EncounterBlueprintDto,
+  EncounterExecuteInput,
+  EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   SRD_CONDITION_TYPES,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import * as sheetCommands from '../characters/sheetCommands'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -120,39 +119,11 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
   afterEach(() => vi.restoreAllMocks())
   it('persists direct CUSTOM updates, derives health, and leaves snapshots and cursor intact', async () => {
     const { t, other: gm, run, customActor } = await setup()
-    const prepared = await stored(t, run.id, customActor.id)
-    const activeState = encounterRunStateSchema.parse({
-      ...JSON.parse(prepared.run!.stateJson),
-      status: 'ACTIVE',
-      round: 1,
-      currentActorId: customActor.id
-    })
-    const activeActor = encounterRunActorStateSchema.parse({
-      ...JSON.parse(prepared.actor!.stateJson),
-      initiative: 12,
-      manualOrder: 0
-    })
-    const activeProjection = encounterGmProjectionDtoSchema.parse({
-      ...run,
-      status: 'ACTIVE',
-      round: 1,
-      currentActorId: customActor.id,
-      actors: run.actors.map((actor) =>
+    await t.run(async (ctx) => {
+      await updateFixtureRunActors(ctx, run.id, (actor) =>
         actor.id === customActor.id ? { ...actor, initiative: 12, manualOrder: 0 } : actor
       )
-    })
-    await t.run(async (ctx) => {
-      await ctx.db.patch(prepared.run!._id, {
-        status: 'ACTIVE',
-        stateJson: JSON.stringify(activeState),
-        stateChecksum: checksumCanonicalJson(activeState),
-        projectionJson: JSON.stringify(activeProjection),
-        projectionChecksum: checksumCanonicalJson(activeProjection)
-      })
-      await ctx.db.patch(prepared.actor!._id, {
-        stateJson: JSON.stringify(activeActor),
-        stateChecksum: checksumCanonicalJson(activeActor)
-      })
+      await activateFixtureRun(ctx, run.id, { round: 1, currentActorId: customActor.id })
     })
     const before = await stored(t, run.id, customActor.id)
     const sideId = encounterRunStateSchema.parse(JSON.parse(before.run!.stateJson)).sides[0]!.id
@@ -267,7 +238,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     )
     expect(receipt.characterReceiptId).toBe(nestedReceipt?.id)
     expect((await readState()).receipts).toHaveLength(3)
-    await executeInRoom(
+    const later = await executeInRoom(
       gm.caller,
       update({
         type: 'UPDATE_ACTOR',
@@ -281,7 +252,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       await replayInRoom(gm.caller, {
         command: { ...command.command, encounterId: run.id, commandId }
       })
-    ).toEqual(first)
+    ).toEqual({ ...first, projection: later.projection })
     expect((await readState()).receipts).toHaveLength(3)
 
     await owner.caller.mutation(personalExecute, {

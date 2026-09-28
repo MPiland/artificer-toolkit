@@ -30,7 +30,8 @@ import {
 } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
-import { encounterWriteTransaction } from './encounterPorts'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 
 const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
   'encounters/commands:execute'
@@ -216,7 +217,7 @@ describe('native actor removal transaction', () => {
     expect(after.sceneBindings).toEqual(before.sceneBindings)
     expect(after.characters).toEqual(before.characters)
     expect(after.characterReceipts).toEqual(before.characterReceipts)
-    await executeInRoom(base.owner.caller, {
+    const current = await executeInRoom(base.owner.caller, {
       command: {
         type: 'REMOVE_ACTOR',
         encounterId: base.run.id,
@@ -235,7 +236,7 @@ describe('native actor removal transaction', () => {
           actorId: command.actorId.toUpperCase()
         }
       })
-    ).toEqual(result)
+    ).toEqual({ ...result, projection: current.projection })
     expect(await capture(base)).toEqual(later)
     await expect(
       executeInRoom(base.owner.caller, { command: { ...command, actorId: other.id } })
@@ -489,7 +490,7 @@ describe('native actor removal transaction', () => {
           actorId: command.actorId.toUpperCase()
         }
       })
-    ).resolves.toEqual(removedResult)
+    ).resolves.toEqual({ ...removedResult, projection: advanced.projection })
     expect(await capture(base)).toEqual(afterLaterCommands)
   }, 30000)
 
@@ -612,7 +613,9 @@ describe('native actor removal transaction', () => {
     const after = await capture(base)
     const run = after.runs.find((candidate) => candidate.id === base.run.id)
     const projection = run
-      ? encounterGmProjectionDtoSchema.parse(JSON.parse(run.projectionJson))
+      ? await base.t.run((ctx) =>
+          readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(run))
+        )
       : null
     expect(projection?.actors.some((actor) => actor.id === characterActor.id)).toBe(false)
     expect(projection?.currentActorId).not.toBe(characterActor.id)

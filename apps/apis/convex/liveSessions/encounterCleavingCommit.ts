@@ -27,6 +27,7 @@ import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persi
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import {
   bindLiveConcentrationApplications,
@@ -217,8 +218,6 @@ export const commit = internalMutation({
       version: nextState.version,
       stateJson: JSON.stringify(nextState),
       stateChecksum: checksumCanonicalJson(nextState),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection),
       updatedAt: occurredAt
     })
     await ctx.db.patch(occurrence._id, {
@@ -246,8 +245,7 @@ export const commit = internalMutation({
         actorUserId: input.expectedUserId,
         version: nextState.version,
         commandJson: JSON.stringify(response),
-        resultJson: JSON.stringify(result),
-        resultChecksum: checksumCanonicalJson(result),
+        ...encounterReplayReceipt(result),
         createdAt: occurredAt
       })
     )

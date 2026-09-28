@@ -7,7 +7,6 @@ import type {
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   EncounterActionChoicesResponseDto,
   EncounterOptionalActionChoicesDto,
@@ -187,19 +186,10 @@ export async function nativeDisarmFixture(
       round: 1,
       currentActorId: actor.id
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
     await ctx.db.patch(row._id, {
       status: 'ACTIVE',
       stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
+      stateChecksum: checksumCanonicalJson(state)
     })
     await seedActiveInitiative(ctx, state, [
       actor.id,

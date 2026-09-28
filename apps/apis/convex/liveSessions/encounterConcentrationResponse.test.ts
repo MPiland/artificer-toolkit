@@ -6,7 +6,6 @@ import type {
   LiveSessionEncounterRulesInput,
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
@@ -25,7 +24,6 @@ import {
   seedConcentration,
   setupConcentration
 } from '../../tests/fixtures/concentration'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { api, components, internal } from '../_generated/api'
 import {
   insertActiveLiveAuthority,
@@ -67,22 +65,13 @@ async function runtime() {
 async function pendingFixture() {
   const fixture = await setupConcentration('PROMPT')
   const seeded = await seedConcentration(fixture)
-  await fixture.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', fixture.run.id))
-      .unique()
-    if (!row) throw new Error('Concentration Run is unavailable.')
-    await seedActiveInitiative(ctx, encounterRunStateSchema.parse(JSON.parse(row.stateJson)), [
-      fixture.actor.id,
-      fixture.target.id
-    ])
-    await insertActiveLiveAuthority(ctx, {
+  await fixture.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
       epoch: fixture.run.id,
       createdAt: fixture.campaign.createdAt
     })
-  })
+  )
   vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
   stubLiveSessionFetch((pathname, init) => {

@@ -24,8 +24,6 @@ it('refreshes only the owning Character or Campaign play revision for Rule Effec
       version: 0,
       stateJson: '{}',
       stateChecksum: checksum,
-      projectionJson: '{}',
-      projectionChecksum: checksum,
       createdAt: now,
       updatedAt: now
     })

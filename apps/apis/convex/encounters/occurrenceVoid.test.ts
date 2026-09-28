@@ -4,8 +4,6 @@ import { describe, expect, it, vi } from 'vitest'
 import type { VoidRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import {
   concentrationAction,
@@ -137,17 +135,6 @@ describe('GM void command', () => {
 
   it('refuses a Concentration save and a settled occurrence without writes', async () => {
     const fixture = await setupConcentration('PROMPT')
-    await fixture.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (query) => query.eq('id', fixture.run.id))
-        .unique()
-      if (!row) throw new Error('Concentration fixture Run is unavailable.')
-      await seedActiveInitiative(ctx, encounterRunStateSchema.parse(JSON.parse(row.stateJson)), [
-        fixture.actor.id,
-        fixture.target.id
-      ])
-    })
     await seedConcentration(fixture)
     const parent = await executeInRoom(fixture.owner.caller, {
       command: concentrationAction(fixture)

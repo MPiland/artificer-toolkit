@@ -1,6 +1,5 @@
 import {
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
@@ -23,27 +22,19 @@ import {
 import { projectGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { readEncounterCharacterStates } from './characterStates.js'
+import { readRunActors, readRunState } from './documents.js'
 import {
-  readEncounterActorCore,
-  readRunActors,
-  readRunProjection,
-  readRunState
-} from './documents.js'
+  encounterReplayReceipt,
+  readEncounterReplayReceipt,
+  replayEncounterCommandResult
+} from './replayReceipts.js'
 import { insertReinforcementInitiative } from './actorReinforcementInitiative.js'
-import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
 type ReinforceCommand = Extract<EncounterExecuteInput['command'], { type: 'REINFORCE' }>
-
-function sameActorCore(left: unknown, right: unknown) {
-  return (
-    checksumCanonicalJson(readEncounterActorCore(left)) ===
-    checksumCanonicalJson(readEncounterActorCore(right))
-  )
-}
 
 function normalize(command: ReinforceCommand) {
   return {
@@ -61,18 +52,15 @@ function normalize(command: ReinforceCommand) {
 function requireHistoricalActor(input: {
   command: ReturnType<typeof normalize>
   actor: ReturnType<typeof encounterRunActorStateSchema.parse>
-  projection: ReturnType<typeof encounterGmProjectionDtoSchema.parse>
+  gameSystemId: string
   reinforcedActorId: string
 }) {
-  const { command, actor, projection, reinforcedActorId } = input
+  const { command, actor, gameSystemId, reinforcedActorId } = input
   requireSnapshotIdentity(actor)
-  const projected = projection.actors.find((candidate) => candidate.id === reinforcedActorId)
   if (
     actor.id !== reinforcedActorId ||
     actor.encounterId !== command.encounterId ||
-    !projected ||
-    !sameActorCore(actor, projected) ||
-    actor.systemId !== projection.gameSystemId ||
+    actor.systemId !== gameSystemId ||
     actor.public !== command.public ||
     (command.sideId !== undefined && actor.sideId !== command.sideId) ||
     (command.enemy.kind === 'CREATURE'
@@ -120,26 +108,21 @@ export async function reinforceEncounterActors(
       prior.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
-    const projection = encounterGmProjectionDtoSchema.parse(result.projection)
+    const replayReceipt = readEncounterReplayReceipt(prior)
     const actor = encounterRunActorStateSchema.parse(JSON.parse(prior.reinforcedActorStateJson))
     if (
       checksumCanonicalJson(JSON.parse(prior.commandJson)) !== fingerprint ||
-      checksumCanonicalJson(result) !== prior.resultChecksum ||
       checksumCanonicalJson(actor) !== prior.reinforcedActorStateChecksum ||
-      projection.id !== row.id ||
-      projection.campaignId !== campaign.id ||
-      projection.gameSystemId !== campaign.gameSystemId ||
-      projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||
-      result.roll !== null ||
-      result.occurrence !== null
+      prior.version > row.version ||
+      replayReceipt.roll !== null ||
+      replayReceipt.occurrence !== null
     )
       throw new Error('Stored actor reinforcement receipt mismatch.')
     requireHistoricalActor({
       command: input,
       actor,
-      projection,
+      gameSystemId: campaign.gameSystemId,
       reinforcedActorId: prior.reinforcedActorId
     })
     if ((prior.initiativeStateJson === null) !== (prior.initiativeStateChecksum === null))
@@ -151,38 +134,17 @@ export async function reinforceEncounterActors(
       if (
         checksumCanonicalJson(initiative) !== prior.initiativeStateChecksum ||
         initiative.round.encounterId !== row.id ||
-        initiative.round.round !== projection.round
+        !initiative.participants.some((participant) => participant.actorId === actor.id)
       )
         throw new Error('Stored actor reinforcement initiative receipt mismatch.')
-      validateInitiativeCursor({
-        state: initiative,
-        currentActorId: projection.currentActorId,
-        actorIds: projection.actors.map((candidate) => candidate.id),
-        allowedSideIds: initiative.participants.map((participant) => participant.sideId)
-      })
-    } else if (projection.status === 'ACTIVE') {
-      throw new Error('Stored actor reinforcement initiative receipt mismatch.')
     }
-    return result
+    return replayEncounterCommandResult(ctx, readRunState(row), prior)
   }
   if (row.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
   if (row.status !== 'PREPARED' && row.status !== 'ACTIVE') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   const state = readRunState(row)
-  const projection = readRunProjection(row)
   const actors = await readRunActors(ctx, state)
   for (const currentActor of actors) requireSnapshotIdentity(currentActor)
-  if (
-    projection.actors.length !== actors.length ||
-    new Set(projection.actors.map((actor) => actor.id)).size !== actors.length ||
-    projection.actors.some((actor) => {
-      const stored = actors.find((candidate) => candidate.id === actor.id)
-      return !stored || !sameActorCore(stored, actor)
-    }) ||
-    projection.currentActorId !== state.currentActorId ||
-    projection.round !== state.round ||
-    checksumCanonicalJson(projection.reminders) !== checksumCanonicalJson(state.reminders)
-  )
-    throw new Error('Stored Encounter projection does not match the Run.')
   if (actors.length >= MAX_ENCOUNTER_ACTORS)
     throw new Error(`Encounters support at most ${MAX_ENCOUNTER_ACTORS} actors.`)
   const pending = await ctx.db
@@ -264,22 +226,12 @@ export async function reinforceEncounterActors(
     ),
     facts
   )
-  const nextProjection = encounterGmProjectionDtoSchema.parse(
-    projectGm(
-      {
-        ...nextState,
-        actors: nextActors,
-        initiativeRoundState: initiative.state
-      },
+  const result = encounterCommandResultDtoSchema.parse({
+    projection: projectGm(
+      { ...nextState, actors: nextActors, initiativeRoundState: initiative.state },
       output,
       await readEncounterCharacterStates(ctx, nextState, nextActors)
-    )
-  )
-  const projectedActor = nextProjection.actors.find((candidate) => candidate.id === actor.id)
-  if (!projectedActor || !sameActorCore(actor, projectedActor))
-    throw new Error('Encounter actor projection does not match the Run.')
-  const result = encounterCommandResultDtoSchema.parse({
-    projection: nextProjection,
+    ),
     roll: null,
     occurrence: null
   })
@@ -313,9 +265,7 @@ export async function reinforceEncounterActors(
     version: nextState.version,
     updatedAt: now,
     stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    projectionJson: JSON.stringify(nextProjection),
-    projectionChecksum: checksumCanonicalJson(nextProjection)
+    stateChecksum: checksumCanonicalJson(nextState)
   })
   await insertRunCommand(
     ctx,
@@ -329,8 +279,7 @@ export async function reinforceEncounterActors(
       actorUserId: userId,
       version: nextState.version,
       commandJson: JSON.stringify(input),
-      resultJson: JSON.stringify(result),
-      resultChecksum: checksumCanonicalJson(result),
+      ...encounterReplayReceipt(result),
       createdAt: now,
       reinforcedActorId: actor.id,
       reinforcedActorStateJson: JSON.stringify(actor),

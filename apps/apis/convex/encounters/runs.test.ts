@@ -19,9 +19,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
+import { encounterReadTransaction } from './encounterPorts'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -154,7 +156,7 @@ describe('native Encounter Run creation', () => {
       if (!row) throw new Error('Missing Run')
       const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
       expect(checksumCanonicalJson(state)).toBe(row.stateChecksum)
-      expect(checksumCanonicalJson(result)).toBe(row.projectionChecksum)
+      expect(await readEncounterGmProjection(encounterReadTransaction(ctx), state)).toEqual(result)
       expect(state.sides).toHaveLength(2)
       const actors = await ctx.db
         .query('encounterRunActors')
@@ -198,9 +200,9 @@ describe('native Encounter Run creation', () => {
     expect(await t.run((ctx) => ctx.db.query('encounterRunCommands').collect())).toEqual([])
   }, 30000)
 
-  it('excludes unassigned Characters from the party and fails closed for corrupt replay projections', async () => {
+  it('excludes unassigned Characters from the party', async () => {
     const { t, other, input, character } = await setup()
-    const result = await other.caller.mutation(createRun, input)
+    await other.caller.mutation(createRun, input)
     await t.run(async (ctx) => {
       const assignment = await ctx.db
         .query('campaignCharacterAssignments')
@@ -214,19 +216,10 @@ describe('native Encounter Run creation', () => {
       commandId: crypto.randomUUID()
     })
     expect(unassigned.actors.map((actor) => actor.kind)).toEqual(['CUSTOM'])
-    await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', result.id))
-        .unique()
-      if (!row) throw new Error('Missing Run')
-      await ctx.db.patch(row._id, { projectionChecksum: '0'.repeat(64) })
-    })
-    await expect(other.caller.mutation(createRun, input)).rejects.toThrow('projection mismatch')
   }, 30000)
 
   it.each(['campaignId', 'gameSystemId'] as const)(
-    'rejects replay when a checksum-valid projection has a different %s',
+    'rejects replay when the stored Run has a different %s',
     async (field) => {
       const { t, other, input } = await setup()
       const result = await other.caller.mutation(createRun, input)
@@ -236,13 +229,7 @@ describe('native Encounter Run creation', () => {
           .withIndex('by_publicId', (q) => q.eq('id', result.id))
           .unique()
         if (!row) throw new Error('Missing Run')
-        const replacement = crypto.randomUUID()
-        const projection = { ...result, [field]: replacement }
-        await ctx.db.patch(row._id, {
-          [field]: replacement,
-          projectionJson: JSON.stringify(projection),
-          projectionChecksum: checksumCanonicalJson(projection)
-        })
+        await ctx.db.patch(row._id, { [field]: crypto.randomUUID() })
       })
       await expect(other.caller.mutation(createRun, input)).rejects.toThrow(
         'Encounter is unavailable.'

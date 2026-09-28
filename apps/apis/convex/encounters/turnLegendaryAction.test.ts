@@ -16,7 +16,6 @@ import type {
   EncounterGmProjectionDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   liveSessionEncounterRulesInputSchema,
   liveSessionEncounterRulesResponseSchema
@@ -27,10 +26,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
-import {
-  encounterRunActorStateSchema,
-  type EncounterRunActorState
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -161,12 +157,6 @@ async function seedUsedAllowances(base: Awaited<ReturnType<typeof setup>>) {
     definitions: allowances
   })
   await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
-    if (!row) throw new Error('Missing allowance refresh Run.')
-    const resourcesByActorId = new Map<string, EncounterRunActorState['resources']>()
     for (const actorRow of await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
@@ -177,24 +167,11 @@ async function seedUsedAllowances(base: Awaited<ReturnType<typeof setup>>) {
           ...actor,
           resources: withEncounterRuleUsageUsed(actor, definitionId, 1)
         })
-      resourcesByActorId.set(actor.id, actor.resources)
       await ctx.db.patch(actorRow._id, {
         stateJson: JSON.stringify(actor),
         stateChecksum: checksumCanonicalJson(actor)
       })
     }
-    const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
-    const updated = encounterGmProjectionDtoSchema.parse({
-      ...projection,
-      actors: projection.actors.map((actor) => ({
-        ...actor,
-        resources: resourcesByActorId.get(actor.id) ?? actor.resources
-      }))
-    })
-    await ctx.db.patch(row._id, {
-      projectionJson: JSON.stringify(updated),
-      projectionChecksum: checksumCanonicalJson(updated)
-    })
   })
 }
 

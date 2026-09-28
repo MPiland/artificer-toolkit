@@ -11,7 +11,6 @@ import type {
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -39,6 +38,7 @@ import { importedSubject } from './publication'
 import { maintenanceDefinitionFixture } from './maintenanceDefinition'
 import { api, internal } from '../../convex/_generated/api'
 import { sourceImportBatches } from '../../convex/content/importBatches'
+import { activateFixtureRun } from './activeInitiative'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
@@ -453,24 +453,6 @@ export async function setupCreatureReactionRun(
     const state = encounterRunStateSchema.parse(JSON.parse(runRow.stateJson))
     const party = state.sides.find((side) => side.label === 'Party')
     if (!party) throw new Error('Missing native movement reaction Party side.')
-    const active = encounterRunStateSchema.parse({
-      ...state,
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: reactor.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(runRow.projectionJson),
-      status: 'ACTIVE'
-    })
-    await ctx.db.patch(runRow._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
     for (const actor of [reactor, additionalReactorActor].filter(
       (value): value is NonNullable<typeof value> => value !== null
     )) {
@@ -492,18 +474,10 @@ export async function setupCreatureReactionRun(
         stateChecksum: checksumCanonicalJson(state)
       })
     }
-    const reactorIds = new Set(
-      [reactor, additionalReactorActor].flatMap((actor) => (actor ? [actor.id] : []))
-    )
-    const friendly = encounterGmProjectionDtoSchema.parse({
-      ...projection,
-      actors: projection.actors.map((actor) =>
-        reactorIds.has(actor.id) ? { ...actor, disposition: 'FRIENDLY' } : actor
-      )
-    })
-    await ctx.db.patch(runRow._id, {
-      projectionJson: JSON.stringify(friendly),
-      projectionChecksum: checksumCanonicalJson(friendly)
+    await activateFixtureRun(ctx, run.id, {
+      automationMode: 'ASSISTED',
+      round: 1,
+      currentActorId: reactor.id
     })
   })
   return {

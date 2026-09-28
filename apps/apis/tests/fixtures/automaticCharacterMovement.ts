@@ -5,7 +5,6 @@ import type {
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -14,8 +13,6 @@ import {
   createDnd5eMovementReactionEligibilityDefinition,
   createDnd5eMovementReactionChoiceDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { importedSubject } from './publication'
@@ -23,6 +20,7 @@ import { setupCharacterRun } from './encounterCharacter'
 import { sourceImportBatches } from '../../convex/content/importBatches'
 import { api, components, internal } from '../../convex/_generated/api'
 import { setupReactionMovementScene } from './automaticSceneMovement'
+import { activateFixtureRun } from './activeInitiative'
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -262,35 +260,13 @@ export async function setupAutomaticCharacterMovement(
     (additionalCharacter && !additionalCharacterActor)
   )
     throw new Error('Character reaction actors are unavailable.')
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Character reaction Run is unavailable.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const active = encounterRunStateSchema.parse({
-      ...state,
-      status: 'ACTIVE',
+  await base.t.run((ctx) =>
+    activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',
       round: 1,
       currentActorId: reactors[0]!.id
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: reactors[0]!.id
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-  })
+  )
   const scene = await setupReactionMovementScene(
     {
       ...base,

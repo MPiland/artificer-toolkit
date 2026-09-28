@@ -279,9 +279,18 @@ export async function verifyEncounterTransactions({
     }),
     { ok: true }
   )
-  assert.deepEqual(await owner.mutation(executeEncounterCommand, start), started)
+  const replayProjection = await owner.query(api.encounters.projectionReads.get, {
+    encounterId: prepared.id
+  })
+  assert.deepEqual(await owner.mutation(executeEncounterCommand, start), {
+    ...started,
+    projection: replayProjection
+  })
   assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
-  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
+  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), {
+    ...tokenResult,
+    projection: replayProjection
+  })
   const complete: EncounterExecuteInput = {
     command: {
       type: 'COMPLETE',
@@ -315,9 +324,12 @@ export async function verifyEncounterTransactions({
   assert.equal(completed.version, projection.version + 1)
   projection = completed
   assert.deepEqual(await owner.mutation(api.campaigns.sessionFinish.finish, finishInput), finished)
-  assert.deepEqual(await owner.mutation(executeEncounterCommand, start), started)
+  assert.deepEqual(await owner.mutation(executeEncounterCommand, start), { ...started, projection })
   assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
-  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
+  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), {
+    ...tokenResult,
+    projection
+  })
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
     projection

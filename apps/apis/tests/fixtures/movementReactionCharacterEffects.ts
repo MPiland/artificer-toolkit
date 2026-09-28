@@ -5,10 +5,7 @@ import type {
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -23,6 +20,7 @@ import { setupReactionMovementScene } from './automaticSceneMovement'
 import { setupCharacterRun } from './encounterCharacter'
 import { conditionReactionCreature } from './movementReactionEffects'
 import { importedSubject } from './publication'
+import { activateFixtureRun } from './activeInitiative'
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -152,32 +150,13 @@ export async function setupMovementReactionCharacterEffects(withSecondReactor = 
   const mover = run.actors.find((actor) => actor.kind === 'CHARACTER')
   if (!mover) throw new Error('Character movement reaction actors are unavailable.')
 
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Character movement reaction Run is unavailable.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const active = encounterRunStateSchema.parse({
-      ...state,
-      status: 'ACTIVE',
+  await base.t.run((ctx) =>
+    activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',
       round: 1,
       currentActorId: reactors[0]!.id
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE'
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-  })
+  )
 
   return setupReactionMovementScene(
     { ...base, other: base.player, run, reactors, mover },

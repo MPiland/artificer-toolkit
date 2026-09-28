@@ -1,15 +1,10 @@
 import { Migrations } from '@convex-dev/migrations'
-import {
-  encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema
-} from '@artificer-toolkit/schema/api/encounterData'
 import { sceneFogPatchInputSchema } from '@artificer-toolkit/schema/api/sceneFog'
 import { campaignLiveScenePresentationReceiptDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { encounterStoredRunSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { sceneStoredPresentationSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { sceneVisionRevisionSchema } from '@artificer-toolkit/schema/projections/sceneVisionRevisions'
-import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
@@ -35,17 +30,6 @@ function parseJsonObject(json: string) {
 
 function withoutSessionId({ sessionId: _sessionId, ...value }: JsonObject) {
   return value
-}
-
-/** Returns the Session-free command result, or null when the stored result is already current. */
-function migrateCommandResult(resultJson: string) {
-  const result = parseJsonObject(resultJson)
-  if (!isJsonObject(result.projection) || !('sessionId' in result.projection)) return null
-  const next = encounterCommandResultDtoSchema.parse({
-    ...result,
-    projection: withoutSessionId(result.projection)
-  })
-  return { resultJson: JSON.stringify(next), resultChecksum: checksumCanonicalJson(next) }
 }
 
 /** Returns the presentation-fenced fog input, or null when the stored input is already current. */
@@ -126,52 +110,20 @@ export const visionRevisions = migrations.define({
 
 export const encounterRuns = migrations.define({
   table: 'encounterRuns',
-  // Run state and projections can approach the document size limit.
+  // Run state can approach the document size limit.
   batchSize: 1,
   migrateOne: async (ctx, run) => {
     if (!('sessionId' in run)) return
     const state = encounterRunStateSchema.parse(withoutSessionId(parseJsonObject(run.stateJson)))
-    const projection = encounterGmProjectionDtoSchema.parse(
-      withoutSessionId(parseJsonObject(run.projectionJson))
-    )
     const { _id, _creationTime, ...stored } = run
     await ctx.db.replace(
       run._id,
       encounterStoredRunSchema.parse({
         ...withoutSessionId(stored),
         stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state),
-        projectionJson: JSON.stringify(projection),
-        projectionChecksum: checksumCanonicalJson(projection)
+        stateChecksum: checksumCanonicalJson(state)
       })
     )
-  }
-})
-
-export const encounterRunCommands = migrations.define({
-  table: 'encounterRunCommands',
-  batchSize: 1,
-  migrateOne: async (ctx, command) => {
-    if (command.commandType === 'CREATE') return
-    const result = migrateCommandResult(command.resultJson)
-    if (result) await ctx.db.patch(command._id, result)
-  }
-})
-
-export const encounterRuleReceipts = migrations.define({
-  table: 'encounterRuleReceipts',
-  batchSize: 1,
-  migrateOne: async (ctx, receipt) => {
-    const metadata = parseJsonObject(receipt.commandMetadataJson)
-    const commandResult = metadata.commandResult
-    if (!isJsonObject(commandResult) || typeof commandResult.resultJson !== 'string') return
-    const result = migrateCommandResult(commandResult.resultJson)
-    if (!result) return
-    const next = serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
-      ...metadata,
-      commandResult: result
-    })
-    await ctx.db.patch(receipt._id, { commandMetadataJson: JSON.stringify(next) })
   }
 })
 
@@ -235,8 +187,6 @@ export const run = migrations.runner([
   internal.campaigns.playMigrations.presentations,
   internal.campaigns.playMigrations.visionRevisions,
   internal.campaigns.playMigrations.encounterRuns,
-  internal.campaigns.playMigrations.encounterRunCommands,
-  internal.campaigns.playMigrations.encounterRuleReceipts,
   internal.campaigns.playMigrations.geometrySaves,
   internal.campaigns.playMigrations.fogSaves,
   internal.campaigns.playMigrations.fogCommands,

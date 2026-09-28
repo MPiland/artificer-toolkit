@@ -1,13 +1,11 @@
-import {
-  encounterCommandResultDtoSchema,
-  type UseEncounterBasicActionInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { UseEncounterBasicActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { rejectDomain } from './domainRejections.js'
 import { requireEncounterActorControl } from './actorController.js'
-import { readRunActor, readRunProjection, readRunState } from './documents.js'
+import { readRunActor, readRunState } from './documents.js'
+import { replayEncounterCommandResult } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -48,7 +46,6 @@ export async function readBasicActionAdmission(
     .unique()
   if (!run) throw new Error('Encounter Run was not found.')
   const state = readRunState(run)
-  readRunProjection(run)
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(
     state.campaignId,
     userId
@@ -77,7 +74,7 @@ export async function readBasicActionAdmission(
       stored.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(stored.resultJson))
+    const result = await replayEncounterCommandResult(ctx, state, stored)
     return {
       ...scope,
       kind: 'REPLAY' as const,

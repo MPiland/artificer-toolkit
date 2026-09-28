@@ -426,16 +426,10 @@ export async function setupCreatureReactionRun(
       automationMode: 'ASSISTED',
       round: 1
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(runRow.projectionJson),
-      status: 'ACTIVE'
-    })
     await ctx.db.patch(runRow._id, {
       status: 'ACTIVE',
       stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
+      stateChecksum: checksumCanonicalJson(active)
     })
     for (const actor of [reactor, additionalReactorActor].filter(
       (value): value is NonNullable<typeof value> => value !== null
@@ -458,19 +452,6 @@ export async function setupCreatureReactionRun(
         stateChecksum: checksumCanonicalJson(state)
       })
     }
-    const reactorIds = new Set(
-      [reactor, additionalReactorActor].flatMap((actor) => (actor ? [actor.id] : []))
-    )
-    const friendly = encounterGmProjectionDtoSchema.parse({
-      ...projection,
-      actors: projection.actors.map((actor) =>
-        reactorIds.has(actor.id) ? { ...actor, disposition: 'FRIENDLY' } : actor
-      )
-    })
-    await ctx.db.patch(runRow._id, {
-      projectionJson: JSON.stringify(friendly),
-      projectionChecksum: checksumCanonicalJson(friendly)
-    })
   })
   return { ...base, campaign, run, reactor, mover, additionalReactorActor }
 }

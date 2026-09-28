@@ -13,7 +13,6 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   liveSessionEncounterActionCommitInputSchema,
   liveSessionEncounterActionPendingInputSchema,
@@ -25,7 +24,6 @@ import {
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -45,7 +43,7 @@ import {
   planNativeLiveEncounterAction
 } from '../../../session-worker/src/nativeEncounterRules'
 import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import {
   automaticChargedCreature,
   automaticChargedCreatureId
@@ -53,12 +51,8 @@ import {
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { internal } from '../_generated/api'
-import {
-  readRunActor,
-  readRunProjection,
-  readRunState
-} from '@artificer-toolkit/encounter-persistence/documents'
+import { api, internal } from '../_generated/api'
+import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
@@ -201,33 +195,12 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
   const target = run.actors.find((candidate) => candidate.id !== actor?.id)
   if (!actor || !target) throw new Error('Missing action fixture actors.')
   const actionId = await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing action fixture Run.')
-    const state = encounterRunStateSchema.parse({
-      ...readRunState(row),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: state.status,
-      automationMode: state.automationMode,
-      round: state.round,
-      currentActorId: state.currentActorId
-    })
-    await ctx.db.patch(row._id, {
-      status: state.status,
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [actor.id, target.id])
+    const state = await activateFixtureRun(
+      ctx,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: actor.id },
+      [actor.id, target.id]
+    )
     const current = await readRunActor(ctx, state, actor.id)
     const capability = discoverEncounterFeatureActionCapabilities({
       actor: current,
@@ -771,15 +744,11 @@ it('resumes each Assisted evidence through the Worker and commits only the compl
         next
       )
       expect(publicResult.projection.version).toBe(base.run.version + 1)
-      const storedProjection = await base.t.run(async (ctx) => {
-        const run = await ctx.db
-          .query('encounterRuns')
-          .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-          .unique()
-        if (!run) throw new Error('Committed Encounter Run is unavailable.')
-        return readRunProjection(run)
-      })
-      expect(storedProjection).toEqual(publicResult.projection)
+      expect(
+        await base.owner.caller.query(api.encounters.projectionReads.get, {
+          encounterId: base.run.id
+        })
+      ).toEqual(publicResult.projection)
       expect(
         await commitNativeLiveEncounterAction(environment, 'fixture-access-token', base.scope, next)
       ).toEqual(publicResult)

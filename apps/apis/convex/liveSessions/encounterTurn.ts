@@ -12,6 +12,7 @@ import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-ru
 import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
 import { internalMutation } from '../lib/mutations'
@@ -32,7 +33,7 @@ export const commitPending = internalMutation({
         membership: admission.membership,
         result: admission.result
       })
-    const { state, row, campaign, membership, fingerprint, projection, resume } = admission
+    const { state, row, campaign, membership, fingerprint, resume } = admission
     const occurrenceVersion = admission.pending ? admission.pending.occurrence.version + 1 : 0
     const { snapshot } = input
     const context = snapshot.applicationContext
@@ -187,7 +188,7 @@ export const commitPending = internalMutation({
       context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
       context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
     const result = encounterCommandResultDtoSchema.parse({
-      projection,
+      projection: await readEncounterGmProjection(encounterReadTransaction(ctx), state),
       roll: null,
       occurrence: {
         occurrenceId: snapshot.occurrenceId,

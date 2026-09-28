@@ -9,7 +9,8 @@ import { type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import {
   readStoredPendingSnapshot,
   storedPendingSnapshotChecksum
@@ -61,7 +62,7 @@ export async function readMovementResponseResult(
     campaign,
     membership,
     result: encounterCommandResultDtoSchema.parse({
-      projection: readRunProjection(run),
+      projection: await readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(run)),
       roll: null,
       occurrence: projectEncounterSpatialOccurrenceSummary(
         {

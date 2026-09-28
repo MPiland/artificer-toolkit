@@ -1,9 +1,8 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  encounterGmProjectionDtoSchema,
-  type PendingEncounterRuleOccurrenceSummaryDto,
-  type ResolveRuleOccurrenceInputDto
+import type {
+  PendingEncounterRuleOccurrenceSummaryDto,
+  ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { LiveSessionMovementCommitInput } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import {
@@ -34,7 +33,6 @@ import {
   privateMovementEnvironment
 } from '../../tests/fixtures/liveMovementResponse'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import {
   executeInRoom,
   insertActiveLiveAuthority,
@@ -120,27 +118,15 @@ async function setupPassageScene(
         document: definition.document
       }))
     }
-    const active = encounterRunStateSchema.parse({
+    const withOptionalCombat = encounterRunStateSchema.parse({
       ...state,
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: helper?.id ?? base.mover.id,
       optionalCombatSnapshot: optionalSnapshot,
       optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalSnapshot)
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(run.projectionJson),
-      status: 'ACTIVE'
-    })
     await ctx.db.patch(run._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
+      stateJson: JSON.stringify(withOptionalCombat),
+      stateChecksum: checksumCanonicalJson(withOptionalCombat)
     })
-    if (helper) await seedActiveInitiative(ctx, active, [helper.id, base.mover.id, base.reactor.id])
   })
   const runVersion = async () => {
     const run = await base.t.run((ctx) =>
@@ -152,6 +138,17 @@ async function setupPassageScene(
     if (!run) throw new Error('Passage fixture run is unavailable.')
     return run.version
   }
+  const setCurrentActor = async (actorId: string) =>
+    executeInRoom(base.owner.caller, {
+      command: {
+        type: 'SET_CURRENT_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await runVersion(),
+        actorId
+      }
+    })
+  await setCurrentActor(helper?.id ?? base.mover.id)
   if (helper) {
     await base.t.mutation(importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -168,15 +165,7 @@ async function setupPassageScene(
         allyActorId: base.reactor.id
       }
     })
-    await executeInRoom(base.owner.caller, {
-      command: {
-        type: 'SET_CURRENT_ACTOR',
-        encounterId: base.run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: await runVersion(),
-        actorId: base.mover.id
-      }
-    })
+    await setCurrentActor(base.mover.id)
   }
   const additionalReactor = base.additionalReactorActor
   const actors = [base.reactor, base.mover]

@@ -33,7 +33,6 @@ import {
 import { advanceEncounterTurnInputDtoSchema, startEncounterInputDtoSchema } from './encounters.js'
 import {
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   encounterSettledAppRollDtoSchema
 } from './encounterData.js'
 import {
@@ -257,7 +256,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       autoRollByActorId: encounterAutoRollByActorIdSchema,
       appRoll: z.nullable(encounterSettledAppRollDtoSchema),
       state: encounterRunStateSchema,
-      projection: encounterGmProjectionDtoSchema,
       snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
       parentApplications: z
         .array(concentrationDamageApplicationDtoSchema)

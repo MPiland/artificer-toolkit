@@ -13,10 +13,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { LiveCaptureCache } from '../../../session-worker/src/nativeCaptureCache'
@@ -27,7 +24,7 @@ import {
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 import { executeLiveEncounterCommand } from '../../../session-worker/src/nativeRoomEncounterCommand'
 import { createNativeLiveRulesRuntime } from '../../../session-worker/src/nativeRulesRuntime'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import {
   concentrationAction,
   seedConcentration,
@@ -127,22 +124,13 @@ function saveCreature() {
 /** A Wolf and the player's Character in an active Assisted Encounter the room owns. */
 async function roomFixture(...setup: Parameters<typeof setupConcentration>) {
   const fixture = await setupConcentration(...setup)
-  await fixture.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', fixture.run.id))
-      .unique()
-    if (!row) throw new Error('Room fixture Run is unavailable.')
-    await seedActiveInitiative(ctx, encounterRunStateSchema.parse(JSON.parse(row.stateJson)), [
-      fixture.actor.id,
-      ...fixture.run.actors.flatMap(({ id }) => (id === fixture.actor.id ? [] : [id]))
-    ])
-    await insertActiveLiveAuthority(ctx, {
+  await fixture.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
       epoch: fixture.run.id,
       createdAt: fixture.campaign.createdAt
     })
-  })
+  )
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
   const calls: string[] = []
   const hooks: { beforeRoute?: (route: string) => Promise<void> } = {}
@@ -778,38 +766,14 @@ it('keeps the largest legal action bundle within the Convex transaction limits',
   const attacker = run.actors.find((actor) => actor.kind === 'CREATURE')
   const hero = run.actors.find((actor) => actor.sourceId === fixture.character.id)
   if (!attacker || !hero) throw new Error('Missing the largest Run actors.')
-  await fixture.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing the largest Run.')
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(row.stateJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: attacker.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: attacker.id
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [
-      attacker.id,
-      ...run.actors.flatMap(({ id }) => (id === attacker.id ? [] : [id]))
-    ])
-  })
+  await fixture.t.run((ctx) =>
+    activateFixtureRun(
+      ctx,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: attacker.id },
+      [attacker.id, ...run.actors.flatMap(({ id }) => (id === attacker.id ? [] : [id]))]
+    )
+  )
   if (!fixture.actionId.startsWith(fixture.actor.id))
     throw new Error('Unexpected fixture action identity.')
   const command = {

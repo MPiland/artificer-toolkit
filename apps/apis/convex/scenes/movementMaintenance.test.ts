@@ -1,7 +1,6 @@
 // @vitest-environment node
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -18,6 +17,9 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({
@@ -114,7 +116,7 @@ async function resetReactionAndDetachScene(base: MaintainedBase) {
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
       .unique()
     if (!run) throw new Error('Maintained movement Run projection is unavailable.')
-    return encounterGmProjectionDtoSchema.parse(JSON.parse(run.projectionJson))
+    return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(run))
   })
 }
 

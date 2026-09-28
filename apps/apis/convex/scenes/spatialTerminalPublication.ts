@@ -22,15 +22,16 @@ import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { terminalMovementChangedAggregates } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
 import type { MutationCtx } from '../_generated/server'
 import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
-import {
-  readRunActors,
-  readRunProjection,
-  readRunState
-} from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   insertRunCommand,
   presentTimelineEntry
 } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import {
+  encounterReplayReceipt,
+  readEncounterReplayReceipt,
+  replayEncounterCommandResult
+} from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
@@ -89,7 +90,6 @@ export async function publishSpatialTerminal(
     .unique()
   if (!run) throw new Error('Spatial terminal Encounter is unavailable.')
   const state = readRunState(run)
-  readRunProjection(run)
   if (
     state.campaignId !== header.campaignId ||
     state.campaignId !== save.sessionVision?.campaignId ||
@@ -217,17 +217,17 @@ export async function publishSpatialTerminal(
       checksumCanonicalJson(receiptMetadata) !== checksumCanonicalJson(metadata)
     )
       throw new Error('Spatial terminal replay receipt is inconsistent.')
-    const replay = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
+    const replayReceipt = readEncounterReplayReceipt(prior)
     if (
-      replay.occurrence?.status !== 'COMPLETE' ||
-      replay.occurrence.occurrenceId !== preparation.occurrenceId ||
-      replay.occurrence.occurrenceVersion !== retained.occurrenceVersion ||
-      replay.occurrence.pending !== null ||
-      replay.occurrence.outcome !== null ||
-      replay.roll !== null
+      replayReceipt.occurrence?.status !== 'COMPLETE' ||
+      replayReceipt.occurrence.occurrenceId !== preparation.occurrenceId ||
+      replayReceipt.occurrence.occurrenceVersion !== retained.occurrenceVersion ||
+      replayReceipt.occurrence.pending !== null ||
+      replayReceipt.occurrence.outcome !== null ||
+      replayReceipt.roll !== null
     )
       throw new Error('Spatial terminal replay summary is inconsistent.')
-    return replay
+    return replayEncounterCommandResult(encounterReadTransaction(ctx), state, prior)
   }
   const evaluated = await callbacks.settle(ctx, saveId, geometry, request)
   const metadata = metadataFor(evaluated.characterTransitions)
@@ -261,9 +261,7 @@ export async function publishSpatialTerminal(
     version,
     updatedAt: preparation.occurredAt,
     stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    projectionJson: JSON.stringify(projection),
-    projectionChecksum: checksumCanonicalJson(projection)
+    stateChecksum: checksumCanonicalJson(nextState)
   })
   await ctx.db.insert(
     'encounterRuleOccurrences',
@@ -313,8 +311,7 @@ export async function publishSpatialTerminal(
       actorUserId: userId,
       version,
       commandJson: JSON.stringify(save.input),
-      resultJson: JSON.stringify(command),
-      resultChecksum: checksumCanonicalJson(command),
+      ...encounterReplayReceipt(command),
       ruleOccurrenceId: preparation.occurrenceId,
       ruleResultChecksum: resultChecksum,
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,

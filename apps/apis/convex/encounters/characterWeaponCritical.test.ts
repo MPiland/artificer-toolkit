@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
@@ -10,7 +7,7 @@ import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { equipAllCharacterItems, setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -53,33 +50,12 @@ async function setup() {
   const target = run.actors.find((candidate) => candidate.kind === 'CREATURE')
   if (!actor || !target) throw new Error('The Longsword fixture actors are missing.')
   const attack = await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('The Longsword fixture Run is missing.')
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(row.stateJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [actor.id, target.id])
+    await activateFixtureRun(
+      ctx,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: actor.id },
+      [actor.id, target.id]
+    )
     const facts = await loadCharacterSheetFacts(
       ctx,
       base.player.userId,

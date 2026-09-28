@@ -7,11 +7,7 @@ import type {
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -31,6 +27,7 @@ import {
   SRD_ABILITY_DEFINITION_IDS,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import {
@@ -42,6 +39,9 @@ import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDe
 import { api, internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -196,32 +196,13 @@ async function setup() {
     run.actors.find((actor) => actor.kind === 'CREATURE' && actor.sourceId === creature.id)
   )
   if (!mover || reactors.some((actor) => !actor)) throw new Error('Missing movement actors.')
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing movement Run.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const active = encounterRunStateSchema.parse({
-      ...state,
-      status: 'ACTIVE',
+  await base.t.run((ctx) =>
+    activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',
       round: 1,
       currentActorId: reactors[0]!.id
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE'
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-  })
+  )
   return {
     ...base,
     run,
@@ -275,7 +256,7 @@ async function resetAndDetachScene(value: Awaited<ReturnType<typeof setup>>) {
       .withIndex('by_publicId', (q) => q.eq('id', value.run.id))
       .unique()
     if (!run) throw new Error('Missing reset Run.')
-    return encounterGmProjectionDtoSchema.parse(JSON.parse(run.projectionJson))
+    return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(run))
   })
 }
 

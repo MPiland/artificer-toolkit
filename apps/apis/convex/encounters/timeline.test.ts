@@ -12,11 +12,11 @@ import type {
   EncounterGmProjectionDto,
   EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { encounterCommandInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import {
-  encounterCommandInputDtoSchema,
-  encounterCommandResultDtoSchema
-} from '@artificer-toolkit/schema/api/encounters'
-import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+  encounterStoredReplayReceiptSchema,
+  encounterStoredRunCommandSchema
+} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -245,7 +245,7 @@ describe('native Encounter timeline reads', () => {
     if (!source || !actor) throw new Error('Missing timeline fixture')
     const entries = await t.run(async (ctx) => {
       const created: string[] = []
-      // Query-only receipts exercise large historical snapshots without generating 16 Rules turns.
+      // Query-only receipts with large command inputs exercise the byte budget without 16 Rules turns.
       for (let version = 1; version <= 16; version++) {
         const commandId = crypto.randomUUID()
         const visibility = version % 2 === 0 ? ('TABLE' as const) : ('PRIVATE' as const)
@@ -255,23 +255,12 @@ describe('native Encounter timeline reads', () => {
           commandId,
           expectedVersion: version - 1,
           actorId: actor.id,
-          featureId: 'fixture-feature',
+          featureId: 'fixture-feature'.padEnd(600000, 'x'),
           rollDefinitionId: 'fixture-roll',
           visibility
         })
-        const projection = {
-          ...run,
-          version,
-          actors: run.actors.map((candidate) => ({
-            ...candidate,
-            resources: { secret: 'x'.repeat(600000) }
-          }))
-        }
-        const result = encounterCommandResultDtoSchema.parse({
-          projection,
-          roll: null,
-          occurrence: null
-        })
+        const receipt = encounterStoredReplayReceiptSchema.parse({ roll: null, occurrence: null })
+
         const document = encounterStoredRunCommandSchema.parse({
           campaignId: run.campaignId,
           encounterId: run.id,
@@ -284,8 +273,8 @@ describe('native Encounter timeline reads', () => {
           version,
           commandType: 'ROLL_ENEMY_ACTION',
           commandJson: JSON.stringify(input),
-          resultJson: JSON.stringify(result),
-          resultChecksum: checksumCanonicalJson(result)
+          replayReceiptJson: JSON.stringify(receipt),
+          replayReceiptChecksum: checksumCanonicalJson(receipt)
         })
         expect(new TextEncoder().encode(JSON.stringify(document)).byteLength).toBeLessThan(
           1024 * 1024
@@ -304,13 +293,10 @@ describe('native Encounter timeline reads', () => {
         .unique()
       if (!row) throw new Error('Missing Run')
       const state = encounterRunStateSchema.parse({ ...JSON.parse(row.stateJson), version: 16 })
-      const projection = { ...run, version: 16 }
       await ctx.db.patch(row._id, {
         version: 16,
         stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state),
-        projectionJson: JSON.stringify(projection),
-        projectionChecksum: checksumCanonicalJson(projection)
+        stateChecksum: checksumCanonicalJson(state)
       })
     })
     const ids = new Set<string>()
@@ -388,7 +374,7 @@ describe('native Encounter timeline reads', () => {
     })
   }, 30000)
 
-  it('rejects a corrupted result checksum before returning a timeline entry', async () => {
+  it('rejects a corrupted replay receipt checksum before returning a timeline entry', async () => {
     const { t, owner, run } = await setup()
     await writeHistory(owner, run)
     await t.run(async (ctx) => {
@@ -397,7 +383,7 @@ describe('native Encounter timeline reads', () => {
         .withIndex('by_encounterId_version', (q) => q.eq('encounterId', run.id).eq('version', 1))
         .unique()
       if (!command || command.commandType === 'CREATE') throw new Error('Missing command receipt')
-      await ctx.db.patch(command._id, { resultChecksum: '0'.repeat(64) })
+      await ctx.db.patch(command._id, { replayReceiptChecksum: '0'.repeat(64) })
     })
     await expect(owner.caller.query(timeline, { encounterId: run.id })).rejects.toThrow(
       'receipt mismatch'

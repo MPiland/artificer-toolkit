@@ -9,7 +9,6 @@ import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene
 import type { Doc, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import schema from '../schema'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 const runPlayMigrations = makeFunctionReference<'mutation', Record<string, never>, unknown>(
   'campaigns/playMigrations:run'
 )
@@ -32,23 +31,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
   onTestFinished
 }) => {
   const base = await createEncounterSceneFixture()
-  await executeInRoom(base.other.caller, {
-    command: {
-      type: 'UPSERT_REMINDER',
-      encounterId: base.run.id,
-      commandId: crypto.randomUUID(),
-      expectedVersion: base.run.version,
-      reminder: {
-        label: 'Legacy',
-        timing: 'ROUND_NUMBER',
-        round: 2,
-        actorId: null,
-        public: false,
-        notes: null,
-        order: 0
-      }
-    }
-  })
   const current = await base.t.run(async (ctx) => ({
     campaign: await ctx.db
       .query('campaigns')
@@ -61,17 +43,10 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique(),
-    command: (
-      await ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-        .collect()
-    ).find((row) => row.commandType === 'UPSERT_REMINDER')
+      .unique()
   }))
-  const { campaign, scene, run, command } = current
-  if (!campaign || !scene || !run || command?.commandType !== 'UPSERT_REMINDER')
-    throw new Error('Missing current play rows.')
+  const { campaign, scene, run } = current
+  if (!campaign || !scene || !run) throw new Error('Missing current play rows.')
 
   vi.useFakeTimers()
   onTestFinished(() => {
@@ -83,12 +58,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
   const now = new Date().toISOString()
   const earlier = new Date(Date.parse(now) - 60_000).toISOString()
   const legacyState = { ...parseObject(run.stateJson), sessionId }
-  const legacyProjection = { ...parseObject(run.projectionJson), sessionId }
-  const currentResult = parseObject(command.resultJson)
-  const legacyCommandResult = {
-    ...currentResult,
-    projection: { ...parseObject(JSON.stringify(currentResult.projection)), sessionId }
-  }
   const fogInput = {
     type: 'PATCH_SCENE_FOG',
     sceneId: base.sceneId,
@@ -104,7 +73,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
     const { _id: _sceneId, _creationTime: _sceneTime, ...storedScene } = scene
     await ctx.db.insert('campaignScenes', storedScene)
     const { _id: _runId, _creationTime: _runTime, ...storedRun } = run
-    const { _id: _commandId, _creationTime: _commandTime, ...storedCommand } = command
     const epoch = crypto.randomUUID()
     return {
       authority: await insertLegacy(ctx, 'campaignLiveAuthorities', {
@@ -155,33 +123,7 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
         ...storedRun,
         sessionId,
         stateJson: JSON.stringify(legacyState),
-        stateChecksum: checksumCanonicalJson(legacyState),
-        projectionJson: JSON.stringify(legacyProjection),
-        projectionChecksum: checksumCanonicalJson(legacyProjection)
-      }),
-      command: await insertLegacy(ctx, 'encounterRunCommands', {
-        ...storedCommand,
-        resultJson: JSON.stringify(legacyCommandResult),
-        resultChecksum: checksumCanonicalJson(legacyCommandResult)
-      }),
-      receipt: await insertLegacy(ctx, 'encounterRuleReceipts', {
-        campaignId: campaign.id,
-        encounterId: run.id,
-        commandMetadataJson: JSON.stringify({
-          schemaVersion: 1,
-          transition: 'ACTION_EVIDENCE',
-          rootCommandId: crypto.randomUUID(),
-          rootCommandFingerprint: '0'.repeat(64),
-          rootInitiatorUserId: base.other.userId,
-          expectedAggregateVersion: 1,
-          expectedOccurrenceVersion: 0,
-          requestId: 'legacy-request',
-          resolutionKind: 'SYSTEM_ROLL',
-          commandResult: {
-            resultJson: JSON.stringify(legacyCommandResult),
-            resultChecksum: checksumCanonicalJson(legacyCommandResult)
-          }
-        })
+        stateChecksum: checksumCanonicalJson(legacyState)
       }),
       geometrySave: await insertLegacy(ctx, 'sceneGeometrySaves', {
         sceneId: scene.id,
@@ -238,8 +180,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
     sessionMarker: await ctx.db.get(ids.sessionMarker),
     campaignMarker: await ctx.db.get(ids.campaignMarker),
     run: await ctx.db.get(ids.run),
-    command: await ctx.db.get(ids.command),
-    receipt: await ctx.db.get(ids.receipt),
     geometrySave: await ctx.db.get(ids.geometrySave),
     fogSave: await ctx.db.get(ids.fogSave),
     fogCommand: await ctx.db.get(ids.fogCommand),
@@ -262,13 +202,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
   const { _id: _migratedRunId, _creationTime: _migratedRunTime, ...migratedRun } = migrated.run!
   const { _id: _currentRunId, _creationTime: _currentRunTime, ...currentRun } = run
   expect(encounterStoredRunSchema.parse(migratedRun)).toEqual(currentRun)
-  expect(migrated.command).toMatchObject({
-    resultJson: command.resultJson,
-    resultChecksum: command.resultChecksum
-  })
-  expect(JSON.parse(migrated.receipt!.commandMetadataJson)).toMatchObject({
-    commandResult: { resultJson: command.resultJson, resultChecksum: command.resultChecksum }
-  })
   expect(migrated.geometrySave?.sessionVision).toEqual({
     campaignId: campaign.id,
     systemId: campaign.gameSystemId,

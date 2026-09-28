@@ -9,7 +9,8 @@ import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence/commands'
-import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { snapshotFeatureDefinitions } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEvidenceRollDice } from '@artificer-toolkit/encounter-persistence/evidenceRolls'
 import { readActorInitiativeRoll } from '../encounters/initiativeSources'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
@@ -53,9 +54,9 @@ export const dice = internalQuery({
         dice: rollMode === 'NORMAL' ? [20] : [20, 20]
       })
     }
-    const definition = readRunProjection(run)
-      .actors.find((actor) => actor.id === command.actorId.toLowerCase())
-      ?.features.find((feature) => feature.id === command.featureId)
+    const actor = await readRunActor(ctx, readRunState(run), command.actorId.toLowerCase())
+    const definition = snapshotFeatureDefinitions(actor)
+      .find((feature) => feature.id === command.featureId)
       ?.rollDefinitions?.find((candidate) => candidate.id === command.rollDefinitionId)
     if (!definition) throw new Error('Encounter enemy action is unavailable.')
     const { count, die } = definition.expression

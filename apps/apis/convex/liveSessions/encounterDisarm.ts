@@ -33,6 +33,7 @@ import { readRunActors } from '@artificer-toolkit/encounter-persistence/document
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
@@ -110,7 +111,7 @@ export const commitPending = internalMutation({
     const result = await presentEncounterResultForMember(encounterReadTransaction(ctx), {
       campaign,
       membership,
-      result: nativeActionPendingResult(run, stored)
+      result: await nativeActionPendingResult(encounterReadTransaction(ctx), run, stored)
     })
     if (response)
       await insertActionEvidenceReceipt(ctx, {
@@ -247,8 +248,6 @@ export const commit = internalMutation({
       version: nextState.version,
       stateJson: JSON.stringify(nextState),
       stateChecksum: checksumCanonicalJson(nextState),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection),
       updatedAt: occurredAt
     })
     const completed = encounterStoredRuleOccurrenceSchema.parse({
@@ -314,8 +313,7 @@ export const commit = internalMutation({
         actorUserId: admission.initiatorUserId,
         version: nextState.version,
         commandJson: JSON.stringify(root),
-        resultJson: JSON.stringify(result),
-        resultChecksum: checksumCanonicalJson(result),
+        ...encounterReplayReceipt(result),
         createdAt: occurredAt
       })
     )

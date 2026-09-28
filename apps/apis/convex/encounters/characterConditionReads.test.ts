@@ -13,12 +13,15 @@ import type {
   EncounterPlayerProjectionDto,
   EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, components, internal } from '../_generated/api'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { encounterReadTransaction } from './encounterPorts'
 
 const get = makeFunctionReference<
   'query',
@@ -95,20 +98,18 @@ async function setStatus(
   status: 'ACTIVE' | 'COMPLETED'
 ) {
   await t.run(async (ctx) => {
+    if (status === 'ACTIVE') {
+      await activateFixtureRun(ctx, encounterId)
+      return
+    }
     const row = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', encounterId))
       .unique()
     if (!row) throw new Error('Missing Encounter Run.')
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status
-    })
     const state = encounterRunStateSchema.parse({ ...JSON.parse(row.stateJson), status })
     await ctx.db.patch(row._id, {
       status,
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection),
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state)
     })
@@ -204,11 +205,7 @@ describe('native Encounter current Character conditions', () => {
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
         .unique()
       if (!row) throw new Error('Missing Encounter Run.')
-      return {
-        projectionJson: row.projectionJson,
-        projectionChecksum: row.projectionChecksum,
-        version: row.version
-      }
+      return { stateJson: row.stateJson, stateChecksum: row.stateChecksum, version: row.version }
     })
     expect(
       characterConditions(await owner.caller.query(get, { encounterId: run.id }), actor.id)
@@ -301,36 +298,19 @@ describe('native Encounter current Character conditions', () => {
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
         .unique()
       if (!row) throw new Error('Missing Encounter Run.')
-      return {
-        projectionJson: row.projectionJson,
-        projectionChecksum: row.projectionChecksum,
-        version: row.version
-      }
+      return { stateJson: row.stateJson, stateChecksum: row.stateChecksum, version: row.version }
     })
     expect(storedAfter).toEqual(storedBefore)
 
     await player.caller.mutation(api.campaigns.assignments.unassign, {
       campaignId: campaign.id
     })
-    const detachedRow = await t.run(async (ctx) => {
-      const row = await ctx.db
+    const detachedRow = await t.run((ctx) =>
+      ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
         .unique()
-      if (!row) throw new Error('Missing Encounter Run.')
-      const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
-      const retained = {
-        ...projection,
-        actors: projection.actors.map((entry) =>
-          entry.id === actor.id ? { ...entry, conditions: [secretOverlay] } : entry
-        )
-      }
-      await ctx.db.patch(row._id, {
-        projectionJson: JSON.stringify(retained),
-        projectionChecksum: checksumCanonicalJson(retained)
-      })
-      return ctx.db.get(row._id)
-    })
+    )
     if (!detachedRow) throw new Error('Missing detached Encounter Run.')
     for (const caller of [owner.caller, player.caller, party.caller]) {
       const detached = await caller.query(get, { encounterId: run.id })
@@ -384,7 +364,7 @@ describe('native Encounter current Character conditions', () => {
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
         .unique()
       if (!row) throw new Error('Missing Encounter Run.')
-      return encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
+      return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(row))
     })
     expect(await owner.caller.query(get, { encounterId: run.id })).toEqual(completed)
     expect(await owner.caller.query(list, { campaignId: campaign.id })).toEqual([completed])

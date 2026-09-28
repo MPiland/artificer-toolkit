@@ -9,17 +9,15 @@ import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
 } from '@artificer-toolkit/schema/api/campaignSettings'
-import {
-  encounterGmProjectionDtoSchema,
-  type CreateEncounterBlueprintInputDto,
-  type CreateEncounterInputDto,
-  type EncounterBlueprintDto,
-  type EncounterGmProjectionDto,
-  type EncounterPlayerProjectionDto,
-  type EncounterSessionStateDto,
-  type PendingEncounterRuleOccurrenceSummaryDto
+import type {
+  CreateEncounterBlueprintInputDto,
+  CreateEncounterInputDto,
+  EncounterBlueprintDto,
+  EncounterGmProjectionDto,
+  EncounterPlayerProjectionDto,
+  EncounterSessionStateDto,
+  PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -33,6 +31,7 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -183,34 +182,26 @@ it('reads the active projection and pending decision together with existing visi
   })
   expect(paused.occurrence?.status).toBe('PENDING')
   expect(paused.projection.status).toBe('ACTIVE')
+  const hiddenActor = paused.projection.actors[1]
+  if (!hiddenActor) throw new Error('Missing hidden actor.')
   await base.t.run(async (ctx) => {
+    await updateFixtureRunActors(ctx, run.id, (actor) =>
+      actor.id === hiddenActor.id && actor.kind === 'CREATURE'
+        ? { ...actor, public: false, gmNotes: 'private encounter note', currentHitPoints: 1 }
+        : actor
+    )
     const row = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', run.id))
       .unique()
     if (!row) throw new Error('Missing Encounter Run.')
-    const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
-    const hidden = projection.actors[1]
-    if (!hidden) throw new Error('Missing hidden actor.')
-    const changed = encounterGmProjectionDtoSchema.parse({
-      ...projection,
-      actors: projection.actors.map((actor) =>
-        actor.id === hidden.id
-          ? { ...actor, public: false, gmNotes: 'private encounter note', currentHitPoints: 1 }
-          : actor
-      )
-    })
-    await ctx.db.patch(row._id, {
-      projectionJson: JSON.stringify(changed),
-      projectionChecksum: checksumCanonicalJson(changed)
-    })
     const state = readRunState(row)
     if (!state.currentActorId) throw new Error('Missing current actor.')
     await ctx.db.insert('encounterTurnMovements', {
       encounterId: run.id,
       round: state.round,
       turnActorId: state.currentActorId,
-      actorId: hidden.id,
+      actorId: hiddenActor.id,
       usedFeet: 15,
       // One Dash this turn adds the walking speed to the budget once (D38).
       speedBonuses: 1

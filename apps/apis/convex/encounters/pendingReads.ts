@@ -7,7 +7,7 @@ import {
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import { readValidatedRunProjection } from '@artificer-toolkit/encounter-persistence/documents'
+import { readCampaignRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readPendingRunDecision } from '@artificer-toolkit/encounter-persistence/pendingReads'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery, query } from '../lib/queries'
@@ -36,7 +36,7 @@ const pendingRuleOccurrenceDefinition = {
       .unique()
     if (!row) throw new Error('Encounter is unavailable.')
     const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
-    readValidatedRunProjection(row, campaign)
+    readCampaignRunState(row, campaign)
     return zMini
       .nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema)
       .parse(await readPendingRunDecision(encounterReadTransaction(ctx), row, campaign, membership))

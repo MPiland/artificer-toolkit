@@ -10,7 +10,6 @@ import type {
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -206,19 +205,10 @@ export async function playerControlFixture(
       round: 1,
       currentActorId: companion.id
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: companion.id
-    })
     await ctx.db.patch(row._id, {
       status: 'ACTIVE',
       stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
+      stateChecksum: checksumCanonicalJson(active)
     })
     await seedActiveInitiative(ctx, active, [
       companion.id,
@@ -309,15 +299,9 @@ export async function storeRunAutomationMode(
       .unique()
     if (!row) throw new Error('Missing fixture Run.')
     const state = encounterRunStateSchema.parse({ ...JSON.parse(row.stateJson), automationMode })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      automationMode
-    })
     await ctx.db.patch(row._id, {
       stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
+      stateChecksum: checksumCanonicalJson(state)
     })
   })
 }

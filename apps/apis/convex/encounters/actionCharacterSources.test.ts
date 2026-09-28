@@ -12,14 +12,9 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -35,7 +30,7 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
@@ -232,34 +227,12 @@ async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: Se
   const target = run.actors.find((value) => value.id !== actor?.id)
   if (!actor || !target) throw new Error('Missing Encounter actors.')
   await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing Run.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const active = encounterRunStateSchema.parse({
-      ...state,
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, active, [actor.id, target.id])
+    await activateFixtureRun(
+      ctx,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: actor.id },
+      [actor.id, target.id]
+    )
   })
   const actionId = await base.t.run(async (ctx) => {
     const current = await loadCharacterSheetFacts(ctx, owner.userId, character.id, campaign.id)
@@ -553,22 +526,6 @@ describe('native Character action sources', () => {
       await ctx.db.patch(receipt._id, {
         commandMetadataJson: JSON.stringify({ ...metadata, factsChecksum: '0'.repeat(64) })
       })
-    })
-    await expect(executeInRoom(fixture.owner.caller, { command })).rejects.toThrow(
-      LiveSessionRouteError
-    )
-    await fixture.t.run(async (ctx) => {
-      const tampered = JSON.parse(receipt.resultJson)
-      tampered.applicationOutputs.sourceCharacterId = crypto.randomUUID()
-      const resultChecksum = checksumRuleDocument(tampered)
-      const commandRow = after[3].find((value) => value.commandId === command.commandId)
-      if (!commandRow) throw new Error('Missing native action command.')
-      await ctx.db.patch(receipt._id, {
-        commandMetadataJson: receipt.commandMetadataJson,
-        resultJson: JSON.stringify(tampered),
-        resultChecksum
-      })
-      await ctx.db.patch(commandRow._id, { ruleResultChecksum: resultChecksum })
     })
     await expect(executeInRoom(fixture.owner.caller, { command })).rejects.toThrow(
       LiveSessionRouteError

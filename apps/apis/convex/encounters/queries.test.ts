@@ -15,8 +15,12 @@ import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/en
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
+import { encounterReadTransaction } from './encounterPorts'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -91,15 +95,18 @@ async function setup() {
       .withIndex('by_publicId', (q) => q.eq('id', run.id))
       .unique()
     if (!row) throw new Error('Missing Run')
-    const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
-    const hidden = projection.actors.find((actor) => actor.kind === 'CUSTOM')
-    const visible = projection.actors.find((actor) => actor.kind === 'CREATURE')
+    const hidden = run.actors.find((actor) => actor.kind === 'CUSTOM')
+    const visible = run.actors.find((actor) => actor.kind === 'CREATURE')
     if (!hidden || !visible) throw new Error('Missing privacy actors')
-    const updated = encounterGmProjectionDtoSchema.parse({
-      ...projection,
-      currentActorId: hidden.id,
-      actors: projection.actors.map((actor) =>
-        actor.id === hidden.id
+    const state = encounterRunStateSchema.parse({ ...readRunState(row), currentActorId: hidden.id })
+    await ctx.db.patch(row._id, {
+      stateJson: JSON.stringify(state),
+      stateChecksum: checksumCanonicalJson(state)
+    })
+    await updateFixtureRunActors(ctx, run.id, (actor) =>
+      actor.kind === 'CHARACTER'
+        ? actor
+        : actor.id === hidden.id
           ? {
               ...actor,
               public: false,
@@ -114,13 +121,8 @@ async function setup() {
               currentHitPoints: 7,
               tempHitPoints: 2
             }
-      )
-    })
-    await ctx.db.patch(row._id, {
-      projectionJson: JSON.stringify(updated),
-      projectionChecksum: checksumCanonicalJson(updated)
-    })
-    return updated
+    )
+    return readEncounterGmProjection(encounterReadTransaction(ctx), state)
   })
   await base.t.run((ctx) =>
     ctx.db.insert('campaignMemberships', {
@@ -142,20 +144,18 @@ async function setStatus(
   status: 'ACTIVE' | 'COMPLETED'
 ) {
   await t.run(async (ctx) => {
+    if (status === 'ACTIVE') {
+      await activateFixtureRun(ctx, id)
+      return
+    }
     const row = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', id))
       .unique()
     if (!row) throw new Error('Missing Run')
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status
-    })
     const state = encounterRunStateSchema.parse({ ...JSON.parse(row.stateJson), status })
     await ctx.db.patch(row._id, {
       status,
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection),
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state)
     })
@@ -172,29 +172,24 @@ describe('native Encounter reads', () => {
       (condition) => condition.code === 'POISONED'
     )!
     await setStatus(t, run.id, 'ACTIVE')
-    const stored = await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique()
-      if (!row) throw new Error('Missing Run')
-      const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
-      const updated = {
-        ...projection,
-        actors: projection.actors.map((actor) => ({
-          ...actor,
-          conditions: actor.public
-            ? [frightened.id, { conditionTypeId: poisoned.id, notes: 'Public condition note' }]
-            : [{ conditionTypeId: frightened.id, notes: 'Private condition note' }]
-        }))
-      }
-      const patch = {
-        projectionJson: JSON.stringify(updated),
-        projectionChecksum: checksumCanonicalJson(updated)
-      }
-      await ctx.db.patch(row._id, patch)
-      return { ...row, ...patch }
-    })
+    const records = () =>
+      t.run(async (ctx) => ({
+        runs: await ctx.db.query('encounterRuns').collect(),
+        actors: await ctx.db.query('encounterRunActors').collect()
+      }))
+    await t.run((ctx) =>
+      updateFixtureRunActors(ctx, run.id, (actor) =>
+        actor.kind === 'CHARACTER'
+          ? actor
+          : {
+              ...actor,
+              conditions: actor.public
+                ? [frightened.id, { conditionTypeId: poisoned.id, notes: 'Public condition note' }]
+                : [{ conditionTypeId: frightened.id, notes: 'Private condition note' }]
+            }
+      )
+    )
+    const stored = await records()
     const expected = [
       expect.objectContaining({ conditionTypeId: frightened.id, label: frightened.label }),
       expect.objectContaining({
@@ -218,7 +213,7 @@ describe('native Encounter reads', () => {
       ).toEqual(expected)
       if (viewer === other) expect(JSON.stringify(single)).not.toContain('Private condition note')
     }
-    expect(await t.run((ctx) => ctx.db.get(stored._id))).toEqual(stored)
+    expect(await records()).toEqual(stored)
   }, 30000)
 
   it('returns exact owner projections and redacted player projections, with ACTIVE-only player lists', async () => {

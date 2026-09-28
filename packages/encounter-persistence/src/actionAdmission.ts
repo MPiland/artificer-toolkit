@@ -1,5 +1,4 @@
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -7,7 +6,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending.js'
-import { readRunActor, readRunProjection, readRunState } from './documents.js'
+import { readRunActor, readRunState } from './documents.js'
+import { readEncounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { requireEncounterActorControl } from './actorController.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
@@ -46,7 +46,6 @@ export async function readNativeEncounterActionAdmission(
     .unique()
   if (!run) throw new Error('Encounter Run was not found.')
   const state = readRunState(run)
-  readRunProjection(run)
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(
     state.campaignId,
     userId
@@ -74,14 +73,8 @@ export async function readNativeEncounterActionAdmission(
       replay.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(replay.resultJson))
-    if (
-      checksumCanonicalJson(JSON.parse(replay.commandJson)) !== fingerprint ||
-      checksumCanonicalJson(result) !== replay.resultChecksum ||
-      result.projection.id !== run.id ||
-      result.projection.campaignId !== campaign.id ||
-      result.projection.version !== replay.version
-    )
+    const replayReceipt = readEncounterReplayReceipt(replay)
+    if (checksumCanonicalJson(JSON.parse(replay.commandJson)) !== fingerprint)
       throw new Error('Stored Encounter action receipt mismatch.')
     const occurrence = await ctx.db
       .query('encounterRuleOccurrences')
@@ -114,16 +107,6 @@ export async function readNativeEncounterActionAdmission(
     const metadata = serverRuleExecutionReceiptCommandMetadataDtoSchema.parse(
       JSON.parse(receipt.commandMetadataJson)
     )
-    const sourceProjectionActor = result.projection.actors.find(
-      (actor) => actor.id === input.actorId
-    )
-    const targetProjectionActor = result.projection.actors.find(
-      (actor) => actor.id === input.targetActorId
-    )
-    const characterBatch =
-      payload.applicationOutputs.kind === 'CHARACTER_MECHANICS_BATCH'
-        ? payload.applicationOutputs
-        : null
     if (
       occurrence.state !== 'COMPLETED' ||
       occurrence.encounterId !== run.id ||
@@ -157,26 +140,15 @@ export async function readNativeEncounterActionAdmission(
             checksumRuleDocument(initialExecution.evidence.facts))) ||
       metadata.expectedAggregateVersion !== input.expectedVersion ||
       metadata.optionalCombatSnapshotChecksum !== replay.optionalCombatSnapshotChecksum ||
-      result.occurrence?.status !== 'COMPLETE' ||
-      result.occurrence.occurrenceId !== occurrence.id ||
-      result.occurrence.occurrenceVersion !== occurrence.version ||
-      result.occurrence.pending !== null ||
-      result.occurrence.outcome !== null ||
-      result.roll !== null
+      replayReceipt.occurrence?.status !== 'COMPLETE' ||
+      replayReceipt.occurrence.occurrenceId !== occurrence.id ||
+      replayReceipt.occurrence.occurrenceVersion !== occurrence.version ||
+      replayReceipt.occurrence.pending !== null ||
+      replayReceipt.occurrence.outcome !== null ||
+      replayReceipt.roll !== null
     )
       throw new Error('Stored Encounter action receipt mismatch.')
-    if (
-      characterBatch &&
-      (!sourceProjectionActor ||
-        !targetProjectionActor ||
-        targetProjectionActor.kind !== 'CHARACTER' ||
-        targetProjectionActor.sourceId === null ||
-        (characterBatch.sourceCharacterId === null
-          ? sourceProjectionActor.kind === 'CHARACTER'
-          : sourceProjectionActor.kind !== 'CHARACTER' ||
-            sourceProjectionActor.sourceId !== characterBatch.sourceCharacterId))
-    )
-      throw new Error('Stored Encounter Character action receipt mismatch.')
+    const result = await replayEncounterCommandResult(ctx, state, replay)
     return { kind: 'REPLAY' as const, input, run, state, campaign, membership, fingerprint, result }
   }
   if (!resume) {
@@ -217,7 +189,7 @@ export async function readNativeEncounterActionAdmission(
         campaign,
         membership,
         fingerprint,
-        result: nativeActionPendingResult(run, occurrence)
+        result: await nativeActionPendingResult(ctx, run, occurrence)
       }
     if (
       resume.occurrence._id !== occurrence._id ||

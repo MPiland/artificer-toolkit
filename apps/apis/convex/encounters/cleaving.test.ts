@@ -15,11 +15,7 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverAggregateChoicePendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -51,7 +47,7 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
@@ -66,6 +62,9 @@ import { api, components, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { encounterReadTransaction } from './encounterPorts'
 import {
   commitNativeLiveEncounterAction,
   planNativeLiveEncounterAction
@@ -413,35 +412,10 @@ async function setup(
     width: 1
   }))
   const actionId = await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing run.')
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(row.stateJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(
+    await activateFixtureRun(
       ctx,
-      state,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: actor.id },
       run.actors.map((candidate) => candidate.id)
     )
     const source = await ctx.db
@@ -832,8 +806,11 @@ describe('native Cleaving action settlement', () => {
       )
       const after = await records(base)
       expect(after.run?.version).toBe(before.run!.version + 1)
-      expect(JSON.parse(after.run!.projectionJson!)).toEqual(committed.projection)
-      expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(committed.projection))
+      expect(
+        await base.t.run((ctx) =>
+          readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(after.run!))
+        )
+      ).toEqual(committed.projection)
       const rootReceipt = after.receipts.find((receipt) => receipt.commandId === command.commandId)
       if (!rootReceipt) throw new Error('Missing Cleaving root receipt.')
       expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson))).toEqual(
@@ -969,7 +946,9 @@ describe('native Cleaving action settlement', () => {
       if (responseCommand.type !== 'RESOLVE_RULE_OCCURRENCE')
         throw new Error('Expected concentration evidence response.')
       let concentration: EncounterCommandResultDto
-      let retryConcentration: () => Promise<EncounterCommandResultDto>
+      let retryConcentration: (
+        expected: EncounterCommandResultDto
+      ) => Promise<EncounterCommandResultDto>
       if (transport === 'planner') {
         const { authorityEpoch } = base
         const environment = workerEnvironment(workerSecret)
@@ -1013,7 +992,7 @@ describe('native Cleaving action settlement', () => {
           'encounterConcentrationCommit',
           plan.input
         )
-        retryConcentration = async () => {
+        retryConcentration = async (expected) => {
           const beforeRetry = await records(base)
           const replay = await planNativeLiveConcentrationResponse(
             environment,
@@ -1028,7 +1007,7 @@ describe('native Cleaving action settlement', () => {
             }
           )
           if (replay.kind !== 'REPLAY') throw new Error('Expected concentration response replay.')
-          expect(replay).toEqual({ kind: 'REPLAY', result: concentration })
+          expect(replay).toEqual({ kind: 'REPLAY', result: expected })
           expect(
             await callLiveSessionRoute(
               environment,
@@ -1036,7 +1015,7 @@ describe('native Cleaving action settlement', () => {
               'encounterConcentrationCommit',
               plan.input
             )
-          ).toEqual(concentration)
+          ).toEqual(expected)
           expect(await records(base)).toEqual(beforeRetry)
           return replay.result
         }
@@ -1063,7 +1042,13 @@ describe('native Cleaving action settlement', () => {
       expect((await records(base)).occurrences.some((entry) => entry.state === 'PENDING')).toBe(
         false
       )
-      await expect(retryConcentration()).resolves.toEqual(concentration)
+      const currentConcentration = encounterCommandResultDtoSchema.parse({
+        ...concentration,
+        projection: await base.other.caller.query(api.encounters.projectionReads.get, {
+          encounterId: base.run.id
+        })
+      })
+      await expect(retryConcentration(currentConcentration)).resolves.toEqual(currentConcentration)
       await expect(replayAnswer(base, base.owner, decline)).resolves.toEqual({
         kind: 'REPLAY',
         result: declined
@@ -1254,7 +1239,12 @@ describe('native Cleaving action settlement', () => {
             .map((payload) => payload.applicationOutputs.damage.requestedAmount)
             .sort((left, right) => right - left)
         ).toEqual([29, 18])
-        await expect(replayInRoom(base.owner.caller, base.command)).resolves.toEqual(result)
+        await expect(replayInRoom(base.owner.caller, base.command)).resolves.toEqual({
+          ...result,
+          projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
+            encounterId: base.run.id
+          })
+        })
         for (const retained of evidence) await replayInRoom(base.owner.caller, retained)
         expect(await records(base)).toEqual(final)
       } finally {

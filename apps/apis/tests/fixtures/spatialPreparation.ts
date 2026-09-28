@@ -9,11 +9,12 @@ import type { sceneTokenMovementCommandInputDtoSchema } from '@artificer-toolkit
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { MutationCtx } from '../../convex/_generated/server'
 import { createEncounterSceneFixture } from './encounterScene'
-import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
 import { readGeometrySave, readSpatialPreparation } from '../../convex/scenes/geometryDocuments'
 import { internal } from '../../convex/_generated/api'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { seedSpatialEffect } from './spatialEffect'
+import { activateFixtureRun } from './activeInitiative'
 import { insertActiveLiveAuthority, planStagedMovementInRoom } from './liveSessionWorker'
 export async function createSpatialPreparationFixture() {
   const base = await createEncounterSceneFixture()
@@ -42,20 +43,7 @@ export async function createSpatialPreparationFixture() {
     ]
   }
   await base.t.run(async (ctx) => {
-    const runRow = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
-    if (!runRow) throw new Error('Fixture Run missing')
-    const state = { ...readRunState(runRow), status: 'ACTIVE' as const }
-    const projection = { ...readRunProjection(runRow), status: 'ACTIVE' as const }
-    await ctx.db.patch(runRow._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
+    await activateFixtureRun(ctx, base.run.id)
     await ctx.db.insert('encounterSceneBindings', {
       encounterId: base.run.id,
       campaignId: base.campaign.id,
@@ -155,11 +143,7 @@ export async function grantFixtureActorControl(
       q.eq('encounterId', input.encounterId).eq('id', input.actorId)
     )
     .unique()
-  const runRow = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
-    .unique()
-  if (!actorRow || !runRow) throw new Error('Fixture Run actor missing')
+  if (!actorRow) throw new Error('Fixture Run actor missing')
   const actor = encounterRunActorStateSchema.parse({
     ...JSON.parse(actorRow.stateJson),
     controllerUserIds: input.controllerUserIds
@@ -167,17 +151,6 @@ export async function grantFixtureActorControl(
   await ctx.db.patch(actorRow._id, {
     stateJson: JSON.stringify(actor),
     stateChecksum: checksumCanonicalJson(actor)
-  })
-  const projection = readRunProjection(runRow)
-  const granted = {
-    ...projection,
-    actors: projection.actors.map((entry) =>
-      entry.id === input.actorId ? { ...entry, controllerUserIds: input.controllerUserIds } : entry
-    )
-  }
-  await ctx.db.patch(runRow._id, {
-    projectionJson: JSON.stringify(granted),
-    projectionChecksum: checksumCanonicalJson(granted)
   })
 }
 

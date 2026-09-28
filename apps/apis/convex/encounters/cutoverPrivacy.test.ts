@@ -12,9 +12,12 @@ import type {
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -79,28 +82,18 @@ it('V12 current native reads redact hidden actors and deny outsider or departed 
       .withIndex('by_publicId', (q) => q.eq('id', run.id))
       .unique()
     if (!row) throw new Error('Missing Encounter Run.')
-    const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
-    const hidden = projection.actors[1]
+    const hidden = run.actors[1]
     if (!hidden) throw new Error('Missing hidden actor.')
-    const changed = encounterGmProjectionDtoSchema.parse({
-      ...projection,
-      currentActorId: hidden.id,
-      actors: projection.actors.map((actor) =>
-        actor.id === hidden.id
-          ? {
-              ...actor,
-              public: false,
-              gmNotes: 'V12 secret',
-              currentHitPoints: 1,
-              tempHitPoints: 3
-            }
-          : actor
-      )
-    })
+    const state = encounterRunStateSchema.parse({ ...readRunState(row), currentActorId: hidden.id })
     await ctx.db.patch(row._id, {
-      projectionJson: JSON.stringify(changed),
-      projectionChecksum: checksumCanonicalJson(changed)
+      stateJson: JSON.stringify(state),
+      stateChecksum: checksumCanonicalJson(state)
     })
+    await updateFixtureRunActors(ctx, run.id, (actor) =>
+      actor.id === hidden.id && actor.kind === 'CUSTOM'
+        ? { ...actor, public: false, gmNotes: 'V12 secret', currentHitPoints: 1, tempHitPoints: 3 }
+        : actor
+    )
   })
   const owner = encounterGmProjectionDtoSchema.parse(
     await base.owner.caller.query(get, { encounterId: run.id })

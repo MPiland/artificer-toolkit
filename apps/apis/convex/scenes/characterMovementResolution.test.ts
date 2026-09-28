@@ -19,11 +19,7 @@ import type {
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   sceneStoredDefinitionEntitySchema,
   sceneStoredDefinitionSaveSchema,
@@ -49,6 +45,7 @@ import {
 import { api, components, internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import { readSessionVisionScope } from './sessionVisionDocuments'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { reactionBinding } from '../../tests/fixtures/reactionBinding'
@@ -327,34 +324,13 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
   )
   if (!reactor || !mover || (futurePlayer && !futureReactorActor))
     throw new Error('Missing Character reaction actors.')
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing Character reaction Run.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const active = encounterRunStateSchema.parse({
-      ...state,
-      status: 'ACTIVE',
+  await base.t.run((ctx) =>
+    activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',
       round: 1,
       currentActorId: mover.id
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      round: 1,
-      currentActorId: mover.id
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-  })
+  )
   const sceneId = crypto.randomUUID()
   const definitionSaveId = crypto.randomUUID()
   const rootCommandId = crypto.randomUUID()

@@ -55,7 +55,7 @@ import { tiefling } from '@artificer-toolkit/source-data/srd/races/tiefling.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 import { withSceneVisionTracking } from '../lib/mutations'
-import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { readSceneVisionRevision } from './visionFreshness'
 import { api, components, internal } from '../_generated/api'
 import type { SceneGeometryExecuteInput } from '@artificer-toolkit/schema/api/sceneGeometry'
@@ -392,26 +392,14 @@ async function prepareBoundMovement(base: Awaited<ReturnType<typeof setup>>) {
     path: [token.position, { x: 10, y: 0 }]
   }
   await base.owner.caller.run(async (ctx) => {
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
     const source = await ctx.db
       .query('sceneDefinitionEntities')
       .withIndex('by_saveId_collection_ordinal', (q) =>
         q.eq('saveId', base.saveId).eq('value.collection', 'tokens').eq('ordinal', 0)
       )
       .unique()
-    if (!run || !source) throw new Error('Missing bound movement fixture state.')
-    const state = { ...readRunState(run), status: 'ACTIVE' as const }
-    const projection = { ...readRunProjection(run), status: 'ACTIVE' as const }
-    await ctx.db.patch(run._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
+    if (!source) throw new Error('Missing bound movement fixture state.')
+    await activateFixtureRun(ctx, base.run.id)
     const { _id, _creationTime, ...stored } = source
     const value = {
       collection: 'tokens' as const,

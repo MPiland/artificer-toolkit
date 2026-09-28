@@ -10,6 +10,9 @@ import { writeCharacterRecord } from '../characters/characterWrites'
 import { reconcileCharacterSourceLoss } from '../characters/sourceLoss'
 import { readCampaignCharacterState } from './characterState'
 import { returnDepartingCharacterCurrency } from './currencyDeparture'
+import { freezeEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /** Caller authorizes the lifecycle operation before changing membership or Campaign authority. */
 export async function removeCampaignCharacterAssignment(input: {
@@ -50,6 +53,19 @@ export async function removeCampaignCharacterAssignment(input: {
     reason: input.reason,
     state: character.state
   })
+  // The Campaign's open Runs stop reading the Character and keep its last projected health.
+  for (const status of ['PREPARED', 'ACTIVE'] as const)
+    for (const run of await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_campaignId_status', (q) =>
+        q.eq('campaignId', campaign.id).eq('status', status)
+      )
+      .collect())
+      await freezeEncounterCharacterStates(
+        encounterWriteTransaction(ctx),
+        readRunState(run),
+        character.id
+      )
   await ctx.db.delete(assignment._id)
   if (overlay) await ctx.db.delete(overlay._id)
   const targets = await readCharacterSourceAccessLoss(ctx, character)

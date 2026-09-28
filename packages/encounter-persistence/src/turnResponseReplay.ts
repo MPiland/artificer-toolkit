@@ -1,7 +1,6 @@
 import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto,
-  type EncounterGmProjectionDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
@@ -10,18 +9,21 @@ import { nativeConcentrationParentDamage } from '@artificer-toolkit/rules-runtim
 import { matchesNativeTurnResponse } from '@artificer-toolkit/rules-runtime/encounterTurnResponse'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { requireInitiativeTransition } from './commandReplay.js'
-import type { EncounterDocument, EncounterReadContext } from './store.js'
+import { readEncounterReplayReceipt } from './replayReceipts.js'
+import { readRunState } from './documents.js'
+import { readEncounterGmProjection } from './nativeProjection.js'
+import type { EncounterDocument } from './store.js'
+import type { EncounterReadTransaction } from './ports.js'
 
-/** Reconstructs a completed response from its retained receipt, including its original projection. */
+/** Reconstructs a completed response from its retained receipt over the Run's current projection. */
 export async function readNativeTurnResponseReplay(
-  ctx: EncounterReadContext,
+  ctx: EncounterReadTransaction,
   {
     occurrence,
     row,
     campaign,
     command,
     userId,
-    projection,
     receipt: suppliedReceipt
   }: {
     occurrence: EncounterDocument<'encounterRuleOccurrences'>
@@ -29,7 +31,6 @@ export async function readNativeTurnResponseReplay(
     campaign: EncounterDocument<'campaigns'>
     command: ResolveRuleOccurrenceInputDto
     userId: string
-    projection: EncounterGmProjectionDto
     receipt?: EncounterDocument<'encounterRuleReceipts'> | null
   }
 ): Promise<EncounterCommandResultDto | null> {
@@ -90,7 +91,6 @@ export async function readNativeTurnResponseReplay(
     storedResult.initiative,
     storedResult.initiativeAdvance
   )
-  let replayProjection: EncounterCommandResultDto['projection'] = projection
   // Child Concentration cleanup may change the Run after this damage turn completed.
   if (nativeConcentrationParentDamage(storedResult).length > 0) {
     const rootCommandId = occurrence.rootCommandId
@@ -102,9 +102,7 @@ export async function readNativeTurnResponseReplay(
       .unique()
     if (!terminalCommand || terminalCommand.commandType !== receipt.commandType)
       throw new Error('The terminal turn command is unavailable.')
-    const terminalResult = encounterCommandResultDtoSchema.parse(
-      JSON.parse(terminalCommand.resultJson)
-    )
+    const terminalReceipt = readEncounterReplayReceipt(terminalCommand)
     if (
       terminalCommand.encounterId !== row.id ||
       terminalCommand.ruleOccurrenceId !== occurrence.id ||
@@ -112,16 +110,13 @@ export async function readNativeTurnResponseReplay(
       terminalCommand.commandFingerprint !== receipt.commandFingerprint ||
       terminalCommand.actorUserId !== receipt.actorUserId ||
       terminalCommand.version !== receipt.encounterVersion ||
-      checksumCanonicalJson(terminalResult) !== terminalCommand.resultChecksum ||
-      terminalResult.projection.version !== terminalCommand.version ||
-      terminalResult.occurrence?.occurrenceId !== occurrence.id ||
-      terminalResult.occurrence.occurrenceVersion !== occurrence.version
+      terminalReceipt.occurrence?.occurrenceId !== occurrence.id ||
+      terminalReceipt.occurrence.occurrenceVersion !== occurrence.version
     )
       throw new Error('The terminal turn command is invalid.')
-    replayProjection = terminalResult.projection
   }
   return encounterCommandResultDtoSchema.parse({
-    projection: replayProjection,
+    projection: await readEncounterGmProjection(ctx, readRunState(row)),
     roll: null,
     occurrence: {
       occurrenceId: occurrence.id,

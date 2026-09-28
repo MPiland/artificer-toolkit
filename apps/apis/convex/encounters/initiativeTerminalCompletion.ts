@@ -28,6 +28,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 
 type InitiativeRootCommand = Extract<EncounterCommandInputDto, { type: 'START' | 'ADVANCE_TURN' }>
 
@@ -205,9 +206,7 @@ export async function completeNativeInitiativeOccurrence(input: {
     version: input.encounterVersion,
     updatedAt: input.updatedAt,
     stateJson: JSON.stringify(input.nextState),
-    stateChecksum: checksumCanonicalJson(input.nextState),
-    projectionJson: JSON.stringify(input.nextProjection),
-    projectionChecksum: checksumCanonicalJson(input.nextProjection)
+    stateChecksum: checksumCanonicalJson(input.nextState)
   })
   await input.ctx.db.patch(input.occurrence._id, {
     state: completedOccurrence.state,
@@ -252,8 +251,7 @@ export async function completeNativeInitiativeOccurrence(input: {
       actorUserId: input.rootRequestedByUserId,
       version: input.encounterVersion,
       commandJson: JSON.stringify(input.rootCommand),
-      resultJson: JSON.stringify(result),
-      resultChecksum: checksumCanonicalJson(result),
+      ...encounterReplayReceipt(result),
       createdAt: input.updatedAt
     })
   )

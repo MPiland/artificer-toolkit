@@ -2,7 +2,6 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRuleReceiptSchema
@@ -12,6 +11,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createDnd5eOptionalCombatContestGraph } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestGraph'
+import { readEncounterReplayReceipt } from './replayReceipts.js'
 import { presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
@@ -36,7 +36,7 @@ export async function readNativeDisarmReplay(
     receipt.version > run.version
   )
     throw new Error('Stored Disarm command receipt mismatch.')
-  const result = encounterCommandResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+  const replayReceipt = readEncounterReplayReceipt(receipt)
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', receipt.ruleOccurrenceId))
@@ -100,24 +100,15 @@ export async function readNativeDisarmReplay(
     metadata.expectedAggregateVersion !== command.expectedVersion ||
     metadata.factsChecksum !== checksumRuleDocument(payload.evidence.facts) ||
     metadata.optionalCombatSnapshotChecksum !== receipt.optionalCombatSnapshotChecksum ||
-    result.projection.id !== run.id ||
-    result.projection.campaignId !== run.campaignId ||
-    result.projection.version !== receipt.version ||
-    result.occurrence?.occurrenceId !== occurrence.id ||
-    result.occurrence.occurrenceVersion !== occurrence.version ||
-    result.occurrence.status !== 'COMPLETE' ||
-    result.occurrence.pending !== null ||
-    result.occurrence.outcome !== null ||
-    result.roll !== null
+    replayReceipt.occurrence?.occurrenceId !== occurrence.id ||
+    replayReceipt.occurrence.occurrenceVersion !== occurrence.version ||
+    replayReceipt.occurrence.status !== 'COMPLETE' ||
+    replayReceipt.occurrence.pending !== null ||
+    replayReceipt.occurrence.outcome !== null ||
+    replayReceipt.roll !== null
   )
     throw new Error('Stored Disarm rule receipt mismatch.')
-  const target = result.projection.actors.find((actor) => actor.id === command.targetActorId)
-  if (
-    application.stateTransition.kind === 'CHARACTER_ITEM_USE_STATE' &&
-    (target?.kind !== 'CHARACTER' || target.sourceId !== application.stateTransition.characterId)
-  )
-    throw new Error('Stored Disarm Character transition mismatch.')
-  return { result, payload, occurrence }
+  return { payload, occurrence, receipt }
 }
 
 /** Evidence command IDs replay their original authorized response, including an earlier pause. */
@@ -138,13 +129,11 @@ export function readNativeDisarmEvidenceReplay(input: {
   const payload = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
   if (
     metadata.transition !== 'ACTION_EVIDENCE' ||
-    !metadata.commandResult ||
+    !metadata.replayReceipt ||
     (payload.status !== 'PAUSED' && payload.status !== 'COMPLETE')
   )
     throw new Error('Stored Disarm evidence receipt mismatch.')
-  const result = encounterCommandResultDtoSchema.parse(
-    JSON.parse(metadata.commandResult.resultJson)
-  )
+  const replayReceipt = readEncounterReplayReceipt(metadata.replayReceipt)
   if (
     metadata.rootCommandId !== input.rootCommand.commandId ||
     metadata.rootCommandFingerprint !== checksumCanonicalJson(input.rootCommand) ||
@@ -168,26 +157,23 @@ export function readNativeDisarmEvidenceReplay(input: {
     payload.occurrenceVersion > occurrence.version ||
     receipt.encounterVersion !==
       response.expectedVersion + (payload.status === 'COMPLETE' ? 1 : 0) ||
-    result.projection.id !== occurrence.encounterId ||
-    result.projection.campaignId !== occurrence.campaignId ||
-    result.projection.version !== receipt.encounterVersion ||
-    result.occurrence?.occurrenceId !== occurrence.id ||
-    result.occurrence.occurrenceVersion !== payload.occurrenceVersion ||
-    result.occurrence.status !== (payload.status === 'COMPLETE' ? 'COMPLETE' : 'PENDING') ||
-    result.occurrence.outcome !== null ||
-    result.roll !== null ||
-    checksumCanonicalJson(result) !== metadata.commandResult.resultChecksum
+    replayReceipt.occurrence?.occurrenceId !== occurrence.id ||
+    replayReceipt.occurrence.occurrenceVersion !== payload.occurrenceVersion ||
+    replayReceipt.occurrence.status !== (payload.status === 'COMPLETE' ? 'COMPLETE' : 'PENDING') ||
+    replayReceipt.occurrence.outcome !== null ||
+    replayReceipt.roll !== null
   )
     throw new Error('Stored Disarm evidence receipt mismatch.')
+  const pending = replayReceipt.occurrence.pending
   if (
     payload.status === 'COMPLETE'
-      ? result.occurrence.pending !== null
-      : result.occurrence.pending !== null &&
-        (result.occurrence.pending.kind !== 'D20_EVIDENCE' ||
-          result.occurrence.pending.request.requestId !== payload.request.requestId ||
+      ? pending !== null
+      : pending !== null &&
+        (pending.kind !== 'D20_EVIDENCE' ||
+          pending.request.requestId !== payload.request.requestId ||
           payload.pending?.kind !== 'D20_EVIDENCE' ||
-          result.occurrence.pending.request.rollMode !== payload.pending.rollMode)
+          pending.request.rollMode !== payload.pending.rollMode)
   )
     throw new Error('Stored Disarm evidence response mismatch.')
-  return { result, payload }
+  return { replayReceipt: metadata.replayReceipt, payload }
 }

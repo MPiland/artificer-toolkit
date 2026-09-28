@@ -1,12 +1,11 @@
-import {
-  encounterCommandResultDtoSchema,
-  type ResolveRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
+
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { readRunActors, readRunProjection, readRunState } from './documents.js'
+import { readRunActors, readRunState } from './documents.js'
+import { replayEncounterCommandResult } from './replayReceipts.js'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readNativeConcentrationPending } from './concentrationPending.js'
 import {
@@ -39,7 +38,6 @@ export async function readNativeConcentrationResponseAdmission(
   if (!run || occurrence.encounterId !== run.id || occurrence.campaignId !== run.campaignId)
     throw new Error('The concentration occurrence is unavailable.')
   const state = readRunState(run)
-  const projection = readRunProjection(run)
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(
     state.campaignId,
     userId
@@ -73,7 +71,6 @@ export async function readNativeConcentrationResponseAdmission(
     const metadata = serverRuleExecutionReceiptCommandMetadataDtoSchema.parse(
       JSON.parse(evidence.commandMetadataJson)
     )
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
     presentTimelineEntry(prior)
     if (
       payload.status !== 'COMPLETE' ||
@@ -118,6 +115,7 @@ export async function readNativeConcentrationResponseAdmission(
           checksumCanonicalJson(payload.applicationOutputs.d20.rawFaces))
     )
       throw new Error('The concentration occurrence is unavailable.')
+    const result = await replayEncounterCommandResult(ctx, state, prior)
     return {
       kind: 'REPLAY' as const,
       result: await presentEncounterResultForMember(ctx, { campaign, membership, result }),
@@ -126,7 +124,6 @@ export async function readNativeConcentrationResponseAdmission(
       campaign,
       membership,
       actors,
-      projection,
       fingerprint,
       occurrence
     }
@@ -176,7 +173,6 @@ export async function readNativeConcentrationResponseAdmission(
     campaign,
     membership,
     actors,
-    projection,
     fingerprint,
     occurrence,
     pending,

@@ -11,6 +11,7 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readEncounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
@@ -194,12 +195,21 @@ describe('room Disarm commands', () => {
     if (root?.commandType !== 'RESOLVE_ACTION')
       throw new Error('Missing terminal Disarm root receipt.')
     expect(root).toMatchObject({ actorUserId: base.owner.userId })
-    await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual(
-      encounterCommandResultDtoSchema.parse(JSON.parse(root.resultJson))
-    )
+    await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual({
+      evidenceRoll: null,
+      ...readEncounterReplayReceipt(root),
+      projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
+        encounterId: base.run.id
+      })
+    })
     await expect(replayInRoom(base, base.player, first)).resolves.toEqual({
       kind: 'REPLAY',
-      result: answered
+      result: {
+        ...answered,
+        projection: await base.player.caller.query(api.encounters.projectionReads.get, {
+          encounterId: base.run.id
+        })
+      }
     })
     await expect(replayInRoom(base, base.owner, second)).resolves.toEqual({
       kind: 'REPLAY',
@@ -455,14 +465,23 @@ describe('room Disarm commands', () => {
       })
       await expect(replayInRoom(base, base.owner, first)).resolves.toEqual({
         kind: 'REPLAY',
-        result: next
+        result: {
+          ...next,
+          projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
+            encounterId: base.run.id
+          })
+        }
       })
       const root = after.commands.find((command) => command.commandId === base.command.commandId)
       if (root?.commandType !== 'RESOLVE_ACTION')
         throw new Error('Missing terminal Disarm root receipt.')
-      await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual(
-        encounterCommandResultDtoSchema.parse(JSON.parse(root.resultJson))
-      )
+      await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual({
+        evidenceRoll: null,
+        ...readEncounterReplayReceipt(root),
+        projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
+          encounterId: base.run.id
+        })
+      })
       expect(await disarmRecords(base)).toEqual(after)
     },
     30000

@@ -23,6 +23,7 @@ import { readRunActors, replaceRunActor } from '@artificer-toolkit/encounter-per
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { recordTurnSpeedBonus } from '@artificer-toolkit/encounter-persistence/turnMovement'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 import { encounterReadTransaction, encounterWriteTransaction } from '../encounters/encounterPorts'
@@ -121,8 +122,6 @@ export const commit = internalMutation({
       version: nextState.version,
       stateJson: JSON.stringify(nextState),
       stateChecksum: checksumCanonicalJson(nextState),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection),
       updatedAt: input.occurredAt
     })
     await insertRunCommand(
@@ -147,8 +146,7 @@ export const commit = internalMutation({
         actorUserId: input.expectedUserId,
         version: nextState.version,
         commandJson: JSON.stringify(command),
-        resultJson: JSON.stringify(result),
-        resultChecksum: checksumCanonicalJson(result),
+        ...encounterReplayReceipt(result),
         createdAt: input.occurredAt
       })
     )

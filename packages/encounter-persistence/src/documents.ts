@@ -1,8 +1,3 @@
-import * as z from 'zod/mini'
-import {
-  encounterGmActorDtoSchema,
-  encounterGmProjectionDtoSchema
-} from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema,
@@ -14,59 +9,14 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveOnce } from './transactionReads.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
-const actorCoreFields = z.omit(encounterGmActorDtoSchema, {
-  statBlock: true,
-  features: true,
-  healthBand: true,
-  sourceRevision: true,
-  currentHitPoints: true,
-  maxHitPoints: true,
-  tempHitPoints: true,
-  conditions: true,
-  defeated: true
-})
-const actorCoreSchema = actorCoreFields.clone({ ...actorCoreFields._zod.def, catchall: undefined })
-const runOwnedFields = z.pick(encounterGmActorDtoSchema, {
-  sourceRevision: true,
-  currentHitPoints: true,
-  maxHitPoints: true,
-  tempHitPoints: true,
-  conditions: true,
-  defeated: true
-})
-const runOwnedSchema = runOwnedFields.clone({ ...runOwnedFields._zod.def, catchall: undefined })
-
-/**
- * The actor fields a stored projection repeats from its Run actor. Character hit points,
- * maximum, conditions and stream versions belong to the Character, so only other actors include them
- * (and their defeated state).
- */
-export function readEncounterActorCore(actor: unknown) {
-  const core = actorCoreSchema.parse(actor)
-  return core.kind === 'CHARACTER' ? core : { ...core, ...runOwnedSchema.parse(actor) }
-}
-
-export function readRunProjection(row: EncounterDocument<'encounterRuns'>) {
-  const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
-  if (
-    projection.id !== row.id ||
-    projection.campaignId !== row.campaignId ||
-    projection.gameSystemId !== row.gameSystemId ||
-    projection.version !== row.version ||
-    projection.status !== row.status ||
-    checksumCanonicalJson(projection) !== row.projectionChecksum
-  )
-    throw new Error('Stored Encounter projection mismatch.')
-  return projection
-}
-
-export function readValidatedRunProjection(
+/** Reads a Run's state after checking that it belongs to `campaign` and its Game System. */
+export function readCampaignRunState(
   row: EncounterDocument<'encounterRuns'>,
   campaign: EncounterDocument<'campaigns'>
 ) {
   if (row.campaignId !== campaign.id || row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Stored Encounter ownership mismatch.')
-  return readRunProjection(row)
+  return readRunState(row)
 }
 
 export function readRunState(row: EncounterDocument<'encounterRuns'>) {

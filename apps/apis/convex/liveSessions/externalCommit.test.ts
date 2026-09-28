@@ -12,8 +12,6 @@ import type {
   EncounterSessionStateDto,
   GetEncounterDecisionSettlementInputDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type {
   SceneGeometryCommandInputDto,
   SetCampaignLiveScenePresentationInputDto,
@@ -31,6 +29,7 @@ import { createNativeLiveRulesRuntime } from '../../../session-worker/src/native
 import { hydrateNativeTransientScene } from '../../../session-worker/src/nativeSceneClient'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import {
+  executeInRoom,
   insertActiveLiveAuthority,
   nextExternalAuthority,
   stubLiveSessionFetch,
@@ -641,15 +640,14 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
     stateChecksum: before.stateChecksum
   })
   // A new turn reads a new key and starts at zero.
-  await value.base.t.run(async (ctx) => {
-    const next = encounterRunStateSchema.parse({
-      ...JSON.parse(after.stateJson),
-      currentActorId: moverId
-    })
-    await ctx.db.patch(after._id, {
-      stateJson: JSON.stringify(next),
-      stateChecksum: checksumCanonicalJson(next)
-    })
+  await executeInRoom(value.owner.caller, {
+    command: {
+      type: 'SET_CURRENT_ACTOR',
+      encounterId: value.base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: after.version,
+      actorId: moverId
+    }
   })
   expect(await moverMovement()).toMatchObject({ used: 0 })
 }, 120_000)

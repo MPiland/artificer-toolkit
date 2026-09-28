@@ -8,10 +8,7 @@ import type {
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
@@ -28,7 +25,7 @@ import {
   commitNativeLiveEncounterAction,
   planNativeLiveEncounterAction
 } from '../../../session-worker/src/nativeEncounterRules'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
   insertActiveLiveAuthority,
@@ -47,6 +44,8 @@ import {
   readRunActors,
   readRunState
 } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { encounterReadTransaction } from './encounterPorts'
 import { loadMovementTargets } from './movementTargets'
 
 const workerSecret = 'private-shield-stow-test-secret-at-least-32-bytes'
@@ -149,33 +148,12 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
   const target = run.actors.find((candidate) => candidate.kind === 'CREATURE')
   if (!actor || !target) throw new Error('Missing shield stow participants.')
   const prepared = await base.owner.caller.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing shield stow Run.')
-    const state = encounterRunStateSchema.parse({
-      ...readRunState(row),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: state.status,
-      automationMode: state.automationMode,
-      round: state.round,
-      currentActorId: state.currentActorId
-    })
-    await ctx.db.patch(row._id, {
-      status: state.status,
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [actor.id, target.id])
+    const state = await activateFixtureRun(
+      ctx,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: actor.id },
+      [actor.id, target.id]
+    )
     const mechanics = (
       await loadMovementTargets(ctx, {
         encounterId: state.id,
@@ -462,13 +440,14 @@ describe('shield stow on two-handed attacks', () => {
       scope,
       plan
     )
-    const runRow = await base.t.run((ctx) =>
-      ctx.db
+    const storedProjection = await base.t.run(async (ctx) => {
+      const row = await ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
         .unique()
-    )
-    expect(JSON.parse(runRow!.projectionJson)).toEqual(committed.projection)
+      return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(row!))
+    })
+    expect(storedProjection).toEqual(committed.projection)
     expect(
       await commitNativeLiveEncounterAction(environment, 'fixture-access-token', scope, plan)
     ).toEqual(committed)

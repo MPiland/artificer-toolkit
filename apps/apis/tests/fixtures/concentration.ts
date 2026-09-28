@@ -1,12 +1,7 @@
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -23,6 +18,7 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
+import { activateFixtureRun } from './activeInitiative'
 
 const creatureId = '00000000-0000-4000-8000-000000000ce0'
 const featureId = '00000000-0000-4000-8000-000000000ce1'
@@ -117,35 +113,13 @@ export async function setupConcentration(
   const actor = run.actors.find((candidate) => candidate.kind === 'CREATURE')
   const target = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
   if (!actor || !target) throw new Error('Concentration fixture actors are unavailable.')
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Concentration fixture Run is unavailable.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const active = encounterRunStateSchema.parse({
-      ...state,
-      status: 'ACTIVE',
+  await base.t.run((ctx) =>
+    activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-  })
+  )
   const actionId = await base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRunActors')

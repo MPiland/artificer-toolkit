@@ -3,16 +3,14 @@ import { removeCompletedRunTurnRecords } from './turnMovement.js'
 import type { z } from 'zod'
 import {
   encounterCommandResultDtoSchema,
-  encounterGmActorDtoSchema,
-  encounterGmProjectionDtoSchema,
   type EncounterCommandInputDto,
-  type EncounterCommandResultDto,
-  type EncounterGmActorDto
+  type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   encounterRunActorStateSchema,
-  encounterRunStateSchema
+  encounterRunStateSchema,
+  type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterCreatureEquipmentReplacementSchema } from '@artificer-toolkit/schema/projections/encounterCreatureEquipment'
@@ -20,21 +18,19 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import {
   snapshotFeatureDefinitions,
-  snapshotFeatures,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import {
-  bindEncounterActorRuleOutputToFacts,
   findEncounterFeatureResource,
-  reconcileEncounterActorRuleOutput,
-  requireEncounterActorRuleResult
+  reconcileEncounterActorRuleOutput
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { healthBand } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { requireEncounterActorControllerCandidates } from './actorController.js'
-import { readEncounterActorCore, readRunActors } from './documents.js'
+import { freezeEncounterCharacterStates } from './characterStates.js'
+import { encounterReplayReceipt } from './replayReceipts.js'
+import { readRunActors, readRunState } from './documents.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -43,16 +39,36 @@ import { removeEncounterActor } from './actorRemovalCommand.js'
 import { reorderEncounterActors } from './actorReorderCommand.js'
 import { reinforceEncounterActors } from './actorReinforcementCommand.js'
 import { revertLastEncounterAction } from './actionRevert.js'
-import {
-  enemyActionRollLabel,
-  readNativeEncounterCommandReplay,
-  readNativeEncounterCommandState
-} from './commandReplay.js'
+import { enemyActionRollLabel, readNativeEncounterCommandReplay } from './commandReplay.js'
 import { rejectDomain } from './domainRejections.js'
+import { readEncounterGmProjection } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { rollEncounterRuleEvidence } from './evidenceRolls.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
+/** The stored actor a GM tool edits, checked against its row and the Run. */
+async function readCommandActor(
+  ctx: EncounterWriteTransaction,
+  state: EncounterRunState,
+  actorId: string
+) {
+  if (!state.actorIds.includes(actorId)) throw new Error('Encounter actor was not found.')
+  const actorRow = await ctx.db
+    .query('encounterRunActors')
+    .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id).eq('id', actorId))
+    .unique()
+  if (!actorRow) throw new Error('Encounter actor was not found.')
+  const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+  if (
+    actor.id !== actorRow.id ||
+    actor.encounterId !== state.id ||
+    actor.systemId !== state.gameSystemId ||
+    checksumCanonicalJson(actor) !== actorRow.stateChecksum ||
+    !state.sides.some((side) => side.id === actor.sideId)
+  )
+    throw new Error('Stored Encounter actor mismatch.')
+  return { actorRow, actor }
+}
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -183,7 +199,8 @@ export async function recordEncounterCommand(
     await readNativeEncounterCommandReplay(ctx, { input, row, campaign, userId })
   if (replayResult)
     return presentEncounterResultForMember(ctx, { campaign, membership, result: replayResult })
-  const { state, projection, actorIds } = readNativeEncounterCommandState(row)
+  const state = readRunState(row)
+  const actorIds = new Set(state.actorIds)
   const pendingOccurrences = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', row.id).eq('state', 'PENDING'))
@@ -195,7 +212,6 @@ export async function recordEncounterCommand(
   if (row.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   const updatedAt = new Date().toISOString()
   let reminders = state.reminders
-  let actors = projection.actors
   let status = state.status
   let round = state.round
   let currentActorId = state.currentActorId
@@ -208,7 +224,6 @@ export async function recordEncounterCommand(
   let initiativeCorrection: { stateJson: string; stateChecksum: string } | null = null
   let optionalCombatSnapshot = state.optionalCombatSnapshot
   let optionalCombatSnapshotChecksum = state.optionalCombatSnapshotChecksum
-  let optionalCombatRules = projection.optionalCombatRules
   let healthDisplayDefault = state.healthDisplayDefault
   const version = row.version + 1
   if (input.type === 'UPSERT_REMINDER') {
@@ -296,24 +311,8 @@ export async function recordEncounterCommand(
         'ENCOUNTER_NOT_ACTIVE',
         'Initiative can only be set on a prepared or active Encounter.'
       )
-    const projectedActor = actors.find((actor) => actor.id === input.actorId)
-    if (!projectedActor) throw new Error('Encounter actor was not found.')
-    const actorRow = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', input.actorId))
-      .unique()
-    if (!actorRow) throw new Error('Encounter actor was not found.')
-    let actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
-    if (
-      actor.id !== actorRow.id ||
-      actor.encounterId !== row.id ||
-      actor.systemId !== row.gameSystemId ||
-      checksumCanonicalJson(actor) !== actorRow.stateChecksum ||
-      checksumCanonicalJson(readEncounterActorCore(actor)) !==
-        checksumCanonicalJson(readEncounterActorCore(projectedActor)) ||
-      !state.sides.some((side) => side.id === actor.sideId)
-    )
-      throw new Error('Stored Encounter actor mismatch.')
+    const { actorRow, actor: storedActor } = await readCommandActor(ctx, state, input.actorId)
+    let actor = storedActor
     if (input.sideId !== undefined && !state.sides.some((side) => side.id === input.sideId))
       throw new Error('Encounter side was not found.')
     if (input.type === 'UPDATE_ACTOR' && input.controllerUserIds !== undefined)
@@ -332,10 +331,6 @@ export async function recordEncounterCommand(
         input.conditions !== undefined)
     )
       throw new Error('Character HP must be changed through its Sheet command.')
-    let sheetState: Pick<
-      EncounterGmActorDto,
-      'currentHitPoints' | 'maxHitPoints' | 'tempHitPoints' | 'conditions'
-    > | null = null
     if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
       if (actor.kind !== 'CHARACTER')
         throw new Error('Sheet command does not target this Character actor.')
@@ -345,12 +340,6 @@ export async function recordEncounterCommand(
         campaignId: campaign.id
       })
       characterReceiptId = character.historyEventId
-      sheetState = {
-        currentHitPoints: Math.max(character.currentHitPoints, 0),
-        maxHitPoints: Math.max(character.maxHitPoints, 0),
-        tempHitPoints: Math.max(character.tempHitPoints, 0),
-        conditions: character.conditions
-      }
     }
     if (input.type === 'ROLL_ACTOR_INITIATIVE') {
       const initiative = await ctx.ports.readActorInitiativeRoll(state, campaign, actor.id)
@@ -406,13 +395,6 @@ export async function recordEncounterCommand(
             updatedAt
           }
     )
-    // These edits leave actor rule facts and initiative ordering unchanged.
-    const nextCore = { ...projectedActor, ...readEncounterActorCore(actor), ...sheetState }
-    const nextActor = encounterGmActorDtoSchema.parse({
-      ...nextCore,
-      healthBand: healthBand(nextCore.currentHitPoints, nextCore.maxHitPoints)
-    })
-    actors = actors.map((current) => (current.id === actor.id ? nextActor : current))
     await ctx.db.patch(actorRow._id, {
       stateJson: JSON.stringify(actor),
       stateChecksum: checksumCanonicalJson(actor)
@@ -423,24 +405,8 @@ export async function recordEncounterCommand(
         'ENCOUNTER_NOT_ACTIVE',
         'Feature resources can only be changed on a prepared or active Encounter.'
       )
-    const projectedActor = actors.find((actor) => actor.id === input.actorId)
-    if (!projectedActor) throw new Error('Encounter actor was not found.')
-    const actorRow = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', input.actorId))
-      .unique()
-    if (!actorRow) throw new Error('Encounter actor was not found.')
-    let actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
-    if (
-      actor.id !== actorRow.id ||
-      actor.encounterId !== row.id ||
-      actor.systemId !== row.gameSystemId ||
-      checksumCanonicalJson(actor) !== actorRow.stateChecksum ||
-      checksumCanonicalJson(readEncounterActorCore(actor)) !==
-        checksumCanonicalJson(readEncounterActorCore(projectedActor)) ||
-      !state.sides.some((side) => side.id === actor.sideId)
-    )
-      throw new Error('Stored Encounter actor mismatch.')
+    const { actorRow, actor: storedActor } = await readCommandActor(ctx, state, input.actorId)
+    let actor = storedActor
     if (actor.kind === 'CHARACTER')
       throw new Error('Character resources must be changed through the Character Sheet.')
     const feature = snapshotFeatureDefinitions(actor).find(
@@ -465,57 +431,17 @@ export async function recordEncounterCommand(
       resources: withFeatureChargeUsed(actor, feature.id, nextUsed),
       updatedAt
     })
-    const nextFacts = buildEncounterActorRuleFacts({
-      actors: durableActors.map((current) => (current.id === actor.id ? actor : current))
-    })
-    const bound = bindEncounterActorRuleOutputToFacts(reconciled, nextFacts)
-    const nextActor = encounterGmActorDtoSchema.parse({
-      ...projectedActor,
-      ...readEncounterActorCore(actor),
-      features: snapshotFeatures(actor, requireEncounterActorRuleResult(bound, actor.id))
-    })
-    actors = actors.map((current) => (current.id === actor.id ? nextActor : current))
     await ctx.db.patch(actorRow._id, {
       stateJson: JSON.stringify(actor),
       stateChecksum: checksumCanonicalJson(actor)
     })
   } else if (input.type === 'REPLACE_CREATURE_EQUIPMENT') {
-    const durableActors = await readRunActors(ctx, state)
-    const actor = durableActors.find((candidate) => candidate.id === input.actorId)
-    const projectedActor = actors.find((candidate) => candidate.id === input.actorId)
-    if (!actor || !projectedActor) throw new Error('Encounter actor was not found.')
-    if (
-      checksumCanonicalJson(readEncounterActorCore(actor)) !==
-      checksumCanonicalJson(readEncounterActorCore(projectedActor))
-    )
-      throw new Error('Stored Encounter actor mismatch.')
+    const { actorRow, actor } = await readCommandActor(ctx, state, input.actorId)
     const replacement = await replaceActorEquipment(ctx, userId, actor, input, updatedAt)
-    const facts = buildEncounterActorRuleFacts({
-      actors: durableActors.map((current) =>
-        current.id === actor.id ? replacement.actor : current
-      )
-    })
-    const reconciled = reconcileEncounterActorRuleOutput(
-      evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
-      facts
-    )
-    const nextActor = encounterGmActorDtoSchema.parse({
-      ...projectedActor,
-      features: snapshotFeatures(
-        replacement.actor,
-        requireEncounterActorRuleResult(reconciled, actor.id)
-      )
-    })
-    const actorRow = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', actor.id))
-      .unique()
-    if (!actorRow) throw new Error('Encounter actor was not found.')
     await ctx.db.patch(actorRow._id, {
       stateJson: JSON.stringify(replacement.actor),
       stateChecksum: checksumCanonicalJson(replacement.actor)
     })
-    actors = actors.map((current) => (current.id === actor.id ? nextActor : current))
     creatureEquipmentReplacement = replacement.provenance
   } else if (input.type === 'REPLACE_OPTIONAL_COMBAT_RULES') {
     if (state.status !== 'PREPARED' && state.status !== 'ACTIVE')
@@ -530,36 +456,13 @@ export async function recordEncounterCommand(
     )
     optionalCombatSnapshot = snapshot.optionalCombatSnapshot
     optionalCombatSnapshotChecksum = snapshot.optionalCombatSnapshotChecksum
-    optionalCombatRules = optionalCombatSnapshot.definitions.map(
-      ({ definitionId, label, document }) => ({
-        definitionId,
-        label,
-        kind: document.kind
-      })
-    )
   } else if (input.type === 'SET_HEALTH_DISPLAY_DEFAULT') {
     healthDisplayDefault = input.level
   } else if (input.type === 'ROLL_ENEMY_ACTION') {
     if (state.status !== 'ACTIVE')
       rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Enemy actions require an active Encounter.')
-    const projectedActor = actors.find((actor) => actor.id === input.actorId)
-    if (!projectedActor) throw new Error('Encounter actor was not found.')
-    const actorRow = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', input.actorId))
-      .unique()
-    if (!actorRow) throw new Error('Encounter actor was not found.')
-    let actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
-    if (
-      actor.id !== actorRow.id ||
-      actor.encounterId !== row.id ||
-      actor.systemId !== row.gameSystemId ||
-      checksumCanonicalJson(actor) !== actorRow.stateChecksum ||
-      checksumCanonicalJson(readEncounterActorCore(actor)) !==
-        checksumCanonicalJson(readEncounterActorCore(projectedActor)) ||
-      !state.sides.some((side) => side.id === actor.sideId)
-    )
-      throw new Error('Stored Encounter actor mismatch.')
+    const { actorRow, actor: storedActor } = await readCommandActor(ctx, state, input.actorId)
+    let actor = storedActor
     if (actor.kind === 'CHARACTER')
       throw new Error('Character actions must be rolled through the Character Sheet.')
     const feature = snapshotFeatureDefinitions(actor).find(
@@ -587,16 +490,6 @@ export async function recordEncounterCommand(
         resources: withFeatureChargeUsed(actor, feature.id, resource.used + definition.chargeCost),
         updatedAt
       })
-      const nextFacts = buildEncounterActorRuleFacts({
-        actors: durableActors.map((current) => (current.id === actor.id ? actor : current))
-      })
-      const bound = bindEncounterActorRuleOutputToFacts(reconciled, nextFacts)
-      const nextActor = encounterGmActorDtoSchema.parse({
-        ...projectedActor,
-        ...readEncounterActorCore(actor),
-        features: snapshotFeatures(actor, requireEncounterActorRuleResult(bound, actor.id))
-      })
-      actors = actors.map((current) => (current.id === actor.id ? nextActor : current))
       await ctx.db.patch(actorRow._id, {
         stateJson: JSON.stringify(actor),
         stateChecksum: checksumCanonicalJson(actor)
@@ -683,6 +576,8 @@ export async function recordEncounterCommand(
     status = 'COMPLETED'
     currentActorId = null
     await removeCompletedRunTurnRecords(ctx, row.id)
+    // The completed Run keeps each Character's values as the Encounter ended.
+    await freezeEncounterCharacterStates(ctx, state)
   }
   const nextState = encounterRunStateSchema.parse({
     ...state,
@@ -700,33 +595,18 @@ export async function recordEncounterCommand(
     version,
     updatedAt
   })
-  const nextProjection = encounterGmProjectionDtoSchema.parse({
-    ...projection,
-    status,
-    round,
-    currentActorId,
-    actors,
-    reminders,
-    optionalCombatRules,
-    healthDisplayDefault,
-    version,
-    updatedAt
-  })
-  const result = encounterCommandResultDtoSchema.parse({
-    projection: nextProjection,
-    roll,
-    occurrence: null
-  })
   await ctx.db.patch(row._id, {
     status,
     version,
     updatedAt,
     stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    projectionJson: JSON.stringify(nextProjection),
-    projectionChecksum: checksumCanonicalJson(nextProjection)
+    stateChecksum: checksumCanonicalJson(nextState)
   })
-
+  const result = encounterCommandResultDtoSchema.parse({
+    projection: await readEncounterGmProjection(ctx, nextState),
+    roll,
+    occurrence: null
+  })
   await insertRunCommand(
     ctx,
     encounterStoredRunCommandSchema.parse({
@@ -737,7 +617,6 @@ export async function recordEncounterCommand(
       commandType: input.type,
       ...(input.type === 'UPDATE_ACTOR' ? { characterReceiptId } : {}),
       ...(input.type === 'REPLACE_CREATURE_EQUIPMENT' ? { creatureEquipmentReplacement } : {}),
-
       ...(initiativeCorrection === null
         ? {}
         : {
@@ -748,8 +627,7 @@ export async function recordEncounterCommand(
       actorUserId: userId,
       version,
       commandJson: JSON.stringify(input),
-      resultJson: JSON.stringify(result),
-      resultChecksum: checksumCanonicalJson(result),
+      ...encounterReplayReceipt(result),
       createdAt: updatedAt
     })
   )

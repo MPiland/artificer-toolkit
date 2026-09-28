@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   EncounterCommandResultDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -18,7 +13,7 @@ import { SRD_CONCENTRATION_DEFINITIONS } from '@artificer-toolkit/source-data/sr
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -85,32 +80,14 @@ async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean }) {
   const dragonActor = run.actors.find((candidate) => candidate.kind === 'CREATURE')
   const characterActor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
   if (!dragonActor || !characterActor) throw new Error('The Legendary fixture actors are missing.')
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('The Legendary fixture Run is missing.')
-    const active = { status: 'ACTIVE', automationMode: 'ASSISTED', round: 1 }
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(row.stateJson),
-      ...active,
-      currentActorId: characterActor.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      ...active,
-      currentActorId: characterActor.id
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [characterActor.id, dragonActor.id])
-  })
+  await base.t.run((ctx) =>
+    activateFixtureRun(
+      ctx,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: characterActor.id },
+      [characterActor.id, dragonActor.id]
+    )
+  )
   return { ...base, run, dragonActor, characterActor }
 }
 

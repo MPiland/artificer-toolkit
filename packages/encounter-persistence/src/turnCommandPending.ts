@@ -1,24 +1,25 @@
 import {
   encounterCommandResultDtoSchema,
-  type EncounterCommandInputDto,
-  type EncounterCommandResultDto
+  type EncounterCommandInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { rejectDomain } from './domainRejections.js'
-import type { EncounterDocument, EncounterReadContext } from './store.js'
+import { readRunState } from './documents.js'
+import { readEncounterGmProjection } from './nativeProjection.js'
+import type { EncounterDocument } from './store.js'
+import type { EncounterReadTransaction } from './ports.js'
 
 export async function readNativeTurnCommandPending(
-  ctx: EncounterReadContext,
+  ctx: EncounterReadTransaction,
   {
     input,
     row,
     campaign,
     userId,
-    commandFingerprint,
-    projection
+    commandFingerprint
   }: {
     input: Exclude<EncounterCommandInputDto, { type: 'CREATE' }>
     row: EncounterDocument<'encounterRuns'>
@@ -26,7 +27,6 @@ export async function readNativeTurnCommandPending(
     /** A retry returns the pending root only to the user who issued it. */
     userId: string
     commandFingerprint: string
-    projection: EncounterCommandResultDto['projection']
   }
 ) {
   const rootCommandOccurrence = await ctx.db
@@ -66,7 +66,7 @@ export async function readNativeTurnCommandPending(
     )
       rejectDomain('COMMAND_ID_REUSED')
     const result = encounterCommandResultDtoSchema.parse({
-      projection,
+      projection: await readEncounterGmProjection(ctx, readRunState(row)),
       roll: null,
       occurrence: {
         occurrenceId: rootCommandOccurrence.id,

@@ -32,6 +32,7 @@ import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { airElemental } from '@artificer-toolkit/source-data/srd/creatures/air-elemental.js'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
@@ -443,30 +444,16 @@ async function replaceActorResources(
   resources: unknown
 ) {
   await t.run(async (ctx) => {
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', encounterId))
-      .unique()
     const actor = await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId).eq('id', actorId))
       .unique()
-    if (!run || !actor) throw new Error('Missing Encounter resource fixture.')
+    if (!actor) throw new Error('Missing Encounter resource fixture.')
     const actorState = JSON.parse(actor.stateJson) as { resources: unknown }
-    const projection = JSON.parse(run.projectionJson) as {
-      actors: Array<{ id: string; resources: unknown }>
-    }
-    const projectedActor = projection.actors.find((candidate) => candidate.id === actorId)
-    if (!projectedActor) throw new Error('Missing projected Encounter actor.')
     actorState.resources = resources
-    projectedActor.resources = resources
     await ctx.db.patch(actor._id, {
       stateJson: JSON.stringify(actorState),
       stateChecksum: checksumCanonicalJson(actorState)
-    })
-    await ctx.db.patch(run._id, {
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
     })
   })
 }
@@ -495,7 +482,7 @@ describe('native Encounter Run commands', () => {
       'Campaign already has an active Encounter.'
     )
     expect(await owner.caller.query(getEncounter, { encounterId: sibling.id })).toEqual(sibling)
-    await executeInRoom(owner.caller, {
+    const completed = await executeInRoom(owner.caller, {
       command: {
         type: 'COMPLETE',
         encounterId: run.id,
@@ -505,7 +492,10 @@ describe('native Encounter Run commands', () => {
     })
     const siblingStarted = await executeInRoom(owner.caller, siblingStart)
     expect(siblingStarted.projection.status).toBe('ACTIVE')
-    await expect(replayInRoom(owner.caller, start)).resolves.toEqual(started)
+    await expect(replayInRoom(owner.caller, start)).resolves.toEqual({
+      ...started,
+      projection: completed.projection
+    })
     expect(await owner.caller.query(getActiveEncounter, { campaignId: campaign.id })).toEqual(
       siblingStarted.projection
     )
@@ -1090,34 +1080,9 @@ describe('native Encounter Run commands', () => {
     const character = await setupCharacterAutomatic()
     const characterActor = character.run.actors.find((candidate) => candidate.kind === 'CHARACTER')
     if (!characterActor) throw new Error('Missing Character actor.')
-    await character.t.run(async (ctx) => {
-      const stored = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', character.run.id))
-        .unique()
-      if (!stored) throw new Error('Missing Character Encounter.')
-      const state = encounterRunStateSchema.parse(JSON.parse(stored.stateJson))
-      const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(stored.projectionJson))
-      const nextState = {
-        ...state,
-        status: 'ACTIVE' as const,
-        round: 1,
-        currentActorId: characterActor.id
-      }
-      const nextProjection = {
-        ...projection,
-        status: 'ACTIVE' as const,
-        round: 1,
-        currentActorId: characterActor.id
-      }
-      await ctx.db.patch(stored._id, {
-        status: 'ACTIVE',
-        stateJson: JSON.stringify(nextState),
-        stateChecksum: checksumCanonicalJson(nextState),
-        projectionJson: JSON.stringify(nextProjection),
-        projectionChecksum: checksumCanonicalJson(nextProjection)
-      })
-    })
+    await character.t.run((ctx) =>
+      activateFixtureRun(ctx, character.run.id, { round: 1, currentActorId: characterActor.id })
+    )
     await expect(
       executeInRoom(character.owner.caller, {
         command: {
@@ -1587,7 +1552,10 @@ describe('native Encounter Run commands', () => {
         .sort((left, right) => (left.turnOrderOrdinal ?? -1) - (right.turnOrderOrdinal ?? -1))
         .map((participant) => participant.actorId)
     ).toEqual([settled.projection.currentActorId, progressed.projection.currentActorId])
-    await expect(replayInRoom(owner.caller, firstAdvanceInput)).resolves.toEqual(progressed)
+    await expect(replayInRoom(owner.caller, firstAdvanceInput)).resolves.toEqual({
+      ...progressed,
+      projection: wrapped.projection
+    })
     await expect(replayInRoom(owner.caller, secondAdvanceInput)).resolves.toEqual(wrapped)
     const firstTimelinePage = await owner.caller.query(getTimeline, {
       encounterId: run.id,
@@ -1921,8 +1889,14 @@ describe('native Encounter Run commands', () => {
         status: 'COMPLETED',
         currentActorId: null
       })
-      await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual(started)
-      await expect(replayInRoom(owner.caller, correctionInput)).resolves.toEqual(corrected)
+      await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual({
+        ...started,
+        projection: completed.projection
+      })
+      await expect(replayInRoom(owner.caller, correctionInput)).resolves.toEqual({
+        ...corrected,
+        projection: completed.projection
+      })
     }
   }, 60000)
 
@@ -2216,7 +2190,10 @@ describe('native Encounter Run commands', () => {
       }
     })
     const beforeReplay = await capture()
-    await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual(settled)
+    await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual({
+      ...settled,
+      projection: corrected.projection
+    })
     await expect(replayInRoom(owner.caller, terminalInput)).resolves.toMatchObject({
       projection: corrected.projection,
       occurrence: settled.occurrence
@@ -2465,7 +2442,10 @@ describe('native Encounter Run commands', () => {
     expect(stored.ruleReceipts).toHaveLength(1)
     expect(stored.commands).toHaveLength(3)
 
-    await expect(replayInRoom(owner.caller, setInitiative)).resolves.toEqual(set)
+    await expect(replayInRoom(owner.caller, setInitiative)).resolves.toEqual({
+      ...set,
+      projection: started.projection
+    })
 
     const rollCommandId = crypto.randomUUID()
     const getRandomValues = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
@@ -2574,7 +2554,7 @@ describe('native Encounter Run commands', () => {
           commandId: commandId.toUpperCase()
         }
       })
-    ).resolves.toEqual(started)
+    ).resolves.toEqual({ ...started, projection: completed.projection })
     await expect(
       executeInRoom(owner.caller, {
         command: { ...input.command, commandId: crypto.randomUUID() }
@@ -2654,7 +2634,7 @@ describe('native Encounter Run commands', () => {
       order: 0
     })
     const original = await executeInRoom(owner.caller, command)
-    await executeInRoom(
+    const later = await executeInRoom(
       owner.caller,
       upsert(run.id, 1, {
         label: 'Later',
@@ -2666,7 +2646,10 @@ describe('native Encounter Run commands', () => {
         order: 0
       })
     )
-    expect(await replayInRoom(owner.caller, command)).toEqual(original)
+    expect(await replayInRoom(owner.caller, command)).toEqual({
+      ...original,
+      projection: later.projection
+    })
     await expect(
       executeInRoom(owner.caller, {
         command: { ...command.command, expectedVersion: 999 }
@@ -2825,7 +2808,10 @@ describe('native Encounter Run commands', () => {
       version: 2,
       optionalCombatRules: [{ definitionId: optional.id, kind: 'DISARM' }]
     })
-    await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual(started)
+    await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual({
+      ...started,
+      projection: replaced.projection
+    })
     const before = { receipts: await receipts(t), runs: await runs(t) }
     await expect(
       executeInRoom(owner.caller, {
@@ -2996,16 +2982,10 @@ describe('native Encounter Run commands', () => {
         ...state,
         status: 'COMPLETED'
       })
-      const projection = encounterGmProjectionDtoSchema.parse({
-        ...run,
-        status: 'COMPLETED'
-      })
       await ctx.db.patch(row._id, {
         status: 'COMPLETED',
         stateJson: JSON.stringify(completed),
-        stateChecksum: checksumCanonicalJson(completed),
-        projectionJson: JSON.stringify(projection),
-        projectionChecksum: checksumCanonicalJson(projection)
+        stateChecksum: checksumCanonicalJson(completed)
       })
     })
     await expect(executeInRoom(owner.caller, command)).rejects.toThrow(
@@ -3013,7 +2993,7 @@ describe('native Encounter Run commands', () => {
     )
   }, 30000)
 
-  it('rejects corrupt Run state, projection, and receipt records', async () => {
+  it('rejects corrupt Run state and receipt records', async () => {
     const { t, owner, run } = await setup()
     const command = upsert(run.id, 0, {
       label: 'Corrupt',
@@ -3031,10 +3011,7 @@ describe('native Encounter Run commands', () => {
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
         .unique()
       if (!row) throw new Error('Missing Run.')
-      return {
-        stateChecksum: row.stateChecksum,
-        projectionChecksum: row.projectionChecksum
-      }
+      return { stateChecksum: row.stateChecksum }
     })
     await t.run(async (ctx) => {
       const row = await ctx.db
@@ -3059,29 +3036,7 @@ describe('native Encounter Run commands', () => {
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
         .unique()
       if (!row) throw new Error('Missing Run.')
-      await ctx.db.patch(row._id, {
-        stateChecksum: integrity.stateChecksum,
-        projectionChecksum: '0'.repeat(64)
-      })
-    })
-    await expect(
-      executeInRoom(owner.caller, {
-        command: {
-          ...command.command,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 1
-        }
-      })
-    ).rejects.toThrow(LiveSessionRouteError)
-    await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique()
-      if (!row) throw new Error('Missing Run.')
-      await ctx.db.patch(row._id, {
-        projectionChecksum: integrity.projectionChecksum
-      })
+      await ctx.db.patch(row._id, { stateChecksum: integrity.stateChecksum })
       const receipt = await ctx.db
         .query('encounterRunCommands')
         .withIndex('by_campaignId_commandId', (q) =>
@@ -3089,7 +3044,7 @@ describe('native Encounter Run commands', () => {
         )
         .unique()
       if (!receipt) throw new Error('Missing receipt.')
-      await ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) })
+      await ctx.db.patch(receipt._id, { replayReceiptChecksum: '0'.repeat(64) })
     })
     await expect(executeInRoom(owner.caller, command)).rejects.toThrow(LiveSessionRouteError)
     expect(original.projection.version).toBe(1)

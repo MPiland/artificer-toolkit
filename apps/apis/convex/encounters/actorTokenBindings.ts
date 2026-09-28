@@ -8,7 +8,6 @@ import {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -22,11 +21,14 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mutation } from '../lib/mutations'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import {
-  readRunActors,
-  readRunProjection,
-  readRunState
-} from '@artificer-toolkit/encounter-persistence/documents'
+  encounterReplayReceipt,
+  readEncounterReplayReceipt,
+  replayEncounterCommandResult
+} from '@artificer-toolkit/encounter-persistence/replayReceipts'
+import { encounterReadTransaction } from './encounterPorts'
 import { parseLiveEntity } from '../scenes/liveDocuments'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
@@ -64,7 +66,6 @@ export const execute = mutation({
     if (run.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
     const state = readRunState(run)
-    const projection = readRunProjection(run)
     const fingerprint = checksumCanonicalJson(input)
     const prior = await ctx.db
       .query('encounterRunCommands')
@@ -82,21 +83,16 @@ export const execute = mutation({
       const storedInput = encounterActorTokenBindingCommandInputDtoSchema.parse(
         JSON.parse(prior.commandJson)
       )
-      const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
-      const historical = encounterGmProjectionDtoSchema.parse(result.projection)
+      const replayReceipt = readEncounterReplayReceipt(prior)
       if (
         checksumCanonicalJson(storedInput) !== fingerprint ||
-        checksumCanonicalJson(result) !== prior.resultChecksum ||
-        historical.id !== run.id ||
-        historical.campaignId !== campaign.id ||
-        historical.gameSystemId !== campaign.gameSystemId ||
-        historical.version !== prior.version ||
-        historical.version !== input.expectedEncounterVersion + 1 ||
-        result.roll !== null ||
-        result.occurrence !== null
+        prior.version !== input.expectedEncounterVersion + 1 ||
+        prior.version > run.version ||
+        replayReceipt.roll !== null ||
+        replayReceipt.occurrence !== null
       )
         throw new Error('Stored Encounter command receipt mismatch.')
-      return result
+      return replayEncounterCommandResult(encounterReadTransaction(ctx), state, prior)
     }
     if (input.expectedEncounterVersion !== run.version)
       throw new Error('Encounter changed before its Scene binding could update.')
@@ -195,19 +191,16 @@ export const execute = mutation({
     const now = new Date().toISOString()
     const version = run.version + 1
     const nextState = { ...state, version, updatedAt: now }
-    const nextProjection = { ...projection, version, updatedAt: now }
-    const result = encounterCommandResultDtoSchema.parse({
-      occurrence: null,
-      projection: nextProjection,
-      roll: null
-    })
     await ctx.db.patch(run._id, {
       version,
       updatedAt: now,
       stateJson: JSON.stringify(nextState),
-      stateChecksum: checksumCanonicalJson(nextState),
-      projectionJson: JSON.stringify(nextProjection),
-      projectionChecksum: checksumCanonicalJson(nextProjection)
+      stateChecksum: checksumCanonicalJson(nextState)
+    })
+    const result = encounterCommandResultDtoSchema.parse({
+      occurrence: null,
+      projection: await readEncounterGmProjection(encounterReadTransaction(ctx), nextState),
+      roll: null
     })
     await insertRunCommand(
       ctx,
@@ -221,8 +214,7 @@ export const execute = mutation({
         actorUserId: userId,
         version,
         commandJson: JSON.stringify(input),
-        resultJson: JSON.stringify(result),
-        resultChecksum: checksumCanonicalJson(result),
+        ...encounterReplayReceipt(result),
         createdAt: now
       })
     )

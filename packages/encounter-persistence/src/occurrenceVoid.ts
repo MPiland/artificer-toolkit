@@ -1,7 +1,6 @@
 import { v5 as uuidV5 } from 'uuid'
 import {
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   voidRuleOccurrenceInputDtoSchema,
   type EncounterCommandResultDto,
   type ResolveRuleOccurrenceInputDto,
@@ -19,7 +18,9 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { rejectDomain } from './domainRejections.js'
-import { readRunProjection, readRunState } from './documents.js'
+import { readRunState } from './documents.js'
+import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
+import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
@@ -155,10 +156,10 @@ async function admitVoid(ctx: EncounterWriteTransaction, args: unknown): Promise
       prior.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
-    if (checksumCanonicalJson(result) !== prior.resultChecksum)
-      throw new Error('Stored Encounter void receipt mismatch.')
-    return { kind: 'REPLAY', result }
+    return {
+      kind: 'REPLAY',
+      result: await replayEncounterCommandResult(ctx, readRunState(run), prior)
+    }
   }
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
@@ -179,13 +180,8 @@ async function recordVoid(
   const version = run.version + 1
   const updatedAt = new Date().toISOString()
   const state = encounterRunStateSchema.parse({ ...readRunState(run), version, updatedAt })
-  const projection = encounterGmProjectionDtoSchema.parse({
-    ...readRunProjection(run),
-    version,
-    updatedAt
-  })
   const result = encounterCommandResultDtoSchema.parse({
-    projection,
+    projection: await readEncounterGmProjection(ctx, state),
     roll: null,
     occurrence: {
       occurrenceId: occurrence.id,
@@ -199,9 +195,7 @@ async function recordVoid(
     version,
     updatedAt,
     stateJson: JSON.stringify(state),
-    stateChecksum: checksumCanonicalJson(state),
-    projectionJson: JSON.stringify(projection),
-    projectionChecksum: checksumCanonicalJson(projection)
+    stateChecksum: checksumCanonicalJson(state)
   })
   await insertRunCommand(
     ctx,
@@ -216,8 +210,7 @@ async function recordVoid(
       actorUserId: scope.userId,
       version,
       commandJson: JSON.stringify(input),
-      resultJson: JSON.stringify(result),
-      resultChecksum: checksumCanonicalJson(result),
+      ...encounterReplayReceipt(result),
       createdAt: updatedAt
     })
   )
@@ -344,7 +337,7 @@ export async function recordRuleOccurrenceVoid(
   const pending = await readPendingRunDecision(ctx, run, campaign, membership)
   if (pending)
     return encounterCommandResultDtoSchema.parse({
-      projection: readRunProjection(run),
+      projection: await readEncounterGmProjection(ctx, readRunState(run)),
       roll: null,
       occurrence: {
         occurrenceId: pending.occurrenceId,

@@ -18,6 +18,8 @@ import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persi
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import {
   persistNativeConcentrationResult,
   insertNativeCleavingChoice
@@ -287,7 +289,7 @@ export const commit = internalMutation({
               actors
             )
           })
-        : admission.projection
+        : await readEncounterGmProjection(encounterReadTransaction(ctx), nextState)
     const result = encounterCommandResultDtoSchema.parse({
       projection,
       roll: null,
@@ -304,8 +306,7 @@ export const commit = internalMutation({
         version: nextState.version,
         stateJson: JSON.stringify(nextState),
         stateChecksum: checksumCanonicalJson(nextState),
-        projectionJson: JSON.stringify(projection),
-        projectionChecksum: checksumCanonicalJson(projection),
+
         updatedAt: input.occurredAt
       })
     await insertRunCommand(
@@ -323,8 +324,7 @@ export const commit = internalMutation({
         actorUserId: input.expectedUserId,
         version: nextState.version,
         commandJson: JSON.stringify(response),
-        resultJson: JSON.stringify(result),
-        resultChecksum: checksumCanonicalJson(result),
+        ...encounterReplayReceipt(result),
         createdAt: input.occurredAt
       })
     )

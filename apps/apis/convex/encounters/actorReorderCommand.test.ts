@@ -184,7 +184,7 @@ describe('native Encounter reorder', () => {
     expect(await base.capture()).toEqual(before)
   }, 30_000)
 
-  it('reorders prepared actors, retains exact historical response, and rejects altered receipt/input', async () => {
+  it('reorders prepared actors, replays its receipt, and rejects altered receipt/input', async () => {
     const base = await fixture()
     const actorIds = base
       .projection()
@@ -192,9 +192,12 @@ describe('native Encounter reorder', () => {
       .reverse()
     const { request, result } = await base.execute({ type: 'REORDER', actorIds })
     expect(result.projection.actors.map((actor) => actor.id)).toEqual(actorIds)
-    await base.execute({ type: 'REORDER', actorIds: [...actorIds].reverse() })
+    const later = await base.execute({ type: 'REORDER', actorIds: [...actorIds].reverse() })
     const beforeReplay = await base.capture()
-    expect(await replayInRoom(base.owner.caller, request)).toEqual(result)
+    expect(await replayInRoom(base.owner.caller, request)).toEqual({
+      ...result,
+      projection: later.result.projection
+    })
     expect(await base.capture()).toEqual(beforeReplay)
     await expect(
       executeInRoom(base.owner.caller, {
@@ -209,7 +212,7 @@ describe('native Encounter reorder', () => {
         )
         .unique()
       if (!row || row.commandType !== 'REORDER') throw new Error('Missing reorder receipt')
-      await ctx.db.patch(row._id, { resultChecksum: 'a'.repeat(64) })
+      await ctx.db.patch(row._id, { replayReceiptChecksum: 'a'.repeat(64) })
     })
     const corrupt = await base.capture()
     await expect(executeInRoom(base.owner.caller, request)).rejects.toThrow(LiveSessionRouteError)

@@ -13,10 +13,8 @@ import {
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import {
-  healthBand,
-  projectPlayerEncounterProjection
-} from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
+import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
+
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
@@ -32,12 +30,15 @@ import {
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
-import { characterProjectionState } from '@artificer-toolkit/encounter-persistence/characterStates'
+import {
+  characterProjectionState,
+  readEncounterCharacterStates
+} from '@artificer-toolkit/encounter-persistence/characterStates'
+import { projectEncounterActors } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readEncounterHealthViewer } from '@artificer-toolkit/encounter-persistence/healthViewer'
 import {
-  readRunActors,
-  readRunState,
-  readValidatedRunProjection
+  readCampaignRunState,
+  readRunActors
 } from '@artificer-toolkit/encounter-persistence/documents'
 import { encounterReadTransaction } from './encounterPorts'
 type EncounterProjection = EncounterGmProjectionDto | EncounterPlayerProjectionDto
@@ -59,9 +60,18 @@ export async function presentRun(
   viewer: Pick<Doc<'campaignMemberships'>, 'role' | 'userId'>
 ): Promise<EncounterProjection> {
   const { role } = viewer
-  const projection = readValidatedRunProjection(row, campaign)
-  if (row.status === 'COMPLETED' && role === 'OWNER') return projection
-  const system = projection.actors.some(
+  const transaction = encounterReadTransaction(ctx)
+  const state = readCampaignRunState(row, campaign)
+  const actors = await readRunActors(ctx, state)
+  // The GM reads a completed Run's Characters as they were when it completed.
+  if (row.status === 'COMPLETED' && role === 'OWNER')
+    return projectEncounterActors(
+      transaction,
+      state,
+      actors,
+      await readEncounterCharacterStates(transaction, state, actors)
+    )
+  const system = actors.some(
     (actor) =>
       (role === 'OWNER' || actor.public) &&
       (actor.kind === 'CHARACTER' ||
@@ -69,68 +79,51 @@ export async function presentRun(
   )
     ? await requireSystem(ctx, campaign.gameSystemId)
     : null
-  const actors = await Promise.all(
-    projection.actors.map(async (actor) => {
-      if (role === 'PLAYER' && !actor.public) return actor
-      if (actor.kind !== 'CHARACTER') {
-        if (!Array.isArray(actor.conditions)) return actor
-        return {
-          ...actor,
-          conditions: actor.conditions.map(
-            (condition: EncounterGmProjectionDto['actors'][number]['conditions']) => {
-              const record =
-                condition !== null && typeof condition === 'object' && !Array.isArray(condition)
-                  ? condition
-                  : null
-              const conditionTypeId =
-                typeof condition === 'string'
-                  ? condition
-                  : record && 'conditionTypeId' in record
-                    ? record.conditionTypeId
-                    : null
-              const definition = system?.conditionTypes.find(
-                (entry) => entry.id === conditionTypeId
-              )
-              if (!definition) return condition
-              return {
-                ...record,
-                conditionTypeId: definition.id,
-                label: definition.label,
-                ...(definition.description ? { description: definition.description } : {})
-              }
-            }
-          )
-        }
-      }
-      const characterId = actor.sourceId
-      if (!characterId) throw new Error('Stored Encounter Character actor is unavailable.')
-      const assignment = await ctx.db
-        .query('campaignCharacterAssignments')
-        .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
-        .unique()
-      // Detached actors retain Run identity and last projected hit points, but grant no current
-      // Sheet access or condition fallback.
-      if (assignment?.campaignId !== campaign.id) return { ...actor, conditions: [] }
-      await requireCampaignCharacterAuthority(ctx, campaign.id, characterId, campaign.ownerUserId)
-      const { active, draft } = await loadCharacterState(ctx, characterId)
-      if (!active) throw new Error('Stored Encounter Character source is unavailable.')
-      if (active.userId !== assignment.userId || (draft && draft.userId !== active.userId))
-        throw new Error('Stored Campaign Character assignment mismatch.')
-      if (active.status !== 'ACTIVE')
-        throw new Error('Character requires Builder repair before the Sheet can be read.')
-      const character = readCharacterRecord(active)
-      readCharacterSheetState(active)
-      if (character.systemId !== campaign.gameSystemId)
-        throw new Error('Stored Encounter Character System is unavailable.')
-      const { state } = await readCampaignCharacterState(ctx, campaign.id, characterId)
-      const current = characterProjectionState(
+  const characterStates = new Map<
+    string,
+    { current: number; temporary: number; maximum: number; conditions: unknown }
+  >()
+  for (const actor of actors) {
+    if (actor.kind !== 'CHARACTER') continue
+    const characterId = actor.sourceId
+    const assignment = await ctx.db
+      .query('campaignCharacterAssignments')
+      .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+      .unique()
+    // Detached actors retain Run identity and last projected hit points, but grant no current
+    // Sheet access or condition fallback.
+    if (assignment?.campaignId !== campaign.id) {
+      if (!actor.frozenState) throw new Error('Stored Encounter Character actor is unavailable.')
+      characterStates.set(characterId, {
+        current: actor.frozenState.currentHitPoints,
+        temporary: actor.frozenState.tempHitPoints,
+        maximum: actor.frozenState.maxHitPoints,
+        conditions: []
+      })
+      continue
+    }
+    await requireCampaignCharacterAuthority(ctx, campaign.id, characterId, campaign.ownerUserId)
+    const { active, draft } = await loadCharacterState(ctx, characterId)
+    if (!active) throw new Error('Stored Encounter Character source is unavailable.')
+    if (active.userId !== assignment.userId || (draft && draft.userId !== active.userId))
+      throw new Error('Stored Campaign Character assignment mismatch.')
+    if (active.status !== 'ACTIVE')
+      throw new Error('Character requires Builder repair before the Sheet can be read.')
+    const character = readCharacterRecord(active)
+    readCharacterSheetState(active)
+    if (character.systemId !== campaign.gameSystemId)
+      throw new Error('Stored Encounter Character System is unavailable.')
+    const { state: campaignState } = await readCampaignCharacterState(ctx, campaign.id, characterId)
+    characterStates.set(
+      characterId,
+      characterProjectionState(
         {
           state: {
             ...character.state,
             conditions: [
               ...(character.state.conditions ?? []),
               ...getVisibleCampaignConditions({
-                conditions: state.conditions,
+                conditions: campaignState.conditions,
                 viewer: role === 'OWNER' ? 'CAMPAIGN_OWNER' : 'CHARACTER_OWNER'
               })
             ]
@@ -139,24 +132,47 @@ export async function presentRun(
         await readCharacterMaximumHitPoints(ctx, active),
         system?.conditionTypes ?? []
       )
+    )
+  }
+  const projection = await projectEncounterActors(transaction, state, actors, characterStates)
+  const current = {
+    ...projection,
+    actors: projection.actors.map((actor) => {
+      if (actor.kind === 'CHARACTER' || !Array.isArray(actor.conditions)) return actor
+      if (role === 'PLAYER' && !actor.public) return actor
       return {
         ...actor,
-        conditions: current.conditions,
-        currentHitPoints: current.current,
-        maxHitPoints: current.maximum,
-        tempHitPoints: current.temporary,
-        healthBand: healthBand(current.current, current.maximum)
+        conditions: actor.conditions.map(
+          (condition: EncounterGmProjectionDto['actors'][number]['conditions']) => {
+            const record =
+              condition !== null && typeof condition === 'object' && !Array.isArray(condition)
+                ? condition
+                : null
+            const conditionTypeId =
+              typeof condition === 'string'
+                ? condition
+                : record && 'conditionTypeId' in record
+                  ? record.conditionTypeId
+                  : null
+            const definition = system?.conditionTypes.find((entry) => entry.id === conditionTypeId)
+            if (!definition) return condition
+            return {
+              ...record,
+              conditionTypeId: definition.id,
+              label: definition.label,
+              ...(definition.description ? { description: definition.description } : {})
+            }
+          }
+        )
       }
     })
-  )
-  const current = { ...projection, actors }
+  }
   if (role === 'OWNER') return current
   return projectPlayerEncounterProjection(
     current,
-    await readEncounterHealthViewer(encounterReadTransaction(ctx), current, viewer.userId)
+    await readEncounterHealthViewer(transaction, current, viewer.userId)
   )
 }
-
 export const get = query({
   args: zodToConvexFields(getEncounterInputDtoSchema.shape),
   // Construct large native validators during metadata export, outside query invocation.
@@ -283,8 +299,7 @@ export const actorSides = query({
     const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
     if (row.version !== input.expectedVersion) return null
-    readValidatedRunProjection(row, campaign)
-    const state = readRunState(row)
+    const state = readCampaignRunState(row, campaign)
     const actors = await readRunActors(ctx, state)
     if (actors.some((actor) => !state.sides.some((side) => side.id === actor.sideId)))
       throw new Error('Encounter actor side is unavailable.')

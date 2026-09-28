@@ -1,7 +1,5 @@
-import {
-  encounterCommandResultDtoSchema,
-  type ResolveRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
+
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -19,7 +17,8 @@ import {
 } from './actorController.js'
 import { verifyNativeCleavingParentChain } from './cleavingParent.js'
 import { readNativeCleavingPending } from './cleavingPending.js'
-import { readRunActors, readRunProjection, readRunState } from './documents.js'
+import { readRunActors, readRunState } from './documents.js'
+import { replayEncounterCommandResult } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -61,7 +60,6 @@ export async function readCleavingResponseAdmission(
   if (!run || occurrence.encounterId !== run.id || occurrence.campaignId !== run.campaignId)
     throw new Error('Cleaving occurrence scope is invalid.')
   const state = readRunState(run)
-  readRunProjection(run)
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(
     state.campaignId,
     userId
@@ -97,7 +95,6 @@ export async function readCleavingResponseAdmission(
     const metadata = serverRuleExecutionReceiptCommandMetadataDtoSchema.parse(
       JSON.parse(evidence.commandMetadataJson)
     )
-    const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
     const sourceId =
       payload.status === 'AGGREGATE_CHOICE_COMPLETE' &&
       payload.applicationOutputs.kind === 'CLEAVING_DAMAGE'
@@ -134,6 +131,7 @@ export async function readCleavingResponseAdmission(
       checksumCanonicalJson(metadata.response) !== checksumCanonicalJson(response.resolution)
     )
       throw new Error('Stored Cleaving response receipt mismatch.')
+    const result = await replayEncounterCommandResult(ctx, state, prior)
     return {
       ...scope,
       kind: 'REPLAY' as const,

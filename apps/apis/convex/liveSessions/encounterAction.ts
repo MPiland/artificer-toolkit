@@ -133,7 +133,7 @@ export const commitPending = internalMutation({
     return presentEncounterResultForMember(encounterReadTransaction(ctx), {
       campaign,
       membership,
-      result: nativeActionPendingResult(run, occurrence)
+      result: await nativeActionPendingResult(encounterReadTransaction(ctx), run, occurrence)
     })
   }
 })

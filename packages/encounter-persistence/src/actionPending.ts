@@ -9,7 +9,8 @@ import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
-import { readRunActor, readRunProjection, readRunState } from './documents.js'
+import { readRunActor, readRunState } from './documents.js'
+import { readEncounterGmProjection } from './nativeProjection.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -116,7 +117,8 @@ export function projectNativeActionPending(
       }
 }
 
-export function nativeActionPendingResult(
+export async function nativeActionPendingResult(
+  ctx: EncounterReadTransaction,
   run: EncounterDocument<'encounterRuns'>,
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
 ) {
@@ -127,7 +129,7 @@ export function nativeActionPendingResult(
   )
     throw new Error('Pending Encounter action scope is stale.')
   return encounterCommandResultDtoSchema.parse({
-    projection: readRunProjection(run),
+    projection: await readEncounterGmProjection(ctx, readRunState(run)),
     roll: null,
     occurrence: {
       occurrenceId: occurrence.id,

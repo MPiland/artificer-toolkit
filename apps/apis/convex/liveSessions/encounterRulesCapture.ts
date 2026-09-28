@@ -250,7 +250,6 @@ export async function readEncounterRulesCapture(
       }),
       appRoll: concentrationAdmission.kind === 'READY' ? concentrationAdmission.appRoll : null,
       state: concentrationAdmission.state,
-      projection: concentrationAdmission.projection,
       snapshot:
         concentrationAdmission.kind === 'READY' ? concentrationAdmission.pending.snapshot : null,
       parentApplications:

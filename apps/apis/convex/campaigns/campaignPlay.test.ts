@@ -20,10 +20,9 @@ import type {
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const claim = makeFunctionReference<'mutation', { campaignId: string }, { epoch: string }>(
@@ -64,25 +63,6 @@ const moveDirect = makeFunctionReference<
 >('scenes/geometryFastCommands:execute')
 
 type SceneFixture = Awaited<ReturnType<typeof createEncounterSceneFixture>>
-
-async function activateRun(base: SceneFixture) {
-  await base.t.run(async (ctx) => {
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
-    if (!run) throw new Error('Missing fixture Run.')
-    const state = { ...readRunState(run), status: 'ACTIVE' as const }
-    const projection = { ...readRunProjection(run), status: 'ACTIVE' as const }
-    await ctx.db.patch(run._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-  })
-}
 
 function readPlayRows(base: SceneFixture) {
   return base.t.run(async (ctx) => ({
@@ -165,7 +145,7 @@ it('builds the party from active assignments and opens the table for a player wi
 
 it('leaves live authority, presentation and an ACTIVE Run untouched when a Session finishes', async () => {
   const base = await createEncounterSceneFixture()
-  await activateRun(base)
+  await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
   await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
   const session = await base.other.caller.mutation(createSession, { campaignId: base.campaign.id })
   const before = await readPlayRows(base)
@@ -297,7 +277,7 @@ it('deletes only a prepared Run with exact command replay', async () => {
   expect(remaining).toEqual({ runs: [], actors: [], commands: [] })
 
   const active = await createEncounterSceneFixture()
-  await activateRun(active)
+  await active.t.run((ctx) => activateFixtureRun(ctx, active.run.id))
   await expect(
     active.other.caller.mutation(deletePrepared, {
       campaignId: active.campaign.id,

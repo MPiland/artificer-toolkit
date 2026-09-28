@@ -28,7 +28,6 @@ import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
 import {
   readRunActor,
   readRunActors,
-  readRunProjection,
   readRunState
 } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
@@ -88,7 +87,6 @@ async function readActionChoicesRun(ctx: QueryCtx, input: GetEncounterActionChoi
     .unique()
   if (!run) throw new Error('Encounter Run was not found.')
   const state = readRunState(run)
-  readRunProjection(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign is stale.')

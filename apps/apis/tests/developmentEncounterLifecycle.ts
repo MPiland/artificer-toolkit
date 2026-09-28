@@ -311,7 +311,10 @@ export async function verifyEncounterLifecycle({
     }
   })
   projection = encounterGmProjectionDtoSchema.parse(removed.projection)
-  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
+  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), {
+    ...tokenResult,
+    projection
+  })
   await execute({ ...commandBase(), type: 'COMPLETE' })
   assert.equal(projection.status, 'COMPLETED')
   assert.deepEqual(projection.reminders, reminders)
@@ -326,12 +329,15 @@ export async function verifyEncounterLifecycle({
     limit: 100
   })
   for (const receipt of receipts) {
-    assert.deepEqual(
-      await owner.mutation(executeEncounterCommand, { command: receipt.command }),
-      receipt.result
-    )
+    assert.deepEqual(await owner.mutation(executeEncounterCommand, { command: receipt.command }), {
+      ...receipt.result,
+      projection
+    })
   }
-  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
+  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), {
+    ...tokenResult,
+    projection
+  })
   await assert.rejects(
     owner.mutation(executeEncounterCommand, {
       command: { ...start, expectedVersion: projection.version }

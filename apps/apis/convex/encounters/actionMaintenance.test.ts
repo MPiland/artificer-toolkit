@@ -43,6 +43,8 @@ import { api, internal } from '../_generated/api'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 import { prepareNativeActionEconomy } from './actionEconomy'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { encounterReadTransaction } from './encounterPorts'
 import { loadMovementTargets } from './movementTargets'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { sourceImportBatches } from '../content/importBatches'
@@ -1026,8 +1028,11 @@ it('commits a maintained Character action from the Worker plan with one atomic r
   const after = await records(base)
   expect(after.run?.version).toBe(before.run!.version + 1)
   expect(committed.projection.version).toBe(after.run?.version)
-  expect(JSON.parse(after.run!.projectionJson!)).toEqual(committed.projection)
-  expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(committed.projection))
+  expect(
+    await base.t.run((ctx) =>
+      readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(after.run!))
+    )
+  ).toEqual(committed.projection)
   expect(after.actors.map((actor) => checksumCanonicalJson(JSON.parse(actor.stateJson)))).toEqual(
     plan.settlement.actors.map((actor) => checksumCanonicalJson(actor))
   )

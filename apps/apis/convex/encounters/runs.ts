@@ -41,7 +41,9 @@ import { readBlueprint } from './blueprints'
 import { snapshotEncounterPolicies } from './policySnapshots'
 import { requireSystem } from '../content/systemDocuments'
 import { characterProjectionState } from '@artificer-toolkit/encounter-persistence/characterStates'
-import { readRunProjection, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { encounterReadTransaction } from './encounterPorts'
 import { removeEncounterRunChildren } from './campaignDeletion'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
@@ -80,7 +82,7 @@ export async function createEncounterRun(
       .unique()
     if (!row || row.campaignId !== campaign.id || row.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter is unavailable.')
-    return readRunProjection(row)
+    return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(row))
   }
   const blueprintRow = await ctx.db
     .query('encounterBlueprints')
@@ -123,6 +125,7 @@ export async function createEncounterRun(
         sideId: partySideId,
         kind: 'CHARACTER',
         sourceId: character.id,
+        frozenState: null,
         label: character.label,
         systemId: character.systemId,
         stableTieKey: crypto.randomUUID(),
@@ -225,8 +228,6 @@ export async function createEncounterRun(
       version: state.version,
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection),
       createdAt: now,
       updatedAt: now
     })
@@ -307,7 +308,6 @@ export const deletePrepared = mutation({
     if (run.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
     if (run.status !== 'PREPARED') throw new Error('Only prepared Encounters can be deleted.')
     readRunState(run)
-    readRunProjection(run)
     const [binding, commands, receipts, occurrences] = await Promise.all([
       ctx.db
         .query('encounterSceneBindings')

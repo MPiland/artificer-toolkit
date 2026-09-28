@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { characterSheetCommandInputDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -19,7 +15,7 @@ import {
   SRD_DAMAGE_TYPES,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -97,37 +93,12 @@ async function setup(input: {
   if (!actor || !target) throw new Error('The SRD attack fixture actors are missing.')
   const featureId = creature.features?.find((feature) => feature.label === input.feature)?.id
   const actionId = await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('The SRD attack fixture Run is missing.')
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(row.stateJson),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id
-    })
-    const stored = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...stored,
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: actor.id,
-      actors: stored.actors.map((candidate) =>
-        candidate.id === actor.id ? { ...candidate, public: !input.hidden } : candidate
-      )
-    })
-    await ctx.db.patch(row._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [actor.id, target.id])
+    await activateFixtureRun(
+      ctx,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: actor.id },
+      [actor.id, target.id]
+    )
     const actorRow = await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))

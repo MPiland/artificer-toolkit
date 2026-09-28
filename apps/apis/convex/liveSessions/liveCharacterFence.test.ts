@@ -9,14 +9,12 @@ import type {
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import {
   liveSessionEncounterActionCommitInputSchema,
   type LiveSessionEncounterActionCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -30,7 +28,7 @@ import {
   commitNativeLiveEncounterAction,
   planNativeLiveEncounterAction
 } from '../../../session-worker/src/nativeEncounterRules'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
   insertActiveLiveAuthority,
@@ -39,7 +37,7 @@ import {
 } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
-import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -152,33 +150,12 @@ async function setup() {
   const hero = run.actors.find((actor) => actor.kind === 'CHARACTER')
   if (!enemy || !hero) throw new Error('Missing fence actors.')
   const actionId = await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing fence Run.')
-    const state = encounterRunStateSchema.parse({
-      ...readRunState(row),
-      status: 'ACTIVE',
-      automationMode: 'ASSISTED',
-      round: 1,
-      currentActorId: enemy.id
-    })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: state.status,
-      automationMode: state.automationMode,
-      round: state.round,
-      currentActorId: state.currentActorId
-    })
-    await ctx.db.patch(row._id, {
-      status: state.status,
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [enemy.id, hero.id])
+    const state = await activateFixtureRun(
+      ctx,
+      run.id,
+      { automationMode: 'ASSISTED', round: 1, currentActorId: enemy.id },
+      [enemy.id, hero.id]
+    )
     const capability = discoverEncounterFeatureActionCapabilities({
       actor: await readRunActor(ctx, state, enemy.id),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),

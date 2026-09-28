@@ -10,6 +10,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 
 export async function insertActionEvidenceReceipt(
   ctx: MutationCtx,
@@ -49,12 +50,7 @@ export async function insertActionEvidenceReceipt(
           requestId: response.resolution.requestId,
           resolutionKind: response.resolution.kind,
           ...(input.commandResult
-            ? {
-                commandResult: {
-                  resultJson: JSON.stringify(input.commandResult),
-                  resultChecksum: checksumCanonicalJson(input.commandResult)
-                }
-              }
+            ? { replayReceipt: encounterReplayReceipt(input.commandResult) }
             : {})
         })
       ),

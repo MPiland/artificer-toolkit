@@ -1,10 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { LiveSessionDomainRejectionError } from '../../../session-worker/src/liveSessionRoutes'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -28,7 +25,7 @@ import {
 } from '../../../session-worker/src/nativeEncounterRules'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { seedTurnSaveEffect } from '../../tests/fixtures/turnActiveEffectFixtures'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { createEncounterInitiativeStore } from '@artificer-toolkit/encounter-persistence/initiativeStore'
@@ -129,36 +126,11 @@ it('plans the same Character action and target facts in the Worker using private
       epoch: authorityEpoch,
       createdAt: fixture.campaign.createdAt
     })
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.run.id))
-      .unique()
-    if (!row) throw new Error('Missing Encounter.')
-    const state = encounterRunStateSchema.parse({
-      ...readRunState(row),
-      status: 'ACTIVE',
+    await activateFixtureRun(ctx, fixture.run.id, {
       automationMode: 'ASSISTED',
       currentActorId: fixture.actor.id,
       round: 1
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(row.projectionJson),
-      status: state.status,
-      automationMode: state.automationMode,
-      currentActorId: state.currentActorId,
-      round: state.round
-    })
-    await ctx.db.patch(row._id, {
-      status: state.status,
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await seedActiveInitiative(ctx, state, [
-      fixture.actor.id,
-      ...state.actorIds.filter((actorId) => actorId !== fixture.actor.id)
-    ])
     const now = new Date().toISOString()
     const settings = {
       campaignId: fixture.campaign.id,

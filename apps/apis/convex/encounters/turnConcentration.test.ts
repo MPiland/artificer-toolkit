@@ -375,9 +375,19 @@ describe('turn damage concentration ordering', () => {
     expect(parentReceipt(before)).toBeDefined()
     expect(parentReceipt(terminal)).toEqual(parentReceipt(before))
     for (const check of completed) {
-      await expect(replayInRoom(check.caller, check.input)).resolves.toEqual(check.result)
+      await expect(replayInRoom(check.caller, check.input)).resolves.toEqual({
+        ...check.result,
+        projection: await check.caller.query(api.encounters.projectionReads.get, {
+          encounterId: base.run.id
+        })
+      })
     }
-    await expect(replayInRoom(base.owner.caller, responses.at(-1)!)).resolves.toEqual(parent)
+    await expect(replayInRoom(base.owner.caller, responses.at(-1)!)).resolves.toEqual({
+      ...parent,
+      projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
+        encounterId: base.run.id
+      })
+    })
     expect(await records(base)).toEqual(terminal)
   }, 60_000)
 
@@ -552,7 +562,12 @@ describe('turn damage concentration ordering', () => {
     ).toBe(parentReceipt.resultJson)
     const finalTurnResponse = responses.at(-1)
     if (!finalTurnResponse) throw new Error('Missing final turn-effect response.')
-    await expect(replayInRoom(base.owner.caller, finalTurnResponse)).resolves.toEqual(parent)
+    await expect(replayInRoom(base.owner.caller, finalTurnResponse)).resolves.toEqual({
+      ...parent,
+      projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
+        encounterId: base.run.id
+      })
+    })
     expect(await records(base)).toEqual(afterFailure)
     const second = await prepared.bOwner.controller.caller.query(
       api.encounters.pendingReads.pendingRuleOccurrence,
@@ -577,7 +592,12 @@ describe('turn damage concentration ordering', () => {
     await expect(replayInRoom(prepared.bOwner.controller.caller, secondResponse)).resolves.toEqual(
       success
     )
-    await expect(replayInRoom(base.owner.caller, prepared.advance)).resolves.toEqual(parent)
+    await expect(replayInRoom(base.owner.caller, prepared.advance)).resolves.toEqual({
+      ...parent,
+      projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
+        encounterId: base.run.id
+      })
+    })
     expect(await records(base)).toEqual(terminal)
   }, 60_000)
 

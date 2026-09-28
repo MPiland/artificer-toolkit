@@ -34,6 +34,7 @@ import {
   insertRunCommand,
   requireUnusedEvidenceCommandId
 } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import type { readSpatialSceneGeometry } from './spatialGeometry'
@@ -556,8 +557,7 @@ export async function publishSpatialPending<TSettlement>(
         actorUserId: userId,
         version: publishedState.version,
         commandJson: JSON.stringify(save.input),
-        resultJson: JSON.stringify(command),
-        resultChecksum: checksumCanonicalJson(command),
+        ...encounterReplayReceipt(command),
         ruleOccurrenceId: preparation.occurrenceId,
         ruleResultChecksum: checksumCanonicalJson(payload),
         optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
@@ -590,9 +590,7 @@ async function advanceInitialAutomaticRun(
     version: nextState.version,
     updatedAt: occurredAt,
     stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    projectionJson: JSON.stringify(projection),
-    projectionChecksum: checksumCanonicalJson(projection)
+    stateChecksum: checksumCanonicalJson(nextState)
   })
   return { state: nextState, projection }
 }

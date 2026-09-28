@@ -2,7 +2,6 @@
 import { expect, it, vi } from 'vitest'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
@@ -11,10 +10,8 @@ import {
   seedConcentration,
   setupConcentration
 } from '../../tests/fixtures/concentration'
-import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { api } from '../_generated/api'
 import { storeRunAutomationMode } from '../../tests/fixtures/playerControl'
-import type { FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
@@ -57,23 +54,8 @@ function response(
   } satisfies EncounterExecuteInput
 }
 
-async function setupFixture(rolls: FixtureRolls) {
-  const fixture = await setupConcentration(rolls)
-  await fixture.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', fixture.run.id))
-      .unique()
-    if (!row) throw new Error('Concentration fixture Run is unavailable.')
-    await seedActiveInitiative(ctx, encounterRunStateSchema.parse(JSON.parse(row.stateJson)), [
-      fixture.actor.id,
-      fixture.target.id
-    ])
-  })
-  return fixture
-}
 it('pauses an Assisted concentration child and settles success without cleanup', async () => {
-  const fixture = await setupFixture('PROMPT')
+  const fixture = await setupConcentration('PROMPT')
   const seeded = await seedConcentration(fixture)
   const root = concentrationAction(fixture)
   const before = await concentrationRecords(fixture)
@@ -149,7 +131,7 @@ it('pauses an Assisted concentration child and settles success without cleanup',
 }, 60_000)
 
 it('raises no concentration prompt in a Manual Run, where the damaging action is refused whole', async () => {
-  const fixture = await setupFixture('PROMPT')
+  const fixture = await setupConcentration('PROMPT')
   const seeded = await seedConcentration(fixture)
   await storeRunAutomationMode(fixture.t, fixture.run.id, 'MANUAL')
   const before = await concentrationRecords(fixture)
@@ -169,7 +151,7 @@ it('raises no concentration prompt in a Manual Run, where the damaging action is
 }, 60_000)
 
 it('does not create a concentration child when finalized applied damage is zero', async () => {
-  const fixture = await setupFixture('PROMPT')
+  const fixture = await setupConcentration('PROMPT')
   const seeded = await seedConcentration(fixture)
   await fixture.t.run(async (ctx) => {
     const characterRow = await ctx.db
@@ -218,7 +200,7 @@ it.each([
 ])(
   'settles Automatic concentration atomically for $outcome',
   async ({ face, cleanup }) => {
-    const fixture = await setupFixture('AUTO_ROLL')
+    const fixture = await setupConcentration('AUTO_ROLL')
     const seeded = await seedConcentration(fixture)
     const root = concentrationAction(fixture)
     const before = await concentrationRecords(fixture)
@@ -255,7 +237,7 @@ it.each([
 )
 
 it('cleans the exact concentration state on failure and preserves an independent condition', async () => {
-  const fixture = await setupFixture('PROMPT')
+  const fixture = await setupConcentration('PROMPT')
   const seeded = await seedConcentration(fixture)
   const parent = await executeInRoom(fixture.owner.caller, {
     command: concentrationAction(fixture)

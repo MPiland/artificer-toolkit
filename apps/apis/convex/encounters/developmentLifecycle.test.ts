@@ -4,10 +4,7 @@ import type {
   EncounterExecuteInput,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -19,6 +16,7 @@ import type {
   EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { api, components, internal } from '../_generated/api'
+import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
@@ -302,54 +300,20 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
       ...JSON.parse(fixtureRunRow.stateJson),
       status: 'COMPLETED'
     })
-    const completedProjection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(fixtureRunRow.projectionJson),
-      status: 'COMPLETED'
-    })
     await ctx.db.patch(fixtureRunRow._id, {
       status: 'COMPLETED',
       stateJson: JSON.stringify(completed),
-      stateChecksum: checksumCanonicalJson(completed),
-      projectionJson: JSON.stringify(completedProjection),
-      projectionChecksum: checksumCanonicalJson(completedProjection)
+      stateChecksum: checksumCanonicalJson(completed)
     })
-    const runRow = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    const reactorRow = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', reactor.id))
-      .unique()
-    if (!runRow || !reactorRow) throw new Error('Missing V15 movement rows.')
-    const state = encounterRunStateSchema.parse(JSON.parse(runRow.stateJson))
-    const active = encounterRunStateSchema.parse({
-      ...state,
-      status: 'ACTIVE',
+    await activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',
       round: 1,
       currentActorId: reactor.id
     })
-    const projection = encounterGmProjectionDtoSchema.parse({
-      ...JSON.parse(runRow.projectionJson),
-      status: 'ACTIVE'
-    })
     // Disposition, not side, makes the reactor hostile to the moving Creature (D17).
-    const reactorState = encounterRunActorStateSchema.parse({
-      ...JSON.parse(reactorRow.stateJson),
-      disposition: 'FRIENDLY'
-    })
-    await ctx.db.patch(runRow._id, {
-      status: 'ACTIVE',
-      stateJson: JSON.stringify(active),
-      stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(projection),
-      projectionChecksum: checksumCanonicalJson(projection)
-    })
-    await ctx.db.patch(reactorRow._id, {
-      stateJson: JSON.stringify(reactorState),
-      stateChecksum: checksumCanonicalJson(reactorState)
-    })
+    await updateFixtureRunActors(ctx, run.id, (actor) =>
+      actor.id === reactor.id ? { ...actor, disposition: 'FRIENDLY' } : actor
+    )
   })
   const base = { ...fixture, run, reactor, mover }
   const scene = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])

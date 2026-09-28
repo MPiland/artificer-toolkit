@@ -9,7 +9,7 @@ import {
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { readValidatedRunProjection } from '@artificer-toolkit/encounter-persistence/documents'
+import { readCampaignRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 
 export const timeline = query({
@@ -30,7 +30,7 @@ export const timeline = query({
       .unique()
     if (!row) throw new Error('Encounter is unavailable.')
     const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
-    readValidatedRunProjection(row, campaign)
+    readCampaignRunState(row, campaign)
     const missingMetadata = await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId_visibility_version', (q) =>

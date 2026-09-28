@@ -32,14 +32,28 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
 )
 
 /**
- * A Character actor keeps no hit point, condition or stream-version copy: Encounter reads load the
- * current Character (ADR 0034 decision 4). Creature and custom actors own that state in the Run.
+ * A Character actor keeps no hit point, condition or stream-version copy while the Run reads its
+ * Character: Encounter reads load the current Character (ADR 0034 decision 4). Creature and custom
+ * actors own that state in the Run.
  */
 export const encounterRunActorStateSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.extend(encounterRunActorStateBaseSchema, {
       kind: z.literal('CHARACTER'),
-      sourceId: postgresUuidSchema
+      sourceId: postgresUuidSchema,
+      /**
+       * The Character's projected health and conditions when the Run stopped reading it: when the
+       * Run completed, or when the Character left the Campaign while the Run was open. Null while
+       * the Run reads the current Character.
+       */
+      frozenState: z.nullable(
+        z.strictObject({
+          currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+          maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+          tempHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+          conditions: jsonValueSchema
+        })
+      )
     }),
     z.extend(encounterRunActorStateBaseSchema, {
       kind: z.enum(['CREATURE', 'CUSTOM']),
