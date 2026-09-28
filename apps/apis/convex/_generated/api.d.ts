@@ -86,6 +86,7 @@ export declare const api: {
       {
         limits: {
           activeHostedCampaigns: number | null;
+          campaignEntriesPerCampaign: number | null;
           homebrewRoots: number | null;
           paidTablesEnabled: boolean;
           personalCharacters: number | null;
@@ -93,6 +94,7 @@ export declare const api: {
           playerSeatsPerCampaign: number;
           publicListings: number | null;
           savedEncounters: number | null;
+          scenesPerCampaign: number | null;
           storageBytes: number | null;
         };
         pricing: {
