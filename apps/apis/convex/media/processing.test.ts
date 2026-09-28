@@ -91,14 +91,15 @@ describe('media processing', () => {
   )
 
   it.each([
-    'CHARACTER_PORTRAIT',
-    'AUTHORED_IMAGE',
-    'CAMPAIGN_FILE',
-    'CAMPAIGN_HANDOUT_MAP'
-  ] as const)('normalizes %s with the ordinary image bounds and does not crop', async (profile) => {
-    const source = await image(4200, 42).png().toBuffer()
+    ['ACCOUNT_AVATAR', 2048, 1024],
+    ['CHARACTER_PORTRAIT', 2048, 1024],
+    ['AUTHORED_IMAGE', 2048, 1024],
+    ['CAMPAIGN_FILE', 2048, 1024],
+    ['CAMPAIGN_HANDOUT_MAP', 4096, 2048]
+  ] as const)('normalizes %s to a %ipx source and does not crop', async (profile, width, height) => {
+    const source = await image(4200, 2100).png().toBuffer()
     const result = await processMedia(source, profile, 'image/png')
-    expect([result.width, result.height]).toEqual([4096, 41])
+    expect([result.width, result.height]).toEqual([width, height])
     expect(
       result.variants.map(({ kind, width, height }) => ({
         kind,
@@ -106,9 +107,9 @@ describe('media processing', () => {
         height
       }))
     ).toEqual([
-      { kind: 'SOURCE', width: 4096, height: 41 },
-      { kind: 'DISPLAY', width: 1598, height: 16 },
-      { kind: 'THUMBNAIL', width: 300, height: 3 }
+      { kind: 'SOURCE', width, height },
+      { kind: 'DISPLAY', width: 1600, height: 800 },
+      { kind: 'THUMBNAIL', width: 320, height: 160 }
     ])
     for (const variant of result.variants) {
       expect(await sharp(variant.bytes).metadata()).toMatchObject({

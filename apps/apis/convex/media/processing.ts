@@ -191,8 +191,10 @@ export async function processMedia(
     throw new MediaValidationError(`${label} type does not match the upload intent.`)
   }
 
+  // Content art is capped at 2048 px; handout maps keep 4096 px and VTT maps keep full size (Q17).
+  const sourceLimit = profile === 'CAMPAIGN_HANDOUT_MAP' ? 4096 : 2048
   const pipeline = sharp(source, { limitInputPixels: maxPixels }).rotate()
-  if (!isMap) pipeline.resize(4096, 4096, { fit: 'inside', withoutEnlargement: true })
+  if (!isMap) pipeline.resize(sourceLimit, sourceLimit, { fit: 'inside', withoutEnlargement: true })
   const normalized = await pipeline
     .webp({ quality: 85 })
     .toBuffer({ resolveWithObject: true })
@@ -204,7 +206,7 @@ export async function processMedia(
 
   const variants: ProcessedMedia['variants'] = []
   for (const [kind, limit] of [
-    ['SOURCE', 4096],
+    ['SOURCE', sourceLimit],
     ['DISPLAY', 1600],
     ['THUMBNAIL', 320]
   ] as const) {
