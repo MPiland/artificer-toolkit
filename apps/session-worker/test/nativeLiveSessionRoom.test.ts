@@ -2729,7 +2729,7 @@ it.each([false, true])(
           envelope: {
             baselineVersion: 0,
             audience: 'TABLE',
-            kind: 'POINTER_PREVIEW',
+            kind: 'PING',
             position: { x: 10, y: 10 },
             sceneId: crypto.randomUUID(),
             sequence: 1
@@ -2901,7 +2901,7 @@ it.each([false, true])(
           envelope: {
             baselineVersion: 0,
             audience: 'TABLE',
-            kind: 'POINTER_PREVIEW',
+            kind: 'PING',
             position: { x: 10, y: 10 },
             sceneId: crypto.randomUUID(),
             sequence: 1
@@ -3670,19 +3670,19 @@ it('publishes the pending outbox before an idle room releases its authority', as
   })
 })
 
-it('never captures authority for pointer samples on the synchronized Scene', async () => {
+it('never captures authority for pings on the synchronized Scene', async () => {
   const { scene } = doorScene(crypto.randomUUID())
   const base = await fixture(scene)
   await synchronizeScene(base, scene)
   const captures = await runInDurableObject(base.stub, async (instance, state) => {
     const socket = state.getWebSockets()[0]!
     const header = base.capture.sceneHeader!
-    const pointer = (sequence: number) =>
+    const pingMessage = (sequence: number) =>
       JSON.stringify({
         type: 'TRANSIENT',
         envelope: {
           audience: 'TABLE',
-          kind: 'POINTER_PREVIEW',
+          kind: 'PING',
           sceneId: header.id,
           baselineVersion: header.version,
           sequence,
@@ -3696,9 +3696,9 @@ it('never captures authority for pointer samples on the synchronized Scene', asy
         .length
     const before = captureCalls()
     for (let sequence = 1; sequence <= 5; sequence++)
-      await instance.webSocketMessage(socket, pointer(sequence))
+      await instance.webSocketMessage(socket, pingMessage(sequence))
     vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 60_000)
-    await instance.webSocketMessage(socket, pointer(6))
+    await instance.webSocketMessage(socket, pingMessage(6))
     return captureCalls() - before
   })
   expect(captures).toBe(0)

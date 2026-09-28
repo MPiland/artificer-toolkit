@@ -586,7 +586,7 @@ export const sceneTransientEnvelopeDtoSchema: z.ZodMiniType<SceneTransientEnvelo
       z.strictObject({
         audience: sceneTransientAudienceSchema,
         baselineVersion: versionSchema,
-        kind: z.literal('POINTER_PREVIEW'),
+        kind: z.literal('PING'),
         position: scenePointDtoSchema,
         sceneId: uuidSchema,
         sequence: z

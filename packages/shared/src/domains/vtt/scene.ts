@@ -15,6 +15,8 @@ export const VTT_SCENE_LIMITS = {
   mapDimension: 8_192,
   mapPixels: 64_000_000,
   measurements: 500,
+  /** A member's socket sends at most one ping per interval; the room drops faster pings. */
+  pingIntervalMs: 500,
   polygonPoints: 2_048,
   tokens: 1_000,
   transientPathPoints: 256
@@ -302,7 +304,8 @@ export type SceneTransientEnvelope =
   | {
       audience: SceneTransientAudience
       baselineVersion: number
-      kind: 'POINTER_PREVIEW'
+      /** One "look here" at a map point from a long press or the ping key (Q19); never a stream. */
+      kind: 'PING'
       position: ScenePoint
       sceneId: string
       sequence: number

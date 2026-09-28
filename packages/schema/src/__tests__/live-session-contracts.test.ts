@@ -36,7 +36,7 @@ const ids = {
 const envelope = {
   baselineVersion: 1,
   audience: 'TABLE',
-  kind: 'POINTER_PREVIEW' as const,
+  kind: 'PING' as const,
   position: { x: 4, y: 8 },
   sceneId: ids.scene,
   sequence: 2

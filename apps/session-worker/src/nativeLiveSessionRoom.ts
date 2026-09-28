@@ -31,6 +31,7 @@ import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/sh
 import {
   applySceneDelta,
   extendSceneMovementPath,
+  isScenePointExplored,
   isSceneTokenVisibleToViewer,
   projectSceneDeltaForViewer,
   projectSceneForViewer,
@@ -2136,6 +2137,26 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             visionLayers: preview.visionLayers,
             visionReveal: preview.reveal
           },
+          type: 'TRANSIENT'
+        })
+      }
+      return
+    }
+    if (envelope.kind === 'PING') {
+      const { x, y } = envelope.position
+      if (x < 0 || y < 0 || x > scene.map.width || y > scene.map.height) return
+      if (this.#budgets.get(origin)?.take('PING') !== true) return
+      retain(null)
+      for (const recipient of recipients) {
+        // A GM ping follows the GM's preview audience; a player's ping shows only where it is seen.
+        if (
+          originAdmission.role === 'PLAYER' &&
+          recipient.admission.role !== 'OWNER' &&
+          !isScenePointExplored(scene, recipient.admission.userId, envelope.position)
+        )
+          continue
+        send(recipient.socket, {
+          message: { envelope, userId: originAdmission.userId },
           type: 'TRANSIENT'
         })
       }

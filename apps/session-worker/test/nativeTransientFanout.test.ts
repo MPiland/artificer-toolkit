@@ -24,6 +24,12 @@ import {
   type LiveSessionTransientCapture,
   type LiveSessionTransientCaptureInput
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import {
+  canonicalizeSceneFogLayer,
+  createSceneFogAreaPatch,
+  VTT_SCENE_LIMITS,
+  type SceneFogLayer
+} from '@artificer-toolkit/shared/vtt'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const campaignId = '00000000-0000-4000-8000-000000000101'
@@ -64,7 +70,7 @@ function member(userId: string, role: 'OWNER' | 'PLAYER', epoch = '2026-09-12T00
   return { membershipEpoch: epoch, role, userId }
 }
 
-function header() {
+function header(fogLayerCount = 0) {
   return sceneLiveStateHeaderSchema.parse({
     ambientIllumination: 'DIM',
     campaignId,
@@ -80,7 +86,7 @@ function header() {
     definitionId: '00000000-0000-4000-8000-000000000108',
     definitionSaveId: '00000000-0000-4000-8000-000000000109',
     definitionVersion: 1,
-    fogLayerCount: 0,
+    fogLayerCount,
     fogMode: 'PER_PLAYER',
     grid: {
       cellSize: 50,
@@ -151,7 +157,8 @@ function installFetch(
     capture: LiveSessionTransientCapture,
     input: LiveSessionTransientCaptureInput
   ) => LiveSessionTransientCapture | Response | Promise<LiveSessionTransientCapture | Response>,
-  entity: typeof token = token
+  entity: typeof token = token,
+  fogLayers: readonly SceneFogLayer[] = []
 ) {
   let captures = 0
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -183,15 +190,20 @@ function installFetch(
       const body = liveSessionTransientCaptureInputSchema.parse(await request.json())
       const origin = members.find((candidate) => candidate.userId === body.expectedUserId)
       if (!origin || origin.role !== body.expectedRole) return new Response(null, { status: 409 })
-      const capture = captureFor(
-        origin.userId,
-        origin.role,
-        members.filter((candidate) => candidate.userId !== origin.userId)
-      )
+      const capture = {
+        ...captureFor(
+          origin.userId,
+          origin.role,
+          members.filter((candidate) => candidate.userId !== origin.userId)
+        ),
+        sceneHeader: header(fogLayers.length)
+      }
       const result = (await mutate?.(++captures, capture, body)) ?? capture
       return result instanceof Response ? result : Response.json(result)
     }
-    const body = (await request.json()) as { request: { collection?: string; kind: string } }
+    const body = (await request.json()) as {
+      request: { collection?: string; kind: string; offset?: number; ownerUserId?: string | null }
+    }
     if (body.request.kind === 'ENTITIES')
       return Response.json({
         kind: 'ENTITIES',
@@ -211,10 +223,36 @@ function installFetch(
         result: sceneFogLayersPageSchema.parse({
           continueCursor: '',
           isDone: true,
-          page: [],
+          page: fogLayers.map((layer, ordinal) => ({
+            chunkCount: layer.chunks.length,
+            height: layer.height,
+            ordinal,
+            ownerUserId: layer.ownerUserId,
+            width: layer.width
+          })),
           version: 1
         })
       })
+    if (body.request.kind === 'FOG_CHUNKS') {
+      const layer = fogLayers.find(
+        (candidate) => candidate.ownerUserId === body.request.ownerUserId
+      )
+      if (!layer) throw new Error('Unexpected fog chunk request.')
+      const offset = body.request.offset ?? 0
+      const page = layer.chunks.slice(offset, offset + 8)
+      return Response.json({
+        kind: 'FOG_CHUNKS',
+        result: {
+          height: layer.height,
+          isDone: offset + page.length === layer.chunks.length,
+          nextOffset: offset + page.length,
+          ownerUserId: layer.ownerUserId,
+          page,
+          version: 1,
+          width: layer.width
+        }
+      })
+    }
     if (body.request.kind === 'VISION_RUNS')
       return Response.json({
         kind: 'VISION_RUNS',
@@ -301,12 +339,19 @@ function tokenPreview(sequence: number, position = { x: 20, y: 10 }) {
   }
 }
 
-function pointerPreview(sequence: number, baselineVersion = 1) {
+function ping(
+  sequence: number,
+  options: {
+    audience?: 'GM' | 'TABLE'
+    baselineVersion?: number
+    position?: { x: number; y: number }
+  } = {}
+) {
   return {
-    baselineVersion,
-    audience: 'TABLE',
-    kind: 'POINTER_PREVIEW' as const,
-    position: { x: 15, y: 10 },
+    baselineVersion: options.baselineVersion ?? 1,
+    audience: options.audience ?? 'TABLE',
+    kind: 'PING' as const,
+    position: options.position ?? { x: 15, y: 10 },
     sceneId,
     sequence
   }
@@ -314,7 +359,7 @@ function pointerPreview(sequence: number, baselineVersion = 1) {
 
 function sendPreview(
   client: Awaited<ReturnType<typeof connect>>,
-  envelope: ReturnType<typeof tokenPreview> | ReturnType<typeof pointerPreview>
+  envelope: ReturnType<typeof tokenPreview> | ReturnType<typeof ping>
 ) {
   client.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope }))
 }
@@ -431,7 +476,7 @@ it.each([
   ['the cached Scene version', 1, true],
   ['a stale Scene version', 2, false]
 ] as const)(
-  'fans out pointer previews for %s without a backend call',
+  'fans out pings for %s without a backend call',
   async (_label, baselineVersion, broadcasts) => {
     const stub = newRoom()
     await runInDurableObject(stub, () =>
@@ -445,13 +490,13 @@ it.each([
     backendPaths.length = 0
     player.messages.length = 0
 
-    sendPreview(owner, pointerPreview(1, baselineVersion))
+    sendPreview(owner, ping(1, { baselineVersion }))
     if (broadcasts)
       await vi.waitFor(() =>
         expect(transient(player.messages)).toEqual([
           expect.objectContaining({
             message: expect.objectContaining({
-              envelope: expect.objectContaining({ kind: 'POINTER_PREVIEW' }),
+              envelope: expect.objectContaining({ kind: 'PING' }),
               userId: ownerId
             })
           })
@@ -498,7 +543,7 @@ it('stops previews to an evicted member and rebuilds the dropped Scene cache onc
   let sequence = 0
   await vi.waitFor(() => {
     sequence += 1
-    sendPreview(owner, pointerPreview(sequence))
+    sendPreview(owner, ping(sequence))
     expect(transient(player.messages).length).toBeGreaterThan(0)
   })
   expect(sequence).toBeGreaterThan(1)
@@ -579,7 +624,7 @@ it('fans out controlled token previews and per-player fog only to current author
 
 it.each([
   ['a GM-audience token preview', 'GM', false, 'TOKEN', false],
-  ['a GM-audience pointer', 'GM', false, 'POINTER', false],
+  ['a GM-audience ping', 'GM', false, 'PING', false],
   ['a shared token preview', 'TABLE', false, 'TOKEN', true],
   ['a shared preview of a hidden token', 'TABLE', true, 'TOKEN', false]
 ] as const)(
@@ -600,7 +645,7 @@ it.each([
     player.messages.length = 0
 
     sendPreview(owner, {
-      ...(kind === 'TOKEN' ? tokenPreview(1) : pointerPreview(1)),
+      ...(kind === 'TOKEN' ? tokenPreview(1) : ping(1)),
       audience
     })
     await vi.waitFor(() => expect(transient(ownerElsewhere.messages)).toHaveLength(1))
@@ -608,6 +653,126 @@ it.each([
     else await noTransient(player.messages)
   }
 )
+
+/** Per-player fog in which only `otherPlayerId` has explored the map's top-left quarter. */
+function otherPlayerFog(): SceneFogLayer {
+  const { grid, map } = header(1)
+  const patch = createSceneFogAreaPatch(
+    { barriers: [], doorStates: {}, fogLayers: [], fogMode: 'PER_PLAYER', grid, map, tokens: [] },
+    {
+      explored: true,
+      ownerUserId: otherPlayerId,
+      rectangle: { a: { x: 0, y: 0 }, b: { x: 50, y: 50 } }
+    }
+  )
+  if (!patch) throw new Error('Missing fog fixture.')
+  return canonicalizeSceneFogLayer(patch)
+}
+
+async function pingRoom(members: readonly ReturnType<typeof member>[]) {
+  const stub = newRoom()
+  await runInDurableObject(stub, () => installFetch(members, undefined, token, [otherPlayerFog()]))
+  const clients = await Promise.all(members.map((value) => connect(stub, value.userId, value.role)))
+  await synchronize(clients[0]!)
+  for (const client of clients) client.messages.length = 0
+  backendPaths.length = 0
+  return { clients, stub }
+}
+
+it.each([
+  ['an explored point', { x: 20, y: 20 }, true],
+  ['an unexplored point', { x: 80, y: 80 }, false]
+] as const)(
+  "delivers a player's ping at %s to the GM, and to another player only where their fog shows it",
+  async (_label, position, otherSees) => {
+    const {
+      clients: [owner, player, other]
+    } = await pingRoom([
+      member(ownerId, 'OWNER'),
+      member(playerId, 'PLAYER'),
+      member(otherPlayerId, 'PLAYER')
+    ])
+
+    sendPreview(player!, ping(1, { position }))
+    await vi.waitFor(() =>
+      expect(transient(owner!.messages)).toEqual([
+        { message: { envelope: ping(1, { position }), userId: playerId }, type: 'TRANSIENT' }
+      ])
+    )
+    if (otherSees) await vi.waitFor(() => expect(transient(other!.messages)).toHaveLength(1))
+    else await noTransient(other!.messages)
+    // The pinging socket draws its own ring locally and gets no echo.
+    await noTransient(player!.messages)
+    expect(backendPaths).toEqual([])
+  }
+)
+
+it.each([
+  ['a private', 'GM', false],
+  ['a shared', 'TABLE', true]
+] as const)(
+  'delivers %s GM ping to the GM elsewhere, and to players only when shared, whatever their fog',
+  async (_label, audience, playersSee) => {
+    const {
+      clients: [owner, ownerElsewhere, player, other]
+    } = await pingRoom([
+      member(ownerId, 'OWNER'),
+      member(ownerId, 'OWNER'),
+      member(playerId, 'PLAYER'),
+      member(otherPlayerId, 'PLAYER')
+    ])
+
+    sendPreview(owner!, ping(1, { audience, position: { x: 80, y: 80 } }))
+    await vi.waitFor(() => expect(transient(ownerElsewhere!.messages)).toHaveLength(1))
+    if (playersSee)
+      await vi.waitFor(() => {
+        expect(transient(player!.messages)).toHaveLength(1)
+        expect(transient(other!.messages)).toHaveLength(1)
+      })
+    else {
+      await noTransient(player!.messages)
+      await noTransient(other!.messages)
+    }
+  }
+)
+
+it('drops a ping outside the map', async () => {
+  const {
+    clients: [owner, player]
+  } = await pingRoom([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')])
+
+  sendPreview(owner!, ping(1, { position: { x: 150, y: 10 } }))
+  await noTransient(player!.messages)
+})
+
+it('rate-limits a ping flood per socket from room memory, with no backend call or storage write', async () => {
+  const advance = controlClock()
+  const {
+    clients: [owner, player],
+    stub
+  } = await pingRoom([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')])
+  const sql = await runInDurableObject(stub, (_instance, state) =>
+    vi.spyOn(state.storage.sql, 'exec')
+  )
+
+  for (let sequence = 1; sequence <= 20; sequence += 1) sendPreview(player!, ping(sequence))
+  await vi.waitFor(() => expect(transient(owner!.messages)).toHaveLength(1))
+  await new Promise((resolve) => setTimeout(resolve, 75))
+  expect(transient(owner!.messages).map((message) => message.message.envelope.sequence)).toEqual([
+    1
+  ])
+
+  // The next interval admits one more ping, and the flood never closed the socket.
+  advance(VTT_SCENE_LIMITS.pingIntervalMs)
+  sendPreview(player!, ping(21))
+  await vi.waitFor(() =>
+    expect(transient(owner!.messages).map((message) => message.message.envelope.sequence)).toEqual([
+      1, 21
+    ])
+  )
+  expect(backendPaths).toEqual([])
+  expect(sql).not.toHaveBeenCalled()
+})
 
 it.each(['origin', 'recipient'] as const)(
   'drops previews from or to a member whose admission expired (%s)',
@@ -990,7 +1155,7 @@ it('drops Character-vision previews once the lease passes without a confirmed ch
   await noTransient(player.messages)
   await noTransient(owner.messages)
 
-  // Pointers carry no vision, so they still flow.
-  sendPreview(player, pointerPreview(1))
+  // Pings carry no vision, so they still flow.
+  sendPreview(player, ping(1))
   await vi.waitFor(() => expect(transient(owner.messages)).toHaveLength(1))
 })

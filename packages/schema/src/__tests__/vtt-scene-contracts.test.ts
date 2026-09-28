@@ -368,7 +368,7 @@ describe('VTT scene contracts', () => {
     expect(
       sceneTransientEnvelopeDtoSchema.safeParse({
         baselineVersion: 3,
-        kind: 'POINTER_PREVIEW',
+        kind: 'PING',
         position: { x: 1, y: 2 },
         sceneId: ids.scene,
         sequence: 1

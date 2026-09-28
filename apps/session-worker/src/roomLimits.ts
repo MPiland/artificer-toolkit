@@ -1,4 +1,5 @@
 import type { LiveSessionWebSocketClientMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
+import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt'
 
 /** Room-side flood limits; see "Security and limits" in docs/architecture/live-sessions.md. */
 export const ROOM_LIMITS = {
@@ -28,11 +29,13 @@ export const ROOM_LIMITS = {
 type MessageClass = 'AUTHENTICATE' | 'COMMAND' | 'INVALID' | 'SYNC' | 'TRANSIENT'
 
 // Clients send previews only during a gesture, each stream at most 10 Hz, and re-authenticate only
-// on connect or challenge; the TRANSIENT budget is the room's backstop.
-const BUDGETS: Record<MessageClass, { capacity: number; refillPerSecond: number }> = {
+// on connect or challenge; the TRANSIENT budget is the room's backstop. A ping also takes one PING
+// token when it fans out; faster pings are dropped without closing the socket.
+const BUDGETS: Record<MessageClass | 'PING', { capacity: number; refillPerSecond: number }> = {
   AUTHENTICATE: { capacity: 10, refillPerSecond: 0.5 },
   COMMAND: { capacity: 20, refillPerSecond: 5 },
   INVALID: { capacity: 5, refillPerSecond: 0.5 },
+  PING: { capacity: 1, refillPerSecond: 1_000 / VTT_SCENE_LIMITS.pingIntervalMs },
   SYNC: { capacity: 20, refillPerSecond: 2 },
   TRANSIENT: { capacity: 200, refillPerSecond: 100 }
 }
@@ -53,9 +56,9 @@ export function exceedsMessageBytes(raw: string): boolean {
 
 /** Token buckets per message class for one socket. */
 export class SocketMessageBudget {
-  readonly #buckets = new Map<MessageClass, { tokens: number; updatedAt: number }>()
+  readonly #buckets = new Map<keyof typeof BUDGETS, { tokens: number; updatedAt: number }>()
 
-  take(kind: MessageClass, now = Date.now()): boolean {
+  take(kind: keyof typeof BUDGETS, now = Date.now()): boolean {
     const { capacity, refillPerSecond } = BUDGETS[kind]
     const bucket = this.#buckets.get(kind) ?? { tokens: capacity, updatedAt: now }
     const tokens = Math.min(
