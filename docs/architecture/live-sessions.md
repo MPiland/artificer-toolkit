@@ -604,10 +604,10 @@ removes them from every PREPARED or ACTIVE Run's controller lists in the same tr
 - Encounter-bound token movement follows the bound actor's controllers plus the GM
   (`requireBoundTokenMoveControl`, checked at begin and at publication, refusing
   `NOT_ACTOR_CONTROLLER`); unbound tokens keep the Scene token's `controlledByUserIds`.
-  The room applies the same rule to drag previews: a player's transient capture carries
+  The room applies the same rule to drag previews: a player's AUTHORITY capture carries
   `originBoundTokenControl` (each bound token and whether they control its actor). On an
-  Encounter-bound Scene the room renders a player's preview from its synchronized Scene cache and
-  reads that control from the short-lived AUTHORITY capture it already reuses for pointers (D25).
+  Encounter-bound Scene the room renders a player's preview from its Scene cache and a per-player
+  lease of that control, renewed in the background (D25; see [Transient previews](#transient-previews)).
 - `encounters.activeReads.active` returns `waitingOn` (`GM`, `PLAYER` or null), so a player's view
   shows who a pending decision they can't answer is waiting on, also after a reload.
 - Every result or replay returned to a non-owner goes through
@@ -881,11 +881,35 @@ exploration is derived, previewed or painted. `SHARED_PARTY` shares one player's
 with the party; `PER_PLAYER` keeps recipient-owned layers. The GM changes the mode with the live
 Scene setting command `SET_SCENE_FOG_MODE` (versioned like vision reveal timing); stored fog layers
 are kept while fog is `OFF`, so turning fog back on restores earlier exploration. Manual fog writes
-and `FOG_AREA_PREVIEW` are refused while fog is `OFF`. The Worker captures current authority,
-hydrates the exact current Scene and
-Character-vision inputs when needed, validates bounded movement geometry, and projects private state
-for each current recipient. Hidden tokens, unrevealed barriers, GM annotations, DM-preview fog, and
-other recipient-private state never enter a broader broadcast.
+and `FOG_AREA_PREVIEW` are refused while fog is `OFF`. The room renders each sample from its cached
+current Scene and Character-vision inputs, validates bounded movement geometry, and projects private
+state for each admitted recipient. Hidden tokens, unrevealed barriers, GM annotations, DM-preview
+fog, and other recipient-private state never enter a broader broadcast.
+
+**Preview cost rules (current, ADR 0035 Amendment 15):**
+
+- **Only during a gesture.** The tabletop sends a pointer preview only while the primary button is
+  held on the map outside another gesture (a pointing gesture), never on hover. Token drags,
+  measurements and fog drafts send their own previews while they last.
+- **At most 10 Hz.** `liveSessionClient` sends each preview stream (per kind, dragged token or fog
+  owner) at most once per 100 ms and drops samples in between. The room's message budgets remain the
+  backstop.
+- **No Convex call or storage access per sample.** A sample is handled within its WebSocket message
+  and never waits on Convex or SQLite:
+  - The Scene must be the room's cached Scene at the sample's version; any other sample is dropped.
+    The cache is filled by `SYNCHRONIZE_SCENE`. When it is missing (for example after an
+    eviction), the sample is dropped and one background rebuild starts.
+  - Origin and recipients are the room's current admissions. Membership loss reaches the room
+    through eviction, and an admission ends with its access token, as for committed Scene deltas.
+  - A player's bound-token control on an Encounter-bound Scene comes from a per-player lease of an
+    AUTHORITY capture (D25). Character vision comes from revisions last confirmed by Convex (D33).
+    Both are trusted for `previewLeaseMs` (30 s). From half the lease one background call renews
+    them. Past the full lease the sample is dropped, so previews fail closed. A changed Character
+    revision rebuilds the Scene cache with the new vision.
+  - Each background refresh (Scene rebuild, vision check, or one player's control) runs at most once
+    at a time and starts at most once per `previewRetryMs` (5 s).
+  - The worst case is therefore a drag preview that uses a revoked actor control or superseded
+    Character vision for up to one lease. The commit is still fully checked.
 
 Every preview envelope carries `audience: 'TABLE' | 'GM'` (current). The room delivers a `GM`
 preview only to OWNER sockets. The tabletop sends GM previews (pointer, ruler, drag ghost, fog draft)
@@ -900,11 +924,12 @@ accepted Scene sizes without exceeding the platform's per-row limit. New movemen
 only the Scene identity/version and moved token's previous position; older full-Scene undo remains readable.
 
 Hibernatable socket attachments retain connection identity and membership epoch. Transient sequence
-high-water marks and drag paths use one indexed SQLite row per socket and stream, so attachments stay
-within their 16 KiB limit. Each accepted sample updates only its stream; a path is reusable only for its
-matching Scene and baseline version. Legacy attachment maps migrate before incoming traffic is handled.
-Socket close, error, and eviction remove this temporary state; reconstruction removes orphan socket rows.
-Preview frames never enter the command journal or publication outbox and disappear with their connection.
+high-water marks and drag paths live only in room memory, per socket and stream (ADR 0035 Amendment
+15); nothing about a preview is written to SQLite. Each accepted sample updates only its stream; a path
+is reusable only for its matching Scene and baseline version. Socket close, error, and eviction drop
+the state. A room that hibernates or restarts loses it, which is safe: while samples arrive the room
+cannot hibernate, and the next sample after a wake starts again from the token's position. Preview
+frames never enter the command journal or publication outbox and disappear with their connection.
 
 Fresh journal state contains only the Scene. Recovery verifies the complete stored checksum before
 reading the Scene from older snapshots that also contain Character fields. Before promoting this
@@ -979,7 +1004,7 @@ signed-in client cannot turn one socket into unbounded Convex work:
 - **Message budgets:** each socket has a token bucket per message class. Exceeding one closes the
   socket (1008). Budgets: `AUTHENTICATE` 10 then 1 per 2 s; `COMMAND` 20 then 5/s; `RESUME` and
   `SYNCHRONIZE_SCENE` together 20 then 2/s; `TRANSIENT` 200 then 100/s (clients send each preview
-  stream at about 31 Hz); unparseable messages 5 then 1 per 2 s.
+  stream at most 10 Hz, only during a gesture); unparseable messages 5 then 1 per 2 s.
 - **Sockets:** at most 4 per user and 64 per room. An upgrade over either cap is refused (429 or 503)
   before its one-use ticket is consumed. Refusing, rather than closing an older socket, prevents a
   user's tabs from evicting each other in a reconnect loop.
@@ -993,16 +1018,13 @@ signed-in client cannot turn one socket into unbounded Convex work:
   drain fence, outbox publication, Convex release). The next join claims a fresh epoch, and the room
   discards the released journal (`discardReplaceableAuthority`) before activating it.
 - **Queues:** at most 8 pending commands per socket and 64 per room; a command beyond either is
-  rejected with `UNAVAILABLE` and the socket stays open. At most 32 pending previews per socket;
-  extra samples are dropped, since previews are lossy.
-- **Preview captures:** pointer previews, and a player's bound-token drag previews on a synchronized
-  Encounter-bound Scene (D25), reuse an AUTHORITY capture for the same origin and audience for up to
-  2 s instead of querying Convex per sample. A Scene version change or presentation change bypasses
-  the cached capture. On a Scene with Character vision, each GM or player drag preview first makes one
-  small read (`/live-sessions/vision-revisions`, `liveSessions/transientCapture:visionRevisions`)
-  of the Character revisions the synchronized vision was composed from (D33); unchanged revisions keep
-  the fast path, and a changed revision forces the full capture and rehydration. Commits keep the full
-  check.
+  rejected with `UNAVAILABLE` and the socket stays open. Previews are not queued: each is handled
+  within its message.
+- **Preview inputs:** a preview sample never calls Convex (see [Transient previews](#transient-previews)).
+  A player's bound-token control (AUTHORITY capture, D25) and the Character-vision revision check
+  (`/live-sessions/vision-revisions`, `liveSessions/transientCapture:visionRevisions`, D33) are
+  leased for 30 s and renewed in the background, at most one call per input per 15 s while previews
+  flow. Commits keep the full check.
 - **Rules capture cache:** System-level rules captures are reused across Encounter commands for up to
   60 s, at most 512 entries and 16 MB (see "Room capture cache" above).
 - **Admission freshness:** an admission lasts only until the access token expires; renewing it
