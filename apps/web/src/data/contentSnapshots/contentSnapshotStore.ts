@@ -35,12 +35,12 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 export function createContentSnapshotStore(options: {
   contentOrigin: string
   getToken: (refresh: boolean) => Promise<string>
-  fetch?: typeof fetch
+  fetch?: (url: string, init: RequestInit) => Promise<Response>
   caches?: {
     open(name: string): Promise<Pick<Cache, 'match' | 'put' | 'keys' | 'delete'>>
   } | null
 }) {
-  const fetchObject = options.fetch ?? ((input, init) => fetch(input, init))
+  const fetchObject = options.fetch ?? ((url: string, init: RequestInit) => fetch(url, init))
   const cacheStorage =
     options.caches === undefined ? (typeof caches === 'undefined' ? null : caches) : options.caches
   const cacheKey = (sha256: string) => `${options.contentOrigin}${CACHE_KEY_PATH}${sha256}`
