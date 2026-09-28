@@ -14,25 +14,67 @@ URLs for an already-authorized object operation.
 
 ```mermaid
 stateDiagram-v2
-  [*] --> PENDING_UPLOAD: reserve quota + exact target
+  [*] --> PENDING_UPLOAD: reserve quota (owner-scoped, no target)
   PENDING_UPLOAD --> PROCESSING: signed single PUT completed
-  PROCESSING --> READY: validate/process + transactional settlement
+  PROCESSING --> READY: validate/process + hash + transactional settlement
+  PROCESSING --> DELETED: identical READY content reused, reservation released
   PROCESSING --> PENDING_UPLOAD: retry after operational failure
   PENDING_UPLOAD --> DELETED: expiry/rejection cleanup
-  READY --> DELETED: detach + grace + reference recheck
+  READY --> DELETED: last reference detached + grace + reference recheck
   DELETED --> [*]: provider object + component metadata removed
 ```
 
 The signed upload binds the object key, declared byte length and MIME type. Account avatar, Character
-portrait, authored artwork, Campaign file/handout and VTT map profiles retain their domain-specific
+portrait, authored artwork, Campaign file/handout and VTT map uploads keep their domain-specific upload
 authorization and references; there is no public bucket/key API. Processing actions recheck identity,
-target revision, current references and quota before their internal mutation commits metadata.
+slot revision, current references and quota before their internal mutation commits metadata.
 
 Delivery queries/actions reauthorize the current viewer, expose no object key, and return a short-lived
-signed URL. Campaign media may be retained by the Campaign owner when a departing/deleted user supplied
-bytes still referenced by shared Campaign content. Personal unreferenced media is retired. Cleanup uses
-fenced, idempotent scheduler continuations and does not drop its obligation until provider deletion and
-component metadata deletion succeed.
+signed URL. Cleanup uses fenced, idempotent scheduler continuations and does not drop its obligation
+until provider deletion and component metadata deletion succeed.
+
+### Owner-scoped assets and "My images" — current (ADR 0012 amendment, Q17)
+
+Stored assets belong to their uploader and name no target. The slot binding lives only on the domain
+reference: `userProfiles.avatarAssetId`, `characters.portraitAssetId`, `authoredImageSlots.assetId`,
+`campaignAttachments.assetId`, and Scene definition/live Scene `map.assetId`.
+
+- **Profile classes.** Each asset records a `profileClass`: `CONTENT_ART` (avatar, portrait, authored
+  artwork and Campaign file images, all normalized to at most 2048 px), `TEXT_FILE`, `HANDOUT_MAP`
+  (4096 px) or `VTT_MAP` (full size with tiles). An asset serves any slot of its class.
+- **Reads** follow the slot's own rules: a portrait read authorizes the Character (or its Campaign
+  scope), a handout read authorizes Campaign membership, a map read authorizes its uploader, the owner
+  of a Campaign that references it, or a player while an open Session presents it.
+- **Attaching** requires the slot's write rules and that the caller owns a READY asset of a compatible
+  class. `media/library:attachImage` attaches content art to an avatar, portrait or authored draft slot
+  through each domain's bind helper; `campaigns/attachments:create` attaches a file or handout; Scene
+  definitions accept the writer's own map or one the Campaign already references.
+- **Framing belongs to the reference.** Each cropped slot stores its own crop. SOURCE, DISPLAY and an
+  uncropped THUMBNAIL are shared; a slot's THUMBNAIL is derived from SOURCE per crop hash the first
+  time any reader needs it (`media/cropThumbnails`), fenced like other new keys, and pruned when no
+  reference uses that crop. Recropping one slot never changes another slot's framing. Derived
+  thumbnails are not charged.
+- **De-duplication.** Processing hashes the normalized bytes (`contentHash`). Settling an upload whose
+  hash matches a READY asset of the same owner and class binds that asset instead, deletes the new
+  outputs and releases the reservation; a retried finalize of the discarded upload answers with the
+  reused asset. Matching never crosses owners or classes.
+- **Quota** is charged once per asset, however many references it has. Every reference change schedules
+  `media/assets:cleanup`, which prunes unused framing while the asset is referenced and starts the
+  24-hour grace once the last reference detaches.
+- **"My images".** `media/library:list` pages the caller's READY assets of one class, newest first;
+  `media/libraryActions:getImage` signs an owner-only preview. The web image dialog and the Campaign
+  file uploader offer "Choose from my images".
+- **Account deletion** retains per reference: each Campaign that references a departing user's asset
+  gets a copy owned by its current owner (one per owner, charged once, sharing the stored objects via
+  `storageAssetId`), and its attachments, Scene definitions, live Scenes and presentations move to that
+  copy. The departing user's asset is never transferred; account purge retires it and deletes stored
+  objects only once no live row shares them. An in-progress Scene save that still names the original map
+  must be saved again.
+- **Migration.** `media/migrations:run` (widen → migrate → narrow) moves each legacy asset crop onto its
+  references, rewrites assets to their class without target, Campaign or crop fields, and fails
+  in-flight legacy processing closed. Legacy content art keeps its stored (cropped) thumbnail as its
+  picker preview; slot framing regenerates from SOURCE. Legacy assets have no content hash, so they
+  never de-duplicate.
 
 Local correctness uses `MEDIA_STORAGE_MODE=local`, loopback `CONVEX_SITE_URL` and
 `LOCAL_R2_ENDPOINT`. Managed deployments use `MEDIA_STORAGE_MODE=r2`, HTTPS `R2_ENDPOINT`, private
@@ -316,7 +358,11 @@ The transport contract contains verified dimensions, accessibility metadata, exp
 
 R2 credentials are server-only: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_VTT_MAP_BUCKET`. `R2_S3_ENDPOINT` is used only by the local substitute or another explicitly selected S3-compatible endpoint. Browser uploads require bucket CORS to allow the application origins and `PUT`/`GET`, and to expose `ETag`. See the [VTT map R2 runbook](../runbooks/vtt-map-r2.md).
 
-#### Account deletion and retained Campaign assets — local implementation, verification pending
+#### Account deletion and retained Campaign assets — historical, superseded by per-reference copies
+
+> Superseded by the ADR 0012 amendment (Q17): Campaign references now move to Campaign-owner copies
+> and the uploader's asset is never transferred; see "Owner-scoped assets and My images" above. The
+> transfer design below, including `retainedFromUserId`, is historical.
 
 [ADR 0030](../adr/0030-owner-deletion-and-retained-dependencies.md) replaces uploader-deletion vetoes.
 The native account transaction enumerates all owned assets and actual indexed Scene/attachment
