@@ -40,7 +40,7 @@ export async function assertCampaignContentAllowed(
     throw new Error(`This Campaign has reached its ${resource} limit.`)
 }
 
-/** Maintained only by the table triggers in `lib/mutations.ts` and the backfill recount. */
+/** Maintained only by the table triggers in `lib/mutations.ts`. */
 export async function changeCampaignContentUsage(
   db: GenericDatabaseWriter<DataModel>,
   campaignId: string,
@@ -52,7 +52,7 @@ export async function changeCampaignContentUsage(
     .query('campaignContentUsage')
     .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
     .unique()
-  // A missing row on delete is content the backfill has not counted yet; there is nothing to release.
+  // A missing row on delete means nothing was counted for this Campaign; there is nothing to release.
   if (!row) {
     if (delta > 0)
       await db.insert('campaignContentUsage', {

@@ -58102,36 +58102,6 @@ export declare const internal: {
         }
       >;
     };
-    contentUsageBackfill: {
-      campaigns: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-      run: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-    };
     copyJobCleanup: {
       cleanup: FunctionReference<
         "mutation",

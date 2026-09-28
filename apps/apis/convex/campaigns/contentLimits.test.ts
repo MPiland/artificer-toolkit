@@ -1,4 +1,3 @@
-import migrations from '@convex-dev/migrations/test'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type { z } from 'zod'
@@ -27,7 +26,7 @@ import {
 } from '@artificer-toolkit/shared/account/entitlements'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
 import { readyCampaignFile } from '../../tests/fixtures/campaignFile'
 import {
@@ -280,24 +279,5 @@ describe('per-Campaign content limits (Q18)', () => {
       owner.caller.mutation(publishScene, { saveId: save.saveId })
     ).resolves.toMatchObject({ status: 'PUBLISHED' })
     expect(await readUsage(t, campaign.id)).toEqual({ entries: 0, scenes: FREE_SCENES + 1 })
-  }, 30000)
-
-  it('backfills counters for content written before the triggers existed', async () => {
-    const { t, owner, campaign } = await setup()
-    migrations.register(t)
-    await owner.caller.mutation(createNotebook, section(campaign.id))
-    await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('campaignContentUsage')
-        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
-        .unique()
-      if (row) await ctx.db.delete(row._id)
-    })
-    await t.mutation(internal.campaigns.contentUsageBackfill.campaigns, {
-      cursor: null,
-      batchSize: 1,
-      dryRun: false
-    })
-    expect(await readUsage(t, campaign.id)).toEqual({ entries: 1, scenes: 0 })
   }, 30000)
 })

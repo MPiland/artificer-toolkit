@@ -795,8 +795,7 @@ ownership in the same mutation. Active/draft Character and homebrew identities c
 Campaigns, OPEN/PUBLIC listings and saved Blueprints follow their existing quota meaning.
 `accountUsageBackfill.run` serially backfills source entries before enabling existing profile totals.
 The query rejects incomplete backfills. New accounts start ready at zero. Per-Campaign entry and
-Scene counters (`campaignContentUsage`) are trigger-maintained; `campaigns/contentUsageBackfill.run`
-recounts Campaigns created before them. Deployment operators can
+Scene counters (`campaignContentUsage`) are maintained by triggers only. Deployment operators can
 use internal `accountEntitlements.setTier` with a profile UUID and shared tier enum; ordinary clients
 cannot grant their own tier. Customer-facing billing belongs to Phase 09.
 

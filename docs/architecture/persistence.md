@@ -304,9 +304,8 @@ hosting owner's tier, never the contributor's, before notebook, attachment, Vehi
 section inserts and before a new Scene begins and publishes. Unlimited tiers use the hidden
 `CAMPAIGN_CONTENT_SAFETY_CAPS`, which the entitlement DTO does not carry. Over-limit content after a
 downgrade stays readable and editable; only new records are refused. Sessions, session notes, chat,
-Encounters and content shares are not counted. `campaigns/contentUsageBackfill.run` recounts each
-Campaign and overwrites its row, so it is idempotent and converges with live trigger updates; run it
-once on any deployment whose Campaigns predate the counters.
+Encounters and content shares are not counted. There is no backfill:
+the product is pre-launch, so deployments that predate the counters are reset and reseeded.
 
 `accountEntitlements.setTier` is an internal deployment-operator mutation that validates the target
 profile and existing shared tier enum. The public read accepts no account ID or tier override. Account
