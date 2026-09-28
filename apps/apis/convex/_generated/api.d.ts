@@ -45620,6 +45620,66 @@ export declare const api: {
       >;
     };
   };
+  contentSnapshots: {
+    access: {
+      issueAccess: FunctionReference<
+        "action",
+        "public",
+        {},
+        { expiresAt: string; token: string }
+      >;
+    };
+    manifest: {
+      manifest: FunctionReference<
+        "query",
+        "public",
+        { characterId?: string; systemId: string },
+        {
+          campaign: null | {
+            contentMaturity: "STANDARD" | "MATURE";
+            head: null | {
+            builtRevision: number;
+            kinds: {
+              BACKGROUND?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              CLASS?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              CREATURE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              EQUIPMENT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              FEAT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              RACE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              SPELL?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              VEHICLE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+            };
+            revision: number;
+            scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+            scopeId: string;
+          };
+            id: string;
+          };
+          sources: Array<{
+            contentSourceId: string;
+            head: null | {
+            builtRevision: number;
+            kinds: {
+              BACKGROUND?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              CLASS?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              CREATURE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              EQUIPMENT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              FEAT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              RACE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              SPELL?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+              VEHICLE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+            };
+            revision: number;
+            scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+            scopeId: string;
+          };
+            kind: "PLATFORM" | "USER";
+          }>;
+          systemId: string;
+        }
+      >;
+    };
+  };
   encounters: {
     actionChoices: {
       get: FunctionReference<
@@ -65135,7 +65195,11 @@ export declare const internal: {
         "query",
         "internal",
         { scope: "SOURCE" | "CAMPAIGN"; scopeId: string },
-        { revision: number; scopeExists: boolean } | null
+        {
+          publicAccess: boolean;
+          revision: number;
+          scopeExists: boolean;
+        } | null
       >;
       readScopeKind: FunctionReference<
         "query",
@@ -65162,6 +65226,14 @@ export declare const internal: {
           scopeId: string;
         },
         { continueCursor: string; isDone: boolean; sources: Array<string> }
+      >;
+    };
+    manifest: {
+      readTokenGrant: FunctionReference<
+        "query",
+        "internal",
+        {},
+        { campaignIds: Array<string>; sub: string; userSourceIds: Array<string> }
       >;
     };
   };

@@ -73,6 +73,11 @@ export async function readCharacterSources(
       throw new Error('System content source limit exceeded.')
     return { campaign, sources: [...platform, ...owned] }
   }
+  return readSystemCharacterSources(ctx, systemId, userId)
+}
+
+/** The sources of a Character outside any Campaign: every System catalogue plus own Homebrew. */
+export async function readSystemCharacterSources(ctx: QueryCtx, systemId: string, userId: string) {
   const [sources, catalogues] = await Promise.all([
     readAuthoringSources(ctx, systemId, userId),
     ctx.db

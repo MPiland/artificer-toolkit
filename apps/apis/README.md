@@ -981,7 +981,9 @@ R2 credentials. `MEDIA_STORAGE_MODE=r2` requires a managed Convex site, HTTPS Cl
 is server-only and read inside handlers. No staging variables were changed for this foundation.
 Content snapshots (ADR 0036) additionally require `CONTENT_SNAPSHOT_R2_BUCKET` in `r2` mode: a
 separate private bucket that the same R2 credentials can write. Local mode uses the local fixture's
-`artificer-local-content-snapshots` bucket.
+`artificer-local-content-snapshots` bucket. `contentSnapshots/access:issueAccess` requires
+`CONTENT_SNAPSHOT_TOKEN_SECRET` (at least 32 bytes), shared only with the session Worker's
+`CONTENT_SNAPSHOTS` route.
 
 `tests/localR2.ts` provides the existing in-memory local protocol server. Its default binding is an
 ephemeral loopback port; a container may supply an explicit port and bind address while publishing
