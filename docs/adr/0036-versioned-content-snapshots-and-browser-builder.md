@@ -18,7 +18,8 @@ Q16 makes Convex database I/O the binding free-tier constraint. Published conten
 ## Decision
 
 1. **Snapshots.** Every publish-time change to System, source or Campaign-share content produces immutable, content-addressed objects in a private R2 bucket.
-   - **Granularity:** one object per scope (a System revision, a content source, a Campaign's share set) × subject kind × part. The parts are `index`, the picker facts, and `documents`, the full published documents.
+   - **Granularity:** one object per scope × subject kind × part. The parts are `index`, the picker facts, and `documents`, the full published documents.
+   - **Scopes:** a content source (`SOURCE`, PLATFORM sources such as the SRD included, because Campaign rules catalogues select PLATFORM sources) and a Campaign's share set (`CAMPAIGN`). A `SYSTEM` scope will hold only System-level data (the System document, vocabulary and definitions) with its own object format, added when a reader needs it (D67).
    - **Keys:** the SHA-256 of canonical JSON, which includes a format and scope header.
    - **Heads:** Convex records each scope's current hashes in `contentSnapshotHeads`.
    - **Building:** a coalesced, compare-and-set-fenced scheduled action, triggered from the writing transaction through the existing mutation triggers.

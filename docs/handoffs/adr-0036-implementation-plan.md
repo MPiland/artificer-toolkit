@@ -1,6 +1,6 @@
 # ADR 0036 implementation plan
 
-> Status: approved direction, implementation not started (2026-09-27). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
+> Status: approved direction; S1 and S2 implemented locally (2026-09-27). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
 
 ## What the code does today
 
@@ -61,6 +61,16 @@
   - **FEAT, CREATURE, VEHICLE:** id and label.
 - **What readers join:** anything resolved through the System vocabulary or another root. That covers speed and skill labels, proficiency target labels, and a subrace's inherited facts, because those can change in another scope.
 - **Head:** `{scope, scopeId, revision, builtRevision, kinds}`. `kinds` maps a kind to its `index` and `documents` references (`sha256`, `byteLength`, `rootCount`). A kind with no roots has no entry. `buildScheduledAt` is table bookkeeping for S2 and is not part of the contract.
+
+## Heads, build and cleanup (S2, current)
+
+[Persistence](../architecture/persistence.md#content-snapshot-heads-and-objects-adr-0036-s2--local-implementation) describes the protocol. Where S2 differs from the design summary above:
+
+- **Scopes.** Every content source, the SRD's PLATFORM source included, is a `SOURCE` scope, because Campaign rules catalogues select PLATFORM sources and snapshot documents carry no source id. A `SYSTEM` scope will hold only System-level data with its own object format, added when a reader needs it ([D67](phase-08-2-open-questions.md#decisions-to-review)); no `SYSTEM` head is built yet.
+- **No new share index.** Marking finds a root's Campaigns through the existing `campaignContentShares.by_subjectKind_subjectId_campaignId` index; a `by_subjectId` index would duplicate it.
+- **Not marked:** Systems, vocabulary and rules catalogues (no built scope contains them), and version payload chunks (their version is marked).
+- **Full rebuild.** Each build rereads every kind of its scope. Unchanged kinds keep their keys and upload nothing; incremental rebuild from the previous `documents` object is not implemented.
+- **Unshared parents.** A shared child whose parent share is gone is excluded, where the Builder's `readCampaignSharedPublication` throws.
 
 ## Budgets (estimates to verify in the slices)
 

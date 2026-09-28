@@ -337,6 +337,50 @@ homebrew republish) reaches a Character's stored stats on that Character's
 next write, while the Sheet always shows the live value. Follow-up: a publish-time background
 recompute for Characters that use the republished source.
 
+## Content snapshot heads and objects (ADR 0036 S2) — local implementation
+
+[ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md) publishes content as
+immutable R2 objects; Convex owns only their bookkeeping (`apps/apis/convex/contentSnapshots`).
+
+- **Scopes.** Each content source, PLATFORM or USER, is one `SOURCE` scope: its readable roots by
+  the Builder's source rules (`readCharacterSourceRoots` plus `canReadAuthoredRoot`, so hidden
+  import rows are excluded). A `CAMPAIGN` scope holds the shares that pass
+  `readCampaignSharedRootPublication` and the Builder's parent rule; a shared child whose parent is
+  neither shared nor an enabled official root is excluded (`hasCampaignContentParents`) instead of
+  failing the build. No `SYSTEM` head is built yet: it will hold only System-level data, with its own object format (D67).
+- **`contentSnapshotHeads`** (one row per scope): the contract head (`revision`, `builtRevision`,
+  per-kind `index`/`documents` refs) plus bookkeeping: `buildScheduledAt`, a build lease that
+  expires after 15 minutes, and `failedBuilds`, which bounds automatic retries.
+- **`contentSnapshotObjects`** (one row per uploaded key): `createdAt`, `supersededAt` once no head
+  references the key, and `deletingAt` while cleanup deletes it.
+- **Dirty marking.** Triggers in `lib/mutations.ts` mark a scope once per transaction, bump
+  `revision` and schedule `contentSnapshots/actions:build` 2 s later unless a lease is live:
+  - `authoredRoots`: the root's source, plus every Campaign sharing an owned root (existing
+    `campaignContentShares.by_subjectKind_subjectId_campaignId` index);
+  - `authoredVersions`: the version's source;
+  - `campaignContentShares`: the Campaign;
+  - import visibility (`importJobs` crossing `COMPLETED`): as for each root of the job;
+  - existing heads only, never creating one: `contentSources` updates and deletes, `campaigns`
+    System, owner or catalogue changes and deletes, and `campaignMemberships` status or role changes.
+    Rules catalogues change only at canonical bootstrap and mark nothing.
+- **Build.** The Node action reads `revision` first, then each kind in its own query (the Builder's
+  500-per-kind bound applies), builds both parts with the S1 functions and uploads, gzipped, only
+  keys without an object row. Equipment index facts use the stored `equipmentOptions.builder` when
+  its checksum is current and otherwise the Builder's projection (`compileCurrentEquipment` plus
+  `equipmentOptionFacts`), so a missing backfill never drops a root. Every kind is rebuilt each
+  time; unchanged kinds keep their keys and upload nothing.
+- **`commitBuild`** is a compare-and-set: it writes only when `revisionBuiltFrom > builtRevision`,
+  inserts or revives referenced rows, supersedes the previous head's other keys and records any
+  other uploaded key as superseded, so a rejected build's objects age out too. A referenced key that
+  is being deleted, or that vanished after the build saw it, returns `RETRY` and reschedules after
+  a minute. If the scope went dirty during the build, it schedules the next one. A deleted source
+  or Campaign deletes its head and supersedes its objects.
+- **Cleanup.** A daily cron claims rows superseded for more than seven days (`deletingAt`), deletes
+  their objects with provider confirmation, then deletes the rows. A claimed key is never reused,
+  so an upload can't race the delete; a claim older than an hour is retried.
+- **Storage.** `CONTENT_SNAPSHOT_R2_BUCKET` names the private bucket, reached with the media
+  endpoint and credentials; local mode shares the local R2 fixture bucket under the `v1/` prefix.
+
 ## Native System vocabulary snapshots — local implementation
 
 Native canonical bootstrap creates an immutable `systemVocabularySnapshots` row alongside each
