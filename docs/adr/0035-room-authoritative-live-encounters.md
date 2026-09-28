@@ -116,6 +116,30 @@ Accepted after the code mapping in [the implementation plan](../handoffs/adr-003
     - ADR 0033's per-command outbox drain, which becomes a final checkpoint.
 11. **Until content snapshots (Q15 option a) land,** System content is loaded through the existing capture builders at hydrate.
 
+## Amendments from the S0 measurements (2026-09-27)
+
+Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
+- **Room CPU:** 16–26 ms warm and 125–176 ms cold per 11-actor action; 84–144 ms warm at 100 actors.
+- **Durable Object cost:** about 570 requests and 2,300–3,800 rows written per session, well inside Workers Free.
+- **Convex I/O:** fits only with smaller record shapes.
+
+12. **Encounter record shapes change in S1/S3** (pre-launch, with no compatibility layer; the local data is reset):
+    - The Run document stops embedding the full projection (`projectionJson`). Projections are built per viewer, from per-actor records, by the room while it is live and on read outside play.
+    - `encounterRunCommands` stops storing each command's GM projection (`resultJson`). A receipt stores only what replay and history need.
+    - Character play state lives in small, hot per-Character documents, separate from the large Character document.
+    - Command history reaches Convex packed as one ledger document per checkpoint, not one row per command.
+    - Tied-initiative and other occurrence updates write only the changed occurrence fields.
+13. **Checkpoint interval N = 120 s,** plus every round boundary and lifecycle event. This is provisional until S9 measures usage outside live play. It fits Q16's budget only with Amendment 12.
+14. **Authorization lease: 240 s (2N),** renewed by checkpoint responses and each socket's 15-minute re-authentication. This replaces "about 60 s".
+    - A lost eviction is the only case the lease covers. To keep that rare, eviction delivery retries with backoff until it is acknowledged or the room releases, instead of giving up after 5 attempts.
+    - The worst-case exposure after a failed eviction is therefore one lease.
+15. **Previews: an immediate fix, independent of the switch.**
+    - Transient preview state is memory-only; the `native_socket_transients` rows go.
+    - Pointer previews are sent only during a gesture (drag, ping or measure), at most 10 Hz.
+    - A preview sample never calls Convex. Authority and vision revisions come from the room's cache.
+    - Today's path alone would exceed the Workers Free request and row limits and use most of Convex's monthly function calls.
+16. **The room must hibernate between messages.** No long-lived timers or outbound sockets, because they bill wall-clock duration. Alarms schedule checkpoints.
+
 ## Also decided with this ADR
 
 - **Development and tests use the local backend only (Q15 option c).** Development, automated tests, load checks and agents run against the local Docker backend. Cloud deployments are touched only for a deliberate, approved staging smoke check.
