@@ -1,6 +1,6 @@
 # ADR 0036 implementation plan
 
-> Status: approved direction; S1 and S2 implemented locally (2026-09-27). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
+> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3 and S4 (2026-09-28). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
 
 ## What the code does today
 
@@ -72,6 +72,21 @@
 - **Full rebuild.** Each build rereads every kind of its scope. Unchanged kinds keep their keys and upload nothing; incremental rebuild from the previous `documents` object is not implemented.
 - **Unshared parents.** A shared child whose parent share is gone is excluded, where the Builder's `readCampaignSharedPublication` throws.
 - **Measured (convex-test, warm, full SRD source scope, 2026-09-27).** 1,057 roots in about 3,200 document reads and at most about 15 MB (an upper estimate: whole roots, versions and payload chunks). Read as one query per kind, CREATURE took 951 documents, about 5.6 MB and 616 ms (EQUIPMENT 538 ms, SPELL 451 ms): too close to the 1 s query limit once the self-hosted runtime's 2–4× slower execution is counted. The build therefore reads 100 roots per query, about 60 ms of warm Node for CREATURE. The whole build takes about 2.2 s warm (3.4 s cold), against the 10-minute action limit. The 16 objects total 5.8 MB of canonical JSON and 0.66 MB gzipped; CREATURE documents (2.1 MB) and CLASS documents (1.7 MB) are the largest.
+
+## Delivery (S3, current)
+
+[Media](../architecture/media.md#content-snapshot-delivery-adr-0036-s3--local-implementation) holds the authorization matrix. Where S3 differs from the design summary:
+
+- **Names.** The token action is `contentSnapshots/access:issueAccess`; the route is `GET /content/{object key}`.
+- **Which objects are public.** The build writes R2 custom metadata `access: public` on PLATFORM source objects; the Worker serves anything without it as private, and a token grants only `SOURCE` and `CAMPAIGN` scopes (a future `SYSTEM` build would mark its objects public). Chosen over a key prefix because it leaves the S1 key format and S2 bookkeeping unchanged, and it is safe: the build is the bucket's only writer, a source's kind never changes, and every key names its scope. The cost is one R2 read before a tokenless request for a private object is refused.
+- **Token scope.** Own USER sources in every System and active memberships of Campaigns not being deleted, each at most 100; more fails closed.
+- **No edge cache.** Public objects rely on the browser cache (`immutable`); the Worker never uses the Cache API, so each browser miss costs one R2 read. Add the Cache API for public objects if R2 reads matter.
+- **Not wired yet (S6).** `scripts/validatePreStagingLocal.mjs` does not pass `CONTENT_SNAPSHOT_TOKEN_SECRET` to the local Worker, and the local Worker's `CONTENT_SNAPSHOTS` is a Miniflare bucket, not the local R2 fixture the local Convex build writes to. S6 must bridge the two before a browser reads local snapshots.
+- **Local data.** Objects built before S3 have no public marker, and a build never re-uploads an existing key; reset the local snapshot tables (or the local deployment) so the SRD objects are rebuilt.
+
+## Manifest (S4, current)
+
+[Persistence](../architecture/persistence.md#content-snapshot-manifest-adr-0036-s4--local-implementation) describes it. `contentSnapshots/manifest:manifest({systemId, characterId?})` calls `readCharacterSources`; without a Character it calls `readSystemCharacterSources`, the non-Campaign branch extracted from it. It returns each source's kind and head, and the Campaign's id, `contentMaturity` and head. The contract is in `packages/schema/src/api/contentSnapshots.ts`.
 
 ## Budgets (estimates to verify in the slices)
 

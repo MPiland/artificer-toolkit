@@ -380,7 +380,26 @@ immutable R2 objects; Convex owns only their bookkeeping (`apps/apis/convex/cont
   so an upload can't race the delete; a claim older than an hour is retried.
 - **Storage.** `CONTENT_SNAPSHOT_R2_BUCKET` names the private bucket, reached with the media
   endpoint and credentials; local mode uses the local R2 fixture's `artificer-local-content-snapshots`
-  bucket. Missing storage configuration fails the build without retries.
+  bucket. Missing storage configuration fails the build without retries. The build marks PLATFORM
+  source objects public for [delivery](media.md#content-snapshot-delivery-adr-0036-s3--local-implementation).
+
+### Content snapshot manifest (ADR 0036 S4) — local implementation
+
+`contentSnapshots/manifest:manifest({systemId, characterId?})` is the reactive query a Builder uses
+to find its snapshots. It calls `readCharacterSources` itself, so the manifest's scopes are exactly
+the Builder's: for a Character assigned to a Campaign, the Campaign's enabled catalogue sources, the
+caller's own USER sources and the Campaign's share scope; otherwise, or without `characterId`
+(`readSystemCharacterSources`, the same non-Campaign branch), every System catalogue source and the
+caller's own USER sources. The Character must be the caller's, active or draft, in `systemId`.
+
+It returns each source's `kind` and contract head, and for a Campaign its `contentMaturity` and
+head. A null head has no built content yet; `revision > builtRevision` means a build is pending and
+the head still names the previous objects. Build bookkeeping never leaves Convex. Reads: the
+Character, assignment and Campaign authority, the sources and catalogues, and one head per scope.
+
+Tests assert parity: the union of the roots each manifest scope's build reads equals
+`readCharacterSourceRoots` for every kind, without a Campaign, with a restricted catalogue and with
+shares. The S2 exclusion of a shared child whose parent share is gone still applies.
 
 ## Native System vocabulary snapshots — local implementation
 

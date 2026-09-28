@@ -81,6 +81,40 @@ Local correctness uses `MEDIA_STORAGE_MODE=local`, loopback `CONVEX_SITE_URL` an
 `R2_BUCKET`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`. The browser receives only
 `VITE_MEDIA_STORAGE_ORIGIN` for CSP. See the [R2 runbook](../runbooks/vtt-map-r2.md).
 
+### Content snapshot delivery (ADR 0036 S3) — local implementation
+
+Published content snapshots are not media: they are immutable objects in their own private bucket,
+built by Convex ([persistence](persistence.md#content-snapshot-heads-and-objects-adr-0036-s2--local-implementation))
+and served by the session Worker, the one exception to ADR 0028's "no Worker proxy" rule.
+
+- **Route.** `GET /content/{key}` (`apps/session-worker/src/contentSnapshots.ts`), where `{key}` is a
+  canonical object key, `v1/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`. The Worker reads the
+  `CONTENT_SNAPSHOTS` R2 binding and serves the stored gzip body unchanged with
+  `Content-Encoding: gzip`.
+- **Public or private.** The build writes R2 custom metadata `access: public` on PLATFORM source
+  objects only. A source's kind never changes and the key names its scope, so a key's marker stays
+  true. Any object without the marker is private, and a token grants only `SOURCE` and `CAMPAIGN` scopes.
+- **Content token.** `contentSnapshots/access:issueAccess` signs an HS256 JWT with
+  `CONTENT_SNAPSHOT_TOKEN_SECRET` (never the live-session secret): audience `artificer-content`,
+  a 10-minute TTL, `sub`, the caller's own USER source ids and the Campaigns of their active
+  memberships, excluding Campaigns being deleted. More than 100 of either fails closed. Revoked
+  access stays readable for at most one token lifetime.
+
+| Request | Result |
+| --- | --- |
+| PLATFORM object, no token or a valid one | 200, `public, max-age=31536000, immutable` |
+| Private object, token naming its USER source or Campaign | 200, `private, max-age=31536000, immutable` |
+| Private object, no token | 401 |
+| Private object, token without its scope (another user's source, a departed Campaign) | 403 |
+| Expired, wrongly signed, wrong-audience or non-Bearer token, on any object | 401 |
+| Any query string, such as a token in the URL | 400 |
+| Origin outside `LIVE_SESSION_ALLOWED_ORIGINS` | 403, no CORS headers |
+| Non-canonical key or missing object | 404 |
+
+Allowed origins get `Access-Control-Allow-Origin` with `Vary: Origin`, and a preflight admits only
+`GET` with the `Authorization` header. The Worker never writes to the edge cache; `private` keeps
+private objects out of shared caches. Refusals are `no-store`.
+
 ## Historical implementation record
 
 The remainder of this file preserves the transitional storage and multipart implementation record. It
