@@ -13561,8 +13561,7 @@ export declare const api: {
                       | "INTELLIGENCE"
                       | "STRENGTH"
                       | "WISDOM";
-                    option:
-                      "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
+                    option: "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                   }>;
                   method: "POINT_BUY";
                 }
@@ -13609,11 +13608,7 @@ export declare const api: {
                 | { kind: "SUBRACE"; subraceId: string };
               timing:
                 | { kind: "IMMEDIATE" }
-                | {
-                    classId: string;
-                    classLevel: number;
-                    kind: "CLASS_LEVEL";
-                  };
+                | { classId: string; classLevel: number; kind: "CLASS_LEVEL" };
             }>;
             background: { backgroundId: string };
             chosenGrantSelections?: Array<{
@@ -13622,32 +13617,20 @@ export declare const api: {
               progressionLevel?: number;
               source:
                 | { classId: string; classLevel?: number; kind: "CLASS" }
-                | {
-                    classLevel?: number;
-                    kind: "SUBCLASS";
-                    subclassId: string;
-                  }
+                | { classLevel?: number; kind: "SUBCLASS"; subclassId: string }
                 | { kind: "RACE"; raceId: string }
                 | { kind: "SUBRACE"; subraceId: string }
                 | { ancestryId: string; kind: "ANCESTRY"; optionId: string }
                 | { backgroundId: string; kind: "BACKGROUND" }
                 | { featId: string; kind: "FEAT" }
                 | { featureId: string; kind: "FEATURE" }
-                | {
-                    acquiredParentId: string;
-                    kind: "OPTION";
-                    optionId: string;
-                  }
+                | { acquiredParentId: string; kind: "OPTION"; optionId: string }
                 | { kind: "MANUAL"; reason?: string };
               targetIds: Array<string>;
               timing:
                 | { kind: "IMMEDIATE" }
                 | { kind: "CHARACTER_LEVEL"; level: number }
-                | {
-                    classId: string;
-                    classLevel: number;
-                    kind: "CLASS_LEVEL";
-                  };
+                | { classId: string; classLevel: number; kind: "CLASS_LEVEL" };
             }>;
             classes: Array<{
               classId: string;
@@ -13669,31 +13652,19 @@ export declare const api: {
               }>;
               source:
                 | { classId: string; classLevel?: number; kind: "CLASS" }
-                | {
-                    classLevel?: number;
-                    kind: "SUBCLASS";
-                    subclassId: string;
-                  }
+                | { classLevel?: number; kind: "SUBCLASS"; subclassId: string }
                 | { kind: "RACE"; raceId: string }
                 | { kind: "SUBRACE"; subraceId: string }
                 | { ancestryId: string; kind: "ANCESTRY"; optionId: string }
                 | { backgroundId: string; kind: "BACKGROUND" }
                 | { featId: string; kind: "FEAT" }
                 | { featureId: string; kind: "FEATURE" }
-                | {
-                    acquiredParentId: string;
-                    kind: "OPTION";
-                    optionId: string;
-                  }
+                | { acquiredParentId: string; kind: "OPTION"; optionId: string }
                 | { kind: "MANUAL"; reason?: string };
               timing:
                 | { kind: "IMMEDIATE" }
                 | { kind: "CHARACTER_LEVEL"; level: number }
-                | {
-                    classId: string;
-                    classLevel: number;
-                    kind: "CLASS_LEVEL";
-                  };
+                | { classId: string; classLevel: number; kind: "CLASS_LEVEL" };
             }>;
             hitpoints: {
               levels: Array<{
@@ -13712,11 +13683,7 @@ export declare const api: {
               resourceId: string;
               source:
                 | { classId: string; classLevel?: number; kind: "CLASS" }
-                | {
-                    classLevel?: number;
-                    kind: "SUBCLASS";
-                    subclassId: string;
-                  }
+                | { classLevel?: number; kind: "SUBCLASS"; subclassId: string }
                 | { featureId: string; kind: "FEATURE" }
                 | {
                     acquiredParentId: string;
@@ -13726,22 +13693,14 @@ export declare const api: {
               timing:
                 | { kind: "IMMEDIATE" }
                 | { kind: "CHARACTER_LEVEL"; level: number }
-                | {
-                    classId: string;
-                    classLevel: number;
-                    kind: "CLASS_LEVEL";
-                  };
+                | { classId: string; classLevel: number; kind: "CLASS_LEVEL" };
             }>;
             spellSelections?: Array<{
               id: string;
               replacedSelectionId?: string;
               source:
                 | { classId: string; classLevel?: number; kind: "CLASS" }
-                | {
-                    classLevel?: number;
-                    kind: "SUBCLASS";
-                    subclassId: string;
-                  }
+                | { classLevel?: number; kind: "SUBCLASS"; subclassId: string }
                 | { featureId: string; kind: "FEATURE" }
                 | {
                     acquiredParentId: string;
@@ -13752,11 +13711,7 @@ export declare const api: {
               timing:
                 | { kind: "IMMEDIATE" }
                 | { kind: "CHARACTER_LEVEL"; level: number }
-                | {
-                    classId: string;
-                    classLevel: number;
-                    kind: "CLASS_LEVEL";
-                  };
+                | { classId: string; classLevel: number; kind: "CLASS_LEVEL" };
             }>;
             startingEquipment?: {
               background?: {
