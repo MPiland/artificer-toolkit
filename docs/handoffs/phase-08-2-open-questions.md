@@ -478,6 +478,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
       - The prefetch queries (935 per run, about 6 per decision, p95 283 ms) competed for the same CPU, and the overall command p95 rose above 1 s.
       - The extra subject type, prefetch cache and query were not worth keeping for no gain, so step 2 was reverted: `611757d95`, `aef5acfdf` and `221fce311`, reverted by `91682875e`, `394511fbf` and `5d715e46e`.
     - **Next:** cut handler CPU in the movement stage and commit, guided by a CPU profile. Collapsing the calls is revisited only if the fences can check versions instead of re-reading content.
+    - **Superseded (2026-09-27) by [ADR 0035](../adr/0035-room-authoritative-live-encounters.md).** The per-command Convex path is being replaced, so further tuning on it has stopped (user direction).
+      - The CPU cuts that already landed stay, because the room reuses the same checksum and validation code: the inlined SHA-256 and the once-per-transaction derivations.
+      - The last run of the old path (`v15bl-cpu1-r1`) had `REACTION_RESPONSE` p95 at 1,027 ms and command p95 at 799 ms, on a busy machine.
+      - The 6-browser V15 runs only against the room-authoritative design.
     - The prefetch is admitted for the responder, and the answer command comes from the room instead of the staged save.
   - **The 6-browser V15** runs only once the browserless `REACTION_RESPONSE` p95 is clearly under 1 s.
 
