@@ -6,22 +6,7 @@
 
 ## Open
 
-### Q19 Showing other people's cursors on the map
-
-The free-tier preview fix (ADR 0035 Amendment 15, `792c2b858`) sends pointer previews only while the mouse button is held on empty map (a press-and-drag "point"), never on plain hover. Token-drag ghosts update at 10 Hz.
-
-**Competitors:**
-- Foundry shows other users' cursors on hover by default and has a long-press ping.
-- Roll20 has no live cursors, only a ping (long-press).
-
-**Cost:** broadcasting every cursor on hover at 10 Hz would take about 20,000 Durable Object requests per 4-hour session with 6 people, about a fifth of the Workers Free daily limit per session.
-
-**Recommendation:**
-1. Add a real ping tool (long-press, matching Foundry and Roll20).
-2. Add a per-person "Share my cursor" preference, off by default. When on, the cursor is sent at up to 4 Hz, only while the mouse is moving, which is about 2,000–4,000 requests per session.
-3. Smooth remote drag ghosts on the receiving side, so 10 Hz looks fluid.
-
-**Answer:**
+_(none)_
 
 ## Decisions to review
 
@@ -439,6 +424,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **`SYSTEM` scope:** holds only System-level data (the System document, its vocabulary and reusable definitions), with its own object format, added in a later slice when a reader needs it. Until then no `SYSTEM` head is built.
 
 ## Resolved
+
+- **Q19 (2026-09-28).** Match Roll20 to keep hosting costs down for launch.
+  - There are no live cursors shared on hover.
+  - A long-press **ping** replaces the press-and-drag streaming pointer. A ping is one message per press, so it costs almost nothing.
+  - Token-drag previews stay as built (at most 10 Hz, only while dragging).
+  - Shared cursors are recorded as a post-launch enhancement, to revisit when revenue supports a paid Workers plan.
+
 
 - **Q18 (2026-09-27).** The user accepted the recommendations. The [tier research](../roadmap/tier-research-2026-09-27.md) proposal is adopted:
   - **Prices:** Free `$0`, Player `$2.99`, GM `$9.99`, Pro GM `$24.99`.
