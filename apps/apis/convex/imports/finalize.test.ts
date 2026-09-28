@@ -157,7 +157,8 @@ async function stagedAuthoredImport() {
   return { ...base, jobId, subjectId, outputJson }
 }
 
-async function stagedCharacterImport() {
+/** A staged Character import; a long description makes its payload chunked (above 960 KiB). */
+async function stagedCharacterImport(description?: string) {
   const base = await stagingJob()
   const characterId = crypto.randomUUID()
   const opened = characterBuilderDraftDtoSchema.parse(
@@ -181,7 +182,11 @@ async function stagedCharacterImport() {
     systemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id,
     label,
-    payloadJson: canonicalizeRuleDocument(opened.payload)
+    payloadJson: canonicalizeRuleDocument(
+      description === undefined
+        ? opened.payload
+        : { ...opened.payload, character: { ...opened.payload.character, description } }
+    )
   })
   const output = JSON.parse(outputJson) as {
     draft: { publicId: string }
@@ -337,7 +342,7 @@ describe('native import finalization', () => {
   }, 30_000)
 
   it('refuses a staged Character with a missing payload chunk without publishing state', async () => {
-    const base = await stagedCharacterImport()
+    const base = await stagedCharacterImport('🎲'.repeat(300_000))
     await base.t.run(async (ctx) => {
       const chunks = await ctx.db
         .query('characterDraftPayloadChunks')
