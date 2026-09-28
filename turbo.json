@@ -64,6 +64,7 @@
     "typecheck:convex": {
       "dependsOn": [
         "@artificer-toolkit/authoring#build",
+        "@artificer-toolkit/encounter-persistence#build",
         "@artificer-toolkit/rules-runtime#build",
         "@artificer-toolkit/schema#build",
         "@artificer-toolkit/emails#build",
@@ -74,6 +75,7 @@
     "test:convex": {
       "dependsOn": [
         "@artificer-toolkit/authoring#build",
+        "@artificer-toolkit/encounter-persistence#build",
         "@artificer-toolkit/rules-runtime#build",
         "@artificer-toolkit/schema#build",
         "@artificer-toolkit/emails#build",

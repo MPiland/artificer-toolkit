@@ -64,6 +64,7 @@ __metadata:
   dependencies:
     "@artificer-toolkit/authoring": "workspace:^"
     "@artificer-toolkit/emails": "workspace:^"
+    "@artificer-toolkit/encounter-persistence": "workspace:^"
     "@artificer-toolkit/rules-runtime": "workspace:^"
     "@artificer-toolkit/schema": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
@@ -123,6 +124,19 @@ __metadata:
     react-dom: "npm:19.2.6"
     react-email: "npm:6.9.0"
     typescript: "npm:^7.0.2"
+  languageName: unknown
+  linkType: soft
+
+"@artificer-toolkit/encounter-persistence@workspace:^, @artificer-toolkit/encounter-persistence@workspace:packages/encounter-persistence":
+  version: 0.0.0-use.local
+  resolution: "@artificer-toolkit/encounter-persistence@workspace:packages/encounter-persistence"
+  dependencies:
+    "@artificer-toolkit/rules-runtime": "workspace:^"
+    "@artificer-toolkit/schema": "workspace:^"
+    "@artificer-toolkit/shared": "workspace:^"
+    convex: "npm:1.45.0"
+    typescript: "npm:^7.0.2"
+    zod: "npm:4.4.3"
   languageName: unknown
   linkType: soft
 

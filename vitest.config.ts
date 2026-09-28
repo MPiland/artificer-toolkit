@@ -32,6 +32,7 @@ export default defineConfig({
       'packages/authoring/src/**/*.test.ts',
       'packages/source-data/src/**/*.test.ts',
       'packages/rules-runtime/src/**/*.test.ts',
+      'packages/encounter-persistence/src/**/*.test.ts',
       'apps/apis/src/**/*.test.ts',
       'apps/session-worker/src/**/*.test.ts',
       'netlify/tests/**/*.test.ts'

@@ -47,7 +47,7 @@ jobs:
         run: corepack enable && yarn install --immutable
       - name: Build packages
         if: steps.gate.outputs.run == 'true'
-        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
+        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
       - name: Convex tests (shard ${{ matrix.shard }})
         if: steps.gate.outputs.run == 'true'
         run: yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/${{ inputs.convex_shards || '4' }}
@@ -64,13 +64,14 @@ jobs:
       - name: Install
         run: corepack enable && yarn install --immutable
       - name: Build packages
-        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
+        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
       - name: Package tests
         run: |
           yarn workspace @artificer-toolkit/schema test
           yarn workspace @artificer-toolkit/shared test
           yarn workspace @artificer-toolkit/source-data test
           yarn workspace @artificer-toolkit/rules-runtime test
+          yarn workspace @artificer-toolkit/encounter-persistence test
       - name: Worker tests
         run: |
           yarn workspace @artificer-toolkit/session-worker types
@@ -96,6 +97,6 @@ jobs:
       - name: Worker types
         run: yarn workspace @artificer-toolkit/session-worker types
       - name: Backend typechecks
-        run: yarn turbo run typecheck typecheck:convex --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --concurrency=1 --env-mode=loose --continue
+        run: yarn turbo run typecheck typecheck:convex --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --concurrency=1 --env-mode=loose --continue
       - name: Web typechecks
         run: yarn turbo run typecheck:app typecheck:stories typecheck:tests --filter=@artificer-toolkit/web --concurrency=1 --env-mode=loose --continue

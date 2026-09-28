@@ -1,0 +1,27 @@
+{
+  "name": "@artificer-toolkit/encounter-persistence",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/encounter-persistence/src"
+  },
+  "dependencies": {
+    "@artificer-toolkit/rules-runtime": "workspace:^",
+    "@artificer-toolkit/schema": "workspace:^",
+    "@artificer-toolkit/shared": "workspace:^",
+    "convex": "1.45.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

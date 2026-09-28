@@ -26,6 +26,7 @@
   "dependencies": {
     "@artificer-toolkit/authoring": "workspace:^",
     "@artificer-toolkit/emails": "workspace:^",
+    "@artificer-toolkit/encounter-persistence": "workspace:^",
     "@artificer-toolkit/rules-runtime": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
