@@ -36,6 +36,8 @@ export const entitlementLimitDtoSchema = lazySchema(() =>
     playerSeatsPerCampaign: z.number().check(z.int()).check(z.positive()),
     publicListings: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
     savedEncounters: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+    campaignEntriesPerCampaign: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+    scenesPerCampaign: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
     paidTablesEnabled: z.boolean(),
     platformFeeBasisPoints: z.number().check(z.int()).check(z.nonnegative())
   })

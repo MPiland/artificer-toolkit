@@ -127,7 +127,9 @@ describe('campaign contracts', () => {
         activeHostedCampaigns: 1,
         playerSeatsPerCampaign: 5,
         publicListings: 1,
-        savedEncounters: 3,
+        savedEncounters: 10,
+        campaignEntriesPerCampaign: 150,
+        scenesPerCampaign: 5,
         paidTablesEnabled: false,
         platformFeeBasisPoints: 0
       },
@@ -139,10 +141,14 @@ describe('campaign contracts', () => {
         publicListings: 0,
         savedEncounters: 0
       },
-      pricing: { currency: 'USD', monthlyPriceCents: 499, annualPriceCents: 4999 }
+      pricing: { currency: 'USD', monthlyPriceCents: 299, annualPriceCents: 2999 }
     }
 
     expect(entitlementProjectionDtoSchema.safeParse(projection).success).toBe(true)
+    const { scenesPerCampaign: _scenes, ...missingSceneLimit } = projection.limits
+    expect(
+      entitlementProjectionDtoSchema.safeParse({ ...projection, limits: missingSceneLimit }).success
+    ).toBe(false)
     expect(
       entitlementProjectionDtoSchema.safeParse({
         ...projection,
