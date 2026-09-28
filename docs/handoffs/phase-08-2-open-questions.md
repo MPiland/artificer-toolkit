@@ -415,6 +415,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     * check the Workers Free request and CPU limits for SSR pages (the 10 ms CPU limit applies to plain Workers);
     * migrate the DNS and domain.
   * **Sequencing:** its own slice, after ADR 0035 S0.
+- **D66** (2026-09-27) Relationships (edges) on the future Campaign node map do not count against the Q18 per-Campaign entries limit. Only entries (nodes) count.
+  - **Why:** edges are a few bytes each, and connecting records is the whole value of the board. Counting them would penalize the behavior the feature exists for.
+  - **Safety:** a hidden cap on edges per Campaign guards against abuse.
+  - **Source:** [market research](../market-research.md), "Implications for the Campaign node map".
+
 
 ## Resolved
 
