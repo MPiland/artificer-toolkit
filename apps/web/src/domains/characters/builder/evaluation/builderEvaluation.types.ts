@@ -2,7 +2,10 @@ import type {
   CharacterBuilderIntentCacheDto,
   CharacterBuilderPayloadDto
 } from '@artificer-toolkit/schema/api/characterBuilder'
-import type { CharacterBuilderPreviewOutput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
+import type {
+  CharacterBuilderFeatureSourceHint,
+  CharacterBuilderPreviewOutput
+} from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import type {
   ContentSnapshotKind,
   ContentSnapshotManifestDto
@@ -32,7 +35,12 @@ export type BuilderEvaluationRequest = {
 
 export type BuilderEvaluationOutput =
   | { operation: 'resolve'; payload: CharacterBuilderPayloadDto }
-  | { operation: 'preview'; preview: CharacterBuilderPreviewOutput }
+  | {
+      operation: 'preview'
+      preview: CharacterBuilderPreviewOutput
+      /** The roots holding the previewed Character's standalone features, sent with commit. */
+      featureSourceHints: CharacterBuilderFeatureSourceHint[]
+    }
 
 /** A failed evaluation names the content kind that could not load, when one did not. */
 export type BuilderEvaluationResult =

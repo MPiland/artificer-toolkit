@@ -3,7 +3,10 @@ import { Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
-import type { CharacterBuilderPreviewOutput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
+import type {
+  CharacterBuilderFeatureSourceHint,
+  CharacterBuilderPreviewOutput
+} from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { useAppForm } from '#forms/app-form/AppForm'
 import {
   useAuthoringForm,
@@ -44,7 +47,11 @@ export function CharacterBuilderFormRuntime({
   const [draftSaveNoticeOpened, setDraftSaveNoticeOpened] = useState(false)
   const [draftSaveNoticeAcknowledged, setDraftSaveNoticeAcknowledged] = useState(false)
   const [draftSaveNoticeMethodLabels, setDraftSaveNoticeMethodLabels] = useState<string[]>([])
-  const [preview, setPreview] = useState<CharacterBuilderPreviewOutput | null>(null)
+  const [finalization, setFinalization] = useState<{
+    preview: CharacterBuilderPreviewOutput
+    featureSourceHints: CharacterBuilderFeatureSourceHint[]
+  } | null>(null)
+  const preview = finalization?.preview ?? null
   const [previewOpened, setPreviewOpened] = useState(false)
   const draftMutation = useSaveCharacterDraftMutation()
   const evaluation = useCharacterBuilderEvaluation(session)
@@ -55,8 +62,7 @@ export function CharacterBuilderFormRuntime({
   const handlePreviewFinalize = useCallback(
     async (value: CharacterFormValues) => {
       try {
-        const nextPreview = await previewMutation.mutateAsync(value)
-        setPreview(nextPreview)
+        setFinalization(await previewMutation.mutateAsync(value))
         setPreviewOpened(true)
       } catch {
         notifications.show({
@@ -124,12 +130,13 @@ export function CharacterBuilderFormRuntime({
   }, [draftSaveNoticeAcknowledged, form, handleSaveDraftConfirmed])
 
   const handleConfirmFinalize = useCallback(async () => {
-    if (!preview) return
+    if (!finalization) return
     try {
       const response = await commitMutation.mutateAsync({
-        character: preview.character,
+        character: finalization.preview.character,
         expectedDraftId: session.draft.id,
-        mode: session.mode
+        mode: session.mode,
+        featureSourceHints: finalization.featureSourceHints
       })
       notifications.show({ color: 'green', message: 'Character finalized.' })
       await navigate({
@@ -142,7 +149,7 @@ export function CharacterBuilderFormRuntime({
         message: 'Could not finalize the character. Try again, or save the draft and reload.'
       })
     }
-  }, [commitMutation, navigate, preview, session.draft.id, session.mode])
+  }, [commitMutation, finalization, navigate, session.draft.id, session.mode])
 
   const handleActivate = useCallback(async () => {
     if (!payload.view.review.ready) {

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characterBuilder'
-import type { CharacterBuilderPreviewOutput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
+import type {
+  CharacterBuilderFeatureSourceHint,
+  CharacterBuilderPreviewOutput
+} from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import type { ContentSnapshotKind } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { getCharacterBuilderActiveCharacter } from '#app/data/characters/queries'
 import { isContentSnapshotManifestUpdating } from '#app/data/contentSnapshots/manifestObjects'
@@ -32,7 +35,11 @@ export type CharacterBuilderContentStatus = {
 export type CharacterBuilderEvaluation = {
   /** Null until the evaluation inputs are ready; the Builder keeps its current payload meanwhile. */
   resolve: ((values: CharacterFormValues) => Promise<CharacterBuilderPayloadDto>) | null
-  preview: (values: CharacterFormValues) => Promise<CharacterBuilderPreviewOutput>
+  /** The finalization preview, with the feature source hints commit sends for its Character. */
+  preview: (values: CharacterFormValues) => Promise<{
+    preview: CharacterBuilderPreviewOutput
+    featureSourceHints: CharacterBuilderFeatureSourceHint[]
+  }>
   status: CharacterBuilderContentStatus
   /** Refetches evaluation inputs that failed to load. */
   refetchInputs: () => void
@@ -141,7 +148,7 @@ export function useCharacterBuilderEvaluation(
       if (!evaluate) throw new Error('Character content is still loading.')
       const output = await evaluate('preview', values)
       if (output.operation !== 'preview') throw new Error('Unexpected Builder evaluation output.')
-      return output.preview
+      return { preview: output.preview, featureSourceHints: output.featureSourceHints }
     },
     [evaluate]
   )

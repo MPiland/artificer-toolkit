@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   evaluate: vi.fn(),
   manifest: vi.fn(),
   preview: vi.fn(),
+  featureSourceHints: vi.fn(),
   resolve: vi.fn(),
   saveDraft: vi.fn(),
   activeCharacter: vi.fn()
@@ -80,10 +81,18 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     mocks.manifest.mockReturnValue(builtManifest)
     mocks.activeCharacter.mockReturnValue(characterBuilderPayloadFixture.character)
     mocks.resolve.mockResolvedValue(characterBuilderPayloadFixture)
+    mocks.featureSourceHints.mockReturnValue([])
     mocks.evaluate.mockImplementation(async (request: BuilderEvaluationRequest) =>
       request.operation === 'resolve'
         ? { ok: true, output: { operation: 'resolve', payload: await mocks.resolve(request) } }
-        : { ok: true, output: { operation: 'preview', preview: await mocks.preview(request) } }
+        : {
+            ok: true,
+            output: {
+              operation: 'preview',
+              preview: await mocks.preview(request),
+              featureSourceHints: mocks.featureSourceHints()
+            }
+          }
     )
   })
 
@@ -264,8 +273,16 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     )
   })
 
-  it('commits the reviewed candidate and generation without an intervening draft save', async () => {
+  it('commits the reviewed candidate, generation and feature hints without a draft save', async () => {
     const user = userEvent.setup()
+    // The worker names the roots of the reviewed Character's standalone features (ADR 0036 S7).
+    const featureSourceHints = [
+      {
+        featureId: '00000000-0000-4000-8000-000000000a01',
+        rootId: '00000000-0000-4000-8000-000000000a02'
+      }
+    ]
+    mocks.featureSourceHints.mockReturnValue(featureSourceHints)
     const candidate = normalizeCharacterForDraft(characterBuilderPayloadFixture.character)
     const preview = {
       ...characterPreviewFixture,
@@ -292,7 +309,8 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       expect(mocks.commit).toHaveBeenCalledWith({
         character: preview.character,
         expectedDraftId: 'draft-generation',
-        mode: 'create'
+        mode: 'create',
+        featureSourceHints
       })
     )
     expect(mocks.saveDraft).not.toHaveBeenCalled()

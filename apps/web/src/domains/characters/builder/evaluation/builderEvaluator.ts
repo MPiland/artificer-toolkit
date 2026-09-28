@@ -9,6 +9,7 @@ import {
   resolveSnapshotCharacterBuilderPayload,
   type SnapshotCharacterBuilderInput
 } from '@artificer-toolkit/rules-runtime/character/snapshotBuilderEvaluation'
+import { collectCharacterFeatureSourceHints } from '@artificer-toolkit/rules-runtime/character/featureSourceHints'
 import { createLazySnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
@@ -114,18 +115,26 @@ export function createBuilderEvaluator(options: {
     try {
       const readers = await readersFor(request.manifest)
       const input = toSnapshotInput(request)
+      if (request.operation === 'resolve')
+        return {
+          ok: true,
+          output: {
+            operation: 'resolve',
+            payload: await resolveSnapshotCharacterBuilderPayload(input, readers)
+          }
+        }
+      const preview = await previewSnapshotCharacterBuilder(input, readers)
       return {
         ok: true,
-        output:
-          request.operation === 'resolve'
-            ? {
-                operation: 'resolve',
-                payload: await resolveSnapshotCharacterBuilderPayload(input, readers)
-              }
-            : {
-                operation: 'preview',
-                preview: await previewSnapshotCharacterBuilder(input, readers)
-              }
+        output: {
+          operation: 'preview',
+          preview,
+          // Commit sends the previewed Character, so its hints come from that Character.
+          featureSourceHints: await collectCharacterFeatureSourceHints(
+            preview.character as CharacterAuthored,
+            readers
+          )
+        }
       }
     } catch (error) {
       return {

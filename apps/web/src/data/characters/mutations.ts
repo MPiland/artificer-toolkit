@@ -2,10 +2,10 @@ import { useMutation } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useConvex, useMutation as useConvexMutation } from 'convex/react'
 import {
+  characterBuilderCommitInputSchema,
   characterBuilderCommitOutputSchema,
-  characterBuilderResolveInputSchema,
-  type CharacterBuilderCommitOutput,
-  type CharacterBuilderResolveInput
+  type CharacterBuilderCommitInput,
+  type CharacterBuilderCommitOutput
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { characterBuilderDraftDtoSchema } from '@artificer-toolkit/schema/api/characterBuilder'
 import {
@@ -58,8 +58,8 @@ export function useCommitCharacterBuilderMutation() {
   const commit = useConvexMutation(convexApi.characters.commit.commit)
 
   return useMutation({
-    mutationFn: (input: CharacterBuilderResolveInput): Promise<CharacterBuilderCommitOutput> =>
-      commit(JSON.parse(JSON.stringify(characterBuilderResolveInputSchema.parse(input)))).then(
+    mutationFn: (input: CharacterBuilderCommitInput): Promise<CharacterBuilderCommitOutput> =>
+      commit(JSON.parse(JSON.stringify(characterBuilderCommitInputSchema.parse(input)))).then(
         (response) => characterBuilderCommitOutputSchema.parse(response)
       )
   })

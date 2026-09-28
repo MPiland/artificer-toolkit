@@ -22,6 +22,7 @@ import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
+import { dragonborn } from '@artificer-toolkit/source-data/srd/races/dragonborn.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
@@ -182,10 +183,75 @@ describe('Builder worker evaluation', () => {
           preview: await previewSnapshotCharacterBuilder(
             eagerInput(request('preview', intent)),
             eager
-          )
+          ),
+          featureSourceHints: []
         }
       })
     }
+  })
+
+  it('names the root of each MANUAL, FEATURE and ANCESTRY acquisition for commit (S7)', async () => {
+    const { store } = fakeStore()
+    const evaluate = createBuilderEvaluator({ store, onLoading: () => undefined })
+    const ancestry = dragonborn.category === 'BASE' ? dragonborn.ancestry : undefined
+    const option = ancestry?.options[0]
+    const ancestryFeature = option?.features?.[0]
+    const [manualFeature, featureGranted] = wizard.features ?? []
+    const fighterFeature = fighter.features?.find((feature) => feature.availableAtLevel === 1)
+    if (
+      !ancestry ||
+      !option ||
+      !ancestryFeature ||
+      !manualFeature ||
+      !featureGranted ||
+      !fighterFeature
+    )
+      throw new Error('Expected SRD feature fixtures.')
+    const acquisition = (
+      featureId: string,
+      source: CharacterAuthored['intent']['featureAcquisitions'][number]['source']
+    ) => ({
+      id: crypto.randomUUID(),
+      featureId,
+      source,
+      timing: { kind: 'IMMEDIATE' as const }
+    })
+    const intent = {
+      race: { raceId: dragonborn.id },
+      background: { backgroundId: acolyte.id },
+      classes: [{ classId: fighter.id, classLevel: 1 }],
+      ancestrySelections: [
+        {
+          id: crypto.randomUUID(),
+          ancestryId: ancestry.id,
+          optionId: option.id,
+          source: { kind: 'RACE' as const, raceId: dragonborn.id },
+          timing: { kind: 'IMMEDIATE' as const }
+        }
+      ],
+      featureAcquisitions: [
+        acquisition(manualFeature.id, { kind: 'MANUAL' }),
+        acquisition(featureGranted.id, { kind: 'FEATURE', featureId: fighterFeature.id }),
+        acquisition(ancestryFeature.id, {
+          kind: 'ANCESTRY',
+          ancestryId: ancestry.id,
+          optionId: option.id
+        })
+      ]
+    }
+
+    const previewed = await evaluate(request('preview', intent))
+    if (!previewed.ok || previewed.output.operation !== 'preview')
+      throw new Error('Expected a preview.')
+    // Reconciliation keeps all three acquisitions, so commit sends a root for each.
+    expect(previewed.output.preview.character.intent.featureAcquisitions).toHaveLength(3)
+    expect(previewed.output.featureSourceHints).toEqual(
+      [
+        { featureId: manualFeature.id, rootId: wizard.id },
+        { featureId: featureGranted.id, rootId: wizard.id },
+        { featureId: ancestryFeature.id, rootId: dragonborn.id }
+      ].sort((left, right) => left.featureId.localeCompare(right.featureId))
+    )
   })
 
   it('reads every index first, documents only per needed kind, and each object once', async () => {
