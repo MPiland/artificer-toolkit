@@ -71,6 +71,28 @@ describe('memory Encounter store', () => {
     await expect(store.delete(id)).rejects.toThrow('nonexistent')
   })
 
+  it('returns fields in key order, as Convex does', async () => {
+    const { store } = createMemoryEncounterStore()
+    const id = await store.insert('encounterTurnMovements', {
+      speedBonuses: 0,
+      usedFeet: 0,
+      actorId: actor(1),
+      turnActorId: actor(1),
+      round: 1,
+      encounterId
+    })
+    expect(Object.keys((await store.get(id))!)).toEqual([
+      '_creationTime',
+      '_id',
+      'actorId',
+      'encounterId',
+      'round',
+      'speedBonuses',
+      'turnActorId',
+      'usedFeet'
+    ])
+  })
+
   it('restores loaded documents with their identities', async () => {
     const source = createMemoryEncounterStore()
     await source.store.insert('encounterTurnMovements', movement(1, 1))

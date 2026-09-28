@@ -44,6 +44,17 @@ function compareValues(left: unknown, right: unknown): number {
   return 0
 }
 
+/** A copy with object fields in key order, as Convex stores and returns documents. */
+function withSortedFields<Value>(value: Value): Value {
+  if (Array.isArray(value)) return value.map(withSortedFields) as Value
+  if (typeof value !== 'object' || value === null || value instanceof ArrayBuffer) return value
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => [key, withSortedFields((value as Record<string, unknown>)[key])])
+  ) as Value
+}
+
 function inRange(document: StoredDocument, { field, operator, value }: Bound) {
   const order = compareValues(document[field], value)
   if (operator === 'eq') return order === 0
@@ -124,7 +135,7 @@ export function createMemoryEncounterStore() {
   const write = (table: EncounterTableName, document: StoredDocument) => {
     const { _id, _creationTime, ...fields } = document
     encounterStoreSchemas[table].parse(fields)
-    rowsOf(table).set(_id, structuredClone(document))
+    rowsOf(table).set(_id, withSortedFields(document))
     tableById.set(_id, table)
   }
   const inCreationOrder = (table: EncounterTableName) =>
