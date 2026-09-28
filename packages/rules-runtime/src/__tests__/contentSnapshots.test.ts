@@ -19,6 +19,7 @@ import { toCharacterBuilderEquipmentCatalogRecord } from '../character/builderCa
 import {
   buildContentSnapshotPart,
   contentSnapshotObjectKey,
+  parseContentSnapshotObjectKey,
   toContentSnapshotIndexEntry,
   type ContentSnapshotIndexSource
 } from '../contentSnapshots.js'
@@ -117,6 +118,24 @@ describe('content snapshot parts', () => {
       `v1/system/${SCOPE_ID}/race/documents/${system.sha256}.json`
     )
     expect(() => contentSnapshotObjectKey(header('RACE', 'index'), 'not-a-hash')).toThrow()
+  })
+
+  it('parses only canonical object keys', () => {
+    const { sha256 } = buildContentSnapshotPart(header('RACE', 'index'), [])
+    const key = contentSnapshotObjectKey(header('RACE', 'index'), sha256)
+    expect(parseContentSnapshotObjectKey(key)).toEqual({ header: header('RACE', 'index'), sha256 })
+    for (const other of [
+      key.toUpperCase(),
+      key.replace('/race/', '/RACE/'),
+      key.replace(SCOPE_ID, 'not-a-uuid'),
+      key.replace('v1/', 'v2/'),
+      key.replace('/index/', '/other/'),
+      key.replace('.json', ''),
+      `${key}/extra`,
+      `../${key}`,
+      key.replace(sha256, sha256.slice(1))
+    ])
+      expect(parseContentSnapshotObjectKey(other)).toBeNull()
   })
 
   it('splits picker facts into the index and full documents into the documents part', () => {

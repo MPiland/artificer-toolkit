@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { authoredSubjectKindSchema, projectionChecksumSchema } from '../projections/identity.js'
+import { campaignContentMaturityDtoSchema } from './campaignCore.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -206,6 +207,80 @@ export const contentSnapshotHeadSchema = lazySchema(() =>
   })
 )
 
+// Delivery (S3). The session Worker serves `GET {prefix}{object key}`.
+export const CONTENT_SNAPSHOT_PATH_PREFIX = '/content/'
+export const CONTENT_SNAPSHOT_TOKEN_AUDIENCE = 'artificer-content'
+export const CONTENT_SNAPSHOT_TOKEN_ISSUER = 'artificer-convex'
+export const CONTENT_SNAPSHOT_TOKEN_TTL_SECONDS = 600
+/**
+ * R2 custom metadata the build writes on PLATFORM source objects only. A content source's kind
+ * never changes and every key names its scope, so a key's metadata stays true; the Worker treats
+ * any object without it as private.
+ */
+export const CONTENT_SNAPSHOT_PUBLIC_METADATA = { access: 'public' } as const
+// The Builder's bound of 100 visible sources per System; also keeps the header small.
+const MAX_CONTENT_SNAPSHOT_TOKEN_SCOPES = 100
+
+const tokenScopeIdsSchema = () =>
+  z.array(postgresUuidSchema).check(z.maxLength(MAX_CONTENT_SNAPSHOT_TOKEN_SCOPES))
+
+/** Names the private scopes a caller may read: their own USER sources and active Campaigns. */
+export const contentSnapshotTokenClaimsSchema = lazySchema(() =>
+  z.strictObject({
+    aud: z.literal(CONTENT_SNAPSHOT_TOKEN_AUDIENCE),
+    iss: z.literal(CONTENT_SNAPSHOT_TOKEN_ISSUER),
+    exp: z.number().check(z.int()).check(z.positive()),
+    iat: z.number().check(z.int()).check(z.positive()),
+    jti: postgresUuidSchema,
+    sub: postgresUuidSchema,
+    userSourceIds: tokenScopeIdsSchema(),
+    campaignIds: tokenScopeIdsSchema()
+  })
+)
+
+export const contentSnapshotTokenGrantSchema = lazySchema(() =>
+  z.pick(contentSnapshotTokenClaimsSchema, { sub: true, userSourceIds: true, campaignIds: true })
+)
+
+export const contentSnapshotAccessDtoSchema = lazySchema(() =>
+  z.strictObject({
+    expiresAt: z.iso.datetime({ offset: true }),
+    token: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(8192))
+  })
+)
+
+// Manifest (S4): the heads of the scopes a Character's Builder may read.
+export const contentSnapshotManifestInputSchema = lazySchema(() =>
+  z.strictObject({
+    systemId: postgresUuidSchema,
+    characterId: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(240)))
+  })
+)
+
+/**
+ * A null head means the scope has no built content yet. A head whose `revision` exceeds
+ * `builtRevision` is still rebuilding; its objects are the previous build's.
+ */
+export const contentSnapshotManifestDtoSchema = lazySchema(() =>
+  z.strictObject({
+    systemId: postgresUuidSchema,
+    sources: z.array(
+      z.strictObject({
+        contentSourceId: postgresUuidSchema,
+        kind: z.enum(['PLATFORM', 'USER']),
+        head: z.nullable(contentSnapshotHeadSchema)
+      })
+    ),
+    campaign: z.nullable(
+      z.strictObject({
+        id: postgresUuidSchema,
+        contentMaturity: campaignContentMaturityDtoSchema,
+        head: z.nullable(contentSnapshotHeadSchema)
+      })
+    )
+  })
+)
+
 export type ContentSnapshotScope = z.infer<typeof contentSnapshotScopeSchema>
 export type ContentSnapshotKind = z.infer<typeof contentSnapshotKindSchema>
 export type ContentSnapshotPart = z.infer<typeof contentSnapshotPartSchema>
@@ -223,3 +298,8 @@ export type ContentSnapshotRoot<
 > = Part extends 'index' ? ContentSnapshotIndexEntry<Kind> : ContentSnapshotDocument<Kind>
 export type ContentSnapshotObjectRef = z.infer<typeof contentSnapshotObjectRefSchema>
 export type ContentSnapshotHead = z.infer<typeof contentSnapshotHeadSchema>
+export type ContentSnapshotTokenClaims = z.infer<typeof contentSnapshotTokenClaimsSchema>
+export type ContentSnapshotTokenGrant = z.infer<typeof contentSnapshotTokenGrantSchema>
+export type ContentSnapshotAccessDto = z.infer<typeof contentSnapshotAccessDtoSchema>
+export type ContentSnapshotManifestInput = z.infer<typeof contentSnapshotManifestInputSchema>
+export type ContentSnapshotManifestDto = z.infer<typeof contentSnapshotManifestDtoSchema>

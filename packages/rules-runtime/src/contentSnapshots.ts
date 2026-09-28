@@ -57,6 +57,26 @@ export function contentSnapshotObjectKey(header: ContentSnapshotHeader, sha256: 
   return `v1/${scope.toLowerCase()}/${scopeId}/${kind.toLowerCase()}/${part}/${projectionChecksumSchema.parse(sha256)}.json`
 }
 
+/** The inverse of `contentSnapshotObjectKey`; null for anything that is not a canonical key. */
+export function parseContentSnapshotObjectKey(
+  key: string
+): { header: ContentSnapshotHeader; sha256: string } | null {
+  const [, scope = '', scopeId, kind = '', part, hash] =
+    /^v1\/([a-z]+)\/([^/]+)\/([a-z]+)\/([a-z]+)\/([^/]+)\.json$/.exec(key) ?? []
+  const header = contentSnapshotHeaderSchema.safeParse({
+    format: 1,
+    scope: scope.toUpperCase(),
+    scopeId,
+    kind: kind.toUpperCase(),
+    part
+  })
+  const sha256 = projectionChecksumSchema.safeParse(hash)
+  if (!header.success || !sha256.success) return null
+  return contentSnapshotObjectKey(header.data, sha256.data) === key
+    ? { header: header.data, sha256: sha256.data }
+    : null
+}
+
 /** Equipment picker facts come from the root's stored effective projection, not the variant alone. */
 export type ContentSnapshotIndexSource =
   | Exclude<AuthoredPublicationDocument, { subjectKind: 'EQUIPMENT' }>
