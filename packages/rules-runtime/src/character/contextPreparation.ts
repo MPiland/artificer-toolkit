@@ -35,10 +35,17 @@ import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/co
 
 import { toContentSnapshotIndexEntry } from '../contentSnapshots.js'
 import { readAcquiredEquipmentRules } from './acquiredEquipmentRules.js'
-import { needsCharacterSpellCatalog } from './characterContextSpells.js'
+import { collectContextSpellIds, needsCharacterSpellCatalog } from './characterContextSpells.js'
 import type { CharacterRuleContext } from './characterRuleContext.js'
+import { getCharacterChosenGrantOwners } from './builderEligibility.js'
+import {
+  collectCharacterBuilderFeatures,
+  collectGrantedFeaturesForCharacter
+} from './characterBuilderSelections.js'
+import { getChosenGrantWitnessQuestions } from './chosenGrantChoiceResolver.js'
 import {
   createCharacterBuilderCatalog,
+  toCharacterBuilderEquipmentCatalogRecord,
   toCharacterBuilderRaceCatalogSource,
   toCharacterBuilderSpellCatalogRecord,
   type CharacterBuilderBackgroundCatalogSource,
@@ -59,7 +66,27 @@ export type CharacterRuleContextReaders = {
   readFeatureSources(
     missingFeatureIds: ReadonlySet<string>
   ): Promise<readonly AuthoredPublicationDocument[]>
-  readSpellCatalogue(): Promise<readonly SpellAuthoredDto[]>
+  /**
+   * Readable Spells, including every readable referenced id. Pool readers return the whole Spell
+   * catalogue; commit reads only `referencedSpellIds`, whose ids may also name non-Spell targets.
+   */
+  readSpellCatalogue(referencedSpellIds: ReadonlySet<string>): Promise<readonly SpellAuthoredDto[]>
+}
+
+/** Spells the Character's selections, state, chosen grants and granted features name. */
+function collectCharacterReferencedSpellIds(
+  character: CharacterAuthored,
+  context: CharacterRuleContext
+): ReadonlySet<string> {
+  return new Set([
+    ...(character.intent.spellSelections ?? []).flatMap((selection) => selection.spells),
+    ...(character.intent.chosenGrantSelections ?? []).flatMap((selection) => selection.targetIds),
+    ...(character.state.classes ?? []).flatMap((entry) => [
+      ...(entry.spells?.learned ?? []),
+      ...(entry.spells?.prepared ?? [])
+    ]),
+    ...collectContextSpellIds(character, context, undefined)
+  ])
 }
 
 /** Shared by source batching and context assembly so their required roots cannot diverge. */
@@ -269,7 +296,9 @@ export async function prepareCharacterRuleContext(
       : new Map<string, SpellAuthored>()
   if (needsSpellCatalog) {
     if (!previousSpellDocumentsById) {
-      for (const spell of await readers.readSpellCatalogue())
+      for (const spell of await readers.readSpellCatalogue(
+        collectCharacterReferencedSpellIds(character, context)
+      ))
         spellDocumentsById.set(spell.id, spell as SpellAuthored)
     }
     context.catalog.spells = [...spellDocumentsById.values()]
@@ -347,9 +376,11 @@ function toSpellCatalogRecords(context: PreparedCharacterRuleContext) {
     .map(toCharacterBuilderSpellCatalogRecord)
 }
 
+type CharacterEquipmentPool = Awaited<ReturnType<CharacterBuilderCatalogueReaders['readEquipment']>>
+
 /** Every Equipment parent must be in the same readable pool, without cycles. */
 function toEquipmentCatalogRecords(
-  pool: Awaited<ReturnType<CharacterBuilderCatalogueReaders['readEquipment']>>
+  pool: CharacterEquipmentPool
 ): CharacterBuilderEquipmentCatalogRecord[] | ResolvedEquipment[] {
   if ('entries' in pool) {
     const entries = [...pool.entries].sort(byLabel)
@@ -438,6 +469,136 @@ export async function assembleCharacterBuilderContext<
       spells: toSpellCatalogRecords(context)
     })
   }
+}
+
+/**
+ * Commit's catalogue readers. They read the records a Character references by id, and answer each
+ * pool-emptiness question with one readable witness from the complete pool, or none.
+ */
+export type CharacterReferencedCatalogueReaders = {
+  /** Readable current Equipment among `ids`, with their parents; unreadable ids are skipped. */
+  readEquipment(ids: ReadonlySet<string>): Promise<CharacterEquipmentPool>
+  /** Readable current Feats among `ids`; unreadable ids are skipped. */
+  readFeats(ids: ReadonlySet<string>): Promise<readonly CharacterBuilderFeatCatalogRecord[]>
+  /** A readable subclass of the Class, or null when the complete pool has none. */
+  findSubclass(classId: string): Promise<CharacterBuilderClassCatalogSource | null>
+  /** The pool of the first readable match (among `candidateIds` when given) and its parents. */
+  findEquipment(
+    candidateIds: readonly string[] | null,
+    matches: (pool: CharacterEquipmentPool, id: string) => boolean
+  ): Promise<CharacterEquipmentPool | null>
+  findSpell(
+    candidateIds: readonly string[] | null,
+    matches: (spell: SpellAuthoredDto) => boolean
+  ): Promise<SpellAuthoredDto | null>
+  findFeat(
+    candidateIds: readonly string[] | null,
+    matches: (feat: CharacterBuilderFeatCatalogRecord) => boolean
+  ): Promise<CharacterBuilderFeatCatalogRecord | null>
+}
+
+/**
+ * The commit catalogue: the referenced records plus a witness for each pool-emptiness outcome.
+ * Every option is monotone in the pool, and every selected id is in both pools, so resolution
+ * over this catalogue reaches the complete pool's validations. Two outcomes read emptiness:
+ * `SUBCLASS_SELECTION_REQUIRED` (one visible subclass decides it) and the chosen-grant outcomes
+ * `getChosenGrantWitnessQuestions` lists.
+ */
+export async function assembleCharacterReferencedBuilderContext<
+  TContext extends PreparedCharacterRuleContext
+>(character: CharacterAuthored, context: TContext, readers: CharacterReferencedCatalogueReaders) {
+  const { registry } = context
+  const selected = collectCharacterRuleSourceSelections(character)
+  const idsOf = (kind: AuthoredPublicationDocument['subjectKind']) =>
+    new Set([...selected].flatMap(([id, kinds]) => (kinds.has(kind) ? [id] : [])))
+  const equipment = new Map<string, CharacterBuilderEquipmentCatalogRecord>()
+  const addEquipment = (pool: CharacterEquipmentPool | null) => {
+    if (!pool) return
+    for (const record of toEquipmentCatalogRecords(pool))
+      equipment.set(record.id, toCharacterBuilderEquipmentCatalogRecord(record))
+  }
+  addEquipment(await readers.readEquipment(idsOf('EQUIPMENT')))
+  const feats = new Map((await readers.readFeats(idsOf('FEAT'))).map((feat) => [feat.id, feat]))
+  const classes = new Map(registry.classes.map((record) => [record.id, toClassSource(record)]))
+  const spells = new Map(toSpellCatalogRecords(context).map((spell) => [spell.id, spell]))
+  const createCatalog = () =>
+    createCharacterBuilderCatalog({
+      system: registry.system,
+      races: registry.races.map(toCharacterBuilderRaceCatalogSource),
+      classes: [...classes.values()],
+      backgrounds: registry.backgrounds.map(toBackgroundSource),
+      equipment: [...equipment.values()].sort(byLabel),
+      feats: [...feats.values()].sort(byLabel),
+      spells: [...spells.values()].sort(byLabel)
+    })
+
+  for (const row of character.intent.classes) {
+    const base = registry.classes.find((record) => record.id === row.classId)
+    if (
+      row.subclassId ||
+      base?.category !== 'BASE' ||
+      base.subclassSelectionLevel === undefined ||
+      row.classLevel < base.subclassSelectionLevel ||
+      [...classes.values()].some(
+        (record) => record.category === 'SUBCLASS' && record.parentClassId === row.classId
+      )
+    )
+      continue
+    const witness = await readers.findSubclass(row.classId)
+    if (witness) classes.set(witness.id, witness)
+  }
+
+  const restricted = createCatalog()
+  const { classSelections, selectedBackground, grantedFeatures } =
+    collectGrantedFeaturesForCharacter(character, registry)
+  const owners = getCharacterChosenGrantOwners(
+    character,
+    classSelections,
+    selectedBackground,
+    collectCharacterBuilderFeatures(character, registry, grantedFeatures),
+    registry.feats ?? []
+  )
+  const questions = getChosenGrantWitnessQuestions(
+    character,
+    {
+      system: registry.system,
+      equipment: restricted.equipment,
+      spells: restricted.spells,
+      feats: restricted.feats
+    },
+    owners
+  )
+  for (const question of questions) {
+    switch (question.kind) {
+      case 'EQUIPMENT':
+        addEquipment(
+          await readers.findEquipment(question.candidateIds, (pool, id) => {
+            const record = toEquipmentCatalogRecords(pool).find((entry) => entry.id === id)
+            return (
+              record !== undefined &&
+              question.matches(toCharacterBuilderEquipmentCatalogRecord(record))
+            )
+          })
+        )
+        break
+      case 'SPELL': {
+        // Publication-validated DTOs bridge to the authored type as the registry does.
+        const witness = await readers.findSpell(question.candidateIds, (spell) =>
+          question.matches(toCharacterBuilderSpellCatalogRecord(spell as SpellAuthored))
+        )
+        if (witness)
+          spells.set(witness.id, toCharacterBuilderSpellCatalogRecord(witness as SpellAuthored))
+        break
+      }
+      case 'FEAT': {
+        const witness = await readers.findFeat(question.candidateIds, question.matches)
+        if (witness) feats.set(witness.id, witness)
+        break
+      }
+    }
+  }
+  requireSubclassParents(classes)
+  return { ...context, catalog: createCatalog() }
 }
 
 /** Active Sheets need current selections and the complete eligible Class/Spell catalogues. */

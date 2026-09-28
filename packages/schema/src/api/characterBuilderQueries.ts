@@ -3,6 +3,7 @@ import {
   characterBuilderPreviewPayloadDtoSchema,
   characterBuilderCommitReceiptDtoSchema
 } from './characterBuilder.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { z, lazySchema } from '../zod.js'
 
 /** Candidate commands are bound to an owned draft generation; the server owns its active baseline. */
@@ -28,6 +29,32 @@ export const characterBuilderCommitOutputSchema = lazySchema(() =>
   })
 )
 
+/**
+ * Commit validates on the server from referenced content only (ADR 0036 S7). A feature whose
+ * acquisition names no root (a MANUAL grant, say) carries the root the client found it in; the
+ * server verifies that the root is readable and holds the feature.
+ */
+export const characterBuilderCommitInputSchema = lazySchema(() =>
+  z.extend(characterBuilderResolveInputSchema, {
+    featureSourceHints: z.optional(
+      z
+        .array(z.strictObject({ featureId: postgresUuidSchema, rootId: postgresUuidSchema }))
+        .check(z.maxLength(500))
+    )
+  })
+)
+
+/** `ConvexError` data when commit cannot read content the Character references. */
+export const characterBuilderCommitErrorDataSchema = lazySchema(() =>
+  z.strictObject({
+    code: z.literal('SOURCE_UNAVAILABLE'),
+    subjectId: z.string().check(z.minLength(1)),
+    message: z.string().check(z.minLength(1))
+  })
+)
+
 export type CharacterBuilderResolveInput = z.infer<typeof characterBuilderResolveInputSchema>
+export type CharacterBuilderCommitInput = z.infer<typeof characterBuilderCommitInputSchema>
+export type CharacterBuilderCommitErrorData = z.infer<typeof characterBuilderCommitErrorDataSchema>
 export type CharacterBuilderPreviewOutput = z.infer<typeof characterBuilderPreviewOutputSchema>
 export type CharacterBuilderCommitOutput = z.infer<typeof characterBuilderCommitOutputSchema>

@@ -140,6 +140,129 @@ export function resolveCharacterChosenGrantChoices(
   return choices.map((choice) => applyProficiencyEligibility(choice, choices, fixedRanks))
 }
 
+/**
+ * Catalogue facts, beyond the records a Character references, that decide its chosen-grant
+ * outcomes: whether an empty choice has any candidate in the complete pool, and whether each
+ * selected Equipment property is offered by each property grant. A found witness record is added
+ * to a restricted catalogue; adding records from the complete pool never removes an option.
+ */
+export type ChosenGrantWitnessQuestion =
+  | {
+      kind: 'EQUIPMENT'
+      candidateIds: readonly string[] | null
+      matches(record: CharacterBuilderEquipmentCatalogRecord): boolean
+    }
+  | {
+      kind: 'SPELL'
+      candidateIds: readonly string[] | null
+      matches(record: CharacterBuilderSpellCatalogRecord): boolean
+    }
+  | {
+      kind: 'FEAT'
+      candidateIds: readonly string[] | null
+      matches(record: CharacterBuilderFeatCatalogRecord): boolean
+    }
+
+type ChoiceGrantTarget =
+  | ChoiceGrantShape
+  | NonNullable<ChoiceGrantShape['progression']>['levels'][number]
+
+export function getChosenGrantWitnessQuestions(
+  character: CharacterAuthored,
+  registry: CharacterChosenGrantChoiceRegistry,
+  owners: CharacterChosenGrantOwner[]
+): ChosenGrantWitnessQuestion[] {
+  const only = (pool: Partial<CharacterChosenGrantChoiceRegistry>) => ({
+    ...registry,
+    equipment: [],
+    spells: [],
+    feats: [],
+    ...pool
+  })
+  const targetsOf = (owner: CharacterChosenGrantOwner, grant: ChoiceGrantShape) =>
+    grant.scalingKind === SCALING.PER_LEVEL
+      ? (grant.progression?.levels ?? [])
+          .filter((entry) => entry.level <= owner.activeLevel)
+          .map((entry) => ({ entry, target: entry as ChoiceGrantTarget }))
+      : [{ entry: undefined, target: grant as ChoiceGrantTarget }]
+  const isPropertyGrant = (grant: ChoiceGrantShape) =>
+    grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT &&
+    grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY
+  const listed = (target: ChoiceGrantTarget, ids: string[] | undefined) =>
+    target.authoringModeKind === AUTHORING_MODE_KIND.ALL ? null : (ids ?? [])
+
+  const questions: ChosenGrantWitnessQuestion[] = []
+  const selectedProperties = new Set<string>()
+  for (const owner of owners) {
+    for (const grant of flattenOwnerGrants(owner)) {
+      if (grant.selectionKind !== AUTHORING_SELECTION_KIND.CHOSEN) continue
+      for (const { entry, target } of targetsOf(owner, grant)) {
+        const choice = createChoice(character, registry, owner, grant, entry)
+        if (choice.requiredCount <= 0) continue
+        if (isPropertyGrant(grant))
+          for (const id of choice.selectedTargetIds) selectedProperties.add(id)
+        if (choice.options.length > 0) continue
+        const hasOption = (pool: Partial<CharacterChosenGrantChoiceRegistry>) =>
+          getGrantOptions(grant, target, only(pool)).length > 0
+        if (grant.grantKind === GRANT_KIND.SPELL_GRANT)
+          questions.push({
+            kind: 'SPELL',
+            candidateIds: listed(target, target.spellIds),
+            matches: (record) => hasOption({ spells: [record] })
+          })
+        else if (grant.grantKind === GRANT_KIND.FEAT_GRANT)
+          questions.push({
+            kind: 'FEAT',
+            candidateIds: listed(target, target.featIds),
+            matches: (record) => hasOption({ feats: [record] })
+          })
+        else if (
+          grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT &&
+          (grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT || isPropertyGrant(grant))
+        )
+          questions.push({
+            kind: 'EQUIPMENT',
+            candidateIds: isPropertyGrant(grant) ? null : listed(target, target.equipmentIds),
+            matches: (record) => hasOption({ equipment: [record] })
+          })
+      }
+    }
+  }
+  // Selected properties are validated, and disabled by granted ranks, through each property
+  // grant's options, which a property joins only when some pool Equipment carries it.
+  for (const owner of owners) {
+    for (const grant of flattenOwnerGrants(owner)) {
+      if (!isPropertyGrant(grant)) continue
+      const targets =
+        grant.selectionKind === AUTHORING_SELECTION_KIND.CHOSEN
+          ? targetsOf(owner, grant).map(({ target }) => target)
+          : grant.selectionKind === AUTHORING_SELECTION_KIND.GRANTED
+            ? [grant]
+            : []
+      for (const target of targets) {
+        for (const property of selectedProperties) {
+          const offers = (equipment: CharacterBuilderEquipmentCatalogRecord[]) =>
+            getProficiencyOptions(grant, target as ChoiceGrantShape, only({ equipment })).some(
+              (option) => option.id === property
+            )
+          if (offers(registry.equipment)) continue
+          if (
+            target.authoringModeKind !== AUTHORING_MODE_KIND.ALL &&
+            !target.properties?.includes(property)
+          )
+            continue
+          questions.push({
+            kind: 'EQUIPMENT',
+            candidateIds: null,
+            matches: (record) => offers([record])
+          })
+        }
+      }
+    }
+  }
+  return questions
+}
+
 function flattenOwnerGrants(owner: CharacterChosenGrantOwner): ChoiceGrantShape[] {
   return [
     ...(owner.grants.proficiencies ?? []).map((grant) => grant as unknown as ChoiceGrantShape),
