@@ -422,6 +422,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 * **D67** (2026-09-28) Content snapshots (ADR 0036) use one `SOURCE` scope per content source, PLATFORM sources such as the SRD included, plus `CAMPAIGN` scopes for shares.
   - **Why:** a Campaign's rules catalogues choose which PLATFORM sources it sees (for example 2014 vs 2024 in one System), and snapshot documents carry no source id. One System-wide object would leak another catalogue's content into the pickers.
   - **`SYSTEM` scope:** holds only System-level data (the System document, its vocabulary and reusable definitions), with its own object format, added in a later slice when a reader needs it. Until then no `SYSTEM` head is built.
+- **D68** (2026-09-28) Replay after later commands (ADR 0035 Amendment 12).
+  - Command rows keep a small replay receipt instead of the full result.
+  - A retry replays with byte-identical bytes while the Run is still at that command's version, which is the retry window.
+  - After later commands, a replay returns the receipt plus the current projection.
+  - Idempotency is unchanged: no second effect and no reroll.
+  - Run CREATE and decision replays already worked this way.
+
 
 ## Resolved
 
