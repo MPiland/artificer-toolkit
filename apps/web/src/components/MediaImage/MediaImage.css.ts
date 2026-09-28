@@ -211,7 +211,8 @@ export const libraryTile = style({
       selectors: {
         '&[aria-pressed="true"]': {
           borderColor: foundationVars.color.accent.solid,
-          boxShadow: `0 0 0 2px ${foundationVars.color.accent.solid}`
+          outline: `2px solid ${foundationVars.color.accent.solid}`,
+          outlineOffset: -2
         }
       }
     }

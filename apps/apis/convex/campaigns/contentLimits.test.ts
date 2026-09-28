@@ -163,7 +163,7 @@ describe('per-Campaign content limits (Q18)', () => {
   it('counts notebook sections and attachments through every insert and cascade delete', async () => {
     const { t, owner, other, campaign } = await setup()
     const note = await owner.caller.mutation(createNotebook, section(campaign.id))
-    const file = await readyCampaignFile(t, other.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId)
     await other.caller.mutation(createAttachment, {
       campaignId: campaign.id,
       assetId: file.id,
@@ -192,7 +192,7 @@ describe('per-Campaign content limits (Q18)', () => {
     const { t, owner, other, campaign } = await setup()
     await seedUsage(t, campaign.id, { entries: FREE_ENTRIES })
     await setTier(t, other.userId, 'PRO_GM')
-    const file = await readyCampaignFile(t, other.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId)
     const attach = () =>
       other.caller.mutation(createAttachment, {
         campaignId: campaign.id,
