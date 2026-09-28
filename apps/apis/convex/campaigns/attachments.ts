@@ -21,6 +21,7 @@ import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
 import { readCampaignAuthorLabels, requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import { removeCampaignAttachment } from './attachmentDocuments'
+import { assertCampaignContentAllowed } from './contentUsage'
 
 export const readDelivery = internalQuery({
   args: zodToConvexFields(getCampaignAttachmentDeliveryInputSchema.shape),
@@ -103,6 +104,7 @@ export const create = mutation({
     const { campaign } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     requireCampaignAuthorUsername(actor.username)
+    await assertCampaignContentAllowed(ctx.db, campaign, 'campaignEntriesPerCampaign')
     const sessionId = input.sessionId?.toLowerCase() ?? null
     const noteSectionId = input.noteSectionId?.toLowerCase() ?? null
     if (

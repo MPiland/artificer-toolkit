@@ -5,6 +5,7 @@ import type {
   UpdateEncounterBlueprintInputDto,
   EncounterBlueprintDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type {
   EncounterBlueprintListInput,
@@ -118,8 +119,8 @@ describe('native Blueprint commands', () => {
         enemies: original.enemies
       })
     ).rejects.toThrow('unavailable')
-    await first.caller.mutation(create, input())
-    await first.caller.mutation(create, input())
+    for (let saved = 1; saved < ENTITLEMENT_LIMITS.FREE.savedEncounters; saved++)
+      await first.caller.mutation(create, input())
     await expect(first.caller.mutation(create, input())).rejects.toThrow('savedEncounters limit')
     expect(await first.caller.mutation(create, original)).toEqual(created)
     await t.run(async (ctx) => {

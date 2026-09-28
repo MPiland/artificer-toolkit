@@ -71,6 +71,11 @@ export const campaignTables = {
     createdAt: v.string(),
     updatedAt: v.string()
   }).index('by_campaignId', ['campaignId']),
+  campaignContentUsage: defineTable({
+    campaignId: zodToConvex(postgresUuidSchema),
+    entries: v.number(),
+    scenes: v.number()
+  }).index('by_campaignId', ['campaignId']),
   campaignCopyJobs: defineTable(zodToConvexFields(campaignStoredCopySchema.shape))
     .index('by_publicId', ['id'])
     .index('by_ownerUserId_commandId', ['ownerUserId', 'command.commandId'])

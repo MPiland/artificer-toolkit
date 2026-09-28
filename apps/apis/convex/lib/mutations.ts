@@ -8,6 +8,7 @@ import {
 } from '../_generated/server'
 import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
 import { memoizeMutationReads } from './transactionReads'
+import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 
 type SceneVisionScope = Pick<SceneVisionRevision, 'scope' | 'id'>
 
@@ -156,6 +157,29 @@ triggers.register('campaignNotebookSections', async (ctx, change) => {
     if (campaign) await ctx.innerDb.patch(campaign._id, { notebookRevision: crypto.randomUUID() })
   }
 })
+
+// Per-Campaign entry and Scene counters (Q18). Triggers see every insert and delete, including
+// cascades, so no create or cleanup path maintains them by hand.
+function registerCampaignContentUsage(
+  tableName:
+    | 'campaignNotebookSections'
+    | 'campaignAttachments'
+    | 'campaignVehicles'
+    | 'sceneDefinitions',
+  resource: 'campaignEntriesPerCampaign' | 'scenesPerCampaign'
+) {
+  triggers.register(tableName, async (ctx, change) => {
+    if (change.operation === 'insert')
+      await changeCampaignContentUsage(ctx.innerDb, change.newDoc.campaignId, resource, 1)
+    else if (change.operation === 'delete')
+      await changeCampaignContentUsage(ctx.innerDb, change.oldDoc.campaignId, resource, -1)
+  })
+}
+
+registerCampaignContentUsage('campaignNotebookSections', 'campaignEntriesPerCampaign')
+registerCampaignContentUsage('campaignAttachments', 'campaignEntriesPerCampaign')
+registerCampaignContentUsage('campaignVehicles', 'campaignEntriesPerCampaign')
+registerCampaignContentUsage('sceneDefinitions', 'scenesPerCampaign')
 
 registerScope('characters', (_, document) => characterScope(document.id))
 registerScope('characterDrafts', (_, document) => characterScope(document.characterId))

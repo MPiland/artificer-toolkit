@@ -451,7 +451,8 @@ describe('native Campaign deletion', () => {
         'sceneFogLayers',
         'sceneFogChunks',
         'sceneGeometrySaves',
-        'campaignScenePresentations'
+        'campaignScenePresentations',
+        'campaignContentUsage'
       ]) {
         expect(after.tables[name], name).toEqual(
           before.tables[name].filter((row) => {

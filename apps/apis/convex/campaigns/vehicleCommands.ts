@@ -18,6 +18,7 @@ import { presentCampaignVehicle } from './vehicleDocuments'
 import { executeCampaignVehicleLifecycle } from './vehicleLifecycle'
 import { readCampaignInventory } from './partyInventoryDocuments'
 import { requireInventoryVehicleEditable } from './inventoryCleanupGuards'
+import { assertCampaignContentAllowed } from './contentUsage'
 
 export const create = internalMutation({
   args: zodToConvexFields(createCampaignVehicleInputSchema.shape),
@@ -28,6 +29,7 @@ export const create = internalMutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('Only the Campaign owner can manage Vehicles.')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    await assertCampaignContentAllowed(ctx.db, campaign, 'campaignEntriesPerCampaign')
     const vehicleDefinitionId = input.vehicleDefinitionId.toLowerCase()
     await requireCampaignVehicleDefinition(ctx, campaign, vehicleDefinitionId)
     const now = new Date().toISOString()

@@ -20,6 +20,7 @@ import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
 import { removeCampaignAttachment } from './attachmentDocuments'
+import { assertCampaignContentAllowed } from './contentUsage'
 
 function present(section: CampaignNotebookSectionDto, maturity: 'STANDARD' | 'MATURE') {
   return campaignNotebookSectionDtoSchema.parse({
@@ -95,6 +96,7 @@ export const create = mutation({
   handler: async (ctx, args): Promise<CampaignNotebookSectionDto> => {
     const input = createCampaignNotebookSectionInputSchema.parse(args)
     const { campaign, userId } = await requireWritableNotebook(ctx, input.campaignId)
+    await assertCampaignContentAllowed(ctx.db, campaign, 'campaignEntriesPerCampaign')
     const now = new Date().toISOString()
     const section = campaignStoredNotebookSectionSchema.parse({
       ...input,

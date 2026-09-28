@@ -21,6 +21,7 @@ import type { Doc } from '../_generated/dataModel'
 import { requireIdentity } from '../lib/identity'
 import { readAuthUser } from '../lib/authUserReads'
 import { createCampaignForOwner } from './create'
+import { assertCampaignContentAllowed } from './contentUsage'
 import { readCampaignDetail, requireCampaignAuthority } from './documents'
 
 const PAGE_SIZE = 8
@@ -330,6 +331,12 @@ export const step = internalMutation({
         maximumRowsRead: PAGE_SIZE,
         maximumBytesRead: MAX_BYTES
       })
+    await assertCampaignContentAllowed(
+      ctx.db,
+      { id: job.destinationCampaignId, ownerUserId: job.ownerUserId },
+      'campaignEntriesPerCampaign',
+      page.page.length
+    )
     const now = new Date().toISOString()
     for (const row of page.page) {
       const { _id, _creationTime, ...stored } = row

@@ -114,6 +114,38 @@ async function homebrew(
 }
 
 describe('native Campaign Vehicle instances', () => {
+  it('counts Vehicles as Campaign entries against the host limit', async () => {
+    const base = await fixture()
+    const campaignRecord = await campaign(base.first)
+    const input = { campaignId: campaignRecord.id, vehicleDefinitionId: cart.id }
+    const created = await base.first.caller.mutation(create, input)
+    const usage = () =>
+      base.t.run((ctx) =>
+        ctx.db
+          .query('campaignContentUsage')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignRecord.id))
+          .unique()
+      )
+    expect(await usage()).toMatchObject({ entries: 1, scenes: 0 })
+    await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('campaignContentUsage')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignRecord.id))
+        .unique()
+      if (!row) throw new Error('Missing Campaign content usage.')
+      await ctx.db.patch(row._id, { entries: 150 })
+    })
+    await expect(base.first.caller.mutation(create, input)).rejects.toThrow(
+      'This Campaign has reached its campaignEntriesPerCampaign limit.'
+    )
+    await base.first.caller.mutation(remove, {
+      campaignId: campaignRecord.id,
+      vehicleId: created.id,
+      expectedVersion: created.version
+    })
+    expect(await usage()).toMatchObject({ entries: 149 })
+  }, 60000)
+
   it('supports normalized CRUD, owner-only writes, versions, masking, and archived read-only access', async () => {
     const base = await fixture()
     const campaignRecord = await campaign(base.first)

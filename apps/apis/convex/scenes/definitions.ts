@@ -22,6 +22,7 @@ import { type MutationCtx } from '../_generated/server'
 import { internalMutation, mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
+import { assertCampaignContentAllowed } from '../campaigns/contentUsage'
 import {
   refreshMapReferenceFlag,
   requireSceneMap,
@@ -123,7 +124,9 @@ export const begin = mutation({
         throw new Error('Scene definition save expired.')
       return progress(save)
     }
-    if (input.sceneId !== null) {
+    if (input.sceneId === null)
+      await assertCampaignContentAllowed(ctx.db, campaign, 'scenesPerCampaign')
+    else {
       const { definition } = await currentDefinition(ctx, campaign.id, input.sceneId)
       if (definition.version !== input.expectedVersion)
         throw new Error('Scene definition changed before this save began.')
@@ -281,6 +284,7 @@ export const publish = mutation({
       .unique()
     if (save.expectedVersion === null) {
       if (existing) throw new Error('Scene definition already exists.')
+      await assertCampaignContentAllowed(ctx.db, campaign, 'scenesPerCampaign')
     } else {
       if (
         !existing ||
