@@ -52,7 +52,6 @@ import {
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { presentCampaignCharacterHistory } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
-import type { Doc } from '../_generated/dataModel'
 import { type MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from './acquiredEquipment'
 import { mutation } from '../lib/mutations'
@@ -64,6 +63,7 @@ import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { prepareCharacterRest } from './rest'
 import { readCharacterReceiptHistory } from './documents'
+import type { CharacterRecordRow } from './stateDocuments'
 function applySupportedCommand(
   character: CharacterAuthored,
   sheet: CharacterSheetCommandResponseDto['sheet'],
@@ -512,7 +512,7 @@ export async function executeCharacterSheetCommand(
     command.type === 'REMOVE_SHEET_EXTRA'
   const unchangedSources =
     changesSourceRecords || catalogScope === 'resolution' ? undefined : initial.sourceContext
-  const write = (document: typeof updated, row: Doc<'characters'>) =>
+  const write = (document: typeof updated, row: CharacterRecordRow) =>
     writeCharacterRecord(ctx, {
       current: row,
       fields: { streamVersion, updatedAt: occurredAt },

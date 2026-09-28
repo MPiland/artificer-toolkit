@@ -195,10 +195,12 @@ async function listOwner(ctx: EncounterReadContext, owner: ActiveRuleEffectOwner
 
 export async function listActiveRuleEffects(
   ctx: EncounterReadContext,
-  inputOwner: ActiveRuleEffectOwner
+  inputOwner: ActiveRuleEffectOwner,
+  /** The caller has read or written the owner in this transaction. */
+  options: { ownerVerified?: boolean } = {}
 ): Promise<ActiveRuleEffectRecord[]> {
   const owner = ownerFor(inputOwner)
-  await requireOwner(ctx, owner)
+  if (!options.ownerVerified) await requireOwner(ctx, owner)
   const effects = await listOwner(ctx, owner)
   if (effects.length > MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)
     throw new Error('Active rule effects exceed the supported bound.')

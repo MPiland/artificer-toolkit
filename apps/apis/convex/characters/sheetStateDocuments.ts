@@ -11,7 +11,9 @@ import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/ap
 import { getCharacterSheetAdjustmentSlotKey } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
 import type { Doc } from '../_generated/dataModel'
 
-export function readCharacterSheetState(record: Doc<'characters'>): CharacterSheetState {
+export function readCharacterSheetState(
+  record: Pick<Doc<'characters'>, 'id' | 'sheetState'>
+): CharacterSheetState {
   if (!record.sheetState)
     return {
       adjustments: [],

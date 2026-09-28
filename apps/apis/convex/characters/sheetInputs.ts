@@ -1,6 +1,7 @@
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetCampaignContext } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import type { prepareCharacterRuleSources } from '@artificer-toolkit/rules-runtime/character/characterRuleSnapshot'
+import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
 import {
@@ -14,6 +15,7 @@ import {
   readCharacterSheetState,
   resolveCharacterId
 } from './documents'
+import type { CharacterRecordRow } from './stateDocuments'
 import { loadCharacterBuilderContext } from './builderContext'
 
 /** Reuse only within one transaction while source-backed record membership is unchanged. */
@@ -25,19 +27,24 @@ export type CharacterSheetSourceContext = {
 }
 
 /** Loads authorized stored inputs without Builder readiness or Character rule evaluation. */
-export async function loadCharacterSheetInputs(
+export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow = Doc<'characters'>>(
   ctx: QueryCtx,
   userId: string,
   lookupId: string,
   campaignId?: string,
   sourceContext?: CharacterSheetSourceContext,
   catalogScope: 'active' | 'resolution' = 'active',
-  authorityScope?: import('../campaigns/authority').CampaignInternalScope
+  authorityScope?: import('../campaigns/authority').CampaignInternalScope,
+  /** The row this transaction just wrote, evaluated without reading it back. */
+  written?: TRow
 ) {
   const id = await resolveCharacterId(ctx, lookupId)
   if (!id) return null
-  const { active, draft } = await loadCharacterState(ctx, id)
+  const stored = await loadCharacterState(ctx, id, written === undefined)
+  const active: TRow | Doc<'characters'> | null = written ?? stored.active
+  const { draft } = stored
   if (!active) return null
+  if (written && written.id !== id) throw new Error('Written Character row identity mismatch.')
   if (campaignId) {
     const { assignment } = await requireCampaignCharacterAuthority(
       ctx,

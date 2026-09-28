@@ -5,6 +5,10 @@ import type {
   AuthoredPublicationDocument
 } from '@artificer-toolkit/schema/api/authoredPublication'
 import { prepareCharacterRuleContext } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
+import {
+  characterFeatureProvenanceRootId,
+  publicationFeatureIds
+} from '@artificer-toolkit/rules-runtime/character/featureSourceHints'
 import type { CharacterAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -62,51 +66,6 @@ export async function readReferencedRoot(
     .unique()
   reads?.roots.set(id, root)
   return root
-}
-
-type FeatureProvenance = CharacterAuthored['intent']['featureAcquisitions'][number]['source']
-
-/** The root an acquisition's provenance names; OPTION follows its parent acquisition. */
-function provenanceRootId(
-  character: CharacterAuthored,
-  source: FeatureProvenance,
-  visited = new Set<string>()
-): string | undefined {
-  switch (source.kind) {
-    case 'CLASS':
-      return source.classId
-    case 'SUBCLASS':
-      return source.subclassId
-    case 'RACE':
-      return source.raceId
-    case 'SUBRACE':
-      return source.subraceId
-    case 'BACKGROUND':
-      return source.backgroundId
-    case 'FEAT':
-      return source.featId
-    case 'OPTION': {
-      if (visited.has(source.acquiredParentId)) return undefined
-      visited.add(source.acquiredParentId)
-      const parent = character.intent.featureAcquisitions.find(
-        (acquisition) => acquisition.id === source.acquiredParentId
-      )
-      return parent ? provenanceRootId(character, parent.source, visited) : undefined
-    }
-    default:
-      return undefined
-  }
-}
-
-/** Feature ids `prepareCharacterRuleContext` takes from a publication. */
-function publicationFeatureIds(published: AuthoredPublicationDocument): Set<string> {
-  const { document } = published
-  const features = 'features' in document ? (document.features ?? []) : []
-  const ancestry =
-    published.subjectKind === 'RACE' && published.document.category === 'BASE'
-      ? (published.document.ancestry?.options.flatMap((option) => option.features ?? []) ?? [])
-      : []
-  return new Set([...features, ...ancestry].map((feature) => feature.id))
 }
 
 /** Current authorized source context; Character ownership is not a Campaign GM grant. */
@@ -178,7 +137,7 @@ export async function loadCharacterRuleContext(
       const rootIds = new Set(
         character.intent.featureAcquisitions.flatMap((acquisition) => {
           if (acquisition.featureId !== featureId) return []
-          const rootId = provenanceRootId(character, acquisition.source)
+          const rootId = characterFeatureProvenanceRootId(character, acquisition.source)
           return rootId ? [rootId] : []
         })
       )

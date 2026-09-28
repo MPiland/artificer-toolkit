@@ -92,7 +92,8 @@ export async function commitCharacter(
   })
   await deleteCharacterDraftPayload(ctx, draftRecord)
   await ctx.db.delete(draftRecord._id)
-  await syncAccountUsage(ctx, 'personalCharacters', committed.id)
+  // This mutation verified the owner and just wrote the row.
+  await syncAccountUsage(ctx, 'personalCharacters', committed.id, userId)
   return characterBuilderCommitOutputSchema.parse({
     character: encoded,
     publicId,

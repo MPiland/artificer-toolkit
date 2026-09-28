@@ -104,14 +104,19 @@ async function changeUsage(
 export async function syncAccountUsage(
   ctx: MutationCtx,
   resource: AccountUsageResource,
-  sourceId: string
+  sourceId: string,
+  /** The source's owner, when the caller has just written the source and verified ownership. */
+  writtenOwnerUserId?: string | null
 ): Promise<void> {
   const existing = await ctx.db
     .query('accountUsageEntries')
     .withIndex('by_resource_sourceId', (q) => q.eq('resource', resource).eq('sourceId', sourceId))
     .unique()
   if (existing && !(await isImportRowVisible(ctx, existing.importJobId))) return
-  const resolvedOwnerUserId = await ownerForSource(ctx, resource, sourceId)
+  const resolvedOwnerUserId =
+    writtenOwnerUserId !== undefined
+      ? writtenOwnerUserId
+      : await ownerForSource(ctx, resource, sourceId)
   const currentOwnerProfile = resolvedOwnerUserId
     ? await ctx.db
         .query('userProfiles')

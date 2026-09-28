@@ -7,12 +7,19 @@ import type { QueryCtx } from '../_generated/server'
 export const characterDocumentSchema = zMini.omit(characterAuthoredDtoSchema, {
   primaryRulesCatalogueId: true
 })
-export async function loadCharacterState(ctx: QueryCtx, characterId: string) {
+export async function loadCharacterState(
+  ctx: QueryCtx,
+  characterId: string,
+  /** False when the caller already holds the active row it wrote in this transaction. */
+  readActive = true
+) {
   const [active, draft] = await Promise.all([
-    ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterId))
-      .unique(),
+    readActive
+      ? ctx.db
+          .query('characters')
+          .withIndex('by_publicId', (q) => q.eq('id', characterId))
+          .unique()
+      : null,
     ctx.db
       .query('characterDrafts')
       .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
@@ -21,7 +28,10 @@ export async function loadCharacterState(ctx: QueryCtx, characterId: string) {
   return { active, draft }
 }
 
-export function readCharacterRecord(record: Doc<'characters'>) {
+/** A Character row as written in this transaction; its system creation time is not needed. */
+export type CharacterRecordRow = Omit<Doc<'characters'>, '_creationTime'>
+
+export function readCharacterRecord(record: CharacterRecordRow) {
   const raw: unknown = JSON.parse(record.documentJson)
   if (checksumRuleDocument(raw) !== record.checksum)
     throw new Error('Stored Character checksum mismatch.')

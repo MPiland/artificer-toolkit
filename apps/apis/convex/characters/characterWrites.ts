@@ -4,10 +4,10 @@ import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/
 import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
+import type { CharacterRecordRow } from './stateDocuments'
 
 type CharacterStoredRecord = z.infer<typeof characterStoredRecordSchema>
 type CharacterRecordStats = ReturnType<typeof resolveCharacterRecordStats>
@@ -27,7 +27,7 @@ type CharacterRecordFields = Omit<
 export async function writeCharacterRecord(
   ctx: MutationCtx,
   input: {
-    current: Doc<'characters'> | null
+    current: CharacterRecordRow | null
     fields: Partial<CharacterRecordFields> &
       Pick<CharacterRecordFields, 'streamVersion' | 'updatedAt'>
     document?: unknown
@@ -49,10 +49,11 @@ export async function writeCharacterRecord(
   // Native writes drop the cutover-only catalogue field that old records may still carry.
   const {
     _id: _rowId,
-    _creationTime: _created,
     primaryRulesCatalogueId: _retiredCatalogue,
-    ...stored
-  } = current ?? { _id: null, _creationTime: null, primaryRulesCatalogueId: undefined }
+    ...fields
+  } = current ?? { _id: null, primaryRulesCatalogueId: undefined }
+  // A row read from the database also carries its system creation time.
+  const { _creationTime: _created, ...stored } = { _creationTime: undefined, ...fields }
   const record = characterStoredRecordSchema.parse({
     ...stored,
     ...input.fields,
@@ -82,6 +83,7 @@ export async function writeCharacterRecord(
   if (record.status !== 'ACTIVE' || input.stats !== undefined)
     return { row: (await ctx.db.get(rowId))!, facts: null }
   const reader = input.evaluateAs ?? { userId: record.userId }
+  // Evaluate the row as written; reading it back would only return these values.
   const facts = await loadCharacterSheetFacts(
     ctx,
     reader.userId,
@@ -89,7 +91,8 @@ export async function writeCharacterRecord(
     reader.campaignId,
     input.sourceContext,
     reader.catalogScope,
-    reader.authorityScope
+    reader.authorityScope,
+    { ...record, _id: rowId }
   )
   if (!facts) throw new Error('Written Character is unavailable for evaluation.')
   const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
