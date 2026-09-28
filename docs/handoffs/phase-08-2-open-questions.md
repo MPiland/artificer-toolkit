@@ -69,7 +69,7 @@ Size the free hosting tier for a launch cohort: 100 Free users, of whom 20 host 
    - The Free media quota drops from 250 MB to 100 MB, in line with Roll20's free tier (to be verified). The paid tiers stay unchanged.
 4. **Invisible safety caps.** Generous ceilings on notes, chat and records per Campaign guard against abuse, well above any real group. Retention pruning covers internal receipts and logs.
 
-**Answer:**
+**Answer (user, 2026-09-27):** The limits are approved: content art is capped at 2048 px, maps keep full resolution, and the Free media quota is 100 MB. Add the "My images" picker. Still open: whether the "20 cities" worry is about hosting cost (the byte quota covers that) or about an upgrade incentive (a product limit on count, like the existing 20 homebrew roots).
 
 ## Decisions to review
 
