@@ -10,7 +10,20 @@
 
 ADR 0035 Decision 9 turns the free hosting allowances into hard read budgets for V15 and the Builder. Those budgets need a target: how many active groups, or sessions a month, the free tier must carry at launch before a paid plan is justified.
 
-**Recommendation:** 20 groups, each playing four 4-hour sessions a month, plus 50 character builds a month. The budgets divide each monthly free allowance (Convex database I/O, Cloudflare Durable Object requests and duration, Netlify bandwidth) by that load, with 50% headroom. Current free-tier limits will be checked when the budgets are set.
+**The product tiers already exist** (docs/roadmap/README.md launch-planning matrix; packages/shared/src/domains/account/entitlementPolicy.ts). They say what users pay us: Free, Player at $4.99, GM at $9.99 and Pro GM at $49.99.
+
+Q16 is the other side: what we pay hosting providers before revenue justifies a paid plan. The tiers shape it in three ways:
+- **Free users get live play.** Every plan, Free included, may host or join a Campaign and use Encounters and the VTT. So the hosting cost of a free group's session must be near zero by design, not merely small.
+- **The load unit is a table.** A Free or Player host runs 1 active Campaign with up to 5 player seats, which is the V15 table (1 GM and 5 players). A GM or Pro GM host allows 12 seats, which is the worst-case table.
+- **The break-even is a handful of subscribers.** A few GM subscriptions pay for a paid hosting plan, so the free hosting tier only has to carry the launch cohort until those first conversions.
+
+**Recommendation:**
+- **Capacity:** the free hosting tier carries 20 active tables, each playing four 4-hour sessions a month (mostly 6-person tables, with some 13-person tables), plus 50 Character builds a month.
+- **Budgets:** each monthly free allowance (Convex database I/O, Cloudflare Durable Object requests and duration, Netlify bandwidth), divided by that load, with 50% headroom.
+- **Gates:**
+  - V15 is measured at 6 people.
+  - A 13-person variant checks that per-session reads stay flat as seats grow.
+- **Before the budgets are set:** check the current free-tier limits.
 
 **Answer:**
 
