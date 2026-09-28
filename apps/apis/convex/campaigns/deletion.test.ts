@@ -222,7 +222,8 @@ describe('native Campaign deletion', () => {
     )
     expect(after.tables.sceneVisionRevisions).toEqual(
       before.tables.sceneVisionRevisions.filter(
-        (row) => !('scope' in row && row.scope === 'CAMPAIGN' && row.id === campaign.id)
+        (row) =>
+          !('scope' in row && 'id' in row && row.scope === 'CAMPAIGN' && row.id === campaign.id)
       )
     )
     expect(after.tables.accountUsageEntries).toEqual(
