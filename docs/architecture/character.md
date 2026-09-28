@@ -387,7 +387,8 @@ object-key enumeration, native serialization produces the existing canonical rul
 other input retains the sorted canonical serializer. Both paths use the same UTF-8 SHA-256 checksum
 and metadata checks. This changes no stored format, ownership check or publication contract.
 
-Preview, commit, Sheet and source-loss preparation use the same loader's resolution scope: selected
+Preview, Sheet and source-loss preparation use the same loader's resolution scope (commit reads
+referenced content only; see [Referenced commit reads](#referenced-commit-reads-adr-0036-s7--local-implementation)): selected
 Race/Background records, with the Class catalogue included when a selected base class reaches its
 subclass selection level. Equipment, Feat and conditional Spell candidate pools stay complete for
 choice validation and Sheet options. Builder get/resolve retain all selectors. Preview returns the
@@ -551,6 +552,38 @@ A consumed draft cannot commit again; concurrent or repeated calls cannot duplic
 This is not a retained command-receipt/reconnect implementation or P08 acceptance. Native Sheet,
 Remaining Campaign lifecycle integration, managed limits and final-source browser
 journeys remain required before the replacement lifecycle is accepted.
+
+#### Referenced commit reads (ADR 0036 S7) — local implementation
+
+Commit validates on the server from the content the Character references, not the complete pools
+that preview and resolve still read (until S9). `commit.commit` passes `prepareCharacterBuilder` one
+`CharacterReferencedReads` (feature hints plus per-transaction root, publication, System and source
+caches), which loads `loadCharacterReferencedContext` (`characters/referencedContext.ts`) for the
+first preparation and the post-materialization reload. Parent reads, held-Equipment rule retention and
+the stored-stat evaluation reuse the same caches and context, so a commit reads each root once:
+
+- **Rule context.** `loadCharacterRuleContext` in referenced mode reads the selected roots as before.
+  Spells are read by id: `prepareCharacterRuleContext` passes `readSpellCatalogue` the Spell
+  selections, learned and prepared state, chosen-grant targets and feature-granted Spells, and pool
+  readers ignore it. A feature missing from the selected roots is read from the root its
+  acquisition's provenance names (`OPTION` follows its parent acquisition). A `MANUAL`, `FEATURE`
+  or `ANCESTRY` acquisition needs a `{featureId, rootId}` hint; the server reads the hinted root and
+  requires the feature in it, never trusting the hint alone.
+- **Catalogue.** `assembleCharacterReferencedBuilderContext` (`rules-runtime/character/contextPreparation`)
+  builds the catalogue from the registry's Races, Classes and Backgrounds, the referenced Equipment
+  (with parents), Feats and Spells, plus witnesses: one readable subclass for a class row due a
+  subclass with none selected, and one readable candidate for each chosen grant with no restricted
+  option or selected Equipment property with no restricted carrier
+  (`getChosenGrantWitnessQuestions`). Option sets are monotone in the pool and every selected id is
+  in both pools, so each validation equals the complete pool's.
+- **Fail closed.** A selected or held reference that is not readable content of its kind throws
+  `ConvexError` data `{code: 'SOURCE_UNAVAILABLE', subjectId, message}`
+  (`characterBuilderCommitErrorDataSchema`). Held Equipment with retained rules, Creatures and
+  Vehicles keep their existing source-loss handling.
+
+The [implementation plan](../handoffs/adr-0036-implementation-plan.md#referenced-commit-s7-current)
+records the equivalence argument, the differential corpus and the measured reads. The browser does
+not send hints yet (S6), so a draft with a standalone feature cannot commit until it does.
 
 ### Neutral Sheet commands — extraction, native persistence pending
 
