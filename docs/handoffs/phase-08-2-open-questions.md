@@ -6,84 +6,15 @@
 
 ## Open
 
-### Q16 Free-tier capacity target
+### Q18 Tier redesign against competitors
 
-ADR 0035 Decision 9 turns the free hosting allowances into hard read budgets for V15 and the Builder. Those budgets need a target: how many active groups, or sessions a month, the free tier must carry at launch before a paid plan is justified.
+The user approved redesigning the Free, Player, GM and Pro GM tiers from competitor evidence (2026-09-27, Q16 answer). Two constraints come with it:
+- the tiers must drive upgrades, which includes limiting how much Campaign content a Free Campaign holds (Q17: "all of the above");
+- they must keep Free users within the free hosting tiers (ADR 0035, Q16).
 
-**The product tiers already exist** (docs/roadmap/README.md launch-planning matrix; packages/shared/src/domains/account/entitlementPolicy.ts). They say what users pay us: Free, Player at $4.99, GM at $9.99 and Pro GM at $49.99.
-
-Q16 is the other side: what we pay hosting providers before revenue justifies a paid plan. The tiers shape it in three ways:
-- **Free users get live play.** Every plan, Free included, may host or join a Campaign and use Encounters and the VTT. So the hosting cost of a free group's session must be near zero by design, not merely small.
-- **The load unit is a table.** A Free or Player host runs 1 active Campaign with up to 5 player seats, which is the V15 table (1 GM and 5 players). A GM or Pro GM host allows 12 seats, which is the worst-case table.
-- **The break-even is a handful of subscribers.** A few GM subscriptions pay for a paid hosting plan, so the free hosting tier only has to carry the launch cohort until those first conversions.
-
-**Every tier limit is a load dimension, not only table size** (user correction, 2026-09-27):
-
-| Limit (Free / Player / GM / Pro GM) | What it drives on our side |
-| --- | --- |
-| Personal Characters: 6 / unlimited / unlimited / unlimited | Builder edits and saves, Character storage, Sheet reads outside play |
-| Owned homebrew roots: 20 / unlimited / … | Authoring edits, publications and content snapshots, database storage |
-| Media storage: 250 MB / 1 GB / 5 GB / 25 GB | R2 bytes and operations (maps and handouts); Convex holds only metadata |
-| Hosted Campaigns and seats: 1 × 5 / 1 × 5 / 5 × 12 / unlimited × 12 | Live play: room requests and duration, checkpoints, projections |
-| Saved Encounters: 3 / 3 / unlimited / unlimited | Database storage and prep reads |
-| Public listings: 1 / 1 / 5 / fair use | Social Hub reads (public, often unauthenticated, so they must be cheap and cached) |
-
-**Recommendation:** build a per-tier load model from these limits and a typical-use assumption. For example, a Free user:
-- builds or edits 2 Characters a month;
-- authors 5 homebrew items;
-- uploads 50 MB;
-- hosts or joins one table playing four sessions.
-
-Size the free hosting tier for a launch cohort: 100 Free users, of whom 20 host tables, plus the first handful of paid users.
-- **The budgets** (reads per Builder edit, per authoring save, per combat command and per session; storage and R2 operations per user) are each provider allowance divided by that model, with 50% headroom.
-- **Pressure point to check:** storage quota. Taken at its full limit, 250 MB per Free user fills a typical free object-storage allowance at a few dozen users. Either typical use is far lower, or the Free media limit should come down before launch. The current free-tier limits of Convex, Cloudflare (Durable Objects and R2) and Netlify need checking before the numbers are fixed.
-
-**Free-tier limits, checked 2026-09-27 on the providers' pricing pages:**
-
-| Provider | What the free plan includes | Beyond the free plan |
-| --- | --- | --- |
-| Convex | Database I/O 1 GB/mo, database storage 0.5 GB, function calls 1M/mo, file storage 1 GB, egress 1 GB/mo, action compute 20 GB-h | Starter is pay-as-you-go: about $0.22/GB of I/O and $2.20 per 1M calls. Pro costs $25 per developer a month. |
-| Cloudflare Durable Objects (Workers Free) | 100k requests/day, 13,000 GB-s/day, SQLite reads 5M/day and writes 100k/day, 5 GB stored | WebSocket messages count 20:1, and hibernation avoids idle duration. |
-| Cloudflare R2 | 10 GB-month storage, 1M Class A and 10M Class B operations a month | Egress is free. |
-| Netlify Free | 300 credits a month | A production deploy costs 15 credits, bandwidth 20 per GB, compute 10 per GB-hour, and requests 2 per 10k. |
-
-**The binding constraint is Convex database I/O.** Durable Objects and R2 have wide headroom at 100 users. Netlify credits are the second risk: 20 production deploys would use a month's credits.
-
-- **Recommendation:** serve content snapshots and media from R2 or Cloudflare (egress is free), not Netlify.
-- **Worth evaluating:** hosting the web app on Cloudflare Workers too, so the Worker, room, R2 and web app share one provider.
+A research pass compares Roll20, Foundry VTT, Fantasy Grounds, D&D Beyond (including Maps), Owlbear Rodeo, Alchemy RPG, Demiplane and World Anvil. It is recorded in `docs/roadmap/tier-research-2026-09-27.md`, with a proposed tier matrix.
 
 **Answer:**
-
-### Q17 Media and Campaign content limits on the Free tier
-
-**What exists today** (`apps/apis/convex/media/processing.ts`, ADR 0012):
-- **Upload limits:** 6 MiB per image and 25 MiB per map, at most 8192 px per side and 25 or 64 megapixels.
-- **Re-encoding:** every upload is re-encoded to WebP at quality 85, and the original is discarded.
-- **Stored variants:** each image keeps three sizes (4096, 1600 and 320 px). Maps are tiled at 1024.
-- **Quota:** stored bytes count against the tier quota (`mediaBytes` against `storageBytes`).
-- **Ownership:** asset identity is separate from the domain references to it, so one asset may already have several references, and the last one to detach starts a 24-hour grace period.
-- **Gap:** there is no way to pick an image you already uploaded.
-
-**User proposals (2026-09-27):**
-- Let people reuse images they have uploaded, for example one generic NPC portrait on several NPCs.
-- Stop a Free Campaign from growing to something like "20 cities, each with an image".
-
-**Recommendation:**
-1. **Reuse, yes.**
-   - Add a "My images" picker that attaches an existing asset to another Character, NPC, content item or Campaign record.
-   - The quota counts each asset once, however many references it has.
-   - Uploads are also de-duplicated automatically: hash the normalized bytes, and when the same owner uploads identical bytes again, reuse the existing asset.
-   - De-duplication stays within one owner. Matching across users would reveal that another user holds an image.
-2. **Limit bytes, not Campaign nodes.**
-   - The byte quota already bounds the "20 cities" case. Twenty city images at the sizes below take about 10 MB, and a worldbuilder who hits the quota sees "80 of 100 MB used" and knows what to do.
-   - A node count would hit the wrong thing. Text-only cities cost almost nothing to store, and a node limit penalizes worldbuilders, a core audience in PRODUCT.md. Roll20 also limits storage, not object counts.
-   - Per-request read cost is bounded by design (ADR 0035, content snapshots, pagination, read budgets), so a large Campaign costs no more per click than a small one.
-3. **Tighten the sizes.**
-   - Content art is stored at 2048 px at most, instead of 4096, which cuts about 4× of its storage. Maps keep full resolution.
-   - The Free media quota drops from 250 MB to 100 MB, in line with Roll20's free tier (to be verified). The paid tiers stay unchanged.
-4. **Invisible safety caps.** Generous ceilings on notes, chat and records per Campaign guard against abuse, well above any real group. Retention pruning covers internal receipts and logs.
-
-**Answer (user, 2026-09-27):** The limits are approved: content art is capped at 2048 px, maps keep full resolution, and the Free media quota is 100 MB. Add the "My images" picker. Still open: whether the "20 cities" worry is about hosting cost (the byte quota covers that) or about an upgrade incentive (a product limit on count, like the existing 20 homebrew roots).
 
 ## Decisions to review
 
@@ -345,11 +276,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Dropped:** the blanket args/returns getters. They measured no gain.
   * **Sequencing:** roll out last, by re-running the codemod on the latest branch after M2, M6 and D58 merge, to avoid conflicts in schema files.
   * **Proof required:** the equivalence script against the merge base, the full suites and codegen, then the browserless re-run. The 6-browser V15 runs only when both budgets pass with margin.
-  * **Done (rolled out, 2026-09-27, [record](../validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md)).**
+  * **Done (rolled out, 2026-09-27,** **[record](../validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md)).**
     * The codemod (`scripts/lazySchemas.mjs`) re-ran on the current source and wrapped 2,321 initializers. That includes 17 calls to local schema builders, which the spike had left eager.
     * Shared shapes and variant lists use `lazySchemaParts`. `yarn lint` runs the `--check`. `lazy-schemas.test.ts` builds every exported schema and fails on an eager one. Content tables are built on demand.
     * **Module load:** 56–83% lower on five hot graphs. For example, the action commit falls from 159 to 28 ms and the router from 57 to 25 ms.
-    * **Equivalence against `1822085c8`:** 0 differences across 2,172 schemas (fingerprint, Convex validator, JSON Schema, parse results including 1,057 SRD documents), `schema.ts` `export()` and all 553 functions' args and returns.
+    * **Equivalence against** **`1822085c8`:** 0 differences across 2,172 schemas (fingerprint, Convex validator, JSON Schema, parse results including 1,057 SRD documents), `schema.ts` `export()` and all 553 functions' args and returns.
     * **Still open (user):** the local codegen push and backend reset, then the browserless re-run. The pattern is in [Transport](../architecture/transport.md#lazy-schema-construction).
 - **D58 (blocks closed beta) Critical hits must double every damage die.** Found by M2: on a critical hit, Creature attacks roll normal dice and add only an authored `ON_CRIT` result. So a critical Adult Red Dragon Bite deals 2d10+8 and 2d6 instead of 4d10+8 and 4d6. The one exception, the hit-then-save shape, already doubles.
   * **Rule (SRD 5.1):** a critical hit doubles every damage die of the attack's damage parts, including extra dice such as Sneak Attack or Divine Smite. Flat modifiers are not doubled.
@@ -461,60 +392,79 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Wording:** "This actor can't take an action right now."
   * **Creature saving-throw proficiencies.** Stat blocks with a Saving Throws line must use those modifiers. This needs a creature schema field and SRD data. It's queued as its own slice before closed beta. Its source-identity check requires a frozen tree.
 - **D64** (2026-09-27) Reaction answers must be fast. After D59, `REACTION_RESPONSE` p95 sat at the 1 s V15 budget (1,008 and 987 ms).
-  - **Why they are slow:** the answer runs a movement stage and then a commit on the critical path. Together they read about 400 documents and 1.5 MB, while an attack reads 62.
-  - **Step 1, now:**
-    - one transaction read memo that is aware of writes;
-    - the room reuses its cached Run System when the stamp matches, so Convex stops resending it;
-    - duplicated validation in the commit is removed.
+  * **Why they are slow:** the answer runs a movement stage and then a commit on the critical path. Together they read about 400 documents and 1.5 MB, while an attack reads 62.
+  * **Step 1, now:**
+    * one transaction read memo that is aware of writes;
+    * the room reuses its cached Run System when the stamp matches, so Convex stops resending it;
+    * duplicated validation in the commit is removed.
 
     Every fence still reads within the transaction, and no check is removed.
-  - **Step 2, next:** stage the held movement's inputs when the decision is issued, while the player decides, so the answer is one commit.
-    - D26 already pauses play while a decision is pending, so the prefetch goes stale only if the GM cancels.
-    - A stale prefetch fails closed on the commit fences and falls back to today's stage-and-commit.
-    - Rules and dice still run in the room at answer time, so D41 and D27 are unchanged. This amends D52's stage timing.
-    - **Outcome (2026-09-27): step 1 kept, step 2 built, measured and reverted.**
-      - Step 1 halved the documents the stage and commit read, but their user time stayed at about 164 ms each: they are bound by CPU. `REACTION_RESPONSE` p95 moved to 956 and 986 ms.
-      - Step 2's one-call answer took 468 ms and read 179 documents, the same work as stage plus commit. To verify the prefetched reads it has to re-read them, so the only saving is one route's overhead.
-      - The prefetch queries (935 per run, about 6 per decision, p95 283 ms) competed for the same CPU, and the overall command p95 rose above 1 s.
-      - The extra subject type, prefetch cache and query were not worth keeping for no gain, so step 2 was reverted: `611757d95`, `aef5acfdf` and `221fce311`, reverted by `91682875e`, `394511fbf` and `5d715e46e`.
-    - **Next:** cut handler CPU in the movement stage and commit, guided by a CPU profile. Collapsing the calls is revisited only if the fences can check versions instead of re-reading content.
-    - **Superseded (2026-09-27) by [ADR 0035](../adr/0035-room-authoritative-live-encounters.md).** The per-command Convex path is being replaced, so further tuning on it has stopped (user direction).
-      - The CPU cuts that already landed stay, because the room reuses the same checksum and validation code: the inlined SHA-256 and the once-per-transaction derivations.
-      - The last run of the old path (`v15bl-cpu1-r1`) had `REACTION_RESPONSE` p95 at 1,027 ms and command p95 at 799 ms, on a busy machine.
-      - The 6-browser V15 runs only against the room-authoritative design.
-    - The prefetch is admitted for the responder, and the answer command comes from the room instead of the staged save.
-  - **The 6-browser V15** runs only once the browserless `REACTION_RESPONSE` p95 is clearly under 1 s.
+
+  * **Step 2, next:** stage the held movement's inputs when the decision is issued, while the player decides, so the answer is one commit.
+    * D26 already pauses play while a decision is pending, so the prefetch goes stale only if the GM cancels.
+    * A stale prefetch fails closed on the commit fences and falls back to today's stage-and-commit.
+    * Rules and dice still run in the room at answer time, so D41 and D27 are unchanged. This amends D52's stage timing.
+    * **Outcome (2026-09-27): step 1 kept, step 2 built, measured and reverted.**
+      * Step 1 halved the documents the stage and commit read, but their user time stayed at about 164 ms each: they are bound by CPU. `REACTION_RESPONSE` p95 moved to 956 and 986 ms.
+      * Step 2's one-call answer took 468 ms and read 179 documents, the same work as stage plus commit. To verify the prefetched reads it has to re-read them, so the only saving is one route's overhead.
+      * The prefetch queries (935 per run, about 6 per decision, p95 283 ms) competed for the same CPU, and the overall command p95 rose above 1 s.
+      * The extra subject type, prefetch cache and query were not worth keeping for no gain, so step 2 was reverted: `611757d95`, `aef5acfdf` and `221fce311`, reverted by `91682875e`, `394511fbf` and `5d715e46e`.
+    * **Next:** cut handler CPU in the movement stage and commit, guided by a CPU profile. Collapsing the calls is revisited only if the fences can check versions instead of re-reading content.
+    * **Superseded (2026-09-27) by** **[ADR 0035](../adr/0035-room-authoritative-live-encounters.md).** The per-command Convex path is being replaced, so further tuning on it has stopped (user direction).
+      * The CPU cuts that already landed stay, because the room reuses the same checksum and validation code: the inlined SHA-256 and the once-per-transaction derivations.
+      * The last run of the old path (`v15bl-cpu1-r1`) had `REACTION_RESPONSE` p95 at 1,027 ms and command p95 at 799 ms, on a busy machine.
+      * The 6-browser V15 runs only against the room-authoritative design.
+    * The prefetch is admitted for the responder, and the answer command comes from the room instead of the staged save.
+  * **The 6-browser V15** runs only once the browserless `REACTION_RESPONSE` p95 is clearly under 1 s.
+- **D65** (2026-09-27, user-approved in Q16) The web app moves from Netlify to Cloudflare, and content snapshots and media are served from Cloudflare R2.
+  - **Why:** egress is free, and the Worker, room, R2 and web app end up on one provider. Netlify's 300 monthly credits (15 per production deploy, 20 per GB of bandwidth) would limit a free launch.
+  - **Before moving:**
+    - confirm that TanStack Start SSR runs on Cloudflare Workers with the current SSR proxy and auth cookies;
+    - check the Workers Free request and CPU limits for SSR pages (the 10 ms CPU limit applies to plain Workers);
+    - migrate the DNS and domain.
+  - **Sequencing:** its own slice, after ADR 0035 S0.
+
 
 ## Resolved
 
-- **Q15 (2026-09-27).** Architecture for a free-tier product. The user chose (b), (c) and (d), recorded in [ADR 0035](../adr/0035-room-authoritative-live-encounters.md):
-  - **(b):** while a table is live, the room is the source of truth for the Encounter and combat play state. Commands never call Convex, and Convex receives checkpoints as the record of truth.
-  - **(c):** development and tests use the local backend only.
-  - **(d):** read budgets are gated in V15 and the Builder.
-  - **Still open:** option (a), versioned static content snapshots and a Builder preview in the browser. It is recommended next, and ADR 0035 already assumes it for loading System content into the room.
-  - **Constraint from the user:** the launched product stays on free tiers until paying customers justify a paid plan.
+- **Q16 (2026-09-27).** The free hosting tier must carry the launch cohort: 100 Free users, 20 of them hosting tables that play four 4-hour sessions a month, plus 50 Character builds a month, with 50% headroom.
+  - Budgets are each provider's free allowance (checked 2026-09-27) divided by that load model. Convex database I/O is the binding constraint.
+  - Content snapshots and media are served from Cloudflare (R2), where egress is free.
+  - The web app moves off Netlify to Cloudflare (D65).
+  - The tiers will be redesigned from competitor evidence (Q18).
+- **Q17 (2026-09-27).** Media: content art is capped at 2048 px, maps keep full resolution, and the Free media quota is 100 MB.
+  - A "My images" picker lets people reuse their uploads; each asset counts once, and identical uploads by the same owner are de-duplicated.
+  - The user wants tier limits for both hosting cost and upgrade incentive ("all of the above"), so a count limit on Free Campaign content is designed as part of Q18.
+  - Invisible safety caps and retention pruning guard against abuse.
 
-- **Q14 (2026-09-27).** GM rolls are Public or Private, chosen with a toggle beside the GM's roll controls (the action drawer and chat). The toggle remembers the last choice, starts on Public (as in Foundry), and has no settings page.
+
+* **Q15 (2026-09-27).** Architecture for a free-tier product. The user chose (b), (c) and (d), recorded in [ADR 0035](../adr/0035-room-authoritative-live-encounters.md):
+  * **(b):** while a table is live, the room is the source of truth for the Encounter and combat play state. Commands never call Convex, and Convex receives checkpoints as the record of truth.
+  * **(c):** development and tests use the local backend only.
+  * **(d):** read budgets are gated in V15 and the Builder.
+  * **Still open:** option (a), versioned static content snapshots and a Builder preview in the browser. It is recommended next, and ADR 0035 already assumes it for loading System content into the room.
+  * **Constraint from the user:** the launched product stays on free tiers until paying customers justify a paid plan.
+* **Q14 (2026-09-27).** GM rolls are Public or Private, chosen with a toggle beside the GM's roll controls (the action drawer and chat). The toggle remembers the last choice, starts on Public (as in Foundry), and has no settings page.
   * A Private roll shows players nothing, not even that a roll happened.
   * The GM's private card offers two reveals, both logged, neither retractable: "Show roll" (the full card) and "Show that I rolled" (a vague notice with no result or reason).
   * The notice names a creature only for players who can currently see it; everyone else sees "The GM made a roll".
   * Consequences stay visible: a player hit by a private roll still sees the damage and any save prompt, but not the roll, its total or a hidden source.
   * It ships in the S6i rule-roll chat cards slice.
-* **Q13 (2026-09-27).** Option (a): R03.1's corpus clause now reads "the protected SRD corpus matches the current SRD manifest checksum reported by the seed audit, with every corpus change since the removal tracing to a recorded ruling". R03.1 is READY: the seed audit passes, and all 21 corpus commits since the fourth pass cite a ruling.
-* **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:
+- **Q13 (2026-09-27).** Option (a): R03.1's corpus clause now reads "the protected SRD corpus matches the current SRD manifest checksum reported by the seed audit, with every corpus change since the removal tracing to a recorded ruling". R03.1 is READY: the seed audit passes, and all 21 corpus commits since the fourth pass cite a ruling.
+- **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:
   * **Mechanics** are closed, System-neutral rule kinds in `packages/shared` with the other core engine enums: a movement budget bonus equal to speed, suppressing opportunity attacks, disadvantage on attacks against the actor until its next turn, and advantage granted to an ally.
   * **The catalogue entries** (Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use an Object, with their names and text) are authored System data in the SRD source, so homebrew Systems can rename, change or add them.
   * Hard-coding 'Dash' as a shared enum would put D&D terms into the core engine.
   * Every actor gets the catalogue through the normal action flow. Hide, Ready, Search and Use an Object are logged, not automated.
   * It ships as its own slice before closed beta.
-* **Local backend secret (2026-09-26).** The local instance secret exposed in an agent transcript was rotated. The stored secret file was removed and the container restarted, which generated a new secret inside the container that was never printed. The container also dropped from about 6.6 GiB to 196 MiB of memory.
-* **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
-* **Q10 (2026-09-25).** Shared Session notes show their author and handouts their uploader, resolved on the server. Both read "Deleted user" after account deletion, through the same function chat uses. The Encounter timeline keeps naming actors. F12.3's wording is unchanged.
-* **Q8 (2026-09-25).** Keep 100 as the Encounter safety cap. One convex-test case proves the room's capture stays within Convex limits at the cap; speed targets (V15) use the typical 11-actor table.
-* **Q6 (2026-09-25).** V11.4 reworded: in Assisted mode a player's save-forcing action pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues. Manual mode raises no rules prompts. There is no separate Automatic mode since the modes redesign; the per-person auto-roll preference fills that role. Spell-specific proof becomes a Phase 8.3 spell-casting criterion.
-* **Q7 (2026-09-25).** V09.7 reworded to 'development data is migrated or reset under the standing local-reset approval', matching the actual process.
-* **Q1 (2026-09-25).** The connection string labeled production is non-live. The user will rotate the credentials before go-live (added to the release checklist).
-* **Q2 (2026-09-25, amended).** Delete the whole Codex backup worktree only after the final R08 proof passes. 653 of the 725 evidence references in the acceptance ledger point at `.codex/validation/...` files that exist only in that worktree, so it is the only record behind the 59 accepted cases until R08 re-proves them on the final source.
-* **Q3 (2026-09-25).** Done. Removed the 12 `supabase_*_artificer-toolkit` containers and their 3 volumes, the local `supabase/` folder (empty directories and the `.temp` generated secrets; migrations remain in git history), the 11 Supabase and database variables in `.env.local` (removed by name, values never read) and the dead `.gitignore` entry. Left alone: the `faye-frame` project's volumes and one unattributable `supabase_edge_runtime_` volume. `scripts/auditNativeBoundaries.mjs` keeps guarding against Supabase being reintroduced.
-* **Q4 (2026-09-25).** Scene fog save retention is folded into S7.
-* **Q5 (2026-09-25).** Done in the player-control slice (S6b): `CampaignSessionPlayerEncounters` is now `CampaignPlayerEncounterDecisions`.
+- **Local backend secret (2026-09-26).** The local instance secret exposed in an agent transcript was rotated. The stored secret file was removed and the container restarted, which generated a new secret inside the container that was never printed. The container also dropped from about 6.6 GiB to 196 MiB of memory.
+- **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
+- **Q10 (2026-09-25).** Shared Session notes show their author and handouts their uploader, resolved on the server. Both read "Deleted user" after account deletion, through the same function chat uses. The Encounter timeline keeps naming actors. F12.3's wording is unchanged.
+- **Q8 (2026-09-25).** Keep 100 as the Encounter safety cap. One convex-test case proves the room's capture stays within Convex limits at the cap; speed targets (V15) use the typical 11-actor table.
+- **Q6 (2026-09-25).** V11.4 reworded: in Assisted mode a player's save-forcing action pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues. Manual mode raises no rules prompts. There is no separate Automatic mode since the modes redesign; the per-person auto-roll preference fills that role. Spell-specific proof becomes a Phase 8.3 spell-casting criterion.
+- **Q7 (2026-09-25).** V09.7 reworded to 'development data is migrated or reset under the standing local-reset approval', matching the actual process.
+- **Q1 (2026-09-25).** The connection string labeled production is non-live. The user will rotate the credentials before go-live (added to the release checklist).
+- **Q2 (2026-09-25, amended).** Delete the whole Codex backup worktree only after the final R08 proof passes. 653 of the 725 evidence references in the acceptance ledger point at `.codex/validation/...` files that exist only in that worktree, so it is the only record behind the 59 accepted cases until R08 re-proves them on the final source.
+- **Q3 (2026-09-25).** Done. Removed the 12 `supabase_*_artificer-toolkit` containers and their 3 volumes, the local `supabase/` folder (empty directories and the `.temp` generated secrets; migrations remain in git history), the 11 Supabase and database variables in `.env.local` (removed by name, values never read) and the dead `.gitignore` entry. Left alone: the `faye-frame` project's volumes and one unattributable `supabase_edge_runtime_` volume. `scripts/auditNativeBoundaries.mjs` keeps guarding against Supabase being reintroduced.
+- **Q4 (2026-09-25).** Scene fog save retention is folded into S7.
+- **Q5 (2026-09-25).** Done in the player-control slice (S6b): `CampaignSessionPlayerEncounters` is now `CampaignPlayerEncounterDecisions`.
