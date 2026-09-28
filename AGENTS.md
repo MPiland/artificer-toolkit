@@ -154,6 +154,8 @@ Avoid wrapper functions that simply call another function.
 
 Match validation to risk.
 
+Development, automated tests, load checks and agents run only against the local Docker Convex backend. Never point them at a cloud deployment (dev, staging or production): cloud database I/O counts against the free plan (ADR 0035). A cloud staging smoke check needs the user's explicit approval each time.
+
 Store disposable validation logs, screenshots, and generated evidence under ignored `local-validation/<task>/`. Keep durable validation summaries and source identities under `docs/validation/`, and living handoffs under `docs/handoffs/`, so another agent can find them in the repository. Do not create root-level logs or use `tmp/`, `logs/`, or `artifacts/` for validation output. Keep intentionally retained design-review evidence under `.impeccable/critique/` and canonical product references under `docs/mockups/`.
 
 For low-risk documentation or configuration edits, inspect the diff and skip application tests when they cannot exercise the change. State what was checked.

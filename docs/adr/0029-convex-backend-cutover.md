@@ -1,6 +1,6 @@
 # ADR 0029: Convex backend cutover
 
-- **Status:** decision (Session-scoped room identity and Session presentation superseded by [ADR 0033](0033-campaign-owned-play-and-session-log.md))
+- **Status:** decision (Session-scoped room identity and Session presentation superseded by [ADR 0033](0033-campaign-owned-play-and-session-log.md); per-command Convex capture and commit for live Encounter commands superseded by [ADR 0035](0035-room-authoritative-live-encounters.md))
 - **Date:** 2026-09-03
 - **Revised:** 2026-09-24
 

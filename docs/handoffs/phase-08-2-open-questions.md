@@ -6,36 +6,11 @@
 
 ## Open
 
-### Q15 Architecture for a free-tier product (database I/O)
+### Q16 Free-tier capacity target
 
-**Problem (2026-09-27).** The user's Convex projects exceeded the free plan: about 10 GB of reads against a 1 GB monthly allowance, and 2 GB of that came from `characters/builder.resolve`.
-- One Builder resolve or preview reads about 392 documents (722 KB), mostly the content catalogue. It re-runs on every draft edit.
-- A combat command reads about 1 MB. The V15 workload reads 905 MB for 848 commands:
-  - the rules captures and commits are about 60%;
-  - player projection re-runs are about 15%.
-- There is no revenue before launch, so the product must run on free tiers.
+ADR 0035 Decision 9 turns the free hosting allowances into hard read budgets for V15 and the Builder. Those budgets need a target: how many active groups, or sessions a month, the free tier must carry at launch before a paid plan is justified.
 
-**Diagnosis.** Convex itself is not the problem. Two access patterns are, and any database-backed backend would bill or strain on them the same way:
-1. Immutable, versioned reference content (System, SRD and published authored content) is read from the database on every interaction.
-2. Every live combat command re-reads the whole Encounter from Convex to verify and commit it, and every player's projection then re-reads after each commit.
-
-**Options:**
-- **(a) Content as versioned static snapshots.** On publish, write each System or authored publication as an immutable, content-hashed JSON snapshot, served from the CDN (Netlify or Convex file storage) and cached by the browser indefinitely.
-  - Builder dropdowns filter the cached catalogue locally, or lazily fetch per-category files such as classes or spells.
-  - Builder previews run in the browser with the shared `rules-runtime`. The server validates only on save.
-  - This takes Builder database reads per edit from about 700 KB to about the draft alone.
-- **(b) The room is authoritative for live combat, checkpointed to Convex.** The Durable Object keeps live Encounter state in its own SQLite storage, and clients receive changes over the room socket they already hold.
-  - Convex receives checkpoints (per round, on pause or end, and every N seconds) instead of a fenced commit per command.
-  - This reverses the "Convex-first commit per command" part of D27/D41 and needs a new ADR.
-  - It removes most of the combat reads, including the projection re-runs.
-- **(c) Development and tests never touch cloud deployments.** Only local Docker is used, and cloud is reserved for staging smoke checks.
-- **(d) Read budgets in the gates:** bytes per command in V15, and bytes per edit for the Builder.
-
-**Recommendation:** do (c) and (d) immediately, and (a) next, as the largest and most local win. Decide (b) after a short spike that measures a checkpointed room against today's design, because it re-opens an accepted ADR.
-
-**User constraint (2026-09-27).** The launched product stays on free hosting tiers until paying customers justify a paid plan. So free-tier limits are a launch requirement, not a pre-launch convenience.
-
-At about 0.3 GB of reads per combat session, a 1 GB monthly allowance covers only about three sessions a month across all users. That makes (b), or an equivalent cut in combat reads, necessary rather than optional. It also means the gates need hard read budgets derived from the free allowances, with a target number of active groups per month.
+**Recommendation:** 20 groups, each playing four 4-hour sessions a month, plus 50 character builds a month. The budgets divide each monthly free allowance (Convex database I/O, Cloudflare Durable Object requests and duration, Netlify bandwidth) by that load, with 50% headroom. Current free-tier limits will be checked when the budgets are set.
 
 **Answer:**
 
@@ -437,7 +412,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
-* **Q14 (2026-09-27).** GM rolls are Public or Private, chosen with a toggle beside the GM's roll controls (the action drawer and chat). The toggle remembers the last choice, starts on Public (as in Foundry), and has no settings page.
+- **Q15 (2026-09-27).** Architecture for a free-tier product. The user chose (b), (c) and (d), recorded in [ADR 0035](../adr/0035-room-authoritative-live-encounters.md):
+  - **(b):** while a table is live, the room is the source of truth for the Encounter and combat play state. Commands never call Convex, and Convex receives checkpoints as the record of truth.
+  - **(c):** development and tests use the local backend only.
+  - **(d):** read budgets are gated in V15 and the Builder.
+  - **Still open:** option (a), versioned static content snapshots and a Builder preview in the browser. It is recommended next, and ADR 0035 already assumes it for loading System content into the room.
+  - **Constraint from the user:** the launched product stays on free tiers until paying customers justify a paid plan.
+
+- **Q14 (2026-09-27).** GM rolls are Public or Private, chosen with a toggle beside the GM's roll controls (the action drawer and chat). The toggle remembers the last choice, starts on Public (as in Foundry), and has no settings page.
   * A Private roll shows players nothing, not even that a roll happened.
   * The GM's private card offers two reveals, both logged, neither retractable: "Show roll" (the full card) and "Show that I rolled" (a vague notice with no result or reason).
   * The notice names a creature only for players who can currently see it; everyone else sees "The GM made a roll".
