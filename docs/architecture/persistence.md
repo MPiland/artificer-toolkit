@@ -295,6 +295,19 @@ Missing owner profiles leave sources untracked; existing-profile underflow, inva
 and source ownership conflicts reject the transaction. Account deletion removes the profile and
 schedules bounded usage-entry cleanup; full owned-source deletion remains F12 work.
 
+Per-Campaign content limits (Q18) use one `campaignContentUsage` row per Campaign with `entries`
+and `scenes` counters. Triggers in `lib/mutations.ts` update the row on every insert and delete of
+`campaignNotebookSections`, `campaignAttachments` and `campaignVehicles` (entries) and
+`sceneDefinitions` (Scenes), so cascades and cleanup jobs need no bookkeeping; the row is removed
+when both counters reach zero. `campaigns/contentUsage.assertCampaignContentAllowed` checks the
+hosting owner's tier, never the contributor's, before notebook, attachment, Vehicle and copy-job
+section inserts and before a new Scene begins and publishes. Unlimited tiers use the hidden
+`CAMPAIGN_CONTENT_SAFETY_CAPS`, which the entitlement DTO does not carry. Over-limit content after a
+downgrade stays readable and editable; only new records are refused. Sessions, session notes, chat,
+Encounters and content shares are not counted. `campaigns/contentUsageBackfill.run` recounts each
+Campaign and overwrites its row, so it is idempotent and converges with live trigger updates; run it
+once on any deployment whose Campaigns predate the counters.
+
 `accountEntitlements.setTier` is an internal deployment-operator mutation that validates the target
 profile and existing shared tier enum. The public read accepts no account ID or tier override. Account
 settings subscribe to this native projection. Customer-facing billing remains Phase 09 work.

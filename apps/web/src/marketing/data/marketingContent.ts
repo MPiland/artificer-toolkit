@@ -1,3 +1,8 @@
+import {
+  ENTITLEMENT_LIMITS,
+  ENTITLEMENT_PRICING
+} from '@artificer-toolkit/shared/account/entitlements'
+
 export const marketingPricingEnabled = false
 
 const pricingNavigation = marketingPricingEnabled
@@ -77,50 +82,71 @@ export const marketingFeatures = [
   }
 ] as const
 
+const free = ENTITLEMENT_LIMITS.FREE
+const gm = ENTITLEMENT_LIMITS.GM
+const proGm = ENTITLEMENT_LIMITS.PRO_GM
+const monthlyPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`
+
 export const pricingPlans = [
   {
     name: 'Free',
     price: '$0',
     cadence: 'forever',
-    description: 'Everything you need to start building and playing.',
+    description: 'Build Characters and homebrew, and host your first table.',
     cta: 'Get started for free',
     href: '/sign-up',
     featured: false,
     features: [
-      'Full SRD reference',
-      'Up to 2 characters',
-      'Up to 2 homebrew classes',
-      'Up to 2 races and backgrounds'
+      `Up to ${free.personalCharacters} Characters and ${free.homebrewRoots} homebrew roots`,
+      `${free.activeHostedCampaigns} hosted Campaign with ${free.playerSeatsPerCampaign} player seats`,
+      `${free.campaignEntriesPerCampaign} entries and ${free.scenesPerCampaign} Scenes per Campaign`,
+      '100 MB of media storage'
     ]
   },
   {
     name: 'Player',
-    price: '$3.99',
+    price: monthlyPrice(ENTITLEMENT_PRICING.PLAYER.monthlyPriceCents),
     cadence: '/month',
-    description: 'Unlimited creations for dedicated adventurers.',
+    description: 'Unlimited Characters and homebrew for players who build.',
     cta: 'Choose Player',
-    href: '/sign-up',
-    featured: true,
-    features: [
-      'Everything in Free',
-      'Unlimited characters',
-      'Unlimited homebrew content',
-      'Priority support'
-    ]
-  },
-  {
-    name: 'Dungeon Master',
-    price: '$7.99',
-    cadence: '/month when available',
-    description: 'Planned campaign tools for the storyteller at the table.',
-    cta: 'Start free for now',
     href: '/sign-up',
     featured: false,
     features: [
+      'Everything in Free',
+      'Unlimited Characters and homebrew',
+      '1 GB of media storage',
+      'Join any number of Campaigns'
+    ]
+  },
+  {
+    name: 'GM',
+    price: monthlyPrice(ENTITLEMENT_PRICING.GM.monthlyPriceCents),
+    cadence: '/month',
+    description: 'Room to run several tables and build whole worlds.',
+    cta: 'Choose GM',
+    href: '/sign-up',
+    featured: true,
+    features: [
       'Everything in Player',
-      'Campaign workspace - planned',
-      'Encounter builder - planned',
-      'Player sharing - planned'
+      `${gm.activeHostedCampaigns} hosted Campaigns with ${gm.playerSeatsPerCampaign} seats each`,
+      'Unlimited Campaign entries, Scenes and saved Encounters',
+      '5 GB of media storage',
+      `Paid tables with a ${gm.platformFeeBasisPoints / 100}% platform fee`
+    ]
+  },
+  {
+    name: 'Pro GM',
+    price: monthlyPrice(ENTITLEMENT_PRICING.PRO_GM.monthlyPriceCents),
+    cadence: '/month',
+    description: 'For professional GMs who run paid tables.',
+    cta: 'Choose Pro GM',
+    href: '/sign-up',
+    featured: false,
+    features: [
+      'Everything in GM',
+      `${proGm.activeHostedCampaigns} hosted Campaigns`,
+      '25 GB of media storage',
+      `Paid tables with a ${proGm.platformFeeBasisPoints / 100}% platform fee`
     ]
   }
 ] as const

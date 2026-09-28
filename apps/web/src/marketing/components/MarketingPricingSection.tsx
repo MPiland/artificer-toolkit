@@ -37,7 +37,9 @@ export function MarketingPricingSection({
         </h2>
       </div>
 
-      <p className={billingSummary}>Monthly plans shown. Annual billing saves 20%.</p>
+      <p className={billingSummary}>
+        Monthly plans shown. Annual billing includes two months free.
+      </p>
 
       <div className={pricingGrid}>
         {pricingPlans.map((plan) => (

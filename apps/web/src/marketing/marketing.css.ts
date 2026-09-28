@@ -720,7 +720,7 @@ export const pricingGrid = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(3, minmax(0, 320px))',
+      gridTemplateColumns: 'repeat(4, minmax(0, 280px))',
       gap: foundationVars.space[6],
       alignItems: 'stretch',
       '@media': {

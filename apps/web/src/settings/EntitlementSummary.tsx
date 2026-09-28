@@ -60,6 +60,16 @@ export function EntitlementSummary({ entitlements }: { entitlements: Entitlement
               <Table.Td>{limits.playerSeatsPerCampaign}</Table.Td>
             </Table.Tr>
             <Table.Tr>
+              <Table.Th scope='row'>Campaign entries per Campaign</Table.Th>
+              <Table.Td>—</Table.Td>
+              <Table.Td>{formatLimit(limits.campaignEntriesPerCampaign)}</Table.Td>
+            </Table.Tr>
+            <Table.Tr>
+              <Table.Th scope='row'>Scenes per Campaign</Table.Th>
+              <Table.Td>—</Table.Td>
+              <Table.Td>{formatLimit(limits.scenesPerCampaign)}</Table.Td>
+            </Table.Tr>
+            <Table.Tr>
               <Table.Th scope='row'>Paid tables</Table.Th>
               <Table.Td>—</Table.Td>
               <Table.Td>{limits.paidTablesEnabled ? 'Enabled' : 'Not included'}</Table.Td>
