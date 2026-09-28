@@ -19,7 +19,7 @@ import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/r
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal } from '../../convex/_generated/api'
 import { sourceImportBatches } from '../../convex/content/importBatches'
-import { createActiveRuleEffectStore } from '../../convex/rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'

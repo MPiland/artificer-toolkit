@@ -7,7 +7,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { createSpatialPreparationFixture } from '../../tests/fixtures/spatialPreparation'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 const capture = makeFunctionReference<

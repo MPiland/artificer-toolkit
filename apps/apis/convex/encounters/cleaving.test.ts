@@ -65,7 +65,7 @@ import {
 import { api, components, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { seedConcentration } from '../../tests/fixtures/concentration'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   commitNativeLiveEncounterAction,
   planNativeLiveEncounterAction

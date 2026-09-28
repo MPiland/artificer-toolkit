@@ -27,7 +27,10 @@ import { readNativeEncounterActionResponseAdmission } from '../encounters/action
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { requireIdentity } from '../lib/identity'
 import { readAutoRollDice } from '../lib/rollPreferences'
-import { readCharacterEffect, readEncounterEffect } from '../rules/effectStore'
+import {
+  readCharacterEffect,
+  readEncounterEffect
+} from '@artificer-toolkit/encounter-persistence/effectStore'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'

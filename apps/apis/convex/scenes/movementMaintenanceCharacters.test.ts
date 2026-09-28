@@ -41,7 +41,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { api, internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 

@@ -1,6 +1,6 @@
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import type { QueryCtx } from '../_generated/server'
-import { listActiveRuleEffects } from '../rules/effectStore'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { loadCharacterSheetInputs, type CharacterSheetSourceContext } from './sheetInputs'
 
 export type { CharacterSheetSourceContext } from './sheetInputs'

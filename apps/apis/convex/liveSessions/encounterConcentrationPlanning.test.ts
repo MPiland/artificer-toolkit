@@ -23,7 +23,7 @@ import {
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from '../encounters/movementTargets'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,

@@ -26,7 +26,7 @@ import * as projection from '@artificer-toolkit/rules-runtime/character/sheetPro
 import * as evaluation from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterSheet } from './sheetPreparation'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 const preview = makeFunctionReference<
   'query',

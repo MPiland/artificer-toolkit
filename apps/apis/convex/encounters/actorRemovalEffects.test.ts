@@ -15,7 +15,7 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { cleanupRemovedActorEffects } from './actorRemovalEffects'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 

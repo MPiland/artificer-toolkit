@@ -14,7 +14,7 @@ import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/sha
 import type { MutationCtx } from '../_generated/server'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { reconcileNativeMaintenanceOwners } from '../encounters/maintenanceOwnerPersistence'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 type CompleteExecution = Extract<StoredRuleExecutionResultDto, { status: 'COMPLETE' }>
 

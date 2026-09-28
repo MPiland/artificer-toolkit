@@ -7,7 +7,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { reconcileNativeMaintenanceOwners } from '../encounters/maintenanceOwnerPersistence'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 type MaintainedSlot = NonNullable<
   Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectStore>['findMaintainedStateById']>>

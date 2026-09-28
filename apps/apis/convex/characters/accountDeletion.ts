@@ -1,7 +1,7 @@
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { syncAccountUsage } from '../lib/accountUsage'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   deleteCharacterDraftPayload,
   readCharacterDraft,

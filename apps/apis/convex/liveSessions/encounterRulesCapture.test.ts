@@ -19,7 +19,7 @@ import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-t
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { internal } from '../_generated/api'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 import {
   domainRejection,

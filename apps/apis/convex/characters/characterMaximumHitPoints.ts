@@ -4,7 +4,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/hitPointMaximumReductions'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { listActiveRuleEffects } from '../rules/effectStore'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 /**
  * The maximum hit points the Sheet shows, read from a Character row: the stored maximum (before

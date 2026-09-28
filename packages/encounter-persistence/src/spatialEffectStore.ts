@@ -21,9 +21,7 @@ import {
 } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { z } from 'zod'
-
-import type { MutationCtx } from '../_generated/server'
-import type { Doc } from '../_generated/dataModel'
+import type { EncounterDocument, EncounterWriteContext } from './store.js'
 
 const positiveIntegerSchema = z.number().int().positive()
 
@@ -73,7 +71,7 @@ function parseCurrentState(input: {
 }
 
 export function readSpatialEffect(
-  row: Doc<'encounterSpatialRuleEffects'>
+  row: EncounterDocument<'encounterSpatialRuleEffects'>
 ): EncounterSpatialRuleEffectRecord {
   const { _id, _creationTime, ...stored } = row
   const value = encounterSpatialRuleEffectStoredSchema.parse(stored)
@@ -111,7 +109,7 @@ function normalizeScope(input: { encounterId: string; sceneId: string }) {
 }
 
 /** Internal mutation helper. Callers authorize the aggregate and compose all writes in this mutation. */
-export function createSpatialRuleEffectStore(ctx: MutationCtx) {
+export function createSpatialRuleEffectStore(ctx: EncounterWriteContext) {
   return {
     async scope(input: { encounterId: string; sceneId: string }) {
       const scope = normalizeScope(input)

@@ -5,7 +5,7 @@ import { api } from '../_generated/api'
 import schema from '../schema'
 import { ensureAuthoredRouteId } from '../content/routeIds'
 import { removeAccountCampaignMemberships } from '../campaigns/accountDeparture.helper'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   seedTurnSaveEffect,
   turnCharacterEffectFixture

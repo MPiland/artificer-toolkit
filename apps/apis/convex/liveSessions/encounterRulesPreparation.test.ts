@@ -38,7 +38,10 @@ import { readNativeActionSceneContext } from '../encounters/actionSceneContext'
 import { prepareNativeActionEconomy } from '../encounters/actionEconomy'
 import { readEncounterRulesCapture } from './encounterRulesCapture'
 import { readCharacterRulesCapture } from './characterRulesCapture'
-import { createActiveRuleEffectStore, listActiveRuleEffects } from '../rules/effectStore'
+import {
+  createActiveRuleEffectStore,
+  listActiveRuleEffects
+} from '@artificer-toolkit/encounter-persistence/effectStore'
 import { withSceneVisionTracking } from '../lib/mutations'
 import { ensureSystemVocabularySnapshot } from '../content/systemVocabulary'
 import { assertLiveSessionRulesRevisions, readLiveSessionRulesRevisions } from './rulesRevisions'

@@ -9,7 +9,7 @@ import {
 
 import type { QueryCtx } from '../_generated/server'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { listActiveRuleEffects } from '../rules/effectStore'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 /** Loads every current Run actor's effects before preparing relationship-bound action facts. */
 export async function loadNativeActionRelationshipFacts(

@@ -41,7 +41,7 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { readCharacterRecord, readCharacterSheetState } from '../characters/documents'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   readRunActors,
   readRunState,

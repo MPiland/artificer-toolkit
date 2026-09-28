@@ -34,7 +34,7 @@ import {
 import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
-import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
+import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
   insertActiveLiveAuthority,

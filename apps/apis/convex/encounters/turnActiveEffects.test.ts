@@ -38,7 +38,7 @@ import { automaticChargedBiteFeatureId } from '../../tests/fixtures/encounterAct
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   seedTurnSaveEffect,
   turnActiveEffectFixture,

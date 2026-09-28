@@ -15,7 +15,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
 import { persistNativeConcentrationResult } from '../encounters/actionChildPersistence'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import {
   movementPersistedTransitionState,

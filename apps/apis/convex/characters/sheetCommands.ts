@@ -61,7 +61,7 @@ import { loadCharacterSheet, projectCharacterSheetFacts } from './sheetPreparati
 import { writeCharacterRecord } from './characterWrites'
 import type { CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterPublication, readCharacterSources } from './context'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { prepareCharacterRest } from './rest'
 import { readCharacterReceiptHistory } from './documents'
 function applySupportedCommand(

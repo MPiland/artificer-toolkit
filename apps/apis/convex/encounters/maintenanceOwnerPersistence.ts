@@ -6,7 +6,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 /** Reconciles owners after exact dependent deletion, sharing a preceding mechanics increment. */
 export async function reconcileNativeMaintenanceOwners(

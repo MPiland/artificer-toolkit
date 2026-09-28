@@ -32,9 +32,7 @@ import {
   sourceEncounterIdForDefinition
 } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { z } from 'zod'
-
-import type { MutationCtx, QueryCtx } from '../_generated/server'
-import type { Doc } from '../_generated/dataModel'
+import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 const positiveIntegerSchema = z.number().int().positive()
 
@@ -58,7 +56,7 @@ function parseLifecycle(definition: ActiveRuleEffectDefinitionDto, value: unknow
 }
 
 export function readCharacterEffect(
-  row: Doc<'characterActiveRuleEffects'>
+  row: EncounterDocument<'characterActiveRuleEffects'>
 ): ActiveRuleEffectRecord {
   const { _id, _creationTime, ...stored } = row
   const value = characterActiveRuleEffectStoredSchema.parse(stored)
@@ -91,7 +89,7 @@ export function readCharacterEffect(
 }
 
 export function readEncounterEffect(
-  row: Doc<'encounterActiveRuleEffects'>
+  row: EncounterDocument<'encounterActiveRuleEffects'>
 ): ActiveRuleEffectRecord {
   const { _id, _creationTime, ...stored } = row
   const value = encounterActiveRuleEffectStoredSchema.parse(stored)
@@ -128,7 +126,7 @@ export function readEncounterEffect(
 }
 
 export function readMaintainedState(
-  row: Doc<'encounterMaintainedEffectStates'>
+  row: EncounterDocument<'encounterMaintainedEffectStates'>
 ): EncounterMaintainedEffectStateRecord {
   const { _id, _creationTime, ...stored } = row
   const value = encounterMaintainedEffectStateStoredSchema.parse(stored)
@@ -145,7 +143,7 @@ export function readMaintainedState(
   return encounterMaintainedEffectStateRecordSchema.parse({ ...record, descriptor })
 }
 
-async function requireCharacter(ctx: QueryCtx, characterId: string) {
+async function requireCharacter(ctx: EncounterReadContext, characterId: string) {
   const character = await ctx.db
     .query('characters')
     .withIndex('by_publicId', (q) => q.eq('id', characterId))
@@ -153,7 +151,11 @@ async function requireCharacter(ctx: QueryCtx, characterId: string) {
   if (!character) throw new Error('Active rule-effect Character owner is unavailable.')
 }
 
-async function requireEncounterActor(ctx: QueryCtx, encounterId: string, actorId: string) {
+async function requireEncounterActor(
+  ctx: EncounterReadContext,
+  encounterId: string,
+  actorId: string
+) {
   const run = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', encounterId))
@@ -166,12 +168,12 @@ async function requireEncounterActor(ctx: QueryCtx, encounterId: string, actorId
   if (!actor) throw new Error('Active rule-effect Encounter actor is unavailable.')
 }
 
-async function requireOwner(ctx: QueryCtx, owner: ActiveRuleEffectOwner) {
+async function requireOwner(ctx: EncounterReadContext, owner: ActiveRuleEffectOwner) {
   if (owner.kind === 'CHARACTER') return requireCharacter(ctx, owner.characterId)
   return requireEncounterActor(ctx, owner.encounterId, owner.targetActorId)
 }
 
-async function listOwner(ctx: QueryCtx, owner: ActiveRuleEffectOwner) {
+async function listOwner(ctx: EncounterReadContext, owner: ActiveRuleEffectOwner) {
   if (owner.kind === 'CHARACTER')
     return (
       await ctx.db
@@ -192,7 +194,7 @@ async function listOwner(ctx: QueryCtx, owner: ActiveRuleEffectOwner) {
 }
 
 export async function listActiveRuleEffects(
-  ctx: QueryCtx,
+  ctx: EncounterReadContext,
   inputOwner: ActiveRuleEffectOwner
 ): Promise<ActiveRuleEffectRecord[]> {
   const owner = ownerFor(inputOwner)
@@ -204,7 +206,7 @@ export async function listActiveRuleEffects(
 }
 
 /** Internal mutation helper. Callers authorize the aggregate and compose all writes in this mutation. */
-export function createActiveRuleEffectStore(ctx: MutationCtx) {
+export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
   async function findEffectById(owner: ActiveRuleEffectOwner, id: string) {
     if (owner.kind === 'CHARACTER') {
       const row = await ctx.db

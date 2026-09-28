@@ -22,7 +22,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { sourceImportBatches } from '../content/importBatches'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 const importDefinitions = makeFunctionReference<
   'mutation',

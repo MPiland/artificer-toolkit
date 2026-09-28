@@ -16,7 +16,7 @@ import {
   persistNativeConcentrationPending,
   persistNativeConcentrationResult
 } from '../encounters/actionChildPersistence'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 

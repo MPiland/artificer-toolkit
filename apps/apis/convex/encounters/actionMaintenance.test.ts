@@ -44,7 +44,7 @@ import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparat
 import { prepareNativeActionEconomy } from './actionEconomy'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { sourceImportBatches } from '../content/importBatches'
 import { withSceneVisionTracking } from '../lib/mutations'
 import {

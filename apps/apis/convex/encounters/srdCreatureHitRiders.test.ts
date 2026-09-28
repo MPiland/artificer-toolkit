@@ -26,7 +26,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 function srdId(entries: readonly { id: string; code: string }[], code: string) {
   const entry = entries.find((candidate) => candidate.code === code)

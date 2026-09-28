@@ -15,7 +15,7 @@ import {
   readRunProjection,
   readRunState
 } from '@artificer-toolkit/encounter-persistence/documents'
-import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
+import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { readGeometrySave } from './geometryDocuments'
 import { commitLiveMovement } from '../liveSessions/encounterMovementCommit'
 import type { QueryCtx } from '../_generated/server'

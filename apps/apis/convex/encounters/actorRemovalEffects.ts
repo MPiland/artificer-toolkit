@@ -4,7 +4,7 @@ import { readCharacterRecord, readCharacterSheetState } from '../characters/docu
 import { writeCharacterRecord } from '../characters/characterWrites'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 
 type MaintenanceCleanupResult = Pick<

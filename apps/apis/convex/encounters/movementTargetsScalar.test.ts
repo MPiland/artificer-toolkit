@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { loadMovementTargets } from './movementTargets'
 

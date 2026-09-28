@@ -18,7 +18,7 @@ import {
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { createRulesRuntime } from './rulesRuntime'
-import { createSpatialRuleEffectStore } from '../../convex/rules/spatialEffectStore'
+import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { setupAutomaticSceneMovement } from './automaticSceneMovement'
 
 type SceneFixture = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>

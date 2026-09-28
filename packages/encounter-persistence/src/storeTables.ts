@@ -27,6 +27,10 @@ import {
   campaignStoredMembershipSchema,
   campaignStoredRecordSchema
 } from '@artificer-toolkit/schema/projections/campaignPersistence'
+import {
+  characterStoredCommandReceiptSchema,
+  characterStoredRecordSchema
+} from '@artificer-toolkit/schema/projections/characterPersistence'
 
 /**
  * Each store table's stored document schema. The Convex schema defines the same tables from the
@@ -53,7 +57,9 @@ export const encounterStoreSchemas = {
   encounterSpatialRuleEffects: encounterSpatialRuleEffectStoredSchema,
   campaigns: campaignStoredRecordSchema,
   campaignMemberships: campaignStoredMembershipSchema,
-  campaignCharacterAssignments: campaignStoredAssignmentSchema
+  campaignCharacterAssignments: campaignStoredAssignmentSchema,
+  characters: characterStoredRecordSchema,
+  characterCommandReceipts: characterStoredCommandReceiptSchema
 }
 
 export type EncounterStoreDocuments = {
@@ -175,6 +181,17 @@ export const encounterStoreIndexes = {
     by_campaignId_userId: ['campaignId', 'userId'],
     by_campaignId: ['campaignId'],
     by_characterId: ['characterId']
+  },
+  characters: {
+    by_publicId: ['id'],
+    by_userId: ['userId'],
+    by_portraitAssetId: ['portraitAssetId'],
+    by_userId_systemId_id: ['userId', 'systemId', 'id']
+  },
+  characterCommandReceipts: {
+    by_characterId_commandId: ['characterId', 'commandId'],
+    by_characterId_occurredAt_id: ['characterId', 'occurredAt', 'id'],
+    by_characterId_actorId_occurredAt_id: ['characterId', 'actorId', 'occurredAt', 'id']
   }
 } as const satisfies {
   [Table in keyof EncounterStoreDocuments]: Record<

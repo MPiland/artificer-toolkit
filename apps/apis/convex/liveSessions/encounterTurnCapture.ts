@@ -4,8 +4,8 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { QueryCtx } from '../_generated/server'
-import { readMaintainedState } from '../rules/effectStore'
-import { readSpatialEffect } from '../rules/spatialEffectStore'
+import { readMaintainedState } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
 

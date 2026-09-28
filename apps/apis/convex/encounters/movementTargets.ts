@@ -4,7 +4,7 @@ import type { Doc } from '../_generated/dataModel'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { requireIdentity } from '../lib/identity'
-import { listActiveRuleEffects } from '../rules/effectStore'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   readRunActor,
   readRunActors,

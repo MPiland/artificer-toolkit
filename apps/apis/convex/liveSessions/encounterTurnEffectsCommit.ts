@@ -21,7 +21,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
 import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
-import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 

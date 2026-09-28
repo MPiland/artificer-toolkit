@@ -1,6 +1,6 @@
 import { createEncounterSceneFixture } from './encounterScene'
 import { createRulesRuntime } from './rulesRuntime'
-import { createSpatialRuleEffectStore } from '../../convex/rules/spatialEffectStore'
+import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'

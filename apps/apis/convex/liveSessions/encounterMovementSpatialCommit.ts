@@ -11,7 +11,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
-import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
+import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import {
   readLiveCharacterStreamVersion,

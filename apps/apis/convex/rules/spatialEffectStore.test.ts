@@ -4,7 +4,7 @@ import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/sh
 import type { SpatialRuleEffectPlacementDto } from '@artificer-toolkit/schema/shared/spatial'
 
 import schema from '../schema'
-import { createSpatialRuleEffectStore } from './spatialEffectStore'
+import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 
 const ids = {
   encounter: '00000000-0000-4000-8000-000000000001',

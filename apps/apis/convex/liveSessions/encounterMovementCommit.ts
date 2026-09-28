@@ -18,7 +18,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
 import type { MutationCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
-import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
+import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import {
   readGeometrySave,
   readMovementResolution,
