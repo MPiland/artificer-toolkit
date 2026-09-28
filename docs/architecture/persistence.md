@@ -379,7 +379,8 @@ immutable R2 objects; Convex owns only their bookkeeping (`apps/apis/convex/cont
   their objects with provider confirmation, then deletes the rows. A claimed key is never reused,
   so an upload can't race the delete; a claim older than an hour is retried.
 - **Storage.** `CONTENT_SNAPSHOT_R2_BUCKET` names the private bucket, reached with the media
-  endpoint and credentials; local mode shares the local R2 fixture bucket under the `v1/` prefix.
+  endpoint and credentials; local mode uses the local R2 fixture's `artificer-local-content-snapshots`
+  bucket. Missing storage configuration fails the build without retries.
 
 ## Native System vocabulary snapshots — local implementation
 

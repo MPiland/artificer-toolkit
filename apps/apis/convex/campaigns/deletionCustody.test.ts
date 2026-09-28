@@ -663,15 +663,26 @@ describe('native Campaign custody deletion', () => {
         backgroundId: character.backgroundId,
         fenceTimeMs: nativeTimeMs
       })
-      for (const name of tableNames.filter((name) => name !== 'campaignDeletionJobs'))
+      // Removed shares mark the Campaign's content snapshot; builds need R2 and have their own tests.
+      for (const name of tableNames.filter(
+        (name) => name !== 'campaignDeletionJobs' && name !== 'contentSnapshotHeads'
+      ))
         expect(after.tables[name], name).toEqual(expected[name])
       // Archive always schedules the room close; its run state is the only scheduler change.
       const roomControl = 'liveSessions/control:send'
+      const snapshotBuild = 'contentSnapshots/actions:build'
       expect(
         after.scheduled.filter(
-          (row) => !row.name?.startsWith('campaigns/deletionJobs:') && row.name !== roomControl
+          (row) =>
+            !row.name?.startsWith('campaigns/deletionJobs:') &&
+            row.name !== roomControl &&
+            row.name !== snapshotBuild
         )
-      ).toEqual(expectedSnapshot.scheduled.filter((row) => row.name !== roomControl))
+      ).toEqual(
+        expectedSnapshot.scheduled.filter(
+          (row) => row.name !== roomControl && row.name !== snapshotBuild
+        )
+      )
       expect(
         after.scheduled.filter((row) => row.name === roomControl).map((row) => row.args)
       ).toEqual(

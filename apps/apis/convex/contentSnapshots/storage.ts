@@ -4,13 +4,14 @@ import { createMediaStorage } from '../media/storage'
 
 /**
  * The private content snapshot bucket (ADR 0036), reached with the media provider's validated
- * endpoint and credentials. The local R2 fixture serves one bucket, so local snapshots share it
- * under their `v1/` prefix.
+ * endpoint and credentials. Local mode uses the local R2 fixture's content snapshot bucket.
  */
 export function createContentSnapshotStorage(): R2 {
   const media = createMediaStorage()
-  if (process.env.MEDIA_STORAGE_MODE === 'local') return media
-  const bucket = process.env.CONTENT_SNAPSHOT_R2_BUCKET
+  const bucket =
+    process.env.MEDIA_STORAGE_MODE === 'local'
+      ? 'artificer-local-content-snapshots'
+      : process.env.CONTENT_SNAPSHOT_R2_BUCKET
   if (
     !bucket ||
     !/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(bucket) ||

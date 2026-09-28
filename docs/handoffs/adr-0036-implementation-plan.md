@@ -71,6 +71,7 @@
 - **Not marked:** Systems, vocabulary and rules catalogues (no built scope contains them), and version payload chunks (their version is marked).
 - **Full rebuild.** Each build rereads every kind of its scope. Unchanged kinds keep their keys and upload nothing; incremental rebuild from the previous `documents` object is not implemented.
 - **Unshared parents.** A shared child whose parent share is gone is excluded, where the Builder's `readCampaignSharedPublication` throws.
+- **Measured (convex-test, warm, full SRD source scope, 2026-09-27).** 1,057 roots in about 3,200 document reads and at most about 15 MB (an upper estimate: whole roots, versions and payload chunks). The largest kind query is CREATURE: 951 documents, about 5.6 MB, 616 ms. EQUIPMENT takes 538 ms and SPELL 451 ms, all under the 16 MiB, 32,000-document and 1 s query limits, but CREATURE uses about 60% of the time limit in Node. The whole build takes about 2.2 s warm (3.4 s cold), against the 10-minute action limit. The 16 objects total 5.8 MB of canonical JSON and 0.66 MB gzipped; CREATURE documents (2.1 MB) and CLASS documents (1.7 MB) are the largest.
 
 ## Budgets (estimates to verify in the slices)
 

@@ -136,7 +136,7 @@ async function setup() {
   ) {
     const object = snapshot?.kinds[kind]?.index
     if (!object) return []
-    const stored = server.objects.get(
+    const stored = server.contentSnapshotObjects.get(
       contentSnapshotObjectKey({ format: 1, ...ref, kind, part: 'index' }, object.sha256)
     )
     if (!stored) throw new Error('Committed snapshot object is missing from R2.')
@@ -200,7 +200,7 @@ describe('content snapshot builds', () => {
       expect(after.user!.kinds.FEAT).toEqual(before.user!.kinds.FEAT)
       expect(after.user!.kinds.RACE!.index.sha256).not.toBe(before.user!.kinds.RACE!.index.sha256)
       expect(puts()).toBe(8)
-      expect(server.objects.size).toBe(8)
+      expect(server.contentSnapshotObjects.size).toBe(8)
 
       // A duplicate or retried build of a built revision reads nothing new and uploads nothing.
       await t.action(internal.contentSnapshots.actions.build, userSource)
@@ -373,8 +373,8 @@ describe('content snapshot builds', () => {
           .filter((key) => key !== expired.key)
           .sort()
       )
-      expect(server.objects.has(expired.key)).toBe(false)
-      expect([...server.objects.keys()].sort()).toEqual(remaining)
+      expect(server.contentSnapshotObjects.has(expired.key)).toBe(false)
+      expect([...server.contentSnapshotObjects.keys()].sort()).toEqual(remaining)
     } finally {
       await server.close()
     }

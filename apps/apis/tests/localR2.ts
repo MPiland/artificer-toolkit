@@ -55,7 +55,14 @@ function validPutSignature(url: URL, request: IncomingMessage) {
 export async function startLocalR2(
   options: { port?: number; host?: '127.0.0.1' | '0.0.0.0' } = {}
 ) {
-  const objects = new Map<string, { body: Buffer; contentType: string; modified: Date }>()
+  type StoredObject = { body: Buffer; contentType: string; modified: Date }
+  const objects = new Map<string, StoredObject>()
+  // ADR 0036 content snapshots live in their own private bucket, apart from media.
+  const contentSnapshotObjects = new Map<string, StoredObject>()
+  const buckets = new Map([
+    ['/artificer-local-media/', objects],
+    ['/artificer-local-content-snapshots/', contentSnapshotObjects]
+  ])
   const methods: string[] = []
   const faults: { rejectDeletes: boolean; rejectPutKey: string | null; getStatus: number | null } =
     {
@@ -66,13 +73,14 @@ export async function startLocalR2(
   const server = createServer((request, response) => {
     void (async () => {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1')
-      const prefix = '/artificer-local-media/'
+
       // Identifies this fixture to scripts/localConvexFixtures.ps1; it exposes no object state.
       if (url.pathname === '/health' && request.method === 'GET') {
         response.writeHead(200, { 'Content-Type': 'text/plain' }).end('artificer-local-r2')
         return
       }
-      if (!url.pathname.startsWith(prefix)) {
+      const [prefix, bucket] = [...buckets].find(([path]) => url.pathname.startsWith(path)) ?? []
+      if (!prefix || !bucket) {
         response.writeHead(404).end()
         return
       }
@@ -116,7 +124,7 @@ export async function startLocalR2(
           chunks.push(buffer)
         }
         const body = Buffer.concat(chunks)
-        objects.set(key, {
+        bucket.set(key, {
           body,
           contentType: request.headers['content-type'] ?? 'application/octet-stream',
           modified: new Date()
@@ -130,7 +138,7 @@ export async function startLocalR2(
           response.writeHead(403).end()
           return
         }
-        objects.delete(key)
+        bucket.delete(key)
         response.writeHead(204).end()
         return
       }
@@ -142,7 +150,7 @@ export async function startLocalR2(
         response.writeHead(faults.getStatus).end()
         return
       }
-      const object = objects.get(key)
+      const object = bucket.get(key)
       if (!object) {
         response.writeHead(404).end()
         return
@@ -165,6 +173,7 @@ export async function startLocalR2(
   return {
     endpoint: `http://127.0.0.1:${address.port}`,
     objects,
+    contentSnapshotObjects,
     methods,
     faults,
     close: async () => {

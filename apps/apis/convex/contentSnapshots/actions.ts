@@ -28,8 +28,10 @@ export const build = internalAction({
   args: vContentSnapshotScopeRef,
   returns: v.null(),
   handler: async (ctx, ref): Promise<null> => {
+    // Missing storage configuration is not transient: it fails without retries, and the lease
+    // lets the first mark after it expires rebuild.
+    const storage = createContentSnapshotStorage()
     try {
-      const storage = createContentSnapshotStorage()
       const start = await ctx.runQuery(internal.contentSnapshots.heads.readBuildStart, ref)
       if (!start) return null
       const kinds: ContentSnapshotHead['kinds'] = {}
