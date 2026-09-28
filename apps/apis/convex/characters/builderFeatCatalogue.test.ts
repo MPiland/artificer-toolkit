@@ -39,7 +39,7 @@ async function publishFeat(
   })
 }
 
-it('reads the complete authorized Feat selector catalogue from roots while selected mechanics remain validated', async () => {
+it('reads the complete authorized Feat catalogue from roots while selected mechanics remain validated', async () => {
   const base = await readySheetFixture()
   const campaign = await base.other.caller.mutation(createCampaign, {
     name: 'Feat catalogue reader',
@@ -113,7 +113,12 @@ it('reads the complete authorized Feat selector catalogue from roots while selec
       .unique()
     if (!root) throw new Error('Missing direct Feat root.')
     const reads = vi.spyOn(ctx.db, 'get')
-    const result = await loadCharacterBuilderContext(ctx, character, base.owner.userId)
+    const result = await loadCharacterBuilderContext(
+      ctx,
+      character,
+      base.owner.userId,
+      'resolution'
+    )
     return {
       ids: result.catalog.feats.map((feat) => feat.id),
       selected: result.registry.feats?.map((feat) => feat.id),
@@ -136,7 +141,12 @@ it('reads the complete authorized Feat selector catalogue from roots while selec
     await ctx.db.delete(record._id)
   })
   const withdrawn = await base.t.run(async (ctx) => {
-    const result = await loadCharacterBuilderContext(ctx, character, base.owner.userId)
+    const result = await loadCharacterBuilderContext(
+      ctx,
+      character,
+      base.owner.userId,
+      'resolution'
+    )
     return result.catalog.feats.map((feat) => feat.id)
   })
   expect(withdrawn).toEqual([direct.id])
@@ -150,6 +160,8 @@ it('reads the complete authorized Feat selector catalogue from roots while selec
     await corruptPublishedVersionPayload(ctx, direct.id)
   })
   await expect(
-    base.t.run((ctx) => loadCharacterBuilderContext(ctx, character, base.owner.userId))
+    base.t.run((ctx) =>
+      loadCharacterBuilderContext(ctx, character, base.owner.userId, 'resolution')
+    )
   ).rejects.toThrow('Stored authored content checksum mismatch.')
 })

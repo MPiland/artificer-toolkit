@@ -38,9 +38,9 @@ export async function verifyEquipmentCharacterDeletion({
     quantity: 1,
     customName: 'Disposable pack'
   })
-  const current = await owner.query(api.characters.builder.get, { id: characterId })
+  const current = await owner.query(api.characters.builder.activeCharacter, { id: characterId })
   assert.ok(current)
-  const pack = current.character.state.equipment.inventory.find(
+  const pack = current.state.equipment.inventory.find(
     (item) => item.equipmentId === equipment.subjectId
   )
   assert.ok(pack)
@@ -94,7 +94,7 @@ export async function verifyEquipmentCharacterDeletion({
     mode: 'edit',
     character: { ...opened.payload.character, label: 'Retained working draft' }
   })
-  const before = await owner.query(api.characters.builder.get, { id: characterId })
+  const before = await owner.query(api.characters.builder.activeCharacter, { id: characterId })
   assert.ok(before)
   const remove = { subjectKind: 'EQUIPMENT' as const, subjectId: equipment.subjectId }
   await assert.rejects(
@@ -105,7 +105,10 @@ export async function verifyEquipmentCharacterDeletion({
     other.mutation(api.content.deletion.deleteActive, remove),
     /cannot be deleted/
   )
-  assert.deepEqual(await owner.query(api.characters.builder.get, { id: characterId }), before)
+  assert.deepEqual(
+    await owner.query(api.characters.builder.activeCharacter, { id: characterId }),
+    before
+  )
   await owner.mutation(api.content.deletion.deleteActive, remove)
   assert.equal(
     await owner.query(api.content.details.get, {
@@ -115,7 +118,7 @@ export async function verifyEquipmentCharacterDeletion({
     null
   )
   const [after, remainingDraft, sheet] = await Promise.all([
-    owner.query(api.characters.builder.get, { id: characterId }),
+    owner.query(api.characters.builder.activeCharacter, { id: characterId }),
     owner.query(api.characters.drafts.get, { id: characterId }),
     owner.query(api.characters.sheet.get, { id: characterId })
   ])
@@ -125,7 +128,7 @@ export async function verifyEquipmentCharacterDeletion({
   )
   assert.equal(remainingDraft.id, saved.id)
   assert.equal(remainingDraft.payload.character.label, 'Retained working draft')
-  for (const value of [after.character, remainingDraft.payload.character]) {
+  for (const value of [after, remainingDraft.payload.character]) {
     const retainedPack: CharacterStateDto['equipment']['inventory'][number] | undefined =
       value.state.equipment.inventory.find((item) => item.id === pack.id)
     assert.ok(
@@ -150,9 +153,9 @@ export async function verifyEquipmentCharacterDeletion({
     )
     assert.ok(nested)
     assert.equal(nested.containerId, pack.id)
-    assert.deepEqual(value.state.notes, before.character.state.notes)
-    assert.deepEqual(value.state.noteGroups, before.character.state.noteGroups)
-    assert.deepEqual(value.state.currency, before.character.state.currency)
+    assert.deepEqual(value.state.notes, before.state.notes)
+    assert.deepEqual(value.state.noteGroups, before.state.noteGroups)
+    assert.deepEqual(value.state.currency, before.state.currency)
   }
   assert.equal(sheet.overview.abilities.find((item) => item.ability === 'STRENGTH')?.score, 20)
   assert.ok(sheet.inventory.containers?.some((container) => container.id === pack.id))
@@ -173,7 +176,10 @@ export async function verifyEquipmentCharacterDeletion({
         }),
       /source access|unavailable|not available|not found/i
     )
-  assert.deepEqual(await owner.query(api.characters.builder.get, { id: characterId }), after)
+  assert.deepEqual(
+    await owner.query(api.characters.builder.activeCharacter, { id: characterId }),
+    after
+  )
   assert.deepEqual(
     await owner.query(api.characters.drafts.get, { id: characterId }),
     remainingDraft
@@ -189,7 +195,7 @@ export async function verifyEquipmentCharacterDeletion({
   })
   const playable = await owner.query(api.characters.sheet.get, { id: characterId })
   assert.ok(playable?.inventory.containers?.some((container) => container.id === pack.id))
-  assert.equal(await other.query(api.characters.builder.get, { id: characterId }), null)
+  assert.equal(await other.query(api.characters.builder.activeCharacter, { id: characterId }), null)
   assert.equal(await other.query(api.characters.sheet.get, { id: characterId }), null)
   console.log(
     'Equipment source deletion preserved the acquired backpack, nested item, placed currency and strict raw rules in active/saved Characters; the retained container remained playable while new copies, growth and foreign access were denied; private notes, override and draft identity survived.'

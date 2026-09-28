@@ -198,8 +198,8 @@ export async function verifyCampaignAuthoredCustodyDeletion(
         characterIds.map(async (id, index) => {
           const author = players[index]
           assert.ok(author)
-          const [builder, sheet, fence] = await Promise.all([
-            author.client.query(api.characters.builder.get, { id }),
+          const [character, sheet, fence] = await Promise.all([
+            author.client.query(api.characters.builder.activeCharacter, { id }),
             author.client.query(api.characters.sheet.get, { id }),
             author.client.query(api.campaigns.inventoryOwners.version, {
               input: {
@@ -208,10 +208,10 @@ export async function verifyCampaignAuthoredCustodyDeletion(
               }
             })
           ])
-          assert.ok(builder && sheet)
+          assert.ok(character && sheet)
           assert.equal(sheet.meta.viewer, 'CHARACTER_OWNER')
           assert.equal(sheet.meta.streamVersion, fence.version)
-          return { id, builder, sheet, fence }
+          return { id, character, sheet, fence }
         })
       ),
       readHistory(owner, characterIds[0]),
@@ -287,7 +287,7 @@ export async function verifyCampaignAuthoredCustodyDeletion(
       for (const currency of inventory.currencies.page)
         add(currencyKey(currency, currency.denominationId), currency.amount)
     for (const entry of snapshot.characters)
-      for (const group of entry.builder.character.state.currency)
+      for (const group of entry.character.state.currency)
         for (const currency of group.currencies)
           add(currencyKey(currency, currency.currencyId), currency.amount)
     return [...sums].sort(([left], [right]) => left.localeCompare(right))
@@ -505,7 +505,7 @@ export async function verifyCampaignAuthoredCustodyDeletion(
   const acquired = await read()
   const own = acquired.characters.find((entry) => entry.id === characterIds[0])
   assert.ok(own)
-  const held = own.builder.character.state.equipment.inventory.find(
+  const held = own.character.state.equipment.inventory.find(
     (item) => item.equipmentId === equipmentId
   )
   assert.ok(held?.retainedRulesJson)
@@ -520,7 +520,9 @@ export async function verifyCampaignAuthoredCustodyDeletion(
   assert.equal(held.notes, 'Private acquired custody notes.')
   const transferredGroupIds = new Map<string, string[]>()
   for (const vehicleId of [availableSource.id, unavailableSource.id]) {
-    const previous = await player.query(api.characters.builder.get, { id: characterIds[0] })
+    const previous = await player.query(api.characters.builder.activeCharacter, {
+      id: characterIds[0]
+    })
     assert.ok(previous)
     await executeCharacter({
       type: 'ADD_INVENTORY_ITEM',
@@ -529,10 +531,12 @@ export async function verifyCampaignAuthoredCustodyDeletion(
       customName: 'Physical group provenance pack',
       notes: 'Private transferred physical pack notes.'
     })
-    const added = await player.query(api.characters.builder.get, { id: characterIds[0] })
+    const added = await player.query(api.characters.builder.activeCharacter, {
+      id: characterIds[0]
+    })
     assert.ok(added)
-    const newItems = added.character.state.equipment.inventory.filter(
-      (item) => !previous.character.state.equipment.inventory.some((old) => old.id === item.id)
+    const newItems = added.state.equipment.inventory.filter(
+      (item) => !previous.state.equipment.inventory.some((old) => old.id === item.id)
     )
     assert.equal(newItems.length, 1)
     const unit = newItems[0]
@@ -566,7 +570,7 @@ export async function verifyCampaignAuthoredCustodyDeletion(
     assert.ok(source && destination)
     const sourceContainers = source.sheet.inventory.containers
     assert.ok(sourceContainers && sourceContainers.some((container) => container.id === unit.id))
-    const movedItems = source.builder.character.state.equipment.inventory.filter(
+    const movedItems = source.character.state.equipment.inventory.filter(
       (item) => item.id === unit.id || item.containerId === unit.id
     )
     assert.equal(movedItems.length, 2)
@@ -578,7 +582,7 @@ export async function verifyCampaignAuthoredCustodyDeletion(
       1
     )
     const movedIds = new Set(movedItems.map((item) => item.id))
-    const groups = source.builder.character.state.currency.filter(
+    const groups = source.character.state.currency.filter(
       (group) => group.containerId !== undefined && movedIds.has(group.containerId)
     )
     const groupIds = groups.map((group) => group.id).sort()
@@ -637,14 +641,14 @@ export async function verifyCampaignAuthoredCustodyDeletion(
     const remaining = afterTransfer.characters.find((entry) => entry.id === characterIds[0])
     const received = afterTransfer.cargo.find((entry) => entry.id === vehicleId)
     assert.ok(remaining && received)
-    const expectedCharacter = structuredClone(source.builder.character)
+    const expectedCharacter = structuredClone(source.character)
     expectedCharacter.state.equipment.inventory =
       expectedCharacter.state.equipment.inventory.filter((item) => !movedIds.has(item.id))
     expectedCharacter.state.currency = expectedCharacter.state.currency.filter(
       (group) => !groupIds.includes(group.id)
     )
     assert.deepEqual(
-      remaining.builder.character,
+      remaining.character,
       expectedCharacter,
       'Whole-unit transfer must remove only those original items and groups from raw private Character state.'
     )
@@ -949,22 +953,20 @@ export async function verifyCampaignAuthoredCustodyDeletion(
     const next = retained.characters.find((candidate) => candidate.id === entry.id)
     assert.ok(next)
     assert.deepEqual(
-      next.builder.character,
-      entry.builder.character,
+      next.character,
+      entry.character,
       'Equipment source deletion must preserve raw acquired state and private fields literally.'
     )
     assert.deepEqual(next.fence, entry.fence)
     assert.deepEqual(next.sheet.inventory, entry.sheet.inventory)
     assert.equal(
       next.sheet.reference.equipmentOptions.some((option) => option.id === equipmentId),
-      entry.builder.character.state.equipment.inventory.some(
-        (item) => item.equipmentId === equipmentId
-      )
+      entry.character.state.equipment.inventory.some((item) => item.equipmentId === equipmentId)
     )
   }
   const retainedOwn = retained.characters.find((entry) => entry.id === characterIds[0])
   assert.ok(retainedOwn)
-  const retainedHeld = retainedOwn.builder.character.state.equipment.inventory.find(
+  const retainedHeld = retainedOwn.character.state.equipment.inventory.find(
     (item) => item.id === held.id
   )
   assert.deepEqual(retainedHeld, held)
@@ -1050,11 +1052,11 @@ export async function verifyCampaignAuthoredCustodyDeletion(
   const usableOwn = beforeVehicleDeletion.characters.find((entry) => entry.id === characterIds[0])
   assert.ok(usableOwn)
   assert.deepEqual(
-    usableOwn.builder.character.state.equipment.inventory.find((item) => item.id === held.id),
+    usableOwn.character.state.equipment.inventory.find((item) => item.id === held.id),
     held
   )
   assert.ok(
-    usableOwn.builder.character.state.equipment.inventory.some(
+    usableOwn.character.state.equipment.inventory.some(
       (item) =>
         item.equipmentId === club.id &&
         item.containerId === held.id &&
@@ -1062,7 +1064,7 @@ export async function verifyCampaignAuthoredCustodyDeletion(
     )
   )
   assert.equal(
-    usableOwn.builder.character.state.currency
+    usableOwn.character.state.currency
       .filter((group) => group.containerId === held.id)
       .flatMap((group) => group.currencies)
       .filter(

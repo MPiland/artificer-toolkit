@@ -10,7 +10,6 @@ import type { ContentSnapshotObject } from '@artificer-toolkit/schema/api/conten
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
 import {
-  previewSnapshotCharacterBuilder,
   resolveSnapshotCharacterBuilderPayload,
   type SnapshotCharacterBuilderInput
 } from '@artificer-toolkit/rules-runtime/character/snapshotBuilderEvaluation'
@@ -24,7 +23,6 @@ import { championMartialArchetype } from '@artificer-toolkit/source-data/srd/cla
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { srdClasses } from '@artificer-toolkit/source-data/srd/classes/index.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
-import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
@@ -35,19 +33,16 @@ import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture, input } from '../../tests/fixtures/characters'
-import { createBrowserReaders, readScopeObjects } from '../../tests/fixtures/contentSnapshotReaders'
+import { evaluateBuilderCandidate } from '../../tests/fixtures/builderEvaluation'
+import { createBrowserReaders } from '../../tests/fixtures/contentSnapshotReaders'
 import { importedSubject, makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, internal } from '../_generated/api'
 import { readAuthoredVersion, readPublishedDocument } from '../content/documents'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
-import { requireSystem } from '../content/systemDocuments'
-import type { ContentSnapshotScopeRef } from '../contentSnapshots/marking'
-import { readCharacterSources } from './context'
-import { loadCharacterDraftCandidate } from './documents'
 
-// ADR 0036 S5: the Builder evaluated purely from content snapshot objects must produce the payload
-// `builder.resolve` produces from Convex reads, over the same authorized sources.
+// ADR 0036 S5, S9: the Builder evaluated from content snapshot objects, as the browser does, must
+// produce the payload of a pure full-pool evaluation over the publications Convex authorizes.
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -60,8 +55,8 @@ type Test = Awaited<ReturnType<typeof fixture>>['t']
 type Caller = Awaited<ReturnType<typeof fixture>>['owner']['caller']
 
 /**
- * Resolves and previews on the server and from snapshots, through the browser's lazy readers, and
- * returns both with the snapshot objects and the browser evaluation input.
+ * Resolves and previews through the browser's lazy snapshot readers and over the pure full pool,
+ * and returns both with the snapshot objects and the browser evaluation input.
  */
 async function resolveBothWays(
   t: Test,
@@ -69,49 +64,17 @@ async function resolveBothWays(
   userId: string,
   request: CharacterBuilderResolveInput
 ) {
-  const server = await caller.query(api.characters.builder.resolve, request)
-  const serverPreview = await caller.query(api.characters.builder.preview, request)
-  const { candidate, system, sources } = await t.run(async (ctx) => {
-    const candidate = await loadCharacterDraftCandidate(ctx, userId, request)
-    return {
-      candidate,
-      system: await requireSystem(ctx, request.character.systemId),
-      sources: await readCharacterSources(ctx, candidate.character, userId)
-    }
-  })
-  const scopes: ContentSnapshotScopeRef[] = [
-    ...sources.sources.map((source) => ({ scope: 'SOURCE' as const, scopeId: source.id })),
-    ...(sources.campaign ? [{ scope: 'CAMPAIGN' as const, scopeId: sources.campaign.id }] : [])
-  ]
-  const objects = (await Promise.all(scopes.map((ref) => readScopeObjects(t, ref)))).flat()
-  const input: SnapshotCharacterBuilderInput = {
-    // Validated Character DTOs use literal starting-equipment sources for the authored string enum.
-    character: candidate.character as CharacterAuthored,
-    // The browser reads the previous Character through `builder.activeCharacter`.
-    previousCharacter: (await caller.query(api.characters.builder.activeCharacter, {
-      id: request.character.id
-    })) as CharacterAuthored | null,
-    mode: request.mode,
-    system,
-    builderIntent: candidate.draft.payload.builderIntent,
-    publicId: candidate.draft.publicId,
-    baseActiveUpdatedAt: candidate.draft.baseActiveUpdatedAt ?? null,
-    contentMaturity: sources.campaign?.contentMaturity ?? null
-  }
-  const browser = createBrowserReaders(objects)
-  const local = await resolveSnapshotCharacterBuilderPayload(input, browser.readers)
-  const localPreview = await previewSnapshotCharacterBuilder(input, browser.readers)
+  const evaluation = await evaluateBuilderCandidate(t, caller, userId, request)
   return {
-    server,
-    local,
-    serverPreview,
-    localPreview,
-    objects,
-    input,
-    loadedKinds: browser.loadedKinds
+    local: await evaluation.resolve(),
+    localPreview: await evaluation.preview(),
+    fullPool: await evaluation.fullPoolResolve(),
+    fullPoolPreview: await evaluation.fullPoolPreview(),
+    objects: evaluation.objects,
+    input: evaluation.input,
+    loadedKinds: evaluation.loadedKinds
   }
 }
-
 /**
  * Warm evaluation time per resolve, in milliseconds, with the parsed objects already held, as the
  * browser worker holds them after the first evaluation of a manifest.
@@ -210,7 +173,7 @@ const standardArray = {
 }
 
 describe('Builder resolution from content snapshots', () => {
-  it('matches builder.resolve over SRD, Homebrew and lost sources, and round-trips every root', async () => {
+  it('matches the full pool over SRD, Homebrew and lost sources, and round-trips every root', async () => {
     const { t, owner, other } = await fixture()
     await importSrd(t, [
       ...srdRaces.map((document) =>
@@ -304,8 +267,8 @@ describe('Builder resolution from content snapshots', () => {
       })
       const request = { expectedDraftId: draft.id, mode: 'create' as const, character }
       const resolved = await resolveBothWays(t, owner.caller, owner.userId, request)
-      expect(resolved.local).toEqual(resolved.server)
-      expect(resolved.localPreview).toEqual(resolved.serverPreview)
+      expect(resolved.local).toEqual(resolved.fullPool)
+      expect(resolved.localPreview).toEqual(resolved.fullPoolPreview)
       return { ...resolved, request }
     }
 
@@ -323,26 +286,12 @@ describe('Builder resolution from content snapshots', () => {
     const cantrip = srdSpells.find(
       (spell) => spell.level === 0 && spell.classIds?.includes(wizard.id)
     )
-    expect(JSON.stringify(wizardResult!.server.view)).toContain(cantrip!.label)
-    expect(homebrewResult!.server.resolution.summary.selectedRace).toMatchObject({
+    expect(JSON.stringify(wizardResult!.fullPool.view)).toContain(cantrip!.label)
+    expect(homebrewResult!.fullPool.resolution.summary.selectedRace).toMatchObject({
       raceLabel: 'Moon Elf',
       subraceLabel: 'Moon Scholar'
     })
-    expect(JSON.stringify(lossResult!.server)).not.toContain('Private acolyte')
-
-    // A missing stored Equipment projection sends Convex through document resolution.
-    await t.run(async (ctx) => {
-      const root = await ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', club.id))
-        .unique()
-      if (!root) throw new Error('Missing Equipment fixture.')
-      await ctx.db.patch(root._id, { equipmentOptions: undefined })
-    })
-    const fighterRequest = results[0]!.request
-    const withoutProjection = await resolveBothWays(t, owner.caller, owner.userId, fighterRequest)
-    expect(withoutProjection.local).toEqual(withoutProjection.server)
-    expect(withoutProjection.localPreview).toEqual(withoutProjection.serverPreview)
+    expect(JSON.stringify(lossResult!.fullPool)).not.toContain('Private acolyte')
 
     await expectDocumentsRoundTrip(
       t,
@@ -358,7 +307,7 @@ describe('Builder resolution from content snapshots', () => {
     )
   }, 240_000)
 
-  it('matches builder.resolve for a Campaign-shared subclass under the Campaign text policy', async () => {
+  it('matches the full pool for a Campaign-shared subclass under the Campaign text policy', async () => {
     const base = await readySheetFixture()
     const { t, owner, other, character } = base
     // Drafts cannot duplicate Classes; own an imported copy as the GM's Homebrew instead.
@@ -418,21 +367,21 @@ describe('Builder resolution from content snapshots', () => {
         classes: [{ classId: base.baseClass.id, classLevel: 3, subclassId: sharedSubclass }]
       }
     })
-    const { server, local, serverPreview, localPreview, objects } = await resolveBothWays(
+    const { fullPool, local, fullPoolPreview, localPreview, objects } = await resolveBothWays(
       t,
       owner.caller,
       owner.userId,
       { expectedDraftId: edit.id, mode: 'edit', character: candidate }
     )
-    expect(local).toEqual(server)
-    expect(localPreview).toEqual(serverPreview)
+    expect(local).toEqual(fullPool)
+    expect(localPreview).toEqual(fullPoolPreview)
     expect(objects.some((object) => object.scope === 'CAMPAIGN')).toBe(true)
-    expect(JSON.stringify(server.view)).toContain(sharedSubclass)
-    expect(JSON.stringify(server)).not.toContain('Shitstorm')
+    expect(JSON.stringify(fullPool.view)).toContain(sharedSubclass)
+    expect(JSON.stringify(fullPool)).not.toContain('Shitstorm')
     await expectDocumentsRoundTrip(t, objects)
   }, 120_000)
 
-  it('matches builder.resolve for level-up edits of an active Character and its replacement allowance', async () => {
+  it('matches the full pool for level-up edits of an active Character and its replacement allowance', async () => {
     const base = await readyCharacterFixture()
     const { t, owner, other, baseClass } = base
     const featureId = crypto.randomUUID()
@@ -513,16 +462,16 @@ describe('Builder resolution from content snapshots', () => {
       [2, false],
       [1, true]
     ] as const) {
-      const { server, local, serverPreview, localPreview } = await resolveBothWays(
+      const { fullPool, local, fullPoolPreview, localPreview } = await resolveBothWays(
         t,
         owner.caller,
         owner.userId,
         { expectedDraftId: edit.id, mode: 'edit', character: edited(classLevel) }
       )
-      expect(local).toEqual(server)
-      expect(localPreview).toEqual(serverPreview)
+      expect(local).toEqual(fullPool)
+      expect(localPreview).toEqual(fullPoolPreview)
       // The swap is allowed only by the level reached since the active Character.
-      expect(server.resolution.validations.some((issue) => issue.code === replacementCode)).toBe(
+      expect(fullPool.resolution.validations.some((issue) => issue.code === replacementCode)).toBe(
         overLimit
       )
     }

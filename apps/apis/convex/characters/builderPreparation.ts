@@ -16,7 +16,7 @@ export async function prepareCharacterBuilder(
     current: CharacterAuthored | null
     mode: 'create' | 'edit'
     finalize?: boolean
-    catalogScope?: 'selectors' | 'resolution' | 'active'
+    catalogScope?: 'resolution' | 'active'
     sourceContext?: Awaited<ReturnType<typeof loadCharacterBuilderContext>>
     sourcePreparation?: ReturnType<typeof prepareCharacterRuleSources>
     authorityScope?: import('../campaigns/authority').CampaignInternalScope

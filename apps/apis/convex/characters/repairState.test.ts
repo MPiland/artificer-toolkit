@@ -72,14 +72,16 @@ describe('native canonical Character repair state', () => {
       draft: { draftState: 'DRAFT_ONLY' }
     })
     expect(
-      (await owner.caller.query(api.characters.builder.get, { id: committed.publicId }))?.character
-        .label
+      (await owner.caller.query(api.characters.drafts.get, { id: committed.publicId }))?.payload
+        .character.label
     ).toBe('Repair in progress')
     expect(
       (await owner.caller.query(api.characters.history.list, { id: character.id, paginationOpts }))
         .page
     ).toHaveLength(1)
-    expect(await other.caller.query(api.characters.builder.get, { id: character.id })).toBeNull()
+    expect(
+      await other.caller.query(api.characters.builder.activeCharacter, { id: character.id })
+    ).toBeNull()
     expect((await other.caller.query(api.characters.list.list, { paginationOpts })).page).toEqual(
       []
     )
@@ -152,9 +154,10 @@ describe('native canonical Character repair state', () => {
       id: character.id,
       systemId: character.systemId
     })
-    const payload = await owner.caller.query(api.characters.builder.get, { id: character.id })
-    expect(payload?.character.intent.race.raceId).toBe('')
-    expect(payload?.resolution.readiness.ready).toBe(false)
+    const active = await owner.caller.query(api.characters.builder.activeCharacter, {
+      id: character.id
+    })
+    expect(active?.intent.race.raceId).toBe('')
     const retained = await readState()
     await expect(
       owner.caller.mutation(api.characters.commit.commit, {
@@ -181,7 +184,7 @@ describe('native canonical Character repair state', () => {
     if (!stored.character) throw new Error('Missing canonical Character.')
     await t.run((ctx) => ctx.db.patch(stored.character!._id, { status: 'DRAFT' }))
     await expect(
-      owner.caller.query(api.characters.builder.get, { id: character.id })
+      owner.caller.query(api.characters.builder.activeCharacter, { id: character.id })
     ).rejects.toThrow('identity mismatch')
   })
 })

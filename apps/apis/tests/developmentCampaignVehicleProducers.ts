@@ -165,18 +165,18 @@ export async function verifyCampaignVehicleProducers(
         characterIds.map(async (id, index) => {
           const player = players[index]
           assert.ok(player)
-          const [builder, sheet, draft, fence] = await Promise.all([
-            player.client.query(api.characters.builder.get, { id }),
+          const [active, sheet, draft, fence] = await Promise.all([
+            player.client.query(api.characters.builder.activeCharacter, { id }),
             player.client.query(api.characters.sheet.get, { id }),
             player.client.query(api.characters.drafts.get, { id }),
             owner.query(api.campaigns.inventoryOwners.version, {
               input: { campaignId, owner: { kind: 'CHARACTER', characterId: id } }
             })
           ])
-          assert.ok(builder && sheet)
+          assert.ok(active && sheet)
           assert.equal(sheet.meta.viewer, 'CHARACTER_OWNER')
           assert.equal(sheet.meta.streamVersion, fence.version)
-          return { id, builder, sheet, draft, fence }
+          return { id, active, sheet, draft, fence }
         })
       )
     ])

@@ -1,0 +1,330 @@
+import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
+import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
+import {
+  contentSnapshotDocumentsObjectSchema,
+  contentSnapshotIndexObjectSchema,
+  type ContentSnapshotObject,
+  type ContentSnapshotScope
+} from '@artificer-toolkit/schema/api/contentSnapshots'
+import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
+import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
+import type {
+  CharacterAuthored,
+  EquipmentAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
+import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
+import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
+import { championMartialArchetype } from '@artificer-toolkit/source-data/srd/classes/champion.js'
+import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
+import { srdClasses } from '@artificer-toolkit/source-data/srd/classes/index.js'
+import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
+import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
+import { clubPlus1 } from '@artificer-toolkit/source-data/srd/equipment/club-plus-1.js'
+import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
+import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
+import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
+import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
+import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { describe, expect, it } from 'vitest'
+
+import { parsePublicationDocument } from '../authoredPublicationRead.js'
+import {
+  createCharacterBuilderCatalog,
+  toCharacterBuilderEquipmentCatalogRecord
+} from '../character/builderCatalog.js'
+import { createCharacterBuilderChangePreview } from '../character/builderPresentation.js'
+import { prepareCharacterBuilderFromContext } from '../character/builderPreparation.js'
+import { toCharacterBuilderPayload } from '../character/characterBuilderView.js'
+import {
+  assembleCharacterBuilderContext,
+  prepareCharacterRuleContext
+} from '../character/contextPreparation.js'
+import { createSnapshotReaders } from '../character/snapshotReaders.js'
+import { buildContentSnapshotKind, toContentSnapshotIndexEntry } from '../contentSnapshots.js'
+
+// ADR 0036 S9: the Builder's picker pools come only from content snapshots, so the catalogue
+// rules the server once asserted over Convex reads are asserted here over snapshot objects.
+
+const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
+type Kind = AuthoredPublicationDocument['subjectKind']
+
+/** Index and documents objects of one scope, as the S2 build writes them. */
+function scopeObjects(
+  documents: Partial<Record<Kind, readonly unknown[]>>,
+  scope: ContentSnapshotScope = 'SOURCE'
+): ContentSnapshotObject[] {
+  const scopeId = crypto.randomUUID()
+  return Object.entries(documents).flatMap(([key, raw]) => {
+    const kind = key as Kind
+    const published = (raw ?? []).map((document) => parsePublicationDocument(kind, document))
+    const equipment = new Map(
+      published.flatMap((entry) =>
+        entry.subjectKind === 'EQUIPMENT' ? [[entry.document.id, entry.document] as const] : []
+      )
+    )
+    const sources = published.map((entry) => {
+      if (entry.subjectKind !== 'EQUIPMENT') return entry
+      // The stored projection the build reads: the effective facts along the variant chain.
+      const effective = resolveEquipmentAuthored(
+        entry.document as EquipmentAuthored,
+        (id) => equipment.get(id) as EquipmentAuthored | undefined
+      )
+      const record = toCharacterBuilderEquipmentCatalogRecord(effective)
+      const { builder } = authoredEquipmentOptionFactsSchema.parse({
+        checksum: '0'.repeat(64),
+        category: entry.document.category,
+        properties: entry.document.properties ?? [],
+        builder: {
+          version: 1,
+          parentEquipmentId:
+            entry.document.category === 'VARIANT' ? entry.document.parentEquipmentId : null,
+          category: record.category,
+          properties: record.properties,
+          isContainer: record.isContainer,
+          ...(record.maxStack === undefined ? {} : { maxStack: record.maxStack }),
+          requiresAttunement: record.requiresAttunement
+        }
+      })
+      if (!builder) throw new Error('Expected Equipment builder facts.')
+      return { ...entry, builder }
+    })
+    const { index, documents: part } = buildContentSnapshotKind(
+      { format: 1, scope, scopeId, kind },
+      sources
+    )
+    return [
+      contentSnapshotIndexObjectSchema.parse(JSON.parse(index.json)),
+      contentSnapshotDocumentsObjectSchema.parse(JSON.parse(part.json))
+    ]
+  })
+}
+
+function emptyCharacter(): CharacterAuthored {
+  return createEmptyCharacterAuthored({
+    id: crypto.randomUUID(),
+    systemId: system.id,
+    userId: crypto.randomUUID()
+  })
+}
+
+async function selectorsCatalogue(objects: readonly ContentSnapshotObject[]) {
+  const character = emptyCharacter()
+  const readers = createSnapshotReaders(objects)
+  const context = await assembleCharacterBuilderContext(
+    character,
+    await prepareCharacterRuleContext(character, system, undefined, readers),
+    { scope: 'selectors', readers }
+  )
+  return context.catalog
+}
+
+describe('Builder catalogue from content snapshots', () => {
+  it.each(['valid', 'missing parent', 'non-base parent'] as const)(
+    'validates Class catalogue parents from the complete pool: %s',
+    async (scenario) => {
+      const base = { ...fighter, label: 'Z base Class' }
+      const child = {
+        ...championMartialArchetype,
+        label: 'A subclass',
+        parentClassId: scenario === 'non-base parent' ? championMartialArchetype.id : base.id
+      }
+      const catalogue = selectorsCatalogue(
+        scopeObjects({ CLASS: scenario === 'missing parent' ? [child] : [base, child] })
+      )
+      if (scenario !== 'valid') {
+        await expect(catalogue).rejects.toThrow(
+          'A readable base class in the same System is required.'
+        )
+        return
+      }
+      expect((await catalogue).classes).toEqual(
+        createCharacterBuilderCatalog({
+          system,
+          races: [],
+          classes: [child, base].map((document) =>
+            toContentSnapshotIndexEntry(parsePublicationDocument('CLASS', document))
+          ),
+          backgrounds: [],
+          equipment: [],
+          feats: [],
+          spells: []
+        }).classes
+      )
+    }
+  )
+
+  it('resolves variant Equipment from projected facts exactly as from its documents', async () => {
+    const base = { ...backpack, label: 'Z parent', maxStack: 5 }
+    const child = {
+      ...clubPlus1,
+      label: 'A child',
+      parentEquipmentId: base.id,
+      requiresAttunement: true
+    }
+    const grandchild = {
+      ...clubPlus1,
+      id: crypto.randomUUID(),
+      label: 'A grandchild',
+      parentEquipmentId: child.id
+    }
+    const documents = [base, child, grandchild]
+    const catalogue = await selectorsCatalogue(scopeObjects({ EQUIPMENT: documents }))
+    expect(catalogue.equipment).toEqual(
+      createCharacterBuilderCatalog({
+        system,
+        races: [],
+        classes: [],
+        backgrounds: [],
+        equipment: [...documents]
+          .sort((left, right) => left.label.localeCompare(right.label))
+          .map((document) =>
+            resolveEquipmentAuthored(document, (id) => documents.find((parent) => parent.id === id))
+          ),
+        feats: [],
+        spells: []
+      }).equipment
+    )
+    expect(catalogue.equipment.find((row) => row.id === grandchild.id)).toMatchObject({
+      category: 'ADVENTURING_GEAR',
+      isContainer: true,
+      maxStack: 5,
+      requiresAttunement: true,
+      properties: ['CONTAINER', 'MAGIC']
+    })
+  })
+
+  it.each([
+    ['missing parent', 'Readable parent Equipment in the same System is required.'],
+    ['cycle', 'Equipment variant cycle detected.']
+  ] as const)('rejects Equipment inheritance with a %s', async (failure, message) => {
+    const child = { ...clubPlus1, parentEquipmentId: backpack.id }
+    const objects = scopeObjects({ EQUIPMENT: [backpack, child] }).map((object) =>
+      object.kind === 'EQUIPMENT' && object.part === 'index'
+        ? contentSnapshotIndexObjectSchema.parse({
+            ...object,
+            roots:
+              failure === 'missing parent'
+                ? object.roots.filter((root) => root.id !== backpack.id)
+                : object.roots.map((root) =>
+                    root.id === child.id ? { ...root, parentEquipmentId: child.id } : root
+                  )
+          })
+        : object
+    )
+    await expect(selectorsCatalogue(objects)).rejects.toThrow(message)
+  })
+
+  it('merges Feats across Source and Campaign scopes, a Source root shadowing its share', async () => {
+    const direct = { ...grappler, id: crypto.randomUUID(), label: 'Direct Feat' }
+    const shared = { ...grappler, id: crypto.randomUUID(), label: 'Shared Feat' }
+    const catalogue = await selectorsCatalogue([
+      ...scopeObjects({ FEAT: [{ ...direct, label: 'Stale share' }, shared] }, 'CAMPAIGN'),
+      ...scopeObjects({ FEAT: [direct] })
+    ])
+    expect(catalogue.feats).toEqual([
+      { id: direct.id, label: 'Direct Feat' },
+      { id: shared.id, label: 'Shared Feat' }
+    ])
+  })
+
+  it('keeps the resolution scope exact while reading fewer pools', async () => {
+    if (fighter.category !== 'BASE' || fighter.subclassSelectionLevel === undefined)
+      throw new Error('Expected the canonical Fighter subclass selection level.')
+    const readers = createSnapshotReaders(
+      scopeObjects({
+        RACE: srdRaces,
+        CLASS: srdClasses,
+        BACKGROUND: [acolyte],
+        EQUIPMENT: srdEquipment,
+        SPELL: srdSpells
+      })
+    )
+    const empty = emptyCharacter()
+    const withIntent = (intent: Partial<CharacterAuthored['intent']>): CharacterAuthored => ({
+      ...empty,
+      intent: { ...empty.intent, ...intent }
+    })
+    const selectedFighter = withIntent({
+      race: { raceId: human.id },
+      background: { backgroundId: acolyte.id },
+      classes: [{ classId: fighter.id, classLevel: 1 }]
+    })
+    const cases: Array<{
+      name: string
+      character: CharacterAuthored
+      current: CharacterAuthored | null
+    }> = [
+      { name: 'empty draft', character: empty, current: null },
+      { name: 'selected race/background/Fighter1', character: selectedFighter, current: null },
+      {
+        name: 'missing race',
+        character: withIntent({ ...selectedFighter.intent, race: { raceId: '' } }),
+        current: null
+      },
+      {
+        name: 'subclass selection plus Wizard1',
+        character: withIntent({
+          ...selectedFighter.intent,
+          classes: [
+            { classId: fighter.id, classLevel: fighter.subclassSelectionLevel },
+            { classId: wizard.id, classLevel: 1 }
+          ]
+        }),
+        current: null
+      },
+      {
+        name: 'unavailable selected race UUID',
+        character: withIntent({ ...selectedFighter.intent, race: { raceId: crypto.randomUUID() } }),
+        current: null
+      },
+      {
+        name: 'edit to incomplete selection',
+        character: withIntent({ ...selectedFighter.intent, classes: [] }),
+        current: selectedFighter
+      }
+    ]
+    for (const testCase of cases) {
+      const mode = testCase.current ? ('edit' as const) : ('create' as const)
+      const candidate = {
+        ...testCase.character,
+        state: testCase.current?.state ?? testCase.character.state
+      }
+      const ruleContext = await prepareCharacterRuleContext(candidate, system, undefined, readers)
+      const [selectors, resolution] = await Promise.all(
+        (['selectors', 'resolution'] as const).map(async (scope) => {
+          const context = await assembleCharacterBuilderContext(candidate, ruleContext, {
+            scope,
+            readers
+          })
+          const prepared = await prepareCharacterBuilderFromContext({
+            character: testCase.character,
+            current: testCase.current,
+            mode,
+            context
+          })
+          const predictedStatus = prepared.resolution.readiness.ready ? 'ACTIVE' : 'DRAFT'
+          const { catalog: _catalog, ...rest } = prepared.resolution
+          return {
+            character: prepared.character,
+            resolution: rest,
+            view: toCharacterBuilderPayload(prepared.character, prepared.resolution).resolution,
+            preview: createCharacterBuilderChangePreview({
+              previousCharacter: testCase.current ?? prepared.candidate,
+              nextCharacter: prepared.character,
+              predictedStatus,
+              context: prepared.context
+            })
+          }
+        })
+      )
+      expect(resolution, testCase.name).toEqual(selectors)
+      if (testCase.name === 'subclass selection plus Wizard1')
+        expect(
+          resolution!.resolution.outstandingChoices.some(
+            (choice) => choice.code === 'SUBCLASS_SELECTION_REQUIRED'
+          )
+        ).toBe(true)
+    }
+  })
+})

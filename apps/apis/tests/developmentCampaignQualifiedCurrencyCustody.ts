@@ -20,7 +20,9 @@ import type { DevelopmentClient } from './developmentClient'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 
 type Owner = InventoryOwnerRefDto
-type Builder = NonNullable<FunctionReturnType<typeof api.characters.builder.get>>
+type ActiveCharacter = NonNullable<
+  FunctionReturnType<typeof api.characters.builder.activeCharacter>
+>
 type Sheet = NonNullable<FunctionReturnType<typeof api.characters.sheet.get>>
 type CurrencyPage = FunctionReturnType<typeof api.campaigns.partyInventory.currencies>
 type AuditPage = FunctionReturnType<typeof api.campaigns.inventoryAudit.list>
@@ -179,14 +181,14 @@ export async function verifyCampaignQualifiedCurrencyCustody(
           characterIds.map(async (id, index) => {
             const player = players[index]
             assert.ok(player, 'Each Character must have its own Player client.')
-            const [builder, sheet] = await Promise.all([
-              player.client.query(api.characters.builder.get, { id }),
+            const [active, sheet] = await Promise.all([
+              player.client.query(api.characters.builder.activeCharacter, { id }),
               player.client.query(api.characters.sheet.get, { id })
             ])
-            assert.ok(builder && sheet, 'Own Builder and Sheet reads must both succeed.')
+            assert.ok(active && sheet, 'Own active Character and Sheet reads must both succeed.')
             assert.equal(sheet.meta.characterId, id)
             assert.equal(sheet.meta.viewer, 'CHARACTER_OWNER')
-            return { id, builder, sheet }
+            return { id, active, sheet }
           })
         ),
         readAudit()
@@ -322,7 +324,7 @@ export async function verifyCampaignQualifiedCurrencyCustody(
   }
   const balances = (snapshot: Snapshot, ref: Owner) =>
     ref.kind === 'CHARACTER'
-      ? characterState(snapshot, ref).builder.character.state.currency.flatMap((group) =>
+      ? characterState(snapshot, ref).active.state.currency.flatMap((group) =>
           group.currencies.map((currency) => ({
             key: qualifiedKey(currency, currency.currencyId),
             amount: exactAmount(currency.amount)
@@ -353,8 +355,8 @@ export async function verifyCampaignQualifiedCurrencyCustody(
     ref.kind === 'CHARACTER'
       ? characterState(snapshot, ref).sheet.meta.streamVersion
       : sharedState(snapshot, ref).items.version
-  const withoutQualifiedGroups = (builder: Builder, namespace: Namespace) =>
-    builder.character.state.currency.flatMap((group) => {
+  const withoutQualifiedGroups = (character: ActiveCharacter, namespace: Namespace) =>
+    character.state.currency.flatMap((group) => {
       const currencies = group.currencies.filter(
         (currency) => qualifiedKey(currency, currency.currencyId) !== namespaceKey(namespace)
       )
@@ -394,31 +396,16 @@ export async function verifyCampaignQualifiedCurrencyCustody(
     if (ref.kind === 'CHARACTER') {
       const previous = characterState(before, ref)
       const next = characterState(after, ref)
-      const {
-        character: previousCharacter,
-        baseActiveUpdatedAt: previousUpdatedAt,
-        ...previousBuilder
-      } = previous.builder
-      const {
-        character: nextCharacter,
-        baseActiveUpdatedAt: nextUpdatedAt,
-        ...nextBuilder
-      } = next.builder
+      const { currency: previousCurrency, ...previousState } = previous.active.state
+      const { currency: nextCurrency, ...nextState } = next.active.state
       assert.deepEqual(
-        nextBuilder,
-        previousBuilder,
-        'Builder structural intent and resolved view must remain literal.'
-      )
-      const { currency: previousCurrency, ...previousState } = previousCharacter.state
-      const { currency: nextCurrency, ...nextState } = nextCharacter.state
-      assert.deepEqual(
-        { ...nextCharacter, state: nextState },
-        { ...previousCharacter, state: previousState },
+        { ...next.active, state: nextState },
+        { ...previous.active, state: previousState },
         'Character items, private notes and all other authored/play state must remain literal.'
       )
       assert.deepEqual(
-        withoutQualifiedGroups(next.builder, namespace),
-        withoutQualifiedGroups(previous.builder, namespace)
+        withoutQualifiedGroups(next.active, namespace),
+        withoutQualifiedGroups(previous.active, namespace)
       )
       const expectedCurrency = structuredClone(previousCurrency)
       const identity = {
@@ -497,13 +484,6 @@ export async function verifyCampaignQualifiedCurrencyCustody(
         nextCurrency,
         expectedCurrency,
         'Only the exact qualified amount and necessary empty/new group changes may occur.'
-      )
-      assert.equal(typeof previousUpdatedAt, 'string')
-      assert.equal(typeof nextUpdatedAt, 'string')
-      assert.ok(previousUpdatedAt && nextUpdatedAt)
-      assert.ok(
-        Number.isFinite(Date.parse(nextUpdatedAt)) &&
-          Date.parse(nextUpdatedAt) > Date.parse(previousUpdatedAt)
       )
       for (const group of nextCurrency) {
         const oldGroup = previousCurrency.find((candidate) => candidate.id === group.id)

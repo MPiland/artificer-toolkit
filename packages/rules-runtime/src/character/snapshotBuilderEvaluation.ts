@@ -21,9 +21,9 @@ import {
 } from './contextPreparation.js'
 
 /**
- * One Builder evaluation over content snapshot readers (ADR 0036 S6): the browser's replacement for
- * `builder.resolve` and `builder.preview`. `character` is the draft candidate; its Sheet state is
- * replaced by the active Character's, as the server does. The System is an input until it is
+ * One Builder evaluation over content snapshot readers (ADR 0036 S6): the browser Builder's
+ * resolution and finalization preview. `character` is the draft candidate; its Sheet state is
+ * replaced by the active Character's, as commit does. The System is an input until it is
  * snapshotted (D67).
  */
 export type SnapshotCharacterBuilderInput = {
@@ -51,13 +51,12 @@ async function assembleSnapshotContext(
   const context = await assembleCharacterBuilderContext(
     character,
     await prepareCharacterRuleContext(character, input.system, undefined, readers),
-    readers,
-    scope
+    { scope, readers }
   )
   return { character, context }
 }
 
-/** The payload `builder.resolve` returns for the same candidate and sources. */
+/** The Builder payload for the candidate over every readable picker pool. */
 export async function resolveSnapshotCharacterBuilderPayload(
   input: SnapshotCharacterBuilderInput,
   readers: SnapshotBuilderReaders
@@ -66,7 +65,7 @@ export async function resolveSnapshotCharacterBuilderPayload(
   return resolveCharacterBuilderPayload(character, context, input)
 }
 
-/** The output `builder.preview` returns for the same candidate and sources. */
+/** The finalization preview, over the pools that can affect readiness, as commit resolves. */
 export async function previewSnapshotCharacterBuilder(
   input: SnapshotCharacterBuilderInput,
   readers: SnapshotBuilderReaders

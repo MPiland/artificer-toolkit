@@ -16,8 +16,10 @@ import type { DevelopmentClient } from './developmentClient'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 
 type Page<T> = { page: T[]; isDone: boolean; continueCursor: string; version?: number }
-type Builder = NonNullable<FunctionReturnType<typeof api.characters.builder.get>>
-type CharacterIntent = Builder['character']['intent']
+type ActiveCharacter = NonNullable<
+  FunctionReturnType<typeof api.characters.builder.activeCharacter>
+>
+type CharacterIntent = ActiveCharacter['intent']
 type WithoutCommandMetadata<T> = T extends unknown
   ? Omit<T, 'commandId' | 'expectedVersion'>
   : never
@@ -144,9 +146,9 @@ export async function verifyCampaignAssignmentLifecycle(
       currencies,
       partyFence,
       firstCharacters,
-      firstBuilder,
-      secondBuilder,
-      replacementBuilder,
+      firstActive,
+      secondActive,
+      replacementActive,
       firstDraft,
       secondDraft,
       replacementDraft,
@@ -168,9 +170,9 @@ export async function verifyCampaignAssignmentLifecycle(
       collectPages((cursor) =>
         first.client.query(api.characters.list.list, { paginationOpts: pagination(cursor) })
       ),
-      first.client.query(api.characters.builder.get, { id: originalId }),
-      second.client.query(api.characters.builder.get, { id: secondId }),
-      first.client.query(api.characters.builder.get, { id: replacementId }),
+      first.client.query(api.characters.builder.activeCharacter, { id: originalId }),
+      second.client.query(api.characters.builder.activeCharacter, { id: secondId }),
+      first.client.query(api.characters.builder.activeCharacter, { id: replacementId }),
       first.client.query(api.characters.drafts.get, { id: originalId }),
       second.client.query(api.characters.drafts.get, { id: secondId }),
       first.client.query(api.characters.drafts.get, { id: replacementId }),
@@ -187,7 +189,7 @@ export async function verifyCampaignAssignmentLifecycle(
       history(owner, secondId),
       restrictedRead(() => history(first.client, originalId))
     ])
-    assert.ok(campaign && firstBuilder && secondBuilder && replacementBuilder)
+    assert.ok(campaign && firstActive && secondActive && replacementActive)
     const firstCharacter = firstCharacters.find((entry) => entry.id === originalId)
     assert.ok(
       firstCharacter,
@@ -209,9 +211,9 @@ export async function verifyCampaignAssignmentLifecycle(
       partyFence,
       firstCharacters,
       firstCharacter,
-      firstBuilder,
-      secondBuilder,
-      replacementBuilder,
+      firstActive,
+      secondActive,
+      replacementActive,
       firstDraft,
       secondDraft,
       replacementDraft,
@@ -245,11 +247,13 @@ export async function verifyCampaignAssignmentLifecycle(
     return result
   }
   const commitIntent = async (intent: CharacterIntent) => {
-    const current = await first.client.query(api.characters.builder.get, { id: originalId })
+    const current = await first.client.query(api.characters.builder.activeCharacter, {
+      id: originalId
+    })
     assert.ok(current)
     const draft = await first.client.mutation(api.characters.drafts.create, {
       id: originalId,
-      systemId: current.character.systemId
+      systemId: current.systemId
     })
     const saved = await first.client.mutation(api.characters.drafts.save, {
       characterId: originalId,
@@ -268,9 +272,11 @@ export async function verifyCampaignAssignmentLifecycle(
     })
   }
   const restoreOriginal = async (intent: CharacterIntent) => {
-    const current = await first.client.query(api.characters.builder.get, { id: originalId })
+    const current = await first.client.query(api.characters.builder.activeCharacter, {
+      id: originalId
+    })
     assert.ok(current)
-    if (canonicalizeRuleDocument(current.character.intent) !== canonicalizeRuleDocument(intent))
+    if (canonicalizeRuleDocument(current.intent) !== canonicalizeRuleDocument(intent))
       await commitIntent(intent)
     const campaign = await owner.query(api.campaigns.queries.get, { id: campaignId })
     assert.ok(campaign)
@@ -290,13 +296,13 @@ export async function verifyCampaignAssignmentLifecycle(
     reason: string,
     systemId: string
   ) => {
-    const currency = before.firstBuilder.character.state.currency.map((group) => ({
+    const currency = before.firstActive.state.currency.map((group) => ({
       ...group,
       currencies: group.currencies.filter(
         (row) => row.kind !== 'CAMPAIGN' || row.campaignCurrencySystemId !== systemId
       )
     }))
-    const expectedState = { ...before.firstBuilder.character.state, currency }
+    const expectedState = { ...before.firstActive.state, currency }
     if (status === 'ACTIVE') {
       assert.ok(after.firstSheet.ok && after.firstSheet.value)
       expectedState.hitpoints = {
@@ -322,14 +328,14 @@ export async function verifyCampaignAssignmentLifecycle(
       assert.equal(after.firstSheet.value.meta.streamVersion, streamVersion)
     }
     assert.deepEqual(
-      after.firstBuilder.character.state,
+      after.firstActive.state,
       expectedState,
       'All physical IDs, raw retained rules, nested placement, qualified unrelated coins and private state remain exact.'
     )
-    assert.deepEqual(after.secondBuilder, before.secondBuilder)
+    assert.deepEqual(after.secondActive, before.secondActive)
     assert.deepEqual(after.secondSheet, before.secondSheet)
     assert.deepEqual(after.secondDraft, before.secondDraft)
-    assert.deepEqual(after.replacementBuilder.character, before.replacementBuilder.character)
+    assert.deepEqual(after.replacementActive, before.replacementActive)
     assert.deepEqual(after.replacementDraft, before.replacementDraft)
     assert.deepEqual(after.items, before.items, 'Party physical custody is unchanged.')
     assert.equal(after.partyFence.version, before.partyFence.version + 1)
@@ -345,7 +351,7 @@ export async function verifyCampaignAssignmentLifecycle(
       return totals
     }
     const returned = new Map<string, bigint>()
-    for (const group of before.firstBuilder.character.state.currency)
+    for (const group of before.firstActive.state.currency)
       for (const row of group.currencies)
         if (row.kind === 'CAMPAIGN' && row.campaignCurrencySystemId === systemId) {
           const identity = key(row.currencyId, systemId)
@@ -471,8 +477,8 @@ export async function verifyCampaignAssignmentLifecycle(
     })
   }
   const initial = await snapshot()
-  const originalIntent = initial.firstBuilder.character.intent
-  const secondIntent = initial.secondBuilder.character.intent
+  const originalIntent = initial.firstActive.intent
+  const secondIntent = initial.secondActive.intent
   const sharedBackgroundId = secondIntent.background.backgroundId
   let sharedEquipmentId: string | undefined
   assert.ok(sharedBackgroundId, 'Second Character needs its published Background.')
@@ -487,7 +493,7 @@ export async function verifyCampaignAssignmentLifecycle(
       ?.id,
     secondId
   )
-  assert.equal(initial.replacementBuilder.character.status, 'ACTIVE')
+  assert.equal(initial.replacementActive.status, 'ACTIVE')
   assert.equal(initial.replacementSheet.ok, true)
 
   try {
@@ -563,11 +569,15 @@ export async function verifyCampaignAssignmentLifecycle(
         background: secondIntent.startingEquipment.background
       }
     })
-    const afterBackground = await first.client.query(api.characters.builder.get, { id: originalId })
+    const afterBackground = await first.client.query(api.characters.builder.activeCharacter, {
+      id: originalId
+    })
     assert.ok(afterBackground)
-    assert.equal(afterBackground.character.intent.background.backgroundId, sharedBackgroundId)
+    assert.equal(afterBackground.intent.background.backgroundId, sharedBackgroundId)
 
-    const beforePack = await first.client.query(api.characters.builder.get, { id: originalId })
+    const beforePack = await first.client.query(api.characters.builder.activeCharacter, {
+      id: originalId
+    })
     assert.ok(beforePack)
     await execute(first.client, originalId, {
       type: 'ADD_INVENTORY_ITEM',
@@ -576,10 +586,12 @@ export async function verifyCampaignAssignmentLifecycle(
       customName: 'Assignment departure pack',
       notes: 'Retain this acquired pack.'
     })
-    const withPack = await first.client.query(api.characters.builder.get, { id: originalId })
+    const withPack = await first.client.query(api.characters.builder.activeCharacter, {
+      id: originalId
+    })
     assert.ok(withPack)
-    const pack = withPack.character.state.equipment.inventory.find(
-      (item) => !beforePack.character.state.equipment.inventory.some((old) => old.id === item.id)
+    const pack = withPack.state.equipment.inventory.find(
+      (item) => !beforePack.state.equipment.inventory.some((old) => old.id === item.id)
     )
     assert.ok(pack?.retainedRulesJson)
     const packSheet = await first.client.query(api.characters.sheet.get, { id: originalId })
@@ -663,7 +675,7 @@ export async function verifyCampaignAssignmentLifecycle(
     })
     const opened = await first.client.mutation(api.characters.drafts.create, {
       id: originalId,
-      systemId: afterBackground.character.systemId
+      systemId: afterBackground.systemId
     })
     const privateDraft = await first.client.mutation(api.characters.drafts.save, {
       characterId: originalId,
@@ -763,31 +775,31 @@ export async function verifyCampaignAssignmentLifecycle(
         ?.id,
       replacementId
     )
-    assert.equal(replaced.firstBuilder.character.status, 'DRAFT')
+    assert.equal(replaced.firstActive.status, 'DRAFT')
     assert.equal(replaced.firstSheet.ok, false)
     assert.equal(replaced.firstCampaignSheet.ok, false)
-    assert.equal(replaced.replacementBuilder.character.status, 'ACTIVE')
+    assert.equal(replaced.replacementActive.status, 'ACTIVE')
     assert.equal(replaced.replacementSheet.ok, true)
     assert.equal(replaced.partyFence.version, beforeReplacement.partyFence.version + 1)
     assert.equal(
-      replaced.firstBuilder.character.state.currency
+      replaced.firstActive.state.currency
         .flatMap((group) => group.currencies)
         .some((row) => row.kind === 'CAMPAIGN' && row.currencyId === rulesetGoldId),
       false
     )
     assert.equal(
-      replaced.firstBuilder.character.state.currency
+      replaced.firstActive.state.currency
         .flatMap((group) => group.currencies)
         .some((row) => row.kind === 'RULESET' && row.currencyId === rulesetGoldId),
       true
     )
     assert.ok(
-      replaced.firstBuilder.character.state.equipment.inventory.some(
+      replaced.firstActive.state.equipment.inventory.some(
         (item) => item.id === pack.id && item.retainedRulesJson
       )
     )
     assert.ok(
-      replaced.firstBuilder.character.state.equipment.inventory.some(
+      replaced.firstActive.state.equipment.inventory.some(
         (item) => item.containerId === pack.id && item.equipmentId === club.id
       )
     )
@@ -855,7 +867,7 @@ export async function verifyCampaignAssignmentLifecycle(
         ?.assignedCharacter?.id,
       originalId
     )
-    assert.equal(reassigned.replacementBuilder.character.status, 'ACTIVE')
+    assert.equal(reassigned.replacementActive.status, 'ACTIVE')
     assert.equal(reassigned.replacementSheet.ok, true)
     const replacementSubjectHistory = await history(first.client, originalId)
     const replacementReceipt = proveReconciliation(
@@ -864,7 +876,7 @@ export async function verifyCampaignAssignmentLifecycle(
       'DRAFT',
       replacementVersion
     )
-    assert.deepEqual(reassigned.replacementBuilder.character, initial.replacementBuilder.character)
+    assert.deepEqual(reassigned.replacementActive, initial.replacementActive)
     assert.deepEqual(reassigned.replacementSheet, initial.replacementSheet)
 
     const partyForFinal = await owner.query(api.campaigns.inventoryOwners.version, {
@@ -911,7 +923,7 @@ export async function verifyCampaignAssignmentLifecycle(
     })
     const finalOpened = await first.client.mutation(api.characters.drafts.create, {
       id: originalId,
-      systemId: reassigned.firstBuilder.character.systemId
+      systemId: reassigned.firstActive.systemId
     })
     const finalDraft = await first.client.mutation(api.characters.drafts.save, {
       characterId: originalId,
@@ -946,13 +958,13 @@ export async function verifyCampaignAssignmentLifecycle(
     assert.equal(unassigned.firstCampaignSheet.ok, false)
     assert.equal(unassigned.partyFence.version, beforeUnassign.partyFence.version + 1)
     assert.equal(
-      unassigned.firstBuilder.character.state.currency
+      unassigned.firstActive.state.currency
         .flatMap((group) => group.currencies)
         .some((row) => row.kind === 'CAMPAIGN'),
       false
     )
     assert.ok(
-      unassigned.firstBuilder.character.state.equipment.inventory.some(
+      unassigned.firstActive.state.equipment.inventory.some(
         (item) => item.id === pack.id && item.retainedRulesJson
       )
     )
@@ -1009,9 +1021,11 @@ export async function verifyCampaignAssignmentLifecycle(
         }),
       /unavailable|source|not available/i
     )
-    const retained = await first.client.query(api.characters.builder.get, { id: originalId })
+    const retained = await first.client.query(api.characters.builder.activeCharacter, {
+      id: originalId
+    })
     assert.ok(
-      retained?.character.state.equipment.inventory.some(
+      retained?.state.equipment.inventory.some(
         (item) => item.id === pack.id && item.retainedRulesJson
       )
     )

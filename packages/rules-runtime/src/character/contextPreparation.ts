@@ -322,19 +322,23 @@ export async function prepareCharacterRuleContext(
 type PreparedCharacterRuleContext = Awaited<ReturnType<typeof prepareCharacterRuleContext>>
 
 /**
- * A Character's readable picker pools. Each reader applies its own source authority and parent
- * rules, and returns the kind's picker facts; the Convex and content-snapshot readers must agree.
+ * The readable pools the `resolution` scope reads. Each reader applies its own source authority and
+ * parent rules, and returns the kind's picker facts; every implementation must agree.
  */
-export type CharacterBuilderCatalogueReaders = {
-  readRaces(): Promise<readonly CharacterBuilderRaceCatalogSource[]>
+export type CharacterBuilderResolutionCatalogueReaders = {
   readClasses(): Promise<readonly CharacterBuilderClassCatalogSource[]>
-  readBackgrounds(): Promise<readonly CharacterBuilderBackgroundCatalogSource[]>
   /** Effective projected facts, or the documents to resolve when a stored projection is missing. */
   readEquipment(): Promise<
     | { entries: readonly ContentSnapshotIndexEntry<'EQUIPMENT'>[] }
     | { documents: readonly EquipmentAuthored[] }
   >
   readFeats(): Promise<readonly CharacterBuilderFeatCatalogRecord[]>
+}
+
+/** Every picker pool, which the `selectors` scope reads (the browser Builder, ADR 0036 S6). */
+export type CharacterBuilderCatalogueReaders = CharacterBuilderResolutionCatalogueReaders & {
+  readRaces(): Promise<readonly CharacterBuilderRaceCatalogSource[]>
+  readBackgrounds(): Promise<readonly CharacterBuilderBackgroundCatalogSource[]>
 }
 
 function byLabel(left: { id: string; label: string }, right: { id: string; label: string }) {
@@ -376,7 +380,9 @@ function toSpellCatalogRecords(context: PreparedCharacterRuleContext) {
     .map(toCharacterBuilderSpellCatalogRecord)
 }
 
-type CharacterEquipmentPool = Awaited<ReturnType<CharacterBuilderCatalogueReaders['readEquipment']>>
+type CharacterEquipmentPool = Awaited<
+  ReturnType<CharacterBuilderResolutionCatalogueReaders['readEquipment']>
+>
 
 /** Every Equipment parent must be in the same readable pool, without cycles. */
 function toEquipmentCatalogRecords(
@@ -437,25 +443,29 @@ export async function assembleCharacterBuilderContext<
 >(
   character: CharacterAuthored,
   context: TContext,
-  catalogue: CharacterBuilderCatalogueReaders,
-  scope: 'selectors' | 'resolution'
+  catalogue:
+    | { scope: 'selectors'; readers: CharacterBuilderCatalogueReaders }
+    | { scope: 'resolution'; readers: CharacterBuilderResolutionCatalogueReaders }
 ) {
   const { registry } = context
-  const selectors = scope === 'selectors'
-  const races = selectors
-    ? [...(await catalogue.readRaces())].sort(byLabel)
-    : registry.races.map(toCharacterBuilderRaceCatalogSource)
+  const { readers } = catalogue
+  const selectors = catalogue.scope === 'selectors'
+  const races =
+    catalogue.scope === 'selectors'
+      ? [...(await catalogue.readers.readRaces())].sort(byLabel)
+      : registry.races.map(toCharacterBuilderRaceCatalogSource)
   const classes = new Map<string, CharacterBuilderClassCatalogSource>(
     selectors ? [] : registry.classes.map((record) => [record.id, toClassSource(record)])
   )
   if (selectors || isSubclassSelectionDue(character, registry.classes))
-    for (const record of [...(await catalogue.readClasses())].sort(byLabel))
+    for (const record of [...(await readers.readClasses())].sort(byLabel))
       classes.set(record.id, record)
-  const backgrounds = selectors
-    ? [...(await catalogue.readBackgrounds())].sort(byLabel)
-    : registry.backgrounds.map(toBackgroundSource)
-  const equipment = toEquipmentCatalogRecords(await catalogue.readEquipment())
-  const feats = [...(await catalogue.readFeats())].sort(byLabel)
+  const backgrounds =
+    catalogue.scope === 'selectors'
+      ? [...(await catalogue.readers.readBackgrounds())].sort(byLabel)
+      : registry.backgrounds.map(toBackgroundSource)
+  const equipment = toEquipmentCatalogRecords(await readers.readEquipment())
+  const feats = [...(await readers.readFeats())].sort(byLabel)
   requireSubclassParents(classes)
   return {
     ...context,

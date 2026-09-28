@@ -1,165 +1,47 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { v, type Validator } from 'convex/values'
 import {
-  characterBuilderPayloadDtoSchema,
-  type CharacterBuilderIntentCacheDto,
-  type CharacterBuilderPayloadDto
-} from '@artificer-toolkit/schema/api/characterBuilder'
-import {
-  characterBuilderResolveInputSchema,
-  characterBuilderPreviewOutputSchema,
-  type CharacterBuilderPreviewOutput
-} from '@artificer-toolkit/schema/api/characterBuilderQueries'
-import { characterDraftLookupInputSchema } from '@artificer-toolkit/schema/api/characterDrafts'
+  characterDraftLookupInputSchema,
+  type CharacterDraftLookupInput
+} from '@artificer-toolkit/schema/api/characterDrafts'
 import {
   characterAuthoredDtoSchema,
   type CharacterAuthoredDto
 } from '@artificer-toolkit/schema/subjects/character'
-import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import {
-  resolveCharacterBuilderPayload,
-  toCharacterBuilderPreviewOutput
-} from '@artificer-toolkit/rules-runtime/character/builderPayload'
-import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
-import { loadCharacterBuilderContext } from './builderContext'
-import { prepareCharacterBuilder } from './builderPreparation'
-import {
-  loadCharacterState,
-  loadCharacterDraftCandidate,
-  readCharacterDraft,
-  readCharacterRecord,
-  resolveCharacterId
-} from './documents'
-
-async function resolvePayload(
-  ctx: QueryCtx,
-  input: {
-    character: CharacterAuthored
-    mode: 'create' | 'edit'
-    previousCharacter: CharacterAuthored | null
-    builderIntent?: CharacterBuilderIntentCacheDto
-    publicId: string
-    baseActiveUpdatedAt: string | null
-  }
-): Promise<CharacterBuilderPayloadDto> {
-  const character = {
-    ...input.character,
-    state: input.previousCharacter?.state ?? createEmptyCharacterAuthored(input.character).state
-  }
-  const context = await loadCharacterBuilderContext(ctx, character, character.userId)
-  return resolveCharacterBuilderPayload(character, context, {
-    ...input,
-    contentMaturity: context.sourceAccess.campaign?.contentMaturity ?? null
-  })
-}
-
-/** The caller's own Character state for the Builder, or null when it is absent or not theirs. */
-async function readOwnedBuilderState(ctx: QueryCtx, args: unknown) {
-  const { userId } = await requireIdentity(ctx)
-  const { id: lookupId } = characterDraftLookupInputSchema.parse(args)
-  const id = await resolveCharacterId(ctx, lookupId)
-  if (!id) return null
-  const { active, draft } = await loadCharacterState(ctx, id)
-  if (
-    (!active && !draft) ||
-    (active && active.userId !== userId) ||
-    (draft && draft.userId !== userId)
-  )
-    return null
-  const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
-  if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== userId)
-    throw new Error('Stored Character route identity mismatch.')
-  return { active, draft, route }
-}
+import { readCharacterRecord, resolveCharacterId } from './documents'
 
 /**
- * The active Character an edit draft replaces, which the browser Builder evaluates against as its
- * previous Character (ADR 0036 S6). Null for a draft-only Character.
+ * The caller's active Character: the Builder route's first payload beside `drafts.get`, and the
+ * previous Character the browser Builder evaluates an edit draft against (ADR 0036 S6, S9). Null for
+ * a draft-only or foreign Character. It never reads the draft, so an autosave does not re-run this
+ * subscription (S8).
  */
 export const activeCharacter = query({
   args: zodToConvexFields(characterDraftLookupInputSchema.shape),
   get returns(): Validator<CharacterAuthoredDto | null, 'required', string> {
     return v.union(v.null(), zodToConvex(characterAuthoredDtoSchema))
   },
-  handler: async (ctx, args): Promise<CharacterAuthoredDto | null> => {
-    const state = await readOwnedBuilderState(ctx, args)
-    return state?.active ? readCharacterRecord(state.active) : null
-  }
+  handler: (ctx, args) => readActiveCharacter(ctx, characterDraftLookupInputSchema.parse(args))
 })
 
-export const get = query({
-  args: zodToConvexFields(characterDraftLookupInputSchema.shape),
-  get returns(): Validator<CharacterBuilderPayloadDto | null, 'required', string> {
-    return v.union(v.null(), zodToConvex(characterBuilderPayloadDtoSchema))
-  },
-  handler: async (ctx, args): Promise<CharacterBuilderPayloadDto | null> => {
-    const state = await readOwnedBuilderState(ctx, args)
-    if (!state) return null
-    const { active, draft, route } = state
-    const current = active ? readCharacterRecord(active) : null
-    const working = draft ? await readCharacterDraft(ctx, draft, active) : null
-    const character = working?.payload.character ?? current
-    if (!character) return null
-    // Validated Character DTOs use literal starting-equipment sources for the authored string enum.
-    return resolvePayload(ctx, {
-      character: character as CharacterAuthored,
-      mode: active ? 'edit' : 'create',
-      previousCharacter: current as CharacterAuthored | null,
-      builderIntent: working?.payload.builderIntent,
-      publicId: route.publicId,
-      baseActiveUpdatedAt: working
-        ? (working.baseActiveUpdatedAt ?? null)
-        : (active?.updatedAt ?? null)
-    })
-  }
-})
-
-export const resolve = query({
-  get args() {
-    return zodToConvexFields(characterBuilderResolveInputSchema.shape)
-  },
-  get returns(): Validator<CharacterBuilderPayloadDto, 'required', string> {
-    return zodToConvex(characterBuilderPayloadDtoSchema)
-  },
-  handler: async (ctx, args): Promise<CharacterBuilderPayloadDto> => {
-    const { userId } = await requireIdentity(ctx)
-    const input = characterBuilderResolveInputSchema.parse(args)
-    const { character, current, draft } = await loadCharacterDraftCandidate(ctx, userId, input)
-    return resolvePayload(ctx, {
-      character: character as CharacterAuthored,
-      mode: input.mode,
-      previousCharacter: current as CharacterAuthored | null,
-      builderIntent: draft.payload.builderIntent,
-      publicId: draft.publicId,
-      baseActiveUpdatedAt: draft.baseActiveUpdatedAt ?? null
-    })
-  }
-})
-
-export const preview = query({
-  get args() {
-    return zodToConvexFields(characterBuilderResolveInputSchema.shape)
-  },
-  get returns(): Validator<CharacterBuilderPreviewOutput, 'required', string> {
-    return zodToConvex(characterBuilderPreviewOutputSchema)
-  },
-  handler: async (ctx, args): Promise<CharacterBuilderPreviewOutput> => {
-    const { userId } = await requireIdentity(ctx)
-    const input = characterBuilderResolveInputSchema.parse(args)
-    const { character, current } = await loadCharacterDraftCandidate(ctx, userId, input)
-    const prepared = await prepareCharacterBuilder(ctx, {
-      character: character as CharacterAuthored,
-      current: current as CharacterAuthored | null,
-      mode: input.mode
-    })
-    return toCharacterBuilderPreviewOutput(
-      prepared,
-      current as CharacterAuthored | null,
-      prepared.context.sourceAccess.campaign?.contentMaturity ?? null
-    )
-  }
-})
+export async function readActiveCharacter(
+  ctx: QueryCtx,
+  input: CharacterDraftLookupInput
+): Promise<CharacterAuthoredDto | null> {
+  const { userId } = await requireIdentity(ctx)
+  const id = await resolveCharacterId(ctx, input.id)
+  if (!id) return null
+  const active = await ctx.db
+    .query('characters')
+    .withIndex('by_publicId', (q) => q.eq('id', id))
+    .unique()
+  if (!active || active.userId !== userId) return null
+  const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
+  if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== userId)
+    throw new Error('Stored Character route identity mismatch.')
+  return readCharacterRecord(active)
+}

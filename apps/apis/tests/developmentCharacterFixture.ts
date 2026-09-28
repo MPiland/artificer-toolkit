@@ -156,12 +156,6 @@ export async function prepareDevelopmentCharacter(
     mode: 'create',
     character
   }
-  const preview = await owner.query(api.characters.builder.preview, candidate)
-  assert.equal(
-    preview.resolution.readiness.ready,
-    true,
-    JSON.stringify(preview.resolution.readiness)
-  )
   return { candidate, character, equipment }
 }
 

@@ -297,7 +297,7 @@ export async function verifyCampaignMembershipCustodyDeparture(
     id: remainingCharacterId
   })
   assert.ok(characterSheet, 'The remaining assigned Character must be available.')
-  const beforeHeld = await remaining.client.query(api.characters.builder.get, {
+  const beforeHeld = await remaining.client.query(api.characters.builder.activeCharacter, {
     id: remainingCharacterId
   })
   assert.ok(beforeHeld)
@@ -313,14 +313,14 @@ export async function verifyCampaignMembershipCustodyDeparture(
       notes: 'Keep this acquired Equipment after the author leaves.'
     }
   })
-  const heldBeforeDeparture = await remaining.client.query(api.characters.builder.get, {
+  const heldBeforeDeparture = await remaining.client.query(api.characters.builder.activeCharacter, {
     id: remainingCharacterId
   })
   assert.ok(heldBeforeDeparture)
-  const heldBackpack = heldBeforeDeparture.character.state.equipment.inventory.find(
+  const heldBackpack = heldBeforeDeparture.state.equipment.inventory.find(
     (item) =>
       item.equipmentId === equipment.subjectId &&
-      !beforeHeld.character.state.equipment.inventory.some((previous) => previous.id === item.id)
+      !beforeHeld.state.equipment.inventory.some((previous) => previous.id === item.id)
   )
   if (!heldBackpack?.retainedRulesJson)
     throw new Error('Acquired Equipment must retain raw rules before source loss.')
@@ -610,12 +610,12 @@ export async function verifyCampaignMembershipCustodyDeparture(
     7,
     'Departure must return the exact qualified balance to Party custody.'
   )
-  const departedCharacter = await departing.client.query(api.characters.builder.get, {
+  const departedCharacter = await departing.client.query(api.characters.builder.activeCharacter, {
     id: departingCharacterId
   })
   assert.ok(departedCharacter, 'Departure preserves the player-owned Character.')
   assert.equal(
-    departedCharacter.character.state.currency
+    departedCharacter.state.currency
       .flatMap((group) => group.currencies)
       .some(
         (currency) =>
@@ -626,11 +626,11 @@ export async function verifyCampaignMembershipCustodyDeparture(
     false,
     'Departure must remove the returned qualified balance from the Character.'
   )
-  const heldAfterDeparture = await remaining.client.query(api.characters.builder.get, {
+  const heldAfterDeparture = await remaining.client.query(api.characters.builder.activeCharacter, {
     id: remainingCharacterId
   })
   assert.ok(heldAfterDeparture)
-  const retainedAfterDeparture = heldAfterDeparture.character.state.equipment.inventory.find(
+  const retainedAfterDeparture = heldAfterDeparture.state.equipment.inventory.find(
     (item) => item.id === heldBackpack.id
   )
   assert.deepEqual(retainedAfterDeparture, heldBackpack)
@@ -674,14 +674,14 @@ export async function verifyCampaignMembershipCustodyDeparture(
     /not found|authorized|permission/i
   )
   assert.equal(
-    await departing.client.query(api.characters.builder.get, {
+    await departing.client.query(api.characters.builder.activeCharacter, {
       id: remainingCharacterId
     }),
     null,
     'The revoked player must not read the other player Character.'
   )
   assert.equal(
-    await remaining.client.query(api.characters.builder.get, {
+    await remaining.client.query(api.characters.builder.activeCharacter, {
       id: departingCharacterId
     }),
     null,
@@ -759,7 +759,7 @@ export async function verifyCampaignMembershipCustodyDeparture(
     'Source-loss denials must not write Party state.'
   )
   assert.deepEqual(
-    await remaining.client.query(api.characters.builder.get, {
+    await remaining.client.query(api.characters.builder.activeCharacter, {
       id: remainingCharacterId
     }),
     heldAfterDeparture,
@@ -786,17 +786,15 @@ export async function verifyCampaignMembershipCustodyDeparture(
       expectedVersion: metadataVersion
     }
   })
-  const finalHeld = await remaining.client.query(api.characters.builder.get, {
+  const finalHeld = await remaining.client.query(api.characters.builder.activeCharacter, {
     id: remainingCharacterId
   })
   assert.equal(
-    finalHeld?.character.state.equipment.inventory.find((item) => item.id === heldBackpack.id)
-      ?.customName,
+    finalHeld?.state.equipment.inventory.find((item) => item.id === heldBackpack.id)?.customName,
     'Retained after departure'
   )
   assert.equal(
-    finalHeld?.character.state.equipment.inventory.find((item) => item.id === heldBackpack.id)
-      ?.notes,
+    finalHeld?.state.equipment.inventory.find((item) => item.id === heldBackpack.id)?.notes,
     'Updated without restoring the removed source.'
   )
   const finalState = await read()

@@ -90,7 +90,7 @@ export async function verifyCampaignSharedEquipmentRetention(
         vehicleId: vehicle.id,
         paginationOpts
       }),
-      player.query(api.characters.builder.get, { id: characterId }),
+      player.query(api.characters.builder.activeCharacter, { id: characterId }),
       player.query(api.characters.sheet.get, { id: characterId }),
       owner.query(api.campaigns.queries.get, { id: campaignId })
     ])
@@ -197,13 +197,13 @@ export async function verifyCampaignSharedEquipmentRetention(
   assert.deepEqual(after.vehicleCurrencies, before.vehicleCurrencies)
   assert.equal(after.campaign.version, before.campaign.version + 1)
   assert.deepEqual(receipt.affectedCharacters, [])
-  assert.equal(after.character.character.status, 'ACTIVE')
+  assert.equal(after.character.status, 'ACTIVE')
   assert.deepEqual(
-    after.character.character,
-    before.character.character,
+    after.character,
+    before.character,
     'Already acquired rules must not rewrite the Character on source loss.'
   )
-  const held = after.character.character.state.equipment.inventory.find(
+  const held = after.character.state.equipment.inventory.find(
     (item) => item.equipmentId === publication.subjectId
   )
   assert.ok(held?.retainedRulesJson)

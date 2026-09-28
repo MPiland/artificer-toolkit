@@ -107,7 +107,7 @@ describe('native personal Character list', () => {
       await ctx.db.patch(root._id, { checksum: '0'.repeat(64) })
     })
     await expect(
-      owner.caller.query(api.characters.builder.get, { id: active[0]!.character.id })
+      owner.caller.query(api.content.details.get, { subjectKind: 'RACE', id: human.id })
     ).rejects.toThrow('Stored authored content identity mismatch.')
     const result = await owner.caller.query(list, pageInput())
     expect(result.page.map((row) => row.id)).toEqual(

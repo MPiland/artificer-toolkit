@@ -212,8 +212,8 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     }
     expect(await readPrivate()).toEqual(before)
     expect(
-      (await player.caller.query(api.characters.builder.get, { id: character.id }))?.character
-        .status
+      (await player.caller.query(api.characters.builder.activeCharacter, { id: character.id }))
+        ?.status
     ).toBe('DRAFT')
     const sent = await player.caller.mutation(api.campaigns.chat.send, {
       campaignId: scope.campaignId,

@@ -1,8 +1,4 @@
-import {
-  toCharacterBuilderRaceCatalogSource,
-  type CharacterBuilderFeatCatalogRecord,
-  type CharacterBuilderRaceCatalogSource
-} from '@artificer-toolkit/rules-runtime/character/builderCatalog'
+import type { CharacterBuilderFeatCatalogRecord } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterBuilderContext } from '@artificer-toolkit/rules-runtime/character/builderTypes'
@@ -16,15 +12,11 @@ import type {
   ClassAuthored,
   EquipmentAuthored,
   CreatureAuthored,
-  RaceAuthored,
   VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
-import { resolveRaceAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { readCampaignSharedRootPublication } from '../campaigns/contentAccess'
 import { canReadAuthoredRoot } from '../content/documents'
-import { requireRaceParent } from '../content/relationshipReads'
 import {
   loadCharacterRuleContext,
   readCharacterSources,
@@ -33,12 +25,16 @@ import {
   recordCharacterSourceIdentity
 } from './context'
 
-/** Resolution omits structural selectors that cannot affect current readiness. */
+/**
+ * The server's Builder context. `resolution` reads the pools that can affect readiness (Sheet
+ * repairs, Campaign assignment and source-loss reconciliation); `active` reads what the Sheet
+ * needs. The picker pools are the browser's (ADR 0036 S6); commit reads referenced content (S7).
+ */
 export async function loadCharacterBuilderContext(
   ctx: QueryCtx,
   character: CharacterAuthored,
   userId: string,
-  catalogScope: 'selectors' | 'resolution' | 'active' = 'selectors',
+  catalogScope: 'resolution' | 'active',
   authorityScope?: import('../campaigns/authority').CampaignInternalScope
 ): Promise<
   CharacterBuilderContext & {
@@ -74,68 +70,31 @@ export async function loadCharacterBuilderContext(
       return classes
     })
   }
-  const sourceIds = new Set(sources.sources.map((source) => source.id))
-  const canReadSharedRoot = async (root: Doc<'authoredRoots'>) =>
-    sources.campaign !== null &&
-    (await readCampaignSharedRootPublication(ctx, sources.campaign, root.subjectKind, root.id)) !==
-      null
-  const readPublished = (roots: readonly Doc<'authoredRoots'>[]) =>
-    Promise.all(
-      roots.map(async (root) => ({
-        root,
-        published: context.publications.has(root.id)
-          ? context.publications.get(root.id)
-          : await readCharacterPublication(
-              ctx,
-              root,
-              character.systemId,
-              userId,
-              sources,
-              context.sourceIdentities
-            )
-      }))
-    )
   const readRoots = (kind: Doc<'authoredRoots'>['subjectKind']) =>
     readCharacterSourceRoots(ctx, character.systemId, sources, kind)
-  return assembleCharacterBuilderContext(
-    character,
-    context,
-    {
-      readRaces: async () => {
-        const races: CharacterBuilderRaceCatalogSource[] = []
-        for (const { published } of await readPublished(await readRoots('RACE'))) {
-          if (published?.subjectKind !== 'RACE') continue
-          const parent =
-            published.document.category === 'SUBRACE'
-              ? await requireRaceParent(
-                  ctx,
-                  published.document,
-                  userId,
-                  sourceIds,
-                  canReadSharedRoot,
-                  undefined,
-                  (root) => recordCharacterSourceIdentity(context.sourceIdentities, root)
-                )
-              : undefined
-          // Authored charge refinements narrow beyond the validated DTO's inferred type.
-          races.push(
-            toCharacterBuilderRaceCatalogSource(
-              resolveRaceAuthored(
-                published.document as RaceAuthored,
-                (id) => (id === parent?.id ? parent : undefined) as RaceAuthored | undefined
-              )
+  return assembleCharacterBuilderContext(character, context, {
+    scope: 'resolution',
+    readers: {
+      readClasses: async () =>
+        (
+          await Promise.all(
+            (
+              await readRoots('CLASS')
+            ).map(async (root) =>
+              context.publications.has(root.id)
+                ? context.publications.get(root.id)
+                : await readCharacterPublication(
+                    ctx,
+                    root,
+                    character.systemId,
+                    userId,
+                    sources,
+                    context.sourceIdentities
+                  )
             )
           )
-        }
-        return races
-      },
-      readClasses: async () =>
-        (await readPublished(await readRoots('CLASS'))).flatMap(({ published }) =>
+        ).flatMap((published) =>
           published?.subjectKind === 'CLASS' ? [toContentSnapshotIndexEntry(published)] : []
-        ),
-      readBackgrounds: async () =>
-        (await readPublished(await readRoots('BACKGROUND'))).flatMap(({ published }) =>
-          published?.subjectKind === 'BACKGROUND' ? [toContentSnapshotIndexEntry(published)] : []
         ),
       readEquipment: async () =>
         readCharacterEquipmentCatalogue(
@@ -154,9 +113,8 @@ export async function loadCharacterBuilderContext(
           sources,
           context.sourceIdentities
         )
-    },
-    catalogScope
-  )
+    }
+  })
 }
 
 /** Readable Equipment among `roots`: stored projections, or documents while one is missing. */

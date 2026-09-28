@@ -367,13 +367,13 @@ describe('development custody fixture cleanup', () => {
       subjectId: duplicated.subjectId,
       expectedDraftUpdatedAt: saved.updatedAt!
     })
-    const secondBuilder = await second.caller.query(api.characters.builder.get, {
+    const secondActive = await second.caller.query(api.characters.builder.activeCharacter, {
       id: second.characterId
     })
-    if (!secondBuilder) throw new Error('Second Character Builder is unavailable.')
+    if (!secondActive) throw new Error('Second active Character is unavailable.')
     const secondDraft = await second.caller.mutation(api.characters.drafts.create, {
       id: second.characterId,
-      systemId: secondBuilder.character.systemId
+      systemId: secondActive.systemId
     })
     const secondCandidate = characterBuilderResolveInputSchema.parse({
       expectedDraftId: secondDraft.id,
@@ -381,10 +381,10 @@ describe('development custody fixture cleanup', () => {
       character: {
         ...secondDraft.payload.character,
         intent: {
-          ...secondBuilder.character.intent,
+          ...secondActive.intent,
           background: { backgroundId: duplicated.subjectId },
           startingEquipment: {
-            ...secondBuilder.character.intent.startingEquipment,
+            ...secondActive.intent.startingEquipment,
             background: {
               source: 'BACKGROUND',
               tookGold: false,
@@ -400,28 +400,24 @@ describe('development custody fixture cleanup', () => {
         }
       }
     })
-    const stalePreview = await second.caller.query(api.characters.builder.preview, {
+    const staleCandidate = {
       ...secondCandidate,
       character: {
         ...secondCandidate.character,
         intent: {
           ...secondCandidate.character.intent,
-          startingEquipment: secondBuilder.character.intent.startingEquipment
+          startingEquipment: secondActive.intent.startingEquipment
         }
       }
-    })
-    expect(stalePreview.resolution.readiness.ready).toBe(false)
-    const secondPreview = await second.caller.query(api.characters.builder.preview, secondCandidate)
-    expect(secondPreview.resolution.readiness).toEqual({
-      ready: true,
-      blockingIssues: [],
-      outstandingRequiredChoices: []
-    })
+    }
+    await expect(
+      second.caller.mutation(api.characters.commit.commit, staleCandidate)
+    ).rejects.toThrow('not ready')
     const changedSecond = await second.caller.mutation(
       api.characters.commit.commit,
       secondCandidate
     )
-    expect(changedSecond.character.state).toEqual(secondBuilder.character.state)
+    expect(changedSecond.character.state).toEqual(secondActive.state)
     const replacement = await base.createCharacter()
     const committed = await base.owner.caller.mutation(api.characters.commit.commit, {
       expectedDraftId: replacement.draft.id,

@@ -433,10 +433,12 @@ export async function verifyCampaignLifecycle(input: {
         backgroundId: characterFixture.backgroundId,
         fenceTimeMs
       })
-      const repaired = await player.query(api.characters.builder.get, { id: characterId })
+      const repaired = await player.query(api.characters.builder.activeCharacter, {
+        id: characterId
+      })
       assert.ok(repaired)
-      assert.equal(repaired.character.status, 'DRAFT')
-      assert.equal(repaired.character.intent.background.backgroundId, '')
+      assert.equal(repaired.status, 'DRAFT')
+      assert.equal(repaired.intent.background.backgroundId, '')
       await assert.rejects(
         player.query(api.characters.sheet.get, { id: characterId }),
         /Builder repair/i

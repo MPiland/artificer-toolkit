@@ -1826,11 +1826,13 @@ try {
     )
     const { createDevelopmentCharacter } = await import('./developmentCharacterFixture')
     await createDevelopmentCharacter(player.client, characterId)
-    const baseline = await player.client.query(api.characters.builder.get, { id: characterId })
+    const baseline = await player.client.query(api.characters.builder.activeCharacter, {
+      id: characterId
+    })
     assert.ok(baseline)
     const unrelatedDraft = await player.client.mutation(api.characters.drafts.create, {
       id: unrelatedCharacterId,
-      systemId: baseline.character.systemId
+      systemId: baseline.systemId
     })
     await player.client.mutation(api.characters.commit.commit, {
       expectedDraftId: unrelatedDraft.id,
@@ -1838,7 +1840,7 @@ try {
       character: {
         ...unrelatedDraft.payload.character,
         label: 'P09 unrelated personal Character',
-        intent: baseline.character.intent
+        intent: baseline.intent
       }
     })
     const { verifyCampaignLifecycle } = await import('./developmentCampaignLifecycle')
@@ -2017,13 +2019,13 @@ try {
         userId: firstPlayer.identity.userId,
         characterId: replacementCharacterId
       })
-      const baseline = await firstPlayer.client.query(api.characters.builder.get, {
+      const baseline = await firstPlayer.client.query(api.characters.builder.activeCharacter, {
         id: characterIds[0]
       })
       assert.ok(baseline)
       const draft = await firstPlayer.client.mutation(api.characters.drafts.create, {
         id: replacementCharacterId,
-        systemId: baseline.character.systemId
+        systemId: baseline.systemId
       })
       await firstPlayer.client.mutation(api.characters.commit.commit, {
         expectedDraftId: draft.id,
@@ -2031,7 +2033,7 @@ try {
         character: {
           ...draft.payload.character,
           label: 'Assignment replacement fixture',
-          intent: baseline.character.intent
+          intent: baseline.intent
         }
       })
     }

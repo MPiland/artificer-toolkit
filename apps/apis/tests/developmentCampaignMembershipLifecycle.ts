@@ -406,7 +406,7 @@ export async function verifyCampaignMembershipLifecycle(
     })
   )
   assert.equal(
-    await player0.client.query(api.characters.builder.get, {
+    await player0.client.query(api.characters.builder.activeCharacter, {
       id: player1CharacterId
     }),
     null,

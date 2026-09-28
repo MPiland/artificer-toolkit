@@ -351,8 +351,7 @@ describe('commit validation from referenced content', () => {
               // Validated Character DTOs bridge to the authored type as the Builder does.
               character: character as CharacterAuthored,
               current: null,
-              mode: 'create',
-              catalogScope: 'selectors'
+              mode: 'create'
             })
           ).resolution.chosenGrantChoices
       )

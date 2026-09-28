@@ -79,7 +79,7 @@ it.each([
     userId: first.userId
   })
   await expect(
-    t.run((ctx) => loadCharacterBuilderContext(ctx, character, first.userId))
+    t.run((ctx) => loadCharacterBuilderContext(ctx, character, first.userId, 'resolution'))
   ).rejects.toThrow(message)
 })
 
@@ -115,7 +115,7 @@ it('resolves the complete authorized Equipment catalogue without compiling unuse
   const compile = vi.spyOn(relationships, 'compileCurrentEquipment')
   const result = await t.run(async (ctx) => {
     const queries = vi.spyOn(ctx.db, 'query')
-    const context = await loadCharacterBuilderContext(ctx, character, first.userId)
+    const context = await loadCharacterBuilderContext(ctx, character, first.userId, 'resolution')
     // Platform and owned source sets are read once, not again for each catalogue item.
     expect(queries.mock.calls.filter(([table]) => table === 'contentSources')).toHaveLength(2)
     return context.catalog.equipment
@@ -155,7 +155,7 @@ async function materializeEquipment(
     })
 }
 
-it('uses materialized Equipment selector facts without reading unselected versions', async () => {
+it('uses materialized Equipment catalogue facts without reading unselected versions', async () => {
   const base = { ...backpack, label: 'Z parent', maxStack: 5 }
   const child = {
     ...clubPlus1,
@@ -207,7 +207,7 @@ it('uses materialized Equipment selector facts without reading unselected versio
       .unique()
     if (!unselectedRoot || !selectedRoot) throw new Error('Missing Equipment fixture.')
     const reads = vi.spyOn(ctx.db, 'get')
-    const context = await loadCharacterBuilderContext(ctx, character, first.userId)
+    const context = await loadCharacterBuilderContext(ctx, character, first.userId, 'resolution')
     const versionReads = reads.mock.calls.map(([id]) => id)
     return {
       catalogue: context.catalog.equipment,
@@ -241,7 +241,7 @@ it.each([
   ['metadata mismatch', 'Stored Equipment parent metadata mismatch.'],
   ['checksum mismatch', 'Stored equipment option checksum mismatch.']
 ] as const)(
-  'rejects invalid materialized Equipment selector facts: %s',
+  'rejects invalid materialized Equipment catalogue facts: %s',
   async (failure, message) => {
     const base = { ...backpack, label: 'Base pack' }
     const child = { ...clubPlus1, parentEquipmentId: base.id }
@@ -291,12 +291,12 @@ it.each([
       userId: first.userId
     })
     await expect(
-      t.run((ctx) => loadCharacterBuilderContext(ctx, character, first.userId))
+      t.run((ctx) => loadCharacterBuilderContext(ctx, character, first.userId, 'resolution'))
     ).rejects.toThrow(message)
   }
 )
 
-it('falls back to complete publications when any Equipment selector fact lacks its builder projection', async () => {
+it('falls back to complete publications when any Equipment catalogue fact lacks its builder projection', async () => {
   const base = { ...backpack, label: 'Z parent', maxStack: 5 }
   const child = { ...clubPlus1, label: 'A child', parentEquipmentId: base.id }
   const documents = [base, child]
@@ -326,7 +326,8 @@ it('falls back to complete publications when any Equipment selector fact lacks i
   })
   const result = await t.run(
     async (ctx) =>
-      (await loadCharacterBuilderContext(ctx, character, first.userId)).catalog.equipment
+      (await loadCharacterBuilderContext(ctx, character, first.userId, 'resolution')).catalog
+        .equipment
   )
   const expected = createCharacterBuilderCatalog({
     system: srdSystemRecord,
@@ -381,6 +382,6 @@ it('rejects corrupt materialized facts even when another Equipment root needs ba
     userId: first.userId
   })
   await expect(
-    t.run((ctx) => loadCharacterBuilderContext(ctx, character, first.userId))
+    t.run((ctx) => loadCharacterBuilderContext(ctx, character, first.userId, 'resolution'))
   ).rejects.toThrow('Stored equipment option checksum mismatch.')
 })

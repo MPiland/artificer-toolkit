@@ -396,14 +396,14 @@ export async function verifyEncounterDisarm({
   )
 
   async function snapshot() {
-    const [ownerRun, playerRun, sheet, builder, timeline] = await Promise.all([
+    const [ownerRun, playerRun, sheet, character, timeline] = await Promise.all([
       owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
       player.query(api.encounters.projectionReads.get, { encounterId: run.id }),
       player.query(api.characters.sheet.get, { id: characterId }),
-      player.query(api.characters.builder.get, { id: characterId }),
+      player.query(api.characters.builder.activeCharacter, { id: characterId }),
       owner.query(api.encounters.timelineReads.timeline, { encounterId: run.id, limit: 100 })
     ])
-    assert.ok(sheet && builder)
+    assert.ok(sheet && character)
     const projection = encounterPlayerProjectionDtoSchema.parse(playerRun)
     assert.deepEqual(projection, playerRun)
     for (const actor of projection.actors) {
@@ -412,13 +412,13 @@ export async function verifyEncounterDisarm({
       assert.equal(actor.sourceRevision, null)
       if (actor.kind === 'CREATURE') assert.equal(actor.sourceId, null)
     }
-    assert.equal(builder.character.userId, playerUserId)
+    assert.equal(character.userId, playerUserId)
     assert.equal(sheet.meta.viewer, 'CHARACTER_OWNER')
     return {
       run: encounterGmProjectionDtoSchema.parse(ownerRun),
       playerRun,
       sheet,
-      character: builder.character,
+      character,
       timeline
     }
   }
@@ -431,7 +431,7 @@ export async function verifyEncounterDisarm({
     )
   )
   assert.deepEqual(before.character.state.equipment.equipped, [held.id])
-  assert.equal(await owner.query(api.characters.builder.get, { id: characterId }), null)
+  assert.equal(await owner.query(api.characters.builder.activeCharacter, { id: characterId }), null)
   function evidence(result: unknown, face: number): ResolveRuleOccurrenceInputDto {
     const occurrence = encounterCommandResultDtoSchema.parse(result).occurrence
     const pending = occurrence?.pending
@@ -580,7 +580,10 @@ export async function verifyEncounterDisarm({
     assert.equal(encounterRuleUsageUsed(finalSource, SRD_ACTION_ALLOWANCE_DEFINITION_ID), 1)
     assert.equal(finalTarget.sourceId, characterId)
     assert.equal(finalTarget.sourceRevision, null)
-    assert.equal(await owner.query(api.characters.builder.get, { id: characterId }), null)
+    assert.equal(
+      await owner.query(api.characters.builder.activeCharacter, { id: characterId }),
+      null
+    )
     for (const client of [owner, player])
       assert.equal(
         await client.query(api.encounters.pendingReads.pendingRuleOccurrence, {

@@ -60,7 +60,10 @@ export async function verifyCampaignGmState(input: {
   const playerScoped = await input.player.query(api.campaigns.characterSheet.get, scope)
   assert.ok(playerPersonalBaseline)
   assert.equal(await input.owner.query(api.characters.sheet.get, { id: input.characterId }), null)
-  assert.equal(await input.owner.query(api.characters.builder.get, { id: input.characterId }), null)
+  assert.equal(
+    await input.owner.query(api.characters.builder.activeCharacter, { id: input.characterId }),
+    null
+  )
 
   const baselineEventCount = (baseline.campaign.campaignEvents ?? []).length
   let state: CampaignCharacterState = { adjustments: [], conditions: [] }
@@ -494,7 +497,10 @@ export async function verifyCampaignGmState(input: {
     playerPersonalBaseline
   )
   assert.equal(await input.owner.query(api.characters.sheet.get, { id: input.characterId }), null)
-  assert.equal(await input.owner.query(api.characters.builder.get, { id: input.characterId }), null)
+  assert.equal(
+    await input.owner.query(api.characters.builder.activeCharacter, { id: input.characterId }),
+    null
+  )
   assert.equal((current.campaign.campaignEvents ?? []).length - baselineEventCount, 10)
 }
 

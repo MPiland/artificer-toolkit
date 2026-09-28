@@ -163,18 +163,18 @@ export async function verifyCampaignItemProducers(
         characterIds.map(async (id, index) => {
           const player = players[index]
           assert.ok(player)
-          const [builder, sheet, draft, fence] = await Promise.all([
-            player.client.query(api.characters.builder.get, { id }),
+          const [active, sheet, draft, fence] = await Promise.all([
+            player.client.query(api.characters.builder.activeCharacter, { id }),
             player.client.query(api.characters.sheet.get, { id }),
             player.client.query(api.characters.drafts.get, { id }),
             owner.query(api.campaigns.inventoryOwners.version, {
               input: { campaignId, owner: { kind: 'CHARACTER', characterId: id } }
             })
           ])
-          assert.ok(builder && sheet)
+          assert.ok(active && sheet)
           assert.equal(sheet.meta.viewer, 'CHARACTER_OWNER')
           assert.equal(sheet.meta.streamVersion, fence.version)
-          return { id, builder, sheet, draft, fence }
+          return { id, active, sheet, draft, fence }
         })
       ),
       audit()
@@ -364,11 +364,9 @@ export async function verifyCampaignItemProducers(
     notes: 'Private direct item proof.'
   })
   const afterCharacterAdd = characterAdd.after
-  const characterAdded =
-    afterCharacterAdd.characters[0]!.builder.character.state.equipment.inventory.filter(
-      (entry) =>
-        !firstInitial.builder.character.state.equipment.inventory.some((old) => old.id === entry.id)
-    )
+  const characterAdded = afterCharacterAdd.characters[0]!.active.state.equipment.inventory.filter(
+    (entry) => !firstInitial.active.state.equipment.inventory.some((old) => old.id === entry.id)
+  )
   assert.equal(characterAdded.length, 1)
   const characterItemId = characterAdded[0]!.id
   assert.equal(characterAdded[0]!.quantity, 3)
@@ -380,10 +378,9 @@ export async function verifyCampaignItemProducers(
     notes: 'Private renamed direct item proof.'
   })
   assert.deepEqual(
-    character(
-      characterUpdate.after,
-      firstCharacterId
-    ).builder.character.state.equipment.inventory.find((entry) => entry.id === characterItemId),
+    character(characterUpdate.after, firstCharacterId).active.state.equipment.inventory.find(
+      (entry) => entry.id === characterItemId
+    ),
     {
       ...characterAdded[0],
       quantity: 4,
@@ -397,11 +394,9 @@ export async function verifyCampaignItemProducers(
     quantity: 1
   })
   assert.equal(
-    character(
-      characterConsume.after,
-      firstCharacterId
-    ).builder.character.state.equipment.inventory.find((entry) => entry.id === characterItemId)
-      ?.quantity,
+    character(characterConsume.after, firstCharacterId).active.state.equipment.inventory.find(
+      (entry) => entry.id === characterItemId
+    )?.quantity,
     3
   )
   const characterRemove = await executeCharacter({
@@ -409,10 +404,9 @@ export async function verifyCampaignItemProducers(
     itemId: characterItemId
   })
   assert.equal(
-    character(
-      characterRemove.after,
-      firstCharacterId
-    ).builder.character.state.equipment.inventory.some((entry) => entry.id === characterItemId),
+    character(characterRemove.after, firstCharacterId).active.state.equipment.inventory.some(
+      (entry) => entry.id === characterItemId
+    ),
     false
   )
   for (const receipt of [characterAdd, characterUpdate, characterConsume, characterRemove])
@@ -541,8 +535,8 @@ export async function verifyCampaignItemProducers(
   const final = await read()
   const firstFinal = character(final, firstCharacterId)
   const secondFinal = character(final, otherCharacterId)
-  assert.deepEqual(firstFinal.builder.character.state, firstInitial.builder.character.state)
-  assert.deepEqual(firstFinal.builder.character.intent, firstInitial.builder.character.intent)
+  assert.deepEqual(firstFinal.active.state, firstInitial.active.state)
+  assert.deepEqual(firstFinal.active.intent, firstInitial.active.intent)
   assert.deepEqual(firstFinal.sheet, {
     ...firstInitial.sheet,
     meta: { ...firstInitial.sheet.meta, streamVersion: firstInitial.sheet.meta.streamVersion + 4 }
@@ -552,7 +546,7 @@ export async function verifyCampaignItemProducers(
     firstInitial.draft,
     'Draft IDs, payload, and private notes must remain exact.'
   )
-  assert.deepEqual(secondFinal.builder, secondInitial.builder)
+  assert.deepEqual(secondFinal.active, secondInitial.active)
   assert.deepEqual(secondFinal.sheet, secondInitial.sheet)
   assert.deepEqual(secondFinal.draft, secondInitial.draft)
   assert.deepEqual(final.party.items.page, initial.party.items.page)

@@ -256,10 +256,6 @@ describe('native current Character rule context', () => {
     await expect(t.run((ctx) => serializableContext(ctx, character, owner.userId))).rejects.toThrow(
       'readable base class'
     )
-    character.intent.classes = []
-    await expect(
-      t.run((ctx) => loadCharacterBuilderContext(ctx, character, owner.userId))
-    ).rejects.toThrow('readable base class')
   })
 
   it('loads chosen-grant Feat and Equipment targets only into their authorized registry kinds', async () => {
@@ -480,7 +476,8 @@ describe('native current Character rule context', () => {
     expect(context.registry.races.map((row) => row.id)).toEqual([platformRace.id])
     expect(context.registry.backgrounds.map((row) => row.id)).toEqual([homebrew.id])
     const catalog = await t.run(
-      async (ctx) => (await loadCharacterBuilderContext(ctx, character, owner.userId)).catalog
+      async (ctx) =>
+        (await loadCharacterBuilderContext(ctx, character, owner.userId, 'resolution')).catalog
     )
     expect(catalog.classes.map((row) => row.id)).toContain(platformClass.id)
     expect(catalog.classes.map((row) => row.id)).not.toContain(orphanClass.id)
@@ -503,10 +500,6 @@ describe('native current Character rule context', () => {
     await expect(t.run((ctx) => serializableContext(ctx, character, owner.userId))).rejects.toThrow(
       'readable base class'
     )
-    character.intent.classes = []
-    await expect(
-      t.run((ctx) => loadCharacterBuilderContext(ctx, character, owner.userId))
-    ).rejects.toThrow('readable base class')
   })
 
   it('fails closed on unavailable System and current-document corruption', async () => {

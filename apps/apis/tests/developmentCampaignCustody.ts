@@ -97,7 +97,9 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
     assert.equal(result.streamVersion, version + 1)
     version = result.streamVersion
   }
-  const beforeAdd = await first.client.query(api.characters.builder.get, { id: sourceId })
+  const beforeAdd = await first.client.query(api.characters.builder.activeCharacter, {
+    id: sourceId
+  })
   assert.ok(beforeAdd)
   await execute({
     type: 'ADD_INVENTORY_ITEM',
@@ -108,10 +110,10 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
     customName: 'Custody physical backpack',
     notes: 'Move this physical backpack with its contents.'
   })
-  const added = await first.client.query(api.characters.builder.get, { id: sourceId })
+  const added = await first.client.query(api.characters.builder.activeCharacter, { id: sourceId })
   assert.ok(added)
-  const bag = added.character.state.equipment.inventory.find(
-    (item) => !beforeAdd.character.state.equipment.inventory.some((old) => old.id === item.id)
+  const bag = added.state.equipment.inventory.find(
+    (item) => !beforeAdd.state.equipment.inventory.some((old) => old.id === item.id)
   )
   assert.ok(bag)
   assert.equal(bag.equipmentId, backpack.id)
@@ -126,9 +128,9 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
     customName: 'Custody club',
     notes: 'This item belongs to the transferred bag.'
   })
-  const filled = await first.client.query(api.characters.builder.get, { id: sourceId })
+  const filled = await first.client.query(api.characters.builder.activeCharacter, { id: sourceId })
   assert.ok(filled)
-  const child = filled.character.state.equipment.inventory.find(
+  const child = filled.state.equipment.inventory.find(
     (item) => item.containerId === bag.id && item.customName === 'Custody club'
   )
   assert.ok(child)
@@ -201,8 +203,8 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
     for (const page of [partyItems, partyCurrencies, vehicleItems, vehicleCurrencies])
       assert.equal(page.isDone, true, 'Custody owners require complete inventory pages.')
     const [source, destination, sourceSheet, destinationSheet, audit] = await Promise.all([
-      first.client.query(api.characters.builder.get, { id: sourceId }),
-      second.client.query(api.characters.builder.get, { id: destinationId }),
+      first.client.query(api.characters.builder.activeCharacter, { id: sourceId }),
+      second.client.query(api.characters.builder.activeCharacter, { id: destinationId }),
       first.client.query(api.characters.sheet.get, { id: sourceId }),
       second.client.query(api.characters.sheet.get, { id: destinationId }),
       cohort.owner.query(api.campaigns.inventoryAudit.list, {
@@ -268,8 +270,8 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
   const after = await read()
   assert.equal(after.sourceSheet.meta.streamVersion, fences.sourceVersion + 1)
   assert.equal(after.destinationSheet.meta.streamVersion, fences.destinationVersion + 1)
-  const sourceEquipment = after.source.character.state.equipment
-  const destinationEquipment = after.destination.character.state.equipment
+  const sourceEquipment = after.source.state.equipment
+  const destinationEquipment = after.destination.state.equipment
   assert.equal(
     sourceEquipment.inventory.some((item) => item.id === bag.id || item.id === child.id),
     false
@@ -286,12 +288,10 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
     false
   )
   assert.equal(
-    after.source.character.state.currency.some((group) => group.containerId === spare.id),
+    after.source.state.currency.some((group) => group.containerId === spare.id),
     false
   )
-  const heldBag = before.source.character.state.equipment.inventory.find(
-    (item) => item.id === bag.id
-  )
+  const heldBag = before.source.state.equipment.inventory.find((item) => item.id === bag.id)
   assert.ok(heldBag)
   assert.deepEqual(
     destinationEquipment.inventory.find((item) => item.id === bag.id),
@@ -302,30 +302,28 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
   )
   assert.deepEqual(
     destinationEquipment.inventory.find((item) => item.id === child.id),
-    before.source.character.state.equipment.inventory.find((item) => item.id === child.id)
+    before.source.state.equipment.inventory.find((item) => item.id === child.id)
   )
-  const movedGroups = before.source.character.state.currency.filter(
-    (group) => group.containerId === bag.id
-  )
+  const movedGroups = before.source.state.currency.filter((group) => group.containerId === bag.id)
   assert.equal(movedGroups.length, 1)
   assert.equal(
     movedGroups[0]!.currencies.reduce((total, row) => total + row.amount, 0),
     10
   )
   assert.deepEqual(
-    after.source.character.state.currency,
-    before.source.character.state.currency.filter((group) => group.containerId !== bag.id)
+    after.source.state.currency,
+    before.source.state.currency.filter((group) => group.containerId !== bag.id)
   )
-  assert.deepEqual(after.destination.character.state.currency, [
-    ...before.destination.character.state.currency,
+  assert.deepEqual(after.destination.state.currency, [
+    ...before.destination.state.currency,
     ...movedGroups
   ])
   assert.equal(sourceEquipment.equipped.includes(child.id), false)
   assert.equal(sourceEquipment.attuned.includes(child.id), false)
   assert.equal(destinationEquipment.equipped.includes(child.id), false)
   assert.equal(destinationEquipment.attuned.includes(child.id), false)
-  assert.deepEqual(after.source.character.intent, before.source.character.intent)
-  assert.deepEqual(after.destination.character.intent, before.destination.character.intent)
+  assert.deepEqual(after.source.intent, before.source.intent)
+  assert.deepEqual(after.destination.intent, before.destination.intent)
   const receipt = after.events.find((event) => event.id === result.eventId)
   assert.ok(receipt)
   assert.equal(receipt.actorUserId, cohort.playerUserIds[0])
@@ -361,15 +359,15 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
   const vehicleOwner = { kind: 'VEHICLE' as const, vehicleId }
   const quantity = (snapshot: Awaited<ReturnType<typeof read>>) =>
     [
-      ...snapshot.source.character.state.equipment.inventory,
-      ...snapshot.destination.character.state.equipment.inventory,
+      ...snapshot.source.state.equipment.inventory,
+      ...snapshot.destination.state.equipment.inventory,
       ...snapshot.partyItems.page,
       ...snapshot.vehicleItems.page
     ].reduce((total, item) => total + BigInt(item.quantity), 0n)
   const coins = (snapshot: Awaited<ReturnType<typeof read>>) =>
     [
-      ...snapshot.source.character.state.currency.flatMap((group) => group.currencies),
-      ...snapshot.destination.character.state.currency.flatMap((group) => group.currencies),
+      ...snapshot.source.state.currency.flatMap((group) => group.currencies),
+      ...snapshot.destination.state.currency.flatMap((group) => group.currencies),
       ...snapshot.partyCurrencies.page,
       ...snapshot.vehicleCurrencies.page
     ].reduce((total, row) => total + BigInt(row.amount), 0n)
@@ -417,11 +415,11 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
   const returned = await read()
   for (const itemId of [bag.id, child.id])
     assert.deepEqual(
-      returned.destination.character.state.equipment.inventory.find((item) => item.id === itemId),
-      after.destination.character.state.equipment.inventory.find((item) => item.id === itemId)
+      returned.destination.state.equipment.inventory.find((item) => item.id === itemId),
+      after.destination.state.equipment.inventory.find((item) => item.id === itemId)
     )
   assert.deepEqual(
-    returned.destination.character.state.currency.filter((group) => group.containerId === bag.id),
+    returned.destination.state.currency.filter((group) => group.containerId === bag.id),
     movedGroups
   )
   assert.equal(

@@ -185,18 +185,18 @@ export async function verifyCampaignCurrencyLifecycle(
         characterIds.map(async (id, index) => {
           const player = players[index]
           assert.ok(player)
-          const [builder, sheet, draft, fence] = await Promise.all([
-            player.client.query(api.characters.builder.get, { id }),
+          const [active, sheet, draft, fence] = await Promise.all([
+            player.client.query(api.characters.builder.activeCharacter, { id }),
             player.client.query(api.characters.sheet.get, { id }),
             player.client.query(api.characters.drafts.get, { id }),
             player.client.query(api.campaigns.inventoryOwners.version, {
               input: { campaignId, owner: { kind: 'CHARACTER', characterId: id } }
             })
           ])
-          assert.ok(builder && sheet)
+          assert.ok(active && sheet)
           assert.equal(sheet.meta.viewer, 'CHARACTER_OWNER')
           assert.equal(sheet.meta.streamVersion, fence.version)
-          return { id, builder, sheet, draft, fence }
+          return { id, active, sheet, draft, fence }
         })
       ),
       audit(),
@@ -337,7 +337,7 @@ export async function verifyCampaignCurrencyLifecycle(
         (entry) =>
           [
             entry.id,
-            entry.builder.character.state.currency
+            entry.active.state.currency
               .flatMap((group) => group.currencies)
               .filter((row) => belongs(row, system.id))
               .reduce((sum, row) => sum + value(row.currencyId, row.amount), 0n)
@@ -391,10 +391,10 @@ export async function verifyCampaignCurrencyLifecycle(
     }
     for (const [index, old] of before.characters.entries()) {
       const updated = character(after, index)
-      const affected = old.builder.character.state.currency.some((group) =>
+      const affected = old.active.state.currency.some((group) =>
         group.currencies.some((row) => belongs(row, systemId))
       )
-      const groups = old.builder.character.state.currency.flatMap((group) => {
+      const groups = old.active.state.currency.flatMap((group) => {
         let changed = false
         const currencies = group.currencies.flatMap((row) => {
           if (!belongs(row, systemId)) return [row]
@@ -417,23 +417,10 @@ export async function verifyCampaignCurrencyLifecycle(
         return changed && currencies.length === 0 ? [] : [{ ...group, currencies }]
       })
       assert.deepEqual(
-        updated.builder.character,
-        { ...old.builder.character, state: { ...old.builder.character.state, currency: groups } },
+        updated.active,
+        { ...old.active, state: { ...old.active.state, currency: groups } },
         'Active raw rules, items, notes, group IDs and placements must stay exact.'
       )
-      const {
-        character: oldCharacter,
-        baseActiveUpdatedAt: oldUpdatedAt,
-        ...oldBuilder
-      } = old.builder
-      const {
-        character: newCharacter,
-        baseActiveUpdatedAt: newUpdatedAt,
-        ...newBuilder
-      } = updated.builder
-      assert.deepEqual(newBuilder, oldBuilder)
-      assert.ok(oldCharacter && newCharacter)
-      if (!affected) assert.equal(newUpdatedAt, oldUpdatedAt)
       assert.deepEqual(
         updated.draft,
         old.draft,
@@ -723,7 +710,7 @@ export async function verifyCampaignCurrencyLifecycle(
         )
   }
   const addCharacterBag = async (index: number, label: string) => {
-    const before = character(await read(), index).builder.character.state.equipment.inventory
+    const before = character(await read(), index).active.state.equipment.inventory
     await execute(index, {
       type: 'ADD_INVENTORY_ITEM',
       equipmentId: backpack.id,
@@ -731,7 +718,7 @@ export async function verifyCampaignCurrencyLifecycle(
       customName: label,
       notes: 'Private lifecycle physical pack notes.'
     })
-    const after = character(await read(), index).builder.character.state.equipment.inventory
+    const after = character(await read(), index).active.state.equipment.inventory
     const added = after.filter((item) => !before.some((old) => old.id === item.id))
     assert.equal(added.length, 1)
     const bag = added[0]
@@ -746,9 +733,9 @@ export async function verifyCampaignCurrencyLifecycle(
     return bag
   }
   for (const index of [0, 1]) {
-    const before = character(await read(), index).builder.character.state.noteGroups ?? []
+    const before = character(await read(), index).active.state.noteGroups ?? []
     await execute(index, { type: 'CREATE_NOTE_GROUP', label: 'Lifecycle private notes' })
-    const added = (character(await read(), index).builder.character.state.noteGroups ?? []).filter(
+    const added = (character(await read(), index).active.state.noteGroups ?? []).filter(
       (group) => !before.some((old) => old.id === group.id)
     )
     assert.equal(added.length, 1)
@@ -792,7 +779,7 @@ export async function verifyCampaignCurrencyLifecycle(
       containerId: zeroBag.id
     })
     const zeroRows = character(await read(), index)
-      .builder.character.state.currency.filter((group) => group.containerId === zeroBag.id)
+      .active.state.currency.filter((group) => group.containerId === zeroBag.id)
       .flatMap((group) => group.currencies)
       .filter((row) => belongs(row, a.id) && row.currencyId === zeroId)
     assert.equal(zeroRows.length, 1)
@@ -818,9 +805,7 @@ export async function verifyCampaignCurrencyLifecycle(
     const before = await read(),
       source = character(before, 0),
       destination = sharedState(before, vehicleId)
-    const groups = source.builder.character.state.currency.filter(
-      (group) => group.containerId === bag.id
-    )
+    const groups = source.active.state.currency.filter((group) => group.containerId === bag.id)
     assert.ok(groups.length > 0)
     assert.equal(new Set(groups.map((group) => group.id)).size, groups.length)
     assert.equal(groups.flatMap((group) => group.currencies).length, 1)
@@ -849,13 +834,13 @@ export async function verifyCampaignCurrencyLifecycle(
       remaining = character(after, 0)
     assert.equal(remaining.fence.version, source.fence.version + 1)
     assert.equal(moved.fence.version, destination.fence.version + 1)
-    const subtree = source.builder.character.state.equipment.inventory.filter(
+    const subtree = source.active.state.equipment.inventory.filter(
       (item) => item.id === bag.id || item.containerId === bag.id
     )
     assert.equal(subtree.length, 2)
     for (const item of subtree) {
       assert.equal(
-        remaining.builder.character.state.equipment.inventory.some((row) => row.id === item.id),
+        remaining.active.state.equipment.inventory.some((row) => row.id === item.id),
         false
       )
       const physical = moved.items.page.find((row) => row.id === item.id)
@@ -865,7 +850,7 @@ export async function verifyCampaignCurrencyLifecycle(
     }
     for (const group of groups)
       assert.equal(
-        remaining.builder.character.state.currency.some((row) => row.id === group.id),
+        remaining.active.state.currency.some((row) => row.id === group.id),
         false
       )
     assert.deepEqual(
@@ -899,13 +884,13 @@ export async function verifyCampaignCurrencyLifecycle(
   for (const [index, id] of characterIds.entries()) {
     const client = players[index]?.client
     assert.ok(client)
-    const own = await client.query(api.characters.builder.get, { id })
+    const own = await client.query(api.characters.builder.activeCharacter, { id })
     assert.ok(own)
     const draft = await client.mutation(api.characters.drafts.create, {
       id,
-      systemId: own.character.systemId
+      systemId: own.systemId
     })
-    const { primaryRulesCatalogueId, ...nativeCharacter } = own.character
+    const { primaryRulesCatalogueId, ...nativeCharacter } = own
     assert.equal(primaryRulesCatalogueId, undefined)
     const saved = await client.mutation(
       api.characters.drafts.save,
@@ -914,7 +899,7 @@ export async function verifyCampaignCurrencyLifecycle(
         expectedDraftId: draft.id,
         character: nativeCharacter,
         mode: 'edit',
-        baseActiveUpdatedAt: own.baseActiveUpdatedAt,
+        baseActiveUpdatedAt: draft.baseActiveUpdatedAt,
         ...(draft.payload.builderIntent === undefined
           ? {}
           : { builderIntent: draft.payload.builderIntent })
@@ -935,7 +920,7 @@ export async function verifyCampaignCurrencyLifecycle(
   assertRewrite(beforeZero, afterZero, a.id, withoutZero)
   for (const entry of afterZero.characters)
     assert.equal(
-      entry.builder.character.state.currency
+      entry.active.state.currency
         .flatMap((group) => group.currencies)
         .some((row) => belongs(row, a.id) && row.currencyId === zeroId),
       false
@@ -979,9 +964,7 @@ export async function verifyCampaignCurrencyLifecycle(
     const returned = await read(),
       held = character(returned, 0),
       remaining = sharedState(returned, vehicleId)
-    const groups = held.builder.character.state.currency.filter(
-      (group) => group.containerId === unit.itemId
-    )
+    const groups = held.active.state.currency.filter((group) => group.containerId === unit.itemId)
     assert.deepEqual(
       groups.map((group) => group.id).sort(),
       unit.groupIds,
@@ -1018,7 +1001,7 @@ export async function verifyCampaignCurrencyLifecycle(
     const restored = await read(),
       restoredOwn = character(restored, 0),
       restoredShared = sharedState(restored, vehicleId)
-    assert.deepEqual(restoredOwn.builder.character, own.builder.character)
+    assert.deepEqual(restoredOwn.active, own.active)
     assert.deepEqual(restoredOwn.draft, own.draft)
     assert.deepEqual(restoredOwn.sheet.notes, own.sheet.notes)
     assert.equal(restoredOwn.fence.version, own.fence.version + 2)
@@ -1064,7 +1047,7 @@ export async function verifyCampaignCurrencyLifecycle(
   }
   const looseCharacter = (snapshot: Snapshot) => {
     const row = character(snapshot, 0)
-      .builder.character.state.currency.filter((group) => group.containerId === undefined)
+      .active.state.currency.filter((group) => group.containerId === undefined)
       .flatMap((group) => group.currencies)
       .find((currency) => belongs(currency, a.id) && currency.currencyId === highId)
     assert.ok(row)
@@ -1222,7 +1205,7 @@ export async function verifyCampaignCurrencyLifecycle(
   )
   const drainCharacters = async (systemId: string) => {
     for (const index of [0, 1])
-      for (const group of character(await read(), index).builder.character.state.currency)
+      for (const group of character(await read(), index).active.state.currency)
         for (const row of group.currencies.filter(
           (currency) => belongs(currency, systemId) && currency.amount > 0
         ))
@@ -1239,7 +1222,7 @@ export async function verifyCampaignCurrencyLifecycle(
   const beforeRemoval = await read()
   for (const entry of beforeRemoval.characters)
     assert.ok(
-      entry.builder.character.state.currency
+      entry.active.state.currency
         .flatMap((group) => group.currencies)
         .some((row) => belongs(row, a.id) && row.amount === 0)
     )
@@ -1264,7 +1247,7 @@ export async function verifyCampaignCurrencyLifecycle(
   assert.deepEqual(final.systems, [])
   for (const entry of final.characters)
     assert.equal(
-      entry.builder.character.state.currency
+      entry.active.state.currency
         .flatMap((group) => group.currencies)
         .some((row) => row.kind === 'CAMPAIGN'),
       false
@@ -1284,17 +1267,17 @@ export async function verifyCampaignCurrencyLifecycle(
   }
   for (const [index, entry] of final.characters.entries()) {
     const previous = character(populated, index)
-    const unrelatedGroups = previous.builder.character.state.currency.flatMap((group) => {
+    const unrelatedGroups = previous.active.state.currency.flatMap((group) => {
       const currencies = group.currencies.filter((row) => row.kind !== 'CAMPAIGN')
       return currencies.length === 0 && group.currencies.some((row) => row.kind === 'CAMPAIGN')
         ? []
         : [{ ...group, currencies }]
     })
     assert.deepEqual(
-      entry.builder.character,
+      entry.active,
       {
-        ...previous.builder.character,
-        state: { ...previous.builder.character.state, currency: unrelatedGroups }
+        ...previous.active,
+        state: { ...previous.active.state, currency: unrelatedGroups }
       },
       'All private raw state, notes, original physical items and structural intent survive the full lifecycle.'
     )

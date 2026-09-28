@@ -6,10 +6,27 @@ import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { SRD_LANGUAGES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { characterBuilderResolveInputSchema } from '@artificer-toolkit/schema/api/characterBuilderQueries'
+import { evaluateBuilderCandidate } from '../../tests/fixtures/builderEvaluation'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { api, internal } from '../_generated/api'
+
+type Test = Awaited<ReturnType<typeof fixture>>['t']
+type Actor = Awaited<ReturnType<typeof fixture>>['owner']
+
+// The Builder evaluates in the browser from content snapshots (ADR 0036 S6); these run that path
+// over candidates parsed as commit parses its input.
+async function resolveCandidate(t: Test, actor: Actor, candidate: unknown) {
+  const request = characterBuilderResolveInputSchema.parse(candidate)
+  return (await evaluateBuilderCandidate(t, actor.caller, actor.userId, request)).resolve()
+}
+
+async function previewCandidate(t: Test, actor: Actor, candidate: unknown) {
+  const request = characterBuilderResolveInputSchema.parse(candidate)
+  return (await evaluateBuilderCandidate(t, actor.caller, actor.userId, request)).preview()
+}
 
 describe('native Character Builder choices', () => {
   it('resolves canonical chosen grants against the current System vocabulary', async () => {
@@ -30,7 +47,7 @@ describe('native Character Builder choices', () => {
       }
     }
     const candidate = { expectedDraftId: draft.id, mode: 'create' as const, character }
-    const initial = await owner.caller.query(api.characters.builder.resolve, candidate)
+    const initial = await resolveCandidate(t, owner, candidate)
     const choice = initial.view.background.grantChoices[0]
     if (!choice) throw new Error('Missing canonical language choice.')
     expect(choice.requiredCount).toBe(2)
@@ -46,12 +63,12 @@ describe('native Character Builder choices', () => {
         targetIds
       }
     ]
-    const selected = await owner.caller.query(api.characters.builder.resolve, candidate)
+    const selected = await resolveCandidate(t, owner, candidate)
     expect(selected.view.background.grantChoices[0]?.selectedTargetIds).toEqual(targetIds)
     expect(selected.resolution.outstandingChoices).toEqual([])
     expect(selected.resolution.validations).toEqual([])
     character.intent.chosenGrantSelections[0]!.targetIds = [targetIds[0]!, crypto.randomUUID()]
-    const invalid = await owner.caller.query(api.characters.builder.resolve, candidate)
+    const invalid = await resolveCandidate(t, owner, candidate)
     expect(
       invalid.resolution.validations.some(
         (issue) => issue.code === 'CHOSEN_GRANT_SELECTION_INVALID'
@@ -229,7 +246,7 @@ describe('native Character Builder choices', () => {
             }
           }
         }
-        const unselected = await owner.caller.query(api.characters.builder.resolve, rootOnly)
+        const unselected = await resolveCandidate(t, owner, rootOnly)
         expect(unselected.resolution.readiness.ready).toBe(false)
         expect(unselected.resolution.readiness.outstandingRequiredChoices).not.toEqual([])
         await expect(owner.caller.mutation(api.characters.commit.commit, rootOnly)).rejects.toThrow(
@@ -247,7 +264,7 @@ describe('native Character Builder choices', () => {
           }
         ]
       }
-      const ready = await owner.caller.query(api.characters.builder.resolve, candidate)
+      const ready = await resolveCandidate(t, owner, candidate)
       expect(ready.resolution.readiness).toEqual({
         ready: true,
         blockingIssues: [],
@@ -258,7 +275,7 @@ describe('native Character Builder choices', () => {
         const future = structuredClone(character)
         future.intent.featureAcquisitions[0]!.timing = { kind: 'CHARACTER_LEVEL', level: 2 }
         const futureCandidate = { ...candidate, character: future }
-        const unresolved = await owner.caller.query(api.characters.builder.resolve, futureCandidate)
+        const unresolved = await resolveCandidate(t, owner, futureCandidate)
         expect(unresolved.resolution.readiness.ready).toBe(false)
         expect(
           unresolved.resolution.outstandingChoices.some(
@@ -279,19 +296,13 @@ describe('native Character Builder choices', () => {
           timing: { kind: 'IMMEDIATE' }
         })
         const unrelatedCandidate = { ...candidate, character: unrelated }
-        const rejected = await owner.caller.query(
-          api.characters.builder.resolve,
-          unrelatedCandidate
-        )
+        const rejected = await resolveCandidate(t, owner, unrelatedCandidate)
         expect(
           rejected.resolution.validations.some(
             (issue) => issue.code === 'STALE_FEATURE_ACQUISITION'
           )
         ).toBe(true)
-        const repaired = await owner.caller.query(
-          api.characters.builder.preview,
-          unrelatedCandidate
-        )
+        const repaired = await previewCandidate(t, owner, unrelatedCandidate)
         expect(
           repaired.character.intent.featureAcquisitions.some((record) => record.id === unrelatedId)
         ).toBe(false)
@@ -311,10 +322,7 @@ describe('native Character Builder choices', () => {
               intent: { ...duplicate.intent, featureAcquisitions: acquisitions }
             }
           }
-          const invalid = await owner.caller.query(
-            api.characters.builder.resolve,
-            duplicateCandidate
-          )
+          const invalid = await resolveCandidate(t, owner, duplicateCandidate)
           expect(
             invalid.resolution.validations.some(
               (issue) => issue.code === 'DUPLICATE_FEAT_ACQUISITION'
@@ -340,7 +348,7 @@ describe('native Character Builder choices', () => {
           source: { kind: 'MANUAL' },
           timing: { kind: 'IMMEDIATE' }
         })
-        const unresolvedFeature = await owner.caller.query(api.characters.builder.resolve, {
+        const unresolvedFeature = await resolveCandidate(t, owner, {
           ...candidate,
           character: unknownFeature
         })
@@ -359,7 +367,7 @@ describe('native Character Builder choices', () => {
           }
         ]
         await expect(
-          owner.caller.query(api.characters.builder.resolve, {
+          resolveCandidate(t, owner, {
             ...candidate,
             character: unknownSpell
           })
@@ -367,7 +375,7 @@ describe('native Character Builder choices', () => {
       }
       character.state.hitpoints.current = 999
       character.state.hitpoints.temp = 999
-      const firstPreview = await owner.caller.query(api.characters.builder.preview, candidate)
+      const firstPreview = await previewCandidate(t, owner, candidate)
       expect(firstPreview.character.status).toBe('ACTIVE')
       expect(firstPreview.character.state.hitpoints.current).toBe(11)
       expect(firstPreview.character.state.hitpoints.temp).toBeUndefined()
@@ -378,7 +386,7 @@ describe('native Character Builder choices', () => {
       character.intent.featureAcquisitions[0]!.selections = [
         { selectionKey: 'options', values: [{ kind: 'IDS', ids: [veteranId] }] }
       ]
-      const ineligible = await owner.caller.query(api.characters.builder.resolve, candidate)
+      const ineligible = await resolveCandidate(t, owner, candidate)
       expect(ineligible.resolution.readiness.ready).toBe(false)
       expect(
         ineligible.resolution.validations.some(
@@ -439,7 +447,7 @@ describe('native Character Builder choices', () => {
           }
         }
       }
-      const repaired = await owner.caller.query(api.characters.builder.preview, staleCandidate)
+      const repaired = await previewCandidate(t, owner, staleCandidate)
       expect(repaired.character.intent.featureAcquisitions).toHaveLength(
         sourceKind === 'FEAT' ? 2 : 1
       )
@@ -455,7 +463,7 @@ describe('native Character Builder choices', () => {
         classLevel: 2,
         value: 6
       })
-      const eligible = await owner.caller.query(api.characters.builder.resolve, candidate)
+      const eligible = await resolveCandidate(t, owner, candidate)
       if (sourceKind === 'RACE') {
         expect(eligible.view.race.featureChoices[0]?.options.map((option) => option.id)).toEqual([
           noviceId,
@@ -486,7 +494,7 @@ describe('native Character Builder choices', () => {
   )
 
   it('reconciles a stale same-source edit only after publication and preserves Sheet state', async () => {
-    const { owner, other, createCharacter } = await readyCharacterFixture()
+    const { t, owner, other, createCharacter } = await readyCharacterFixture()
     const document = {
       ...acolyte,
       id: crypto.randomUUID(),
@@ -540,7 +548,7 @@ describe('native Character Builder choices', () => {
       mode: 'create' as const,
       character: initial
     }
-    const choices = await owner.caller.query(api.characters.builder.resolve, initialCandidate)
+    const choices = await resolveCandidate(t, owner, initialCandidate)
     const languageChoice = choices.view.background.grantChoices[0]
     if (!languageChoice) throw new Error('Missing owned background language choice.')
     const selectedTargetIds = languageChoice.options.slice(0, 2).map((option) => option.id)
@@ -560,10 +568,7 @@ describe('native Character Builder choices', () => {
       }
     }
     const candidate = { ...initialCandidate, character }
-    expect(
-      (await owner.caller.query(api.characters.builder.resolve, candidate)).resolution.readiness
-        .ready
-    ).toBe(true)
+    expect((await resolveCandidate(t, owner, candidate)).resolution.readiness.ready).toBe(true)
     const committed = await owner.caller.mutation(api.characters.commit.commit, candidate)
     expect(committed.streamVersion).toBe(1)
     const damaged = await owner.caller.mutation(api.characters.sheetCommands.execute, {
@@ -598,25 +603,23 @@ describe('native Character Builder choices', () => {
       label: 'Published revision',
       proficiencies: []
     })
-    const beforePublication = await owner.caller.query(api.characters.builder.get, {
-      id: committed.publicId
-    })
-    expect(beforePublication?.references.backgrounds.map((row) => row.id)).toContain(document.id)
-    expect(beforePublication?.references.backgrounds.map((row) => row.id)).not.toContain(foreign.id)
-    expect(beforePublication?.resolution.summary.selectedBackground?.label).toBe(document.label)
-    expect(beforePublication?.character.state.hitpoints.current).toBe(8)
+    const beforePublication = await resolveCandidate(t, owner, staleCandidate)
+    expect(beforePublication.references.backgrounds.map((row) => row.id)).toContain(document.id)
+    expect(beforePublication.references.backgrounds.map((row) => row.id)).not.toContain(foreign.id)
+    expect(beforePublication.resolution.summary.selectedBackground?.label).toBe(document.label)
+    expect(beforePublication.character.state.hitpoints.current).toBe(8)
     expect(await owner.caller.query(api.characters.drafts.get, { id: first.character.id })).toEqual(
       savedCharacter
     )
     expect(
-      await other.caller.query(api.characters.builder.get, { id: committed.publicId })
+      await other.caller.query(api.characters.builder.activeCharacter, { id: committed.publicId })
     ).toBeNull()
     await publish(owner.caller, working)
-    const preview = await owner.caller.query(api.characters.builder.preview, staleCandidate)
+    const preview = await previewCandidate(t, owner, staleCandidate)
     expect(preview.character.intent.chosenGrantSelections).toBeUndefined()
     expect(preview.character.state.hitpoints.current).toBe(8)
     expect(preview.character.state.equipment.inventory).toEqual(
-      beforePublication?.character.state.equipment.inventory
+      beforePublication.character.state.equipment.inventory
     )
     expect(await owner.caller.query(api.characters.drafts.get, { id: first.character.id })).toEqual(
       savedCharacter
@@ -628,7 +631,7 @@ describe('native Character Builder choices', () => {
     expect(result.character.intent.chosenGrantSelections).toBeUndefined()
     expect(result.character.state.hitpoints.current).toBe(8)
     expect(result.character.state.equipment.inventory).toEqual(
-      beforePublication?.character.state.equipment.inventory
+      beforePublication.character.state.equipment.inventory
     )
     expect(
       await owner.caller.query(api.characters.drafts.get, { id: first.character.id })

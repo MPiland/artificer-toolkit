@@ -166,7 +166,7 @@ describe('assigned native Character Campaign source access', () => {
     expect(context.equipment).toContain(sharedVariant)
     expect(context.equipment).not.toContain(sibling)
     const builder = await t.run(async (ctx) => {
-      const result = await loadCharacterBuilderContext(ctx, selected, owner.userId)
+      const result = await loadCharacterBuilderContext(ctx, selected, owner.userId, 'resolution')
       return {
         backgrounds: result.catalog.backgrounds.map((row) => row.id),
         equipment: result.catalog.equipment.map((row) => row.id)
@@ -175,16 +175,12 @@ describe('assigned native Character Campaign source access', () => {
     expect(builder.backgrounds).toContain(background)
     expect(builder.equipment).toContain(sharedVariant)
     expect(builder.equipment).not.toContain(sibling)
-    const presented = await owner.caller.query(api.characters.builder.get, { id: character.id })
-    if (!presented) throw new Error('Missing Builder.')
-    expect(
-      JSON.stringify({
-        resolution: presented.resolution,
-        references: presented.references,
-        view: presented.view
-      })
-    ).not.toContain('Shitstorm')
-    expect(presented.character.id).toBe(character.id)
+    const presented = await owner.caller.query(api.characters.builder.activeCharacter, {
+      id: character.id
+    })
+    if (!presented) throw new Error('Missing active Character.')
+    expect(JSON.stringify(presented)).not.toContain('Shitstorm')
+    expect(presented.id).toBe(character.id)
     expect(
       await other.caller.query(api.content.details.get, {
         subjectKind: 'BACKGROUND',

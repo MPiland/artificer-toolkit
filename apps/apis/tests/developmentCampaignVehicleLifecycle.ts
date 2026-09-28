@@ -51,12 +51,12 @@ export async function verifyCampaignVehicleLifecycle(
   assert.equal(currentVehicles.isDone, true)
   assert.equal(currentVehicles.page.length, 1)
   const vehicle = currentVehicles.page[0]!
-  const character = await player.query(api.characters.builder.get, { id: characterId })
+  const character = await player.query(api.characters.builder.activeCharacter, { id: characterId })
   assert.ok(character)
-  const bag = character.character.state.equipment.inventory.find(
+  const bag = character.state.equipment.inventory.find(
     (item) =>
       item.equipmentId === backpack.id &&
-      character.character.state.equipment.inventory.some((child) => child.containerId === item.id)
+      character.state.equipment.inventory.some((child) => child.containerId === item.id)
   )
   assert.ok(bag, 'Lifecycle proof requires the previously transferred filled backpack.')
   const fences = await owner.query(api.campaigns.inventoryOwners.transferVersions, {
