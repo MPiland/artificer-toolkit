@@ -6,7 +6,8 @@ import {
 import { contentSnapshotObjectKey } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { ContentSnapshotLocation } from './manifestObjects'
 
-const CACHE_NAME = 'artificer-content-snapshots-v1'
+/** Cache Storage holding verified snapshot objects; cleared whole at sign-out (privateContent.ts). */
+export const CONTENT_SNAPSHOT_CACHE_NAME = 'artificer-content-snapshots-v1'
 const CACHE_KEY_PATH = '/content-snapshot-sha256/'
 
 /** A manifest object that could not be read; `kind` lets the Builder say which content failed. */
@@ -67,7 +68,7 @@ export function createContentSnapshotStore(options: {
 
   async function verifiedRead(location: ContentSnapshotLocation): Promise<ContentSnapshotObject> {
     const { header, ref } = location
-    const cache = cacheStorage ? await cacheStorage.open(CACHE_NAME) : null
+    const cache = cacheStorage ? await cacheStorage.open(CONTENT_SNAPSHOT_CACHE_NAME) : null
     const cached = await cache?.match(cacheKey(ref.sha256))
     let bytes = cached ? await cached.arrayBuffer() : null
     if (!bytes || (await sha256Hex(bytes)) !== ref.sha256) {
@@ -113,7 +114,7 @@ export function createContentSnapshotStore(options: {
     /** Drops every kept object whose hash the current manifest no longer names. */
     async retain(sha256s: ReadonlySet<string>): Promise<void> {
       for (const sha256 of parsed.keys()) if (!sha256s.has(sha256)) parsed.delete(sha256)
-      const cache = cacheStorage ? await cacheStorage.open(CACHE_NAME) : null
+      const cache = cacheStorage ? await cacheStorage.open(CONTENT_SNAPSHOT_CACHE_NAME) : null
       if (!cache) return
       for (const request of await cache.keys()) {
         const sha256 = new URL(request.url).pathname.slice(CACHE_KEY_PATH.length)

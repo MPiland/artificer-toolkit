@@ -8,7 +8,12 @@ const mocks = vi.hoisted(() => ({
   signInEmail: vi.fn(),
   signInUsername: vi.fn(),
   signOut: vi.fn(),
-  signUpEmail: vi.fn()
+  signUpEmail: vi.fn(),
+  clearPrivateContent: vi.fn(async () => undefined)
+}))
+
+vi.mock('#app/data/contentSnapshots/privateContent', () => ({
+  clearPrivateContentSnapshots: mocks.clearPrivateContent
 }))
 
 vi.mock('./betterAuthClient', () => ({
@@ -290,5 +295,14 @@ describe('browserAuthClient', () => {
       message: 'Could not complete registration.'
     })
     expect(mocks.resetPassword).not.toHaveBeenCalled()
+  })
+
+  it('clears private content snapshots only after a successful sign-out', async () => {
+    mocks.signOut.mockResolvedValueOnce({ data: null, error: { message: 'offline' } })
+    await expect(browserAuthClient.signOut()).resolves.toMatchObject({ ok: false })
+    expect(mocks.clearPrivateContent).not.toHaveBeenCalled()
+
+    await expect(browserAuthClient.signOut()).resolves.toEqual({ ok: true })
+    expect(mocks.clearPrivateContent).toHaveBeenCalledOnce()
   })
 })

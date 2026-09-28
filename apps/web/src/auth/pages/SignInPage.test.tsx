@@ -7,7 +7,11 @@ const mocks = vi.hoisted(() => ({
   invalidate: vi.fn(),
   clear: vi.fn(),
   navigate: vi.fn(),
-  form: vi.fn<(props: AuthFormProps) => void>()
+  form: vi.fn<(props: AuthFormProps) => void>(),
+  clearPrivateContent: vi.fn(async () => undefined)
+}))
+vi.mock('#app/data/contentSnapshots/privateContent', () => ({
+  clearPrivateContentSnapshots: mocks.clearPrivateContent
 }))
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ clear: mocks.clear })
@@ -24,7 +28,7 @@ vi.mock('../components/SignInForm', () => ({
 }))
 
 it.each([undefined, '/systems'])(
-  'clears the previous identity cache before one document redirect: %s',
+  'clears the previous identity caches before one document redirect: %s',
   async (redirectTo) => {
     vi.clearAllMocks()
     render(<SignInPage redirectTo={redirectTo} />)
@@ -35,6 +39,10 @@ it.each([undefined, '/systems'])(
     try {
       await onSuccess?.({ ok: true })
       expect(mocks.clear).toHaveBeenCalledOnce()
+      expect(mocks.clearPrivateContent).toHaveBeenCalledOnce()
+      expect(mocks.clearPrivateContent.mock.invocationCallOrder[0]).toBeLessThan(
+        assign.mock.invocationCallOrder[0]!
+      )
       expect(assign).toHaveBeenCalledExactlyOnceWith(redirectTo ?? '/home')
       expect(mocks.clear.mock.invocationCallOrder[0]).toBeLessThan(
         assign.mock.invocationCallOrder[0]!

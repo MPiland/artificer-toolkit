@@ -10,7 +10,7 @@ describe('content access token cache', () => {
       .fn()
       .mockResolvedValueOnce({ token: 'first', expiresAt: '2026-09-28T12:10:00.000Z' })
       .mockResolvedValueOnce({ token: 'second', expiresAt: '2026-09-28T12:19:00.000Z' })
-    const getToken = createContentAccessCache(issue, () => now)
+    const { getToken } = createContentAccessCache(issue, () => now)
 
     await expect(getToken(false)).resolves.toBe('first')
     now = ISSUED_AT + 8 * 60_000
@@ -25,7 +25,7 @@ describe('content access token cache', () => {
       .fn()
       .mockResolvedValueOnce({ token: 'first', expiresAt: '2026-09-28T12:10:00.000Z' })
       .mockResolvedValueOnce({ token: 'refreshed', expiresAt: '2026-09-28T12:10:00.000Z' })
-    const getToken = createContentAccessCache(issue, () => ISSUED_AT)
+    const { getToken } = createContentAccessCache(issue, () => ISSUED_AT)
 
     await expect(Promise.all([getToken(false), getToken(false)])).resolves.toEqual([
       'first',

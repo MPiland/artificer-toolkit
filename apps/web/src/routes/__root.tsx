@@ -16,6 +16,7 @@ import {
 import { Suspense, lazy, useEffect, type ReactNode } from 'react'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
+import { clearPrivateContentSnapshots } from '#app/data/contentSnapshots/privateContent'
 import { AppProviders } from '#app/providers/AppProviders'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
@@ -115,7 +116,10 @@ function SessionConvergence() {
     if (!snapshot) return
     const identityChanged =
       snapshot.user?.userId !== user?.userId || snapshot.user?.role !== user?.role
-    if (identityChanged) queryClient.clear()
+    if (identityChanged) {
+      queryClient.clear()
+      void clearPrivateContentSnapshots()
+    }
     // Concurrent invalidation can clear a still-rendered pending match's load promise.
     // Route state retriggers convergence after navigation; identity caches clear immediately.
     if (

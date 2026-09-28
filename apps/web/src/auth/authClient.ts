@@ -11,6 +11,7 @@ import {
   type AuthSignInInput,
   type AuthSignUpInput
 } from '@artificer-toolkit/schema/api/auth'
+import { clearPrivateContentSnapshots } from '#app/data/contentSnapshots/privateContent'
 import { betterAuthClient } from './betterAuthClient'
 
 export interface AuthResult {
@@ -205,7 +206,9 @@ export const browserAuthClient: AuthClient = {
   async signOut() {
     try {
       const result = await betterAuthClient.signOut()
-      return result.error ? { ok: false, message: 'Could not sign out. Try again.' } : { ok: true }
+      if (result.error) return { ok: false, message: 'Could not sign out. Try again.' }
+      await clearPrivateContentSnapshots()
+      return { ok: true }
     } catch {
       return { ok: false, message: 'Could not sign out. Try again.' }
     }
