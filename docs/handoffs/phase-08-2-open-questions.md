@@ -6,33 +6,7 @@
 
 ## Open
 
-### Q18 Tier redesign against competitors
-
-The user approved redesigning the Free, Player, GM and Pro GM tiers from competitor evidence (2026-09-27, Q16 answer). Two constraints come with it:
-- the tiers must drive upgrades, which includes limiting how much Campaign content a Free Campaign holds (Q17: "all of the above");
-- they must keep Free users within the free hosting tiers (ADR 0035, Q16).
-
-A research pass compares Roll20, Foundry VTT, Fantasy Grounds, D&D Beyond (including Maps), Owlbear Rodeo, Alchemy RPG, Demiplane and World Anvil. It is recorded in `docs/roadmap/tier-research-2026-09-27.md`, with a proposed tier matrix.
-
-**Research done:** [tier research](../roadmap/tier-research-2026-09-27.md). The proposal:
-
-| | Free | Player | GM | Pro GM |
-| --- | --- | --- | --- | --- |
-| Price | $0 | $2.99 (was $4.99) | $9.99 | $24.99 (was $49.99) |
-| Media | 100 MB | 1 GB | 5 GB | 25 GB |
-| Active hosted Campaigns | 1 | 1 | 5 | 25 (was unlimited) |
-| Campaign entries per Campaign (new) | 150 | 150 | unlimited, with a hidden safety cap | same as GM |
-| Scenes per Campaign (new) | 5 | 5 | unlimited, with a hidden safety cap | same as GM |
-| Saved Encounters | 10 (was 3) | 10 (was 3) | unlimited | unlimited |
-
-Characters, homebrew roots, seats, listings, paid tables and fees are unchanged. Every plan still joins Campaigns and plays for free, as all the researched competitors allow.
-
-**Claude's review:**
-- **Accept:** the prices, since no competitor charges $50 and Pro GM's fee break-even drops from $400 to $150 of table revenue a month; the entry and Scene limits as upgrade levers; 10 saved Encounters; and read-only (never deleted) content after a downgrade.
-- **Disagree: counting a Campaign upload against the hosting GM.** Keep Q17's rule that an asset counts against whoever uploaded it. A player's portrait should use the player's quota, not the GM's, and a GM's maps already count against the GM. One rule everywhere is simpler.
-- **For the user to decide:** the research restates "stay on free tiers" as "under $0.05 per Free user a month", because Convex Starter bills small pay-as-you-go overages rather than forcing a $25 plan. That keeps the market-standard 100 MB of storage, even though 100 users at the full quota would fill R2's free 10 GB.
-
-**Answer:**
+_(none)_
 
 ## Decisions to review
 
@@ -435,54 +409,64 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     * The prefetch is admitted for the responder, and the answer command comes from the room instead of the staged save.
   * **The 6-browser V15** runs only once the browserless `REACTION_RESPONSE` p95 is clearly under 1 s.
 - **D65** (2026-09-27, user-approved in Q16) The web app moves from Netlify to Cloudflare, and content snapshots and media are served from Cloudflare R2.
-  - **Why:** egress is free, and the Worker, room, R2 and web app end up on one provider. Netlify's 300 monthly credits (15 per production deploy, 20 per GB of bandwidth) would limit a free launch.
-  - **Before moving:**
-    - confirm that TanStack Start SSR runs on Cloudflare Workers with the current SSR proxy and auth cookies;
-    - check the Workers Free request and CPU limits for SSR pages (the 10 ms CPU limit applies to plain Workers);
-    - migrate the DNS and domain.
-  - **Sequencing:** its own slice, after ADR 0035 S0.
-
+  * **Why:** egress is free, and the Worker, room, R2 and web app end up on one provider. Netlify's 300 monthly credits (15 per production deploy, 20 per GB of bandwidth) would limit a free launch.
+  * **Before moving:**
+    * confirm that TanStack Start SSR runs on Cloudflare Workers with the current SSR proxy and auth cookies;
+    * check the Workers Free request and CPU limits for SSR pages (the 10 ms CPU limit applies to plain Workers);
+    * migrate the DNS and domain.
+  * **Sequencing:** its own slice, after ADR 0035 S0.
 
 ## Resolved
 
-- **Q16 (2026-09-27).** The free hosting tier must carry the launch cohort: 100 Free users, 20 of them hosting tables that play four 4-hour sessions a month, plus 50 Character builds a month, with 50% headroom.
-  - Budgets are each provider's free allowance (checked 2026-09-27) divided by that load model. Convex database I/O is the binding constraint.
-  - Content snapshots and media are served from Cloudflare (R2), where egress is free.
-  - The web app moves off Netlify to Cloudflare (D65).
-  - The tiers will be redesigned from competitor evidence (Q18).
-- **Q17 (2026-09-27).** Media: content art is capped at 2048 px, maps keep full resolution, and the Free media quota is 100 MB.
-  - A "My images" picker lets people reuse their uploads; each asset counts once, and identical uploads by the same owner are de-duplicated.
-  - The user wants tier limits for both hosting cost and upgrade incentive ("all of the above"), so a count limit on Free Campaign content is designed as part of Q18.
-  - Invisible safety caps and retention pruning guard against abuse.
+- **Q18 (2026-09-27).** The user accepted the recommendations. The [tier research](../roadmap/tier-research-2026-09-27.md) proposal is adopted:
+  - **Prices:** Free `$0`, Player `$2.99`, GM `$9.99`, Pro GM `$24.99`.
+  - **Media:** 100 MB, 1 GB, 5 GB and 25 GB.
+  - **Hosted Campaigns:** 1, 1, 5 and 25.
+  - **New per-Campaign limits** on Free and Player: 150 entries and 5 Scenes. GM and Pro GM are unlimited, with hidden safety caps.
+  - **Saved Encounters:** 10, 10, unlimited and unlimited.
+  - **Unchanged:** Characters, homebrew roots, seats, listings, paid tables and fees.
+  - **Uploads** count against whoever uploaded them (Q17), not against the hosting GM.
+  - **After a downgrade,** content over the limit becomes read-only and is never deleted.
+  - **Cost target:** free hosting tiers first. Small pay-as-you-go overages are tolerated, rather than cutting below the market's 100 MB of free storage.
+  - **Follow-up:** R06.4 was reworded so that direct Convex writes are fenced for the presented Scene, live Runs and held Characters' play state. This follows directly from the approved ADR 0035 Amendments.
 
 
-* **Q15 (2026-09-27).** Architecture for a free-tier product. The user chose (b), (c) and (d), recorded in [ADR 0035](../adr/0035-room-authoritative-live-encounters.md):
+* **Q16 (2026-09-27).** The free hosting tier must carry the launch cohort: 100 Free users, 20 of them hosting tables that play four 4-hour sessions a month, plus 50 Character builds a month, with 50% headroom.
+  * Budgets are each provider's free allowance (checked 2026-09-27) divided by that load model. Convex database I/O is the binding constraint.
+  * Content snapshots and media are served from Cloudflare (R2), where egress is free.
+  * The web app moves off Netlify to Cloudflare (D65).
+  * The tiers will be redesigned from competitor evidence (Q18).
+* **Q17 (2026-09-27).** Media: content art is capped at 2048 px, maps keep full resolution, and the Free media quota is 100 MB.
+  * A "My images" picker lets people reuse their uploads; each asset counts once, and identical uploads by the same owner are de-duplicated.
+  * The user wants tier limits for both hosting cost and upgrade incentive ("all of the above"), so a count limit on Free Campaign content is designed as part of Q18.
+  * Invisible safety caps and retention pruning guard against abuse.
+- **Q15 (2026-09-27).** Architecture for a free-tier product. The user chose (b), (c) and (d), recorded in [ADR 0035](../adr/0035-room-authoritative-live-encounters.md):
   * **(b):** while a table is live, the room is the source of truth for the Encounter and combat play state. Commands never call Convex, and Convex receives checkpoints as the record of truth.
   * **(c):** development and tests use the local backend only.
   * **(d):** read budgets are gated in V15 and the Builder.
   * **Still open:** option (a), versioned static content snapshots and a Builder preview in the browser. It is recommended next, and ADR 0035 already assumes it for loading System content into the room.
   * **Constraint from the user:** the launched product stays on free tiers until paying customers justify a paid plan.
-* **Q14 (2026-09-27).** GM rolls are Public or Private, chosen with a toggle beside the GM's roll controls (the action drawer and chat). The toggle remembers the last choice, starts on Public (as in Foundry), and has no settings page.
+- **Q14 (2026-09-27).** GM rolls are Public or Private, chosen with a toggle beside the GM's roll controls (the action drawer and chat). The toggle remembers the last choice, starts on Public (as in Foundry), and has no settings page.
   * A Private roll shows players nothing, not even that a roll happened.
   * The GM's private card offers two reveals, both logged, neither retractable: "Show roll" (the full card) and "Show that I rolled" (a vague notice with no result or reason).
   * The notice names a creature only for players who can currently see it; everyone else sees "The GM made a roll".
   * Consequences stay visible: a player hit by a private roll still sees the damage and any save prompt, but not the roll, its total or a hidden source.
   * It ships in the S6i rule-roll chat cards slice.
-- **Q13 (2026-09-27).** Option (a): R03.1's corpus clause now reads "the protected SRD corpus matches the current SRD manifest checksum reported by the seed audit, with every corpus change since the removal tracing to a recorded ruling". R03.1 is READY: the seed audit passes, and all 21 corpus commits since the fourth pass cite a ruling.
-- **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:
+* **Q13 (2026-09-27).** Option (a): R03.1's corpus clause now reads "the protected SRD corpus matches the current SRD manifest checksum reported by the seed audit, with every corpus change since the removal tracing to a recorded ruling". R03.1 is READY: the seed audit passes, and all 21 corpus commits since the fourth pass cite a ruling.
+* **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:
   * **Mechanics** are closed, System-neutral rule kinds in `packages/shared` with the other core engine enums: a movement budget bonus equal to speed, suppressing opportunity attacks, disadvantage on attacks against the actor until its next turn, and advantage granted to an ally.
   * **The catalogue entries** (Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use an Object, with their names and text) are authored System data in the SRD source, so homebrew Systems can rename, change or add them.
   * Hard-coding 'Dash' as a shared enum would put D&D terms into the core engine.
   * Every actor gets the catalogue through the normal action flow. Hide, Ready, Search and Use an Object are logged, not automated.
   * It ships as its own slice before closed beta.
-- **Local backend secret (2026-09-26).** The local instance secret exposed in an agent transcript was rotated. The stored secret file was removed and the container restarted, which generated a new secret inside the container that was never printed. The container also dropped from about 6.6 GiB to 196 MiB of memory.
-- **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
-- **Q10 (2026-09-25).** Shared Session notes show their author and handouts their uploader, resolved on the server. Both read "Deleted user" after account deletion, through the same function chat uses. The Encounter timeline keeps naming actors. F12.3's wording is unchanged.
-- **Q8 (2026-09-25).** Keep 100 as the Encounter safety cap. One convex-test case proves the room's capture stays within Convex limits at the cap; speed targets (V15) use the typical 11-actor table.
-- **Q6 (2026-09-25).** V11.4 reworded: in Assisted mode a player's save-forcing action pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues. Manual mode raises no rules prompts. There is no separate Automatic mode since the modes redesign; the per-person auto-roll preference fills that role. Spell-specific proof becomes a Phase 8.3 spell-casting criterion.
-- **Q7 (2026-09-25).** V09.7 reworded to 'development data is migrated or reset under the standing local-reset approval', matching the actual process.
-- **Q1 (2026-09-25).** The connection string labeled production is non-live. The user will rotate the credentials before go-live (added to the release checklist).
-- **Q2 (2026-09-25, amended).** Delete the whole Codex backup worktree only after the final R08 proof passes. 653 of the 725 evidence references in the acceptance ledger point at `.codex/validation/...` files that exist only in that worktree, so it is the only record behind the 59 accepted cases until R08 re-proves them on the final source.
-- **Q3 (2026-09-25).** Done. Removed the 12 `supabase_*_artificer-toolkit` containers and their 3 volumes, the local `supabase/` folder (empty directories and the `.temp` generated secrets; migrations remain in git history), the 11 Supabase and database variables in `.env.local` (removed by name, values never read) and the dead `.gitignore` entry. Left alone: the `faye-frame` project's volumes and one unattributable `supabase_edge_runtime_` volume. `scripts/auditNativeBoundaries.mjs` keeps guarding against Supabase being reintroduced.
-- **Q4 (2026-09-25).** Scene fog save retention is folded into S7.
-- **Q5 (2026-09-25).** Done in the player-control slice (S6b): `CampaignSessionPlayerEncounters` is now `CampaignPlayerEncounterDecisions`.
+* **Local backend secret (2026-09-26).** The local instance secret exposed in an agent transcript was rotated. The stored secret file was removed and the container restarted, which generated a new secret inside the container that was never printed. The container also dropped from about 6.6 GiB to 196 MiB of memory.
+* **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
+* **Q10 (2026-09-25).** Shared Session notes show their author and handouts their uploader, resolved on the server. Both read "Deleted user" after account deletion, through the same function chat uses. The Encounter timeline keeps naming actors. F12.3's wording is unchanged.
+* **Q8 (2026-09-25).** Keep 100 as the Encounter safety cap. One convex-test case proves the room's capture stays within Convex limits at the cap; speed targets (V15) use the typical 11-actor table.
+* **Q6 (2026-09-25).** V11.4 reworded: in Assisted mode a player's save-forcing action pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues. Manual mode raises no rules prompts. There is no separate Automatic mode since the modes redesign; the per-person auto-roll preference fills that role. Spell-specific proof becomes a Phase 8.3 spell-casting criterion.
+* **Q7 (2026-09-25).** V09.7 reworded to 'development data is migrated or reset under the standing local-reset approval', matching the actual process.
+* **Q1 (2026-09-25).** The connection string labeled production is non-live. The user will rotate the credentials before go-live (added to the release checklist).
+* **Q2 (2026-09-25, amended).** Delete the whole Codex backup worktree only after the final R08 proof passes. 653 of the 725 evidence references in the acceptance ledger point at `.codex/validation/...` files that exist only in that worktree, so it is the only record behind the 59 accepted cases until R08 re-proves them on the final source.
+* **Q3 (2026-09-25).** Done. Removed the 12 `supabase_*_artificer-toolkit` containers and their 3 volumes, the local `supabase/` folder (empty directories and the `.temp` generated secrets; migrations remain in git history), the 11 Supabase and database variables in `.env.local` (removed by name, values never read) and the dead `.gitignore` entry. Left alone: the `faye-frame` project's volumes and one unattributable `supabase_edge_runtime_` volume. `scripts/auditNativeBoundaries.mjs` keeps guarding against Supabase being reintroduced.
+* **Q4 (2026-09-25).** Scene fog save retention is folded into S7.
+* **Q5 (2026-09-25).** Done in the player-control slice (S6b): `CampaignSessionPlayerEncounters` is now `CampaignPlayerEncounterDecisions`.

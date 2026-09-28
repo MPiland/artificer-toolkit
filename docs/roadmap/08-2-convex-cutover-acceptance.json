@@ -3649,7 +3649,7 @@
             },
             {
               "id": "R06.4",
-              "text": "While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, the direct-write fence covers only the presented Scene (ADR 0033), and the room owns ACTIVE Runs and their Characters' play state (ADR 0035).",
+              "text": "While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, direct Convex writes are fenced for the presented Scene (ADR 0033), for live Runs and for held Characters' play state, and the room owns ACTIVE Runs and their Characters' play state (ADR 0035).",
               "status": "IN_PROGRESS",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",

@@ -60,6 +60,29 @@ Campaigns will support a campaign-level **Feature** concept that applies tempora
 - Should characters see grant sources in their sheet projection?
 - Do we need grant expiration / session-bound grant windows in phase 1?
 
+## Node-based Campaign management and authoring (user-requested 2026-09-27)
+
+The user wants two React Flow features. Scheduling: after the Phase 8.2 exit, when to be decided with the user. They are UX rebuilds, not launch-critical architecture, so they must not start while ADR 0035 is in flight.
+
+### Campaign management as a node map
+
+GMs organize a Campaign as a graph: locations, NPCs, factions, handouts, Scenes and Encounters as nodes, with relationships as edges ("rules", "located in", "allied with").
+- **Differentiator:** it is a visual board like LegendKeeper's and World Anvil's, but connected to live play. A node opens its Scene, starts its Encounter, or reveals its handout.
+- **Needs:**
+  - Campaign entry kinds for locations, NPCs and factions (the Campaign model has none yet; see the Q18 entries limit);
+  - an edge model;
+  - a counterpart that works on mobile and with keyboard and screen reader (a list or outline view), because a canvas alone is not accessible.
+
+### Advanced authoring as a contextual node editor
+
+This replaces the long Advanced authoring form with a mind-map editor. Selecting a node shows only the child nodes valid in that context, which is less overwhelming than a 12-step form. The Advanced form is retired only if usage data shows it isn't used.
+- **Reuse:** authored forms are already backend-resolved node maps (`steps -> sections -> nodes`, ADR 0004). React Flow should render those same resolved nodes and their visibility and options rules, not a second model.
+- **Needs:**
+  - the same validation and TanStack Form state as the form platform;
+  - a keyboard and screen-reader path;
+  - mobile behavior;
+  - usage analytics before the form is retired.
+
 ## Post-launch
 
 ### Rules-engine-native modifier model
