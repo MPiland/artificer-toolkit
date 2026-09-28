@@ -1,6 +1,6 @@
 # ADR 0036 implementation plan
 
-> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3 and S4 (2026-09-28). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
+> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3, S4 and S5 (2026-09-28). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
 
 ## What the code does today
 
@@ -88,6 +88,23 @@
 
 [Persistence](../architecture/persistence.md#content-snapshot-manifest-adr-0036-s4--local-implementation) describes it. `contentSnapshots/manifest:manifest({systemId, characterId?})` calls `readCharacterSources`; without a Character it calls `readSystemCharacterSources`, the non-Campaign branch extracted from it. It returns each source's kind and head, and the Campaign's id, `contentMaturity` and head. The contract is in `packages/schema/src/api/contentSnapshots.ts`.
 
+## Snapshot Builder evaluation (S5, current)
+
+[Rules runtime](../architecture/rules-runtime.md#portable-live-preparation) describes the seam. Where S5 differs from the design summary:
+
+- **Signature.** `assembleCharacterBuilderContext(character, context, catalogueReaders, scope)` in `character/contextPreparation.ts` takes the context `prepareCharacterRuleContext` returns, because Convex wraps that context with its source identities and publication cache. `createSnapshotReaders(objects)` returns one object that implements both `CharacterRuleContextReaders` and `CharacterBuilderCatalogueReaders`. `scope` is `selectors` (`builder.resolve`) or `resolution` (preview and commit); the `active` Sheet scope keeps `prepareActiveCharacterBuilderContext`.
+- **Index-shaped catalogue.** `createCharacterBuilderCatalog` now takes Race, Class and Background picker facts in the snapshot index shape instead of documents. The Convex readers convert documents with `toContentSnapshotIndexEntry` (Races through `toCharacterBuilderRaceCatalogSource` after parent resolution), so the picker records come from one mapping on both paths. Equipment readers return index entries, or documents when a stored projection is missing (Convex only).
+- **Readers join.** A subrace takes its base Race's size and speeds, and the base Race's Ability Score Increase facts before its own. Vocabulary labels resolve through the System passed to `prepareCharacterRuleContext`, since the System is not snapshotted yet (D67).
+- **Merge.** Roots merge by id across the manifest's objects, and a `SOURCE` root shadows a `CAMPAIGN` share of the same root, as `readCharacterSourceRoots` does.
+- **Also extracted.** `character/builderPayload.ts` (`resolveCharacterBuilderPayload`) holds the resolution-to-payload chain that `builder.ts` ran inline. `buildContentSnapshotKind` (`contentSnapshots.ts`) builds both parts of one kind for the build action and the tests.
+- **Parity (`characters/builderSnapshotParity.test.ts`).** Snapshot objects come from the S2 `readScopeKind` pages and `buildContentSnapshotKind`, parsed back through the part schemas. The server payload comes from `builder.resolve`. The corpus is every SRD Race and Class, the Acolyte, the Grappler, every SRD Equipment item and Spell. It covers a fighter, a wizard with an SRD subrace, a fighter 3 (Champion) / wizard 2 multiclass, a Feat feature plus a standalone feature found by the feature scan, a Homebrew parent and child Race, a lost Background owned by another user, and Equipment without a stored projection (the Convex document path). A second case edits a Campaign-assigned Character with a GM's Homebrew subclass shared to the Campaign, an unshared Background and the `STANDARD` text policy. Every payload is deep-equal, and every snapshot document equals `parsePublicationDocument(readPublishedDocument(...))`. A deliberately broken subrace join fails the test.
+- **Pool size (uncertainty 1).** No rule clamps a required count to the candidate count. Two outcomes depend on whether a pool is empty: `SUBCLASS_SELECTION_REQUIRED` needs at least one visible subclass of the Class (`builderResolution.ts`, `getAvailableSubclassesForClass`), and a chosen grant with no catalogue candidates raises the blocking `CHOSEN_GRANT_OPTIONS_UNAVAILABLE` (Spell, Feat and Equipment grants read `catalog`). Both read the complete pool, which the snapshot readers supply, so no count fact was added. A count fact would only be needed if S6 evaluated from a partial or paginated pool.
+- **Known differences, not in the corpus.**
+  - Convex throws past 500 roots per kind; the snapshot readers have no bound.
+  - A Campaign-shared child whose parent share is gone throws in Convex and is excluded from the snapshot (S2).
+  - The feature scan visits roots in index order in Convex and in id order in snapshots, so several standalone features from different roots may reach `registry.features` in another order.
+  - A scope that is still rebuilding serves the previous build's objects; commit stays authoritative.
+
 ## Budgets (estimates to verify in the slices)
 
 | Action | Convex I/O | Network |
@@ -122,7 +139,7 @@
   - no edge cache on private paths, and the token only in the header;
   - a separate secret, CORS limited to app origins, and exact Campaign-share rules;
   - the accepted exposure is at most one token lifetime.
-- **Pool-size rules.** Verify that no readiness rule depends on candidate pool size. If one does, carry an explicit count fact.
+- **Pool-size rules.** Checked in S5: two rules depend on whether a pool is empty, and both read complete snapshot pools, so no count fact is carried. Revisit if S6 evaluates from a partial pool.
 - **Unmeasured:**
   - browser bundle size and evaluation CPU;
   - System and vocabulary document size;

@@ -181,6 +181,17 @@ the Spell catalogue decision. Its typed readers supply authorized current public
 the Convex adapter retains access checks, bounded catalogue reads and publication identities.
 The current loader still returns an assembled context, so it is not a raw-document transport contract.
 
+`assembleCharacterBuilderContext` (same module) builds the Builder catalogue over a prepared rule
+context in `selectors` or `resolution` scope: which pools to read, label order, subclass and
+Equipment parent checks, Equipment variant resolution, and Feat and Spell records. Its
+`CharacterBuilderCatalogueReaders` return each pool's picker facts in the content snapshot index
+shape (ADR 0036), with a subrace already joined to its base Race; vocabulary labels resolve through
+the System in `createCharacterBuilderCatalog`. Two reader sets implement it: the Convex
+`characters/builderContext` adapter, and `character/snapshotReaders` (`createSnapshotReaders`) over
+the parsed snapshot objects of one Character's manifest, where a `SOURCE` root shadows a Campaign
+share of the same root. `character/builderPayload` turns either context into the Builder payload.
+`characters/builderSnapshotParity.test.ts` proves both reader sets produce the same payload.
+
 The private `liveSessionCharacterRules` contract now supplies stored Character/Sheet/System/Campaign
 inputs, authorized source indexes and paged publication DTOs to Worker `nativeCharacterRules`.
 Convex `liveSessions/characterRulesCapture` requires the authenticated GM, current DO epoch, open
