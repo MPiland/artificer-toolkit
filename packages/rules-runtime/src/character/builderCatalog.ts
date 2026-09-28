@@ -9,14 +9,54 @@ import {
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
-import type {
-  ClassAuthored,
-  BackgroundAuthored,
-  SpellAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { ClassAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { ModifierGrantAuthored } from '@artificer-toolkit/shared/authored'
 import type { ResolvedRace, ResolvedEquipment } from '@artificer-toolkit/shared/subjects/compilers'
+import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+
+type RaceIndexEntry = ContentSnapshotIndexEntry<'RACE'>
+type BaseRaceIndexEntry = Extract<RaceIndexEntry, { category: 'BASE' }>
+
+/**
+ * A Race's picker facts after parent resolution: a subrace carries its base Race's size and speeds,
+ * and the base Race's Ability Score Increase facts before its own, as `resolveRaceAuthored` merges
+ * features parent first.
+ */
+export type CharacterBuilderRaceCatalogSource =
+  | BaseRaceIndexEntry
+  | (Extract<RaceIndexEntry, { category: 'SUBRACE' }> & Pick<BaseRaceIndexEntry, 'size' | 'speeds'>)
+/** Class and Background picker facts are exactly their snapshot index entries. */
+export type CharacterBuilderClassCatalogSource = ContentSnapshotIndexEntry<'CLASS'>
+export type CharacterBuilderBackgroundCatalogSource = ContentSnapshotIndexEntry<'BACKGROUND'>
+
+export function toCharacterBuilderRaceCatalogSource(
+  race: ResolvedRace
+): CharacterBuilderRaceCatalogSource {
+  const abilityScoreIncreaseFacts = getRaceAbilityScoreIncreaseFacts(race)
+  const { id, label, description, size, speeds } = race
+  return race.category === RACE_CATEGORY_CODE.BASE
+    ? {
+        id,
+        label,
+        category: race.category,
+        description,
+        selectionMode: race.selectionMode,
+        size,
+        speeds,
+        abilityScoreIncreaseFacts
+      }
+    : {
+        id,
+        label,
+        category: race.category,
+        parentRaceId: race.parentRaceId,
+        description,
+        size,
+        speeds,
+        abilityScoreIncreaseFacts
+      }
+}
 
 export type CharacterBuilderRaceCatalogRecord = {
   id: string
@@ -138,9 +178,9 @@ export function createCharacterBuilderCatalog({
   spells
 }: {
   system: SystemAuthoredDto | null
-  races: readonly ResolvedRace[]
-  classes: readonly ClassAuthored[]
-  backgrounds: readonly BackgroundAuthored[]
+  races: readonly CharacterBuilderRaceCatalogSource[]
+  classes: readonly CharacterBuilderClassCatalogSource[]
+  backgrounds: readonly CharacterBuilderBackgroundCatalogSource[]
   equipment: readonly (ResolvedEquipment | CharacterBuilderEquipmentCatalogRecord)[]
   feats: readonly CharacterBuilderFeatCatalogRecord[]
   spells: CharacterBuilderSpellCatalogRecord[]
@@ -166,12 +206,12 @@ export function createCharacterBuilderCatalog({
             )?.label
             return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
           }),
-          abilityScoreIncreaseFacts: getRaceAbilityScoreIncreaseFacts(race)
+          abilityScoreIncreaseFacts: race.abilityScoreIncreaseFacts
         }
       ]
     }),
     classes: classes.flatMap((classRecord) => {
-      const proficiencies = 'proficiencies' in classRecord ? (classRecord.proficiencies ?? []) : []
+      const proficiencies = classRecord.proficiencies ?? []
       return [
         {
           id: classRecord.id,
@@ -189,7 +229,7 @@ export function createCharacterBuilderCatalog({
           hitpoint: classRecord.category === CLASS_CATEGORY.BASE ? classRecord.hitpoint : undefined,
           requirementGroups:
             classRecord.category === CLASS_CATEGORY.BASE
-              ? classRecord.multiclass.requirementGroups
+              ? classRecord.requirementGroups
               : undefined,
           savingThrowLabels: proficiencies
             .flatMap((proficiency) =>
@@ -218,7 +258,7 @@ export function createCharacterBuilderCatalog({
         system?.languages ?? [],
         equipmentById
       )
-      const featureLabels = (background.features ?? []).map((feature) => feature.label)
+      const { featureLabels } = background
       return [
         {
           id: background.id,
@@ -238,9 +278,7 @@ export function createCharacterBuilderCatalog({
   }
 }
 
-type ClassProficiency = NonNullable<
-  Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.BASE }>['proficiencies']
->[number]
+type ClassProficiency = NonNullable<CharacterBuilderClassCatalogSource['proficiencies']>[number]
 
 export function getRaceAbilityScoreIncreaseFacts(
   race: Pick<ResolvedRace, 'features'> | undefined
@@ -449,17 +487,12 @@ function getClassProficiencyGroups(
 }
 
 function getBackgroundGrantFacts(
-  background: BackgroundAuthored | undefined,
+  background: CharacterBuilderBackgroundCatalogSource,
   skills: Array<{ id: string; label: string }>,
   languages: Array<{ id: string; label: string }>,
   equipmentById: Map<string, { category: string | null; label: string }>
 ): Array<{ label: string; value: string }> {
-  return getClassProficiencyGroups(
-    background?.proficiencies ?? [],
-    skills,
-    languages,
-    equipmentById
-  )
+  return getClassProficiencyGroups(background.proficiencies ?? [], skills, languages, equipmentById)
     .filter((group) => group.entries.length > 0)
     .map((group) => ({ label: group.label, value: group.entries.join(', ') }))
 }

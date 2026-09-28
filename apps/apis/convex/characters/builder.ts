@@ -12,13 +12,8 @@ import {
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { characterDraftLookupInputSchema } from '@artificer-toolkit/schema/api/characterDrafts'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { resolveFeatureOptionEligibility } from '@artificer-toolkit/rules-runtime/character/builderEligibility'
-import { resolveCharacterBuilder } from '@artificer-toolkit/rules-runtime/character/builderResolution'
-import {
-  stripCharacterBuilderResolution,
-  toCharacterBuilderPayload
-} from '@artificer-toolkit/rules-runtime/character/characterBuilderView'
-import { evaluateCharacterRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
+import { resolveCharacterBuilderPayload } from '@artificer-toolkit/rules-runtime/character/builderPayload'
+import { stripCharacterBuilderResolution } from '@artificer-toolkit/rules-runtime/character/characterBuilderView'
 import { createCharacterBuilderChangePreview } from '@artificer-toolkit/rules-runtime/character/builderPresentation'
 import { presentCampaignCharacterText } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
@@ -51,37 +46,9 @@ async function resolvePayload(
     state: input.previousCharacter?.state ?? createEmptyCharacterAuthored(input.character).state
   }
   const context = await loadCharacterBuilderContext(ctx, character, character.userId)
-  const resolution = await resolveCharacterBuilder({
-    character,
-    mode: input.mode,
-    context,
-    previousCharacter: input.previousCharacter,
-    resolveFeatureOptions: (options) =>
-      resolveFeatureOptionEligibility({
-        ...options,
-        evaluate: async (character, eligibilityFacets) =>
-          evaluateCharacterRules({
-            character,
-            context,
-            eligibilityFacets,
-            spellDocumentsById: context.spellDocumentsById
-          })
-      })
-  })
-  const payload = toCharacterBuilderPayload(
-    character,
-    resolution,
-    input.builderIntent,
-    input.baseActiveUpdatedAt,
-    input.publicId
-  )
-  return characterBuilderPayloadDtoSchema.parse({
-    ...payload,
-    ...presentCampaignCharacterText(
-      { resolution: payload.resolution, references: payload.references, view: payload.view },
-      context.sourceAccess.campaign?.contentMaturity ?? null,
-      'CHARACTER_OWNER'
-    )
+  return resolveCharacterBuilderPayload(character, context, {
+    ...input,
+    contentMaturity: context.sourceAccess.campaign?.contentMaturity ?? null
   })
 }
 

@@ -1,14 +1,17 @@
 import {
-  createCharacterBuilderCatalog,
-  type CharacterBuilderEquipmentCatalogRecord,
+  toCharacterBuilderRaceCatalogSource,
   type CharacterBuilderFeatCatalogRecord,
-  toCharacterBuilderSpellCatalogRecord
+  type CharacterBuilderRaceCatalogSource
 } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
+import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterBuilderContext } from '@artificer-toolkit/rules-runtime/character/builderTypes'
-import { prepareActiveCharacterBuilderContext } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
+import {
+  assembleCharacterBuilderContext,
+  prepareActiveCharacterBuilderContext
+} from '@artificer-toolkit/rules-runtime/character/contextPreparation'
+import { toContentSnapshotIndexEntry } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type {
-  BackgroundAuthored,
   CharacterAuthored,
   ClassAuthored,
   EquipmentAuthored,
@@ -16,12 +19,7 @@ import type {
   RaceAuthored,
   VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
-import {
-  resolveEquipmentAuthored,
-  resolveRaceAuthored,
-  type ResolvedEquipment,
-  type ResolvedRace
-} from '@artificer-toolkit/shared/subjects/compilers'
+import { resolveRaceAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readCampaignSharedRootPublication } from '../campaigns/contentAccess'
@@ -81,61 +79,8 @@ export async function loadCharacterBuilderContext(
     sources.campaign !== null &&
     (await readCampaignSharedRootPublication(ctx, sources.campaign, root.subjectKind, root.id)) !==
       null
-  const loadsCurrentSelections = catalogScope !== 'selectors'
-  const races: ResolvedRace[] = loadsCurrentSelections ? [...context.registry.races] : []
-  const classes = new Map<string, ClassAuthored>(
-    loadsCurrentSelections ? context.registry.classes.map((record) => [record.id, record]) : []
-  )
-  const backgrounds: BackgroundAuthored[] = loadsCurrentSelections
-    ? [...context.registry.backgrounds]
-    : []
-  const equipmentDocuments = new Map<string, EquipmentAuthored>()
-  let equipmentRecords: CharacterBuilderEquipmentCatalogRecord[] | null = null
-  let featRecords: CharacterBuilderFeatCatalogRecord[] = []
-  for (const kind of ['RACE', 'CLASS', 'BACKGROUND', 'EQUIPMENT', 'FEAT'] as const) {
-    if (catalogScope !== 'selectors') {
-      if (kind === 'RACE' || kind === 'BACKGROUND') continue
-      if (
-        kind === 'CLASS' &&
-        !character.intent.classes.some((selection) =>
-          context.registry.classes.some(
-            (record) =>
-              record.id === selection.classId &&
-              record.category === 'BASE' &&
-              record.subclassSelectionLevel !== undefined &&
-              selection.classLevel >= record.subclassSelectionLevel
-          )
-        )
-      )
-        continue
-    }
-    const roots = await readCharacterSourceRoots(ctx, character.systemId, sources, kind)
-    roots.sort(
-      (left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id)
-    )
-    if (kind === 'EQUIPMENT') {
-      equipmentRecords = await readProjectedEquipmentCatalogue(
-        ctx,
-        roots,
-        character.systemId,
-        userId,
-        sources,
-        context.sourceIdentities
-      )
-      if (equipmentRecords) continue
-    }
-    if (kind === 'FEAT') {
-      featRecords = await readCharacterFeatCatalogue(
-        ctx,
-        roots,
-        character.systemId,
-        userId,
-        sources,
-        context.sourceIdentities
-      )
-      continue
-    }
-    const publishedRoots = await Promise.all(
+  const readPublished = (roots: readonly Doc<'authoredRoots'>[]) =>
+    Promise.all(
       roots.map(async (root) => ({
         root,
         published: context.publications.has(root.id)
@@ -150,11 +95,16 @@ export async function loadCharacterBuilderContext(
             )
       }))
     )
-    for (const { root, published } of publishedRoots) {
-      if (!published) continue
-      // Authored charge refinements narrow beyond the validated DTO's inferred type.
-      switch (published.subjectKind) {
-        case 'RACE': {
+  const readRoots = (kind: Doc<'authoredRoots'>['subjectKind']) =>
+    readCharacterSourceRoots(ctx, character.systemId, sources, kind)
+  return assembleCharacterBuilderContext(
+    character,
+    context,
+    {
+      readRaces: async () => {
+        const races: CharacterBuilderRaceCatalogSource[] = []
+        for (const { published } of await readPublished(await readRoots('RACE'))) {
+          if (published?.subjectKind !== 'RACE') continue
           const parent =
             published.document.category === 'SUBRACE'
               ? await requireRaceParent(
@@ -167,21 +117,40 @@ export async function loadCharacterBuilderContext(
                   (root) => recordCharacterSourceIdentity(context.sourceIdentities, root)
                 )
               : undefined
+          // Authored charge refinements narrow beyond the validated DTO's inferred type.
           races.push(
-            resolveRaceAuthored(
-              published.document as RaceAuthored,
-              (id) => (id === parent?.id ? parent : undefined) as RaceAuthored | undefined
+            toCharacterBuilderRaceCatalogSource(
+              resolveRaceAuthored(
+                published.document as RaceAuthored,
+                (id) => (id === parent?.id ? parent : undefined) as RaceAuthored | undefined
+              )
             )
           )
-          break
         }
-        case 'CLASS':
-          classes.set(root.id, published.document as ClassAuthored)
-          break
-        case 'BACKGROUND':
-          backgrounds.push(published.document as BackgroundAuthored)
-          break
-        case 'EQUIPMENT':
+        return races
+      },
+      readClasses: async () =>
+        (await readPublished(await readRoots('CLASS'))).flatMap(({ published }) =>
+          published?.subjectKind === 'CLASS' ? [toContentSnapshotIndexEntry(published)] : []
+        ),
+      readBackgrounds: async () =>
+        (await readPublished(await readRoots('BACKGROUND'))).flatMap(({ published }) =>
+          published?.subjectKind === 'BACKGROUND' ? [toContentSnapshotIndexEntry(published)] : []
+        ),
+      readEquipment: async () => {
+        const roots = await readRoots('EQUIPMENT')
+        const entries = await readProjectedEquipmentCatalogue(
+          ctx,
+          roots,
+          character.systemId,
+          userId,
+          sources,
+          context.sourceIdentities
+        )
+        if (entries) return { entries }
+        const documents: EquipmentAuthored[] = []
+        for (const { root, published } of await readPublished(roots)) {
+          if (published?.subjectKind !== 'EQUIPMENT') continue
           if (
             root.parentEquipmentId !==
             (published.document.category === 'VARIANT'
@@ -189,49 +158,22 @@ export async function loadCharacterBuilderContext(
               : null)
           )
             throw new Error('Stored Equipment parent metadata mismatch.')
-          equipmentDocuments.set(root.id, published.document as EquipmentAuthored)
-          break
-      }
-    }
-  }
-  for (const record of classes.values()) {
-    if (record.category === 'SUBCLASS' && classes.get(record.parentClassId)?.category !== 'BASE')
-      throw new Error('A readable base class in the same System is required.')
-  }
-  // The complete authorized set already contains every readable parent. Resolve each once,
-  // without rereading ancestors or compiling mechanics the selector never consumes.
-  const resolvedEquipment = new Map<string, ResolvedEquipment>()
-  const resolving = new Set<string>()
-  function resolveEquipment(document: EquipmentAuthored): ResolvedEquipment {
-    const existing = resolvedEquipment.get(document.id)
-    if (existing) return existing
-    if (resolving.has(document.id)) throw new Error('Equipment variant cycle detected.')
-    resolving.add(document.id)
-    const effective = resolveEquipmentAuthored(document, (parentId) => {
-      const parent = equipmentDocuments.get(parentId)
-      if (!parent) throw new Error('Readable parent Equipment in the same System is required.')
-      return resolveEquipment(parent)
-    })
-    resolving.delete(document.id)
-    resolvedEquipment.set(document.id, effective)
-    return effective
-  }
-  return {
-    ...context,
-    catalog: createCharacterBuilderCatalog({
-      system: context.registry.system,
-      races,
-      classes: [...classes.values()],
-      backgrounds,
-      equipment: equipmentRecords ?? [...equipmentDocuments.values()].map(resolveEquipment),
-      feats: featRecords,
-      spells: [...context.currentSpellDocumentsById.values()]
-        .sort(
-          (left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id)
+          documents.push(published.document as EquipmentAuthored)
+        }
+        return { documents }
+      },
+      readFeats: async () =>
+        readCharacterFeatCatalogue(
+          ctx,
+          await readRoots('FEAT'),
+          character.systemId,
+          userId,
+          sources,
+          context.sourceIdentities
         )
-        .map(toCharacterBuilderSpellCatalogRecord)
-    })
-  }
+    },
+    catalogScope
+  )
 }
 
 async function readProjectedEquipmentCatalogue(
@@ -241,7 +183,7 @@ async function readProjectedEquipmentCatalogue(
   userId: string,
   sources: Awaited<ReturnType<typeof readCharacterSources>>,
   sourceIdentities: Awaited<ReturnType<typeof loadCharacterRuleContext>>['sourceIdentities']
-): Promise<CharacterBuilderEquipmentCatalogRecord[] | null> {
+): Promise<ContentSnapshotIndexEntry<'EQUIPMENT'>[] | null> {
   const sourceById = new Map(sources.sources.map((source) => [source.id, source]))
   const readableRoots: Doc<'authoredRoots'>[] = []
   for (const root of roots) {
@@ -300,31 +242,14 @@ async function readProjectedEquipmentCatalogue(
     recordCharacterSourceIdentity(sourceIdentities, root)
   }
   if (hasMissingProjection) return null
-
-  const resolving = new Set<string>()
-  const resolved = new Set<string>()
-  function verifyParentGraph(id: string) {
-    if (resolved.has(id)) return
-    if (resolving.has(id)) throw new Error('Equipment variant cycle detected.')
-    const builder = factsById.get(id)
-    if (!builder) throw new Error('Readable parent Equipment in the same System is required.')
-    resolving.add(id)
-    if (builder.parentEquipmentId !== null) {
-      if (!factsById.has(builder.parentEquipmentId))
-        throw new Error('Readable parent Equipment in the same System is required.')
-      verifyParentGraph(builder.parentEquipmentId)
-    }
-    resolving.delete(id)
-    resolved.add(id)
-  }
-  for (const root of readableRoots) verifyParentGraph(root.id)
-
+  // Parent graph verification is shared with the snapshot path in `assembleCharacterBuilderContext`.
   return readableRoots.map((root) => {
     const builder = factsById.get(root.id)
     if (!builder) throw new Error('Equipment builder projection is missing.')
     return {
       id: root.id,
       label: root.label,
+      parentEquipmentId: builder.parentEquipmentId,
       category: builder.category,
       isContainer: builder.isContainer,
       ...(builder.maxStack === undefined ? {} : { maxStack: builder.maxStack }),

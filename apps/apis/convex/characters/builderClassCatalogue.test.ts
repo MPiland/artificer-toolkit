@@ -2,11 +2,13 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createCharacterBuilderCatalog } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
+import { toContentSnapshotIndexEntry } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { championMartialArchetype } from '@artificer-toolkit/source-data/srd/classes/champion.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
 import { deleteAuthoredVersion, insertAuthoredVersion } from '../content/documents'
+import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import * as relationships from '../content/classRelationships'
 import { loadCharacterBuilderContext } from './builderContext'
 
@@ -83,7 +85,9 @@ it.each(['valid', 'missing parent', 'non-base parent'] as const)(
       createCharacterBuilderCatalog({
         system: srdSystemRecord,
         races: [],
-        classes: [child, base],
+        classes: [child, base].map((document) =>
+          toContentSnapshotIndexEntry(parsePublicationDocument('CLASS', document))
+        ),
         backgrounds: [],
         equipment: [],
         feats: [],
