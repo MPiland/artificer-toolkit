@@ -63,7 +63,7 @@ Campaigns will support a campaign-level **Feature** concept that applies tempora
 ## Node-based Campaign management and authoring (user-requested 2026-09-27)
 
 The user wants two React Flow features. Neither starts while ADR 0035 is in flight. Scheduling, decided 2026-09-27:
-- **Advanced authoring node editor: before launch**, right after the Phase 8.2 exit. Authoring is heavy, and a hard Advanced path could put off newer players who want to go beyond the Guided flow.
+- **Advanced authoring node editor: before launch, but only after Phases 8.2 and 8.3 are both done** (user, 2026-09-27: both phases are launch-critical and come first). Authoring is heavy, and a hard Advanced path could put off newer players who want to go beyond the Guided flow.
 - **Campaign node map: soon after launch.** A competitor running a Kickstarter has a similar feature, so it must not drift far.
   - The Campaign entry kinds it needs (locations, NPCs, factions and their relationships) should be designed before launch, together with the Q18 per-Campaign entries limit, so the board can ship quickly after launch.
 
