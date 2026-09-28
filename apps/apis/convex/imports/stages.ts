@@ -14,7 +14,7 @@ import { uuidSchema } from '@artificer-toolkit/schema/api/campaignContractSchema
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { parseImportJob, requireCurrentImportOwner } from './jobs'
 

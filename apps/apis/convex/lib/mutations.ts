@@ -10,6 +10,7 @@ import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
 import { memoizeMutationReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 import { markContentSnapshotScope, type ContentSnapshotScopeRef } from '../contentSnapshots/marking'
+import { withDomainRejections } from './domainRejectionTransport'
 
 type SceneVisionScope = Pick<SceneVisionRevision, 'scope' | 'id'>
 
@@ -305,16 +306,21 @@ registerScope('encounterRuleOccurrences', (ctx, document) =>
 )
 
 export const withSceneVisionTracking = triggers.wrapDB
-export const mutation = customMutation(rawMutation, customCtx(withSceneVisionTracking))
-export const internalMutation = customMutation(
-  rawInternalMutation,
-  customCtx(withSceneVisionTracking)
+export const mutation = withDomainRejections(
+  customMutation(rawMutation, customCtx(withSceneVisionTracking))
+)
+export const internalMutation = withDomainRejections(
+  customMutation(rawInternalMutation, customCtx(withSceneVisionTracking))
 )
 /**
  * An internal mutation whose identical reads are served once per transaction. The memo sits
  * beneath the triggers, so their writes invalidate it too (`memoizeMutationReads`).
  */
-export const memoizedInternalMutation = customMutation(
-  rawInternalMutation,
-  customCtx((ctx) => withSceneVisionTracking({ ...ctx, db: memoizeMutationReads(ctx.db) }))
+export const memoizedInternalMutation = withDomainRejections(
+  customMutation(
+    rawInternalMutation,
+    customCtx((ctx) => withSceneVisionTracking({ ...ctx, db: memoizeMutationReads(ctx.db) }))
+  )
 )
+/** An internal mutation that applies change tracking to its own context (`withSceneVisionTracking`). */
+export const untrackedInternalMutation = withDomainRejections(rawInternalMutation)

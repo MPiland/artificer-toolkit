@@ -9,7 +9,7 @@ import {
   socialStoredBlockSchema,
   socialStoredProfileSchema
 } from '@artificer-toolkit/schema/projections/socialPersistence'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import schema from '../schema'
 import { presentSocialProfile, requireSocialViewer } from './visibility'
 

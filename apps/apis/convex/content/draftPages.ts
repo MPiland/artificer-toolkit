@@ -9,7 +9,7 @@ import {
   type AuthoredDraftListPage,
   type AuthoredDraftResult
 } from '@artificer-toolkit/schema/api/authoredDrafts'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { isImportRowVisible } from '../imports/visibility'
 import { readDraft } from './documents'

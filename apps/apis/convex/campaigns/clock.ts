@@ -29,7 +29,8 @@ import {
   latestBoundaryOccurrences,
   splitAbsoluteMinute
 } from '@artificer-toolkit/rules-runtime/campaignClock'
-import { query, type MutationCtx } from '../_generated/server'
+import type { MutationCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'

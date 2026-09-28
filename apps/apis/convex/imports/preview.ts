@@ -36,7 +36,8 @@ import {
   type ImportStoredPreviewDescriptor
 } from '@artificer-toolkit/schema/projections/importJobPersistence'
 import type { ActionCtx } from '../_generated/server'
-import { action, internalQuery } from '../_generated/server'
+import { action } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import type { Id } from '../_generated/dataModel'
 import { requireIdentity } from '../lib/identity'
 import {

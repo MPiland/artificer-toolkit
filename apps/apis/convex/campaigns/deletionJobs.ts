@@ -1,6 +1,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
-import { internalAction, internalQuery } from '../_generated/server'
+import { internalAction } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'

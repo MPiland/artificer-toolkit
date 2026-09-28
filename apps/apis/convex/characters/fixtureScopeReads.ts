@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 
 // Exact completed-cohort recovery; returns no data and performs no cleanup writes.

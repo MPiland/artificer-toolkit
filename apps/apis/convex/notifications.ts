@@ -6,7 +6,7 @@ import {
   notificationPreferencesDtoSchema,
   updateNotificationPreferencesInputSchema
 } from '@artificer-toolkit/schema/api/notifications'
-import { query } from './_generated/server'
+import { query } from './lib/queries'
 import { mutation } from './lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from './lib/identity'
 import { retainedFeed } from './notifications/feed'

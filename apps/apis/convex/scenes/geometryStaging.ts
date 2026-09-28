@@ -22,10 +22,14 @@ import {
   type SceneStoredGeometrySave
 } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { internalMutation, withSceneVisionTracking } from '../lib/mutations'
+import {
+  internalMutation,
+  untrackedInternalMutation,
+  withSceneVisionTracking
+} from '../lib/mutations'
 import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
 // eslint-disable-next-line no-restricted-imports -- Preserve lazy return metadata and apply the same Scene vision tracking in the handler.
-import { internalMutation as rawInternalMutation, type MutationCtx } from '../_generated/server'
+import type { MutationCtx } from '../_generated/server'
 import { parseFogSave } from './fogDocuments'
 import {
   assertGeometryReceiving,
@@ -61,7 +65,7 @@ function active(campaign: { status: string }) {
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
 }
 
-export const begin = rawInternalMutation({
+export const begin = untrackedInternalMutation({
   args: zodToConvexFields(sceneGeometryExecuteInputSchema.shape),
   get returns() {
     return zodToConvex(sceneGeometryBeginResultSchema)

@@ -16,7 +16,8 @@ import {
 import type { AuthIdentityDto } from '@artificer-toolkit/schema/api/authIdentity'
 import { authoredSubjectKindSchema } from '@artificer-toolkit/schema/projections/identity'
 import { CHARACTER_DRAFT_PAYLOAD_CHUNK_MAX_BYTES } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { action, internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
+import { action, type MutationCtx, type QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 
 const identityReference = makeFunctionReference<'query', {}, AuthIdentityDto>('account:identity')

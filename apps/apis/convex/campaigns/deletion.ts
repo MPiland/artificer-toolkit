@@ -6,7 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/campaignCore'
 import { internal } from '../_generated/api'
 import { mutation } from '../lib/mutations'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import {
   campaignDeletionStatusInputSchema,

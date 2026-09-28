@@ -6,7 +6,8 @@ import {
   type ContentSnapshotManifestDto,
   type ContentSnapshotTokenGrant
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { internalQuery, query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery, query } from '../lib/queries'
 import { resolveCharacterId } from '../characters/documents'
 import { readCharacterSources, readSystemCharacterSources } from '../characters/sourceReads'
 import { loadCharacterState } from '../characters/stateDocuments'

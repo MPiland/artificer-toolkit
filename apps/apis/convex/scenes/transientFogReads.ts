@@ -5,7 +5,7 @@ import {
   sceneFogLayersPageInputSchema,
   sceneFogLayersPageSchema
 } from '@artificer-toolkit/schema/api/sceneFog'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { readFogChunks, readFogLayers } from './fogReadDocuments'
 
 export const layers = internalQuery({

@@ -6,7 +6,7 @@ import {
   sceneGeometryCommandChunksPageSchema,
   type SceneGeometryPage
 } from '@artificer-toolkit/schema/api/sceneGeometry'
-import { internalQuery, query } from '../_generated/server'
+import { internalQuery, query } from '../lib/queries'
 import { readLiveScene } from './liveDocuments'
 import { readCurrentEntities } from './currentEntities'
 import { parseGeometryCommand, parseGeometrySave } from './geometryDocuments'

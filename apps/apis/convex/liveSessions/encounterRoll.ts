@@ -5,7 +5,7 @@ import {
   liveSessionEncounterRollDiceSchema,
   liveSessionEncounterRollInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence/commands'

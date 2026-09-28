@@ -11,7 +11,8 @@ import {
   notificationWorkflowKeySchema
 } from '@artificer-toolkit/schema/api/notifications'
 import { components, internal } from '../_generated/api'
-import { internalQuery, type MutationCtx } from '../_generated/server'
+import type { MutationCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { readAuthUser } from '../lib/authUserReads'
 import { retainedFeed } from './feed'

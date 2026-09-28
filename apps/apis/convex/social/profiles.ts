@@ -9,7 +9,8 @@ import {
   type SocialStoredProfile
 } from '@artificer-toolkit/schema/projections/socialPersistence'
 import { isAtLeast18 } from '@artificer-toolkit/shared/account/ageAttestation'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 

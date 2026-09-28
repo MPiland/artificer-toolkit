@@ -8,7 +8,8 @@ import {
   type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
 import { loadCharacterState } from '../characters/stateDocuments'

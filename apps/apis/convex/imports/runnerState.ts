@@ -14,7 +14,8 @@ import {
   type ImportStoredPreviewDescriptor
 } from '@artificer-toolkit/schema/projections/importJobPersistence'
 import type { Id } from '../_generated/dataModel'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { readCharacterRecord } from '../characters/documents'
 import { readSystem } from '../content/systemDocuments'
 import { parseImportJob, requireCurrentImportOwner } from './jobs'

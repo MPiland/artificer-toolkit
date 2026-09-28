@@ -8,7 +8,7 @@ import {
   markCampaignConversationReadInputSchema,
   type CampaignConversationDto
 } from '@artificer-toolkit/schema/api/campaignCommunication'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { readActiveCampaignMembers, requireCampaignAuthority } from './authority'

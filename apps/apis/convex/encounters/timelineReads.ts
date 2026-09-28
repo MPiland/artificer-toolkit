@@ -6,7 +6,7 @@ import {
   getEncounterTimelineInputDtoSchema,
   type EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readValidatedRunProjection } from '@artificer-toolkit/encounter-persistence/documents'

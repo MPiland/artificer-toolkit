@@ -16,7 +16,8 @@ import {
   type AuthoredCatalogueScope,
   type AuthoredCatalogueSummary
 } from '@artificer-toolkit/schema/api/authoredCatalogue'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import type { Doc } from '../_generated/dataModel'
 import { contentStream } from './streams'
 import { getAuthenticatedProfile } from '../lib/identity'

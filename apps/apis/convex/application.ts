@@ -1,6 +1,6 @@
 import { applicationFeatureFlagsDtoSchema } from '@artificer-toolkit/schema/api/applicationConfig'
 import { v } from 'convex/values'
-import { query } from './_generated/server'
+import { query } from './lib/queries'
 
 export function readApplicationFeatureFlags() {
   return applicationFeatureFlagsDtoSchema.parse({

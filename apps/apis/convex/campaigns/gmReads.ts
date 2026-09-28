@@ -8,7 +8,8 @@ import {
   type CampaignConditionDto
 } from '@artificer-toolkit/schema/api/campaignLiveState'
 import { getCharacterSheetAdjustmentSlotKey } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { readCampaignCharacterState, requireCampaignCharacterAuthority } from './characterState'
 

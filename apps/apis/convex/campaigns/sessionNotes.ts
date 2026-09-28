@@ -17,7 +17,8 @@ import {
   presentCampaignPlainText,
   presentCampaignRichText
 } from '@artificer-toolkit/shared/campaign/textPolicy'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
 import { readCampaignAuthorLabels, requireCampaignAuthorUsername } from './authorLabels'

@@ -20,7 +20,8 @@ import {
   projectCharacterRestForViewer,
   projectCharacterSheetForViewer
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from '../characters/sheetPreparation'

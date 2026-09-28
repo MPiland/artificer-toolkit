@@ -124,9 +124,16 @@ historical record and is not current persistence authority. Current rules/conten
 
 `packages/encounter-persistence` holds the Encounter code that reads and writes live Encounter state,
 so the Session room can later run the same code against its own store. It depends on
-`packages/schema`, `packages/shared` and `packages/rules-runtime`, plus two things from `convex`:
-the `IndexRange` type and the `ConvexError` domain-rejection transport. It has no Convex runtime
-database dependency.
+`packages/schema`, `packages/shared` and `packages/rules-runtime`, and on `convex` only for the
+`IndexRange` type; it has no Convex runtime dependency.
+
+- **Domain rejections.** `rejectDomain` throws the package's `EncounterDomainRejection`, carrying the
+  `{code, reason, message}` data of `DomainRejectionErrorData`. Every Convex query and mutation
+  builder is wrapped once (`lib/queries.ts`, `lib/mutations.ts`, through
+  `lib/domainRejectionTransport.ts`) to rethrow it as a `ConvexError` with the same data, so clients
+  see exactly the rejection they always did. Actions reach Encounter code only through those
+  functions. Convex modules import `query` and `internalQuery` from `lib/queries`, never from
+  `_generated/server`.
 
 - **Store.** `EncounterStore` (`store.ts`) is the subset of Convex's transaction database handle the
   Encounter code uses: `get`, `query().withIndex()` with `order`, `collect`, `take`, `first`, `unique`

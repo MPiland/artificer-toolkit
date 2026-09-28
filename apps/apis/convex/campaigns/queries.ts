@@ -9,7 +9,7 @@ import {
   campaignLookupInputSchema,
   type CampaignListPage
 } from '@artificer-toolkit/schema/api/campaignList'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import {
   presentCampaignSummary,

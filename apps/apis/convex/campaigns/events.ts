@@ -10,7 +10,7 @@ import {
   type CampaignEventPageTransportDto
 } from '@artificer-toolkit/schema/api/campaignEventTransport'
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignCharacterAuthority } from './characterState'
 import { presentInventoryAuditPayload } from './inventoryAuditPresentation'

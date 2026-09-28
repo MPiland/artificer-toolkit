@@ -8,7 +8,8 @@ import {
   type CampaignInventoryTransferVersionsDto,
   type InventoryOwnerRefDto
 } from '@artificer-toolkit/schema/api/campaignInventory'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import type { Doc } from '../_generated/dataModel'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'

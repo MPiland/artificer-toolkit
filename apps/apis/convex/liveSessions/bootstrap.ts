@@ -4,7 +4,7 @@ import {
   liveSessionBootstrapResponseSchema,
   type LiveSessionBootstrapResponse
 } from '@artificer-toolkit/schema/api/liveSessionState'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignLiveAuthority } from './authorityGuard'

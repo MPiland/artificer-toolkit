@@ -14,9 +14,11 @@ can run the same code against its own store ([ADR 0035](../../docs/adr/0035-room
 - `memoryEncounterStore` is the in-memory reference store with Convex's read and write semantics.
   The conformance suite in `apps/apis` checks Convex against it.
 
-The package imports two things from `convex`: the `IndexRange` type, which lets Convex's handle
-satisfy the interface without a cast, and `ConvexError`, the domain-rejection transport the room and
-the web already read. It uses no Convex database runtime.
+The package imports only the `IndexRange` type from `convex` (a dev dependency), which lets Convex's
+handle satisfy the interface without a cast; it has no Convex runtime dependency. `rejectDomain`
+throws the package's `EncounterDomainRejection`. Each host translates it once at its function
+boundary: Convex's query and mutation builders (`apps/apis/convex/lib/queries.ts` and
+`lib/mutations.ts`) rethrow it as a `ConvexError` with the same data.
 
 `transactionReads` memoizes identical reads and derivations within one transaction over any store.
 

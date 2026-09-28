@@ -9,7 +9,7 @@ import { sceneDefinitionEntityPageSchema } from '@artificer-toolkit/schema/api/s
 import { getCampaignLiveSceneInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { readLiveScene, parseLiveEntity } from './liveDocuments'
 
 function stored<T extends { _id: unknown; _creationTime: unknown }>(row: T) {

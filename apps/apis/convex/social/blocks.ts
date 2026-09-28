@@ -14,7 +14,8 @@ import {
   socialBlockStatusSchema,
   type SocialBlockStatus
 } from '@artificer-toolkit/schema/api/socialBlockLists'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { presentSocialProfile, requireSocialViewer } from './visibility'
 import { consumeSocialRateLimit } from '../lib/rateLimits'

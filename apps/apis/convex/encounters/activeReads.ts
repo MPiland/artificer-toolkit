@@ -9,7 +9,7 @@ import {
   type EncounterDecisionSettlementDto,
   type EncounterSessionStateDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import {

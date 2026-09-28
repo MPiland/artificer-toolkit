@@ -4,7 +4,7 @@ import {
   characterSheetExtraCatalogResponseDtoSchema,
   type CharacterSheetExtraCatalogResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { catalogueItem } from '../content/catalogueItem'
 import { readCharacterPublication, readCharacterSourceRoots, readCharacterSources } from './context'

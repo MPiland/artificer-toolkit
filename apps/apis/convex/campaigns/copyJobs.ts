@@ -16,7 +16,7 @@ import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections
 import { campaignStoredNotebookSectionSchema } from '@artificer-toolkit/schema/projections/campaignNotebookPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation, mutation } from '../lib/mutations'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import type { Doc } from '../_generated/dataModel'
 import { requireIdentity } from '../lib/identity'
 import { readAuthUser } from '../lib/authUserReads'

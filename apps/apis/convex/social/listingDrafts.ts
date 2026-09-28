@@ -14,7 +14,8 @@ import {
   type SocialListingPage
 } from '@artificer-toolkit/schema/api/socialListingList'
 import { socialStoredListingSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { syncAccountUsage } from '../lib/accountUsage'
 import {

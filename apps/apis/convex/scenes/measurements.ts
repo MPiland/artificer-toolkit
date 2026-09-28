@@ -3,7 +3,7 @@ import {
   sceneMeasurementsPageInputSchema,
   sceneMeasurementsPageSchema
 } from '@artificer-toolkit/schema/api/sceneLiveState'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { readLiveScene, parseLiveEntity } from './liveDocuments'
 
 export const list = query({

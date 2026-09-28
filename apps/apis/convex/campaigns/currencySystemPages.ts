@@ -4,7 +4,7 @@ import {
   campaignCurrencySystemPageSchema,
   type CampaignCurrencySystemPage
 } from '@artificer-toolkit/schema/api/campaignInventoryPages'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
 import { readCurrencySystem, presentCurrencySystem } from './currencySystemDocuments'

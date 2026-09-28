@@ -6,7 +6,7 @@ import {
   type CampaignPartyItemPage,
   type CampaignPartyCurrencyPage
 } from '@artificer-toolkit/schema/api/campaignInventoryPages'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
 import { requireCampaignVehicleCargoAccess } from './vehicleDocuments'

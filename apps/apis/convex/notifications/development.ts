@@ -1,7 +1,7 @@
 import { Resend } from '@convex-dev/resend'
 import { v } from 'convex/values'
 import { components } from '../_generated/api'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { cancelQueuedNotificationEmail } from './intents'

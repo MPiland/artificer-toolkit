@@ -22,7 +22,8 @@ import {
   listHitPointMaximumReductions,
   reduceHitPointMaximum
 } from '@artificer-toolkit/rules-runtime/character/hitPointMaximumReductions'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 

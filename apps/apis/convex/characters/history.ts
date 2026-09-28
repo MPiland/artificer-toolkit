@@ -3,7 +3,7 @@ import {
   characterHistoryInputSchema,
   characterHistoryPageSchema
 } from '@artificer-toolkit/schema/api/characterHistory'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { presentCampaignCharacterHistory } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
 import { requireIdentity } from '../lib/identity'
 import { readCharacterReceiptHistory, readCharacterRecord, resolveCharacterId } from './documents'

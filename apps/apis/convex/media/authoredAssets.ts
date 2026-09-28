@@ -16,7 +16,8 @@ import {
   type MediaProcessClaim
 } from '@artificer-toolkit/schema/api/mediaAssets'
 import type { Doc } from '../_generated/dataModel'
-import { query, internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { query, internalQuery } from '../lib/queries'
 import { mutation, internalMutation } from '../lib/mutations'
 import { getAuthenticatedProfile } from '../lib/identity'
 import { canReadAuthoredRoot } from '../content/documents'

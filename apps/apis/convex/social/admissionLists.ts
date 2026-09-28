@@ -16,7 +16,8 @@ import {
 } from '@artificer-toolkit/schema/api/socialAdmissionLists'
 import { socialApplicationStatusDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
 import { campaignInviteStatusDtoSchema } from '@artificer-toolkit/schema/api/campaignCore'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import schema from '../schema'
 import {
   findApplication,

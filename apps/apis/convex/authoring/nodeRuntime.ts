@@ -14,7 +14,7 @@ import {
   nodeRuntimeCompactResolveResponseDtoSchema,
   type NodeRuntimeCompactResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { createSystemSourceReader } from './systemSources'
 

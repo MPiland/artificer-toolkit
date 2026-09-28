@@ -3,19 +3,30 @@ import {
   type DomainRejectionErrorData,
   type DomainRejectionReasonDto
 } from '@artificer-toolkit/schema/api/domainRejections'
-import { ConvexError } from 'convex/values'
 
 type PlainReason = Exclude<DomainRejectionReasonDto, 'RULE_WARNINGS'>
 
 /**
- * Refuses an expected Encounter command. `ConvexError` data survives production error redaction
- * and nested `ctx.run*` calls, so the room and the web can show the user-safe message. Integrity
- * and unexpected failures keep throwing plain errors.
+ * An expected, user-safe refusal of an Encounter command. The package owns it so the code runs
+ * without the Convex runtime; each host turns it into its own transport once, at its function
+ * boundary (Convex: a `ConvexError` with this exact data, in `apps/apis/convex/lib`).
  */
+export class EncounterDomainRejection extends Error {
+  readonly data: DomainRejectionErrorData
+
+  constructor(data: DomainRejectionErrorData) {
+    // The message is the data's JSON, as a ConvexError's is, so logs and callers see one form.
+    super(JSON.stringify(data))
+    this.name = 'EncounterDomainRejection'
+    this.data = data
+  }
+}
+
+/** Refuses an expected Encounter command. Integrity and unexpected failures throw plain errors. */
 export function rejectDomain(reason: PlainReason, message?: string): never {
-  throw new ConvexError({
+  throw new EncounterDomainRejection({
     code: 'DOMAIN_REJECTED',
     reason,
     message: message ?? DOMAIN_REJECTION_MESSAGES[reason]
-  } satisfies DomainRejectionErrorData)
+  })
 }

@@ -5,7 +5,8 @@ import {
   type LiveSessionEncounterRouteInput,
   type LiveSessionEncounterRouteResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readNativeEncounterOccurrenceOwner } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import {

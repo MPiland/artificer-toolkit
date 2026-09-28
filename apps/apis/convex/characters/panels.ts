@@ -8,7 +8,7 @@ import { buildCharacterSheetPanel } from '@artificer-toolkit/rules-runtime/chara
 import { getCharacterSpellKnownEligibleIdsByClass } from '@artificer-toolkit/rules-runtime/character/characterSpellPreparationEligibility'
 import { presentCampaignCharacterText } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 

@@ -26,7 +26,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { readAuthUser } from '../lib/authUserReads'
 import { requireIdentity } from '../lib/identity'
 import { internalMutation, mutation } from '../lib/mutations'

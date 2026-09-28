@@ -10,7 +10,7 @@ import {
   type AvatarBindingDto,
   type MediaLibraryPage
 } from '@artificer-toolkit/schema/api/mediaAssets'
-import { query, internalQuery } from '../_generated/server'
+import { query, internalQuery } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile } from '../lib/identity'
 import { attachAvatar, ownedAsset } from './assets'

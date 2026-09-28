@@ -23,8 +23,5 @@
   "devDependencies": {
     "convex": "1.45.0",
     "typescript": "^7.0.2"
-  },
-  "peerDependencies": {
-    "convex": "1.45.0"
   }
 }

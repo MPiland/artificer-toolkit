@@ -12,7 +12,7 @@ import {
 import { importSourceDtoSchema, type ImportSourceDto } from '@artificer-toolkit/schema/api/imports'
 import type { ImportPreparationLookup } from '@artificer-toolkit/authoring/imports'
 import type { QueryCtx } from '../_generated/server'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { readCharacterDraftSummary } from '../characters/documents'
 import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
 import { canReadAuthoredRoot } from '../content/documents'

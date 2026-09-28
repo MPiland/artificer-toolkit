@@ -18,7 +18,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { mergedStream } from 'convex-helpers/server/stream'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import type { MutationCtx } from '../_generated/server'
 import { contentStream } from './streams'

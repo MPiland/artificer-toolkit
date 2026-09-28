@@ -18,7 +18,8 @@ import {
   projectPlayerEncounterProjection
 } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import type { Doc } from '../_generated/dataModel'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { internal } from '../_generated/api'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'

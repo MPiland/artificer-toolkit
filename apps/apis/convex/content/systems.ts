@@ -14,7 +14,8 @@ import {
 import { gameSystemRuleCapabilityDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
 import { findInstalledGameSystemRuleCapability } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { Doc } from '../_generated/dataModel'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { readSystem } from './systemDocuments'
 

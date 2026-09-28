@@ -12,7 +12,8 @@ import { liveSessionCharacterRulesScope } from '@artificer-toolkit/schema/api/li
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import type { Doc } from '../_generated/dataModel'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import {

@@ -17,7 +17,8 @@ import {
   type BindEncounterToPresentedSceneResultDto,
   type EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { action, internalQuery, query, type MutationCtx, type QueryCtx } from '../_generated/server'
+import { action, type MutationCtx, type QueryCtx } from '../_generated/server'
+import { internalQuery, query } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { requireIdentity } from '../lib/identity'

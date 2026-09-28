@@ -11,7 +11,7 @@ import {
   type AccountProfileDto,
   type AccountRollPreferencesDto
 } from '@artificer-toolkit/schema/api/account'
-import { query } from './_generated/server'
+import { query } from './lib/queries'
 import { components, internal } from './_generated/api'
 import { mutation } from './lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from './lib/identity'

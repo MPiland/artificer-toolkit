@@ -9,7 +9,7 @@ import {
   campaignInviteDtoSchema,
   type CampaignInviteDto
 } from '@artificer-toolkit/schema/api/campaignCore'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { presentInvitation, readInvitation, requireAdmissionPair } from './admissionDocuments'
 import { requireOwnedListing } from './listingDocuments'
 import { requireSocialViewer } from './visibility'

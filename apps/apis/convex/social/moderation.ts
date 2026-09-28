@@ -9,7 +9,7 @@ import {
   type SocialModerationQueuePage
 } from '@artificer-toolkit/schema/api/socialModeration'
 import { socialStoredReportSchema } from '@artificer-toolkit/schema/projections/socialModerationPersistence'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import {
   requireSocialModerator,

@@ -12,7 +12,7 @@ import {
   socialListingPageSchema,
   type SocialListingPage
 } from '@artificer-toolkit/schema/api/socialListingList'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { syncAccountUsage } from '../lib/accountUsage'
 import {

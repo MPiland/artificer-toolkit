@@ -5,7 +5,8 @@ import type { PaginationResult } from 'convex/server'
 import { convexToJson } from 'convex/values'
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import { components } from './_generated/api'
-import { internalQuery, type QueryCtx } from './_generated/server'
+import type { QueryCtx } from './_generated/server'
+import { internalQuery } from './lib/queries'
 import {
   developmentAccountDeletionInspectInputSchema,
   developmentAccountDeletionInspectResultSchema,

@@ -8,7 +8,7 @@ import {
   authoredDraftListPageSchema,
   authoredDraftDtoSchema
 } from '@artificer-toolkit/schema/api/authoredDrafts'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { internal } from '../_generated/api'
 

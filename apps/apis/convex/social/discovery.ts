@@ -11,7 +11,7 @@ import {
   socialStoredProfileSchema,
   socialStoredListingSchema
 } from '@artificer-toolkit/schema/projections/socialPersistence'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { readProfile } from './profiles'
 import { presentListing, requireOwnedCampaign } from './listingDocuments'
 import { hasSocialBlock, presentSocialProfile, requireSocialViewer } from './visibility'

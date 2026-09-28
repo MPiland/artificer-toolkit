@@ -7,7 +7,7 @@ import type { NodeRuntimeQueryRow } from '@artificer-toolkit/authoring/nodeRunti
 import type { QueryCtx } from '../_generated/server'
 import { readAuthoringSources } from './sources'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { contentStream } from './streams'
 import { isImportRowVisible } from '../imports/visibility'

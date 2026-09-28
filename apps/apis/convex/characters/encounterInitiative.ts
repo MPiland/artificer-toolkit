@@ -8,7 +8,8 @@ import {
   type CharacterEncounterInitiativeResult
 } from '@artificer-toolkit/schema/api/characterEncounterInitiative'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheetFacts } from './sheetFacts'
 

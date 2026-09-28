@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/socialHub'
 import { socialStoredApplicationSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
 import { socialApplicationPublicIdInputSchema } from '@artificer-toolkit/schema/api/socialAdmissionLists'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { readActiveCampaignMembers } from '../campaigns/authority'
 import { cancelNotification, enqueueNotification } from '../notifications/intents'

@@ -6,7 +6,8 @@ import {
   sceneRecipientHeaderInputSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { sceneLiveCollectionSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
-import { action, internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
+import { action, type MutationCtx, type QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internal } from '../_generated/api'
 import type { Doc } from '../_generated/dataModel'
 import { requireFixtureAccount } from '../lib/developmentFixtures'

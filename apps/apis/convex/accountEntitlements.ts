@@ -11,7 +11,7 @@ import {
   ENTITLEMENT_LIMITS,
   ENTITLEMENT_PRICING
 } from '@artificer-toolkit/shared/account/entitlements'
-import { query } from './_generated/server'
+import { query } from './lib/queries'
 import { internalMutation } from './lib/mutations'
 import { getAuthenticatedProfile } from './lib/identity'
 

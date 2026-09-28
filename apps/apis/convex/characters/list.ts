@@ -4,7 +4,7 @@ import {
   characterListPageSchema,
   type CharacterListPage
 } from '@artificer-toolkit/schema/api/characterList'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
 import { readCharacterDraftSummary, readCharacterRecord } from './documents'

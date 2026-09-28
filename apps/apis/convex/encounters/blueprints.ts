@@ -18,7 +18,7 @@ import {
   type EncounterBlueprintPage
 } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
 import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import type { Doc } from '../_generated/dataModel'
 import { requireIdentity } from '../lib/identity'

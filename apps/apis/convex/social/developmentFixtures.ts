@@ -1,6 +1,7 @@
 import { createFunctionHandle } from 'convex/server'
 import { v } from 'convex/values'
-import { internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { resetSocialRateLimit } from '../lib/rateLimits'

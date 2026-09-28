@@ -8,7 +8,8 @@ import {
   type LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { Doc } from '../_generated/dataModel'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
 import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'

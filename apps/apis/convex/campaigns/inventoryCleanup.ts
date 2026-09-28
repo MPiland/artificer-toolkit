@@ -11,7 +11,7 @@ import {
   campaignStoredPartyCurrencyGroupSchema,
   campaignStoredPartyCurrencySchema
 } from '@artificer-toolkit/schema/projections/campaignInventoryPersistence'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { internal } from '../_generated/api'
 import { requireIdentity } from '../lib/identity'

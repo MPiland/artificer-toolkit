@@ -2,7 +2,8 @@ import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { v } from 'convex/values'
 import type { Id } from '../_generated/dataModel'
 import { internal } from '../_generated/api'
-import { internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import {
   socialRetentionApplyInputSchema,

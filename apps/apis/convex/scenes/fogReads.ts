@@ -7,7 +7,7 @@ import {
   sceneFogCommandChunksInputSchema,
   sceneFogCommandChunksPageSchema
 } from '@artificer-toolkit/schema/api/sceneFog'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { parseFogSave, parseFogCommand, readFogChunk } from './fogDocuments'
 import { readFogChunks, readFogLayers } from './fogReadDocuments'
 import { readLiveScene } from './liveDocuments'

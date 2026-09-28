@@ -13,7 +13,8 @@ import {
   vttMapStoredAssetSchema,
   type VttMapProcessClaim
 } from '@artificer-toolkit/schema/projections/vttMapPersistence'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { mutation, internalMutation } from '../lib/mutations'
 import { internal } from '../_generated/api'
 import { requireIdentity } from '../lib/identity'

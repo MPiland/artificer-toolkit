@@ -16,7 +16,7 @@ import {
   campaignFileDeliverySourceSchema,
   campaignStoredAttachmentSchema
 } from '@artificer-toolkit/schema/projections/campaignFilePersistence'
-import { query, internalQuery } from '../_generated/server'
+import { query, internalQuery } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
 import { storedImage } from '../media/assets'

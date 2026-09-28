@@ -22,7 +22,8 @@ import type {
   CharacterSceneVisionResult
 } from '@artificer-toolkit/schema/api/characterMechanicsRead'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSceneVisionRevision } from './visionFreshness'

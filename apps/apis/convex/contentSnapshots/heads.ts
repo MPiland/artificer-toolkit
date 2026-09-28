@@ -14,7 +14,8 @@ import {
   type ContentSnapshotIndexSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { Doc } from '../_generated/dataModel'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import {
   hasCampaignContentParents,

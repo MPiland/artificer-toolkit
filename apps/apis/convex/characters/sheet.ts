@@ -6,7 +6,7 @@ import {
   characterSheetResponseDtoSchema,
   type CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 

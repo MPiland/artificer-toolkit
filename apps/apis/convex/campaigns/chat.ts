@@ -14,7 +14,8 @@ import {
   campaignStoredEntryHeaderSchema,
   campaignStoredEntryPayloadSchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
-import { query, type MutationCtx } from '../_generated/server'
+import type { MutationCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
 import { readCampaignAssignedCharacter } from './assignedCharacter'

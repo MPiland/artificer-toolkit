@@ -4,7 +4,7 @@ import {
   type CharacterSheetEquipmentOptionsResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 

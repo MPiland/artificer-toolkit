@@ -9,7 +9,8 @@ import {
 } from '@artificer-toolkit/schema/api/content'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import { readVisibleAuthoredRouteId } from './routeIds'
-import { query, type QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
+import { query } from '../lib/queries'
 import { getAuthenticatedProfile } from '../lib/identity'
 import {
   canReadAuthoredRoot,

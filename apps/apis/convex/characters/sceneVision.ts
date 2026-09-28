@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterMechanicsRead'
 import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { deriveCharacterSceneVision } from '@artificer-toolkit/rules-runtime/character/characterSceneVision'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readDefinitionRoot } from '../content/definitionStore'

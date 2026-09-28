@@ -15,7 +15,7 @@ import {
   type AuthoredPublicationResult
 } from '@artificer-toolkit/schema/api/authoredPublication'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { internalQuery } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { createSystemSourceReader } from '../authoring/systemSources'
 import { requireIdentity } from '../lib/identity'

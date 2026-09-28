@@ -10,7 +10,7 @@ import {
   collectTopLevelReferenceCandidates,
   stripPortableMetadata
 } from '@artificer-toolkit/shared/utils'
-import { query } from '../_generated/server'
+import { query } from '../lib/queries'
 import { isImportRowVisible } from '../imports/visibility'
 import { requireIdentity } from '../lib/identity'
 import { readAuthoredDetail } from './details'
