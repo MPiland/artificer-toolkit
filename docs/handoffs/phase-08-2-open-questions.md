@@ -33,6 +33,10 @@
 
 **Recommendation:** do (c) and (d) immediately, and (a) next, as the largest and most local win. Decide (b) after a short spike that measures a checkpointed room against today's design, because it re-opens an accepted ADR.
 
+**User constraint (2026-09-27).** The launched product stays on free hosting tiers until paying customers justify a paid plan. So free-tier limits are a launch requirement, not a pre-launch convenience.
+
+At about 0.3 GB of reads per combat session, a 1 GB monthly allowance covers only about three sessions a month across all users. That makes (b), or an equivalent cut in combat reads, necessary rather than optional. It also means the gates need hard read budgets derived from the free allowances, with a target number of active groups per month.
+
 **Answer:**
 
 ## Decisions to review
