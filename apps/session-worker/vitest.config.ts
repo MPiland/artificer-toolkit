@@ -9,6 +9,7 @@ export default defineConfig({
       main: './test/nativeWorker.ts',
       miniflare: {
         bindings: {
+          CONTENT_SNAPSHOT_TOKEN_SECRET: `${secret}-content`,
           CONVEX_SITE_URL: 'https://native.test',
           LIVE_SESSION_ALLOWED_ORIGINS: 'https://app.test',
           LIVE_SESSION_TICKET_SECRET: secret,

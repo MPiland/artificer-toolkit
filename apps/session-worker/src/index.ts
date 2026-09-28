@@ -7,6 +7,9 @@ import {
   liveSessionControlInputSchema
 } from '@artificer-toolkit/schema/api/liveSessions'
 
+import { CONTENT_SNAPSHOT_PATH_PREFIX } from '@artificer-toolkit/schema/api/contentSnapshots'
+
+import { serveContentSnapshot } from './contentSnapshots.js'
 import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
 import { NativeLiveSessionRoom as LiveSessionRoom } from './nativeLiveSessionRoom.js'
 import { verifyLiveSessionTicket } from './ticket.js'
@@ -51,6 +54,8 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
     if (request.method === 'GET' && url.pathname === '/health') {
       return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } })
     }
+    if (url.pathname.startsWith(CONTENT_SNAPSHOT_PATH_PREFIX))
+      return serveContentSnapshot(request, environment)
     if (request.method === 'POST' && url.pathname === LIVE_SESSION_CONTROL_PATH) {
       const secret = environment.LIVE_SESSION_WORKER_SECRET
       if (!secret || new TextEncoder().encode(secret).byteLength < 32)

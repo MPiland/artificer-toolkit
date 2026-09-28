@@ -18,6 +18,12 @@
       }
     ]
   },
+  "r2_buckets": [
+    {
+      "binding": "CONTENT_SNAPSHOTS",
+      "bucket_name": "artificer-content-snapshots"
+    }
+  ],
   "exports": {
     "LiveSessionRoom": {
       "type": "durable-object",
@@ -41,6 +47,12 @@
           }
         ]
       },
+      "r2_buckets": [
+        {
+          "binding": "CONTENT_SNAPSHOTS",
+          "bucket_name": "artificer-content-snapshots-staging"
+        }
+      ],
       "vars": {
         "LIVE_SESSION_ALLOWED_ORIGINS": "https://deploy-preview-76--cerulean-sorbet-c62c71.netlify.app"
       }

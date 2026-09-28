@@ -3,3 +3,4 @@ CONVEX_SITE_URL=http://127.0.0.1:3211
 LIVE_SESSION_TICKET_SECRET=<local-ticket-secret-with-at-least-32-bytes>
 LIVE_SESSION_WORKER_SECRET=<different-local-worker-secret-with-at-least-32-bytes>
 RULES_CONTINUATION_SECRET=<third-local-rules-secret-with-at-least-32-bytes-matching-convex>
+CONTENT_SNAPSHOT_TOKEN_SECRET=<fourth-local-content-secret-with-at-least-32-bytes-matching-convex>

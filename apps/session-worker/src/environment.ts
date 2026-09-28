@@ -1,4 +1,6 @@
 export interface SessionWorkerEnvironment {
+  CONTENT_SNAPSHOTS: R2Bucket
+  CONTENT_SNAPSHOT_TOKEN_SECRET: string
   LIVE_SESSION_ALLOWED_ORIGINS: string
   LIVE_SESSION_WORKER_SECRET: string
   CONVEX_SITE_URL: string
