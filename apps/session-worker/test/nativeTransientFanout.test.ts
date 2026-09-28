@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers'
 import { SignJWT } from 'jose'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
+  LIVE_SESSION_CONTROL_PATH,
   LIVE_SESSION_TICKET_AUDIENCE,
   LIVE_SESSION_TICKET_ISSUER,
   LIVE_SESSION_TICKET_VERSION,
@@ -23,7 +24,6 @@ import {
   type LiveSessionTransientCapture,
   type LiveSessionTransientCaptureInput
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
-import { NativeSocketTransientState } from '../src/nativeSocketTransientState.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const campaignId = '00000000-0000-4000-8000-000000000101'
@@ -35,11 +35,30 @@ const playerId = '00000000-0000-4000-8000-000000000105'
 const otherPlayerId = '00000000-0000-4000-8000-000000000106'
 const tokenId = '00000000-0000-4000-8000-000000000107'
 const sockets: WebSocket[] = []
+/** Every Convex route path the room requested through `installFetch`, in order. */
+const backendPaths: string[] = []
+const realNow = Date.now
 
 afterEach(() => {
   for (const socket of sockets.splice(0)) socket.close()
+  backendPaths.length = 0
   vi.restoreAllMocks()
 })
+
+/** Lets a test move the room's clock forward while real time keeps running. */
+function controlClock() {
+  let offset = 0
+  vi.spyOn(Date, 'now').mockImplementation(() => realNow() + offset)
+  return (milliseconds: number) => {
+    offset += milliseconds
+  }
+}
+
+function newRoom() {
+  return env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
+  )
+}
 
 function member(userId: string, role: 'OWNER' | 'PLAYER', epoch = '2026-09-12T00:00:00.000Z') {
   return { membershipEpoch: epoch, role, userId }
@@ -131,12 +150,14 @@ function installFetch(
     call: number,
     capture: LiveSessionTransientCapture,
     input: LiveSessionTransientCaptureInput
-  ) => LiveSessionTransientCapture | Response | Promise<LiveSessionTransientCapture | Response>
+  ) => LiveSessionTransientCapture | Response | Promise<LiveSessionTransientCapture | Response>,
+  entity: typeof token = token
 ) {
   let captures = 0
-  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = new Request(input, init)
     const pathname = new URL(request.url).pathname
+    backendPaths.push(pathname)
     if (pathname === '/live-sessions/bootstrap') {
       return Response.json({
         activationFingerprint,
@@ -179,7 +200,7 @@ function installFetch(
           next: null,
           page:
             body.request.collection === 'tokens'
-              ? [{ doorState: null, ordinal: 0, value: { collection: 'tokens', entity: token } }]
+              ? [{ doorState: null, ordinal: 0, value: { collection: 'tokens', entity } }]
               : [],
           version: 1
         })
@@ -264,6 +285,10 @@ async function noTransient(messages: readonly LiveSessionWebSocketServerMessageD
   expect(transient(messages)).toEqual([])
 }
 
+function captureCount() {
+  return backendPaths.filter((path) => path === '/live-sessions/capture').length
+}
+
 function tokenPreview(sequence: number, position = { x: 20, y: 10 }) {
   return {
     baselineVersion: 1,
@@ -276,24 +301,28 @@ function tokenPreview(sequence: number, position = { x: 20, y: 10 }) {
   }
 }
 
-it('fans out synchronized token previews from room memory without per-sample backend reads', async () => {
-  const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(campaignId + ':' + crypto.randomUUID())
-  )
-  let captureCalls = 0
-  await runInDurableObject(stub, () =>
-    installFetch(members, (call, capture) => {
-      captureCalls = call
-      return capture
-    })
-  )
-  const [owner, player] = await Promise.all([
-    connect(stub, ownerId, 'OWNER'),
-    connect(stub, playerId, 'PLAYER')
-  ])
+function pointerPreview(sequence: number, baselineVersion = 1) {
+  return {
+    baselineVersion,
+    audience: 'TABLE',
+    kind: 'POINTER_PREVIEW' as const,
+    position: { x: 15, y: 10 },
+    sceneId,
+    sequence
+  }
+}
 
-  owner.socket.send(
+function sendPreview(
+  client: Awaited<ReturnType<typeof connect>>,
+  envelope: ReturnType<typeof tokenPreview> | ReturnType<typeof pointerPreview>
+) {
+  client.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope }))
+}
+
+/** Synchronizes the room's Scene cache as the tabletop does when it opens the presented Scene. */
+async function synchronize(client: Awaited<ReturnType<typeof connect>>) {
+  client.messages.length = 0
+  client.socket.send(
     JSON.stringify({
       expectedPresentationVersion: 1,
       sceneId,
@@ -301,68 +330,83 @@ it('fans out synchronized token previews from room memory without per-sample bac
       version: 1
     })
   )
-  await vi.waitFor(() => expect(captureCalls).toBe(4))
+  await vi.waitFor(() =>
+    expect(
+      client.messages.some(
+        (message) => message.type === 'STATE_SYNC' && message.state.scene?.id === sceneId
+      )
+    ).toBe(true)
+  )
+}
+
+it('fans out token previews from room memory with no backend call or SQLite access per sample', async () => {
+  const stub = newRoom()
+  await runInDurableObject(stub, () =>
+    installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')])
+  )
+  const [owner, player] = await Promise.all([
+    connect(stub, ownerId, 'OWNER'),
+    connect(stub, playerId, 'PLAYER')
+  ])
+  const sql = await runInDurableObject(stub, (_instance, state) =>
+    vi.spyOn(state.storage.sql, 'exec')
+  )
+  await synchronize(owner)
+  // The synchronization itself reads the journal, so the spy sees the room's storage.
+  expect(sql).toHaveBeenCalled()
+  sql.mockClear()
+  backendPaths.length = 0
   owner.messages.length = 0
   player.messages.length = 0
 
-  player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
-  player.socket.send(
-    JSON.stringify({
-      type: 'TRANSIENT',
-      envelope: tokenPreview(2, { x: 30, y: 10 })
-    })
-  )
+  for (const sequence of [1, 2, 3])
+    sendPreview(player, tokenPreview(sequence, { x: 10 + sequence * 5, y: 10 }))
   await vi.waitFor(() => {
-    expect(transient(owner.messages)).toHaveLength(2)
-    expect(transient(player.messages)).toHaveLength(2)
+    expect(transient(owner.messages)).toHaveLength(3)
+    expect(transient(player.messages)).toHaveLength(3)
   })
-  expect(captureCalls).toBe(4)
+  expect(backendPaths).toEqual([])
+  expect(sql).not.toHaveBeenCalled()
 })
+
 it.each([
   ['controls', true],
   ['does not control', false]
 ] as const)(
-  'checks a bound-token preview for a player who %s its actor with one reused authority capture',
+  "leases the bound-token control of a player who %s its actor, off the sample's path (D25)",
   async (_label, controlled) => {
-    const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
-    const encounterId = crypto.randomUUID()
-    const stub = env.LIVE_SESSION_ROOMS.get(
-      env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-    )
+    const advance = controlClock()
+    const stub = newRoom()
     const captureModes: LiveSessionTransientCaptureInput['mode'][] = []
     await runInDurableObject(stub, () =>
-      installFetch(members, (_call, capture, input) => {
-        captureModes.push(input.mode)
-        return {
-          ...capture,
-          sceneEncounterId: encounterId,
-          originBoundTokenControl: capture.origin.role === 'PLAYER' ? [{ tokenId, controlled }] : []
+      installFetch(
+        [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')],
+        (_call, capture, input) => {
+          captureModes.push(input.mode)
+          return {
+            ...capture,
+            sceneEncounterId: '00000000-0000-4000-8000-000000000120',
+            originBoundTokenControl:
+              capture.origin.role === 'PLAYER' ? [{ tokenId, controlled }] : []
+          }
         }
-      })
+      )
     )
     const [owner, player] = await Promise.all([
       connect(stub, ownerId, 'OWNER'),
       connect(stub, playerId, 'PLAYER')
     ])
-    owner.socket.send(
-      JSON.stringify({
-        expectedPresentationVersion: 1,
-        sceneId,
-        type: 'SYNCHRONIZE_SCENE',
-        version: 1
-      })
-    )
-    await vi.waitFor(() => expect(captureModes).toHaveLength(4))
+    await synchronize(owner)
+    captureModes.length = 0
     owner.messages.length = 0
     player.messages.length = 0
 
-    for (const sequence of [1, 2, 3])
-      player.socket.send(
-        JSON.stringify({
-          type: 'TRANSIENT',
-          envelope: tokenPreview(sequence, { x: 10 + sequence * 5, y: 10 })
-        })
-      )
+    // The first sample finds no lease: it is dropped, and one background capture starts.
+    sendPreview(player, tokenPreview(1, { x: 15, y: 10 }))
+    await vi.waitFor(() => expect(captureModes).toEqual(['AUTHORITY']))
+    await noTransient(owner.messages)
+    for (const sequence of [2, 3, 4])
+      sendPreview(player, tokenPreview(sequence, { x: 10 + sequence * 5, y: 10 }))
     if (controlled)
       await vi.waitFor(() => {
         expect(transient(owner.messages)).toHaveLength(3)
@@ -372,107 +416,117 @@ it.each([
       await noTransient(owner.messages)
       await noTransient(player.messages)
     }
-    // D25: the three previews share one short-lived authority capture instead of one each.
-    expect(captureModes.slice(4)).toEqual(['AUTHORITY'])
+    expect(captureModes).toEqual(['AUTHORITY'])
+
+    // From half the lease, one background capture renews it while samples keep the current lease.
+    advance(15_001)
+    sendPreview(player, tokenPreview(5, { x: 35, y: 10 }))
+    sendPreview(player, tokenPreview(6, { x: 40, y: 10 }))
+    await vi.waitFor(() => expect(captureModes).toEqual(['AUTHORITY', 'AUTHORITY']))
+    if (controlled) await vi.waitFor(() => expect(transient(owner.messages)).toHaveLength(5))
   }
 )
+
 it.each([
-  ['current authority', 'current', true],
-  ['a stale Scene version', 'scene', false],
-  ['a changed origin membership', 'origin', false],
-  ['a missing current recipient', 'recipient', false]
-] as const)('fans out pointer previews once for %s', async (_label, state, broadcasts) => {
-  const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
-  let captureCalls = 0
-  let pointerCaptureMode: LiveSessionTransientCaptureInput['mode']
-  await runInDurableObject(stub, () =>
-    installFetch(members, (call, capture, input) => {
-      captureCalls = call
-      if (call === 3) pointerCaptureMode = input.mode
-      if (call !== 3) return capture
-      if (state === 'scene')
-        return { ...capture, sceneHeader: { ...capture.sceneHeader!, version: 2 } }
-      if (state === 'origin')
-        return {
-          ...capture,
-          origin: { ...capture.origin, membershipEpoch: '2026-09-12T01:00:00.000Z' }
-        }
-      if (state === 'recipient') return { ...capture, recipients: [] }
-      return capture
-    })
-  )
-  const [owner, player] = await Promise.all([
-    connect(stub, ownerId, 'OWNER'),
-    connect(stub, playerId, 'PLAYER')
-  ])
-  const requestsBefore = await runInDurableObject(
-    stub,
-    () => vi.mocked(globalThis.fetch).mock.calls.length
-  )
-
-  owner.socket.send(
-    JSON.stringify({
-      type: 'TRANSIENT',
-      envelope: {
-        baselineVersion: 1,
-        audience: 'TABLE',
-        kind: 'POINTER_PREVIEW',
-        position: { x: 15, y: 10 },
-        sceneId,
-        sequence: 1
-      }
-    })
-  )
-  await vi.waitFor(() => expect(captureCalls).toBe(3))
-  const requestPaths = await runInDurableObject(stub, () =>
-    vi
-      .mocked(globalThis.fetch)
-      .mock.calls.slice(requestsBefore)
-      .map(([input, init]) => new URL(new Request(input, init).url).pathname)
-  )
-
-  expect(requestPaths).toEqual(['/live-sessions/capture'])
-  expect(pointerCaptureMode).toBe('AUTHORITY')
-  if (broadcasts)
-    await vi.waitFor(() =>
-      expect(transient(player.messages)).toEqual([
-        expect.objectContaining({
-          message: expect.objectContaining({
-            envelope: expect.objectContaining({ kind: 'POINTER_PREVIEW' }),
-            userId: ownerId
-          })
-        })
-      ])
+  ['the cached Scene version', 1, true],
+  ['a stale Scene version', 2, false]
+] as const)(
+  'fans out pointer previews for %s without a backend call',
+  async (_label, baselineVersion, broadcasts) => {
+    const stub = newRoom()
+    await runInDurableObject(stub, () =>
+      installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')])
     )
-  else await noTransient(player.messages)
+    const [owner, player] = await Promise.all([
+      connect(stub, ownerId, 'OWNER'),
+      connect(stub, playerId, 'PLAYER')
+    ])
+    await synchronize(owner)
+    backendPaths.length = 0
+    player.messages.length = 0
+
+    sendPreview(owner, pointerPreview(1, baselineVersion))
+    if (broadcasts)
+      await vi.waitFor(() =>
+        expect(transient(player.messages)).toEqual([
+          expect.objectContaining({
+            message: expect.objectContaining({
+              envelope: expect.objectContaining({ kind: 'POINTER_PREVIEW' }),
+              userId: ownerId
+            })
+          })
+        ])
+      )
+    else await noTransient(player.messages)
+    expect(backendPaths).toEqual([])
+  }
+)
+
+it('stops previews to an evicted member and rebuilds the dropped Scene cache once in the background', async () => {
+  const members = [
+    member(ownerId, 'OWNER'),
+    member(playerId, 'PLAYER'),
+    member(otherPlayerId, 'PLAYER')
+  ]
+  const stub = newRoom()
+  await runInDurableObject(stub, () => installFetch(members))
+  const [owner, player, other] = await Promise.all([
+    connect(stub, ownerId, 'OWNER'),
+    connect(stub, playerId, 'PLAYER'),
+    connect(stub, otherPlayerId, 'PLAYER')
+  ])
+  await synchronize(owner)
+  const evicted = await stub.fetch(
+    new Request(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
+      body: JSON.stringify({
+        campaignId,
+        operation: {
+          type: 'EVICT_USER',
+          userId: otherPlayerId,
+          membershipEpoch: members[2]!.membershipEpoch
+        }
+      }),
+      method: 'POST'
+    })
+  )
+  expect(await evicted.json()).toEqual({ closed: 1 })
+  backendPaths.length = 0
+  player.messages.length = 0
+  other.messages.length = 0
+
+  // Eviction drops the Scene cache; samples are dropped until one background rebuild finishes.
+  let sequence = 0
+  await vi.waitFor(() => {
+    sequence += 1
+    sendPreview(owner, pointerPreview(sequence))
+    expect(transient(player.messages).length).toBeGreaterThan(0)
+  })
+  expect(sequence).toBeGreaterThan(1)
+  // One rebuild: its capture and the confirming capture, not one per sample.
+  expect(captureCount()).toBe(2)
+  expect(transient(other.messages)).toEqual([])
 })
+
 it('fans out controlled token previews and per-player fog only to current authorized members', async () => {
   const members = [
     member(ownerId, 'OWNER'),
     member(playerId, 'PLAYER'),
     member(otherPlayerId, 'PLAYER')
   ]
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
-  const captureModes: LiveSessionTransientCaptureInput['mode'][] = []
-  await runInDurableObject(stub, () =>
-    installFetch(members, (_call, capture, input) => {
-      captureModes.push(input.mode)
-      return capture
-    })
-  )
+  const stub = newRoom()
+  await runInDurableObject(stub, () => installFetch(members))
   const [owner, player, other] = await Promise.all([
     connect(stub, ownerId, 'OWNER'),
     connect(stub, playerId, 'PLAYER'),
     connect(stub, otherPlayerId, 'PLAYER')
   ])
-  captureModes.length = 0
+  await synchronize(owner)
+  backendPaths.length = 0
+  owner.messages.length = 0
+  player.messages.length = 0
+  other.messages.length = 0
 
-  player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
+  sendPreview(player, tokenPreview(1))
   await vi.waitFor(() => {
     expect(transient(owner.messages)).toHaveLength(1)
     expect(transient(player.messages)).toHaveLength(1)
@@ -482,7 +536,7 @@ it('fans out controlled token previews and per-player fog only to current author
   owner.messages.length = 0
   player.messages.length = 0
   other.messages.length = 0
-  owner.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
+  sendPreview(owner, tokenPreview(1))
   await vi.waitFor(() => {
     expect(transient(owner.messages)).toHaveLength(1)
     expect(transient(player.messages)).toHaveLength(1)
@@ -520,303 +574,149 @@ it('fans out controlled token previews and per-player fog only to current author
     expect(transient(owner.messages)).toHaveLength(0)
   })
   await noTransient(other.messages)
-  expect(captureModes.length).toBeGreaterThan(0)
-  expect(new Set(captureModes)).toEqual(new Set(['FULL']))
+  expect(backendPaths).toEqual([])
 })
 
-it('delivers GM-audience previews only to owner sockets', async () => {
-  const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
-  await runInDurableObject(stub, () => installFetch(members, (_call, capture) => capture))
-  const owner = await connect(stub, ownerId, 'OWNER')
-  const ownerElsewhere = await connect(stub, ownerId, 'OWNER')
-  const player = await connect(stub, playerId, 'PLAYER')
-
-  owner.socket.send(
-    JSON.stringify({ type: 'TRANSIENT', envelope: { ...tokenPreview(1), audience: 'GM' } })
-  )
-  await vi.waitFor(() => {
-    expect(transient(owner.messages)).toHaveLength(1)
-    expect(transient(ownerElsewhere.messages)).toHaveLength(1)
-  })
-  await noTransient(player.messages)
-})
-
-it.each(['origin', 'recipient'] as const)(
-  'sends nothing when capture changes the current %s membership epoch',
-  async (changed) => {
-    const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
-    const stub = env.LIVE_SESSION_ROOMS.get(
-      env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-    )
-    let captureCalls = 0
+it.each([
+  ['a GM-audience token preview', 'GM', false, 'TOKEN', false],
+  ['a GM-audience pointer', 'GM', false, 'POINTER', false],
+  ['a shared token preview', 'TABLE', false, 'TOKEN', true],
+  ['a shared preview of a hidden token', 'TABLE', true, 'TOKEN', false]
+] as const)(
+  'delivers %s to the GM and only to players allowed to see it',
+  async (_label, audience, hidden, kind, playerSees) => {
+    const stub = newRoom()
     await runInDurableObject(stub, () =>
-      installFetch(members, (call, capture) => {
-        captureCalls = call
-        if (call < 4) return capture
-        if (changed === 'origin')
-          return {
-            ...capture,
-            origin: { ...capture.origin, membershipEpoch: '2026-09-12T01:00:00.000Z' }
-          }
-        return {
-          ...capture,
-          recipients: [{ ...capture.recipients[0]!, membershipEpoch: '2026-09-12T01:00:00.000Z' }]
-        }
+      installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')], undefined, {
+        ...token,
+        hidden
       })
     )
     const owner = await connect(stub, ownerId, 'OWNER')
+    const ownerElsewhere = await connect(stub, ownerId, 'OWNER')
     const player = await connect(stub, playerId, 'PLAYER')
-    owner.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
-    await vi.waitFor(() => expect(captureCalls).toBeGreaterThanOrEqual(4))
-    await noTransient(owner.messages)
-    await noTransient(player.messages)
+    await synchronize(owner)
+    ownerElsewhere.messages.length = 0
+    player.messages.length = 0
+
+    sendPreview(owner, {
+      ...(kind === 'TOKEN' ? tokenPreview(1) : pointerPreview(1)),
+      audience
+    })
+    await vi.waitFor(() => expect(transient(ownerElsewhere.messages)).toHaveLength(1))
+    if (playerSees) await vi.waitFor(() => expect(transient(player.messages)).toHaveLength(1))
+    else await noTransient(player.messages)
   }
 )
 
 it.each(['origin', 'recipient'] as const)(
-  'checks the %s admission deadline at the final transient send boundary',
+  'drops previews from or to a member whose admission expired (%s)',
   async (expired) => {
-    const initialNow = Date.now()
-    let now = initialNow
-    vi.spyOn(Date, 'now').mockImplementation(() => now)
-    const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
-    const stub = env.LIVE_SESSION_ROOMS.get(
-      env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-    )
-    let captureCalls = 0
+    const advance = controlClock()
+    const stub = newRoom()
     await runInDurableObject(stub, () =>
-      installFetch(members, (call, capture) => {
-        captureCalls = call
-        if (call === 4) now = initialNow + 301_000
-        return capture
-      })
+      installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')])
     )
-    const [firstUserId, firstRole, secondUserId, secondRole] =
-      expired === 'origin'
-        ? ([ownerId, 'OWNER', playerId, 'PLAYER'] as const)
-        : ([playerId, 'PLAYER', ownerId, 'OWNER'] as const)
-    const first = await connect(stub, firstUserId, firstRole)
-    now = initialNow + 10_000
-    const second = await connect(stub, secondUserId, secondRole)
-    const owner = expired === 'origin' ? first : second
-    const player = expired === 'origin' ? second : first
+    // The owner's access token expires 10 s before the player's.
+    const owner = await connect(stub, ownerId, 'OWNER')
+    advance(10_000)
+    const player = await connect(stub, playerId, 'PLAYER')
+    await synchronize(owner)
+    owner.messages.length = 0
+    player.messages.length = 0
+    advance(291_000)
 
-    owner.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
-    await vi.waitFor(() => expect(captureCalls).toBe(4))
-    if (expired === 'origin') await noTransient(owner.messages)
-    else await vi.waitFor(() => expect(transient(owner.messages)).toHaveLength(1))
-    await noTransient(player.messages)
+    if (expired === 'origin') {
+      sendPreview(owner, tokenPreview(1))
+      await vi.waitFor(() =>
+        expect(owner.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+      )
+      await noTransient(owner.messages)
+      await noTransient(player.messages)
+      const refreshedToken = await new SignJWT({})
+        .setProtectedHeader({ alg: 'HS256' })
+        .setSubject(ownerId)
+        .setExpirationTime(Math.floor(Date.now() / 1_000) + 300)
+        .sign(new TextEncoder().encode(secret))
+      owner.socket.send(JSON.stringify({ accessToken: refreshedToken, type: 'AUTHENTICATE' }))
+      await vi.waitFor(() =>
+        expect(owner.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+      )
+      return
+    }
+    sendPreview(player, tokenPreview(1))
+    await vi.waitFor(() => expect(transient(player.messages)).toHaveLength(1))
+    await vi.waitFor(() =>
+      expect(owner.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+    )
+    await noTransient(owner.messages)
   }
 )
 
-it('drops queued token work after access-token expiry and accepts a fresh token', async () => {
-  const initialNow = Date.now()
-  let now = initialNow
-  vi.spyOn(Date, 'now').mockImplementation(() => now)
-  const members = [member(ownerId, 'OWNER')]
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
-  let captureCalls = 0
-  let releaseDelayedCapture = () => {}
-  const delayedCapture = new Promise<void>((resolve) => {
-    releaseDelayedCapture = resolve
-  })
-  await runInDurableObject(stub, () =>
-    installFetch(members, async (call, capture) => {
-      captureCalls = call
-      if (call === 2) await delayedCapture
-      return capture
-    })
-  )
-  const owner = await connect(stub, ownerId, 'OWNER')
-
-  now = initialNow + 298_000
-  owner.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
-  await vi.waitFor(() => expect(captureCalls).toBe(2))
-
-  now = initialNow + 301_000
-  releaseDelayedCapture()
-  await vi.waitFor(() =>
-    expect(owner.messages.some((message) => message.type === 'AUTHENTICATION_REQUIRED')).toBe(true)
-  )
-  await noTransient(owner.messages)
-
-  const refreshedToken = await new SignJWT({})
-    .setProtectedHeader({ alg: 'HS256' })
-    .setSubject(ownerId)
-    .setExpirationTime(Math.floor(now / 1_000) + 300)
-    .sign(new TextEncoder().encode(secret))
-  owner.socket.send(JSON.stringify({ accessToken: refreshedToken, type: 'AUTHENTICATE' }))
-  await vi.waitFor(() =>
-    expect(owner.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-})
-
-it('does not block ordered token previews behind a pointer capture', async () => {
-  const members = [member(ownerId, 'OWNER')]
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
-  let captureCalls = 0
-  let releasePointerCapture = () => {}
-  const delayedPointerCapture = new Promise<void>((resolve) => {
-    releasePointerCapture = resolve
-  })
-  await runInDurableObject(stub, () =>
-    installFetch(members, async (call, capture) => {
-      captureCalls = call
-      if (call === 2) await delayedPointerCapture
-      return capture
-    })
-  )
-  const owner = await connect(stub, ownerId, 'OWNER')
-
-  owner.socket.send(
-    JSON.stringify({
-      type: 'TRANSIENT',
-      envelope: {
-        baselineVersion: 1,
-        audience: 'TABLE',
-        kind: 'POINTER_PREVIEW',
-        position: { x: 15, y: 10 },
-        sceneId,
-        sequence: 1
-      }
-    })
-  )
-  await vi.waitFor(() => expect(captureCalls).toBe(2))
-
-  try {
-    owner.socket.send(
-      JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1, { x: 20, y: 20 }) })
-    )
-    await vi.waitFor(() =>
-      expect(transient(owner.messages)).toContainEqual(
-        expect.objectContaining({
-          message: expect.objectContaining({
-            tokenDragResolution: expect.objectContaining({ accepted: true })
-          })
-        })
-      )
-    )
-  } finally {
-    releasePointerCapture()
-  }
-  await vi.waitFor(() => expect(captureCalls).toBe(4))
-  const retained = await runInDurableObject(stub, (_instance, state) => {
-    const attachment = state.getWebSockets()[0]!.deserializeAttachment() as { socketId: string }
-    const transients = new NativeSocketTransientState(state.storage)
-    return {
-      attachment,
-      pointer: transients.read(attachment.socketId, 'POINTER_PREVIEW'),
-      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`)
-    }
-  })
-  expect(retained.pointer?.sequence).toBe(1)
-  expect(retained.token).toMatchObject({
-    sequence: 1,
-    sceneId,
-    baselineVersion: 1,
-    path: [
-      { x: 10, y: 10 },
-      { x: 20, y: 20 }
-    ]
-  })
-
-  owner.messages.length = 0
-  owner.socket.send(
-    JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1, { x: 20, y: 20 }) })
-  )
-  await vi.waitFor(() => expect(captureCalls).toBe(5))
-  await noTransient(owner.messages)
-})
-
-it('retains per-token sequences and paths through hibernation', async () => {
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
+it('keeps preview stream sequences and paths in memory only', async () => {
+  const stub = newRoom()
   await runInDurableObject(stub, () => installFetch([member(ownerId, 'OWNER')]))
   const owner = await connect(stub, ownerId, 'OWNER')
-  owner.socket.send(
-    JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(5, { x: 20, y: 20 }) })
-  )
-  await vi.waitFor(() =>
-    expect(transient(owner.messages)[0]?.message.tokenDragResolution).toMatchObject({
-      accepted: true
-    })
-  )
-  const retained = await runInDurableObject(stub, (_instance, state) => {
-    const attachment = state.getWebSockets()[0]!.deserializeAttachment() as { socketId: string }
-    const transients = new NativeSocketTransientState(state.storage)
-    return {
-      attachment,
-      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`)
-    }
-  })
-  expect(retained.token).toMatchObject({
-    sequence: 5,
-    sceneId,
-    baselineVersion: 1,
-    path: [
-      { x: 10, y: 10 },
-      { x: 20, y: 20 }
-    ]
-  })
+  await synchronize(owner)
+  owner.messages.length = 0
 
+  sendPreview(owner, tokenPreview(5, { x: 20, y: 20 }))
+  sendPreview(owner, tokenPreview(5, { x: 25, y: 20 }))
+  sendPreview(owner, tokenPreview(6, { x: 25, y: 20 }))
+  await vi.waitFor(() => expect(transient(owner.messages)).toHaveLength(2))
+  expect(transient(owner.messages).map((message) => message.message.tokenDragResolution)).toEqual([
+    {
+      accepted: true,
+      path: [
+        { x: 10, y: 10 },
+        { x: 20, y: 20 }
+      ]
+    },
+    {
+      accepted: true,
+      // The retained path is extended, then simplified to the unobstructed straight move.
+      path: [
+        { x: 10, y: 10 },
+        { x: 25, y: 20 }
+      ]
+    }
+  ])
+  expect(
+    await runInDurableObject(stub, (_instance, state) =>
+      state.storage.sql
+        .exec("SELECT name FROM sqlite_master WHERE name = 'native_socket_transients'")
+        .toArray()
+    )
+  ).toEqual([])
+
+  // Hibernation loses the streams: the next sample starts again from the token's position.
   await evictDurableObject(stub)
   owner.messages.length = 0
   owner.socket.send(JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 }))
-  await vi.waitFor(() =>
-    expect(owner.messages.some((message) => message.type === 'AUTHENTICATION_REQUIRED')).toBe(true)
-  )
+  await vi.waitFor(() => expect(owner.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' }))
   owner.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: owner.accessToken }))
   await vi.waitFor(() =>
-    expect(owner.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+    expect(owner.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
   )
+  await synchronize(owner)
   owner.messages.length = 0
-  owner.socket.send(
-    JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(5, { x: 20, y: 20 }) })
-  )
-  await noTransient(owner.messages)
-  owner.socket.send(
-    JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(6, { x: 25, y: 20 }) })
-  )
+  sendPreview(owner, tokenPreview(5, { x: 20, y: 20 }))
   await vi.waitFor(() =>
-    expect(transient(owner.messages)[0]?.message.tokenDragResolution).toMatchObject({
-      accepted: true
+    expect(transient(owner.messages)[0]?.message.tokenDragResolution).toEqual({
+      accepted: true,
+      path: [
+        { x: 10, y: 10 },
+        { x: 20, y: 20 }
+      ]
     })
   )
-  const resumed = await runInDurableObject(stub, (_instance, state) => {
-    const attachment = state.getWebSockets()[0]!.deserializeAttachment() as { socketId: string }
-    const transients = new NativeSocketTransientState(state.storage)
-    return {
-      attachment,
-      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`)
-    }
-  })
-  expect(resumed.token).toMatchObject({
-    sequence: 6,
-    sceneId,
-    baselineVersion: 1,
-    path: [
-      { x: 10, y: 10 },
-      { x: 25, y: 20 }
-    ]
-  })
 })
 
-it('retries one transient capture conflict and fans out after the fresh capture', async () => {
-  const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
+it('retries one Scene capture conflict in the background, then serves previews', async () => {
+  const stub = newRoom()
   let captureCalls = 0
   await runInDurableObject(stub, () =>
-    installFetch(members, (call, capture, input) => {
+    installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')], (call, capture, input) => {
       captureCalls = call
       if (call === 4) expect(input.observedCharacterRevisions).toEqual([])
       return call === 3 ? new Response(null, { status: 409 }) : capture
@@ -826,24 +726,22 @@ it('retries one transient capture conflict and fans out after the fresh capture'
     connect(stub, ownerId, 'OWNER'),
     connect(stub, playerId, 'PLAYER')
   ])
-  owner.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
+  let sequence = 0
   await vi.waitFor(() => {
-    expect(captureCalls).toBe(5)
-    expect(transient(owner.messages)).toHaveLength(1)
-    expect(transient(player.messages)).toHaveLength(1)
+    sequence += 1
+    sendPreview(owner, tokenPreview(sequence))
+    expect(transient(player.messages).length).toBeGreaterThan(0)
   })
+  expect(captureCalls).toBe(5)
+  expect(owner.messages).not.toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
 })
 
-it('fails closed when the fresh capture also conflicts without a third attempt', async () => {
-  const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
+it('drops previews without a third capture when the fresh capture also conflicts', async () => {
+  const stub = newRoom()
   let captureCalls = 0
   await runInDurableObject(stub, () =>
-    installFetch(members, (call, capture, input) => {
+    installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')], (call, capture) => {
       captureCalls = call
-      if (call === 4) expect(input.observedCharacterRevisions).toEqual([])
       return call === 3 || call === 5 ? new Response(null, { status: 409 }) : capture
     })
   )
@@ -851,11 +749,14 @@ it('fails closed when the fresh capture also conflicts without a third attempt',
     connect(stub, ownerId, 'OWNER'),
     connect(stub, playerId, 'PLAYER')
   ])
-  owner.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
-  await vi.waitFor(() => expect(owner.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' }))
-  expect(captureCalls).toBe(5)
+  sendPreview(owner, tokenPreview(1))
+  await vi.waitFor(() => expect(captureCalls).toBe(5))
+  // Inside the retry window, later samples start no new rebuild.
+  sendPreview(owner, tokenPreview(2))
+  sendPreview(owner, tokenPreview(3))
   await noTransient(owner.messages)
   await noTransient(player.messages)
+  expect(captureCalls).toBe(5)
 })
 
 /** A room whose Scene token takes its vision from a bound Character at revision A, then B. */
@@ -889,12 +790,12 @@ async function characterVisionRoom() {
     visionChecks: 0,
     invalidations: 0,
     /** Set to change the Character: the next check or capture observing revision A is refused. */
-    revisionChanged: false
+    revisionChanged: false,
+    /** Set to make the revision check fail. */
+    visionUnavailable: false
   }
   let visionRevision = revisionA
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
+  const stub = newRoom()
   await runInDurableObject(stub, () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)
@@ -923,6 +824,7 @@ async function characterVisionRoom() {
       if (pathname === '/live-sessions/vision-revisions') {
         const body = liveSessionVisionRevisionsInputSchema.parse(await request.json())
         room.visionChecks += 1
+        if (room.visionUnavailable) return new Response(null, { status: 503 })
         return Response.json({
           current:
             !room.revisionChanged &&
@@ -1028,80 +930,67 @@ async function characterVisionRoom() {
     connect(stub, ownerId, 'OWNER'),
     connect(stub, playerId, 'PLAYER')
   ])
+  await synchronize(owner)
+  expect(room.visionRequests).toEqual([revisionA])
+  owner.messages.length = 0
+  player.messages.length = 0
   return { room, owner, player }
 }
 
-it('rehydrates bound Character vision after its revision invalidates the cached scene', async () => {
+it('rechecks Character vision once in the background from half the lease and rehydrates a change (D33)', async () => {
+  const advance = controlClock()
   const { room, owner, player } = await characterVisionRoom()
-  const { revisionA, revisionB } = room
-  player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
-  await vi.waitFor(() =>
-    expect(transient(player.messages)[0]).toMatchObject({
-      message: { visionLayers: [expect.anything()] }
-    })
-  )
-  expect(
-    room.captures.some((capture) =>
-      capture.observedCharacterRevisions.some((revision) => revision.revision === revisionA)
-    )
-  ).toBe(true)
-
-  owner.messages.length = 0
-  player.messages.length = 0
-  room.revisionChanged = true
-  player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(2) }))
-  await vi.waitFor(() =>
-    expect(transient(player.messages)[0]).toMatchObject({ message: { visionLayers: [] } })
-  )
-  expect(room.visionRequests).toEqual([revisionA, revisionB])
-  expect(room.invalidations).toBe(1)
-  expect(
-    room.captures.some((capture) =>
-      capture.observedCharacterRevisions.some((revision) => revision.revision === revisionB)
-    )
-  ).toBe(true)
-  expect(transient(owner.messages)).toHaveLength(1)
-})
-
-it('checks only the Character revisions behind synchronized vision for GM and player previews', async () => {
-  const { room, owner, player } = await characterVisionRoom()
-  const { revisionA, revisionB } = room
-  owner.socket.send(
-    JSON.stringify({
-      expectedPresentationVersion: 1,
-      sceneId,
-      type: 'SYNCHRONIZE_SCENE',
-      version: 1
-    })
-  )
-  await vi.waitFor(() => expect(room.visionRequests).toEqual([revisionA]))
-  await vi.waitFor(() =>
-    expect(owner.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
-  )
   const capturesAfterSync = room.captures.length
-  owner.messages.length = 0
-  player.messages.length = 0
 
-  // D33: while the revisions are unchanged, each preview makes one small read and no capture.
-  owner.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
-  player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
+  // Within half the lease, GM and player previews reuse the checked revisions with no read.
+  sendPreview(owner, tokenPreview(1))
+  sendPreview(player, tokenPreview(1))
   await vi.waitFor(() => {
     expect(transient(owner.messages)).toHaveLength(2)
     expect(transient(player.messages)).toHaveLength(2)
   })
-  expect(room.visionChecks).toBe(2)
+  expect(transient(player.messages)).toContainEqual(
+    expect.objectContaining({
+      message: expect.objectContaining({
+        userId: playerId,
+        visionLayers: [expect.anything()]
+      })
+    })
+  )
+  expect(room.visionChecks).toBe(0)
   expect(room.captures).toHaveLength(capturesAfterSync)
 
-  // A changed revision forces the full recapture and rehydration.
-  owner.messages.length = 0
-  player.messages.length = 0
+  // The Character changes. From half the lease one background read finds it, while samples keep
+  // the lease; the rebuild rehydrates the new vision.
   room.revisionChanged = true
-  player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(2) }))
-  await vi.waitFor(() =>
-    expect(transient(player.messages)[0]).toMatchObject({ message: { visionLayers: [] } })
-  )
-  expect(room.visionChecks).toBe(3)
+  advance(15_001)
+  player.messages.length = 0
+  sendPreview(player, tokenPreview(2, { x: 25, y: 10 }))
+  sendPreview(player, tokenPreview(3, { x: 30, y: 10 }))
+  await vi.waitFor(() => expect(room.visionRequests).toEqual([room.revisionA, room.revisionB]))
+  expect(room.visionChecks).toBe(1)
   expect(room.invalidations).toBe(1)
-  expect(room.visionRequests).toEqual([revisionA, revisionB])
-  expect(room.captures.length).toBeGreaterThan(capturesAfterSync)
+  let sequence = 3
+  await vi.waitFor(() => {
+    sequence += 1
+    sendPreview(player, tokenPreview(sequence, { x: 30 + sequence, y: 10 }))
+    expect(transient(player.messages).at(-1)).toMatchObject({ message: { visionLayers: [] } })
+  })
+  expect(room.visionChecks).toBe(1)
+})
+
+it('drops Character-vision previews once the lease passes without a confirmed check (D33)', async () => {
+  const advance = controlClock()
+  const { room, owner, player } = await characterVisionRoom()
+  room.visionUnavailable = true
+  advance(30_001)
+
+  sendPreview(player, tokenPreview(1))
+  await vi.waitFor(() => expect(room.visionChecks).toBe(1))
+  await noTransient(player.messages)
+  await noTransient(owner.messages)
+
+  // Pointers carry no vision, so they still flow.
+  sendPreview(player, pointerPreview(1))
+  await vi.waitFor(() => expect(transient(owner.messages)).toHaveLength(1))
 })

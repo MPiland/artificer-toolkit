@@ -2500,7 +2500,7 @@ it('requires fresh authentication after hibernation restores only socket attachm
   )
 })
 
-it('preserves drag path and rejected-sample sequence through hibernation', async () => {
+it('extends drag paths around walls and keeps the sequence of a rejected sample', async () => {
   const value = movementScene(crypto.randomUUID())
   value.scene.barriers = [
     {
@@ -2558,12 +2558,10 @@ it('preserves drag path and rejected-sample sequence through hibernation', async
       })
     })
   ])
-  await evictDurableObject(base.stub)
-  base.messages.length = 0
-  await synchronizeScene(base, value.scene)
   const frames = await runInDurableObject(base.stub, async (instance, state) => {
     const socket = state.getWebSockets()[0]!
     const sent = vi.spyOn(socket, 'send')
+    sent.mockClear()
     for (const sample of [
       { sequence: 7, position: { x: 30, y: 30 } },
       { sequence: 8, position: { x: 20, y: 10 } },
@@ -2608,12 +2606,10 @@ it('preserves drag path and rejected-sample sequence through hibernation', async
       })
     })
   ])
-  await evictDurableObject(base.stub)
-  base.messages.length = 0
-  await synchronizeScene(base, value.scene)
   const resumed = await runInDurableObject(base.stub, async (instance, state) => {
     const socket = state.getWebSockets()[0]!
     const sent = vi.spyOn(socket, 'send')
+    sent.mockClear()
     for (const sequence of [9, 10])
       await instance.webSocketMessage(
         socket,
@@ -2642,23 +2638,6 @@ it('preserves drag path and rejected-sample sequence through hibernation', async
       })
     })
   ])
-  await control({
-    campaignId: base.capture.campaignId,
-    operation: {
-      type: 'EVICT_USER',
-      userId: base.userId,
-      membershipEpoch: base.capture.origin.membershipEpoch
-    }
-  })
-  expect(
-    await runInDurableObject(
-      base.stub,
-      (_instance, state) =>
-        state.storage.sql
-          .exec<{ count: number }>('SELECT COUNT(*) AS count FROM native_socket_transients')
-          .one().count
-    )
-  ).toBe(0)
 })
 
 it('admits concurrent authentication independently for each native socket', async () => {
@@ -2743,7 +2722,6 @@ it.each([false, true])(
       if (!socket) throw new Error('Missing native server socket.')
       const sent = vi.spyOn(socket, 'send')
       vi.spyOn(Date, 'now').mockReturnValue((base.issuedAt + (expired ? 3_601 : 3_599)) * 1_000)
-      const captureCalls = vi.mocked(globalThis.fetch).mock.calls.length
       await instance.webSocketMessage(
         socket,
         JSON.stringify({
@@ -2758,7 +2736,6 @@ it.each([false, true])(
           }
         })
       )
-      expect(globalThis.fetch).toHaveBeenCalledTimes(captureCalls + (expired ? 0 : 1))
       return sent.mock.calls.map(([frame]) =>
         liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
       )
@@ -2766,56 +2743,6 @@ it.each([false, true])(
     expect(frames).toEqual(expired ? [{ type: 'AUTHENTICATION_REQUIRED' }] : [])
   }
 )
-
-it('coalesces queued pointer samples while an authoritative capture is pending', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const captures = await runInDurableObject(base.stub, async (instance, state) => {
-    const socket = state.getWebSockets()[0]!
-    let release: (() => void) | undefined
-    let markStarted: (() => void) | undefined
-    const started = new Promise<void>((resolve) => {
-      markStarted = resolve
-    })
-    const fetch = vi
-      .mocked(globalThis.fetch)
-      .mockReset()
-      .mockImplementation(async () => Response.json(base.capture))
-    fetch.mockImplementationOnce(
-      () =>
-        new Promise<Response>((resolve) => {
-          release = () => resolve(Response.json(base.capture))
-          markStarted?.()
-        })
-    )
-    const sceneId = crypto.randomUUID()
-    const message = (sequence: number) =>
-      JSON.stringify({
-        type: 'TRANSIENT',
-        envelope: {
-          audience: 'TABLE',
-          kind: 'POINTER_PREVIEW',
-          sceneId,
-          baselineVersion: 0,
-          sequence,
-          position: { x: sequence, y: 10 }
-        }
-      })
-    const first = instance.webSocketMessage(socket, message(1))
-    await started
-    const queued = Array.from({ length: 40 }, (_, index) =>
-      instance.webSocketMessage(socket, message(index + 2))
-    )
-    release?.()
-    await Promise.all([first, ...queued])
-    return fetch.mock.calls.length
-  })
-  // One in-flight sample and the latest queued sample each use one current authority capture.
-  expect(captures).toBe(2)
-})
 
 it.each(['RENEWAL_TRAFFIC', 'OLD_TRANSIENT_FAILURE'] as const)(
   'preserves the new admission across %s',
@@ -2877,9 +2804,7 @@ it.each(['RENEWAL_TRAFFIC', 'OLD_TRANSIENT_FAILURE'] as const)(
         releaseCapture?.()
         await delayed
       }
-      const captureCalls = vi.mocked(globalThis.fetch).mock.calls.length
       await instance.webSocketMessage(socket, preview)
-      expect(globalThis.fetch).toHaveBeenCalledTimes(captureCalls + 2)
       return sent.mock.calls.map(([frame]) =>
         liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
       )
@@ -3745,13 +3670,10 @@ it('publishes the pending outbox before an idle room releases its authority', as
   })
 })
 
-it('reuses a recent authority capture for pointer samples on the same Scene version', async () => {
+it('never captures authority for pointer samples on the synchronized Scene', async () => {
   const { scene } = doorScene(crypto.randomUUID())
   const base = await fixture(scene)
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
+  await synchronizeScene(base, scene)
   const captures = await runInDurableObject(base.stub, async (instance, state) => {
     const socket = state.getWebSockets()[0]!
     const header = base.capture.sceneHeader!
@@ -3775,12 +3697,11 @@ it('reuses a recent authority capture for pointer samples on the same Scene vers
     const before = captureCalls()
     for (let sequence = 1; sequence <= 5; sequence++)
       await instance.webSocketMessage(socket, pointer(sequence))
-    const cached = captureCalls() - before
-    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 2_001)
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 60_000)
     await instance.webSocketMessage(socket, pointer(6))
-    return { cached, expired: captureCalls() - before }
+    return captureCalls() - before
   })
-  expect(captures).toEqual({ cached: 1, expired: 2 })
+  expect(captures).toBe(0)
 })
 
 it('rejects commands beyond the pending-command bound without closing the socket', async () => {

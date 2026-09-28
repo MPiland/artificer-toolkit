@@ -10,10 +10,15 @@ export const ROOM_LIMITS = {
   idleReleaseMs: 5 * 60_000,
   maxPendingCommandsPerSocket: 8,
   maxPendingCommandsPerRoom: 64,
-  maxPendingTransientsPerSocket: 32,
   /** A player's Encounter commands run one at a time across all of their sockets. */
   maxInFlightEncounterCommandsPerPlayer: 1,
-  authorityCaptureTtlMs: 2_000,
+  /**
+   * Previews trust a player's bound-token control and the Character-vision revision check for this
+   * long, and renew them in the background from half of it (ADR 0035 Amendment 15).
+   */
+  previewLeaseMs: 30_000,
+  /** A background preview refresh starts at most once per input in this window. */
+  previewRetryMs: 5_000,
   /** Rules captures reused across Encounter commands; see `nativeCaptureCache.ts`. */
   captureCacheMaxEntries: 512,
   captureCacheMaxBytes: 16 * 1024 * 1024,
@@ -22,7 +27,8 @@ export const ROOM_LIMITS = {
 
 type MessageClass = 'AUTHENTICATE' | 'COMMAND' | 'INVALID' | 'SYNC' | 'TRANSIENT'
 
-// Clients throttle each preview stream to ~31 Hz and re-authenticate only on connect or challenge.
+// Clients send previews only during a gesture, each stream at most 10 Hz, and re-authenticate only
+// on connect or challenge; the TRANSIENT budget is the room's backstop.
 const BUDGETS: Record<MessageClass, { capacity: number; refillPerSecond: number }> = {
   AUTHENTICATE: { capacity: 10, refillPerSecond: 0.5 },
   COMMAND: { capacity: 20, refillPerSecond: 5 },

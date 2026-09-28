@@ -7,7 +7,6 @@ import {
   type LiveSessionCommandRejectionCodeDto,
   type LiveSessionCorrectionDto,
   type LiveSessionPresentationControlInput,
-  type LiveSessionTransientBroadcastDto,
   type LiveSessionWebSocketClientMessageDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
@@ -38,6 +37,7 @@ import {
   projectSceneTokenPreviewForViewer,
   SceneBarrierIndex,
   sceneFogOwnerFailure,
+  type ScenePoint,
   type SceneViewer
 } from '@artificer-toolkit/shared/vtt'
 import type {
@@ -51,7 +51,6 @@ import { decodeJwt } from 'jose'
 import { z } from 'zod'
 
 import { DurableCommandJournal } from './durableCommandJournal.js'
-import { NativeSocketTransientState } from './nativeSocketTransientState.js'
 import type { SessionWorkerEnvironment } from './environment.js'
 import {
   createNativeLiveSessionState,
@@ -132,6 +131,30 @@ interface TransientCache {
   scene: CampaignSceneStateDto | null
   presentation: LiveSessionScenePublicationDto['presentation'] | null
   synchronized: boolean
+  /** When Convex last confirmed `characterRevisions` current (D33); previews trust it for a lease. */
+  visionCheckedAt: number
+}
+
+/**
+ * A preview stream's latest accepted sample and, for a token drag, its resolved path. Memory only
+ * (ADR 0035 Amendment 15): hibernation or a restart loses it, and the next sample then starts from
+ * the token's position.
+ */
+interface PreviewStream {
+  baselineVersion: number
+  path: ScenePoint[] | null
+  sceneId: string
+  sequence: number
+}
+
+/** A player's bound-token control on the Encounter-bound Scene (D25), leased for previews. */
+interface PreviewControl {
+  cacheGeneration: number
+  checkedAt: number
+  control: LiveSessionTransientCapture['originBoundTokenControl']
+  encounterId: string | null
+  membershipEpoch: string
+  sceneId: string | null
 }
 
 interface NativeRoomIdentityRow extends Record<string, SqlStorageValue> {
@@ -218,7 +241,6 @@ function authorityFingerprint(capture: LiveSessionTransientCapture): unknown {
 
 export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
   readonly #journal: DurableCommandJournal
-  readonly #transients: NativeSocketTransientState
   readonly #admissions = new Map<WebSocket, Admission>()
   readonly #authenticating = new Map<
     WebSocket,
@@ -230,10 +252,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     { barriers: CampaignSceneStateDto['barriers']; index: SceneBarrierIndex }
   >()
   #activation: Promise<void> | null = null
-  readonly #authorityCaptures = new Map<
-    string,
-    { cacheGeneration: number; capture: LiveSessionTransientCapture; expiresAt: number }
-  >()
+  readonly #previewStreams = new Map<WebSocket, Map<string, PreviewStream>>()
+  /** Keyed by user ID. */
+  readonly #previewControls = new Map<string, PreviewControl>()
+  /** Background preview refreshes by input: at most one running and one start per retry window. */
+  readonly #previewRefreshes = new Map<string, { running: boolean; startedAt: number }>()
   readonly #budgets = new Map<WebSocket, SocketMessageBudget>()
   readonly #pendingCommands = new PendingWork(
     ROOM_LIMITS.maxPendingCommandsPerSocket,
@@ -241,29 +264,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   )
   /** Players with an Encounter command queued or running; see `roomLimits.ts`. */
   readonly #playerEncounterCommands = new Map<string, number>()
-  readonly #pendingTransients = new PendingWork(
-    ROOM_LIMITS.maxPendingTransientsPerSocket,
-    ROOM_LIMITS.maxPendingTransientsPerSocket * ROOM_LIMITS.maxSocketsPerRoom
-  )
   #cache: TransientCache | null = null
   readonly #captureCache = new LiveCaptureCache()
   #cacheGeneration = 0
   #presentationChanging = false
   #commandChain: Promise<void> = Promise.resolve()
-  readonly #queuedPointers = new Map<
-    WebSocket,
-    { envelope: SceneTransientEnvelopeDto; generation: number }
-  >()
   #outboxFlush: Promise<void> | null = null
   #rulesRuntime: Promise<RulesRuntimeService> | null = null
   #sceneSync: Promise<void> | null = null
-  #tokenTransientChain: Promise<void> = Promise.resolve()
-  #transientChain: Promise<void> = Promise.resolve()
 
   constructor(ctx: DurableObjectState, env: SessionWorkerEnvironment) {
     super(ctx, env)
     this.#journal = new DurableCommandJournal(ctx.storage)
-    this.#transients = new NativeSocketTransientState(ctx.storage)
     ctx.blockConcurrencyWhile(async () => {
       ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS native_room_identity (
@@ -279,12 +291,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           release_at INTEGER NOT NULL
         );
       `)
-      const liveSocketIds = new Set<string>()
-      for (const socket of ctx.getWebSockets()) {
-        const value = attachment(socket)
-        if (value) liveSocketIds.add(value.socketId)
-      }
-      this.#transients.forgetClosedSockets(liveSocketIds)
     })
   }
 
@@ -472,44 +478,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       await this.#commandChain
       return
     }
-    const envelope = parsed.data.envelope
-    const work = { envelope, generation: admission.generation }
-    if (envelope.kind === 'POINTER_PREVIEW') {
-      const queued = this.#queuedPointers.get(socket)
-      if (queued?.generation === admission.generation) {
-        if (
-          queued.envelope.sceneId !== envelope.sceneId ||
-          queued.envelope.baselineVersion !== envelope.baselineVersion ||
-          envelope.sequence > queued.envelope.sequence
-        )
-          queued.envelope = envelope
-        return
-      }
-      // Pointer samples replace one queued sample; ordered token paths still keep every segment.
-      this.#queuedPointers.set(socket, work)
+    try {
+      this.#broadcastTransient(socket, admission, parsed.data.envelope)
+    } catch {
+      this.#cache = null
+      this.#challenge(socket, admission.generation)
     }
-    // Previews are lossy: a socket that outruns the room drops samples instead of queueing them.
-    if (!this.#pendingTransients.tryAcquire(socket)) {
-      if (this.#queuedPointers.get(socket) === work) this.#queuedPointers.delete(socket)
-      return
-    }
-    const chain =
-      envelope.kind === 'TOKEN_DRAG_PREVIEW' ? this.#tokenTransientChain : this.#transientChain
-    const next = chain
-      .then(async () => {
-        if (this.#queuedPointers.get(socket) === work) this.#queuedPointers.delete(socket)
-        const generationMatches = this.#generations.get(socket) === work.generation
-
-        if (generationMatches) await this.#broadcastTransient(socket, work.envelope)
-      })
-      .catch(() => {
-        this.#cache = null
-        this.#challenge(socket, admission.generation)
-      })
-      .finally(() => this.#pendingTransients.release(socket))
-    if (envelope.kind === 'TOKEN_DRAG_PREVIEW') this.#tokenTransientChain = next
-    else this.#transientChain = next
-    await next
   }
 
   async webSocketClose(socket: WebSocket): Promise<void> {
@@ -1511,7 +1485,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       })
       if (this.#cache?.scene?.id === result.sceneId)
         this.#cache = { ...this.#cache, encounterId: result.encounterId }
-      this.#authorityCaptures.clear()
+      this.#previewControls.clear()
       for (const member of this.ctx.getWebSockets())
         if (this.#liveAdmission(member)) send(member, committed)
     } catch (error) {
@@ -1719,139 +1693,153 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
   }
 
-  async #broadcastTransient(origin: WebSocket, envelope: SceneTransientEnvelopeDto): Promise<void> {
+  /**
+   * Renders one preview sample from room memory within its message: the Scene cache, the members'
+   * admissions and leased bound-token control and Character-vision checks. A sample never calls or
+   * waits on Convex or storage. A missing or aging input starts a background refresh, and samples it
+   * cannot serve yet are dropped, since previews are lossy (ADR 0035 Amendment 15).
+   */
+  #broadcastTransient(
+    origin: WebSocket,
+    originAdmission: Admission,
+    envelope: SceneTransientEnvelopeDto
+  ): void {
     if (this.#presentationChanging) return
     const originAttachment = attachment(origin)
-    const originAdmission = this.#liveAdmission(origin)
-    if (!originAttachment || !originAdmission) return this.#challenge(origin)
+    if (!originAttachment) return this.#challenge(origin)
     const candidates = this.ctx.getWebSockets().flatMap((socket) => {
       const candidate = this.#liveAdmission(socket)
       return candidate ? [{ admission: candidate, socket }] : (this.#challenge(socket), [])
     })
-    if (envelope.kind === 'POINTER_PREVIEW') {
-      const capture = await this.#authorityCapture(
-        originAttachment,
-        originAdmission,
-        candidates,
-        envelope
-      )
-      if (
-        capture.sceneHeader?.id !== envelope.sceneId ||
-        capture.sceneHeader.version !== envelope.baselineVersion
-      )
-        return
-      await this.#sendTransient(
-        origin,
-        originAttachment,
-        originAdmission,
-        candidates,
-        capture,
-        null,
-        envelope
-      )
+    const cached = this.#cache
+    if (!cached) return this.#refreshPreviewScene(originAttachment, originAdmission, candidates)
+    const scene = cached.scene
+    if (!scene || scene.id !== envelope.sceneId || scene.version !== envelope.baselineVersion)
       return
-    }
-
+    let boundTokenControl: PreviewControl['control'] | null = null
     if (envelope.kind === 'TOKEN_DRAG_PREVIEW') {
-      if (this.#sceneSync) await this.#sceneSync
-      const cached = this.#cache
-      if (
-        cached?.scene &&
-        cached.synchronized &&
-        cached.scene.id === envelope.sceneId &&
-        cached.scene.version === envelope.baselineVersion &&
-        // Character vision is rechecked per preview with one small read (D33).
-        (cached.characterRevisions.length === 0 ||
-          (await this.#visionRevisionsCurrent(
-            originAttachment,
-            originAdmission,
-            cached.characterRevisions
-          )))
-      ) {
-        // A player's preview on an Encounter-bound Scene needs their bound-actor control, which the
-        // room's short-lived authority capture carries (D25); any mismatch takes the full path.
-        const capture =
-          originAdmission.role === 'OWNER' || cached.encounterId === null
-            ? null
-            : await this.#authorityCapture(originAttachment, originAdmission, candidates, envelope)
-        if (
-          this.#cache === cached &&
-          (!capture ||
-            (capture.sceneHeader?.id === envelope.sceneId &&
-              capture.sceneHeader.version === envelope.baselineVersion))
-        ) {
-          await this.#sendTransient(
-            origin,
-            originAttachment,
-            originAdmission,
-            candidates,
-            capture,
-            cached.scene,
-            envelope
-          )
-          return
-        }
+      if (!this.#previewVisionCurrent(cached, originAttachment, originAdmission, candidates)) return
+      // A player's preview on an Encounter-bound Scene needs their bound-actor control (D25).
+      if (originAdmission.role === 'PLAYER' && cached.encounterId !== null) {
+        boundTokenControl = this.#previewBoundTokenControl(
+          cached,
+          originAttachment,
+          originAdmission,
+          candidates
+        )
+        if (!boundTokenControl) return
       }
     }
-
-    const capture = await this.#refreshSceneCache(originAttachment, originAdmission, candidates)
-    const scene = this.#cache?.scene
-    if (
-      !capture ||
-      !scene ||
-      scene.id !== envelope.sceneId ||
-      scene.version !== envelope.baselineVersion
-    )
-      return
-    await this.#sendTransient(
+    this.#sendTransient(
       origin,
       originAttachment,
       originAdmission,
       candidates,
-      capture,
+      boundTokenControl,
       scene,
       envelope
     )
   }
 
-  /**
-   * A recent authority capture for this origin and audience on the envelope's Scene version, reused
-   * for its short TTL instead of querying Convex per preview sample; presentation changes bump the
-   * cache generation.
-   */
-  async #authorityCapture(
-    originAttachment: SocketAttachment,
-    originAdmission: Admission,
-    candidates: readonly { admission: Admission; socket: WebSocket }[],
-    envelope: Pick<SceneTransientEnvelopeDto, 'sceneId' | 'baselineVersion'>
-  ): Promise<LiveSessionTransientCapture> {
-    const audience = [...new Set(candidates.map(({ admission }) => admission.userId))].sort()
-    const captureKey = `${originAdmission.userId}|${audience.join(',')}`
-    const cached = this.#authorityCaptures.get(captureKey)
+  /** Starts `work` off the sample path unless it is running or started within the retry window. */
+  #refreshPreviewInBackground(key: string, work: () => Promise<void>): void {
+    const previous = this.#previewRefreshes.get(key)
     if (
-      cached &&
-      cached.expiresAt > Date.now() &&
-      cached.cacheGeneration === this.#cacheGeneration &&
-      cached.capture.sceneHeader?.id === envelope.sceneId &&
-      cached.capture.sceneHeader.version === envelope.baselineVersion
+      previous &&
+      (previous.running || Date.now() - previous.startedAt < ROOM_LIMITS.previewRetryMs)
     )
-      return cached.capture
-    const cacheGeneration = this.#cacheGeneration
-    let capture: LiveSessionTransientCapture
-    try {
-      capture = await this.#capture(originAttachment, originAdmission, candidates, 'AUTHORITY', [])
-    } catch (error) {
-      if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
-      capture = await this.#capture(originAttachment, originAdmission, candidates, 'AUTHORITY', [])
-    }
-    for (const [key, entry] of this.#authorityCaptures)
-      if (entry.expiresAt <= Date.now()) this.#authorityCaptures.delete(key)
-    this.#authorityCaptures.set(captureKey, {
-      cacheGeneration,
-      capture,
-      expiresAt: Date.now() + ROOM_LIMITS.authorityCaptureTtlMs
+      return
+    const refresh = { running: true, startedAt: Date.now() }
+    this.#previewRefreshes.set(key, refresh)
+    this.ctx.waitUntil(
+      work()
+        .catch(() => undefined)
+        .finally(() => {
+          refresh.running = false
+        })
+    )
+  }
+
+  /** Rebuilds a missing or stale Scene cache in the background, as `SYNCHRONIZE_SCENE` does. */
+  #refreshPreviewScene(
+    value: SocketAttachment,
+    admission: Admission,
+    candidates: readonly { admission: Admission; socket: WebSocket }[]
+  ): void {
+    this.#refreshPreviewInBackground('scene', async () => {
+      await this.#refreshSceneCache(value, admission, candidates)
+      const sceneId = this.#cache?.scene?.id
+      if (sceneId) this.#overlayDurableSceneCache(sceneId)
     })
-    return capture
+  }
+
+  /**
+   * Whether the Character revisions behind the cached vision were confirmed within the preview
+   * lease (D33). From half the lease, one background read rechecks them; a changed revision rebuilds
+   * the Scene cache with the new vision.
+   */
+  #previewVisionCurrent(
+    cached: TransientCache,
+    value: SocketAttachment,
+    admission: Admission,
+    candidates: readonly { admission: Admission; socket: WebSocket }[]
+  ): boolean {
+    if (cached.characterRevisions.length === 0) return true
+    const age = Date.now() - cached.visionCheckedAt
+    if (age >= ROOM_LIMITS.previewLeaseMs / 2)
+      this.#refreshPreviewInBackground('scene', async () => {
+        const checkedAt = Date.now()
+        if (!(await this.#visionRevisionsCurrent(value, admission, cached.characterRevisions))) {
+          await this.#refreshSceneCache(value, admission, candidates)
+          return
+        }
+        if (this.#cache?.key === cached.key)
+          this.#cache = { ...this.#cache, visionCheckedAt: checkedAt }
+      })
+    return age < ROOM_LIMITS.previewLeaseMs
+  }
+
+  /**
+   * The player's leased bound-token control on the cached Encounter-bound Scene, or null while no
+   * lease is current. From half the lease, one background AUTHORITY capture renews it.
+   */
+  #previewBoundTokenControl(
+    cached: TransientCache,
+    value: SocketAttachment,
+    admission: Admission,
+    candidates: readonly { admission: Admission; socket: WebSocket }[]
+  ): PreviewControl['control'] | null {
+    const lease = this.#previewControls.get(admission.userId)
+    const age =
+      lease &&
+      lease.cacheGeneration === this.#cacheGeneration &&
+      lease.membershipEpoch === admission.membershipEpoch &&
+      lease.sceneId === cached.scene?.id &&
+      lease.encounterId === cached.encounterId
+        ? Date.now() - lease.checkedAt
+        : Number.POSITIVE_INFINITY
+    if (age >= ROOM_LIMITS.previewLeaseMs / 2)
+      this.#refreshPreviewInBackground(`control:${admission.userId}`, async () => {
+        const cacheGeneration = this.#cacheGeneration
+        const checkedAt = Date.now()
+        const capture = await this.#capture(value, admission, candidates, 'AUTHORITY', [])
+        if (
+          cacheGeneration !== this.#cacheGeneration ||
+          capture.origin.userId !== admission.userId ||
+          capture.origin.role !== admission.role ||
+          capture.origin.membershipEpoch !== admission.membershipEpoch
+        )
+          return
+        this.#previewControls.set(admission.userId, {
+          cacheGeneration,
+          checkedAt,
+          control: capture.originBoundTokenControl,
+          encounterId: capture.sceneEncounterId,
+          membershipEpoch: capture.origin.membershipEpoch,
+          sceneId: capture.sceneHeader?.id ?? null
+        })
+      })
+    return lease && age < ROOM_LIMITS.previewLeaseMs ? lease.control : null
   }
 
   /** Whether the Character revisions behind the cached Scene vision are still current (D33). */
@@ -1972,6 +1960,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     let scene = hydrated.scene
     let revisions = hydrated.characterRevisions
     let baseOrdinals = hydrated.baseOrdinals
+    // The final capture confirms `revisions`; any retry confirms them later still.
+    const visionCheckedAt = Date.now()
     let finalCapture: LiveSessionTransientCapture
     try {
       finalCapture = await this.#capture(value, admission, candidates, 'FULL', revisions)
@@ -2009,7 +1999,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       presentation: finalCapture.presentation
         ? { expectedPresentationVersion: finalCapture.presentation.version }
         : null,
-      synchronized: false
+      synchronized: false,
+      visionCheckedAt
     }
     return finalCapture
   }
@@ -2030,39 +2021,47 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     })
   }
 
-  async #sendTransient(
+  /**
+   * Validates one sample against its stream and fans it out to each admitted recipient's projection.
+   * It runs within the sample's message, so the admissions read by the caller are still current.
+   */
+  #sendTransient(
     origin: WebSocket,
     originAttachment: SocketAttachment,
     originAdmission: Admission,
     candidates: readonly { admission: Admission; socket: WebSocket }[],
-    capture: LiveSessionTransientCapture | null,
-    scene: CampaignSceneStateDto | null,
+    boundTokenControl: PreviewControl['control'] | null,
+    scene: CampaignSceneStateDto,
     envelope: SceneTransientEnvelopeDto
-  ): Promise<void> {
-    const originMember = capture?.origin ?? originAdmission
-    if (!this.#matchesCurrent(origin, originAdmission, originMember)) return
+  ): void {
     const key = streamKey(envelope)
-    const retained = this.#transients.read(originAttachment.socketId, key)
+    const streams = this.#previewStreams.get(origin) ?? new Map<string, PreviewStream>()
+    const retained = streams.get(key)
+    if ((retained?.sequence ?? -1) >= envelope.sequence) return
+    const retain = (path: ScenePoint[] | null) => {
+      streams.set(key, {
+        baselineVersion: envelope.baselineVersion,
+        path,
+        sceneId: envelope.sceneId,
+        sequence: envelope.sequence
+      })
+      this.#previewStreams.set(origin, streams)
+    }
+    const recipients = candidates.filter(
+      (candidate) =>
+        attachment(candidate.socket)?.socketId !== originAttachment.socketId &&
+        (envelope.audience !== 'GM' || candidate.admission.role === 'OWNER')
+    )
     if (envelope.kind === 'TOKEN_DRAG_PREVIEW') {
-      if (!scene) return
-      const currentAttachment = attachment(origin)
-
-      if (
-        !currentAttachment ||
-        currentAttachment.socketId !== originAttachment.socketId ||
-        (retained?.sequence ?? -1) >= envelope.sequence
-      )
-        return
       if (envelope.previewUserId && originAdmission.role !== 'OWNER') return
       const token = scene.tokens.find((candidate) => candidate.id === envelope.tokenId)
-
       if (
         !token ||
         !canPreviewSceneTokenDrag({
           token,
           role: originAdmission.role,
           userId: originAdmission.userId,
-          originBoundTokenControl: capture?.originBoundTokenControl ?? null
+          originBoundTokenControl: boundTokenControl
         })
       )
         return
@@ -2085,33 +2084,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             )
       const accepted =
         nextPath.at(-1)?.x === envelope.position.x && nextPath.at(-1)?.y === envelope.position.y
-
-      this.#transients.retain(
-        currentAttachment.socketId,
-        key,
-        envelope.sequence,
-        envelope.sceneId,
-        envelope.baselineVersion,
-        nextPath
-      )
+      retain(nextPath)
       if (!accepted)
-        return this.#sendIfCurrent(
-          origin,
-          originAdmission,
-          originMember,
-          origin,
-          originAdmission,
-          originMember,
-          {
-            message: {
-              envelope,
-              tokenDragResolution: { accepted: false, path: currentPath },
-              userId: originAdmission.userId,
-              visionLayers: []
-            },
-            type: 'TRANSIENT'
-          }
-        )
+        return send(origin, {
+          message: {
+            envelope,
+            tokenDragResolution: { accepted: false, path: currentPath },
+            userId: originAdmission.userId,
+            visionLayers: []
+          },
+          type: 'TRANSIENT'
+        })
       const previewScene = {
         ...scene,
         tokens: scene.tokens.map((candidate) =>
@@ -2128,140 +2111,56 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         tokenId: token.id,
         viewer: originViewer
       })
-      this.#sendIfCurrent(
-        origin,
-        originAdmission,
-        originMember,
-        origin,
-        originAdmission,
-        originMember,
-        {
-          message: {
-            envelope,
-            tokenDragResolution: { accepted: true, path: nextPath },
-            userId: originAdmission.userId,
-            visionLayers: originPreview.visionLayers,
-            visionReveal: originPreview.reveal
-          },
-          type: 'TRANSIENT'
-        }
-      )
-      for (const candidate of candidates) {
-        if (attachment(candidate.socket)?.socketId === originAttachment.socketId) continue
-        if (envelope.audience === 'GM' && candidate.admission.role !== 'OWNER') continue
-        const recipientViewer = viewer(candidate.admission)
+      send(origin, {
+        message: {
+          envelope,
+          tokenDragResolution: { accepted: true, path: nextPath },
+          userId: originAdmission.userId,
+          visionLayers: originPreview.visionLayers,
+          visionReveal: originPreview.reveal
+        },
+        type: 'TRANSIENT'
+      })
+      for (const recipient of recipients) {
+        const recipientViewer = viewer(recipient.admission)
         if (!isSceneTokenVisibleToViewer(previewScene, recipientViewer, token.id)) continue
         const preview = projectSceneTokenPreviewForViewer(previewScene, {
           path: nextPath,
           tokenId: token.id,
           viewer: recipientViewer
         })
-        this.#sendIfCurrent(
-          origin,
-          originAdmission,
-          originMember,
-          candidate.socket,
-          candidate.admission,
-          capture ? this.#member(capture, candidate.admission) : candidate.admission,
-          {
-            message: {
-              envelope: { ...envelope, previewUserId: undefined },
-              userId: originAdmission.userId,
-              visionLayers: preview.visionLayers,
-              visionReveal: preview.reveal
-            },
-            type: 'TRANSIENT'
-          }
-        )
+        send(recipient.socket, {
+          message: {
+            envelope: { ...envelope, previewUserId: undefined },
+            userId: originAdmission.userId,
+            visionLayers: preview.visionLayers,
+            visionReveal: preview.reveal
+          },
+          type: 'TRANSIENT'
+        })
       }
       return
     }
-    if (envelope.kind === 'FOG_AREA_PREVIEW') {
-      if (
-        !scene ||
-        originAdmission.role !== 'OWNER' ||
-        sceneFogOwnerFailure(scene.fogMode, envelope.ownerUserId) !== null
-      )
-        return
-    }
-    const currentAttachment = attachment(origin)
-
     if (
-      !currentAttachment ||
-      currentAttachment.socketId !== originAttachment.socketId ||
-      (retained?.sequence ?? -1) >= envelope.sequence
+      envelope.kind === 'FOG_AREA_PREVIEW' &&
+      (originAdmission.role !== 'OWNER' ||
+        sceneFogOwnerFailure(scene.fogMode, envelope.ownerUserId) !== null)
     )
       return
-    this.#transients.retain(
-      currentAttachment.socketId,
-      key,
-      envelope.sequence,
-      envelope.sceneId,
-      envelope.baselineVersion
-    )
-    for (const candidate of candidates) {
-      if (attachment(candidate.socket)?.socketId === originAttachment.socketId) continue
-      if (envelope.audience === 'GM' && candidate.admission.role !== 'OWNER') continue
+    retain(null)
+    for (const recipient of recipients) {
       if (
         envelope.kind === 'FOG_AREA_PREVIEW' &&
         envelope.ownerUserId !== null &&
-        candidate.admission.role !== 'OWNER' &&
-        candidate.admission.userId !== envelope.ownerUserId
+        recipient.admission.role !== 'OWNER' &&
+        recipient.admission.userId !== envelope.ownerUserId
       )
         continue
-      this.#sendIfCurrent(
-        origin,
-        originAdmission,
-        originMember,
-        candidate.socket,
-        candidate.admission,
-        capture ? this.#member(capture, candidate.admission) : candidate.admission,
-        { message: { envelope, userId: originAdmission.userId }, type: 'TRANSIENT' }
-      )
+      send(recipient.socket, {
+        message: { envelope, userId: originAdmission.userId },
+        type: 'TRANSIENT'
+      })
     }
-  }
-
-  #sendIfCurrent(
-    origin: WebSocket,
-    originAdmission: Admission,
-    originMember: Pick<Admission, 'membershipEpoch' | 'role' | 'userId'>,
-    socket: WebSocket,
-    expected: Admission,
-    member: Pick<Admission, 'membershipEpoch' | 'role' | 'userId'> | undefined,
-    message: { message: LiveSessionTransientBroadcastDto; type: 'TRANSIENT' }
-  ): void {
-    if (
-      this.#presentationChanging ||
-      !this.#matchesCurrent(origin, originAdmission, originMember) ||
-      !this.#matchesCurrent(socket, expected, member)
-    )
-      return
-    send(socket, message)
-  }
-
-  #matchesCurrent(
-    socket: WebSocket,
-    expected: Admission,
-    member: Pick<Admission, 'membershipEpoch' | 'role' | 'userId'> | undefined
-  ): boolean {
-    const current = this.#liveAdmission(socket)
-    if (!current) {
-      this.#challenge(socket)
-      return false
-    }
-    return (
-      member !== undefined &&
-      current.generation === expected.generation &&
-      current.role === member.role &&
-      current.membershipEpoch === member.membershipEpoch &&
-      current.userId === member.userId
-    )
-  }
-
-  #member(capture: LiveSessionTransientCapture, admission: Admission) {
-    return capture.origin.userId === admission.userId
-      ? capture.origin
-      : capture.recipients.find((member) => member.userId === admission.userId)
   }
 
   /** The Campaign this room is bound to by its first admitted ticket, if any. */
@@ -2309,7 +2208,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#generations.set(socket, generation)
     this.#admissions.delete(socket)
     this.#authenticating.delete(socket)
-    this.#queuedPointers.delete(socket)
     return generation
   }
 
@@ -2342,8 +2240,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   #forgetSocket(socket: WebSocket): void {
     this.#invalidate(socket)
     this.#budgets.delete(socket)
-    const value = attachment(socket)
-    if (value) this.#transients.forget(value.socketId)
+    this.#previewStreams.delete(socket)
   }
 
   async #presentScene(input: LiveSessionPresentationControlInput) {
@@ -2441,7 +2338,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       )
         continue
       this.#invalidate(socket)
-      if (value) this.#transients.forget(value.socketId)
+      this.#previewStreams.delete(socket)
       if (socket.readyState === WebSocket.OPEN)
         socket.close(
           1008,
