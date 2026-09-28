@@ -1,7 +1,8 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  // One Convex copy for Convex code and workspace packages, so ConvexError identity holds in-process.
+  // apps/apis installs its own Convex (hoistingLimits: workspaces), while workspace packages resolve
+  // the root copy through their real path; one copy keeps Convex runtime and ConvexError identity.
   resolve: { dedupe: ['convex'] },
   test: {
     allowOnly: false,

@@ -18,10 +18,13 @@
     "@artificer-toolkit/rules-runtime": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "convex": "1.45.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "convex": "1.45.0",
     "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "convex": "1.45.0"
   }
 }

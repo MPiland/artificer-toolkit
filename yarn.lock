@@ -137,6 +137,8 @@ __metadata:
     convex: "npm:1.45.0"
     typescript: "npm:^7.0.2"
     zod: "npm:4.4.3"
+  peerDependencies:
+    convex: 1.45.0
   languageName: unknown
   linkType: soft
 
