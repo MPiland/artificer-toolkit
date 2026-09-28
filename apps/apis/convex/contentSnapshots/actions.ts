@@ -9,9 +9,8 @@ import {
   type ContentSnapshotHead
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import {
-  buildContentSnapshotPart,
+  buildContentSnapshotKind,
   contentSnapshotObjectKey,
-  toContentSnapshotIndexEntry,
   type ContentSnapshotIndexSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { components, internal } from '../_generated/api'
@@ -62,14 +61,7 @@ export const build = internalAction({
         }
         if (sources.length === 0) continue
         const header = { format: 1 as const, ...ref, kind }
-        const index = buildContentSnapshotPart(
-          { ...header, part: 'index' },
-          sources.map((source) => toContentSnapshotIndexEntry(source))
-        )
-        const documents = buildContentSnapshotPart(
-          { ...header, part: 'documents' },
-          sources.map((source) => source.document)
-        )
+        const { index, documents } = buildContentSnapshotKind(header, sources)
         objects.set(
           contentSnapshotObjectKey({ ...header, part: 'index' }, index.sha256),
           index.json

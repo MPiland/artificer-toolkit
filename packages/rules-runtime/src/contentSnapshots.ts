@@ -52,6 +52,23 @@ export function buildContentSnapshotPart<
   }
 }
 
+/** Both parts of one scope kind, from the same readable current publications. */
+export function buildContentSnapshotKind(
+  header: Omit<ContentSnapshotHeader, 'part'>,
+  sources: readonly ContentSnapshotIndexSource[]
+) {
+  return {
+    index: buildContentSnapshotPart(
+      { ...header, part: 'index' },
+      sources.map((source) => toContentSnapshotIndexEntry(source))
+    ),
+    documents: buildContentSnapshotPart(
+      { ...header, part: 'documents' },
+      sources.map((source) => source.document)
+    )
+  }
+}
+
 export function contentSnapshotObjectKey(header: ContentSnapshotHeader, sha256: string): string {
   const { scope, scopeId, kind, part } = contentSnapshotHeaderSchema.parse(header)
   return `v1/${scope.toLowerCase()}/${scopeId}/${kind.toLowerCase()}/${part}/${projectionChecksumSchema.parse(sha256)}.json`
