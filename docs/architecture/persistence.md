@@ -363,8 +363,8 @@ immutable R2 objects; Convex owns only their bookkeeping (`apps/apis/convex/cont
   - existing heads only, never creating one: `contentSources` updates and deletes, `campaigns`
     System, owner or catalogue changes and deletes, and `campaignMemberships` status or role changes.
     Rules catalogues change only at canonical bootstrap and mark nothing.
-- **Build.** The Node action reads `revision` first, then each kind in its own query (the Builder's
-  500-per-kind bound applies), builds both parts with the S1 functions and uploads, gzipped, only
+- **Build.** The Node action reads `revision` first, then each kind in pages of 100 roots per query (no
+  per-kind cap; a write between pages bumps `revision` and triggers another build), builds both parts with the S1 functions and uploads, gzipped, only
   keys without an object row. Equipment index facts use the stored `equipmentOptions.builder` when
   its checksum is current and otherwise the Builder's projection (`compileCurrentEquipment` plus
   `equipmentOptionFacts`), so a missing backfill never drops a root. Every kind is rebuilt each

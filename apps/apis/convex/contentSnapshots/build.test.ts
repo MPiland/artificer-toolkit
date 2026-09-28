@@ -211,6 +211,56 @@ describe('content snapshot builds', () => {
     }
   }, 30_000)
 
+  it('reads a scope kind across several pages without dropping or repeating roots', async () => {
+    const { t, server, owner, userSource, publish, settle, head, rootIds } = await setup()
+    try {
+      const campaign = await owner.caller.mutation(api.campaigns.create.create, {
+        name: 'Snapshot pages',
+        format: 'ONGOING',
+        toneTags: ['HEROIC'],
+        contentMaturity: 'STANDARD',
+        gameSystemId: srdSystemRecord.id,
+        primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+      })
+      const campaignScope = { scope: 'CAMPAIGN', scopeId: campaign.id } as const
+      const visible: string[] = []
+      for (let index = 0; index < 5; index++) {
+        const id = await publish('RACE', homebrew(elf))
+        visible.push(id)
+        await owner.caller.mutation(api.campaigns.contentShares.share, {
+          campaignId: campaign.id,
+          subjectKind: 'RACE',
+          subjectId: id
+        })
+        // Hidden import rows between visible ones leave short pages, never missing roots.
+        await publish('RACE', homebrew(dwarf), { importJobId: crypto.randomUUID() })
+      }
+      await settle()
+      for (const ref of [userSource, campaignScope]) {
+        const paged: string[] = []
+        let pages = 0
+        let cursor: string | null = null
+        for (let isDone = false; !isDone; pages++) {
+          const page: { sources: string[]; continueCursor: string; isDone: boolean } =
+            await t.query(internal.contentSnapshots.heads.readScopeKind, {
+              ...ref,
+              kind: 'RACE',
+              paginationOpts: { numItems: 2, cursor }
+            })
+          for (const json of page.sources)
+            paged.push((JSON.parse(json) as { document: { id: string } }).document.id)
+          cursor = page.continueCursor
+          isDone = page.isDone
+        }
+        expect(pages).toBeGreaterThanOrEqual(3)
+        expect(paged.sort()).toEqual([...visible].sort())
+        expect(await rootIds(ref, await head(ref), 'RACE')).toEqual(paged)
+      }
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
   it('rejects a stale compare-and-set and records its uploads as superseded', async () => {
     const { t, server, userSource, publish, settle, head, objects } = await setup()
     try {

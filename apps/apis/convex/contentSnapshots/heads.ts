@@ -1,3 +1,4 @@
+import { paginationOptsValidator, type PaginationOptions } from 'convex/server'
 import { v } from 'convex/values'
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
@@ -20,7 +21,6 @@ import {
   readCampaignSharedRootPublication,
   requireCampaignContentParents
 } from '../campaigns/contentAccess'
-import { readCharacterSourceRoots } from '../characters/sourceReads'
 import {
   canReadAuthoredRoot,
   readAuthoredVersion,
@@ -29,6 +29,8 @@ import {
 import { compileCurrentEquipment } from '../content/equipmentRelationships'
 import { equipmentOptionFacts } from '../content/equipmentOptionFacts'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
+import { contentStream } from '../content/streams'
+import { isImportRowVisible } from '../imports/visibility'
 import {
   CONTENT_SNAPSHOT_BUILD_DELAY_MS,
   readContentSnapshotHead,
@@ -74,19 +76,27 @@ export const readBuildStart = internalQuery({
 })
 
 /**
- * One kind of a scope's readable current publications, by the Builder's source rules, as JSON
- * index sources. A missing scope has no roots.
+ * One page of one kind of a scope's readable current publications, by the Builder's source rules,
+ * as JSON index sources. A missing scope has no roots. Pages bound each query's reads and time.
  */
 export const readScopeKind = internalQuery({
-  args: { ...vContentSnapshotScopeRef, kind: zodToConvex(contentSnapshotKindSchema) },
-  returns: v.array(v.string()),
-  handler: async (ctx, { scope, scopeId, kind }) => {
-    const found =
+  args: {
+    ...vContentSnapshotScopeRef,
+    kind: zodToConvex(contentSnapshotKindSchema),
+    paginationOpts: paginationOptsValidator
+  },
+  returns: v.object({
+    sources: v.array(v.string()),
+    continueCursor: v.string(),
+    isDone: v.boolean()
+  }),
+  handler: async (ctx, { scope, scopeId, kind, paginationOpts }) => {
+    const { page, continueCursor, isDone } =
       scope === 'SOURCE'
-        ? await readSourcePublications(ctx, scopeId, kind)
-        : await readCampaignPublications(ctx, scopeId, kind)
+        ? await readSourcePublications(ctx, scopeId, kind, paginationOpts)
+        : await readCampaignPublications(ctx, scopeId, kind, paginationOpts)
     const sources: string[] = []
-    for (const { root, publication } of found) {
+    for (const { root, publication } of page) {
       const source: ContentSnapshotIndexSource =
         publication.subjectKind === 'EQUIPMENT'
           ? {
@@ -97,54 +107,71 @@ export const readScopeKind = internalQuery({
           : publication
       sources.push(JSON.stringify(source))
     }
-    return sources
+    return { sources, continueCursor, isDone }
   }
 })
 
-async function readSourcePublications(ctx: QueryCtx, sourceId: string, kind: ContentSnapshotKind) {
+type ScopePublication = {
+  root: Doc<'authoredRoots'>
+  publication: ReturnType<typeof parsePublicationDocument>
+}
+const emptyPage = { page: [], continueCursor: '', isDone: true }
+
+/** The roots `readCharacterSourceRoots` reads for this source, one page at a time. */
+async function readSourcePublications(
+  ctx: QueryCtx,
+  sourceId: string,
+  kind: ContentSnapshotKind,
+  paginationOpts: PaginationOptions
+) {
   const source = await ctx.db
     .query('contentSources')
     .withIndex('by_publicId', (q) => q.eq('id', sourceId))
     .unique()
-  if (!source) return []
-  const roots = await readCharacterSourceRoots(
-    ctx,
-    source.gameSystemId,
-    { campaign: null, sources: [source] },
-    kind
-  )
-  const found = []
-  for (const root of roots) {
+  if (!source) return emptyPage
+  const roots = await contentStream(ctx.db)
+    .query('authoredRoots')
+    .withIndex('by_contentSourceId_subjectKind_ownerUserId', (q) =>
+      q
+        .eq('contentSourceId', source.id)
+        .eq('subjectKind', kind)
+        .eq('ownerUserId', source.kind === 'USER' ? source.ownerUserId : undefined)
+    )
+    .filterWith((root) => isImportRowVisible(ctx, root.importJobId))
+    .paginate(paginationOpts)
+  const page: ScopePublication[] = []
+  for (const root of roots.page) {
+    if (root.systemId !== source.gameSystemId)
+      throw new Error('Stored content source System mismatch.')
     if (!(await canReadAuthoredRoot(ctx, root, source.ownerUserId, source))) continue
     const publication = parsePublicationDocument(
       kind,
       await readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root))
     )
-    found.push({ root, publication })
+    page.push({ root, publication })
   }
-  return found
+  return { ...roots, page }
 }
 
 async function readCampaignPublications(
   ctx: QueryCtx,
   campaignId: string,
-  kind: ContentSnapshotKind
+  kind: ContentSnapshotKind,
+  paginationOpts: PaginationOptions
 ) {
   const campaign = await ctx.db
     .query('campaigns')
     .withIndex('by_publicId', (q) => q.eq('id', campaignId))
     .unique()
-  if (!campaign) return []
+  if (!campaign) return emptyPage
   const shares = await ctx.db
     .query('campaignContentShares')
     .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
       q.eq('campaignId', campaign.id).eq('subjectKind', kind)
     )
-    .take(501)
-  // ponytail: the same per-kind bound as the Builder's inline catalogue (`readCharacterSourceRoots`).
-  if (shares.length > 500) throw new Error('Campaign content snapshot requires paginated search.')
-  const found = []
-  for (const share of shares) {
+    .paginate(paginationOpts)
+  const page: ScopePublication[] = []
+  for (const share of shares.page) {
     const publication = await readCampaignSharedRootPublication(
       ctx,
       campaign,
@@ -159,9 +186,9 @@ async function readCampaignPublications(
       .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))
       .unique()
     if (!root) throw new Error('Stored Campaign content root is missing.')
-    found.push({ root, publication })
+    page.push({ root, publication })
   }
-  return found
+  return { ...shares, page }
 }
 
 /**

@@ -65089,10 +65089,18 @@ export declare const internal: {
             | "RACE"
             | "SPELL"
             | "VEHICLE";
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
           scope: "SOURCE" | "CAMPAIGN";
           scopeId: string;
         },
-        Array<string>
+        { continueCursor: string; isDone: boolean; sources: Array<string> }
       >;
     };
   };

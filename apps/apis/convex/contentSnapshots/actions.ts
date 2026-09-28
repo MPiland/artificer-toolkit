@@ -18,6 +18,10 @@ import { internalAction } from '../_generated/server'
 import { vContentSnapshotScopeRef } from './marking'
 import { createContentSnapshotStorage } from './storage'
 
+// About 60 ms of warm Node for the SRD's largest kind (CREATURE), leaving headroom for the
+// self-hosted runtime's slower per-call execution against the 1 s query limit.
+const CONTENT_SNAPSHOT_READ_PAGE_SIZE = 100
+
 /**
  * Rebuilds every kind of one scope from its current publications and commits the head with a
  * compare-and-set. Parts are content-addressed, so unchanged kinds keep their keys and upload
@@ -38,12 +42,23 @@ export const build = internalAction({
       const objects = new Map<string, string>()
       for (const kind of contentSnapshotKindSchema.options) {
         if (!start.scopeExists) break
-        const sources = (
-          await ctx.runQuery(internal.contentSnapshots.heads.readScopeKind, { ...ref, kind })
-        ).map(
+        // Pages read separate snapshots; a write between them bumps `revision`, so the commit
+        // schedules another build.
+        const sources: ContentSnapshotIndexSource[] = []
+        let cursor: string | null = null
+        for (let isDone = false; !isDone; ) {
+          const page: { sources: string[]; continueCursor: string; isDone: boolean } =
+            await ctx.runQuery(internal.contentSnapshots.heads.readScopeKind, {
+              ...ref,
+              kind,
+              paginationOpts: { numItems: CONTENT_SNAPSHOT_READ_PAGE_SIZE, cursor }
+            })
           // Parsed from the query's own serialization; the part build validates every root.
-          (json) => JSON.parse(json) as ContentSnapshotIndexSource
-        )
+          for (const json of page.sources)
+            sources.push(JSON.parse(json) as ContentSnapshotIndexSource)
+          cursor = page.continueCursor
+          isDone = page.isDone
+        }
         if (sources.length === 0) continue
         const header = { format: 1 as const, ...ref, kind }
         const index = buildContentSnapshotPart(
