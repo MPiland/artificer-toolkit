@@ -7,7 +7,7 @@ import {
   deriveOnce,
   memoizeMutationReads,
   memoizeTransactionReads,
-  storedAfterWrite
+  beforeWrite
 } from './transactionReads'
 
 it('serves identical reads once, frozen, and keeps different ranges apart', async () => {
@@ -231,7 +231,7 @@ it('shares an identity-keyed derivation with a re-read of the same content after
     }
     expect(deriveOnce(await read(), derive, identity)).toEqual({ revision: 'first' })
     // Verified before the write, as it will be stored.
-    const candidate = storedAfterWrite(await read(), { revision: 'second' })
+    const candidate = beforeWrite(db, { ...(await read()), revision: 'second' })
     expect(deriveOnce(candidate, derive, identity)).toEqual({ revision: 'second' })
     expect(derived).toBe(2)
     await db.patch(documentId, { revision: 'second' })

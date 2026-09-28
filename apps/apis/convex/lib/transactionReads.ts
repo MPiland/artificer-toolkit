@@ -57,8 +57,8 @@ const scopes = new WeakMap<object, DerivationScope>()
 /** The transaction whose derivation is running, for the values it builds before returning them. */
 let deriving: DerivationScope | undefined
 const derivations = new WeakMap<object, Map<unknown, unknown>>()
-/** Every memoized reader, so wrapping one again returns it rather than a second memo. */
-const memoizedReaders = new WeakSet<object>()
+/** Every memoized reader's transaction; wrapping one again returns it rather than a second memo. */
+const readerScopes = new WeakMap<object, DerivationScope>()
 
 /** The stored documents in a read result: one document, a page, or an array. */
 function resultDocuments(value: unknown): object[] {
@@ -138,17 +138,14 @@ export function deriveOnce<Document extends object, Value>(
 }
 
 /**
- * `document` as it will read after writing `fields`, in `document`'s transaction, so derivations
- * that verify the fields before the write are shared with a later read of the same content.
+ * Places `document`, a value about to be written through `db`, in `db`'s memoized transaction,
+ * so identity-keyed derivations that verify it before the write are shared with a later read of
+ * the same content. Through any other reader it stays an ordinary value.
  */
-export function storedAfterWrite<Document extends object>(
-  document: Document,
-  fields: Partial<Document>
-): Document {
-  const candidate = { ...document, ...fields }
-  const scope = scopes.get(copySources.get(document) ?? document)
-  if (scope) scopes.set(candidate, scope)
-  return candidate
+export function beforeWrite<Document extends object>(db: object, document: Document): Document {
+  const scope = readerScopes.get(db)
+  if (scope) scopes.set(document, scope)
+  return document
 }
 
 /**
@@ -182,7 +179,7 @@ export function memoizeMutationReads<Database extends DatabaseReader>(db: Databa
 }
 
 function memoizeReads<Database extends DatabaseReader>(db: Database, share: boolean): Database {
-  if (memoizedReaders.has(db)) return db
+  if (readerScopes.has(db)) return db
   const gets = new Map<string, Map<string, Promise<unknown>>>()
   const queries = new Map<unknown, Map<string, Promise<unknown>>>()
   /** Every unwritten document a read returned, by ID, so any later `get` of it is served. */
@@ -314,6 +311,6 @@ function memoizeReads<Database extends DatabaseReader>(db: Database, share: bool
       return value.bind(target)
     }
   })
-  memoizedReaders.add(memoized)
+  readerScopes.set(memoized, scope)
   return memoized
 }

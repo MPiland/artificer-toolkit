@@ -8,7 +8,7 @@ import {
   readSpatialPreparation
 } from './geometryDocuments'
 import { readSessionVisionScope } from './sessionVisionDocuments'
-import { storedAfterWrite } from '../lib/transactionReads'
+import { beforeWrite } from '../lib/transactionReads'
 
 /**
  * Internal staged evidence only. The parent validates token control and publishes all gameplay state.
@@ -27,7 +27,7 @@ export async function persistSpatialPreparation(
     spatialPreparationChecksum: checksumCanonicalJson(value)
   }
   // Verified as it will be stored; the transaction's re-read of the same content reuses this.
-  readSpatialPreparation(storedAfterWrite(save, stored))
+  readSpatialPreparation(beforeWrite(ctx.db, { ...save, ...stored }))
   const { campaign } = await readSessionVisionScope(ctx, save.sessionVision!)
   const run = await ctx.db
     .query('encounterRuns')

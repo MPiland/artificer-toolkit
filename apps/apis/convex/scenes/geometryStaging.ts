@@ -45,6 +45,7 @@ import {
   requireActiveCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '../lib/domainRejections'
+import { beforeWrite } from '../lib/transactionReads'
 import { requireBoundTokenMoveControl } from '../encounters/actorController'
 
 const SAVE_WINDOW = 24 * 60 * 60_000
@@ -249,7 +250,8 @@ export async function beginSceneGeometry(
       expiresAt,
       fogSaves: []
     })
-    readMovementResolution(save)
+    // Verified as it will be stored; the transaction's later reads of this save reuse it.
+    readMovementResolution(beforeWrite(ctx.db, save))
     await ctx.db.insert('sceneGeometrySaves', save)
     await ctx.scheduler.runAt(expiresAt, cleanupReference, {
       saveId: save.id
