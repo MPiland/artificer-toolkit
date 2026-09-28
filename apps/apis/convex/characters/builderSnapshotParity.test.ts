@@ -6,13 +6,7 @@ import type {
   ShareCampaignContentInput
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
-import {
-  contentSnapshotDocumentsObjectSchema,
-  contentSnapshotIndexObjectSchema,
-  contentSnapshotKindSchema,
-  type ContentSnapshotIndexObject,
-  type ContentSnapshotObject
-} from '@artificer-toolkit/schema/api/contentSnapshots'
+import type { ContentSnapshotObject } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
 import {
@@ -20,11 +14,6 @@ import {
   resolveSnapshotCharacterBuilderPayload,
   type SnapshotCharacterBuilderInput
 } from '@artificer-toolkit/rules-runtime/character/snapshotBuilderEvaluation'
-import { createLazySnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
-import {
-  buildContentSnapshotKind,
-  type ContentSnapshotIndexSource
-} from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import {
@@ -46,6 +35,7 @@ import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture, input } from '../../tests/fixtures/characters'
+import { createBrowserReaders, readScopeObjects } from '../../tests/fixtures/contentSnapshotReaders'
 import { importedSubject, makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, internal } from '../_generated/api'
@@ -68,44 +58,6 @@ const share = makeFunctionReference<'mutation', ShareCampaignContentInput, unkno
 
 type Test = Awaited<ReturnType<typeof fixture>>['t']
 type Caller = Awaited<ReturnType<typeof fixture>>['owner']['caller']
-
-/** The S2 build's objects for one scope, parsed back as a browser would read them. */
-async function readScopeObjects(t: Test, ref: ContentSnapshotScopeRef) {
-  const objects: ContentSnapshotObject[] = []
-  for (const kind of contentSnapshotKindSchema.options) {
-    const sources: ContentSnapshotIndexSource[] = []
-    let cursor: string | null = null
-    for (let isDone = false; !isDone; ) {
-      const page: { sources: string[]; continueCursor: string; isDone: boolean } = await t.query(
-        internal.contentSnapshots.heads.readScopeKind,
-        { ...ref, kind, paginationOpts: { numItems: 100, cursor } }
-      )
-      for (const json of page.sources) sources.push(JSON.parse(json) as ContentSnapshotIndexSource)
-      cursor = page.continueCursor
-      isDone = page.isDone
-    }
-    if (sources.length === 0) continue
-    const { index, documents } = buildContentSnapshotKind({ format: 1, ...ref, kind }, sources)
-    objects.push(
-      contentSnapshotIndexObjectSchema.parse(JSON.parse(index.json)),
-      contentSnapshotDocumentsObjectSchema.parse(JSON.parse(documents.json))
-    )
-  }
-  return objects
-}
-
-/** The browser's readers: every index object up front, documents per kind when a read needs them. */
-function createBrowserReaders(objects: readonly ContentSnapshotObject[]) {
-  const loadedKinds: string[] = []
-  const readers = createLazySnapshotReaders(
-    objects.filter((object): object is ContentSnapshotIndexObject => object.part === 'index'),
-    async (kinds) => {
-      loadedKinds.push(...kinds)
-      return objects.filter((object) => object.part === 'documents' && kinds.includes(object.kind))
-    }
-  )
-  return { readers, loadedKinds }
-}
 
 /**
  * Resolves and previews on the server and from snapshots, through the browser's lazy readers, and

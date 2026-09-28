@@ -22,8 +22,6 @@ import { prepareCharacterBuilder } from './builderPreparation'
 import { commitCharacter } from './commit'
 
 // ADR 0036 S7: commit reads only referenced content. The budget is 300 KB for a level-5 Character.
-// Reads of a document this transaction wrote (the new Character row, read back by the stored-stat
-// evaluation, the active-effect check and account usage) are reported apart from the budget.
 const COMMIT_READ_BUDGET_BYTES = 300 * 1024
 
 type Test = Awaited<ReturnType<typeof fixture>>['t']
@@ -31,13 +29,11 @@ type Totals = {
   documents: number
   bytes: number
   byTable: Record<string, { documents: number; distinct: number; bytes: number }>
-  ownWrites: { documents: number; bytes: number }
 }
 
 /** Counts every document a transaction reads through `db`, at its JSON size, per table. */
 function countReads<T extends object>(db: T, totals: Totals): T {
   const seen = new Set<string>()
-  const written = new Set<string>()
   const count = (table: string, value: unknown) => {
     const documents = Array.isArray(value)
       ? value
@@ -47,11 +43,6 @@ function countReads<T extends object>(db: T, totals: Totals): T {
     for (const document of documents)
       if (document !== null && typeof document === 'object' && '_id' in document) {
         const bytes = JSON.stringify(document).length
-        if (written.has(String(document._id))) {
-          totals.ownWrites.documents += 1
-          totals.ownWrites.bytes += bytes
-          continue
-        }
         const entry = (totals.byTable[table] ??= { documents: 0, distinct: 0, bytes: 0 })
         entry.documents += 1
         if (!seen.has(String(document._id))) entry.distinct += 1
@@ -83,13 +74,6 @@ function countReads<T extends object>(db: T, totals: Totals): T {
           }
         return (...args: unknown[]) => {
           const result = method.apply(object, args)
-          if (['patch', 'replace', 'delete'].includes(String(property)))
-            written.add(String(args[0]))
-          if (property === 'insert' && result instanceof Promise)
-            return result.then((id: unknown) => {
-              written.add(String(id))
-              return id
-            })
           const label = property === 'query' && typeof args[0] === 'string' ? args[0] : table
           if (result instanceof Promise)
             return result.then((resolved: unknown) => {
@@ -351,8 +335,7 @@ describe('commit read budget', () => {
       const totals: Totals = {
         documents: 0,
         bytes: 0,
-        byTable: {},
-        ownWrites: { documents: 0, bytes: 0 }
+        byTable: {}
       }
       const result = await owner.caller.run((ctx) =>
         commitCharacter(

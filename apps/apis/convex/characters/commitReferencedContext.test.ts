@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest'
 import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
+import {
+  collectCharacterFeatureSourceHints,
+  publicationFeatureIds
+} from '@artificer-toolkit/rules-runtime/character/featureSourceHints'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -15,13 +19,16 @@ import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
 import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { hillDwarfRace } from '@artificer-toolkit/source-data/srd/races/hill-dwarf.js'
+import { dragonborn } from '@artificer-toolkit/source-data/srd/races/dragonborn.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { fixture, input } from '../../tests/fixtures/characters'
+import { createBrowserReaders, readScopeObjects } from '../../tests/fixtures/contentSnapshotReaders'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { prepareCharacterBuilder } from './builderPreparation'
+import { readCharacterPublication, readCharacterSourceRoots, readCharacterSources } from './context'
 import { loadCharacterDraftCandidate } from './documents'
 
 // ADR 0036 S7 differential test (c): commit validation over the referenced context equals
@@ -410,4 +417,127 @@ describe('commit validation from referenced content', () => {
     expect(counts.unavailable).toBeGreaterThan(0)
     console.info('S7 differential coverage', counts)
   }, 600_000)
+
+  it('derives the browser hints the server resolves, and commits them (S7)', async () => {
+    const { t, owner } = await fixture()
+    await importSubjects(t, [
+      ...srdRaces.map((document) =>
+        importedSubject({ subjectKind: 'RACE', ...document, document })
+      ),
+      ...srdClasses.map((document) =>
+        importedSubject({ subjectKind: 'CLASS', ...document, document })
+      ),
+      importedSubject({ subjectKind: 'BACKGROUND', ...acolyte, document: acolyte }),
+      importedSubject({ subjectKind: 'FEAT', ...grappler, document: grappler })
+    ])
+    const ancestry = dragonborn.category === 'BASE' ? dragonborn.ancestry : undefined
+    const option = ancestry?.options[0]
+    const ancestryFeature = option?.features?.[0]
+    const [manualFeature, grantedFeature] = wizard.features ?? []
+    const fighterFeature = fighter.features?.find((feature) => feature.availableAtLevel === 1)
+    const featFeature = grappler.features?.[0]
+    if (
+      !ancestry ||
+      !option ||
+      !ancestryFeature ||
+      !manualFeature ||
+      !grantedFeature ||
+      !fighterFeature ||
+      !featFeature
+    )
+      throw new Error('Expected SRD feature fixtures.')
+    const acquisition = (
+      featureId: string,
+      source: CharacterAuthored['intent']['featureAcquisitions'][number]['source']
+    ) => ({ id: crypto.randomUUID(), featureId, source, timing: { kind: 'IMMEDIATE' as const } })
+    const draft = await owner.caller.mutation(api.characters.drafts.create, input())
+    const standalone = acquisition(manualFeature.id, { kind: 'MANUAL' })
+    const featRoot = acquisition(grappler.id, { kind: 'FEAT', featId: grappler.id })
+    const character = characterAuthoredDtoSchema.parse({
+      ...draft.payload.character,
+      label: 'Hinted',
+      intent: {
+        ...draft.payload.character.intent,
+        abilities: standardArray,
+        race: { raceId: dragonborn.id },
+        background: { backgroundId: acolyte.id },
+        classes: [{ classId: fighter.id, classLevel: 1 }],
+        ancestrySelections: [
+          {
+            id: crypto.randomUUID(),
+            ancestryId: ancestry.id,
+            optionId: option.id,
+            source: { kind: 'RACE', raceId: dragonborn.id },
+            timing: { kind: 'IMMEDIATE' }
+          }
+        ],
+        featureAcquisitions: [
+          standalone,
+          acquisition(grantedFeature.id, { kind: 'FEATURE', featureId: fighterFeature.id }),
+          acquisition(ancestryFeature.id, {
+            kind: 'ANCESTRY',
+            ancestryId: ancestry.id,
+            optionId: option.id
+          }),
+          featRoot,
+          // An OPTION provenance follows its parent acquisition to the Feat and needs no hint.
+          acquisition(featFeature.id, {
+            kind: 'OPTION',
+            acquiredParentId: featRoot.id,
+            optionId: featFeature.id
+          })
+        ]
+      }
+    }) as CharacterAuthored
+
+    // The server's resolution: every readable root in the Character's sources holding the feature.
+    const { expected, sourceIds } = await t.run(async (ctx) => {
+      const sources = await readCharacterSources(ctx, character, owner.userId)
+      const holders = new Map<string, string[]>()
+      for (const kind of ['RACE', 'CLASS', 'BACKGROUND', 'FEAT', 'EQUIPMENT'] as const)
+        for (const root of await readCharacterSourceRoots(ctx, character.systemId, sources, kind)) {
+          const published = await readCharacterPublication(
+            ctx,
+            root,
+            character.systemId,
+            owner.userId,
+            sources
+          )
+          if (!published) continue
+          for (const featureId of publicationFeatureIds(published))
+            holders.set(featureId, [...(holders.get(featureId) ?? []), root.id])
+        }
+      return {
+        sourceIds: sources.sources.map((source) => source.id),
+        expected: [manualFeature.id, grantedFeature.id, ancestryFeature.id]
+          .map((featureId) => ({
+            featureId,
+            rootId: [...(holders.get(featureId) ?? [])].sort()[0]
+          }))
+          .sort((left, right) => left.featureId.localeCompare(right.featureId))
+      }
+    })
+    // The browser: hints from the snapshot readers the Builder worker uses.
+    const objects = await Promise.all(
+      sourceIds.map((scopeId) => readScopeObjects(t, { scope: 'SOURCE', scopeId }))
+    )
+    const hints = await collectCharacterFeatureSourceHints(
+      character,
+      createBrowserReaders(objects.flat()).readers
+    )
+    expect(hints).toEqual(expected)
+    expect(hints.map((hint) => hint.rootId)).toEqual(
+      expect.arrayContaining([wizard.id, dragonborn.id])
+    )
+
+    // The server: the referenced commit context accepts the hints and validates as the pool does.
+    const { full, referenced } = await evaluateBothWays(
+      t,
+      owner.userId,
+      { expectedDraftId: draft.id, mode: 'create', character },
+      new Map(hints.map((hint) => [hint.featureId, hint.rootId]))
+    )
+    expect(referenced).toEqual(full)
+    expect('unavailable' in full).toBe(false)
+  }, 300_000)
 })
