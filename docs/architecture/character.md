@@ -442,6 +442,56 @@ It is a read-only structural preview, not a finalization receipt or commit autho
 Remaining lifecycle source-loss producers and the browser journey remain pending.
 No current preview proof constitutes P02 or P03 acceptance.
 
+### Browser Builder evaluation (ADR 0036 S6) — local implementation, acceptance pending
+
+```mermaid
+flowchart LR
+  Manifest["contentSnapshots.manifest (live)"] --> Page["Builder page"]
+  System["content.systems.get (D67)"] --> Page
+  Token["contentSnapshots.issueAccess (cached)"] --> Page
+  Page -- "values, draft, manifest, System" --> Worker["Builder Web Worker"]
+  Worker -- "index first, documents per kind" --> Content["session Worker GET /content/{key}"]
+  Worker --> Cache[("Cache Storage by SHA-256")]
+  Worker --> Eval["rules-runtime snapshotBuilderEvaluation"]
+  Eval -- "CharacterBuilderPayloadDto / preview" --> Page
+```
+
+A draft in `create` mode resolves and previews in the browser: each edit, after the Builder's
+existing 150 ms debounce, runs `resolveSnapshotCharacterBuilderPayload`, and Activate runs
+`previewSnapshotCharacterBuilder` (`rules-runtime/character/snapshotBuilderEvaluation`). They are
+the S5 chain (`createLazySnapshotReaders` → `prepareCharacterRuleContext` →
+`assembleCharacterBuilderContext` → `resolveCharacterBuilderPayload`, or
+`prepareCharacterBuilderFromContext` → `toCharacterBuilderPreviewOutput`) and return the payloads
+`builder.resolve` and `builder.preview` return; `builder.preview` builds its output with the same
+`toCharacterBuilderPreviewOutput`. The worker parses the candidate as the server parses
+`builder.resolve` arguments and sets the draft owner and `DRAFT` status. The System comes from the
+existing `content.systems.get` query, since the System is not snapshotted yet (D67).
+
+- **Worker** (`domains/characters/builder/evaluation`). A module worker created after mount on the
+  Builder route only, and started on its first evaluation; nothing evaluates during SSR. It keeps
+  parsed objects by hash and the readers of the current manifest, with the documents they have
+  loaded, until the manifest's hashes change. The page answers the worker's content token requests.
+- **Snapshot client** (`data/contentSnapshots`). Reads every `index` object of the manifest first
+  and a kind's `documents` objects only when a read needs them (a publication of that kind, a
+  parent, the feature scan or the Spell catalogue). Private objects carry the content token, reused
+  until one minute before it expires and re-issued once when the Worker refuses it. Every object is
+  checked against the manifest SHA-256 before it is parsed or kept in Cache Storage; a new manifest
+  evicts the hashes it no longer names. The content origin is the session Worker's HTTP origin
+  (`VITE_LIVE_SESSION_WEBSOCKET_URL`), also allowed in `connect-src`.
+- **States.** The Builder keeps showing the loaded payload while content prepares; it shows the
+  kinds being fetched, that content is still updating when a head's `revision` exceeds its
+  `builtRevision`, and which kind failed to load, with a retry. The first ready evaluation and each
+  manifest change re-resolve the current values.
+- **Still on the server.** A draft in `edit` mode (an active Character) resolves and previews through
+  `builder.resolve` and `builder.preview`: local evaluation needs the active Character as
+  `previousCharacter`, and no client query returns it yet. `builder.get` still loads the Builder,
+  and `commit` stays authoritative (S7 narrows its reads).
+- **Gates.** `rulesRuntimeBoundary.test.ts` walks the web app's runtime imports and forbids
+  `rules-runtime/encounter*`. `builderEvaluationWorker.size.test.ts` builds the worker entry and
+  holds it to 300 KB gzipped. `builderSnapshotParity.test.ts` (apps/apis) runs the worker's
+  evaluation through lazy readers over the S5 corpus, compares resolve and preview with the server,
+  and holds warm evaluation p95 to 100 ms in Node.
+
 ### Native Builder commit — local implementation, acceptance pending
 
 ```mermaid

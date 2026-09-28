@@ -105,32 +105,47 @@
   - The feature scan visits roots in index order in Convex and in id order in snapshots, so several standalone features from different roots may reach `registry.features` in another order.
   - A scope that is still rebuilding serves the previous build's objects; commit stays authoritative.
 
+## Browser Builder evaluation (S6, current)
+
+[Character](../architecture/character.md#browser-builder-evaluation-adr-0036-s6--local-implementation-acceptance-pending) describes the flow. Where S6 differs from the design summary:
+
+- **Create mode only.** A draft in `create` mode resolves and previews in the browser worker. A draft in `edit` mode (an active Character) still calls `builder.resolve` and `builder.preview`, because local evaluation needs the active Character as `previousCharacter` (replacement allowances and the change preview read it) and no client query returns it. Adding one needs a Convex function and a local codegen push, which this slice could not run. Recommendation: the query that replaces `builder.get` in S9 returns the draft and the active Character together; the worker already takes `previousCharacter`.
+- **System input.** The System comes from the existing `content.systems.get` query (D67); no new query.
+- **Shared evaluation.** `rules-runtime/character/snapshotBuilderEvaluation` (`resolveSnapshotCharacterBuilderPayload`, `previewSnapshotCharacterBuilder`) is what the worker runs. `toCharacterBuilderPreviewOutput` (`builderPayload.ts`) now builds `builder.preview`'s output too, so both paths share it.
+- **Lazy readers.** `createLazySnapshotReaders(indexObjects, loadDocuments)` wraps `createSnapshotReaders`: the index names each root's kind, so a publication read loads that kind's documents; parents load their kind; the feature scan loads every feature-bearing kind; the Spell catalogue loads SPELL. A Fighter loads RACE, CLASS and BACKGROUND documents only.
+- **Debounce.** The Builder renderer's existing 150 ms debounce applies; the worker does not add one. The worker keeps the readers, and the documents they loaded, until the manifest's hashes change.
+- **First evaluation.** When the manifest and System arrive, the Builder re-resolves the opened values locally, which also prefetches the index objects; each manifest change re-resolves again.
+- **Object integrity.** The browser checks the SHA-256 and the header, and does not re-parse objects with the part schemas: the hash binds the object the build validated.
+- **Chunk gate.** A Vitest test (`builderEvaluationWorker.size.test.ts`) builds the worker entry alone with Vite; the repo has no bundle-size tooling. Measured: see the S6 validation below.
+- **Not bridged locally.** S3's local gaps remain: the local Worker gets no `CONTENT_SNAPSHOT_TOKEN_SECRET`, and its `CONTENT_SNAPSHOTS` is a Miniflare bucket, not the fixture the local Convex build writes. The browser path is covered by unit tests, not yet by a local end-to-end run.
+- **Private objects at rest.** Verified private objects stay in Cache Storage (keyed by hash, so only a manifest naming them reads them) until a later manifest drops them; nothing clears them at sign-out yet.
+
 ## Budgets (estimates to verify in the slices)
 
-| Action | Convex I/O | Network |
-| --- | --- | --- |
-| Edit | 0 | 0 when cached |
-| Picker open | 0 | Cache miss: one Worker request, 5–300 KB gzipped, once per hash |
-| Builder open | Manifest ~10 KB, token ~5 KB, draft ~15 KB | Cold start about 1 MB gzipped (SRD), once |
-| Autosave (after 2 s idle, at most every 10 s) | ≤30 KB | — |
-| Commit | Martial level 5: ~100–150 KB. Caster level 5: ~180–250 KB | — |
-| Whole build | About 1.2–1.5 MB. 50 builds a month ≈ 75 MB | — |
+| Action                                        | Convex I/O                                                | Network                                                         |
+| --------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------- |
+| Edit                                          | 0                                                         | 0 when cached                                                   |
+| Picker open                                   | 0                                                         | Cache miss: one Worker request, 5–300 KB gzipped, once per hash |
+| Builder open                                  | Manifest ~10 KB, token ~5 KB, draft ~15 KB                | Cold start about 1 MB gzipped (SRD), once                       |
+| Autosave (after 2 s idle, at most every 10 s) | ≤30 KB                                                    | —                                                               |
+| Commit                                        | Martial level 5: ~100–150 KB. Caster level 5: ~180–250 KB | —                                                               |
+| Whole build                                   | About 1.2–1.5 MB. 50 builds a month ≈ 75 MB               | —                                                               |
 
 ## Slices
 
-| Slice | Content | Tests first |
-| --- | --- | --- |
-| S0 | ADR 0036, plus approval of the Builder budget wording in the acceptance ledger | — |
-| S1 | Snapshot schema in `packages/schema`; canonical build and hash | Determinism; header included in the hash; index/documents split |
-| S2 | Heads and objects tables, share index, triggers, `build`/`commitBuild`, cleanup cron, local R2 | A publish touches only its scope and kind; idempotent retry; stale compare-and-set rejected; unshare removes the item; a hidden import is excluded; a shared child whose parent is not shared is excluded |
-| S3 | Worker route, R2 binding, `issueAccess` | Authorization matrix: foreign source, departed member, expired token, wrong audience, token in the query string rejected; public SRD cacheable |
-| S4 | Manifest query | Parity with `readCharacterSources`/`readCharacterSourceRoots` (no Campaign, restricted catalogues, shares) |
-| S5 | `snapshotReaders` and the extracted `assembleCharacterBuilderContext` | Golden parity with today's `builder.resolve` over a fixture corpus; snapshot/Convex round-trip |
-| S6 | Web: snapshot client, Web Worker evaluation, local resolve and preview | Bundle size gate (≤300 KB gzipped); import boundary forbidding `rules-runtime/encounter*` in the web app; evaluation p95 ≤100 ms |
-| S7 | Commit reading only referenced content | Differential test (browser against server validation); read budget |
-| S8 | Debounced autosave and a cheaper `drafts.save` | Budget test |
-| S9 | Delete `builder.get`, `resolve`, `preview`, the selector scope and the full-pool loading; update `character.md`, `media.md` and `persistence.md` | — |
-| S10 | The room loads content from snapshots (after the ADR 0035 room slices) | — |
+| Slice | Content                                                                                                                                          | Tests first                                                                                                                                                                                               |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S0    | ADR 0036, plus approval of the Builder budget wording in the acceptance ledger                                                                   | —                                                                                                                                                                                                         |
+| S1    | Snapshot schema in `packages/schema`; canonical build and hash                                                                                   | Determinism; header included in the hash; index/documents split                                                                                                                                           |
+| S2    | Heads and objects tables, share index, triggers, `build`/`commitBuild`, cleanup cron, local R2                                                   | A publish touches only its scope and kind; idempotent retry; stale compare-and-set rejected; unshare removes the item; a hidden import is excluded; a shared child whose parent is not shared is excluded |
+| S3    | Worker route, R2 binding, `issueAccess`                                                                                                          | Authorization matrix: foreign source, departed member, expired token, wrong audience, token in the query string rejected; public SRD cacheable                                                            |
+| S4    | Manifest query                                                                                                                                   | Parity with `readCharacterSources`/`readCharacterSourceRoots` (no Campaign, restricted catalogues, shares)                                                                                                |
+| S5    | `snapshotReaders` and the extracted `assembleCharacterBuilderContext`                                                                            | Golden parity with today's `builder.resolve` over a fixture corpus; snapshot/Convex round-trip                                                                                                            |
+| S6    | Web: snapshot client, Web Worker evaluation, local resolve and preview                                                                           | Bundle size gate (≤300 KB gzipped); import boundary forbidding `rules-runtime/encounter*` in the web app; evaluation p95 ≤100 ms                                                                          |
+| S7    | Commit reading only referenced content                                                                                                           | Differential test (browser against server validation); read budget                                                                                                                                        |
+| S8    | Debounced autosave and a cheaper `drafts.save`                                                                                                   | Budget test                                                                                                                                                                                               |
+| S9    | Delete `builder.get`, `resolve`, `preview`, the selector scope and the full-pool loading; update `character.md`, `media.md` and `persistence.md` | —                                                                                                                                                                                                         |
+| S10   | The room loads content from snapshots (after the ADR 0035 room slices)                                                                           | —                                                                                                                                                                                                         |
 
 ## Risks and open points
 
