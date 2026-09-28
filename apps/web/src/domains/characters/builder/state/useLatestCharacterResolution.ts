@@ -1,27 +1,27 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
-import { useResolveCharacterBuilderMutation } from '#app/data/characters/mutations'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
-import { normalizeCharacterForDraft } from '../shared/formNormalization'
 import { getCharacterBuilderResolutionFingerprint } from './resolutionFingerprints'
-
-type CharacterBuilderMode = 'create' | 'edit'
 
 type InFlightCharacterResolution = {
   fingerprint: string
   promise: Promise<void>
 }
 
+/**
+ * Resolves Builder values through `resolve`, coalescing identical in-flight requests and applying
+ * only the latest response of the current draft generation. Without `resolve` (evaluation inputs
+ * still loading) a request does nothing; the Builder re-requests once `resolve` changes.
+ */
 export function useLatestCharacterResolution({
-  expectedDraftId,
-  mode,
+  generation,
+  resolve,
   onResolved
 }: {
-  expectedDraftId: string
-  mode: CharacterBuilderMode
+  generation: string
+  resolve: ((character: CharacterFormValues) => Promise<CharacterBuilderPayloadDto>) | null
   onResolved: (payload: CharacterBuilderPayloadDto) => void
 }) {
-  const { mutateAsync } = useResolveCharacterBuilderMutation()
   const inFlightRef = useRef<InFlightCharacterResolution | null>(null)
   const latestRequestIdRef = useRef(0)
   const mountedRef = useRef(true)
@@ -34,11 +34,12 @@ export function useLatestCharacterResolution({
       latestRequestIdRef.current += 1
       inFlightRef.current = null
     }
-  }, [expectedDraftId, mode])
+  }, [generation])
 
   return useCallback(
     (character: CharacterFormValues) => {
-      const fingerprint = `${expectedDraftId}:${mode}:${getCharacterBuilderResolutionFingerprint(character)}`
+      if (!resolve) return Promise.resolve()
+      const fingerprint = `${generation}:${getCharacterBuilderResolutionFingerprint(character)}`
       const currentRequest = inFlightRef.current
       if (currentRequest?.fingerprint === fingerprint) return currentRequest.promise
 
@@ -49,17 +50,13 @@ export function useLatestCharacterResolution({
         promise: Promise.resolve()
       }
 
-      inFlight.promise = mutateAsync({
-        character: normalizeCharacterForDraft(character),
-        expectedDraftId,
-        mode
-      })
+      inFlight.promise = resolve(character)
         .then((nextPayload) => {
           if (!mountedRef.current || requestId !== latestRequestIdRef.current) return
           onResolved(nextPayload)
         })
         .catch(() => {
-          // Resolver failures are surfaced on explicit save/finalize actions.
+          // Evaluation failures are surfaced by the Builder's content status and on finalize.
         })
         .finally(() => {
           if (inFlightRef.current === inFlight) inFlightRef.current = null
@@ -68,6 +65,6 @@ export function useLatestCharacterResolution({
       inFlightRef.current = inFlight
       return inFlight.promise
     },
-    [expectedDraftId, mode, mutateAsync, onResolved]
+    [generation, onResolved, resolve]
   )
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useNavigate, useRouter } from '@tanstack/react-router'
+import { useMutation } from '@tanstack/react-query'
 import type { CharacterBuilderPreviewOutput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { useAppForm } from '#forms/app-form/AppForm'
 import {
@@ -11,18 +12,16 @@ import {
 import { InvalidDraftAlert } from '#forms/layout/Editor/SectionRow/InvalidDraftAlert'
 import {
   useCommitCharacterBuilderMutation,
-  usePreviewCharacterSaveMutation,
   useSaveCharacterDraftMutation
 } from '#app/data/characters/mutations'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import type { ReadyCharacterBuilderAuthoringSession } from '../state/characterBuilderAuthoringSession'
-import {
-  buildCharacterDraftSaveInput,
-  normalizeCharacterForDraft
-} from '../shared/formNormalization'
+import { buildCharacterDraftSaveInput } from '../shared/formNormalization'
 import { getInactiveAbilityIntentMethodLabels } from '../steps/abilities/abilityGeneration'
 import type { CharacterFormValues } from './characterBuilder.types'
 import { useLatestCharacterResolution } from '../state/useLatestCharacterResolution'
+import { useCharacterBuilderEvaluation } from '../state/useCharacterBuilderEvaluation'
+import { CharacterBuilderContentNotice } from '../evaluation/CharacterBuilderContentNotice'
 import { CharacterBuilderStateSync } from '../state/CharacterBuilderStateSync'
 import { CharacterBuilderRenderer } from './CharacterBuilderRenderer'
 import { CharacterDraftSaveNoticeModal } from '../save/CharacterDraftSaveNoticeModal'
@@ -48,18 +47,15 @@ export function CharacterBuilderFormRuntime({
   const [preview, setPreview] = useState<CharacterBuilderPreviewOutput | null>(null)
   const [previewOpened, setPreviewOpened] = useState(false)
   const draftMutation = useSaveCharacterDraftMutation()
-  const previewMutation = usePreviewCharacterSaveMutation()
+  const evaluation = useCharacterBuilderEvaluation(session)
+  const previewMutation = useMutation({ mutationFn: evaluation.preview })
   const commitMutation = useCommitCharacterBuilderMutation()
   const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
 
   const handlePreviewFinalize = useCallback(
     async (value: CharacterFormValues) => {
       try {
-        const nextPreview = await previewMutation.mutateAsync({
-          character: normalizeCharacterForDraft(value),
-          expectedDraftId: session.draft.id,
-          mode: session.mode
-        })
+        const nextPreview = await previewMutation.mutateAsync(value)
         setPreview(nextPreview)
         setPreviewOpened(true)
       } catch {
@@ -69,7 +65,7 @@ export function CharacterBuilderFormRuntime({
         })
       }
     },
-    [previewMutation, session.draft.id, session.mode]
+    [previewMutation]
   )
 
   const defaultValuesRef = useRef(session.initialValues)
@@ -81,10 +77,15 @@ export function CharacterBuilderFormRuntime({
   })
 
   const handleResolve = useLatestCharacterResolution({
-    expectedDraftId: session.draft.id,
-    mode: session.mode,
+    generation: `${session.draft.id}:${session.mode}`,
+    resolve: evaluation.resolve,
     onResolved: setPayload
   })
+
+  // The first ready local evaluation, and each content change after it, re-resolves current values.
+  useEffect(() => {
+    if (evaluation.local) void handleResolve(form.state.values)
+  }, [evaluation.local, form, handleResolve])
 
   const handleSaveDraftConfirmed = useCallback(async () => {
     try {
@@ -206,6 +207,13 @@ export function CharacterBuilderFormRuntime({
             onDiscard={() => void onDiscardDraft()}
           />
         ) : null}
+        <CharacterBuilderContentNotice
+          status={evaluation.status}
+          onRetry={() => {
+            evaluation.refetchInputs()
+            void handleResolve(form.state.values)
+          }}
+        />
         <CharacterBuilderRenderer form={form} payload={payload} onResolve={handleResolve} />
       </Stack>
       <CharacterSavePreviewModal

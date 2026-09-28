@@ -12,15 +12,21 @@ import {
   characterBuilderPayloadFixture,
   characterPreviewFixture
 } from '../fixtures/characterBuilder.fixtures'
+import type { ContentSnapshotManifestDto } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { normalizeCharacterForDraft } from '../shared/formNormalization'
+import type { BuilderEvaluationRequest } from '../evaluation/builderEvaluation.types'
 
 const mocks = vi.hoisted(() => ({
   commit: vi.fn(),
   create: vi.fn(),
   discard: vi.fn(),
+  evaluate: vi.fn(),
+  manifest: vi.fn(),
   preview: vi.fn(),
   resolve: vi.fn(),
-  saveDraft: vi.fn()
+  saveDraft: vi.fn(),
+  serverPreview: vi.fn(),
+  serverResolve: vi.fn()
 }))
 
 vi.mock('#app/data/characters/mutations', () => ({
@@ -33,10 +39,31 @@ vi.mock('#app/data/characters/mutations', () => ({
     isPending: false,
     mutateAsync: mocks.discard
   }),
-  usePreviewCharacterSaveMutation: () => ({ mutateAsync: mocks.preview }),
-  useResolveCharacterBuilderMutation: () => ({ mutateAsync: mocks.resolve }),
+  usePreviewCharacterSaveMutation: () => ({ mutateAsync: mocks.serverPreview }),
+  useResolveCharacterBuilderMutation: () => ({ mutateAsync: mocks.serverResolve }),
   useSaveCharacterDraftMutation: () => ({ mutateAsync: mocks.saveDraft })
 }))
+
+// A new Character evaluates in the browser worker (ADR 0036 S6); the worker client is the seam.
+vi.mock('#app/data/contentSnapshots/queries', () => ({
+  getContentSnapshotManifest: () => ({
+    queryKey: ['content-snapshot-manifest'],
+    queryFn: async () => mocks.manifest()
+  }),
+  useContentSnapshotToken: () => async () => 'content-token'
+}))
+vi.mock('#app/data/systems/queries', () => ({
+  getSystem: () => ({ queryKey: ['system'], queryFn: async () => ({ id: 'system' }) })
+}))
+vi.mock('../evaluation/builderEvaluationClient', () => ({
+  createBuilderEvaluationClient: () => ({ evaluate: mocks.evaluate, terminate: () => undefined })
+}))
+
+const builtManifest: ContentSnapshotManifestDto = {
+  systemId: characterBuilderPayloadFixture.character.systemId,
+  sources: [],
+  campaign: null
+}
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = () => undefined
@@ -46,16 +73,24 @@ beforeAll(() => {
 describe('CharacterBuilderAuthoringRuntime', () => {
   beforeEach(() => {
     Object.values(mocks).forEach((mock) => mock.mockReset())
+    mocks.manifest.mockReturnValue(builtManifest)
+    mocks.resolve.mockResolvedValue(characterBuilderPayloadFixture)
+    mocks.evaluate.mockImplementation(async (request: BuilderEvaluationRequest) =>
+      request.operation === 'resolve'
+        ? { ok: true, output: { operation: 'resolve', payload: await mocks.resolve(request) } }
+        : { ok: true, output: { operation: 'preview', preview: await mocks.preview(request) } }
+    )
   })
 
   it('preserves unsaved intent and rejects stale resolution across same-generation loader updates', async () => {
     const user = userEvent.setup()
     const olderResolution = deferred<CharacterBuilderPayloadDto>()
     const newerResolution = deferred<CharacterBuilderPayloadDto>()
+    const initialPayload = structuredClone(characterBuilderDraftPayloadFixture)
     mocks.resolve
+      .mockResolvedValueOnce(initialPayload)
       .mockReturnValueOnce(olderResolution.promise)
       .mockReturnValueOnce(newerResolution.promise)
-    const initialPayload = structuredClone(characterBuilderDraftPayloadFixture)
     const seaElfReference = initialPayload.references.races.find(
       (race) => race.id === 'subrace-sea-elf'
     )
@@ -83,12 +118,17 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       userId: initialPayload.character.userId
     })
 
+    // The hydrated owner is a new evaluation input, so the Builder re-resolves the current values.
+    mocks.resolve.mockResolvedValue(authenticatedPayload)
+
     const { rerender } = renderWithAppProviders(
       <AuthoringLayout data={editData(initialPayload)} kind='character-builder' mode='edit' />
     )
 
-    await chooseRace(user, 'Sea Elf', 'Choose Race')
+    // The Builder evaluates the opened values once its content is ready, then once per edit.
     await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(1))
+    await chooseRace(user, 'Sea Elf', 'Choose Race')
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(2))
 
     await user.click(screen.getByRole('link', { name: 'Basics' }))
     const nameInput = screen.getByRole('textbox', { name: /character name/i })
@@ -96,7 +136,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
 
     await user.click(screen.getByRole('link', { name: 'Race' }))
     await chooseRace(user, 'High Elf', 'Change Race')
-    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(3))
     await user.click(screen.getByRole('link', { name: 'Basics' }))
     const originalNameInput = screen.getByRole('textbox', { name: /character name/i })
 
@@ -108,10 +148,11 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     expect(hydratedNameInput).toBe(originalNameInput)
     expect(hydratedNameInput).toHaveValue('Hydrated Hero')
 
-    expect(mocks.resolve.mock.calls[0]?.[0]).toMatchObject({
-      expectedDraftId: 'draft-generation',
-      mode: 'create'
+    expect(mocks.resolve.mock.calls[1]?.[0]).toMatchObject({
+      operation: 'resolve',
+      draft: { expectedDraftId: 'draft-generation', mode: 'create' }
     })
+    expect(mocks.serverResolve).not.toHaveBeenCalled()
     expect(mocks.create).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -238,9 +279,11 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     await user.click(screen.getByRole('button', { name: 'Activate' }))
     const dialog = await screen.findByRole('dialog', { name: 'Finalize Character' })
     expect(mocks.preview.mock.calls[0]?.[0]).toMatchObject({
-      expectedDraftId: 'draft-generation',
+      operation: 'preview',
+      draft: { expectedDraftId: 'draft-generation' },
       character: { status: 'DRAFT' }
     })
+    expect(mocks.serverPreview).not.toHaveBeenCalled()
     await user.click(within(dialog).getByRole('button', { name: 'Finalize' }))
     await waitFor(() =>
       expect(mocks.commit).toHaveBeenCalledWith({
@@ -252,9 +295,81 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     expect(mocks.saveDraft).not.toHaveBeenCalled()
     expect(dialog).toBeInTheDocument()
   })
+
+  it('shows that published content is still updating', async () => {
+    mocks.manifest.mockReturnValue({
+      ...builtManifest,
+      sources: [
+        {
+          contentSourceId: '00000000-0000-4000-8000-000000000001',
+          kind: 'USER',
+          head: {
+            scope: 'SOURCE',
+            scopeId: '00000000-0000-4000-8000-000000000001',
+            revision: 3,
+            builtRevision: 2,
+            kinds: {}
+          }
+        }
+      ]
+    } satisfies ContentSnapshotManifestDto)
+    renderWithAppProviders(
+      <AuthoringLayout
+        data={editData(characterBuilderDraftPayloadFixture)}
+        kind='character-builder'
+        mode='edit'
+      />
+    )
+
+    expect(await screen.findByText(/still updating/i)).toBeInTheDocument()
+  })
+
+  it('names content that failed to load and retries the evaluation', async () => {
+    const user = userEvent.setup()
+    mocks.evaluate.mockResolvedValueOnce({ ok: false, failedKind: 'SPELL' })
+    renderWithAppProviders(
+      <AuthoringLayout
+        data={editData(characterBuilderDraftPayloadFixture)}
+        kind='character-builder'
+        mode='edit'
+      />
+    )
+
+    expect(await screen.findByText(/could not load spells/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(mocks.evaluate).toHaveBeenCalledTimes(2))
+    await waitFor(() =>
+      expect(screen.queryByText(/could not load spells/i)).not.toBeInTheDocument()
+    )
+    expect(mocks.serverResolve).not.toHaveBeenCalled()
+  })
+
+  it('resolves edits of an active Character on the server until it has the active record', async () => {
+    const user = userEvent.setup()
+    mocks.serverResolve.mockResolvedValue(characterBuilderDraftPayloadFixture)
+    renderWithAppProviders(
+      <AuthoringLayout
+        data={editData(characterBuilderDraftPayloadFixture, 'draft-generation', 'edit')}
+        kind='character-builder'
+        mode='edit'
+      />
+    )
+
+    await chooseRace(user, 'Sea Elf', 'Choose Race')
+    await waitFor(() => expect(mocks.serverResolve).toHaveBeenCalledTimes(1))
+    expect(mocks.serverResolve.mock.calls[0]?.[0]).toMatchObject({
+      expectedDraftId: 'draft-generation',
+      mode: 'edit'
+    })
+    expect(mocks.evaluate).not.toHaveBeenCalled()
+  })
 })
 
-function editData(payload: CharacterBuilderPayloadDto, generation = 'draft-generation') {
+function editData(
+  payload: CharacterBuilderPayloadDto,
+  generation = 'draft-generation',
+  mode: CharacterBuilderDraftDto['mode'] = 'create'
+) {
   const draft: CharacterBuilderDraftDto = {
     id: generation,
     characterId: payload.character.id,
@@ -263,8 +378,8 @@ function editData(payload: CharacterBuilderPayloadDto, generation = 'draft-gener
     systemId: payload.character.systemId,
     label: payload.character.label,
     status: 'DRAFT',
-    draftState: 'DRAFT_ONLY',
-    mode: 'create',
+    draftState: mode === 'create' ? 'DRAFT_ONLY' : 'ACTIVE_WITH_DRAFT',
+    mode,
     payload: { character: payload.character }
   }
   return {
