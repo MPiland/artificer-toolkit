@@ -9,6 +9,7 @@ import {
 import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
 import { memoizeMutationReads } from './transactionReads'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
+import { markContentSnapshotScope, type ContentSnapshotScopeRef } from '../contentSnapshots/marking'
 
 type SceneVisionScope = Pick<SceneVisionRevision, 'scope' | 'id'>
 
@@ -31,13 +32,21 @@ const triggers = new Triggers<DataModel>()
  */
 const transactionTriggerState = new WeakMap<
   GenericDatabaseWriter<DataModel>,
-  { runCampaignIds: Map<string, string>; refreshedScopes: Set<string> }
+  {
+    runCampaignIds: Map<string, string>
+    refreshedScopes: Set<string>
+    markedContentScopes: Set<string>
+  }
 >()
 
 function triggerState(db: GenericDatabaseWriter<DataModel>) {
   let state = transactionTriggerState.get(db)
   if (!state) {
-    state = { runCampaignIds: new Map(), refreshedScopes: new Set() }
+    state = {
+      runCampaignIds: new Map(),
+      refreshedScopes: new Set(),
+      markedContentScopes: new Set()
+    }
     transactionTriggerState.set(db, state)
   }
   return state
@@ -135,9 +144,78 @@ triggers.register('importJobs', async (ctx, change) => {
   const systemIds = new Set<string>()
   for await (const root of ctx.innerDb
     .query('authoredRoots')
-    .withIndex('by_importJobId_id', (query) => query.eq('importJobId', job.id)))
+    .withIndex('by_importJobId_id', (query) => query.eq('importJobId', job.id))) {
     systemIds.add(root.systemId)
+    await markAuthoredContent(ctx, root)
+  }
   for (const systemId of systemIds) await refreshScope(ctx.innerDb, systemScope(systemId))
+})
+
+// Content snapshots (ADR 0036): one mark per scope per transaction; `markContentSnapshotScope`
+// bumps the head revision and schedules the coalesced build.
+async function markContentScope(
+  ctx: TriggerContext,
+  ref: ContentSnapshotScopeRef,
+  create: boolean
+) {
+  const { markedContentScopes } = triggerState(ctx.innerDb)
+  const key = `${ref.scope}:${ref.scopeId}`
+  if (markedContentScopes.has(key)) return
+  if (await markContentSnapshotScope({ db: ctx.innerDb, scheduler: ctx.scheduler }, ref, create))
+    markedContentScopes.add(key)
+}
+
+async function markAuthoredContent(
+  ctx: TriggerContext,
+  subject: Pick<Doc<'authoredRoots'>, 'contentSourceId' | 'subjectKind' | 'id' | 'ownerUserId'>
+) {
+  await markContentScope(ctx, { scope: 'SOURCE', scopeId: subject.contentSourceId }, true)
+  // Only owned Homebrew can be shared into a Campaign.
+  if (subject.ownerUserId === undefined) return
+  for await (const share of ctx.innerDb
+    .query('campaignContentShares')
+    .withIndex('by_subjectKind_subjectId_campaignId', (q) =>
+      q.eq('subjectKind', subject.subjectKind).eq('subjectId', subject.id)
+    ))
+    await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: share.campaignId }, true)
+}
+
+triggers.register('authoredRoots', async (ctx, change) => {
+  for (const root of [change.oldDoc, change.newDoc]) if (root) await markAuthoredContent(ctx, root)
+})
+// Versions change with their root; a version write alone still changes the published document.
+triggers.register('authoredVersions', async (ctx, change) => {
+  for (const version of [change.oldDoc, change.newDoc])
+    if (version)
+      await markContentScope(ctx, { scope: 'SOURCE', scopeId: version.contentSourceId }, true)
+})
+triggers.register('contentSources', async (ctx, change) => {
+  if (change.operation === 'insert') return
+  await markContentScope(ctx, { scope: 'SOURCE', scopeId: change.oldDoc.id }, false)
+})
+triggers.register('campaignContentShares', async (ctx, change) => {
+  for (const share of [change.oldDoc, change.newDoc])
+    if (share) await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: share.campaignId }, true)
+})
+// Share validity reads the System, owner, catalogues and the sharing member's active membership.
+triggers.register('campaigns', async (ctx, change) => {
+  if (change.operation === 'insert') return
+  const { oldDoc, newDoc } = change
+  if (
+    newDoc &&
+    oldDoc.gameSystemId === newDoc.gameSystemId &&
+    oldDoc.ownerUserId === newDoc.ownerUserId &&
+    oldDoc.primaryRulesCatalogueId === newDoc.primaryRulesCatalogueId &&
+    oldDoc.additionalRulesCatalogueIds.join() === newDoc.additionalRulesCatalogueIds.join()
+  )
+    return
+  await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: oldDoc.id }, false)
+})
+triggers.register('campaignMemberships', async (ctx, change) => {
+  if (change.operation === 'insert') return
+  const { oldDoc, newDoc } = change
+  if (newDoc && oldDoc.status === newDoc.status && oldDoc.role === newDoc.role) return
+  await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: oldDoc.campaignId }, false)
 })
 
 registerScope('campaigns', (_, document) => campaignScope(document.id))

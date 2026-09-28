@@ -1,0 +1,382 @@
+// @vitest-environment node
+import { register } from '@convex-dev/r2/test'
+import { makeFunctionReference } from 'convex/server'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type {
+  CampaignContentRemovalReceiptDto,
+  UnshareCampaignContentInput
+} from '@artificer-toolkit/schema/api/campaignCore'
+import type { ContentSnapshotKind } from '@artificer-toolkit/schema/api/contentSnapshots'
+import { contentSnapshotObjectKey } from '@artificer-toolkit/rules-runtime/contentSnapshots'
+import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  SRD_CONTENT_SOURCE,
+  SRD_RULES_CATALOGUE
+} from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { clubPlus1 } from '@artificer-toolkit/source-data/srd/equipment/club-plus-1.js'
+import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
+import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { fixture } from '../../tests/fixtures/characters'
+import { importedSubject } from '../../tests/fixtures/publication'
+import { startLocalR2 } from '../../tests/localR2'
+import { api, internal } from '../_generated/api'
+import type { Doc } from '../_generated/dataModel'
+import { insertAuthoredVersion } from '../content/documents'
+import { requireDefaultUserContentSource } from '../content/sources'
+import { withSceneVisionTracking } from '../lib/mutations'
+import type { ContentSnapshotScopeRef } from './marking'
+
+const unshare = makeFunctionReference<
+  'mutation',
+  UnshareCampaignContentInput,
+  CampaignContentRemovalReceiptDto
+>('campaigns/contentShares:unshare')
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllEnvs()
+})
+
+type HomebrewDocument = { id: string; systemId: string; label: string }
+
+async function setup() {
+  const server = await startLocalR2()
+  vi.stubEnv('MEDIA_STORAGE_MODE', 'local')
+  vi.stubEnv('CONVEX_SITE_URL', 'http://127.0.0.1:3221')
+  vi.stubEnv('LOCAL_R2_ENDPOINT', server.endpoint)
+  const base = await fixture()
+  const { t, owner } = base
+  register(t)
+  const userSourceId = await t.run((ctx) =>
+    requireDefaultUserContentSource(ctx, srdSystemRecord.id, owner.userId)
+  )
+  // Load the build's modules on real timers; a cold import can outlast the fake-timer pump limit.
+  await t.action(internal.contentSnapshots.actions.build, {
+    scope: 'SOURCE',
+    scopeId: userSourceId
+  })
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+  /** Publishes a Homebrew version through the trigger-wrapped writer, as publication does. */
+  async function publish(
+    kind: 'RACE' | 'FEAT' | 'EQUIPMENT',
+    document: HomebrewDocument,
+    { parentId = null, importJobId }: { parentId?: string | null; importJobId?: string } = {}
+  ) {
+    const parentField = kind === 'RACE' ? 'parentRaceId' : 'parentEquipmentId'
+    await t.run(async (raw) => {
+      const ctx = withSceneVisionTracking(raw)
+      const current = await ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', document.id))
+        .unique()
+      const authored = {
+        ...document,
+        ...(parentId === null ? {} : { [parentField]: parentId }),
+        userId: owner.userId,
+        status: 'ACTIVE'
+      }
+      const checksum = checksumRuleDocument(authored)
+      const versionId = crypto.randomUUID()
+      const currentVersionId = await insertAuthoredVersion(
+        ctx,
+        {
+          subjectKind: kind,
+          id: document.id,
+          systemId: document.systemId,
+          label: document.label,
+          checksum,
+          contentSourceId: userSourceId,
+          importJobId,
+          versionId,
+          version: current ? 2 : 1,
+          documentSchemaVersion: 1
+        },
+        canonicalizeRuleDocument(authored)
+      )
+      const fields = {
+        label: document.label,
+        checksum,
+        currentVersionId,
+        currentVersionPublicId: versionId
+      }
+      if (current) {
+        await ctx.db.patch(current._id, fields)
+        return
+      }
+      await ctx.db.insert('authoredRoots', {
+        ...fields,
+        id: document.id,
+        subjectKind: kind,
+        systemId: document.systemId,
+        contentSourceId: userSourceId,
+        importJobId,
+        ownerUserId: owner.userId,
+        ...(kind === 'RACE' ? { parentRaceId: parentId } : {}),
+        ...(kind === 'EQUIPMENT' ? { parentEquipmentId: parentId } : {})
+      })
+    })
+    return document.id
+  }
+
+  const head = (ref: ContentSnapshotScopeRef) =>
+    t.run((ctx) =>
+      ctx.db
+        .query('contentSnapshotHeads')
+        .withIndex('by_scope_scopeId', (q) => q.eq('scope', ref.scope).eq('scopeId', ref.scopeId))
+        .unique()
+    )
+  async function readIndex(
+    ref: ContentSnapshotScopeRef,
+    snapshot: Doc<'contentSnapshotHeads'> | null,
+    kind: ContentSnapshotKind
+  ) {
+    const object = snapshot?.kinds[kind]?.index
+    if (!object) return []
+    const stored = server.objects.get(
+      contentSnapshotObjectKey({ format: 1, ...ref, kind, part: 'index' }, object.sha256)
+    )
+    if (!stored) throw new Error('Committed snapshot object is missing from R2.')
+    const json = await new Response(
+      new Blob([new Uint8Array(stored.body)]).stream().pipeThrough(new DecompressionStream('gzip'))
+    ).text()
+    return (JSON.parse(json) as { roots: ({ id: string } & Record<string, unknown>)[] }).roots
+  }
+
+  return {
+    ...base,
+    server,
+    userSource: { scope: 'SOURCE', scopeId: userSourceId } as const,
+    srdSource: { scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id } as const,
+    publish,
+    settle: () => t.finishAllScheduledFunctions(vi.runAllTimers),
+    head,
+    objects: () => t.run((ctx) => ctx.db.query('contentSnapshotObjects').collect()),
+    puts: () => server.methods.filter((method) => method === 'PUT').length,
+    readIndex,
+    rootIds: async (
+      ref: ContentSnapshotScopeRef,
+      snapshot: Doc<'contentSnapshotHeads'> | null,
+      kind: ContentSnapshotKind
+    ) => (await readIndex(ref, snapshot, kind)).map((root) => root.id)
+  }
+}
+
+function homebrew(document: HomebrewDocument) {
+  return { ...document, id: crypto.randomUUID() }
+}
+
+describe('content snapshot builds', () => {
+  it('rebuilds only the published scope and kind, and a retried build changes nothing', async () => {
+    const { t, server, userSource, srdSource, publish, settle, head, puts, rootIds } = await setup()
+    try {
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects: [importedSubject({ subjectKind: 'RACE', ...dwarf, document: dwarf })]
+      })
+      const race = homebrew(elf)
+      await publish('RACE', race)
+      await publish('FEAT', homebrew(grappler))
+      const scheduled = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
+      expect(scheduled.map((job) => job.args[0])).toEqual([srdSource, userSource])
+      await settle()
+
+      const before = { user: await head(userSource), srd: await head(srdSource) }
+      expect(before.srd).toMatchObject({ revision: 1, builtRevision: 1 })
+      expect(await rootIds(srdSource, before.srd, 'RACE')).toEqual([dwarf.id])
+      expect(before.user).toMatchObject({ revision: 2, builtRevision: 2 })
+      expect(Object.keys(before.user!.kinds).sort()).toEqual(['FEAT', 'RACE'])
+      expect(before.user!.buildScheduledAt).toBeUndefined()
+      expect(puts()).toBe(6)
+
+      await publish('RACE', { ...race, label: 'Wood-touched Elf' })
+      await settle()
+      const after = { user: await head(userSource), srd: await head(srdSource) }
+      expect(after.srd).toEqual(before.srd)
+      expect(after.user).toMatchObject({ revision: 3, builtRevision: 3 })
+      expect(after.user!.kinds.FEAT).toEqual(before.user!.kinds.FEAT)
+      expect(after.user!.kinds.RACE!.index.sha256).not.toBe(before.user!.kinds.RACE!.index.sha256)
+      expect(puts()).toBe(8)
+      expect(server.objects.size).toBe(8)
+
+      // A duplicate or retried build of a built revision reads nothing new and uploads nothing.
+      await t.action(internal.contentSnapshots.actions.build, userSource)
+      expect(await head(userSource)).toEqual(after.user)
+      expect(puts()).toBe(8)
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('rejects a stale compare-and-set and records its uploads as superseded', async () => {
+    const { t, server, userSource, publish, settle, head, objects } = await setup()
+    try {
+      await publish('RACE', homebrew(elf))
+      await settle()
+      const built = await head(userSource)
+      const orphan = contentSnapshotObjectKey(
+        { format: 1, ...userSource, kind: 'FEAT', part: 'index' },
+        'a'.repeat(64)
+      )
+      const stale = await t.mutation(internal.contentSnapshots.heads.commitBuild, {
+        ...userSource,
+        revisionBuiltFrom: built!.builtRevision,
+        kinds: {},
+        uploadedKeys: [orphan],
+        scopeExists: true
+      })
+      expect(stale).toBe('STALE')
+      expect(await head(userSource)).toEqual(built)
+      expect((await objects()).find((row) => row.key === orphan)?.supersededAt).toEqual(
+        expect.any(Number)
+      )
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('projects Equipment without a stored builder projection instead of dropping it', async () => {
+    const { server, userSource, publish, settle, head, readIndex } = await setup()
+    try {
+      const parent = await publish('EQUIPMENT', homebrew(club))
+      const variant = await publish('EQUIPMENT', homebrew(clubPlus1), { parentId: parent })
+      await settle()
+      const roots = await readIndex(userSource, await head(userSource), 'EQUIPMENT')
+      expect(roots).toHaveLength(2)
+      expect(roots.find((root) => root.id === variant)).toMatchObject({
+        parentEquipmentId: parent,
+        category: club.category
+      })
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('excludes a hidden import row', async () => {
+    const { server, userSource, publish, settle, head, rootIds } = await setup()
+    try {
+      const visible = await publish('RACE', homebrew(elf))
+      await publish('RACE', homebrew(dwarf), { importJobId: crypto.randomUUID() })
+      await settle()
+      expect(await rootIds(userSource, await head(userSource), 'RACE')).toEqual([visible])
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('follows Campaign shares: an unshared parent excludes its child, unshare removes the item', async () => {
+    const { t, server, owner, publish, settle, head, objects, rootIds } = await setup()
+    try {
+      const campaign = await owner.caller.mutation(api.campaigns.create.create, {
+        name: 'Snapshot sharing',
+        format: 'ONGOING',
+        toneTags: ['HEROIC'],
+        contentMaturity: 'STANDARD',
+        gameSystemId: srdSystemRecord.id,
+        primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+      })
+      const ref = { scope: 'CAMPAIGN', scopeId: campaign.id } as const
+      const kept = await publish('RACE', homebrew(dwarf))
+      const parent = await publish('RACE', homebrew(elf))
+      const child = await publish('RACE', homebrew(highElf), { parentId: parent })
+      for (const subjectId of [kept, parent, child])
+        await owner.caller.mutation(api.campaigns.contentShares.share, {
+          campaignId: campaign.id,
+          subjectKind: 'RACE',
+          subjectId
+        })
+      await settle()
+      const shared = await head(ref)
+      expect(await rootIds(ref, shared, 'RACE')).toEqual([kept, parent, child].sort())
+
+      // Only the parent's share row goes, leaving a child share whose parent is not shared.
+      await t.run(async (raw) => {
+        const ctx = withSceneVisionTracking(raw)
+        const share = await ctx.db
+          .query('campaignContentShares')
+          .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
+            q.eq('campaignId', campaign.id).eq('subjectKind', 'RACE').eq('subjectId', parent)
+          )
+          .unique()
+        if (!share) throw new Error('Missing parent share fixture.')
+        await ctx.db.delete(share._id)
+      })
+      await settle()
+      expect(await rootIds(ref, await head(ref), 'RACE')).toEqual([kept])
+
+      await owner.caller.mutation(unshare, {
+        campaignId: campaign.id,
+        subjectKind: 'RACE',
+        subjectId: kept,
+        sharedBy: owner.userId,
+        expectedCampaignVersion: campaign.version,
+        commandId: crypto.randomUUID()
+      })
+      await settle()
+      expect((await head(ref))?.kinds.RACE).toBeUndefined()
+      const superseded = new Set(
+        (await objects()).filter((row) => row.supersededAt !== undefined).map((row) => row.key)
+      )
+      for (const part of ['index', 'documents'] as const)
+        expect(
+          superseded.has(
+            contentSnapshotObjectKey(
+              { format: 1, ...ref, kind: 'RACE', part },
+              shared!.kinds.RACE![part].sha256
+            )
+          )
+        ).toBe(true)
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('rebuilds only the official source that a platform import changes', async () => {
+    const { t, server, userSource, srdSource, publish, settle, head } = await setup()
+    try {
+      await publish('FEAT', homebrew(grappler))
+      await settle()
+      const user = await head(userSource)
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects: [importedSubject({ subjectKind: 'FEAT', ...grappler, document: grappler })]
+      })
+      await settle()
+      expect(await head(userSource)).toEqual(user)
+      expect(Object.keys((await head(srdSource))!.kinds)).toEqual(['FEAT'])
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('deletes only objects superseded for more than seven days', async () => {
+    const { t, server, publish, settle, objects } = await setup()
+    try {
+      const race = homebrew(elf)
+      await publish('RACE', race)
+      await settle()
+      await publish('RACE', { ...race, label: 'Renamed Elf' })
+      await settle()
+      const rows = await objects()
+      const [expired, recent] = rows.filter((row) => row.supersededAt !== undefined)
+      if (!expired || !recent) throw new Error('Expected two superseded objects.')
+      await t.run((ctx) => ctx.db.patch(expired._id, { supersededAt: Date.now() - 8 * 86_400_000 }))
+
+      await t.action(internal.contentSnapshots.actions.deleteSupersededObjects, {})
+      const remaining = (await objects()).map((row) => row.key).sort()
+      expect(remaining).toEqual(
+        rows
+          .map((row) => row.key)
+          .filter((key) => key !== expired.key)
+          .sort()
+      )
+      expect(server.objects.has(expired.key)).toBe(false)
+      expect([...server.objects.keys()].sort()).toEqual(remaining)
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+})

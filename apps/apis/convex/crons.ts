@@ -14,4 +14,10 @@ crons.daily(
   internal.scenes.commandRetention.purge,
   {}
 )
+crons.daily(
+  'delete superseded content snapshots',
+  { hourUTC: 9, minuteUTC: 30 },
+  internal.contentSnapshots.actions.deleteSupersededObjects,
+  {}
+)
 export default crons

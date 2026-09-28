@@ -132,6 +132,58 @@ export async function requireCampaignContentParents(
   }
 }
 
+function contentParentId(publication: ReturnType<typeof parsePublicationDocument>) {
+  const { subjectKind, document } = publication
+  if (subjectKind === 'CLASS' && document.category === 'SUBCLASS') return document.parentClassId
+  if (subjectKind === 'RACE' && document.category === 'SUBRACE') return document.parentRaceId
+  if (subjectKind === 'EQUIPMENT' && document.category === 'VARIANT')
+    return document.parentEquipmentId
+  return null
+}
+
+/**
+ * Whether each parent of a shared child is itself a readable share, up to an enabled official
+ * root. A false result excludes the child where `requireCampaignContentParents` would reject it.
+ */
+export async function hasCampaignContentParents(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  publication: ReturnType<typeof parsePublicationDocument>
+) {
+  let parentId = contentParentId(publication)
+  if (parentId === null) return true
+  const { sourceIds } = await requireRulesCatalogueBinding(ctx, {
+    systemId: campaign.gameSystemId,
+    primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
+    additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
+  })
+  const visited = new Set([publication.document.id])
+  while (parentId !== null) {
+    const id = parentId
+    if (visited.has(id)) return false
+    visited.add(id)
+    const shared = await readCampaignSharedRootPublication(
+      ctx,
+      campaign,
+      publication.subjectKind,
+      id
+    )
+    if (!shared) {
+      const root = await ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', id))
+        .unique()
+      return (
+        root !== null &&
+        sourceIds.has(root.contentSourceId) &&
+        (await canReadAuthoredRoot(ctx, root, null))
+      )
+    }
+    parentId = contentParentId(shared)
+  }
+  return true
+}
+
 /** Caller must already hold current Campaign authority; this grants no global authored access. */
 export async function readCampaignSharedPublication(
   ctx: QueryCtx,

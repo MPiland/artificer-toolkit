@@ -1,0 +1,361 @@
+import { v } from 'convex/values'
+import { zodToConvex } from 'convex-helpers/server/zod4'
+import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
+import {
+  contentSnapshotHeadSchema,
+  contentSnapshotKindSchema,
+  type ContentSnapshotHead,
+  type ContentSnapshotKind
+} from '@artificer-toolkit/schema/api/contentSnapshots'
+import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
+import {
+  contentSnapshotObjectKey,
+  type ContentSnapshotIndexSource
+} from '@artificer-toolkit/rules-runtime/contentSnapshots'
+import type { Doc } from '../_generated/dataModel'
+import { internalQuery, type QueryCtx } from '../_generated/server'
+import { internalMutation } from '../lib/mutations'
+import {
+  hasCampaignContentParents,
+  readCampaignSharedRootPublication,
+  requireCampaignContentParents
+} from '../campaigns/contentAccess'
+import { readCharacterSourceRoots } from '../characters/sourceReads'
+import {
+  canReadAuthoredRoot,
+  readAuthoredVersion,
+  readPublishedDocument
+} from '../content/documents'
+import { compileCurrentEquipment } from '../content/equipmentRelationships'
+import { equipmentOptionFacts } from '../content/equipmentOptionFacts'
+import { parsePublicationDocument } from '../content/publicationDocumentRead'
+import {
+  CONTENT_SNAPSHOT_BUILD_DELAY_MS,
+  readContentSnapshotHead,
+  scheduleContentSnapshotBuild,
+  vContentSnapshotScopeRef,
+  type ContentSnapshotScopeRef
+} from './marking'
+
+// ADR 0036 build protocol; `docs/architecture/persistence.md` describes it end to end.
+
+const SUPERSEDED_RETENTION_MS = 7 * 86_400_000
+const CLEANUP_BATCH_SIZE = 100
+// A claim this old belongs to a cleanup run that failed before deleting its rows.
+const CLEANUP_CLAIM_TIMEOUT_MS = 60 * 60_000
+const DELETING_KEY_RETRY_MS = 60_000
+const MAX_AUTOMATIC_RETRIES = 5
+
+/**
+ * The revision a build starts from, or null when nothing is unbuilt. Content read afterwards is at
+ * least this new, so committing it as `builtRevision` never skips a change.
+ */
+export const readBuildStart = internalQuery({
+  args: vContentSnapshotScopeRef,
+  returns: v.union(v.object({ revision: v.number(), scopeExists: v.boolean() }), v.null()),
+  handler: async (ctx, { scope, scopeId }) => {
+    const head = await ctx.db
+      .query('contentSnapshotHeads')
+      .withIndex('by_scope_scopeId', (q) => q.eq('scope', scope).eq('scopeId', scopeId))
+      .unique()
+    if (!head || head.revision <= head.builtRevision) return null
+    const subject =
+      scope === 'SOURCE'
+        ? await ctx.db
+            .query('contentSources')
+            .withIndex('by_publicId', (q) => q.eq('id', scopeId))
+            .unique()
+        : await ctx.db
+            .query('campaigns')
+            .withIndex('by_publicId', (q) => q.eq('id', scopeId))
+            .unique()
+    return { revision: head.revision, scopeExists: subject !== null }
+  }
+})
+
+/**
+ * One kind of a scope's readable current publications, by the Builder's source rules, as JSON
+ * index sources. A missing scope has no roots.
+ */
+export const readScopeKind = internalQuery({
+  args: { ...vContentSnapshotScopeRef, kind: zodToConvex(contentSnapshotKindSchema) },
+  returns: v.array(v.string()),
+  handler: async (ctx, { scope, scopeId, kind }) => {
+    const found =
+      scope === 'SOURCE'
+        ? await readSourcePublications(ctx, scopeId, kind)
+        : await readCampaignPublications(ctx, scopeId, kind)
+    const sources: string[] = []
+    for (const { root, publication } of found) {
+      const source: ContentSnapshotIndexSource =
+        publication.subjectKind === 'EQUIPMENT'
+          ? {
+              subjectKind: 'EQUIPMENT',
+              document: publication.document,
+              builder: await readEquipmentBuilderFacts(ctx, root, publication.document)
+            }
+          : publication
+      sources.push(JSON.stringify(source))
+    }
+    return sources
+  }
+})
+
+async function readSourcePublications(ctx: QueryCtx, sourceId: string, kind: ContentSnapshotKind) {
+  const source = await ctx.db
+    .query('contentSources')
+    .withIndex('by_publicId', (q) => q.eq('id', sourceId))
+    .unique()
+  if (!source) return []
+  const roots = await readCharacterSourceRoots(
+    ctx,
+    source.gameSystemId,
+    { campaign: null, sources: [source] },
+    kind
+  )
+  const found = []
+  for (const root of roots) {
+    if (!(await canReadAuthoredRoot(ctx, root, source.ownerUserId, source))) continue
+    const publication = parsePublicationDocument(
+      kind,
+      await readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root))
+    )
+    found.push({ root, publication })
+  }
+  return found
+}
+
+async function readCampaignPublications(
+  ctx: QueryCtx,
+  campaignId: string,
+  kind: ContentSnapshotKind
+) {
+  const campaign = await ctx.db
+    .query('campaigns')
+    .withIndex('by_publicId', (q) => q.eq('id', campaignId))
+    .unique()
+  if (!campaign) return []
+  const shares = await ctx.db
+    .query('campaignContentShares')
+    .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
+      q.eq('campaignId', campaign.id).eq('subjectKind', kind)
+    )
+    .take(501)
+  // ponytail: the same per-kind bound as the Builder's inline catalogue (`readCharacterSourceRoots`).
+  if (shares.length > 500) throw new Error('Campaign content snapshot requires paginated search.')
+  const found = []
+  for (const share of shares) {
+    const publication = await readCampaignSharedRootPublication(
+      ctx,
+      campaign,
+      kind,
+      share.subjectId
+    )
+    // A child whose parent share is gone is excluded; the Builder's parent rule still applies.
+    if (!publication || !(await hasCampaignContentParents(ctx, campaign, publication))) continue
+    await requireCampaignContentParents(ctx, campaign, publication)
+    const root = await ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))
+      .unique()
+    if (!root) throw new Error('Stored Campaign content root is missing.')
+    found.push({ root, publication })
+  }
+  return found
+}
+
+/**
+ * The stored effective projection when it is current; otherwise the Builder's projection function
+ * over the resolved variant chain, so a missing backfill never drops a root or fails the build.
+ */
+async function readEquipmentBuilderFacts(
+  ctx: QueryCtx,
+  root: Doc<'authoredRoots'>,
+  document: EquipmentAuthoredDto
+): Promise<Extract<ContentSnapshotIndexSource, { subjectKind: 'EQUIPMENT' }>['builder']> {
+  if (root.equipmentOptions?.builder !== undefined) {
+    const stored = authoredEquipmentOptionFactsSchema.parse(root.equipmentOptions)
+    if (stored.checksum === root.checksum && stored.builder) return stored.builder
+  }
+  const { effective } = await compileCurrentEquipment(ctx, document, root.ownerUserId ?? null)
+  const { builder } = equipmentOptionFacts(document, root.checksum, effective)
+  if (!builder) throw new Error('Equipment builder projection requires resolved facts.')
+  return builder
+}
+
+/** Keys without an object row; only these are uploaded. */
+export const readAbsentObjectKeys = internalQuery({
+  args: { keys: v.array(v.string()) },
+  returns: v.array(v.string()),
+  handler: async (ctx, { keys }) => {
+    const absent: string[] = []
+    for (const key of keys) {
+      const row = await ctx.db
+        .query('contentSnapshotObjects')
+        .withIndex('by_key', (q) => q.eq('key', key))
+        .unique()
+      if (!row) absent.push(key)
+    }
+    return absent
+  }
+})
+
+function referencedKeys(ref: ContentSnapshotScopeRef, kinds: ContentSnapshotHead['kinds']) {
+  const keys = new Set<string>()
+  for (const kind of contentSnapshotKindSchema.options) {
+    const parts = kinds[kind]
+    if (!parts) continue
+    for (const part of ['index', 'documents'] as const)
+      keys.add(contentSnapshotObjectKey({ format: 1, ...ref, kind, part }, parts[part].sha256))
+  }
+  return keys
+}
+
+/**
+ * Compare-and-set on `builtRevision`. Uploaded keys are always recorded, superseded unless the
+ * committed head references them, so an object from a rejected build ages out like any other.
+ */
+export const commitBuild = internalMutation({
+  args: {
+    ...vContentSnapshotScopeRef,
+    revisionBuiltFrom: v.number(),
+    kinds: zodToConvex(contentSnapshotHeadSchema.shape.kinds),
+    uploadedKeys: v.array(v.string()),
+    scopeExists: v.boolean()
+  },
+  returns: v.union(
+    v.literal('COMMITTED'),
+    v.literal('STALE'),
+    v.literal('RETRY'),
+    v.literal('MISSING')
+  ),
+  handler: async (ctx, args) => {
+    const ref: ContentSnapshotScopeRef = { scope: args.scope, scopeId: args.scopeId }
+    const now = Date.now()
+    const rows = new Map<string, Doc<'contentSnapshotObjects'> | null>()
+    const readRow = async (key: string) => {
+      const cached = rows.get(key)
+      if (cached !== undefined) return cached
+      const row = await ctx.db
+        .query('contentSnapshotObjects')
+        .withIndex('by_key', (q) => q.eq('key', key))
+        .unique()
+      rows.set(key, row)
+      return row
+    }
+    const recordUploaded = async (live: ReadonlySet<string>) => {
+      for (const key of args.uploadedKeys) {
+        if (live.has(key) || (await readRow(key))) continue
+        await ctx.db.insert('contentSnapshotObjects', {
+          key,
+          ...ref,
+          createdAt: now,
+          supersededAt: now
+        })
+      }
+    }
+    const head = await readContentSnapshotHead(ctx.db, ref)
+    if (!head) {
+      await recordUploaded(new Set())
+      return 'MISSING'
+    }
+    if (args.revisionBuiltFrom <= head.builtRevision) {
+      await recordUploaded(new Set())
+      return 'STALE'
+    }
+    const uploaded = new Set(args.uploadedKeys)
+    const next = referencedKeys(ref, args.kinds)
+    for (const key of next) {
+      const row = await readRow(key)
+      // A key being deleted, or one that vanished after the build saw it, may have no object.
+      if (row?.deletingAt !== undefined || (!row && !uploaded.has(key))) {
+        await recordUploaded(new Set())
+        await ctx.db.patch(head._id, { buildScheduledAt: now })
+        await scheduleContentSnapshotBuild(ctx.scheduler, ref, DELETING_KEY_RETRY_MS)
+        return 'RETRY'
+      }
+    }
+    for (const key of next) {
+      const row = await readRow(key)
+      if (!row) await ctx.db.insert('contentSnapshotObjects', { key, ...ref, createdAt: now })
+      else if (row.supersededAt !== undefined)
+        await ctx.db.patch(row._id, { supersededAt: undefined })
+    }
+    for (const key of referencedKeys(ref, head.kinds)) {
+      if (next.has(key)) continue
+      const row = await readRow(key)
+      if (row && row.supersededAt === undefined) await ctx.db.patch(row._id, { supersededAt: now })
+    }
+    await recordUploaded(next)
+    if (!args.scopeExists) {
+      await ctx.db.delete(head._id)
+      return 'COMMITTED'
+    }
+    const dirty = head.revision > args.revisionBuiltFrom
+    await ctx.db.patch(head._id, {
+      kinds: args.kinds,
+      builtRevision: args.revisionBuiltFrom,
+      buildScheduledAt: dirty ? now : undefined,
+      failedBuilds: undefined
+    })
+    if (dirty)
+      await scheduleContentSnapshotBuild(ctx.scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
+    return 'COMMITTED'
+  }
+})
+
+/** Retries a failed build with exponential backoff; later marks retry after that. */
+export const failBuild = internalMutation({
+  args: vContentSnapshotScopeRef,
+  returns: v.null(),
+  handler: async (ctx, ref) => {
+    const head = await readContentSnapshotHead(ctx.db, ref)
+    if (!head) return null
+    const failedBuilds = (head.failedBuilds ?? 0) + 1
+    if (failedBuilds > MAX_AUTOMATIC_RETRIES) {
+      await ctx.db.patch(head._id, { failedBuilds, buildScheduledAt: undefined })
+      return null
+    }
+    await ctx.db.patch(head._id, { failedBuilds, buildScheduledAt: Date.now() })
+    await scheduleContentSnapshotBuild(ctx.scheduler, ref, 60_000 * 2 ** (failedBuilds - 1))
+    return null
+  }
+})
+
+/** Claims objects superseded for longer than the retention; no build may reuse a claimed key. */
+export const claimSupersededObjects = internalMutation({
+  args: {},
+  returns: v.array(v.string()),
+  handler: async (ctx) => {
+    const now = Date.now()
+    const rows = await ctx.db
+      .query('contentSnapshotObjects')
+      .withIndex('by_supersededAt', (q) =>
+        q.gte('supersededAt', 0).lt('supersededAt', now - SUPERSEDED_RETENTION_MS)
+      )
+      .take(CLEANUP_BATCH_SIZE)
+    const keys: string[] = []
+    for (const row of rows) {
+      if (row.deletingAt !== undefined && row.deletingAt >= now - CLEANUP_CLAIM_TIMEOUT_MS) continue
+      await ctx.db.patch(row._id, { deletingAt: now })
+      keys.push(row.key)
+    }
+    return keys
+  }
+})
+
+/** Removes the rows of claimed objects after R2 confirmed their deletion. */
+export const finishDeletedObjects = internalMutation({
+  args: { keys: v.array(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { keys }) => {
+    for (const key of keys) {
+      const row = await ctx.db
+        .query('contentSnapshotObjects')
+        .withIndex('by_key', (q) => q.eq('key', key))
+        .unique()
+      if (row?.deletingAt !== undefined) await ctx.db.delete(row._id)
+    }
+    return null
+  }
+})

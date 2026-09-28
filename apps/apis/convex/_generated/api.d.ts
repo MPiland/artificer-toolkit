@@ -65013,6 +65013,89 @@ export declare const internal: {
       >;
     };
   };
+  contentSnapshots: {
+    actions: {
+      build: FunctionReference<
+        "action",
+        "internal",
+        { scope: "SOURCE" | "CAMPAIGN"; scopeId: string },
+        null
+      >;
+      deleteSupersededObjects: FunctionReference<"action", "internal", {}, null>;
+    };
+    heads: {
+      claimSupersededObjects: FunctionReference<
+        "mutation",
+        "internal",
+        {},
+        Array<string>
+      >;
+      commitBuild: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          kinds: {
+          BACKGROUND?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+          CLASS?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+          CREATURE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+          EQUIPMENT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+          FEAT?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+          RACE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+          SPELL?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+          VEHICLE?: { documents: { byteLength: number; rootCount: number; sha256: string }; index: { byteLength: number; rootCount: number; sha256: string } };
+          };
+          revisionBuiltFrom: number;
+          scope: "SOURCE" | "CAMPAIGN";
+          scopeExists: boolean;
+          scopeId: string;
+          uploadedKeys: Array<string>;
+        },
+        "COMMITTED" | "STALE" | "RETRY" | "MISSING"
+      >;
+      failBuild: FunctionReference<
+        "mutation",
+        "internal",
+        { scope: "SOURCE" | "CAMPAIGN"; scopeId: string },
+        null
+      >;
+      finishDeletedObjects: FunctionReference<
+        "mutation",
+        "internal",
+        { keys: Array<string> },
+        null
+      >;
+      readAbsentObjectKeys: FunctionReference<
+        "query",
+        "internal",
+        { keys: Array<string> },
+        Array<string>
+      >;
+      readBuildStart: FunctionReference<
+        "query",
+        "internal",
+        { scope: "SOURCE" | "CAMPAIGN"; scopeId: string },
+        null | { revision: number; scopeExists: boolean }
+      >;
+      readScopeKind: FunctionReference<
+        "query",
+        "internal",
+        {
+          kind:
+            | "BACKGROUND"
+            | "CLASS"
+            | "CREATURE"
+            | "EQUIPMENT"
+            | "FEAT"
+            | "RACE"
+            | "SPELL"
+            | "VEHICLE";
+          scope: "SOURCE" | "CAMPAIGN";
+          scopeId: string;
+        },
+        Array<string>
+      >;
+    };
+  };
   developmentAccountDeletion: {
     inspect: FunctionReference<
       "query",
