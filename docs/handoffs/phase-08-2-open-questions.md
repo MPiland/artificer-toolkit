@@ -38,6 +38,20 @@ Size the free hosting tier for a launch cohort: 100 Free users, of whom 20 host 
 - **The budgets** (reads per Builder edit, per authoring save, per combat command and per session; storage and R2 operations per user) are each provider allowance divided by that model, with 50% headroom.
 - **Pressure point to check:** storage quota. Taken at its full limit, 250 MB per Free user fills a typical free object-storage allowance at a few dozen users. Either typical use is far lower, or the Free media limit should come down before launch. The current free-tier limits of Convex, Cloudflare (Durable Objects and R2) and Netlify need checking before the numbers are fixed.
 
+**Free-tier limits, checked 2026-09-27 on the providers' pricing pages:**
+
+| Provider | What the free plan includes | Beyond the free plan |
+| --- | --- | --- |
+| Convex | Database I/O 1 GB/mo, database storage 0.5 GB, function calls 1M/mo, file storage 1 GB, egress 1 GB/mo, action compute 20 GB-h | Starter is pay-as-you-go: about $0.22/GB of I/O and $2.20 per 1M calls. Pro costs $25 per developer a month. |
+| Cloudflare Durable Objects (Workers Free) | 100k requests/day, 13,000 GB-s/day, SQLite reads 5M/day and writes 100k/day, 5 GB stored | WebSocket messages count 20:1, and hibernation avoids idle duration. |
+| Cloudflare R2 | 10 GB-month storage, 1M Class A and 10M Class B operations a month | Egress is free. |
+| Netlify Free | 300 credits a month | A production deploy costs 15 credits, bandwidth 20 per GB, compute 10 per GB-hour, and requests 2 per 10k. |
+
+**The binding constraint is Convex database I/O.** Durable Objects and R2 have wide headroom at 100 users. Netlify credits are the second risk: 20 production deploys would use a month's credits.
+
+- **Recommendation:** serve content snapshots and media from R2 or Cloudflare (egress is free), not Netlify.
+- **Worth evaluating:** hosting the web app on Cloudflare Workers too, so the Worker, room, R2 and web app share one provider.
+
 **Answer:**
 
 ### Q17 Media and Campaign content limits on the Free tier
