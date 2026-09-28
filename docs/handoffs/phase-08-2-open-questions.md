@@ -40,6 +40,37 @@ Size the free hosting tier for a launch cohort: 100 Free users, of whom 20 host 
 
 **Answer:**
 
+### Q17 Media and Campaign content limits on the Free tier
+
+**What exists today** (`apps/apis/convex/media/processing.ts`, ADR 0012):
+- **Upload limits:** 6 MiB per image and 25 MiB per map, at most 8192 px per side and 25 or 64 megapixels.
+- **Re-encoding:** every upload is re-encoded to WebP at quality 85, and the original is discarded.
+- **Stored variants:** each image keeps three sizes (4096, 1600 and 320 px). Maps are tiled at 1024.
+- **Quota:** stored bytes count against the tier quota (`mediaBytes` against `storageBytes`).
+- **Ownership:** asset identity is separate from the domain references to it, so one asset may already have several references, and the last one to detach starts a 24-hour grace period.
+- **Gap:** there is no way to pick an image you already uploaded.
+
+**User proposals (2026-09-27):**
+- Let people reuse images they have uploaded, for example one generic NPC portrait on several NPCs.
+- Stop a Free Campaign from growing to something like "20 cities, each with an image".
+
+**Recommendation:**
+1. **Reuse, yes.**
+   - Add a "My images" picker that attaches an existing asset to another Character, NPC, content item or Campaign record.
+   - The quota counts each asset once, however many references it has.
+   - Uploads are also de-duplicated automatically: hash the normalized bytes, and when the same owner uploads identical bytes again, reuse the existing asset.
+   - De-duplication stays within one owner. Matching across users would reveal that another user holds an image.
+2. **Limit bytes, not Campaign nodes.**
+   - The byte quota already bounds the "20 cities" case. Twenty city images at the sizes below take about 10 MB, and a worldbuilder who hits the quota sees "80 of 100 MB used" and knows what to do.
+   - A node count would hit the wrong thing. Text-only cities cost almost nothing to store, and a node limit penalizes worldbuilders, a core audience in PRODUCT.md. Roll20 also limits storage, not object counts.
+   - Per-request read cost is bounded by design (ADR 0035, content snapshots, pagination, read budgets), so a large Campaign costs no more per click than a small one.
+3. **Tighten the sizes.**
+   - Content art is stored at 2048 px at most, instead of 4096, which cuts about 4× of its storage. Maps keep full resolution.
+   - The Free media quota drops from 250 MB to 100 MB, in line with Roll20's free tier (to be verified). The paid tiers stay unchanged.
+4. **Invisible safety caps.** Generous ceilings on notes, chat and records per Campaign guard against abuse, well above any real group. Retention pruning covers internal receipts and logs.
+
+**Answer:**
+
 ## Decisions to review
 
 Made on your behalf while you were away (Foundry baseline, Roll20 as a second reference). Say "override Dn" to change any of them.
