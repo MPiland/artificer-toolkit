@@ -117,6 +117,59 @@ Kysely, RLS, Edge Function, Netlify executor, GoRules pack, or relational-reposi
 historical record and is not current persistence authority. Current rules/content persistence follows
 [Shared rules runtime](rules-runtime.md) and [Rules runtime ERDs](rules-runtime-erd.md).
 
+## Encounter persistence package
+
+> Status: current local implementation of [ADR 0035](../adr/0035-room-authoritative-live-encounters.md)
+> slice S1 (no behavior change). The room store, checkpoint and authority switch are later slices.
+
+`packages/encounter-persistence` holds the Encounter code that reads and writes live Encounter state,
+so the Session room can later run the same code against its own store. It depends on
+`packages/schema`, `packages/shared` and `packages/rules-runtime`, plus two things from `convex`:
+the `IndexRange` type and the `ConvexError` domain-rejection transport. It has no Convex runtime
+database dependency.
+
+- **Store.** `EncounterStore` (`store.ts`) is the subset of Convex's transaction database handle the
+  Encounter code uses: `get`, `query().withIndex()` with `order`, `collect`, `take`, `first`, `unique`
+  and async iteration, then `insert`, `patch`, `replace` and `delete`, over the same table and index
+  names. `storeTables.ts` lists its tables with their `packages/schema` stored schemas and indexes:
+  the Encounter Run tables, the active, maintained and spatial rule-effect tables, `campaigns`,
+  `campaignMemberships`, `campaignCharacterAssignments`, `characters` and
+  `characterCommandReceipts`. Methods are typed per table and index, so Convex's `ctx.db` satisfies
+  the interface without a cast and any drift from the Convex schema is a compile error.
+- **Contexts.** Pure store code takes `{ db }` (`EncounterReadContext`, `EncounterWriteContext`),
+  which a Convex `QueryCtx` or `MutationCtx` already is. Code that also needs something outside the
+  store takes a transaction with `ports` (`EncounterReadTransaction`, `EncounterWriteTransaction`).
+- **Ports** (`ports.ts`) name everything the Encounter code needs from other domains: identity, live
+  authority, Campaign and Character authority, System and definition content, content labels and
+  Blueprint sources, Character record readers and the single Character writer, Sheet commands,
+  movement targets, action Scene geometry, initiative rolls, optional-combat snapshots, and table
+  chat and roll logging. Convex binds each to its transaction in
+  `apps/apis/convex/encounters/encounterPorts.ts` (`encounterReadTransaction`,
+  `encounterWriteTransaction`, one per Convex context). The room will implement them from its
+  hydrated inputs and authorization cache (S2, S4).
+- **Moved code.** Run document readers, pending snapshots, the command timeline, command replay,
+  the transaction read memo, domain rejections, the rule-effect stores, command admission (action,
+  resume, basic action, Cleaving, Concentration, Disarm), actor control, the persistence writers
+  (mechanics batch, action children, action economy, initiative store and correction, occurrence
+  void, actor removal, revert, reinforcement, reorder, evidence rolls, turn movement, ally
+  advantage and `recordEncounterCommand`) and the projection code (`resultPresentation`,
+  `pendingReads`, roll-mode reasons, health viewer, Character projection state).
+- **Convex keeps** its public and internal function registrations (`encounters/commands:execute`,
+  `encounters/pendingReads:*`, `encounters/evidenceRolls:latest`), which resolve their guards and
+  call the package. The live commit handlers under `liveSessions/` keep their fences (live
+  admission, rules revisions) and write through the moved writers; they are deleted in S6. The
+  capture builders (`encounterRulesCapture`, `characterRulesCapture`), `actionChoices` and its
+  action-preparation helpers (`actionMechanicsPreparation`, `actionEconomy`, `actionSources`,
+  `actionRelationshipFacts`, `actionSceneContext`, `actionDisarmSelection`) stay in Convex: they page
+  with Convex cursors or assemble Character and System content that the room receives as hydrated
+  inputs and plans with in the Worker, and their Encounter state reads already go through the
+  package. The live-session guard `requireLiveEncounterRun` stays too.
+- **Nested calls.** The Encounter GM tool's Character Sheet command runs in the same transaction
+  through `executeEncounterCharacterCommand` instead of a nested internal mutation.
+- **Conformance.** `apps/apis/convex/encounters/encounterStoreConformance.test.ts` runs the same
+  operations against Convex and the in-memory reference store (`memoryEncounterStore.ts`) and
+  compares their results and store changes with golden snapshots.
+
 ## Oversized inventory cleanup — approved 2026-09-18
 
 **Accepted local implementation.** Inventory and Vehicle cargo remain

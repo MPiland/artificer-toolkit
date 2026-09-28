@@ -116,20 +116,14 @@ arguments never supply these identifiers. Other account lookups retain the gener
 Better Auth client and account lifecycle triggers remain in `authClient.helper.ts` and
 `authTriggers.helper.ts`; deletion restrictions and purge scheduling are unchanged.
 
-Native Encounter commands call the private Character functions
-`characters/encounterCommands:execute` and `characters/encounterInitiative:read` through
-`ctx.runMutation`/`ctx.runQuery`. These calls inherit authenticated context and participate in the
-owning Encounter transaction. They return only the Character receipt/health fields or initiative
-mechanics consumed by Encounter; full Sheet responses stay in the Character boundary. Both sides
-retain shared schema validation. Nested errors propagate, and a later Encounter failure rolls back
-the Character write and both receipt streams. The separate JavaScript contexts bound module
-dependencies; they do not introduce an action, scheduler, or separate commit.
-
-These internal references use the existing typed `makeFunctionReference` pattern; generated client
-references remain owned by Convex codegen. The pinned CLI has a same-version patch that renders empty
-unions as `never`, preserving static API types without weakening validators. Code generation and the
-personal-development deployment now pass. Managed Character/Encounter transaction and performance
-proof remain Phase 8.2 gates.
+Native Encounter commands run the Character work they need in the same transaction as direct calls,
+not nested Convex functions: a GM tool's Sheet command goes through
+`executeEncounterCharacterCommand` (`characters/encounterCommands.ts`) and initiative reads through
+`loadCharacterEncounterInitiative`, both reached from `packages/encounter-persistence` through its
+ports (ADR 0035 S1). They return only the Character receipt and health fields or initiative mechanics
+the Encounter consumes; full Sheet responses stay in the Character boundary, and both sides keep
+shared schema validation. A later Encounter failure rolls back the Character write and both receipt
+streams. Managed Character/Encounter transaction and performance proof remain Phase 8.2 gates.
 
 SSR session loading validates the trusted request context first. Requests with neither a Cookie
 nor Authorization header skip the Better Auth token exchange, but still query the anonymous Convex

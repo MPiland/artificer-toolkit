@@ -28,6 +28,11 @@ flowchart TD
   Commit --> Receipt["Exact idempotent receipt"]
 ```
 
+The code that applies rules results to Encounter state (admission, persistence writers, receipts and
+projections) lives in `packages/encounter-persistence`, over a store interface that Convex's
+transaction handle satisfies and the Session room will implement (ADR 0035). It depends on this
+package, never the reverse; see [Encounter persistence package](persistence.md#encounter-persistence-package).
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014 behavior. Reusable mechanics
