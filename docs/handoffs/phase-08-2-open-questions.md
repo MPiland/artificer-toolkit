@@ -431,7 +431,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Saved Encounters:** 10, 10, unlimited and unlimited.
   - **Unchanged:** Characters, homebrew roots, seats, listings, paid tables and fees.
   - **Uploads** count against whoever uploaded them (Q17), not against the hosting GM.
-  - **After a downgrade,** content over the limit becomes read-only and is never deleted.
+  - **After a downgrade,** creating new content is refused, and existing content over the limit stays readable and editable. Nothing is deleted.
+  - **Implemented 2026-09-27** (`21ee0cff8`…`d1bbca914`):
+    - per-Campaign counters in `campaignContentUsage`, maintained by triggers;
+    - limits enforced against the owner's plan;
+    - hidden safety caps of 5,000 entries and 250 Scenes for the unlimited tiers.
+  - **Follow-ups:**
+    - a specific message when a copy is refused by the limit;
+    - a per-Campaign usage count in the Campaign header.
   - **Cost target:** free hosting tiers first. Small pay-as-you-go overages are tolerated, rather than cutting below the market's 100 MB of free storage.
   - **Follow-up:** R06.4 was reworded so that direct Convex writes are fenced for the presented Scene, live Runs and held Characters' play state. This follows directly from the approved ADR 0035 Amendments.
 
