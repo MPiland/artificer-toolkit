@@ -437,6 +437,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - A long-press **ping** replaces the press-and-drag streaming pointer. A ping is one message per press, so it costs almost nothing.
   - Token-drag previews stay as built (at most 10 Hz, only while dragging).
   - Shared cursors are recorded as a post-launch enhancement, to revisit when revenue supports a paid Workers plan.
+  - **Implemented 2026-09-28:** a 500 ms long press or `P` sends one `PING`; GM pings follow the preview share toggle, player pings reach members who can see the point under fog, and each socket pings at most once per 500 ms. See [live-sessions.md](../architecture/live-sessions.md#transient-previews).
 
 
 - **Q18 (2026-09-27).** The user accepted the recommendations. The [tier research](../roadmap/tier-research-2026-09-27.md) proposal is adopted:

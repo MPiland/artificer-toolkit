@@ -874,7 +874,7 @@ The native WebSocket protocol separates command and transient traffic:
 - browser messages: `AUTHENTICATE`, `COMMAND`, `TRANSIENT`;
 - server messages: `AUTHENTICATION_REQUIRED`, `TRANSIENT_READY`, `COMMAND_COMMITTED`, `COMMAND_REJECTED`, `TRANSIENT`.
 
-Pointer, measurement, fog-area, and token-drag previews remain ephemeral. Fog of war is opt-in per
+Pings and measurement, fog-area, and token-drag previews remain ephemeral. Fog of war is opt-in per
 Scene (ADR 0034, current). New Scenes start with fog `OFF`: every point, segment and polygon counts
 as explored, so players see every non-hidden token, wall, door and light plus `TABLE` notes, and no
 exploration is derived, previewed or painted. `SHARED_PARTY` shares one player's accepted exploration
@@ -888,12 +888,20 @@ fog, and other recipient-private state never enter a broader broadcast.
 
 **Preview cost rules (current, ADR 0035 Amendment 15):**
 
-- **Only during a gesture.** The tabletop sends a pointer preview only while the primary button is
-  held on the map outside another gesture (a pointing gesture), never on hover. Token drags,
-  measurements and fog drafts send their own previews while they last.
-- **At most 10 Hz.** `liveSessionClient` sends each preview stream (per kind, dragged token or fog
-  owner) at most once per 100 ms and drops samples in between. The room's message budgets remain the
-  backstop.
+- **Only during a gesture.** There are no live cursors (Q19). Token drags, measurements and fog
+  drafts send their own previews while they last.
+- **Pings, not pointer streams (Q19, current).** A `PING` envelope is one message about one map
+  point. The tabletop sends it when a primary press (mouse, pen or touch) is held on the map for
+  500 ms without moving more than 8 screen pixels, outside another gesture, or when the focused map
+  receives `P`, which pings the centre of the view kept within the map. Every recipient draws a
+  1.5 s teal ring that keeps its screen size (only fading under reduced motion), and a polite live
+  region announces "`<username>` pinged the map." The sender draws its own ring locally; the room
+  never echoes a ping to its origin socket.
+- **At most 10 Hz; pings at most 2 Hz.** `liveSessionClient` sends each preview stream (per kind,
+  dragged token or fog owner) at most once per 100 ms and a ping at most once per
+  `VTT_SCENE_LIMITS.pingIntervalMs` (500 ms), dropping samples in between. The room's message
+  budgets remain the backstop; a ping also takes a per-socket `PING` token (capacity 1, one per
+  500 ms) when it fans out, and faster pings are dropped without closing the socket.
 - **No Convex call or storage access per sample.** A sample is handled within its WebSocket message
   and never waits on Convex or SQLite:
   - The Scene must be the room's cached Scene at the sample's version; any other sample is dropped.
@@ -912,9 +920,15 @@ fog, and other recipient-private state never enter a broader broadcast.
     Character vision for up to one lease. The commit is still fully checked.
 
 Every preview envelope carries `audience: 'TABLE' | 'GM'` (current). The room delivers a `GM`
-preview only to OWNER sockets. The tabletop sends GM previews (pointer, ruler, drag ghost, fog draft)
+preview only to OWNER sockets. The tabletop sends GM previews (ping, ruler, drag ghost, fog draft)
 as `GM` by default, and the GM's "Show my previews to players" toolbar toggle switches them to
 `TABLE`. Players always send `TABLE`.
+
+Ping recipients (current): a GM's ping follows only that audience, so a shared GM ping reaches every
+player whatever their fog. A player's ping reaches every OWNER socket, and another player only where
+`isScenePointExplored` shows the point in that player's fog (always, while fog is `OFF`). A ping
+outside the map is dropped. Like every preview, a ping is handled from the room's cached Scene with
+no Convex call or storage access, and nothing about it is written to SQLite.
 
 Durable Object SQLite stores the active authority epoch, minimum live projection, sequence/checksum,
 replay receipts, undo evidence, and ordered publication outbox in addition to room/ticket state. The

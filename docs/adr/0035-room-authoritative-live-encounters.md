@@ -136,6 +136,8 @@ Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
 15. **Previews: an immediate fix, independent of the switch.**
     - Transient preview state is memory-only; the `native_socket_transients` rows go.
     - Pointer previews are sent only during a gesture (drag, ping or measure), at most 10 Hz.
+      Q19 (2026-09-28) replaced the pointer stream with a single `PING` message per long press or
+      `P` key, at most one per 500 ms per socket; there are no live cursors (see live-sessions.md).
     - A preview sample never calls Convex. Authority and vision revisions come from the room's cache.
     - Today's path alone would exceed the Workers Free request and row limits and use most of Convex's monthly function calls.
 16. **The room must hibernate between messages.** No long-lived timers or outbound sockets, because they bill wall-clock duration. Alarms schedule checkpoints.
