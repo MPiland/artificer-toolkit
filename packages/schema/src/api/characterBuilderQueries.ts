@@ -34,12 +34,14 @@ export const characterBuilderCommitOutputSchema = lazySchema(() =>
  * acquisition names no root (a MANUAL grant, say) carries the root the client found it in; the
  * server verifies that the root is readable and holds the feature.
  */
+export const characterBuilderFeatureSourceHintSchema = lazySchema(() =>
+  z.strictObject({ featureId: postgresUuidSchema, rootId: postgresUuidSchema })
+)
+
 export const characterBuilderCommitInputSchema = lazySchema(() =>
   z.extend(characterBuilderResolveInputSchema, {
     featureSourceHints: z.optional(
-      z
-        .array(z.strictObject({ featureId: postgresUuidSchema, rootId: postgresUuidSchema }))
-        .check(z.maxLength(500))
+      z.array(characterBuilderFeatureSourceHintSchema).check(z.maxLength(500))
     )
   })
 )
@@ -54,6 +56,9 @@ export const characterBuilderCommitErrorDataSchema = lazySchema(() =>
 )
 
 export type CharacterBuilderResolveInput = z.infer<typeof characterBuilderResolveInputSchema>
+export type CharacterBuilderFeatureSourceHint = z.infer<
+  typeof characterBuilderFeatureSourceHintSchema
+>
 export type CharacterBuilderCommitInput = z.infer<typeof characterBuilderCommitInputSchema>
 export type CharacterBuilderCommitErrorData = z.infer<typeof characterBuilderCommitErrorDataSchema>
 export type CharacterBuilderPreviewOutput = z.infer<typeof characterBuilderPreviewOutputSchema>

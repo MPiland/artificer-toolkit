@@ -218,7 +218,8 @@ export function createLazySnapshotReaders(
       (await withDocuments(['EQUIPMENT'])).readEquipmentParents(document),
     readFeatureSources: async (missingFeatureIds) =>
       (await withDocuments(FEATURE_SOURCE_KINDS)).readFeatureSources(missingFeatureIds),
-    readSpellCatalogue: async () => (await withDocuments(['SPELL'])).readSpellCatalogue(),
+    readSpellCatalogue: async (referencedSpellIds) =>
+      (await withDocuments(['SPELL'])).readSpellCatalogue(referencedSpellIds),
     readRaces: () => readers.readRaces(),
     readClasses: () => readers.readClasses(),
     readBackgrounds: () => readers.readBackgrounds(),
