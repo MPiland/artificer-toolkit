@@ -11,7 +11,7 @@ type Preview = {
   position: { x: number; y: number }
 }
 type Frame<T> = T & { at: number; raw: string; socketId: number }
-type Pointer = { sequence: number; position: { x: number; y: number }; baselineVersion: number }
+type Ping = { sequence: number; position: { x: number; y: number }; baselineVersion: number }
 type ReceivedPreview = Frame<Preview & { resolution: { accepted: boolean; path: unknown } | null }>
 type BrowserProof = {
   versions: Record<number, number>
@@ -21,10 +21,10 @@ type Client = {
   page: Page
   errors: string[]
   sent: Frame<Preview>[]
-  pointers: Frame<Pointer>[]
+  pings: Frame<Ping>[]
   sentKinds: string[]
   received: ReceivedPreview[]
-  receivedPointers: Frame<Pointer>[]
+  receivedPings: Frame<Ping>[]
   receivedKinds: string[]
   syncTokenIds: string[]
   syncTokens: (Preview['position'] & { id: string })[]
@@ -106,7 +106,7 @@ function readPreview(payload: string, sent: boolean): Preview | null {
   }
 }
 
-function readPointer(payload: string, sent: boolean): Pointer | null {
+function readPing(payload: string, sent: boolean): Ping | null {
   let parsed: unknown
   try {
     parsed = JSON.parse(payload) as unknown
@@ -118,7 +118,7 @@ function readPointer(payload: string, sent: boolean): Pointer | null {
   const envelope = record(sent ? frame.envelope : record(frame.message)?.envelope)
   const position = record(envelope?.position)
   if (
-    envelope?.kind !== 'POINTER_PREVIEW' ||
+    envelope?.kind !== 'PING' ||
     typeof envelope.sequence !== 'number' ||
     typeof envelope.baselineVersion !== 'number' ||
     typeof position?.x !== 'number' ||
@@ -204,9 +204,9 @@ export async function openV15WorkloadBrowser(input: {
             sentKinds: client.sentKinds.slice(-30),
             receivedKinds: client.receivedKinds.slice(-30),
             sent: client.sent.slice(-30),
-            pointers: client.pointers.slice(-30),
+            pings: client.pings.slice(-30),
             received: client.received.slice(-30),
-            receivedPointers: client.receivedPointers.slice(-30)
+            receivedPings: client.receivedPings.slice(-30)
           }))
         },
         null,
@@ -227,10 +227,10 @@ export async function openV15WorkloadBrowser(input: {
         page,
         errors: [],
         sent: [],
-        pointers: [],
+        pings: [],
         sentKinds: [],
         received: [],
-        receivedPointers: [],
+        receivedPings: [],
         receivedKinds: [],
         syncTokenIds: [],
         syncTokens: [],
@@ -283,10 +283,10 @@ export async function openV15WorkloadBrowser(input: {
               raw: raw.slice(0, 8192),
               socketId: client.socketId
             })
-          const pointer = readPointer(raw, true)
-          if (pointer)
-            client.pointers.push({
-              ...pointer,
+          const ping = readPing(raw, true)
+          if (ping)
+            client.pings.push({
+              ...ping,
               at: Date.now(),
               raw: raw.slice(0, 8192),
               socketId: client.socketId
@@ -341,10 +341,10 @@ export async function openV15WorkloadBrowser(input: {
               resolution,
               socketId: client.socketId
             })
-          const pointer = readPointer(raw, false)
-          if (pointer)
-            client.receivedPointers.push({
-              ...pointer,
+          const ping = readPing(raw, false)
+          if (ping)
+            client.receivedPings.push({
+              ...ping,
               at: Date.now(),
               raw: raw.slice(0, 8192),
               socketId: client.socketId
@@ -414,9 +414,8 @@ export async function openV15WorkloadBrowser(input: {
         if (!bounds) throw new Error('V15 GM scene canvas has no layout bounds.')
         let currentBounds = bounds
         const warmupStartedAt = Date.now()
-        let nextPointerMoveAt = warmupStartedAt
+        let nextPingAt = warmupStartedAt
         let warmupSequence = -1
-        let move = 0
         const synced = () =>
           clients.every(
             (client) =>
@@ -429,17 +428,14 @@ export async function openV15WorkloadBrowser(input: {
             .poll(
               async () => {
                 if (!synced()) return false
-                if (Date.now() >= nextPointerMoveAt) {
-                  currentBounds = (await canvas.boundingBox()) ?? currentBounds
-                  // The room drops previews outside the Scene, so point at the fitted map's center.
-                  await gm.page.mouse.move(
-                    currentBounds.x + currentBounds.width / 2 + (move++ % 2) * 8,
-                    currentBounds.y + currentBounds.height / 2
-                  )
-                  // Poll delivery between moves instead of blocking every poll on browser input.
-                  nextPointerMoveAt = Date.now() + 1000
+                if (Date.now() >= nextPingAt) {
+                  // P pings the centre of the fitted map, inside the Scene the room accepts pings in.
+                  await canvas.focus()
+                  await gm.page.keyboard.press('p')
+                  // Poll delivery between pings instead of blocking every poll on browser input.
+                  nextPingAt = Date.now() + 1000
                 }
-                const pointer = [...gm.pointers]
+                const ping = [...gm.pings]
                   .reverse()
                   .find(
                     (item) =>
@@ -447,7 +443,7 @@ export async function openV15WorkloadBrowser(input: {
                       item.socketId === gm.socketId &&
                       item.baselineVersion === priorVersion &&
                       peers.every((peer) =>
-                        peer.receivedPointers.some(
+                        peer.receivedPings.some(
                           (received) =>
                             received.at >= warmupStartedAt &&
                             received.socketId === peer.socketId &&
@@ -458,8 +454,8 @@ export async function openV15WorkloadBrowser(input: {
                         )
                       )
                   )
-                if (pointer && synced()) {
-                  warmupSequence = pointer.sequence
+                if (ping && synced()) {
+                  warmupSequence = ping.sequence
                   return true
                 }
                 return false
@@ -471,7 +467,7 @@ export async function openV15WorkloadBrowser(input: {
           if (input.evidenceDirectory)
             await gm.page.screenshot({ path: `${input.evidenceDirectory}/v15-warmup-failure.png` })
           throw new Error(
-            `V15 pointer warmup failed; startedAt=${warmupStartedAt}, failedAt=${Date.now()}, socketIds=${clients.map((client) => client.socketId)}, ready=${clients.map((client) => client.ready)}, syncVersions=${clients.map((client) => client.syncVersion)}, tokenVisible=${clients.map((client) => client.syncTokenIds.includes(tokenId))}, GM pointers=${JSON.stringify(gm.pointers.slice(-8).map(({ sequence }) => sequence))}, peer pointers=${JSON.stringify(peers.map((peer) => peer.receivedPointers.slice(-8).map(({ sequence }) => sequence)))}.`,
+            `V15 ping warmup failed; startedAt=${warmupStartedAt}, failedAt=${Date.now()}, socketIds=${clients.map((client) => client.socketId)}, ready=${clients.map((client) => client.ready)}, syncVersions=${clients.map((client) => client.syncVersion)}, tokenVisible=${clients.map((client) => client.syncTokenIds.includes(tokenId))}, GM pings=${JSON.stringify(gm.pings.slice(-8).map(({ sequence }) => sequence))}, peer pings=${JSON.stringify(peers.map((peer) => peer.receivedPings.slice(-8).map(({ sequence }) => sequence)))}.`,
             { cause: error }
           )
         }

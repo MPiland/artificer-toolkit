@@ -271,14 +271,6 @@ export function shouldReloadVttMap(
   )
 }
 
-/**
- * Whether a pointer move shares the member's pointer with the table: only while the primary button
- * is held outside another gesture (a pointing gesture), never on hover (ADR 0035 Amendment 15).
- */
-export function isPointerPreviewGesture(input: { buttons: number; gesturing: boolean }): boolean {
-  return !input.gesturing && (input.buttons & 1) === 1
-}
-
 export function stableVttMapPartIds(delivery: Pick<SignedVttMapDeliveryDto, 'tiles'>): string[] {
   return ['overview', ...delivery.tiles.map((tile) => `tile:${tile.row}:${tile.column}`)]
 }

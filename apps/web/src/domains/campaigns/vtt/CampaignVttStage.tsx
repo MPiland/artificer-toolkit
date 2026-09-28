@@ -91,6 +91,7 @@ import {
   createSceneDarknessZone,
   createSceneLight,
   createSceneToken,
+  describeVttPing,
   editTools,
   isFogTool,
   nudgeSceneToken,
@@ -224,15 +225,27 @@ export function CampaignVttStage({
   const [tool, setTool] = useState<CampaignVttTool>('SELECT')
   const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
-  // GM pointers, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
+  // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
   const [sharePreviews, setSharePreviews] = useState(false)
   const fogOwnerUserIdRef = useRef<string | null>(null)
   fogOwnerUserIdRef.current = fogOwnerUserId
+  // Each ping replaces the announcement's content, so a repeated ping is announced again.
+  const [pingAnnouncement, setPingAnnouncement] = useState({ id: 0, text: '' })
+  const announcePing = (userId: string) =>
+    setPingAnnouncement((previous) => ({
+      id: previous.id + 1,
+      text: describeVttPing(campaign.memberships, userId, currentUserId)
+    }))
+  const announcePingRef = useRef(announcePing)
+  announcePingRef.current = announcePing
 
   const live = useCampaignLiveSession({
     campaignId: campaign.id,
     enabled: true,
-    onTransient: (message) => renderer.current?.applyTransient(message)
+    onTransient: (message) => {
+      renderer.current?.applyTransient(message)
+      if (message.envelope.kind === 'PING') announcePing(message.userId)
+    }
   })
   const liveScenes = useQuery({
     ...getCampaignLiveScenes(campaign.id, convex),
@@ -622,7 +635,7 @@ export function CampaignVttStage({
             tokenId: string
           }
         | {
-            kind: 'POINTER_PREVIEW'
+            kind: 'PING'
             position: ScenePoint
           }
         | {
@@ -631,9 +644,9 @@ export function CampaignVttStage({
             ownerUserId: string | null
             rectangle: { a: ScenePoint; b: ScenePoint }
           }
-    ) => {
+    ): boolean => {
       const current = sceneRef.current
-      if (!current) return
+      if (!current) return false
       transientSequence.current += 1
       const metadata = {
         audience:
@@ -642,7 +655,7 @@ export function CampaignVttStage({
         sceneId: current.id,
         sequence: transientSequence.current
       }
-      live.sendTransient(
+      return live.sendTransient(
         envelope.kind === 'TOKEN_DRAG_PREVIEW'
           ? {
               ...envelope,
@@ -735,7 +748,11 @@ export function CampaignVttStage({
       },
       onMeasurementCommit: (path) => commitMeasurement(path),
       onMeasurementPreview: (path) => transientRef.current({ kind: 'MEASUREMENT_PREVIEW', path }),
-      onPointerPreview: (position) => transientRef.current({ kind: 'POINTER_PREVIEW', position }),
+      onPing: (position) => {
+        const sent = transientRef.current({ kind: 'PING', position })
+        if (sent) announcePingRef.current(currentUserId)
+        return sent
+      },
       onTokenCommit: (tokenId, position) => commitTokenMoveRef.current(tokenId, position),
       onTokenPreview: (tokenId, position) =>
         transientRef.current({ kind: 'TOKEN_DRAG_PREVIEW', position, tokenId })
@@ -1051,7 +1068,13 @@ export function CampaignVttStage({
                   }}
                 />
               ) : null}
-              <Tooltip label={sharePreviews ? 'Players see your previews' : 'Previews are private'}>
+              <Tooltip
+                label={
+                  sharePreviews
+                    ? 'Players see your previews and pings'
+                    : 'Previews and pings are private'
+                }
+              >
                 <ActionIcon
                   aria-label='Show my previews to players'
                   aria-pressed={sharePreviews}
@@ -1261,6 +1284,9 @@ export function CampaignVttStage({
               : 'Scene map loading.'}
         </span>
       ) : null}
+      <span aria-atomic='true' aria-live='polite' className={styles.visuallyHidden}>
+        <span key={pingAnnouncement.id}>{pingAnnouncement.text}</span>
+      </span>
       {mapFailure ? (
         <Alert className={styles.error} color='red'>
           {mapFailure}

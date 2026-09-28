@@ -74,7 +74,7 @@ const command = {
 const envelope = {
   baselineVersion: 1,
   audience: 'TABLE',
-  kind: 'POINTER_PREVIEW',
+  kind: 'PING',
   position: { x: 4, y: 8 },
   sceneId,
   sequence: 2
@@ -184,7 +184,7 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
-  it('sends each preview stream at most 10 times a second', async () => {
+  it('sends each preview stream at most 10 times a second and pings at most twice', async () => {
     let now = 1_000
     vi.spyOn(performance, 'now').mockImplementation(() => now)
     const connection = createLiveSessionConnection({
@@ -214,14 +214,14 @@ describe('live-session browser connection', () => {
       if (message.type === 'TRANSIENT') (sentAt[message.envelope.kind] ??= []).push(now)
     }
 
-    // A pointer and a token drag move together at 31 Hz for one second.
+    // Pings and token-drag samples are offered together at 31 Hz for one second.
     for (let frame = 1; frame <= 31; frame += 1) {
       connection.sendTransient({ ...envelope, sequence: frame })
       connection.sendTransient({ ...drag, sequence: frame })
       now += 32
     }
     const tenHertz = [1_000, 1_128, 1_256, 1_384, 1_512, 1_640, 1_768, 1_896]
-    expect(sentAt).toEqual({ POINTER_PREVIEW: tenHertz, TOKEN_DRAG_PREVIEW: tenHertz })
+    expect(sentAt).toEqual({ PING: [1_000, 1_512], TOKEN_DRAG_PREVIEW: tenHertz })
     connection.close()
   })
 

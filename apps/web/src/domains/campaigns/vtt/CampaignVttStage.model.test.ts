@@ -4,6 +4,7 @@ import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/enc
 import {
   canMoveSceneToken,
   createSceneBarrier,
+  describeVttPing,
   nudgeSceneToken,
   readActiveTurn
 } from './CampaignVttStage.model'
@@ -67,6 +68,19 @@ function scene(): CampaignSceneStateDto {
 }
 
 describe('Campaign VTT accessible scene controls', () => {
+  it('announces a received ping by its sender, and confirms a sent ping', () => {
+    const { memberships } = createTabletopCampaign('OWNER')
+    const otherUserId = '00000000-0000-4000-8000-000000000099'
+
+    expect(describeVttPing(memberships, tabletopCurrentUserId, currentUserId)).toBe(
+      'ember pinged the map.'
+    )
+    expect(describeVttPing(memberships, otherUserId, currentUserId)).toBe(
+      'A table member pinged the map.'
+    )
+    expect(describeVttPing(memberships, currentUserId, currentUserId)).toBe('You pinged the map.')
+  })
+
   it('creates each barrier with its renderer-neutral default behavior', () => {
     const a = { x: 10, y: 10 }
     const b = { x: 20, y: 20 }

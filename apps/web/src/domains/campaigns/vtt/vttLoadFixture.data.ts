@@ -10,7 +10,8 @@ export const vttLoadFixtureExercise = {
   expectedMapAssetCount: 65,
   remoteUserId: '00000000-0000-4000-8000-000000000999',
   transientIntervalMs: 40,
-  transientExpiryWaitMs: 1_350,
+  // Outlasts both preview expiry (1.2 s) and a ping ring (1.5 s).
+  transientExpiryWaitMs: 1_650,
   warmupMs: 1_000
 } as const
 

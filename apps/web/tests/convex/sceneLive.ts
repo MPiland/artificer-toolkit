@@ -14,7 +14,7 @@ import {
   watchAuthenticatedSession
 } from './campaignCollaboration'
 import {
-  expectNativePointerFanout,
+  expectNativePingFanout,
   expectNativeLiveSessionAuthenticationRefresh,
   expectNativeLiveSessionPrivacy,
   expectNativeLiveSessionMessage,
@@ -134,8 +134,8 @@ export async function verifySceneLiveBrowser(
         expectNativeLiveSessionTraffic(nativePlayerSockets)
       ])
       expectPlayerWirePrivacy(nativePlayerSockets, playerConvexSocket, input)
-      stage = 'verify native pointer fanout'
-      await expectPointerFanoutBoth(
+      stage = 'verify native ping fanout'
+      await expectPingFanoutBoth(
         owner,
         player,
         input.sceneName,
@@ -204,7 +204,7 @@ export async function verifySceneLiveBrowser(
       stage = 'refresh live session authentication'
       nativeAuthenticationRefresh =
         await expectNativeLiveSessionAuthenticationRefresh(nativePlayerSockets)
-      await expectPointerFanoutBoth(
+      await expectPingFanoutBoth(
         owner,
         player,
         input.sceneName,
@@ -527,13 +527,16 @@ async function traceConvexSocket(context: BrowserContext, page: Page): Promise<C
   return trace
 }
 
-async function expectPointerFanoutBoth(
+async function expectPingFanoutBoth(
   owner: Page,
   player: Page,
   sceneName: string,
-  nativeOwnerSockets: Parameters<typeof expectNativePointerFanout>[0],
-  nativePlayerSockets: Parameters<typeof expectNativePointerFanout>[0]
+  nativeOwnerSockets: Parameters<typeof expectNativePingFanout>[0],
+  nativePlayerSockets: Parameters<typeof expectNativePingFanout>[0]
 ): Promise<void> {
+  // GM pings follow the GM's preview audience, which is private by default.
+  const sharePreviews = owner.getByRole('button', { name: 'Show my previews to players' })
+  if ((await sharePreviews.getAttribute('aria-pressed')) !== 'true') await sharePreviews.click()
   for (const [sender, sent, recipient] of [
     [owner, nativeOwnerSockets, nativePlayerSockets],
     [player, nativePlayerSockets, nativeOwnerSockets]
@@ -545,15 +548,19 @@ async function expectPointerFanoutBoth(
     const bounds = await canvas.boundingBox()
     if (!bounds) throw new Error('Live Scene canvas is unavailable.')
     const sentAfter = sent.framesSent.length
-    let pointerStep = 0
+    let pingStep = 0
     try {
-      await expectNativePointerFanout(sent, recipient, sentAfter, async () => {
-        const offset = pointerStep++ % 2 === 0 ? 0.4 : 0.6
+      await expectNativePingFanout(sent, recipient, sentAfter, async () => {
+        const offset = pingStep++ % 2 === 0 ? 0.4 : 0.6
         await sender.mouse.move(bounds.x + bounds.width * offset, bounds.y + bounds.height * offset)
+        // A press held past the tabletop's 500 ms long press sends one ping.
+        await sender.mouse.down()
+        await sender.waitForTimeout(600)
+        await sender.mouse.up()
       })
     } catch (error) {
       throw new Error(
-        `${sender === owner ? 'Owner to player' : 'Player to owner'} pointer fanout failed.`,
+        `${sender === owner ? 'Owner to player' : 'Player to owner'} ping fanout failed.`,
         { cause: error }
       )
     }

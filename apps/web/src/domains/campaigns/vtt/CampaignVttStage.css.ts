@@ -168,6 +168,9 @@ export const canvasFrame = style({
       minBlockSize: '34rem',
       background: '#101315',
       touchAction: 'none',
+      // A long press pings the map, so touch must not select text or open the callout menu.
+      userSelect: 'none',
+      WebkitTouchCallout: 'none',
       '@media': {
         [compact]: {
           minBlockSize: '24rem'

@@ -201,7 +201,7 @@ export function VttLoadFixture() {
           envelope: {
             baselineVersion: scene.version,
             audience: 'TABLE',
-            kind: 'POINTER_PREVIEW',
+            kind: 'PING',
             position: { x: 1_400 + ((frameCount * 3) % 1_000), y: 1_200 + (frameCount % 900) },
             sceneId: scene.id,
             sequence: frameCount
@@ -288,7 +288,7 @@ export function VttLoadFixture() {
         setJourney((current) => ({ ...current, measurementCommit: true }))
       },
       onMeasurementPreview: () => undefined,
-      onPointerPreview: () => undefined,
+      onPing: () => false,
       onTokenCommit: (tokenId, path) => {
         const renderer = rendererRef.current
         const position = path.at(-1)

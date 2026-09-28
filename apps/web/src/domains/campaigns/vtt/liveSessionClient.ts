@@ -16,7 +16,7 @@ import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/dom
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vttScenes'
-import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
+import { applySceneDelta, VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt'
 
 export type LiveSessionConnectionStatus =
   | 'CONNECTING'
@@ -88,7 +88,7 @@ interface LiveSessionSocket {
 
 const reconnectDelay = (attempt: number) => Math.min(1_000 * 2 ** attempt, 30_000)
 const webSocketOpenState = 1
-/** Each preview stream sends at most 10 samples a second (ADR 0035 Amendment 15). */
+/** Each preview stream sends at most 10 samples a second (ADR 0035 Amendment 15); pings, two. */
 const previewIntervalMs = 100
 
 /** A preview stream as the room keys it: per kind, per dragged token and per fog owner. */
@@ -457,7 +457,8 @@ export function createLiveSessionConnection(
       const now = performance.now()
       if (
         !ready ||
-        now - (previewSentAt.get(key) ?? Number.NEGATIVE_INFINITY) < previewIntervalMs ||
+        now - (previewSentAt.get(key) ?? Number.NEGATIVE_INFINITY) <
+          (envelope.kind === 'PING' ? VTT_SCENE_LIMITS.pingIntervalMs : previewIntervalMs) ||
         !send({ envelope, type: 'TRANSIENT' })
       )
         return false

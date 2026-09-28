@@ -25,7 +25,7 @@ const commit = { commandId, delta: null, sequence: 5, type: 'COMMAND_COMMITTED' 
 const envelope = {
   baselineVersion: 1,
   audience: 'TABLE',
-  kind: 'POINTER_PREVIEW',
+  kind: 'PING',
   position: { x: 4, y: 8 },
   sceneId,
   sequence: 2

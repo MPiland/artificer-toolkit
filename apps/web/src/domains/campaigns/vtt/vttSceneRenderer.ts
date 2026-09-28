@@ -28,7 +28,6 @@ import {
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
-  isPointerPreviewGesture,
   positionVttMapTiles,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
@@ -40,6 +39,7 @@ import {
   type VttScenePresentationOverlay,
   type VttTokenPresentation
 } from './vttSceneRenderer.model'
+import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
 
 export type CampaignVttMode = 'PLAY' | 'EDIT'
 export type CampaignVttTool =
@@ -74,7 +74,8 @@ export interface VttSceneRendererCallbacks {
   onDoorState: (barrierId: string, state: 'CLOSED' | 'OPEN') => void
   onMeasurementCommit: (path: ScenePoint[]) => void
   onMeasurementPreview: (path: ScenePoint[]) => void
-  onPointerPreview: (position: ScenePoint) => void
+  /** Sends a ping; returns whether it was sent, so the renderer draws it for this member too. */
+  onPing: (position: ScenePoint) => boolean
   onTokenCommit: (tokenId: string, path: ScenePoint[]) => void
   onTokenPreview: (tokenId: string, position: ScenePoint) => void
 }
@@ -128,6 +129,7 @@ const colors = {
   grid: 0xffffff,
   mapFallback: 0x20252a,
   measurement: 0x6bd8cb,
+  ping: 0x6bd8cb,
   token: 0xec8c06,
   tokenOutline: 0xffffff
 } as const
@@ -190,6 +192,8 @@ export async function createVttSceneRenderer(
   })
   app.canvas.setAttribute('aria-label', 'Interactive campaign scene')
   app.canvas.setAttribute('role', 'img')
+  // P pings the centre of the view; a long press pings the pressed point.
+  app.canvas.setAttribute('aria-keyshortcuts', 'P')
   app.canvas.tabIndex = 0
   host.append(app.canvas)
 
@@ -286,7 +290,7 @@ export async function createVttSceneRenderer(
   const loadedTokenArtUrls = new Set<string>()
   const transientVisuals = new Map<
     string,
-    | { container: Graphics; kind: 'POINTER_PREVIEW' | 'TOKEN_DRAG_PREVIEW' }
+    | { container: Graphics; kind: 'TOKEN_DRAG_PREVIEW' }
     | { container: Container; kind: 'MEASUREMENT_PREVIEW'; segments: Graphics[] }
   >()
   const transientTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
@@ -325,6 +329,9 @@ export async function createVttSceneRenderer(
   const mapPartRequestIds = new Map<string, number>()
   const mapExpectedPartIds = new Set<string>()
   const touchPointers = new Map<number, ScenePoint>()
+  /** The latest ping ring of each member, keyed by user ID. */
+  const pings = new Map<string, { graphic: Graphics; startedAt: number }>()
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
   let pinchDistance: number | null = null
   let fogRenderCount = 0
   let doorVisualCreateCount = 0
@@ -335,6 +342,21 @@ export async function createVttSceneRenderer(
       if (!tokenVisuals.has(preview.tokenId)) continue
       interpolateScenePoint(preview.current, preview.target, elapsedMs)
       positionRemoteTokenDragPreview(preview.graphic, preview.current)
+    }
+    for (const [userId, entry] of pings) {
+      const frame = vttPingRingFrame(performance.now() - entry.startedAt, reducedMotion.matches)
+      if (!frame) {
+        clearPing(userId)
+        continue
+      }
+      // The ring keeps its screen size at any zoom, with a dark halo for bright maps.
+      const scale = world.scale.x
+      entry.graphic
+        .clear()
+        .circle(0, 0, frame.radius / scale)
+        .stroke({ alpha: frame.alpha * 0.6, color: colors.darkness, width: 6 / scale })
+        .circle(0, 0, frame.radius / scale)
+        .stroke({ alpha: frame.alpha, color: colors.ping, width: 3 / scale })
     }
   }
   app.ticker.add(onTickerUpdate)
@@ -362,6 +384,43 @@ export async function createVttSceneRenderer(
   function worldPoint(event: FederatedPointerEvent): ScenePoint {
     const point = world.toLocal(event.global)
     return { x: point.x, y: point.y }
+  }
+
+  const pingPress = createVttPingPress(ping)
+
+  /** Sends one ping at a map point and draws it for this member once it is sent (Q19). */
+  function ping(point: ScenePoint): void {
+    if (!current) return
+    const { height, width } = current.scene.map
+    if (point.x < 0 || point.y < 0 || point.x > width || point.y > height) return
+    if (callbacks.onPing(point)) showPing(current.currentUserId, point)
+  }
+
+  /** Pings the map point at the centre of the view, kept within the map (the keyboard ping). */
+  function pingViewCentre(): void {
+    if (!current) return
+    const centre = world.toLocal({ x: app.screen.width / 2, y: app.screen.height / 2 })
+    ping({
+      x: Math.min(current.scene.map.width, Math.max(0, centre.x)),
+      y: Math.min(current.scene.map.height, Math.max(0, centre.y))
+    })
+  }
+
+  /** Starts a member's ping ring, replacing their previous one. */
+  function showPing(userId: string, point: ScenePoint): void {
+    clearPing(userId)
+    const graphic = new pixi.Graphics()
+    graphic.position.set(point.x, point.y)
+    transientLayer.addChild(graphic)
+    pings.set(userId, { graphic, startedAt: performance.now() })
+  }
+
+  function clearPing(userId: string): void {
+    const existing = pings.get(userId)
+    if (!existing) return
+    existing.graphic.removeFromParent()
+    existing.graphic.destroy()
+    pings.delete(userId)
   }
 
   function fit(): void {
@@ -1262,6 +1321,8 @@ export async function createVttSceneRenderer(
         pointer: { x: event.global.x, y: event.global.y },
         world: { x: world.x, y: world.y }
       }
+      // A pan held in place pings; moving past the tolerance pans instead.
+      if (event.button === 0) pingPress.start({ x: event.global.x, y: event.global.y }, point)
       return
     }
     if (current.mode === 'EDIT' && current.tool === 'LIGHT') {
@@ -1297,10 +1358,14 @@ export async function createVttSceneRenderer(
     ) {
       gestureStart = point
       gesturePath = [point]
+      return
     }
+    // A primary press on the map outside another gesture pings once held in place.
+    if (event.button === 0) pingPress.start({ x: event.global.x, y: event.global.y }, point)
   })
 
   app.stage.on('globalpointermove', (event) => {
+    pingPress.move({ x: event.global.x, y: event.global.y })
     if (panStart) {
       world.position.set(
         panStart.world.x + event.global.x - panStart.pointer.x,
@@ -1335,13 +1400,8 @@ export async function createVttSceneRenderer(
     if (gestureStart) updateGesturePreview(point)
   })
 
-  app.stage.on('pointermove', (event) => {
-    const gesturing = panStart !== null || drag !== null || gestureStart !== null
-    if (!isPointerPreviewGesture({ buttons: event.buttons, gesturing })) return
-    callbacks.onPointerPreview(worldPoint(event))
-  })
-
   app.stage.on('pointerup', (event) => {
+    pingPress.end()
     panStart = null
     if (drag) {
       const completed = drag
@@ -1385,6 +1445,11 @@ export async function createVttSceneRenderer(
   }
   app.canvas.addEventListener('wheel', onWheel, { passive: false })
   const onKeyDown = (event: KeyboardEvent) => {
+    if (isVttPingKey(event)) {
+      event.preventDefault()
+      pingViewCentre()
+      return
+    }
     if (!current || current.tool !== 'WALL' || !wallChainStart) return
     if (event.key === 'Escape') {
       event.preventDefault()
@@ -1399,6 +1464,11 @@ export async function createVttSceneRenderer(
     }
   }
   const onContextMenu = (event: MouseEvent) => {
+    // A touch long press pings instead of opening the browser's context menu.
+    if (event instanceof PointerEvent && event.pointerType === 'touch') {
+      event.preventDefault()
+      return
+    }
     if (!current || current.tool !== 'WALL' || !wallChainStart) return
     event.preventDefault()
     wallChainStart = null
@@ -1448,6 +1518,12 @@ export async function createVttSceneRenderer(
 
   return {
     applyTransient(message) {
+      // A ping is one message about a map point, so it stays valid across Scene versions.
+      if (message.envelope.kind === 'PING') {
+        if (current?.scene.id === message.envelope.sceneId)
+          showPing(message.userId, message.envelope.position)
+        return
+      }
       if (
         !current ||
         message.envelope.sceneId !== current.scene.id ||
@@ -1543,16 +1619,6 @@ export async function createVttSceneRenderer(
             positionRemoteTokenDragPreview(visual.container, initial)
           }
         }
-      } else if (message.envelope.kind === 'POINTER_PREVIEW' && message.envelope.position) {
-        let visual = transientVisuals.get(key)
-        if (!visual) {
-          const graphic = new pixi.Graphics().circle(0, 0, 7).fill(colors.measurement)
-          visual = { container: graphic, kind: 'POINTER_PREVIEW' }
-          transientLayer.addChild(graphic)
-          transientVisuals.set(key, visual)
-        }
-        if (visual.kind !== 'POINTER_PREVIEW') return
-        visual.container.position.set(message.envelope.position.x, message.envelope.position.y)
       } else if (message.envelope.kind === 'MEASUREMENT_PREVIEW' && message.envelope.path) {
         let visual = transientVisuals.get(key)
         if (!visual) {
@@ -1575,6 +1641,7 @@ export async function createVttSceneRenderer(
       releaseMapAssets()
       for (const url of loadedTokenArtUrls) void pixi.Assets.unload(url)
       loadedTokenArtUrls.clear()
+      pingPress.end()
       clearTransientVisuals()
       app.ticker.remove(onTickerUpdate)
       app.renderer.runners.postrender.remove(previewRenderObserver)
@@ -1613,7 +1680,7 @@ export async function createVttSceneRenderer(
           0
         ),
         tokenVisualCount: tokenVisuals.size,
-        transientVisualCount: transientVisuals.size,
+        transientVisualCount: transientVisuals.size + pings.size,
         zoomScale: world.scale.x
       }
     },
@@ -1660,6 +1727,7 @@ export async function createVttSceneRenderer(
   }
 
   function cancelActiveInteraction(): void {
+    pingPress.end()
     panStart = null
     gestureStart = null
     wallChainStart = null
@@ -1679,6 +1747,7 @@ export async function createVttSceneRenderer(
     for (const key of remoteFogPreviews.keys()) clearTransientVisual(key)
     for (const key of remoteVisionLayers.keys()) clearTransientVisual(key)
     for (const key of remoteVisionReveals.keys()) clearTransientVisual(key)
+    for (const userId of pings.keys()) clearPing(userId)
   }
 
   function clearCommittedRemoteFogPreviews(nextScene: CampaignSceneStateDto): void {

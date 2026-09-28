@@ -69,6 +69,17 @@ export function isFogTool(tool: CampaignVttTool): boolean {
   return tool === 'FOG_REVEAL' || tool === 'FOG_HIDE'
 }
 
+/** What screen readers hear when a member's ping arrives, or when this member's ping is sent. */
+export function describeVttPing(
+  memberships: CampaignDetailDto['memberships'],
+  pingUserId: string,
+  currentUserId: string
+): string {
+  if (pingUserId === currentUserId) return 'You pinged the map.'
+  const username = memberships.find((membership) => membership.userId === pingUserId)?.username
+  return `${username ?? 'A table member'} pinged the map.`
+}
+
 export function findPresentedScene(
   scenes: CampaignSceneStateDto[]
 ): CampaignSceneStateDto | undefined {

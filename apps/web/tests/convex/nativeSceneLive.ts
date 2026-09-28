@@ -302,21 +302,21 @@ export async function expectNativeLiveSessionSocket(
   expect(trace.urls.every((value) => new URL(value).origin === expectedOrigin)).toBe(true)
 }
 
-export async function expectNativePointerFanout(
+export async function expectNativePingFanout(
   sender: NativeLiveSessionSocketTrace,
   recipient: NativeLiveSessionSocketTrace,
   sentAfter: number,
-  movePointer: () => Promise<void>
+  ping: () => Promise<void>
 ): Promise<void> {
   await expect
     .poll(
       async () => {
-        await movePointer()
+        await ping()
         const sent = sender.framesSent.slice(sentAfter).flatMap((frame) => {
           const value = liveSessionWebSocketClientMessageDtoSchema.safeParse(JSON.parse(frame))
           return value.success &&
             value.data.type === 'TRANSIENT' &&
-            value.data.envelope.kind === 'POINTER_PREVIEW'
+            value.data.envelope.kind === 'PING'
             ? [value.data.envelope]
             : []
         })

@@ -42,7 +42,7 @@ function MovementFixture() {
       onDoorState: () => undefined,
       onMeasurementCommit: () => undefined,
       onMeasurementPreview: () => undefined,
-      onPointerPreview: () => undefined,
+      onPing: () => false,
       onTokenCommit: (_tokenId, path) => setCommittedPath(path),
       onTokenPreview: (_tokenId, position) => setPreview(position)
     }).then((nextRenderer) => {

@@ -169,7 +169,7 @@ export function CampaignSceneEditor({
       },
       onMeasurementCommit: () => undefined,
       onMeasurementPreview: () => undefined,
-      onPointerPreview: () => undefined,
+      onPing: () => false,
       onTokenCommit: (tokenId, path) => {
         if (previewRef.current) return
         const position = path.at(-1)
