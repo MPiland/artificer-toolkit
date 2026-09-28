@@ -17,12 +17,15 @@ export async function requireRaceParent(
   allowedSourceIds?: ReadonlySet<string>,
   canReadSharedRoot?: (root: Doc<'authoredRoots'>) => Promise<boolean>,
   currentImportJobId?: string,
-  onRead?: (root: Doc<'authoredRoots'>) => void
+  onRead?: (root: Doc<'authoredRoots'>) => void,
+  /** A transaction-scoped root lookup; commit reuses the roots it has already read. */
+  readRoot: (id: string) => Promise<Doc<'authoredRoots'> | null> = (id) =>
+    ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (q) => q.eq('id', id))
+      .unique()
 ) {
-  const parent = await ctx.db
-    .query('authoredRoots')
-    .withIndex('by_publicId', (q) => q.eq('id', document.parentRaceId))
-    .unique()
+  const parent = await readRoot(document.parentRaceId)
   if (
     document.parentRaceId === document.id ||
     !parent ||
@@ -56,7 +59,13 @@ export async function requireEquipmentParents(
   allowedSourceIds?: ReadonlySet<string>,
   canReadSharedRoot?: (root: Doc<'authoredRoots'>) => Promise<boolean>,
   currentImportJobId?: string,
-  onRead?: (root: Doc<'authoredRoots'>) => void
+  onRead?: (root: Doc<'authoredRoots'>) => void,
+  /** A transaction-scoped root lookup; commit reuses the roots it has already read. */
+  readRoot: (id: string) => Promise<Doc<'authoredRoots'> | null> = (id) =>
+    ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (q) => q.eq('id', id))
+      .unique()
 ) {
   const ancestors = new Map<string, EquipmentAuthoredDto>([[document.id, document]])
   let current = document
@@ -64,10 +73,7 @@ export async function requireEquipmentParents(
     const parentId = current.parentEquipmentId
     if (ancestors.has(parentId)) throw new Error('Equipment variant cycle detected.')
     if (ancestors.size >= 500) throw new Error('Equipment inheritance exceeds the authoring limit.')
-    const root = await ctx.db
-      .query('authoredRoots')
-      .withIndex('by_publicId', (q) => q.eq('id', parentId))
-      .unique()
+    const root = await readRoot(parentId)
     if (
       !root ||
       root.subjectKind !== 'EQUIPMENT' ||

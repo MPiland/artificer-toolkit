@@ -19,13 +19,17 @@ export async function captureAcquiredEquipmentRules(
     sourceIds: ReadonlySet<string>
     canReadSharedRoot?: (root: Doc<'authoredRoots'>) => Promise<boolean>
     spellRoots: () => Promise<readonly Doc<'authoredRoots'>[]>
+    /** A transaction-scoped root lookup; commit reuses the roots it has already read. */
+    lookupRoot?: (id: string) => Promise<Doc<'authoredRoots'> | null>
   }
 ): Promise<string> {
   async function readRoot(id: string, kind: 'EQUIPMENT' | 'SPELL') {
-    const root = await ctx.db
-      .query('authoredRoots')
-      .withIndex('by_publicId', (q) => q.eq('id', id))
-      .unique()
+    const root = input.lookupRoot
+      ? await input.lookupRoot(id)
+      : await ctx.db
+          .query('authoredRoots')
+          .withIndex('by_publicId', (q) => q.eq('id', id))
+          .unique()
     if (
       !root ||
       root.subjectKind !== kind ||

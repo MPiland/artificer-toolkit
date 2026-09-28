@@ -137,31 +137,14 @@ export async function loadCharacterBuilderContext(
         (await readPublished(await readRoots('BACKGROUND'))).flatMap(({ published }) =>
           published?.subjectKind === 'BACKGROUND' ? [toContentSnapshotIndexEntry(published)] : []
         ),
-      readEquipment: async () => {
-        const roots = await readRoots('EQUIPMENT')
-        const entries = await readProjectedEquipmentCatalogue(
+      readEquipment: async () =>
+        readCharacterEquipmentCatalogue(
           ctx,
-          roots,
+          await readRoots('EQUIPMENT'),
           character.systemId,
           userId,
-          sources,
-          context.sourceIdentities
-        )
-        if (entries) return { entries }
-        const documents: EquipmentAuthored[] = []
-        for (const { root, published } of await readPublished(roots)) {
-          if (published?.subjectKind !== 'EQUIPMENT') continue
-          if (
-            root.parentEquipmentId !==
-            (published.document.category === 'VARIANT'
-              ? published.document.parentEquipmentId
-              : null)
-          )
-            throw new Error('Stored Equipment parent metadata mismatch.')
-          documents.push(published.document as EquipmentAuthored)
-        }
-        return { documents }
-      },
+          context
+        ),
       readFeats: async () =>
         readCharacterFeatCatalogue(
           ctx,
@@ -174,6 +157,51 @@ export async function loadCharacterBuilderContext(
     },
     catalogScope
   )
+}
+
+/** Readable Equipment among `roots`: stored projections, or documents while one is missing. */
+export async function readCharacterEquipmentCatalogue(
+  ctx: QueryCtx,
+  roots: readonly Doc<'authoredRoots'>[],
+  systemId: string,
+  userId: string,
+  context: Pick<
+    Awaited<ReturnType<typeof loadCharacterRuleContext>>,
+    'sourceAccess' | 'sourceIdentities' | 'publications'
+  >
+): Promise<
+  { entries: ContentSnapshotIndexEntry<'EQUIPMENT'>[] } | { documents: EquipmentAuthored[] }
+> {
+  const entries = await readProjectedEquipmentCatalogue(
+    ctx,
+    roots,
+    systemId,
+    userId,
+    context.sourceAccess,
+    context.sourceIdentities
+  )
+  if (entries) return { entries }
+  const documents: EquipmentAuthored[] = []
+  for (const root of roots) {
+    const published = context.publications.has(root.id)
+      ? context.publications.get(root.id)
+      : await readCharacterPublication(
+          ctx,
+          root,
+          systemId,
+          userId,
+          context.sourceAccess,
+          context.sourceIdentities
+        )
+    if (published?.subjectKind !== 'EQUIPMENT') continue
+    if (
+      root.parentEquipmentId !==
+      (published.document.category === 'VARIANT' ? published.document.parentEquipmentId : null)
+    )
+      throw new Error('Stored Equipment parent metadata mismatch.')
+    documents.push(published.document as EquipmentAuthored)
+  }
+  return { documents }
 }
 
 async function readProjectedEquipmentCatalogue(
@@ -259,7 +287,7 @@ async function readProjectedEquipmentCatalogue(
   })
 }
 
-async function readCharacterFeatCatalogue(
+export async function readCharacterFeatCatalogue(
   ctx: QueryCtx,
   roots: readonly Doc<'authoredRoots'>[],
   systemId: string,

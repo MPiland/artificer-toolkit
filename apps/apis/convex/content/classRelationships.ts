@@ -13,12 +13,15 @@ export async function requireClassParent(
   allowedSourceIds?: ReadonlySet<string>,
   canReadSharedRoot?: (root: Doc<'authoredRoots'>) => Promise<boolean>,
   currentImportJobId?: string,
-  onRead?: (root: Doc<'authoredRoots'>) => void
+  onRead?: (root: Doc<'authoredRoots'>) => void,
+  /** A transaction-scoped root lookup; commit reuses the roots it has already read. */
+  readRoot: (id: string) => Promise<Doc<'authoredRoots'> | null> = (id) =>
+    ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (q) => q.eq('id', id))
+      .unique()
 ) {
-  const parent = await ctx.db
-    .query('authoredRoots')
-    .withIndex('by_publicId', (q) => q.eq('id', document.parentClassId))
-    .unique()
+  const parent = await readRoot(document.parentClassId)
   if (
     document.parentClassId === document.id ||
     !parent ||

@@ -5,7 +5,8 @@ import { toCharacterBuilderSpellCatalogRecord } from '@artificer-toolkit/rules-r
 import type { prepareCharacterRuleSources } from '@artificer-toolkit/rules-runtime/character/characterRuleSnapshot'
 import type { QueryCtx } from '../_generated/server'
 import { loadCharacterBuilderContext } from './builderContext'
-import { loadCharacterRuleContext } from './context'
+import { loadCharacterRuleContext, type CharacterReferencedReads } from './context'
+import { loadCharacterReferencedContext } from './referencedContext'
 
 /** Load authorized sources for the portable Builder preparation. */
 export async function prepareCharacterBuilder(
@@ -19,21 +20,26 @@ export async function prepareCharacterBuilder(
     sourceContext?: Awaited<ReturnType<typeof loadCharacterBuilderContext>>
     sourcePreparation?: ReturnType<typeof prepareCharacterRuleSources>
     authorityScope?: import('../campaigns/authority').CampaignInternalScope
+    /** Commit: read only referenced content (ADR 0036 S7), with verified feature hints. */
+    referenced?: CharacterReferencedReads
   }
 ) {
   const candidate = {
     ...input.character,
     state: input.current?.state ?? createEmptyCharacterAuthored(input.character).state
   }
-  const context =
+  const reads = input.referenced
+  const context: Awaited<ReturnType<typeof loadCharacterBuilderContext>> =
     input.sourceContext ??
-    (await loadCharacterBuilderContext(
-      ctx,
-      candidate,
-      candidate.userId,
-      input.catalogScope ?? 'resolution',
-      input.authorityScope
-    ))
+    (reads
+      ? await loadCharacterReferencedContext(ctx, candidate, candidate.userId, reads)
+      : await loadCharacterBuilderContext(
+          ctx,
+          candidate,
+          candidate.userId,
+          input.catalogScope ?? 'resolution',
+          input.authorityScope
+        ))
   return prepareCharacterBuilderFromContext({
     character: input.character,
     current: input.current,
@@ -42,6 +48,22 @@ export async function prepareCharacterBuilder(
     context,
     sourcePreparation: input.sourcePreparation,
     reloadContextAfterMaterialization: async (character, previousContext) => {
+      if (reads) {
+        // Materialized Equipment joins the referenced catalogue; earlier reads are reused.
+        const currentContext = await loadCharacterReferencedContext(
+          ctx,
+          character,
+          character.userId,
+          reads
+        )
+        return {
+          ...currentContext,
+          sourceIdentities: new Map([
+            ...previousContext.sourceIdentities,
+            ...currentContext.sourceIdentities
+          ])
+        }
+      }
       const previouslyLoadedSpellDocumentsById = previousContext.currentSpellDocumentsById
       const currentContext = await loadCharacterRuleContext(
         ctx,

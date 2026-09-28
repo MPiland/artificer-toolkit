@@ -1,4 +1,6 @@
+import { ConvexError } from 'convex/values'
 import type { AuthoredCurrentSourceIdentity } from '@artificer-toolkit/schema/api/authoredPublication'
+import type { CharacterBuilderCommitErrorData } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -137,6 +139,15 @@ export async function readCharacterPublication(
   }
   if (publication && sourceIdentities) recordCharacterSourceIdentity(sourceIdentities, root)
   return publication
+}
+
+/** Commit fails closed when content the Character references cannot be read (ADR 0036 S7). */
+export function rejectUnavailableSource(subjectId: string): never {
+  throw new ConvexError({
+    code: 'SOURCE_UNAVAILABLE',
+    subjectId,
+    message: 'Content this Character uses is no longer available.'
+  } satisfies CharacterBuilderCommitErrorData)
 }
 
 /** Record only roots whose current publication or checksum-bound catalogue was authorized. */

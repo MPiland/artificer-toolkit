@@ -2,11 +2,22 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
 import { captureAcquiredEquipmentRules } from '../content/acquiredEquipmentRules'
 import type { QueryCtx } from '../_generated/server'
-import { readCharacterSources, readCharacterPublication, readCharacterSourceRoots } from './context'
+import {
+  readCharacterSources,
+  readCharacterPublication,
+  readCharacterSourceRoots,
+  readReferencedRoot,
+  type CharacterReferencedReads
+} from './context'
 import { readCampaignSharedRootPublication } from '../campaigns/contentAccess'
 
 /** Refreshes only server-owned held item data, before source or assignment authority is removed. */
-export async function retainCharacterEquipmentRules(ctx: QueryCtx, character: CharacterAuthored, authorityScope?: import('../campaigns/authority').CampaignInternalScope) {
+export async function retainCharacterEquipmentRules(
+  ctx: QueryCtx,
+  character: CharacterAuthored,
+  authorityScope?: import('../campaigns/authority').CampaignInternalScope,
+  reads?: Pick<CharacterReferencedReads, 'roots' | 'publications'>
+) {
   const access = await readCharacterSources(ctx, character, character.userId, authorityScope)
   const sourceIds = new Set(access.sources.map((source) => source.id))
   const inventory = [] as CharacterAuthored['state']['equipment']['inventory']
@@ -14,13 +25,12 @@ export async function retainCharacterEquipmentRules(ctx: QueryCtx, character: Ch
   for (const item of character.state.equipment.inventory) {
     if (item.retainedRulesJson)
       readAcquiredEquipmentRules(item.retainedRulesJson, item.equipmentId, character.systemId)
-    const root = await ctx.db
-      .query('authoredRoots')
-      .withIndex('by_publicId', (q) => q.eq('id', item.equipmentId))
-      .unique()
-    const current = root
-      ? await readCharacterPublication(ctx, root, character.systemId, character.userId, access)
-      : null
+    const root = await readReferencedRoot(ctx, item.equipmentId, reads)
+    const current = !root
+      ? null
+      : reads?.publications.has(root.id)
+        ? (reads.publications.get(root.id) ?? null)
+        : await readCharacterPublication(ctx, root, character.systemId, character.userId, access)
     if (!current) {
       if (!item.retainedRulesJson)
         throw new Error('Acquired Character Equipment has no usable source or retained rules.')
@@ -44,7 +54,8 @@ export async function retainCharacterEquipmentRules(ctx: QueryCtx, character: Ch
             candidate.subjectKind,
             candidate.id
           )) !== null,
-        spellRoots: () => readCharacterSourceRoots(ctx, character.systemId, access, 'SPELL')
+        spellRoots: () => readCharacterSourceRoots(ctx, character.systemId, access, 'SPELL'),
+        lookupRoot: (id) => readReferencedRoot(ctx, id, reads)
       }))
     snapshotsByEquipmentId.set(item.equipmentId, retainedRulesJson)
     inventory.push({ ...item, retainedRulesJson })
