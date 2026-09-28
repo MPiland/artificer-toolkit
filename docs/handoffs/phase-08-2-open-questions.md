@@ -6,7 +6,34 @@
 
 ## Open
 
-_(none)_
+### Q15 Architecture for a free-tier product (database I/O)
+
+**Problem (2026-09-27).** The user's Convex projects exceeded the free plan: about 10 GB of reads against a 1 GB monthly allowance, and 2 GB of that came from `characters/builder.resolve`.
+- One Builder resolve or preview reads about 392 documents (722 KB), mostly the content catalogue. It re-runs on every draft edit.
+- A combat command reads about 1 MB. The V15 workload reads 905 MB for 848 commands:
+  - the rules captures and commits are about 60%;
+  - player projection re-runs are about 15%.
+- There is no revenue before launch, so the product must run on free tiers.
+
+**Diagnosis.** Convex itself is not the problem. Two access patterns are, and any database-backed backend would bill or strain on them the same way:
+1. Immutable, versioned reference content (System, SRD and published authored content) is read from the database on every interaction.
+2. Every live combat command re-reads the whole Encounter from Convex to verify and commit it, and every player's projection then re-reads after each commit.
+
+**Options:**
+- **(a) Content as versioned static snapshots.** On publish, write each System or authored publication as an immutable, content-hashed JSON snapshot, served from the CDN (Netlify or Convex file storage) and cached by the browser indefinitely.
+  - Builder dropdowns filter the cached catalogue locally, or lazily fetch per-category files such as classes or spells.
+  - Builder previews run in the browser with the shared `rules-runtime`. The server validates only on save.
+  - This takes Builder database reads per edit from about 700 KB to about the draft alone.
+- **(b) The room is authoritative for live combat, checkpointed to Convex.** The Durable Object keeps live Encounter state in its own SQLite storage, and clients receive changes over the room socket they already hold.
+  - Convex receives checkpoints (per round, on pause or end, and every N seconds) instead of a fenced commit per command.
+  - This reverses the "Convex-first commit per command" part of D27/D41 and needs a new ADR.
+  - It removes most of the combat reads, including the projection re-runs.
+- **(c) Development and tests never touch cloud deployments.** Only local Docker is used, and cloud is reserved for staging smoke checks.
+- **(d) Read budgets in the gates:** bytes per command in V15, and bytes per edit for the Builder.
+
+**Recommendation:** do (c) and (d) immediately, and (a) next, as the largest and most local win. Decide (b) after a short spike that measures a checkpointed room against today's design, because it re-opens an accepted ADR.
+
+**Answer:**
 
 ## Decisions to review
 
