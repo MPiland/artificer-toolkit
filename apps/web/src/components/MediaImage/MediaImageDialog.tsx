@@ -1,9 +1,10 @@
-import { Button, FileButton, Modal } from '@mantine/core'
+import { Button, FileButton, Group, Modal } from '@mantine/core'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { Crop } from 'react-image-crop'
-import { useMediaImage, useMediaImageActions } from '#app/data/media'
+import { useMediaImage, useMediaImageActions, useMediaLibraryImage } from '#app/data/media'
 import type { ImageCropSelection, MediaImageDialogProps } from './MediaImage.types'
 import { createCenteredSquareCrop, toNormalizedCrop, validateImageFile } from './mediaImageUtils'
+import { MediaLibraryPicker } from './MediaLibraryPicker'
 import * as styles from './MediaImage.css'
 
 const ReactCrop = lazy(async () => {
@@ -24,16 +25,25 @@ export function MediaImageDialog({
 }: MediaImageDialogProps) {
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [pickedAssetId, setPickedAssetId] = useState<string | null>(null)
+  const [browsing, setBrowsing] = useState(false)
   const [crop, setCrop] = useState<ImageCropSelection | null>(current?.crop ?? null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const sourceQuery = useMediaImage(target, 'SOURCE', opened && Boolean(current))
+  const pickedQuery = useMediaLibraryImage(pickedAssetId, 'DISPLAY')
   const mediaActions = useMediaImageActions(target)
   const sourceLoading = Boolean(current) && sourceQuery.isFetching
   const editableCurrent = sourceQuery.data ?? current
   const requiresCrop = mode === 'square' || mode === 'decorative'
 
-  const imageUrl = previewUrl ?? (sourceLoading ? null : (editableCurrent?.url ?? null))
+  const imageUrl =
+    previewUrl ??
+    (pickedAssetId
+      ? (pickedQuery.data?.url ?? null)
+      : sourceLoading
+        ? null
+        : (editableCurrent?.url ?? null))
   const squareCrop = useMemo<Crop | undefined>(
     () =>
       crop
@@ -64,6 +74,8 @@ export function MediaImageDialog({
     }
     setError(null)
     setFile(nextFile)
+    setPickedAssetId(null)
+    setBrowsing(false)
     setPreviewUrl((previous) => {
       if (previous) URL.revokeObjectURL(previous)
       return URL.createObjectURL(nextFile)
@@ -71,9 +83,21 @@ export function MediaImageDialog({
     setCrop(null)
   }
 
+  function pickImage(assetId: string) {
+    setError(null)
+    setFile(null)
+    setPreviewUrl((previous) => {
+      if (previous) URL.revokeObjectURL(previous)
+      return null
+    })
+    setPickedAssetId(assetId)
+    setBrowsing(false)
+    setCrop(null)
+  }
+
   async function save() {
     if (disabled) return
-    if (current && sourceQuery.isError && !file) {
+    if (current && sourceQuery.isError && !file && !pickedAssetId) {
       setError('Could not load the source image. Choose a replacement or try again.')
       return
     }
@@ -89,15 +113,12 @@ export function MediaImageDialog({
     setError(null)
     try {
       await beforeChange?.()
-      if (!file && !editableCurrent?.assetId) {
+      const assetId = pickedAssetId ?? editableCurrent?.assetId
+      if (!file && !assetId) {
         setError('Choose an image before saving.')
         return
       }
-      await mediaActions.save.mutateAsync({
-        assetId: editableCurrent?.assetId,
-        crop: crop!,
-        file
-      })
+      await mediaActions.save.mutateAsync({ assetId, crop: crop!, file })
       onClose()
     } catch {
       setError('Could not save the image. Try again.')
@@ -162,20 +183,38 @@ export function MediaImageDialog({
               )}
             </div>
           </>
-        ) : sourceLoading ? (
+        ) : sourceLoading || (pickedAssetId && pickedQuery.isFetching) ? (
           <div className={styles.preview}>Loading source image&hellip;</div>
         ) : null}
-        <FileButton
-          accept='image/jpeg,image/png,image/webp'
-          disabled={pending || disabled || sourceLoading}
-          onChange={handleFile}
-        >
-          {(props) => (
-            <Button {...props} type='button' variant='light'>
-              Choose image
-            </Button>
-          )}
-        </FileButton>
+        <Group gap='xs'>
+          <FileButton
+            accept='image/jpeg,image/png,image/webp'
+            disabled={pending || disabled || sourceLoading}
+            onChange={handleFile}
+          >
+            {(props) => (
+              <Button {...props} type='button' variant='light'>
+                Choose image
+              </Button>
+            )}
+          </FileButton>
+          <Button
+            aria-expanded={browsing}
+            disabled={pending || disabled}
+            type='button'
+            variant='subtle'
+            onClick={() => setBrowsing((open) => !open)}
+          >
+            Choose from my images
+          </Button>
+        </Group>
+        {browsing ? (
+          <MediaLibraryPicker
+            profileClass='CONTENT_ART'
+            selectedAssetId={pickedAssetId}
+            onSelect={(item) => pickImage(item.assetId)}
+          />
+        ) : null}
         <p aria-live='polite' className={styles.liveMessage} role={error ? 'alert' : undefined}>
           {error ?? (pending ? 'Saving image…' : 'JPEG, PNG, or WebP up to 6 MB.')}
         </p>
@@ -194,7 +233,7 @@ export function MediaImageDialog({
             <span />
           )}
           <Button
-            disabled={disabled || sourceLoading || (!current && !file)}
+            disabled={disabled || sourceLoading || (!current && !file && !pickedAssetId)}
             loading={pending}
             type='button'
             onClick={save}

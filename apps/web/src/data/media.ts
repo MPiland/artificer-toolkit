@@ -5,10 +5,12 @@ import type {
   NormalizedImageCrop,
   SignedImageDeliveryDto
 } from '@artificer-toolkit/schema/api/media'
+import type { MediaProfileClass } from '@artificer-toolkit/schema/api/mediaAssets'
 import {
   useAction,
   useConvexAuth,
   useMutation as useConvexMutation,
+  usePaginatedQuery,
   useQuery as useConvexQuery
 } from 'convex/react'
 import type { MediaImageTarget } from '#app/components/MediaImage/MediaImage.types'
@@ -115,7 +117,26 @@ export function useMediaImage(
   }
 }
 
+/** "My images": the viewer's own ready images of one class, newest first. */
+export function useMediaLibrary(profileClass: MediaProfileClass, enabled = true) {
+  return usePaginatedQuery(api.media.library.list, enabled ? { profileClass } : 'skip', {
+    initialNumItems: 12
+  })
+}
+
+/** An owner-only preview of one of the viewer's images, without any slot's framing. */
+export function useMediaLibraryImage(assetId: string | null, variantKind: ImageVariant) {
+  const getImage = useAction(api.media.libraryActions.getImage)
+  return useQuery({
+    queryKey: ['media-library', assetId, variantKind],
+    queryFn: () => getImage({ assetId: assetId!, variantKind }),
+    enabled: assetId !== null,
+    staleTime: 4 * 60_000
+  })
+}
+
 export function useMediaImageActions(target: MediaImageTarget) {
+  const attachImage = useConvexMutation(api.media.library.attachImage)
   const createAvatarUpload = useConvexMutation(api.media.assets.createAvatarUpload)
   const removeAvatar = useConvexMutation(api.media.assets.removeAvatar)
   const saveAvatar = useAction(api.media.avatarActions.saveAvatar)
@@ -143,37 +164,38 @@ export function useMediaImageActions(target: MediaImageTarget) {
       file: File | null
     }) => {
       if (accountAvatar || portraitTarget || artworkTarget) {
-        let nextAssetId = assetId
-        if (file) {
-          const input = {
-            originalFileName: file.name,
-            declaredMimeType: file.type as ImageMimeType,
-            declaredBytes: file.size,
-            idempotencyKey: crypto.randomUUID()
-          }
-          const intent = portraitTarget
-            ? await createPortraitUpload({ ...input, target: portraitTarget })
-            : artworkTarget
-              ? await createArtworkUpload({ ...input, target: artworkTarget })
-              : await createAvatarUpload(input)
-          const response = await fetch(intent.url, {
-            method: intent.method,
-            headers: { 'Content-Type': file.type },
-            body: file
-          })
-          if (!response.ok) throw new Error('upload')
-          nextAssetId = intent.assetId
-        }
-        if (!nextAssetId) throw new Error('missing asset')
-        if (portraitTarget)
-          await savePortrait({ assetId: nextAssetId, crop, target: portraitTarget })
-        else if (artworkTarget)
-          await saveArtwork({
-            assetId: nextAssetId,
+        if (!file) {
+          // Reframing the current image or choosing one from "My images" needs no processing.
+          if (!assetId) throw new Error('missing asset')
+          await attachImage({
+            assetId,
             crop,
-            target: artworkTarget
+            target: portraitTarget ?? artworkTarget ?? { type: 'ACCOUNT_AVATAR' }
           })
-        else await saveAvatar({ assetId: nextAssetId, crop })
+          return
+        }
+        const input = {
+          originalFileName: file.name,
+          declaredMimeType: file.type as ImageMimeType,
+          declaredBytes: file.size,
+          idempotencyKey: crypto.randomUUID()
+        }
+        const intent = portraitTarget
+          ? await createPortraitUpload({ ...input, target: portraitTarget })
+          : artworkTarget
+            ? await createArtworkUpload({ ...input, target: artworkTarget })
+            : await createAvatarUpload(input)
+        const response = await fetch(intent.url, {
+          method: intent.method,
+          headers: { 'Content-Type': file.type },
+          body: file
+        })
+        if (!response.ok) throw new Error('upload')
+        if (portraitTarget)
+          await savePortrait({ assetId: intent.assetId, crop, target: portraitTarget })
+        else if (artworkTarget)
+          await saveArtwork({ assetId: intent.assetId, crop, target: artworkTarget })
+        else await saveAvatar({ assetId: intent.assetId, crop })
         return
       }
 

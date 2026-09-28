@@ -179,6 +179,56 @@ export const liveMessage = style({
   }
 })
 
+export const library = style({
+  '@layer': { [app]: { display: 'grid', gap: foundationVars.space[2], justifyItems: 'start' } }
+})
+
+export const libraryGrid = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      width: '100%',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(5rem, 1fr))',
+      gap: foundationVars.space[2]
+    }
+  }
+})
+
+export const libraryTile = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      aspectRatio: '1',
+      placeItems: 'center',
+      overflow: 'hidden',
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      backgroundColor: foundationVars.color.surface.recessed,
+      cursor: 'pointer',
+      transition: 'border-color 120ms ease, box-shadow 120ms ease',
+      ':hover': { borderColor: foundationVars.color.accent.border },
+      ':focus-visible': { outline: 'none', boxShadow: foundationVars.shadow.focus },
+      selectors: {
+        '&[aria-pressed="true"]': {
+          borderColor: foundationVars.color.accent.solid,
+          boxShadow: `0 0 0 2px ${foundationVars.color.accent.solid}`
+        }
+      }
+    }
+  }
+})
+
+export const libraryEmpty = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: foundationVars.space[2],
+      color: foundationVars.color.accent.solid
+    }
+  }
+})
+
 export const cropLabel = style({
   '@layer': {
     [app]: {

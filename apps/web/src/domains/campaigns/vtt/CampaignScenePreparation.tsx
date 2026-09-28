@@ -134,7 +134,8 @@ export function CampaignScenePreparation({
         if (finalized.status === 'REJECTED') clearVttMapUploadIdempotencyKey(campaignId, file)
         throw new Error('That map could not be processed. Check its dimensions and try again.')
       }
-      const delivery = await getMapDelivery({ assetId })
+      // A map the owner already uploaded finalizes to that existing asset.
+      const delivery = await getMapDelivery({ assetId: finalized.assetId })
       clearVttMapUploadIdempotencyKey(campaignId, file)
       return delivery
     },

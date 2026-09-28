@@ -28,7 +28,21 @@ const mocks = vi.hoisted(() => ({
   finalize: vi.fn(),
   createAttachment: vi.fn(),
   getDelivery: vi.fn(),
-  removeAttachment: vi.fn()
+  removeAttachment: vi.fn(),
+  getLibraryImage: vi.fn(),
+  library: {
+    results: [] as Array<{
+      assetId: string
+      profileClass: 'CONTENT_ART' | 'HANDOUT_MAP'
+      originalFileName: string
+      width: number
+      height: number
+      createdAt: string
+    }>,
+    status: 'Exhausted' as const,
+    loadMore: vi.fn()
+  },
+  libraryArgs: vi.fn()
 }))
 
 vi.mock('convex/react', async (importOriginal) => ({
@@ -36,15 +50,21 @@ vi.mock('convex/react', async (importOriginal) => ({
   useAction: (reference: Parameters<typeof getFunctionName>[0]) =>
     getFunctionName(reference) === 'media/fileActions:finalize'
       ? mocks.finalize
-      : mocks.getDelivery,
+      : getFunctionName(reference) === 'media/libraryActions:getImage'
+        ? mocks.getLibraryImage
+        : mocks.getDelivery,
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     const name = getFunctionName(reference)
     if (name === 'media/fileAssets:createUpload') return mocks.createUpload
     if (name === 'campaigns/attachments:create') return mocks.createAttachment
     return mocks.removeAttachment
   },
-  usePaginatedQuery: (reference: Parameters<typeof getFunctionName>[0]) => {
+  usePaginatedQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) => {
     const name = getFunctionName(reference)
+    if (name === 'media/library:list') {
+      mocks.libraryArgs(args)
+      return mocks.library
+    }
     if (name === 'campaigns/notebooks:list') return mocks.notebook
     if (name === 'campaigns/sessions:list') return mocks.sessions
     return mocks.attachments
@@ -101,6 +121,7 @@ describe('CampaignFiles', () => {
     mocks.notebook.status = 'Exhausted'
     mocks.sessions.results = []
     mocks.sessions.status = 'Exhausted'
+    mocks.library.results = []
   })
 
   it('uploads and attaches a file through native Convex functions', async () => {
@@ -152,6 +173,88 @@ describe('CampaignFiles', () => {
       sessionId: null,
       noteSectionId: null
     })
+  })
+
+  it('attaches the existing asset an identical upload resolves to', async () => {
+    const user = userEvent.setup()
+    const file = new File(['art'], 'dragon.png', { type: 'image/png' })
+    mocks.createUpload.mockResolvedValue({
+      assetId: '22222222-2222-4222-8222-222222222222',
+      method: 'PUT',
+      url: 'https://example.com/upload',
+      expiresAt: '2026-08-06T12:05:00.000Z'
+    })
+    mocks.finalize.mockResolvedValue({
+      assetId: '44444444-4444-4444-8444-444444444444',
+      status: 'READY',
+      preview: null
+    })
+    mocks.createAttachment.mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333' })
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 200 }))
+
+    renderWithAppProviders(<CampaignFileUploader campaignId={campaign.id} />)
+    await user.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, file)
+    await user.click(screen.getByRole('button', { name: 'Upload file' }))
+
+    await waitFor(() =>
+      expect(mocks.createAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({ assetId: '44444444-4444-4444-8444-444444444444' })
+      )
+    )
+    fetchMock.mockRestore()
+  })
+
+  it('attaches a handout from my images without uploading it again', async () => {
+    const user = userEvent.setup()
+    mocks.library.results = [
+      {
+        assetId: '55555555-5555-4555-8555-555555555555',
+        profileClass: 'HANDOUT_MAP',
+        originalFileName: 'crypt.png',
+        width: 1200,
+        height: 900,
+        createdAt: '2026-09-27T12:00:00.000Z'
+      }
+    ]
+    mocks.getLibraryImage.mockResolvedValue({
+      assetId: '55555555-5555-4555-8555-555555555555',
+      variantKind: 'THUMBNAIL',
+      url: 'https://example.com/crypt.webp',
+      expiresAt: '2026-09-27T18:00:00.000Z',
+      width: 320,
+      height: 240,
+      mimeType: 'image/webp',
+      crop: null,
+      altText: null,
+      isDecorative: true
+    })
+    mocks.createAttachment.mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333' })
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+
+    renderWithAppProviders(<CampaignFileUploader campaignId={campaign.id} />)
+    await user.click(screen.getByRole('combobox', { name: 'Profile' }))
+    await user.click(await screen.findByRole('option', { name: 'Handout map', hidden: true }))
+    await user.click(screen.getByRole('button', { name: 'Choose from my images' }))
+    expect(mocks.libraryArgs).toHaveBeenLastCalledWith({ profileClass: 'HANDOUT_MAP' })
+    await user.click(await screen.findByRole('button', { name: 'crypt.png' }))
+    await user.click(screen.getByRole('button', { name: 'Add image' }))
+
+    await waitFor(() =>
+      expect(mocks.createAttachment).toHaveBeenCalledWith({
+        campaignId: campaign.id,
+        assetId: '55555555-5555-4555-8555-555555555555',
+        displayName: 'crypt.png',
+        description: null,
+        sessionId: null,
+        noteSectionId: null
+      })
+    )
+    expect(mocks.createUpload).not.toHaveBeenCalled()
+    expect(mocks.finalize).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+    fetchMock.mockRestore()
   })
 
   it('uses the native attachment list, delivery, removal, and pagination', async () => {

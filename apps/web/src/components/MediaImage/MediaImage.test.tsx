@@ -30,7 +30,18 @@ const mocks = vi.hoisted(() => ({
     | { assetId: string | null; revision: number }
     | undefined,
   authenticated: true,
-  convexQuery: vi.fn()
+  convexQuery: vi.fn(),
+  attachImage: vi.fn(),
+  getLibraryImage: vi.fn(),
+  library: [] as {
+    assetId: string
+    profileClass: 'CONTENT_ART'
+    originalFileName: string
+    width: number
+    height: number
+    createdAt: string
+  }[],
+  libraryArgs: vi.fn()
 }))
 
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
@@ -46,34 +57,42 @@ vi.mock('convex/react', async (importOriginal) => {
   const original = await importOriginal<typeof import('convex/react')>()
   return {
     ...original,
+    usePaginatedQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) => {
+      mocks.libraryArgs(getFunctionName(reference), args)
+      return { results: mocks.library, status: 'Exhausted', loadMore: vi.fn() }
+    },
     useAction: (reference: Parameters<typeof getFunctionName>[0]) =>
-      getFunctionName(reference) === 'media/avatarActions:getAvatarImage'
-        ? mocks.getAvatarImage
-        : getFunctionName(reference) === 'media/characterPortraitActions:getImage'
-          ? mocks.getPortraitImage
-          : getFunctionName(reference) === 'media/authoredActions:getImage'
-            ? mocks.getArtworkImage
-            : getFunctionName(reference) === 'media/characterPortraitActions:save'
-              ? mocks.savePortrait
-              : getFunctionName(reference) === 'media/authoredActions:save'
-                ? mocks.saveArtwork
-                : mocks.saveAvatar,
+      getFunctionName(reference) === 'media/libraryActions:getImage'
+        ? mocks.getLibraryImage
+        : getFunctionName(reference) === 'media/avatarActions:getAvatarImage'
+          ? mocks.getAvatarImage
+          : getFunctionName(reference) === 'media/characterPortraitActions:getImage'
+            ? mocks.getPortraitImage
+            : getFunctionName(reference) === 'media/authoredActions:getImage'
+              ? mocks.getArtworkImage
+              : getFunctionName(reference) === 'media/characterPortraitActions:save'
+                ? mocks.savePortrait
+                : getFunctionName(reference) === 'media/authoredActions:save'
+                  ? mocks.saveArtwork
+                  : mocks.saveAvatar,
     useConvexAuth: () => ({
       isAuthenticated: mocks.authenticated,
       isLoading: !mocks.authenticated
     }),
     useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
-      getFunctionName(reference) === 'media/assets:createAvatarUpload'
-        ? mocks.createAvatarUpload
-        : getFunctionName(reference) === 'media/characterPortraitAssets:createUpload'
-          ? mocks.createPortraitUpload
-          : getFunctionName(reference) === 'media/authoredAssets:createUpload'
-            ? mocks.createArtworkUpload
-            : getFunctionName(reference) === 'media/authoredAssets:remove'
-              ? mocks.removeArtwork
-              : getFunctionName(reference) === 'media/characterPortraitAssets:remove'
-                ? mocks.removePortrait
-                : mocks.removeAvatar,
+      getFunctionName(reference) === 'media/library:attachImage'
+        ? mocks.attachImage
+        : getFunctionName(reference) === 'media/assets:createAvatarUpload'
+          ? mocks.createAvatarUpload
+          : getFunctionName(reference) === 'media/characterPortraitAssets:createUpload'
+            ? mocks.createPortraitUpload
+            : getFunctionName(reference) === 'media/authoredAssets:createUpload'
+              ? mocks.createArtworkUpload
+              : getFunctionName(reference) === 'media/authoredAssets:remove'
+                ? mocks.removeArtwork
+                : getFunctionName(reference) === 'media/characterPortraitAssets:remove'
+                  ? mocks.removePortrait
+                  : mocks.removeAvatar,
     useQuery: (reference: Parameters<typeof getFunctionName>[0], ...args: unknown[]) => {
       mocks.convexQuery(reference, ...args)
       return getFunctionName(reference) === 'media/authoredAssets:binding'
@@ -117,6 +136,7 @@ describe('MediaImage', () => {
     mocks.avatarBinding = { assetId: null, revision: 0 }
     mocks.artworkBinding = { assetId: null, revision: 0 }
     mocks.portraitBinding = { assetId: null, revision: 0 }
+    mocks.library = []
   })
 
   it('renders authored alt text from signed delivery metadata', async () => {
@@ -518,13 +538,15 @@ describe('MediaImage', () => {
 
     await waitFor(() => expect(document.querySelector('.ReactCrop img')).not.toBeNull())
     await user.click(screen.getByRole('button', { name: 'Save image' }))
+    // Reframing the current image attaches it again with the new crop; nothing is uploaded.
     await waitFor(() =>
-      expect(save).toHaveBeenCalledWith({
+      expect(mocks.attachImage).toHaveBeenCalledWith({
         assetId: 'a2c914ed-8628-4a69-831c-766d7df1ef63',
         crop: { x: 0.125, y: 0, width: 0.75, height: 1 },
-        ...(kind === 'avatar' ? {} : { target: target.attach })
+        target: target.attach
       })
     )
+    expect(save).not.toHaveBeenCalled()
     const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]')!
     await user.upload(fileInput, new File(['image'], 'avatar.png', { type: 'image/png' }))
     const preview = await waitFor(() => {
@@ -560,6 +582,110 @@ describe('MediaImage', () => {
       expect(remove).toHaveBeenCalledWith(kind === 'avatar' ? {} : { target: target.attach })
     )
     fetchMock.mockRestore()
+  })
+
+  it('reuses an image from my images, framed for this slot, without uploading it again', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    mocks.library = [
+      {
+        assetId: 'b7f4e1c2-5a3d-4e8f-9b61-2c7d8e9f0a1b',
+        profileClass: 'CONTENT_ART',
+        originalFileName: 'dragon.png',
+        width: 800,
+        height: 600,
+        createdAt: '2026-09-27T12:00:00.000Z'
+      }
+    ]
+    mocks.getLibraryImage.mockImplementation(
+      async ({ variantKind }: { variantKind: 'THUMBNAIL' | 'DISPLAY' }) => ({
+        assetId: 'b7f4e1c2-5a3d-4e8f-9b61-2c7d8e9f0a1b',
+        variantKind,
+        url: `https://example.com/dragon-${variantKind.toLowerCase()}.webp`,
+        expiresAt: '2026-09-27T18:00:00.000Z',
+        width: variantKind === 'THUMBNAIL' ? 320 : 800,
+        height: variantKind === 'THUMBNAIL' ? 240 : 600,
+        mimeType: 'image/webp',
+        crop: null,
+        altText: null,
+        isDecorative: true
+      })
+    )
+    mocks.attachImage.mockResolvedValue({
+      assetId: 'b7f4e1c2-5a3d-4e8f-9b61-2c7d8e9f0a1b',
+      revision: 1
+    })
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+
+    renderWithAppProviders(
+      <MediaImageDialog
+        current={null}
+        label='Portrait'
+        mode='square'
+        opened
+        profile='CHARACTER_PORTRAIT'
+        target={portraitTarget}
+        onClose={onClose}
+      />
+    )
+    expect(mocks.libraryArgs).not.toHaveBeenCalledWith('media/library:list', {
+      profileClass: 'CONTENT_ART'
+    })
+    await user.click(screen.getByRole('button', { name: 'Choose from my images' }))
+    expect(mocks.libraryArgs).toHaveBeenCalledWith('media/library:list', {
+      profileClass: 'CONTENT_ART'
+    })
+    const tile = await screen.findByRole('button', { name: 'dragon.png' })
+    await waitFor(() =>
+      expect(tile.querySelector('img')?.src).toBe('https://example.com/dragon-thumbnail.webp')
+    )
+    await user.click(tile)
+    const preview = await waitFor(() => {
+      const image = document.querySelector<HTMLImageElement>('.ReactCrop img')
+      expect(image?.src).toBe('https://example.com/dragon-display.webp')
+      return image!
+    })
+    Object.defineProperties(preview, {
+      naturalWidth: { value: 800 },
+      naturalHeight: { value: 600 }
+    })
+    fireEvent.load(preview)
+    await user.click(screen.getByRole('button', { name: 'Save image' }))
+
+    await waitFor(() =>
+      expect(mocks.attachImage).toHaveBeenCalledWith({
+        assetId: 'b7f4e1c2-5a3d-4e8f-9b61-2c7d8e9f0a1b',
+        crop: { x: 0.125, y: 0, width: 0.75, height: 1 },
+        target: portraitTarget.attach
+      })
+    )
+    expect(mocks.createPortraitUpload).not.toHaveBeenCalled()
+    expect(mocks.savePortrait).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(onClose).toHaveBeenCalled()
+    fetchMock.mockRestore()
+  })
+
+  it('invites an upload when there are no saved images yet', async () => {
+    const user = userEvent.setup()
+    mocks.library = []
+    renderWithAppProviders(
+      <MediaImageDialog
+        current={null}
+        label='Avatar'
+        mode='square'
+        opened
+        profile='ACCOUNT_AVATAR'
+        target={{
+          lookup: { type: 'ACCOUNT_AVATAR' },
+          attach: { type: 'ACCOUNT_AVATAR' }
+        }}
+        onClose={vi.fn()}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Choose from my images' }))
+    expect(screen.getByText(/Images you upload are saved here/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save image' })).toBeDisabled()
   })
 
   it.each(['BACKGROUND', 'CLASS', 'VEHICLE'] as const)(

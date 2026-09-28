@@ -3,7 +3,9 @@ import { useMutation } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useState } from 'react'
 import type { CampaignFileProfile } from '@artificer-toolkit/schema/api/media'
+import type { MediaLibraryItemDto } from '@artificer-toolkit/schema/api/mediaAssets'
 import { useAction, useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
+import { MediaLibraryPicker } from '#app/components/MediaImage/MediaLibraryPicker'
 import { campaignFileAccept, validateCampaignFile } from './campaignFiles.model'
 import * as styles from './CampaignFiles.css'
 
@@ -22,6 +24,8 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
   const finalize = useAction(convexApi.media.fileActions.finalize)
   const createAttachment = useConvexMutation(convexApi.campaigns.attachments.create)
   const [file, setFile] = useState<File | null>(null)
+  const [picked, setPicked] = useState<MediaLibraryItemDto | null>(null)
+  const [browsing, setBrowsing] = useState(false)
   const [profile, setProfile] = useState<CampaignFileProfile>('CAMPAIGN_FILE')
   const [displayName, setDisplayName] = useState('')
   const [description, setDescription] = useState('')
@@ -31,6 +35,19 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
 
   const upload = useMutation({
     mutationFn: async () => {
+      const details = {
+        campaignId,
+        description: description.trim() || null,
+        sessionId,
+        noteSectionId
+      }
+      // A reused image is already processed and owned by the uploader; it only needs attaching.
+      if (picked)
+        return createAttachment({
+          ...details,
+          assetId: picked.assetId,
+          displayName: displayName.trim() || picked.originalFileName
+        })
       if (!file || fileError) throw new Error(fileError ?? 'Choose a file.')
       const target = { type: profile, campaignId } as const
       const intent = await createUpload({
@@ -54,17 +71,16 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
             ? 'That file was rejected.'
             : 'File processing is still running.'
         )
+      // Finalizing an image the uploader already has resolves to that existing asset.
       return createAttachment({
-        campaignId,
-        assetId: intent.assetId,
-        displayName: displayName.trim() || file.name,
-        description: description.trim() || null,
-        sessionId,
-        noteSectionId
+        ...details,
+        assetId: finalized.assetId,
+        displayName: displayName.trim() || file.name
       })
     },
     onSuccess: () => {
       setFile(null)
+      setPicked(null)
       setDisplayName('')
       setDescription('')
       setSessionId(null)
@@ -78,16 +94,28 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
         Add file
       </Title>
       <div className={styles.formGrid}>
-        <FileInput
-          accept={campaignFileAccept}
-          clearable
-          label='File'
-          value={file}
-          onChange={(next) => {
-            setFile(next)
-            if (next && !displayName) setDisplayName(next.name)
-          }}
-        />
+        <div>
+          <FileInput
+            accept={campaignFileAccept}
+            clearable
+            label='File'
+            placeholder={picked ? `${picked.originalFileName} (from my images)` : undefined}
+            value={file}
+            onChange={(next) => {
+              setFile(next)
+              if (next) setPicked(null)
+              if (next && !displayName) setDisplayName(next.name)
+            }}
+          />
+          <Button
+            aria-expanded={browsing}
+            type='button'
+            variant='subtle'
+            onClick={() => setBrowsing((open) => !open)}
+          >
+            Choose from my images
+          </Button>
+        </div>
         <Select
           label='Profile'
           data={[
@@ -96,7 +124,10 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
           ]}
           value={profile}
           onChange={(value) => {
-            if (value === 'CAMPAIGN_FILE' || value === 'CAMPAIGN_HANDOUT_MAP') setProfile(value)
+            if (value !== 'CAMPAIGN_FILE' && value !== 'CAMPAIGN_HANDOUT_MAP') return
+            setProfile(value)
+            // Handout maps and Campaign images are separate kinds of saved image.
+            setPicked(null)
           }}
         />
         <TextInput
@@ -148,15 +179,27 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
         value={description}
         onChange={(event) => setDescription(event.currentTarget.value)}
       />
+      {browsing ? (
+        <MediaLibraryPicker
+          profileClass={profile === 'CAMPAIGN_HANDOUT_MAP' ? 'HANDOUT_MAP' : 'CONTENT_ART'}
+          selectedAssetId={picked?.assetId ?? null}
+          onSelect={(item) => {
+            setPicked(item)
+            setFile(null)
+            setBrowsing(false)
+            if (!displayName) setDisplayName(item.originalFileName)
+          }}
+        />
+      ) : null}
       {fileError ? <Alert color='orange'>{fileError}</Alert> : null}
       {upload.error ? <Alert color='red'>{upload.error.message}</Alert> : null}
       <Stack align='flex-start'>
         <Button
-          disabled={!file || Boolean(fileError)}
+          disabled={picked ? false : !file || Boolean(fileError)}
           loading={upload.isPending}
           onClick={() => upload.mutate()}
         >
-          Upload file
+          {picked ? 'Add image' : 'Upload file'}
         </Button>
       </Stack>
     </section>
