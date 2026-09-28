@@ -168,3 +168,61 @@ export function createSnapshotReaders(
     readFeats: async () => [...index.FEAT.values()].map(({ id, label }) => ({ id, label }))
   }
 }
+
+type SnapshotReaders = ReturnType<typeof createSnapshotReaders>
+
+/**
+ * `createSnapshotReaders` over every kind's `index` objects, loading a kind's `documents` objects
+ * only when a read needs them (ADR 0036 S6). The index names every root's kind, so a publication
+ * read loads only that kind; the feature scan loads every feature-bearing kind. `loadDocuments`
+ * returns the documents objects of the given kinds across the manifest's scopes.
+ */
+export function createLazySnapshotReaders(
+  indexObjects: readonly ContentSnapshotIndexObject[],
+  loadDocuments: (
+    kinds: readonly ContentSnapshotKind[]
+  ) => Promise<readonly ContentSnapshotObject[]>
+): SnapshotReaders {
+  const kindById = new Map<string, ContentSnapshotKind>()
+  for (const object of indexObjects)
+    for (const root of object.roots) if (!kindById.has(root.id)) kindById.set(root.id, object.kind)
+  // One load per kind, shared by concurrent reads; a failed load is retried by the next read.
+  const loads = new Map<ContentSnapshotKind, Promise<void>>()
+  let objects: readonly ContentSnapshotObject[] = indexObjects
+  let readers = createSnapshotReaders(objects)
+  async function withDocuments(kinds: readonly ContentSnapshotKind[]) {
+    const missing = kinds.filter((kind) => !loads.has(kind))
+    if (missing.length > 0) {
+      const load = loadDocuments(missing).then((documents) => {
+        objects = [...objects, ...documents]
+        readers = createSnapshotReaders(objects)
+      })
+      for (const kind of missing) loads.set(kind, load)
+      load.catch(() => {
+        for (const kind of missing) loads.delete(kind)
+      })
+    }
+    await Promise.all(kinds.map((kind) => loads.get(kind)))
+    return readers
+  }
+
+  return {
+    readPublication: async (id) => {
+      const kind = kindById.get(id)
+      return kind ? (await withDocuments([kind])).readPublication(id) : null
+    },
+    readRaceParent: async (document) => (await withDocuments(['RACE'])).readRaceParent(document),
+    requireClassParent: async (document) =>
+      (await withDocuments(['CLASS'])).requireClassParent(document),
+    readEquipmentParents: async (document) =>
+      (await withDocuments(['EQUIPMENT'])).readEquipmentParents(document),
+    readFeatureSources: async (missingFeatureIds) =>
+      (await withDocuments(FEATURE_SOURCE_KINDS)).readFeatureSources(missingFeatureIds),
+    readSpellCatalogue: async () => (await withDocuments(['SPELL'])).readSpellCatalogue(),
+    readRaces: () => readers.readRaces(),
+    readClasses: () => readers.readClasses(),
+    readBackgrounds: () => readers.readBackgrounds(),
+    readEquipment: () => readers.readEquipment(),
+    readFeats: () => readers.readFeats()
+  }
+}

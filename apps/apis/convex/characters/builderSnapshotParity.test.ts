@@ -5,27 +5,26 @@ import type {
   CreateCampaignInput,
   ShareCampaignContentInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characterBuilder'
 import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import {
   contentSnapshotDocumentsObjectSchema,
   contentSnapshotIndexObjectSchema,
   contentSnapshotKindSchema,
+  type ContentSnapshotIndexObject,
   type ContentSnapshotObject
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
-import { resolveCharacterBuilderPayload } from '@artificer-toolkit/rules-runtime/character/builderPayload'
 import {
-  assembleCharacterBuilderContext,
-  prepareCharacterRuleContext
-} from '@artificer-toolkit/rules-runtime/character/contextPreparation'
-import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
+  previewSnapshotCharacterBuilder,
+  resolveSnapshotCharacterBuilderPayload,
+  type SnapshotCharacterBuilderInput
+} from '@artificer-toolkit/rules-runtime/character/snapshotBuilderEvaluation'
+import { createLazySnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
 import {
   buildContentSnapshotKind,
   type ContentSnapshotIndexSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
-import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import {
@@ -95,7 +94,23 @@ async function readScopeObjects(t: Test, ref: ContentSnapshotScopeRef) {
   return objects
 }
 
-/** Resolves on the server and from snapshots, and returns both with the snapshot objects. */
+/** The browser's readers: every index object up front, documents per kind when a read needs them. */
+function createBrowserReaders(objects: readonly ContentSnapshotObject[]) {
+  const loadedKinds: string[] = []
+  const readers = createLazySnapshotReaders(
+    objects.filter((object): object is ContentSnapshotIndexObject => object.part === 'index'),
+    async (kinds) => {
+      loadedKinds.push(...kinds)
+      return objects.filter((object) => object.part === 'documents' && kinds.includes(object.kind))
+    }
+  )
+  return { readers, loadedKinds }
+}
+
+/**
+ * Resolves and previews on the server and from snapshots, through the browser's lazy readers, and
+ * returns both with the snapshot objects and the browser evaluation input.
+ */
 async function resolveBothWays(
   t: Test,
   caller: Caller,
@@ -103,6 +118,7 @@ async function resolveBothWays(
   request: CharacterBuilderResolveInput
 ) {
   const server = await caller.query(api.characters.builder.resolve, request)
+  const serverPreview = await caller.query(api.characters.builder.preview, request)
   const { candidate, system, sources } = await t.run(async (ctx) => {
     const candidate = await loadCharacterDraftCandidate(ctx, userId, request)
     return {
@@ -116,33 +132,53 @@ async function resolveBothWays(
     ...(sources.campaign ? [{ scope: 'CAMPAIGN' as const, scopeId: sources.campaign.id }] : [])
   ]
   const objects = (await Promise.all(scopes.map((ref) => readScopeObjects(t, ref)))).flat()
-  // Validated Character DTOs use literal starting-equipment sources for the authored string enum.
-  const previousCharacter = candidate.current as CharacterAuthored | null
-  const draftCharacter = candidate.character as CharacterAuthored
-  const character = {
-    ...draftCharacter,
-    state: previousCharacter?.state ?? createEmptyCharacterAuthored(draftCharacter).state
+  const input: SnapshotCharacterBuilderInput = {
+    // Validated Character DTOs use literal starting-equipment sources for the authored string enum.
+    character: candidate.character as CharacterAuthored,
+    previousCharacter: candidate.current as CharacterAuthored | null,
+    mode: request.mode,
+    system,
+    builderIntent: candidate.draft.payload.builderIntent,
+    publicId: candidate.draft.publicId,
+    baseActiveUpdatedAt: candidate.draft.baseActiveUpdatedAt ?? null,
+    contentMaturity: sources.campaign?.contentMaturity ?? null
   }
-  const readers = createSnapshotReaders(objects)
-  const context = await assembleCharacterBuilderContext(
-    character,
-    await prepareCharacterRuleContext(character, system, undefined, readers),
-    readers,
-    'selectors'
-  )
-  const local: CharacterBuilderPayloadDto = await resolveCharacterBuilderPayload(
-    character,
-    context,
-    {
-      mode: request.mode,
-      previousCharacter,
-      builderIntent: candidate.draft.payload.builderIntent,
-      publicId: candidate.draft.publicId,
-      baseActiveUpdatedAt: candidate.draft.baseActiveUpdatedAt ?? null,
-      contentMaturity: sources.campaign?.contentMaturity ?? null
+  const browser = createBrowserReaders(objects)
+  const local = await resolveSnapshotCharacterBuilderPayload(input, browser.readers)
+  const localPreview = await previewSnapshotCharacterBuilder(input, browser.readers)
+  return {
+    server,
+    local,
+    serverPreview,
+    localPreview,
+    objects,
+    input,
+    loadedKinds: browser.loadedKinds
+  }
+}
+
+/**
+ * Warm evaluation time per resolve, in milliseconds, with the parsed objects already held, as the
+ * browser worker holds them after the first evaluation of a manifest.
+ */
+async function timeWarmResolves(
+  cases: readonly {
+    input: SnapshotCharacterBuilderInput
+    objects: readonly ContentSnapshotObject[]
+  }[],
+  repetitions: number
+) {
+  const durations: number[] = []
+  for (const { input, objects } of cases) {
+    const { readers } = createBrowserReaders(objects)
+    await resolveSnapshotCharacterBuilderPayload(input, readers)
+    for (let run = 0; run < repetitions; run++) {
+      const started = performance.now()
+      await resolveSnapshotCharacterBuilderPayload(input, readers)
+      durations.push(performance.now() - started)
     }
-  )
-  return { server, local, objects }
+  }
+  return durations.sort((left, right) => left - right)
 }
 
 /** Every snapshot document equals the Convex publication read of the same root. */
@@ -314,12 +350,20 @@ describe('Builder resolution from content snapshots', () => {
       const request = { expectedDraftId: draft.id, mode: 'create' as const, character }
       const resolved = await resolveBothWays(t, owner.caller, owner.userId, request)
       expect(resolved.local).toEqual(resolved.server)
+      expect(resolved.localPreview).toEqual(resolved.serverPreview)
       return { ...resolved, request }
     }
 
     const results = []
     for (const intent of scenarios) results.push(await expectParity(intent))
-    const [, wizardResult, , , homebrewResult, lossResult] = results
+    const [fighterResult, wizardResult, , , homebrewResult, lossResult] = results
+    // Documents load per kind as evaluation reads them: a Fighter never fetches Spells or Creatures.
+    expect(new Set(fighterResult!.loadedKinds)).toEqual(new Set(['RACE', 'CLASS', 'BACKGROUND']))
+    expect(new Set(wizardResult!.loadedKinds)).toContain('SPELL')
+    // ADR 0036 S6 gate: warm evaluation p95 at most 100 ms over the corpus, as a Node proxy.
+    const durations = await timeWarmResolves(results, 5)
+    const p95 = durations[Math.ceil(durations.length * 0.95) - 1]!
+    expect(p95, `warm evaluation p95 ${p95.toFixed(1)} ms`).toBeLessThanOrEqual(100)
     // The corpus reaches the paths it is meant to cover.
     const cantrip = srdSpells.find(
       (spell) => spell.level === 0 && spell.classIds?.includes(wizard.id)
@@ -343,6 +387,7 @@ describe('Builder resolution from content snapshots', () => {
     const fighterRequest = results[0]!.request
     const withoutProjection = await resolveBothWays(t, owner.caller, owner.userId, fighterRequest)
     expect(withoutProjection.local).toEqual(withoutProjection.server)
+    expect(withoutProjection.localPreview).toEqual(withoutProjection.serverPreview)
 
     await expectDocumentsRoundTrip(
       t,
@@ -418,12 +463,14 @@ describe('Builder resolution from content snapshots', () => {
         classes: [{ classId: base.baseClass.id, classLevel: 3, subclassId: sharedSubclass }]
       }
     })
-    const { server, local, objects } = await resolveBothWays(t, owner.caller, owner.userId, {
-      expectedDraftId: edit.id,
-      mode: 'edit',
-      character: candidate
-    })
+    const { server, local, serverPreview, localPreview, objects } = await resolveBothWays(
+      t,
+      owner.caller,
+      owner.userId,
+      { expectedDraftId: edit.id, mode: 'edit', character: candidate }
+    )
     expect(local).toEqual(server)
+    expect(localPreview).toEqual(serverPreview)
     expect(objects.some((object) => object.scope === 'CAMPAIGN')).toBe(true)
     expect(JSON.stringify(server.view)).toContain(sharedSubclass)
     expect(JSON.stringify(server)).not.toContain('Shitstorm')

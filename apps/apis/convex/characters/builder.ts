@@ -12,10 +12,10 @@ import {
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { characterDraftLookupInputSchema } from '@artificer-toolkit/schema/api/characterDrafts'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { resolveCharacterBuilderPayload } from '@artificer-toolkit/rules-runtime/character/builderPayload'
-import { stripCharacterBuilderResolution } from '@artificer-toolkit/rules-runtime/character/characterBuilderView'
-import { createCharacterBuilderChangePreview } from '@artificer-toolkit/rules-runtime/character/builderPresentation'
-import { presentCampaignCharacterText } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
+import {
+  resolveCharacterBuilderPayload,
+  toCharacterBuilderPreviewOutput
+} from '@artificer-toolkit/rules-runtime/character/builderPayload'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
@@ -124,32 +124,15 @@ export const preview = query({
     const { userId } = await requireIdentity(ctx)
     const input = characterBuilderResolveInputSchema.parse(args)
     const { character, current } = await loadCharacterDraftCandidate(ctx, userId, input)
-    const {
-      candidate,
-      character: reconciled,
-      context,
-      resolution
-    } = await prepareCharacterBuilder(ctx, {
+    const prepared = await prepareCharacterBuilder(ctx, {
       character: character as CharacterAuthored,
       current: current as CharacterAuthored | null,
       mode: input.mode
     })
-    const predictedStatus = resolution.readiness.ready ? 'ACTIVE' : 'DRAFT'
-    return characterBuilderPreviewOutputSchema.parse({
-      character: { ...reconciled, status: predictedStatus },
-      ...presentCampaignCharacterText(
-        {
-          resolution: stripCharacterBuilderResolution(resolution),
-          preview: createCharacterBuilderChangePreview({
-            previousCharacter: (current ?? candidate) as CharacterAuthored,
-            nextCharacter: reconciled,
-            predictedStatus,
-            context
-          })
-        },
-        context.sourceAccess.campaign?.contentMaturity ?? null,
-        'CHARACTER_OWNER'
-      )
-    })
+    return toCharacterBuilderPreviewOutput(
+      prepared,
+      current as CharacterAuthored | null,
+      prepared.context.sourceAccess.campaign?.contentMaturity ?? null
+    )
   }
 })

@@ -3,14 +3,23 @@ import {
   type CharacterBuilderIntentCacheDto,
   type CharacterBuilderPayloadDto
 } from '@artificer-toolkit/schema/api/characterBuilder'
+import {
+  characterBuilderPreviewOutputSchema,
+  type CharacterBuilderPreviewOutput
+} from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import type { CampaignContentMaturity } from '@artificer-toolkit/shared/campaign/textPolicy'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import { resolveFeatureOptionEligibility } from './builderEligibility.js'
+import type { prepareCharacterBuilderFromContext } from './builderPreparation.js'
+import { createCharacterBuilderChangePreview } from './builderPresentation.js'
 import { resolveCharacterBuilder } from './builderResolution.js'
 import type { CharacterBuilderContext } from './builderTypes.js'
 import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
-import { toCharacterBuilderPayload } from './characterBuilderView.js'
+import {
+  stripCharacterBuilderResolution,
+  toCharacterBuilderPayload
+} from './characterBuilderView.js'
 import { evaluateCharacterRules } from './characterRuleEvaluation.js'
 
 /**
@@ -58,6 +67,34 @@ export async function resolveCharacterBuilderPayload(
     ...presentCampaignCharacterText(
       { resolution: payload.resolution, references: payload.references, view: payload.view },
       input.contentMaturity,
+      'CHARACTER_OWNER'
+    )
+  })
+}
+
+/** The read-only structural preview of a prepared (not finalized) Builder candidate. */
+export function toCharacterBuilderPreviewOutput(
+  prepared: Pick<
+    Awaited<ReturnType<typeof prepareCharacterBuilderFromContext>>,
+    'candidate' | 'character' | 'context' | 'resolution'
+  >,
+  current: CharacterAuthored | null,
+  contentMaturity: CampaignContentMaturity | null
+): CharacterBuilderPreviewOutput {
+  const predictedStatus = prepared.resolution.readiness.ready ? 'ACTIVE' : 'DRAFT'
+  return characterBuilderPreviewOutputSchema.parse({
+    character: { ...prepared.character, status: predictedStatus },
+    ...presentCampaignCharacterText(
+      {
+        resolution: stripCharacterBuilderResolution(prepared.resolution),
+        preview: createCharacterBuilderChangePreview({
+          previousCharacter: current ?? prepared.candidate,
+          nextCharacter: prepared.character,
+          predictedStatus,
+          context: prepared.context
+        })
+      },
+      contentMaturity,
       'CHARACTER_OWNER'
     )
   })
