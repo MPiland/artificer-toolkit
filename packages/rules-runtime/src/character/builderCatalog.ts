@@ -243,7 +243,7 @@ type ClassProficiency = NonNullable<
 >[number]
 
 export function getRaceAbilityScoreIncreaseFacts(
-  race: ResolvedRace | undefined
+  race: Pick<ResolvedRace, 'features'> | undefined
 ): Array<{ label: string; value: string }> {
   const facts: Array<{ label: string; value: string }> = []
 

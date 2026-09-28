@@ -47,6 +47,21 @@
 - **Draft save:** structural only, with the payload replaced in place.
 - **Room (ADR 0035):** at hydrate, a Convex-authorized manifest for the Run. The room reads R2 through its binding, caches parsed bundles by hash, and reloads on `INVALIDATE_INPUTS`.
 
+## Snapshot format (S1, current)
+
+- **Contracts:** `packages/schema/src/api/contentSnapshots.ts`. The build, key and index projection live in `packages/rules-runtime/src/contentSnapshots.ts`, so Convex and the Worker can both import them.
+- **Object:** the header fields `{format: 1, scope, scopeId, kind, part}` plus `roots`, ordered by root id. The part schema validates the object when it is built. The SHA-256 covers the canonical JSON (`canonicalizeJson`), header included.
+- **Key:** `v1/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`, with the scope and kind in lowercase (for example `v1/system/<id>/race/index/<sha>.json`).
+- **Index entries** hold each root's own picker facts, taken from today's catalogue records:
+  - **RACE:** category, parent, description, selection mode, size, speed references, and Ability Score Increase facts from the root's own features;
+  - **CLASS:** category, parent, description, subclass level, hit points, multiclass requirement groups and proficiencies;
+  - **BACKGROUND:** description, proficiencies and feature labels;
+  - **EQUIPMENT:** the stored effective option projection (`equipmentOptions.builder`) plus the parent id;
+  - **SPELL:** the spell catalogue record fields;
+  - **FEAT, CREATURE, VEHICLE:** id and label.
+- **What readers join:** anything resolved through the System vocabulary or another root. That covers speed and skill labels, proficiency target labels, and a subrace's inherited facts, because those can change in another scope.
+- **Head:** `{scope, scopeId, revision, builtRevision, kinds}`. `kinds` maps a kind to its `index` and `documents` references (`sha256`, `byteLength`, `rootCount`). A kind with no roots has no entry. `buildScheduledAt` is table bookkeeping for S2 and is not part of the contract.
+
 ## Budgets (estimates to verify in the slices)
 
 | Action | Convex I/O | Network |
