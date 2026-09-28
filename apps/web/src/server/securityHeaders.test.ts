@@ -56,18 +56,21 @@ describe('security headers', () => {
       expect(csp).not.toContain('supabase.co')
       expect(csp).not.toContain(':54321')
       expect(csp).toContain('ws://127.0.0.1:8787')
+      expect(csp).toContain('http://127.0.0.1:8787')
       expect(response.headers.get('Content-Security-Policy-Report-Only')).toBeNull()
     } finally {
       vi.unstubAllEnvs()
     }
   })
 
-  it('allows the configured live-session WebSocket origin', () => {
+  it('allows the configured session Worker WebSocket and content origins', () => {
     const originalUrl = process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
     process.env.VITE_LIVE_SESSION_WEBSOCKET_URL = 'https://live.example.com/live-session'
 
     try {
-      expect(createSecurityHeaders()['Content-Security-Policy']).toContain('wss://live.example.com')
+      const csp = createSecurityHeaders()['Content-Security-Policy']
+      expect(csp).toContain('wss://live.example.com')
+      expect(csp).toContain('https://live.example.com')
     } finally {
       if (originalUrl === undefined) {
         delete process.env.VITE_LIVE_SESSION_WEBSOCKET_URL

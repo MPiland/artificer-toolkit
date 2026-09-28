@@ -1,3 +1,5 @@
+import { LOCAL_SESSION_WORKER_URL, toSessionWorkerOrigins } from '#app/lib/sessionWorkerOrigin'
+
 interface SecurityHeaderOptions {
   nonce?: string
 }
@@ -51,19 +53,16 @@ function getConvexConnectSources() {
   }
 }
 
-function getLiveSessionConnectSource() {
+/** Live play over WebSocket and content snapshot reads over HTTP, both on the session Worker. */
+function getSessionWorkerConnectSources() {
   const configured =
     process.env.VITE_LIVE_SESSION_WEBSOCKET_URL ?? import.meta.env.VITE_LIVE_SESSION_WEBSOCKET_URL
-  if (!configured) return isDevelopment() ? ['ws://127.0.0.1:8787'] : []
-
-  try {
-    const url = new URL(configured)
-    if (url.protocol === 'http:') url.protocol = 'ws:'
-    if (url.protocol === 'https:') url.protocol = 'wss:'
-    return url.protocol === 'ws:' || url.protocol === 'wss:' ? [url.origin] : []
-  } catch {
-    return []
-  }
+  const origins = configured
+    ? toSessionWorkerOrigins(configured)
+    : isDevelopment()
+      ? toSessionWorkerOrigins(LOCAL_SESSION_WORKER_URL)
+      : null
+  return origins ? [origins.socket, origins.http] : []
 }
 
 function getMediaStorageSource() {
@@ -97,7 +96,7 @@ function getConnectSrc() {
     "connect-src 'self' blob:",
     ...getConvexConnectSources(),
     ...getSentryConnectSource(),
-    ...getLiveSessionConnectSource(),
+    ...getSessionWorkerConnectSources(),
     ...getMediaStorageSource()
   ].join(' ')
 }

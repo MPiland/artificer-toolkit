@@ -44,7 +44,15 @@ export default defineConfig({
           setupFiles: ['./src/test/setup.ts'],
           css: true,
           include: ['src/**/*.{test,spec}.{ts,tsx}'],
-          exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/*.browser.test.tsx']
+          exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/*.browser.test.tsx'],
+          // Workspace packages resolve outside node_modules, so Vitest transforms them, and its
+          // module runner then drops `export *` bindings of the shared barrels rules-runtime uses.
+          // Load rules-runtime's built ESM natively instead, as Node and the browser bundle do.
+          server: {
+            deps: {
+              external: [/[\\/]packages[\\/]rules-runtime[\\/]dist[\\/]/]
+            }
+          }
         }
       },
       {

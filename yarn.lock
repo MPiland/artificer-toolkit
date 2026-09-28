@@ -216,8 +216,10 @@ __metadata:
   dependencies:
     "@artificer-toolkit/apis": "workspace:"
     "@artificer-toolkit/design-system": "workspace:^"
+    "@artificer-toolkit/rules-runtime": "workspace:^"
     "@artificer-toolkit/schema": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
+    "@artificer-toolkit/source-data": "workspace:^"
     "@chromatic-com/storybook": "npm:^5.2.1"
     "@convex-dev/better-auth": "npm:0.12.5"
     "@convex-dev/react-query": "npm:0.1.0"

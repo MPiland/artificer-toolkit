@@ -12,6 +12,7 @@ import { useConvex } from 'convex/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
 import { errorMessage } from '#app/lib/errorMessage'
+import { LOCAL_SESSION_WORKER_URL } from '#app/lib/sessionWorkerOrigin'
 import {
   createLiveSessionConnection,
   resolveLiveSessionWebSocketUrl,
@@ -20,8 +21,6 @@ import {
   type LiveSessionConnection,
   type LiveSessionConnectionStatus
 } from './liveSessionClient'
-
-const localSessionHostUrl = 'ws://127.0.0.1:8787'
 
 export function useCampaignLiveSession({
   campaignId,
@@ -56,7 +55,7 @@ export function useCampaignLiveSession({
     setRejection(null)
     const configuredUrl =
       import.meta.env.VITE_LIVE_SESSION_WEBSOCKET_URL ??
-      (import.meta.env.DEV ? localSessionHostUrl : null)
+      (import.meta.env.DEV ? LOCAL_SESSION_WORKER_URL : null)
     if (!configuredUrl) {
       setError('Live play is not configured for this deployment.')
       return
