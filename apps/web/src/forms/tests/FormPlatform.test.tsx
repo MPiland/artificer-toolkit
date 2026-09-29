@@ -32,6 +32,10 @@ import { getRequiredValidators } from '../rendering/FormRenderer.utils'
 import { Item as AuthoringRailItem } from '../layout/Steps/Item/Item'
 import { withStaticResolvedScopes } from './withStaticResolvedScopes'
 
+// Opening nested effect editors renders the full effect model under jsdom (about 4s alone for the
+// deepest journey), so these journeys need more than the default budget when workers share a core.
+const NESTED_EFFECT_EDITOR_TIMEOUT_MS = 20_000
+
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useConvex: () => ({
@@ -1068,63 +1072,77 @@ describe('authoring form platform', () => {
     expect(saveDraftButton).toBeDisabled()
   })
 
-  it('renders manifest behavior outcome paths inline inside the outcome editor', async () => {
-    const user = userEvent.setup()
+  it(
+    'renders manifest behavior outcome paths inline inside the outcome editor',
+    async () => {
+      const user = userEvent.setup()
 
-    render(
-      <TestRouterProvider>
-        <TestForm defaultValues={manifestBehaviorDefaults} model={effectResolvedModel} />
-      </TestRouterProvider>
-    )
+      render(
+        <TestRouterProvider>
+          <TestForm defaultValues={manifestBehaviorDefaults} model={effectResolvedModel} />
+        </TestRouterProvider>
+      )
 
-    const editor = getFormContent()
-    await user.click(editor.getByRole('button', { name: /^open activated$/i }))
+      const editor = getFormContent()
+      await user.click(editor.getByRole('button', { name: /^open activated$/i }))
 
-    const workspaceCount = getEditorWorkspaces().length
-    await user.click(screen.getByRole('button', { name: /^on use$/i }))
-    const burningAuraButton = screen.getByRole('button', { name: /^burning aura$/i })
-    expect(burningAuraButton).toHaveAttribute('aria-haspopup', 'dialog')
-    await user.click(burningAuraButton)
-    expect((await screen.findAllByRole('button', { name: /^cancel$/i })).length).toBeGreaterThan(0)
-    const behaviorButton = screen.getByRole('button', { name: /^behavior 1$/i })
-    if (behaviorButton.getAttribute('aria-expanded') === 'false') {
-      await user.click(behaviorButton)
-    }
-    const behaviorPathButton = screen
-      .getAllByRole('button', { name: /on use/i })
-      .find((button) => button.getAttribute('aria-expanded') === 'false')
-    if (behaviorPathButton) await user.click(behaviorPathButton)
+      const workspaceCount = getEditorWorkspaces().length
+      await user.click(screen.getByRole('button', { name: /^on use$/i }))
+      const burningAuraButton = screen.getByRole('button', { name: /^burning aura$/i })
+      expect(burningAuraButton).toHaveAttribute('aria-haspopup', 'dialog')
+      await user.click(burningAuraButton)
+      expect((await screen.findAllByRole('button', { name: /^cancel$/i })).length).toBeGreaterThan(
+        0
+      )
+      const behaviorButton = screen.getByRole('button', { name: /^behavior 1$/i })
+      if (behaviorButton.getAttribute('aria-expanded') === 'false') {
+        await user.click(behaviorButton)
+      }
+      const behaviorPathButton = screen
+        .getAllByRole('button', { name: /on use/i })
+        .find((button) => button.getAttribute('aria-expanded') === 'false')
+      if (behaviorPathButton) await user.click(behaviorPathButton)
 
-    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
-    expect(await screen.findByRole('combobox', { name: /behavior path/i })).toBeInTheDocument()
-    expect(screen.getAllByRole('combobox', { name: /selection model/i }).length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Outcomes').length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: /^damage$/i })).toBeInTheDocument()
-  }, 10_000)
+      expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
+      expect(await screen.findByRole('combobox', { name: /behavior path/i })).toBeInTheDocument()
+      expect(screen.getAllByRole('combobox', { name: /selection model/i }).length).toBeGreaterThan(
+        0
+      )
+      expect(screen.getAllByText('Outcomes').length).toBeGreaterThan(0)
+      expect(screen.getByRole('button', { name: /^damage$/i })).toBeInTheDocument()
+    },
+    NESTED_EFFECT_EDITOR_TIMEOUT_MS
+  )
 
-  it('removes effect-owned optional sections without leaving the inline effect row', async () => {
-    const user = userEvent.setup()
+  it(
+    'removes effect-owned optional sections without leaving the inline effect row',
+    async () => {
+      const user = userEvent.setup()
 
-    render(
-      <TestRouterProvider>
-        <TestForm model={effectResolvedModel} />
-      </TestRouterProvider>
-    )
+      render(
+        <TestRouterProvider>
+          <TestForm model={effectResolvedModel} />
+        </TestRouterProvider>
+      )
 
-    const editor = getFormContent()
-    const workspaceCount = getEditorWorkspaces().length
-    await user.click(editor.getByRole('button', { name: /^open activated$/i }))
-    await user.click(screen.getByRole('button', { name: /^on save failure$/i }))
-    await user.click(await screen.findByRole('button', { name: /remove range override/i }))
-    expect(
-      await screen.findByRole('dialog', { name: /remove range override/i })
-    ).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /^remove$/i }))
-    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
-    expect(screen.getByRole('button', { name: /^on save failure$/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /add range override/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /remove range override/i })).not.toBeInTheDocument()
-  })
+      const editor = getFormContent()
+      const workspaceCount = getEditorWorkspaces().length
+      await user.click(editor.getByRole('button', { name: /^open activated$/i }))
+      await user.click(screen.getByRole('button', { name: /^on save failure$/i }))
+      await user.click(await screen.findByRole('button', { name: /remove range override/i }))
+      expect(
+        await screen.findByRole('dialog', { name: /remove range override/i })
+      ).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: /^remove$/i }))
+      expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
+      expect(screen.getByRole('button', { name: /^on save failure$/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /add range override/i })).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: /remove range override/i })
+      ).not.toBeInTheDocument()
+    },
+    NESTED_EFFECT_EDITOR_TIMEOUT_MS
+  )
 
   it('returns to the empty effects overview after removing the active effect', async () => {
     const user = userEvent.setup()
