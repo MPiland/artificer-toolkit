@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
+import {
+  createMemoryEncounterStore,
+  type EncounterStoreWrite
+} from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
   EncounterDocument,
@@ -42,6 +45,12 @@ afterEach(() => {
 
 function atFixedTime() {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-27T12:00:00.000Z') })
+}
+
+function storeOf(memory: ReturnType<typeof createMemoryEncounterStore>) {
+  return Object.fromEntries(
+    tables.map((table) => [table, memory.documents(table)])
+  ) as unknown as StoreSnapshot
 }
 
 async function snapshotStore(base: PlayerControlFixture): Promise<StoreSnapshot> {
@@ -105,20 +114,28 @@ async function conformance<Result>(base: PlayerControlFixture, operation: Operat
   const sequenceStart = uuidSequence
   atFixedTime()
   let memoryResult: Result | undefined
+  let writeSet: readonly EncounterStoreWrite[] = []
   await expect(
     base.owner.caller.run(async (ctx) => {
+      memory.transaction.begin()
       memoryResult = await operation({
         db: memory.store,
         ports: encounterWriteTransaction(ctx).ports
       })
+      writeSet = memory.transaction.commit()
       throw new Rollback()
     })
   ).rejects.toBeInstanceOf(Rollback)
-  const memoryAfter = Object.fromEntries(
-    tables.map((table) => [table, memory.documents(table)])
-  ) as unknown as StoreSnapshot
+  const memoryAfter = storeOf(memory)
   vi.useRealTimers()
   expect(await snapshotStore(base)).toEqual(before)
+
+  // The room persists a command as its write set (ADR 0035, S2): replaying the stored set onto the
+  // documents the command started from must reproduce the store it left, identities included.
+  const replayed = createMemoryEncounterStore()
+  for (const table of tables) replayed.load(table, before[table])
+  replayed.apply(JSON.parse(JSON.stringify(writeSet)) as EncounterStoreWrite[])
+  expect(storeOf(replayed)).toEqual(memoryAfter)
 
   uuidSequence = sequenceStart
   atFixedTime()
