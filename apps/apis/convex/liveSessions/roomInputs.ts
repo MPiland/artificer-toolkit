@@ -4,6 +4,7 @@ import type { EncounterTableName } from '@artificer-toolkit/encounter-persistenc
 import {
   liveRoomInputsInputSchema,
   liveRoomInputsResponseSchema,
+  MAX_ROOM_INPUT_PAGE_DOCUMENTS,
   type LiveRoomInputsCursor,
   type LiveRoomInputsResponse,
   type LiveRoomInputsScope
@@ -26,171 +27,159 @@ type PageOptions = {
   maximumRowsRead: number
   maximumBytesRead: number
 }
-type RunTableRead = (
+type RunTableQuery = (
   ctx: QueryCtx,
-  encounterId: string,
-  options: PageOptions
-) => Promise<PaginationResult<StoredRow>>
+  encounterId: string
+) => {
+  first(): Promise<unknown>
+  paginate(options: PageOptions): Promise<PaginationResult<StoredRow>>
+}
 
-/** One page stays far below Convex's 8 MiB / 16384-document read limits and the 16 MiB return limit. */
+/**
+ * One page stays far below Convex's 8 MiB / 16384-document read limits and the 16 MiB return limit.
+ * Pages are large because each is one Worker subrequest, and Workers Free allows 50 per request.
+ */
 const PAGE: Omit<PageOptions, 'cursor'> = {
-  numItems: 128,
-  maximumRowsRead: 128,
+  numItems: MAX_ROOM_INPUT_PAGE_DOCUMENTS,
+  maximumRowsRead: MAX_ROOM_INPUT_PAGE_DOCUMENTS,
   maximumBytesRead: 4 * 1024 * 1024
 }
 
 /**
- * The Run aggregate's tables in the fixed order the room reads them, one paginated read per call
- * (Convex permits one `paginate` per function). The Run document itself rides the first page.
+ * The Run aggregate's tables in the fixed order the room reads them. A page reads one table (Convex
+ * permits one `paginate` per function); empty tables are skipped by a `first` probe so they cost
+ * no round trip. The Run document itself rides the first page.
  */
-const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; read: RunTableRead }> = [
+const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTableQuery }> = [
   {
     table: 'encounterRunActors',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterActorProjectionFacts',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterActorProjectionFacts')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterSourceProjectionFacts',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterSourceProjectionFacts')
         .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterSceneBindings',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterSceneBindings')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterActorTokenBindings',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterActorTokenBindings')
         .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterInitiativeRounds',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterInitiativeRounds')
         .withIndex('by_encounterId_round', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterInitiativeParticipants',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterInitiativeParticipants')
         .withIndex('by_encounterId_round_actorId', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterInitiativeSides',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterInitiativeSides')
         .withIndex('by_encounterId_round_sideId', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterRunCommands',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterRunCommands')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterRuleOccurrences',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterRuleOccurrences')
         .withIndex('by_encounterId_state', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterPendingSnapshotParts',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterPendingSnapshotParts')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterRuleReceipts',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterEvidenceRolls',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterEvidenceRolls')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterTurnMovements',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterTurnMovements')
         .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
           q.eq('encounterId', encounterId)
         )
-        .paginate(options)
   },
   {
     table: 'encounterDecisionSkips',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterDecisionSkips')
         .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (q) =>
           q.eq('encounterId', encounterId)
         )
-        .paginate(options)
   },
   {
     table: 'encounterActiveRuleEffects',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterActiveRuleEffects')
         .withIndex('by_encounterId_targetActorId_id', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterMaintainedEffectStates',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterMaintainedEffectStates')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   },
   {
     table: 'encounterSpatialRuleEffects',
-    read: (ctx, encounterId, options) =>
+    query: (ctx, encounterId) =>
       ctx.db
         .query('encounterSpatialRuleEffects')
         .withIndex('by_encounterId_sceneId_id', (q) => q.eq('encounterId', encounterId))
-        .paginate(options)
   }
 ]
 
@@ -215,10 +204,27 @@ async function readRunPage(
     .withIndex('by_publicId', (q) => q.eq('id', encounterId))
     .unique()
   if (!run || run.campaignId !== campaign.id) throw new Error('Encounter not found.')
-  const { tableIndex, paginationCursor } = scope.cursor ?? { tableIndex: 0, paginationCursor: null }
+  const isFirstPage = scope.cursor === null
+  const { paginationCursor } = scope.cursor ?? { paginationCursor: null }
+  let tableIndex = scope.cursor?.tableIndex ?? 0
+  if (tableIndex >= RUN_TABLES.length) throw new Error('Room input cursor is invalid.')
+  // A table's continuation is never empty, so only a fresh table can be skipped.
+  if (paginationCursor === null)
+    while (
+      tableIndex < RUN_TABLES.length &&
+      !(await RUN_TABLES[tableIndex]!.query(ctx, run.id).first())
+    )
+      tableIndex += 1
   const entry = RUN_TABLES[tableIndex]
-  if (!entry) throw new Error('Room input cursor is invalid.')
-  const page = await entry.read(ctx, run.id, { ...PAGE, cursor: paginationCursor })
+  const runDocument = isFirstPage ? [toDocument('encounterRuns', run)] : []
+  if (!entry)
+    return {
+      kind: 'RUN',
+      encounterVersion: run.version,
+      documents: runDocument,
+      continueCursor: null
+    }
+  const page = await entry.query(ctx, run.id).paginate({ ...PAGE, cursor: paginationCursor })
   assertAdvances(page, paginationCursor)
   const continueCursor: LiveRoomInputsCursor = !page.isDone
     ? { tableIndex, paginationCursor: page.continueCursor }
@@ -228,10 +234,7 @@ async function readRunPage(
   return {
     kind: 'RUN',
     encounterVersion: run.version,
-    documents: [
-      ...(scope.cursor === null ? [toDocument('encounterRuns', run)] : []),
-      ...page.page.map((row) => toDocument(entry.table, row))
-    ],
+    documents: [...runDocument, ...page.page.map((row) => toDocument(entry.table, row))],
     continueCursor
   }
 }

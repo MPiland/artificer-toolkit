@@ -56,6 +56,17 @@ export const liveRoomInputsInputSchema = lazySchema(() =>
 )
 
 /**
+ * The part of a stored Run actor's state the room reads to find the Characters whose inputs it
+ * loads; the rest of the actor is the Run engine's, not this contract's.
+ */
+export const liveRoomActorSourceSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('CHARACTER'), sourceId: postgresUuidSchema }),
+    z.object({ kind: z.enum(['CREATURE', 'CUSTOM']) })
+  ])
+)
+
+/**
  * A stored document with its identity, keyed by table. The Worker validates `fields` against the
  * `encounterStoreSchemas` entry for `table` when it loads them, and refuses an unknown table.
  */

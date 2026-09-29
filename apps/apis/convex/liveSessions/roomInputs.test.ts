@@ -63,6 +63,8 @@ describe('live room inputs (ADR 0035 S2)', () => {
     expect(documents[0]).toMatchObject({ table: 'encounterRuns', id: expect.any(String) })
     expect(documents.filter((document) => document.table === 'encounterRuns')).toHaveLength(1)
     expect(new Set(pages.map((page) => page.encounterVersion)).size).toBe(1)
+    // Empty tables cost no round trip: one page per non-empty table (the Run rides the first).
+    expect(pages.length).toBeLessThanOrEqual(new Set(documents.map((row) => row.table)).size)
 
     const stored = await base.t.run(async (ctx) => ({
       actors: await ctx.db
