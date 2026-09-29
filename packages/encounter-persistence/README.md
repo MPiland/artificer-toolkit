@@ -12,7 +12,11 @@ can run the same code against its own store ([ADR 0035](../../docs/adr/0035-room
   indexes. Any drift from the Convex schema is a compile error wherever `ctx.db` is passed as the
   store.
 - `memoryEncounterStore` is the in-memory reference store with Convex's read and write semantics.
-  The conformance suite in `apps/apis` checks Convex against it.
+  The conformance suite in `apps/apis` checks Convex against it, and checks that replaying a
+  command's captured write set (`transaction.writes()`, `apply`) rebuilds the same state. That
+  write set is what the room's SQLite log stores, one row per command
+  (`apps/session-worker/src/roomEncounterStore.ts`). `counters` and `restoreCounters` carry the id
+  and clock counters across a snapshot.
 
 The package imports only the `IndexRange` type from `convex` (a dev dependency), which lets Convex's
 handle satisfy the interface without a cast; it has no Convex runtime dependency. `rejectDomain`

@@ -942,6 +942,74 @@ checked by Convex per command until S6.
 **Not yet consumed.** Party visibility, health display and auto-roll preferences are held and
 reloaded, but nothing in the room reads them before the S6 fan-out and the S7 Sheet.
 
+## Room Encounter store (ADR 0035 S2)
+
+Current for hydrate and rehydrate; nothing routes a command through the store until S6, so until
+then the SQLite copy is loaded and recovered but can trail Convex, which still commits first.
+
+`apps/session-worker/src/roomEncounterStore.ts` is an `EncounterStore` (the subset of `ctx.db` the
+Encounter writers use, `packages/encounter-persistence`) over the Session Durable Object's SQLite. It
+reuses the in-memory reference store (`createMemoryEncounterStore`) as the live index, so planners and
+writers run against memory, and SQLite is only the durable copy.
+
+| Table                  | Rows                                                                             |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| `room_snapshot_chunks` | The aggregate as of the last snapshot, in bounded chunks under one `generation`  |
+| `room_writeset_log`    | One row per command: its write set, the counters, and the chained state checksum |
+
+**Write path.** `transact` gives each command an all-or-nothing overlay: the writers' writes reach
+the in-memory index through a journal, and only when the callback resolves does one `INSERT` into
+`room_writeset_log` make them durable, before the journal is committed. A callback that throws, or a
+row that cannot be written, rolls the index back from the journal; a command that changes nothing
+writes no row. The billed cost is one row written per command, whatever the number of
+documents it touches; there are no per-sample writes. A write set over the row limit (`1.8M`
+characters) is refused with `RoomWriteSetTooLargeError` before anything is written; S6 must decide
+how a command that large is split.
+
+**Checksum.** The state checksum is a chain over the commands: each row stores the SHA-256 of its
+write set and the chain value `sha256(previous chain + ":" + that checksum)`. A replayed log
+reproduces it, and a checkpoint (S3) can fence on it.
+
+**Compaction.** `compact()` folds the log into a new snapshot generation in one `transactionSync`
+(new chunks, then deleting the older chunks and every folded log row). S3 calls it at each checkpoint.
+The result equals the log it replaced, including the id counters (clock and sequence), which are
+stored in the snapshot so ids after a restore continue where they stopped.
+
+**Recovery.** The constructor loads the newest complete snapshot generation and replays the log rows
+after it. A last row that is torn or fails its checksum was never acknowledged (the acknowledgement
+follows the commit), so it is dropped. Damage anywhere else (a missing chunk, a broken chain, no
+snapshot for a log) leaves the store empty and sets `corruption`; it is not repaired. **S6 must read
+`corruption` and force a new epoch instead of rehydrating from Convex**, because the room may have
+acknowledged commands Convex never received.
+
+**Rules inputs.** Beside the Encounter documents the store keeps opaque records
+(`hydrate({documents, records})`, `record(kind, key)`, and `setRecord` inside a transaction). The
+Character play state is one such record per Character id: the store does not know its shape (the
+Amendment 12 split changes it). `apps/session-worker/src/roomInputs.ts` fills them from Convex:
+
+- `liveSessions/roomInputs:read`, behind the Worker-secret route `/live-sessions/room-inputs`, is
+  authorized by the room's `DO_ACTIVE` epoch. Scopes: `RUN` (one Encounter's aggregate, paged 256
+  documents at a time, with the Run's `encounterVersion` so a read that spans a command is repeated),
+  `CHARACTER` (the stored inputs and the active Rule Effects), `CAMPAIGN_PLAY`, `DEFINITION` and
+  `SYSTEM` (the System, and its vocabulary, through the capture builders, Amendment 11). Every
+  answer carries the revisions it was read at.
+- `RoomInputs.hydrate` reads the Run, then the Campaign play scope, the System and each Character
+  actor's inputs in parallel, and replaces the store in one transaction. Character actors are found from
+  the actor documents' stored state, not from the play-state shape.
+- Demand reads (`character`, `play`, `system`, `definition`) return the held copy while its revisions
+  are among those the caller observes, and otherwise read again. A Character reload replaces its Rule
+  Effects and its record in one log row.
+
+**Activation.** After the outbox flush, `NativeLiveSessionRoom` hydrates when the store's epoch is not
+the activation's `DO_ACTIVE` epoch. Within an epoch (hibernation, restart, eviction) the store is
+rebuilt from its own SQLite by the constructor and no Convex read happens; a new epoch loads from Convex
+(ADR 0035 Amendment 2). The bound Encounter comes from the authorization cache's Play section. A failed
+hydrate fails the activation, and the next admission retries.
+
+**Subrequests.** Every Convex call from the Worker is a subrequest (50 on Workers Free). An empty Run
+table is skipped by a probe on the Convex side, so a hydrate is about one request per non-empty Run
+table, one per Character page, plus three for the play scope and System.
+
 ## Transient previews
 
 The native WebSocket protocol separates command and transient traffic:
@@ -1173,7 +1241,7 @@ can point at a pruned geometry save, and superseded fog saves and chunks are not
 | Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                                       |
 | Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                                |
 | Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte protected bootstrap/publication/control secret shared only with the Worker       |
-| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction, closure and invalidation control calls reach                     |
+| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction, closure and invalidation control calls reach                    |
 | Worker              | `CONVEX_SITE_URL`                 | Matching Convex bootstrap/publication/control HTTP Actions origin                                 |
 | Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                             |
 | Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                               |
