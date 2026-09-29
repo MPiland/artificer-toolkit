@@ -600,8 +600,11 @@ reads 0 Convex documents beyond the manifest (`catalogueReadBudget.test.ts`).
   and no `SYSTEM` head exists yet ([D67](../handoffs/phase-08-2-open-questions.md#decisions-to-review));
   remove the denormalization when that scope lands. A School rename therefore appears after the next
   build of each source.
-- **Local data.** Heads built before this slice lack the `list` part: reset the local snapshot tables
-  (or the deployment) so every scope rebuilds.
+- **Rebuilding every scope.** `contentSnapshots/migrations:rebuild` marks every source and every
+  Campaign with shares, so each scope builds once. Run it after a deployment's first deploy with
+  snapshots, and with `{"reset": true}` after an object-format change. Heads in an old format fail
+  schema validation on deploy: they are derived, so delete the `contentSnapshotHeads` and
+  `contentSnapshotObjects` rows first (heads built before this slice lack the `list` part).
 
 ## Native System vocabulary snapshots — local implementation
 

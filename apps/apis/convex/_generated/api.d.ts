@@ -59282,6 +59282,8 @@ export declare const internal: {
             cursor: string | null;
             endCursor?: string | null;
             id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
             numItems: number;
           };
           subjectKind:
@@ -59977,6 +59979,50 @@ export declare const internal: {
           sub: string;
           userSourceIds: Array<string>;
         }
+      >;
+    };
+    migrations: {
+      campaignShares: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      rebuild: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      sources: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
       >;
     };
   };
