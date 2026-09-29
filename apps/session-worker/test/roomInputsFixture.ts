@@ -38,7 +38,7 @@ export function roomInputsResponse(scope: LiveRoomInputsScope): LiveRoomInputsRe
       return { kind: 'SYSTEM', revisions, system: null, vocabulary: null }
     case 'DEFINITION':
       return { kind: 'DEFINITION', revisions, definition: null }
-    case 'CHARACTER':
+    case 'CHARACTERS':
       throw new Error('A Character read needs a real Character page.')
   }
 }

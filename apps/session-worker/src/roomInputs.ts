@@ -1,6 +1,8 @@
 import {
   liveRoomActorSourceSchema,
+  liveRoomCharacterPartSchema,
   liveRoomInputsResponseSchema,
+  type LiveRoomCharacterPart,
   type LiveRoomInputsCursor,
   type LiveRoomInputsResponse,
   type LiveRoomInputsScope
@@ -19,7 +21,9 @@ export type RoomInputsReader = (
 
 type ResponseKind = LiveRoomInputsResponse['kind']
 type ResponseOf<Kind extends ResponseKind> = Extract<LiveRoomInputsResponse, { kind: Kind }>
-type PagedScope = Extract<LiveRoomInputsScope, { kind: 'RUN' | 'CHARACTER' }>
+type PagedKind = 'RUN' | 'CHARACTERS'
+type PagedScope = Extract<LiveRoomInputsScope, { kind: PagedKind }>
+type AssignedPart = Extract<LiveRoomCharacterPart, { status: 'ASSIGNED' }>
 
 /** Room records that cache one rules input each, keyed by their scope. */
 const CACHE_KIND = 'ROOM_INPUT'
@@ -32,7 +36,7 @@ function expectKind<Kind extends ResponseKind>(response: LiveRoomInputsResponse,
 }
 
 /** Reads every page of a paged scope, in order. */
-async function readPages<Kind extends 'RUN' | 'CHARACTER'>(
+async function readPages<Kind extends PagedKind>(
   read: (scope: LiveRoomInputsScope) => Promise<LiveRoomInputsResponse>,
   kind: Kind,
   scopeAt: (cursor: LiveRoomInputsCursor) => PagedScope
@@ -47,11 +51,21 @@ async function readPages<Kind extends 'RUN' | 'CHARACTER'>(
   return pages
 }
 
+function expectAssigned(part: LiveRoomCharacterPart) {
+  if (part.status !== 'ASSIGNED')
+    throw new Error('Character is no longer assigned to the Campaign.')
+  return part
+}
+
 function toRoomDocuments(pages: readonly { documents: readonly RoomDocument[] }[]) {
   return pages.flatMap((page) => page.documents)
 }
 
-/** The Character actors' source ids: the Characters whose stored inputs the Run's rules read. */
+/**
+ * The source ids of the Character actors that still read their Character: the Characters whose
+ * stored inputs the Run's rules read. An actor with frozen state (its Character left the Campaign)
+ * reads its own frozen values instead, so it needs no Character inputs.
+ */
 function characterIdsOf(documents: readonly RoomDocument[]) {
   const ids = new Set<string>()
   for (const { table, fields } of documents) {
@@ -59,13 +73,13 @@ function characterIdsOf(documents: readonly RoomDocument[]) {
     const { stateJson } = fields
     if (typeof stateJson !== 'string') throw new Error('Room actor state is invalid.')
     const actor = liveRoomActorSourceSchema.parse(JSON.parse(stateJson))
-    if (actor.kind === 'CHARACTER') ids.add(actor.sourceId)
+    if (actor.kind === 'CHARACTER' && !actor.frozenState) ids.add(actor.sourceId)
   }
   return [...ids]
 }
 
 /** The cached copy carries the revisions it was read at, so a bump misses. */
-function cacheRecord(key: string, response: LiveRoomInputsResponse): RoomRecord {
+function cacheRecord(key: string, response: LiveRoomInputsResponse | AssignedPart): RoomRecord {
   const revisions = 'revisions' in response ? response.revisions : null
   return {
     kind: CACHE_KIND,
@@ -135,12 +149,11 @@ export class RoomInputs {
       return
     }
     const read = (scope: LiveRoomInputsScope) => this.#read(epoch, scope)
-    const run = await this.#readRun(read, encounterId)
-    const [play, system, vocabulary, ...characters] = await Promise.all([
+    const [play, system, vocabulary, { run, characters }] = await Promise.all([
       read({ kind: 'CAMPAIGN_PLAY' }),
       read({ kind: 'SYSTEM', part: 'SYSTEM' }),
       read({ kind: 'SYSTEM', part: 'VOCABULARY' }),
-      ...characterIdsOf(run).map((characterId) => this.#readCharacter(read, characterId))
+      this.#readRunWithCharacters(read, encounterId)
     ])
     this.#store.hydrate({
       epoch,
@@ -151,8 +164,8 @@ export class RoomInputs {
         cacheRecord(cacheKey({ kind: 'SYSTEM', part: 'VOCABULARY' }), vocabulary),
         ...characters.map((character) =>
           cacheRecord(
-            cacheKey({ kind: 'CHARACTER', characterId: character.id }),
-            character.response
+            cacheKey({ kind: 'CHARACTER', characterId: character.part.characterId }),
+            character.part
           )
         )
       ]
@@ -179,9 +192,12 @@ export class RoomInputs {
     const key = cacheKey({ kind: 'CHARACTER', characterId })
     const held = this.#store.record(CACHE_KIND, key)
     if (held && isCurrent(held, observed))
-      return expectKind(liveRoomInputsResponseSchema.parse(JSON.parse(held.json)), 'CHARACTER')
+      return expectAssigned(liveRoomCharacterPartSchema.parse(JSON.parse(held.json)))
     const epoch = this.#requireEpoch()
-    const loaded = await this.#readCharacter((scope) => this.#read(epoch, scope), characterId)
+    const {
+      characters: [loaded]
+    } = await this.#readCharacters((scope) => this.#read(epoch, scope), [characterId])
+    if (!loaded) throw new Error('Character is no longer assigned to the Campaign.')
     await this.#store.transact(async (transaction) => {
       const previous = await this.#store.store
         .query('characterActiveRuleEffects')
@@ -189,13 +205,13 @@ export class RoomInputs {
         .collect()
       for (const row of previous) await this.#store.store.delete(row._id)
       for (const document of loaded.documents) transaction.restoreDocument(document)
-      transaction.setRecord(cacheRecord(key, loaded.response))
+      transaction.setRecord(cacheRecord(key, loaded.part))
     })
-    return loaded.response
+    return loaded.part
   }
 
   async #point<Kind extends ResponseKind>(
-    scope: Exclude<LiveRoomInputsScope, { kind: 'RUN' | 'CHARACTER' }>,
+    scope: Exclude<LiveRoomInputsScope, { kind: PagedKind }>,
     observed: LiveSessionRulesRevisions | null,
     kind: Kind
   ) {
@@ -229,23 +245,57 @@ export class RoomInputs {
     throw new Error('The Run changed while it was being read.')
   }
 
-  async #readCharacter(
+  /**
+   * The Run with its Characters. A Character that left the Campaign after the Run was read is
+   * unassigned here but frozen in the Run as it now stands, so the Run is read again; one that
+   * stays unassigned while its actor is not frozen is a broken Run.
+   */
+  async #readRunWithCharacters(
     read: (scope: LiveRoomInputsScope) => Promise<LiveRoomInputsResponse>,
-    characterId: string
+    encounterId: string
   ) {
-    const pages = await readPages(read, 'CHARACTER', (cursor) => ({
-      kind: 'CHARACTER',
-      characterId,
+    for (let attempt = 0; attempt < RUN_READ_ATTEMPTS; attempt++) {
+      const run = await this.#readRun(read, encounterId)
+      const characterIds = characterIdsOf(run)
+      const loaded = characterIds.length
+        ? await this.#readCharacters(read, characterIds)
+        : { characters: [], unassigned: [] }
+      if (!loaded.unassigned.length) return { run, characters: loaded.characters }
+    }
+    throw new Error('A Character actor is unassigned but not frozen.')
+  }
+
+  /** Reads the Characters together; the unassigned ones are reported rather than failing the read. */
+  async #readCharacters(
+    read: (scope: LiveRoomInputsScope) => Promise<LiveRoomInputsResponse>,
+    characterIds: readonly string[]
+  ) {
+    const pages = await readPages(read, 'CHARACTERS', (cursor) => ({
+      kind: 'CHARACTERS',
+      characterIds: [...characterIds],
       cursor
     }))
-    const [first] = pages
-    if (!first?.inputs) throw new Error('Character inputs are missing.')
-    // The first page's revisions are the safe stamp: a Character that changed while its pages
-    // were read is newer than the stamp, so its next comparison misses and reads again.
-    return {
-      id: characterId,
-      documents: toRoomDocuments(pages),
-      response: { ...first, documents: [], continueCursor: null }
+    const assigned = new Map<string, { part: AssignedPart; documents: RoomDocument[] }>()
+    const unassigned = new Set<string>()
+    for (const part of pages.flatMap((page) => page.parts)) {
+      if (part.status === 'UNASSIGNED') {
+        unassigned.add(part.characterId)
+        continue
+      }
+      const held = assigned.get(part.characterId)
+      if (held) held.documents.push(...part.documents)
+      else {
+        // The first part's revisions are the safe stamp: a Character that changed while its parts
+        // were read is newer than the stamp, so its next comparison misses and reads again.
+        if (!part.inputs) throw new Error('Character inputs are missing.')
+        assigned.set(part.characterId, {
+          part: { ...part, documents: [] },
+          documents: [...part.documents]
+        })
+      }
     }
+    if (characterIds.some((id) => !assigned.has(id) && !unassigned.has(id)))
+      throw new Error('A Character was not read.')
+    return { characters: [...assigned.values()], unassigned: [...unassigned] }
   }
 }

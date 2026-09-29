@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
-  liveRoomInputsResponseSchema,
+  liveRoomCharacterPartSchema,
   type LiveRoomInputsDocument,
+  type LiveRoomInputsInput,
   type LiveRoomInputsResponse,
   type LiveRoomInputsScope
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
+import { readRoomInputsBatch } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { RoomEncounterStore } from './roomEncounterStore.js'
@@ -14,15 +16,20 @@ import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 
 const uuid = (index: number) => `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
 const EPOCH = uuid(0x900)
+const CAMPAIGN = uuid(2)
 const ENCOUNTER = uuid(1)
 const FIRST_CHARACTER = uuid(0x201)
 const SECOND_CHARACTER = uuid(0x202)
+/** A query page holds four Run documents and one Character effect, so every read spans pages. */
 const RUN_PAGE_SIZE = 4
+const EFFECT_PAGE_SIZE = 1
+/** Workers Free allows 50 subrequests per invocation; a Run's hydrate must leave the room room. */
+const HYDRATE_SUBREQUEST_BUDGET = 10
 
 const characterPage = (() => {
-  const page = liveRoomInputsResponseSchema.parse(characterPageFixture)
-  if (page.kind !== 'CHARACTER') throw new Error('The Character fixture is not a page.')
-  return page
+  const part = liveRoomCharacterPartSchema.parse(characterPageFixture)
+  if (part.status !== 'ASSIGNED') throw new Error('The Character fixture is not assigned.')
+  return part
 })()
 
 const revisions = (label: number, characterId?: string): LiveSessionRulesRevisions => [
@@ -41,11 +48,24 @@ const document = (
   fields: Record<string, unknown>
 ): LiveRoomInputsDocument => ({ table, id, creationTime: creationTime++, fields })
 
-function runDocuments(actorSources: readonly (string | null)[]) {
+/** A Run actor: a creature (`null`), a Character, or a Character whose state is frozen in the actor. */
+type ActorSpec = null | string | { sourceId: string; frozen: true }
+
+const frozenState = { currentHitPoints: 7, maxHitPoints: 11, tempHitPoints: 0, conditions: [] }
+
+function actorState(actor: ActorSpec, padding: number) {
+  const filler = 'a'.repeat(padding)
+  if (actor === null) return { kind: 'CREATURE', sourceId: uuid(0x300), filler }
+  if (typeof actor === 'string')
+    return { kind: 'CHARACTER', sourceId: actor, frozenState: null, filler }
+  return { kind: 'CHARACTER', sourceId: actor.sourceId, frozenState, filler }
+}
+
+function runDocuments(actors: readonly ActorSpec[], padding: number) {
   return [
     document('encounterRuns', 'convex:run', {
       id: ENCOUNTER,
-      campaignId: uuid(2),
+      campaignId: CAMPAIGN,
       gameSystemId: uuid(3),
       status: 'ACTIVE',
       version: 1,
@@ -54,13 +74,11 @@ function runDocuments(actorSources: readonly (string | null)[]) {
       createdAt: '2026-09-01T00:00:00.000Z',
       updatedAt: '2026-09-01T00:00:00.000Z'
     }),
-    ...actorSources.map((sourceId, index) =>
+    ...actors.map((actor, index) =>
       document('encounterRunActors', `convex:${0x100 + index}`, {
         id: uuid(0x100 + index),
         encounterId: ENCOUNTER,
-        stateJson: JSON.stringify(
-          sourceId ? { kind: 'CHARACTER', sourceId } : { kind: 'CREATURE', sourceId: uuid(0x300) }
-        ),
+        stateJson: JSON.stringify(actorState(actor, padding)),
         stateChecksum: checksum(`actor:${index}`)
       })
     )
@@ -68,8 +86,8 @@ function runDocuments(actorSources: readonly (string | null)[]) {
 }
 
 const effect = (characterId: string, ordinal: number) =>
-  document('characterActiveRuleEffects', `convex:${0x400 + ordinal}`, {
-    id: uuid(0x400 + ordinal),
+  document('characterActiveRuleEffects', `convex:${0x4000 + ordinal}`, {
+    id: uuid(0x4000 + ordinal),
     maintainedEffectStateId: null,
     createdOrdinal: ordinal,
     version: 1,
@@ -83,48 +101,75 @@ const effect = (characterId: string, ordinal: number) =>
     sourceEncounterId: null
   })
 
-/** A Convex that serves the room's inputs from mutable state and records every read. */
-function fakeConvex(actorSources: readonly (string | null)[]) {
+/**
+ * A Convex that serves the room's inputs from mutable state. `page` answers one query; `read`
+ * answers one route call, which joins pages the way the real route does, so `reads.length` is the
+ * number of Worker subrequests.
+ */
+function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: number) {
   const state = {
-    run: runDocuments(actorSources),
+    run: runDocuments(actors, padding),
     runVersion: 1,
     /** Called before each Run page is served, to change the Run between pages. */
     onRunPage: (_pageIndex: number) => {},
+    /** Called before each Character is served, to change the Campaign during the hydrate. */
+    onCharacterPage: (_characterId: string) => {},
     label: 1,
+    unassigned: new Set<string>(),
     characters: new Map<string, LiveRoomInputsDocument[]>([
       [FIRST_CHARACTER, [effect(FIRST_CHARACTER, 1), effect(FIRST_CHARACTER, 2)]],
       [SECOND_CHARACTER, []]
     ])
   }
   const reads: { epoch: string; scope: LiveRoomInputsScope }[] = []
-  const read = async (
-    epoch: string,
-    scope: LiveRoomInputsScope
-  ): Promise<LiveRoomInputsResponse> => {
-    reads.push({ epoch, scope })
+  const pages: LiveRoomInputsScope[] = []
+  const page = async ({ scope }: LiveRoomInputsInput): Promise<LiveRoomInputsResponse> => {
+    pages.push(scope)
     switch (scope.kind) {
       case 'RUN': {
-        const pageIndex = scope.cursor?.tableIndex ?? 0
+        const pageIndex = scope.cursor?.position ?? 0
         state.onRunPage(pageIndex)
-        const start = pageIndex * RUN_PAGE_SIZE
-        const next = start + RUN_PAGE_SIZE
+        const start = pageIndex * runPageSize
+        const next = start + runPageSize
         return {
           kind: 'RUN',
           encounterVersion: state.runVersion,
           documents: state.run.slice(start, next),
           continueCursor:
-            next < state.run.length ? { tableIndex: pageIndex + 1, paginationCursor: null } : null
+            next < state.run.length ? { position: pageIndex + 1, paginationCursor: null } : null
         }
       }
-      case 'CHARACTER': {
-        const effects = state.characters.get(scope.characterId) ?? []
-        const first = scope.cursor === null
+      case 'CHARACTERS': {
+        const position = scope.cursor?.position ?? 0
+        const characterId = scope.characterIds[position]
+        if (!characterId) throw new Error('Room input cursor is invalid.')
+        state.onCharacterPage(characterId)
+        const nextCharacter =
+          position + 1 < scope.characterIds.length
+            ? { position: position + 1, paginationCursor: null }
+            : null
+        if (state.unassigned.has(characterId))
+          return {
+            kind: 'CHARACTERS',
+            parts: [{ status: 'UNASSIGNED', characterId }],
+            continueCursor: nextCharacter
+          }
+        const effects = state.characters.get(characterId) ?? []
+        const offset = Number(scope.cursor?.paginationCursor ?? 0)
+        const end = offset + EFFECT_PAGE_SIZE
         return {
-          ...characterPage,
-          revisions: revisions(state.label, scope.characterId),
-          inputs: first ? characterPage.inputs : null,
-          documents: first ? [] : effects,
-          continueCursor: first ? { tableIndex: 0, paginationCursor: null } : null
+          kind: 'CHARACTERS',
+          parts: [
+            {
+              ...characterPage,
+              characterId,
+              revisions: revisions(state.label, characterId),
+              inputs: offset === 0 ? characterPage.inputs : null,
+              documents: effects.slice(offset, end)
+            }
+          ],
+          continueCursor:
+            end < effects.length ? { position, paginationCursor: String(end) } : nextCharacter
         }
       }
       case 'CAMPAIGN_PLAY':
@@ -132,7 +177,7 @@ function fakeConvex(actorSources: readonly (string | null)[]) {
           kind: 'CAMPAIGN_PLAY',
           revisions: revisions(state.label),
           campaign: {
-            id: uuid(2),
+            id: CAMPAIGN,
             gameSystemId: uuid(3),
             ownerUserId: uuid(4),
             contentMaturity: 'STANDARD',
@@ -146,35 +191,62 @@ function fakeConvex(actorSources: readonly (string | null)[]) {
         return { kind: 'DEFINITION', revisions: revisions(state.label), definition: null }
     }
   }
-  return { state, reads, read }
+  const read = (epoch: string, scope: LiveRoomInputsScope) => {
+    reads.push({ epoch, scope })
+    return readRoomInputsBatch(page, { campaignId: CAMPAIGN, epoch, scope })
+  }
+  return { state, reads, pages, read }
 }
 
-function open(actorSources: readonly (string | null)[]) {
-  const convex = fakeConvex(actorSources)
+function open(actors: readonly ActorSpec[], { padding = 0, runPageSize = RUN_PAGE_SIZE } = {}) {
+  const convex = fakeConvex(actors, padding, runPageSize)
   const { storage } = createNodeSqliteRoomStorage()
   const store = new RoomEncounterStore(storage)
   return { ...convex, storage, store, inputs: new RoomInputs(store, convex.read) }
 }
 
-const kinds = (reads: readonly { scope: LiveRoomInputsScope }[]) =>
-  reads.map(({ scope }) => scope.kind)
+const kinds = (reads: readonly { scope: LiveRoomInputsScope }[] | readonly LiveRoomInputsScope[]) =>
+  reads.map((read) => ('scope' in read ? read.scope.kind : read.kind))
+const count = (
+  reads: readonly { scope: LiveRoomInputsScope }[] | readonly LiveRoomInputsScope[],
+  kind: LiveRoomInputsScope['kind']
+) => kinds(reads).filter((read) => read === kind).length
+
+/** Marks the actor of `sourceId` frozen in the Run, as the Campaign departure does. */
+function freezeActor(run: LiveRoomInputsDocument[], sourceId: string) {
+  const index = run.findIndex(
+    (row) =>
+      row.table === 'encounterRunActors' &&
+      typeof row.fields.stateJson === 'string' &&
+      row.fields.stateJson.includes(sourceId)
+  )
+  const row = run[index]
+  if (!row || typeof row.fields.stateJson !== 'string') throw new Error('The actor is missing.')
+  run[index] = {
+    ...row,
+    fields: {
+      ...row.fields,
+      stateJson: JSON.stringify({ ...JSON.parse(row.fields.stateJson), frozenState })
+    }
+  }
+}
 
 describe('room inputs (ADR 0035 S2)', () => {
   describe('hydrate', () => {
-    it('reads the Run pages, each Character once, the play scope and the System', async () => {
+    it('reads the Run, each Character once, the play scope and the System', async () => {
       const convex = open([FIRST_CHARACTER, null, SECOND_CHARACTER, FIRST_CHARACTER, null])
       await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
 
       expect(convex.store.epoch).toBe(EPOCH)
       expect(convex.reads.every((read) => read.epoch === EPOCH)).toBe(true)
-      const count = (kind: LiveRoomInputsScope['kind']) =>
-        kinds(convex.reads).filter((read) => read === kind).length
-      // Six Run documents in pages of four.
-      expect(count('RUN')).toBe(2)
-      // Two distinct Characters, two pages each; a duplicate actor does not read again.
-      expect(count('CHARACTER')).toBe(4)
-      expect(count('CAMPAIGN_PLAY')).toBe(1)
-      expect(count('SYSTEM')).toBe(2)
+      // Six Run documents in pages of four join into one call; the two distinct Characters, whose
+      // effects arrive one per page, into another (a duplicate actor does not read again).
+      expect(count(convex.reads, 'RUN')).toBe(1)
+      expect(count(convex.reads, 'CHARACTERS')).toBe(1)
+      expect(count(convex.reads, 'CAMPAIGN_PLAY')).toBe(1)
+      expect(count(convex.reads, 'SYSTEM')).toBe(2)
+      expect(count(convex.pages, 'RUN')).toBe(2)
+      expect(count(convex.pages, 'CHARACTERS')).toBe(3)
 
       expect(convex.store.documents('encounterRunActors')).toHaveLength(5)
       expect(convex.store.documents('characterActiveRuleEffects')).toHaveLength(2)
@@ -205,7 +277,8 @@ describe('room inputs (ADR 0035 S2)', () => {
         }
       }
       await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
-      expect(kinds(convex.reads).filter((kind) => kind === 'RUN')).toHaveLength(4)
+      // The torn first read takes two calls (the batch stops at the version change); the second, one.
+      expect(count(convex.reads, 'RUN')).toBe(3)
       expect(convex.store.documents('encounterRuns')).toHaveLength(1)
     })
 
@@ -225,12 +298,125 @@ describe('room inputs (ADR 0035 S2)', () => {
       const read = convex.read
       const inputs = new RoomInputs(convex.store, async (epoch, scope) => {
         const response = await read(epoch, scope)
-        return response.kind === 'CHARACTER' ? { ...response, inputs: null } : response
+        return response.kind === 'CHARACTERS'
+          ? {
+              ...response,
+              parts: response.parts.map((part) =>
+                part.status === 'ASSIGNED' ? { ...part, inputs: null } : part
+              )
+            }
+          : response
       })
       await expect(inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })).rejects.toThrow(
         'Character inputs are missing'
       )
       expect(convex.store.epoch).toBeNull()
+    })
+  })
+
+  describe('subrequest budget', () => {
+    const characters = Array.from({ length: 12 }, (_, index) => uuid(0x201 + index))
+
+    it('hydrates a Run of 11 actors in a handful of subrequests', async () => {
+      const convex = open([...characters.slice(0, 3), ...Array<null>(8).fill(null)])
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+      // The play scope, the System and its vocabulary, one Run call and one Characters call.
+      expect(convex.reads).toHaveLength(5)
+      expect(convex.store.documents('encounterRunActors')).toHaveLength(11)
+    })
+
+    it('hydrates a Run of 100 actors with 12 Characters within the subrequest budget', async () => {
+      const convex = open([...characters, ...Array<null>(88).fill(null)], {
+        padding: 6_000,
+        runPageSize: 8
+      })
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+
+      expect(convex.reads.length).toBeLessThanOrEqual(HYDRATE_SUBREQUEST_BUDGET)
+      expect(count(convex.reads, 'RUN')).toBe(1)
+      expect(count(convex.reads, 'CHARACTERS')).toBe(1)
+      // The query pages behind those calls are what a per-page route would have spent.
+      expect(count(convex.pages, 'RUN')).toBe(13)
+      expect(count(convex.pages, 'CHARACTERS')).toBeGreaterThanOrEqual(12)
+      expect(convex.store.documents('encounterRunActors')).toHaveLength(100)
+      expect(
+        convex.store.records('ROOM_INPUT').filter((record) => record.key.startsWith('CHARACTER:'))
+      ).toHaveLength(12)
+    })
+
+    it('spends a further call per byte budget on a Run of very large actors', async () => {
+      // Each actor is about 300 KB, so two pages of three actors exceed the 2 MB batch budget.
+      const convex = open([...characters.slice(0, 2), ...Array<null>(10).fill(null)], {
+        padding: 300_000,
+        runPageSize: 4
+      })
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+      expect(count(convex.reads, 'RUN')).toBe(2)
+      expect(count(convex.pages, 'RUN')).toBe(4)
+      expect(convex.store.documents('encounterRunActors')).toHaveLength(12)
+    })
+  })
+
+  describe('a Character that left the Campaign', () => {
+    it('reads no inputs for an actor whose state is frozen', async () => {
+      const convex = open([FIRST_CHARACTER, { sourceId: SECOND_CHARACTER, frozen: true }, null])
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+
+      expect([
+        ...new Set(
+          convex.pages.flatMap((scope) => (scope.kind === 'CHARACTERS' ? scope.characterIds : []))
+        )
+      ]).toEqual([FIRST_CHARACTER])
+      expect(convex.store.records('ROOM_INPUT').map((record) => record.key)).not.toContain(
+        `CHARACTER:${SECOND_CHARACTER}`
+      )
+      const frozen = convex.store
+        .documents('encounterRunActors')
+        .map((row) => JSON.parse(row.stateJson) as { frozenState: unknown })
+        .filter((actor) => actor.frozenState !== null && actor.frozenState !== undefined)
+      expect(frozen).toHaveLength(1)
+    })
+
+    it('reads the Run again when the Character left between the Run and its Characters', async () => {
+      const convex = open([FIRST_CHARACTER, SECOND_CHARACTER, null])
+      convex.state.onCharacterPage = (characterId) => {
+        if (characterId !== SECOND_CHARACTER || convex.state.unassigned.has(characterId)) return
+        convex.state.unassigned.add(characterId)
+        freezeActor(convex.state.run, characterId)
+      }
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+
+      expect(count(convex.reads, 'RUN')).toBe(2)
+      expect(convex.store.records('ROOM_INPUT').map((record) => record.key)).toEqual([
+        'CAMPAIGN_PLAY',
+        `CHARACTER:${FIRST_CHARACTER}`,
+        'SYSTEM:SYSTEM',
+        'SYSTEM:VOCABULARY'
+      ])
+      const actors = convex.store
+        .documents('encounterRunActors')
+        .map((row) => JSON.parse(row.stateJson) as { sourceId: string; frozenState?: unknown })
+      expect(actors.find((actor) => actor.sourceId === SECOND_CHARACTER)?.frozenState).toEqual(
+        frozenState
+      )
+    })
+
+    it('fails closed when a Character is unassigned but its actor is not frozen', async () => {
+      const convex = open([FIRST_CHARACTER, SECOND_CHARACTER])
+      convex.state.unassigned.add(SECOND_CHARACTER)
+      await expect(convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })).rejects.toThrow(
+        'unassigned but not frozen'
+      )
+      expect(convex.store.epoch).toBeNull()
+    })
+
+    it('refuses a demand read of a Character that left the Campaign', async () => {
+      const convex = open([FIRST_CHARACTER])
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+      convex.state.unassigned.add(FIRST_CHARACTER)
+      await expect(convex.inputs.character(FIRST_CHARACTER, null)).rejects.toThrow(
+        'no longer assigned'
+      )
     })
   })
 
@@ -247,7 +433,7 @@ describe('room inputs (ADR 0035 S2)', () => {
       const held = revisions(1)
       const extra = [...held, { scope: 'PLAY' as const, id: uuid(0x13), revision: uuid(0x5000) }]
       const play = await convex.inputs.play(extra)
-      expect(play.campaign.id).toBe(uuid(2))
+      expect(play.campaign.id).toBe(CAMPAIGN)
       expect(await convex.inputs.system('SYSTEM', held)).toMatchObject({ kind: 'SYSTEM' })
       expect(convex.reads).toEqual([])
     })
@@ -277,7 +463,7 @@ describe('room inputs (ADR 0035 S2)', () => {
 
       const loaded = await convex.inputs.character(FIRST_CHARACTER, revisions(2, FIRST_CHARACTER))
       expect(loaded.inputs).toEqual(characterPage.inputs)
-      expect(kinds(convex.reads)).toEqual(['CHARACTER', 'CHARACTER'])
+      expect(kinds(convex.reads)).toEqual(['CHARACTERS'])
       expect(
         convex.store.documents('characterActiveRuleEffects').map((row) => row.createdOrdinal)
       ).toEqual([3])

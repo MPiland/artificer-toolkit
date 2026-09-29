@@ -1,6 +1,7 @@
-/** The first page of a real CHARACTER room-inputs read (a level 1 Character), captured from Convex. */
+/** The first part of a real CHARACTERS room-inputs read (a level 1 Character), captured from Convex. */
 export const characterPageFixture: unknown = {
-  continueCursor: null,
+  status: 'ASSIGNED',
+  characterId: 'f84fd6f1-8c90-4578-b9c5-2593b797bcb9',
   documents: [],
   inputs: {
     campaign: {
@@ -97,7 +98,6 @@ export const characterPageFixture: unknown = {
     streamVersion: 1,
     updatedAt: '2026-09-29T07:35:48.348Z'
   },
-  kind: 'CHARACTER',
   revisions: [
     {
       id: '00000000-0000-0000-0000-000000000001',
