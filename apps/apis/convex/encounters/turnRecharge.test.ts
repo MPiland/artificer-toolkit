@@ -40,6 +40,7 @@ import {
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from '../../tests/fixtures/characters'
@@ -791,10 +792,9 @@ describe('native Encounter turn Recharge', () => {
         )
         .unique()
       if (!actor) throw new Error('Missing Recharge actor.')
-      const state = JSON.parse(actor.stateJson) as {
-        snapshot: { payload: { features: unknown[] } }
-      }
-      state.snapshot.payload.features = []
+      const state = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
+      const snapshot = state.snapshot as { payload: { features: unknown[] } }
+      snapshot.payload.features = []
       await writeRunActor(ctx, actor._id, state)
     })
     const staleBefore = await stored(base.t, base.run.id)

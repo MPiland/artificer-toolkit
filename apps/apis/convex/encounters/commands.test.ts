@@ -22,7 +22,10 @@ import {
   type EncounterTimelineDto,
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   SRD_CONTENT_SOURCE,
@@ -452,9 +455,11 @@ async function replaceActorResources(
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId).eq('id', actorId))
       .unique()
     if (!actor) throw new Error('Missing Encounter resource fixture.')
-    const actorState = JSON.parse(actor.stateJson) as { resources: unknown }
-    actorState.resources = resources
-    await writeRunActor(ctx, actor._id, actorState)
+    await writeRunActor(
+      ctx,
+      actor._id,
+      encounterRunActorStateSchema.parse({ ...JSON.parse(actor.stateJson), resources })
+    )
   })
 }
 
@@ -2245,10 +2250,9 @@ describe('native Encounter Run commands', () => {
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique()
       if (!row) throw new Error('Missing Creature actor.')
-      const state = JSON.parse(row.stateJson) as {
-        snapshot: { sourceRevision: number }
-      }
-      state.snapshot.sourceRevision += 1
+      const state = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const snapshot = state.snapshot as { sourceRevision: number }
+      snapshot.sourceRevision += 1
       await writeRunActor(ctx, row._id, state)
     })
     await expect(
@@ -2308,10 +2312,9 @@ describe('native Encounter Run commands', () => {
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique()
       if (!row) throw new Error('Missing Character actor.')
-      const state = JSON.parse(row.stateJson) as {
-        snapshot: { id: string }
-      }
-      state.snapshot.id = crypto.randomUUID()
+      const state = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const snapshot = state.snapshot as { id: string }
+      snapshot.id = crypto.randomUUID()
       await writeRunActor(ctx, row._id, state)
     })
     await expect(

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { applyJsonDelta, diffJson } from '../jsonDelta.js'
+import { applyJsonDelta, diffJson, type JsonValue } from '../jsonDelta.js'
 
-const cases = [
+const cases: [string, JsonValue, JsonValue][] = [
   ['equal values', { a: [1, 2], b: 'x' }, { a: [1, 2], b: 'x' }],
   ['a changed nested key', { a: { b: 1, c: [1] } }, { a: { b: 2, c: [1] } }],
   ['added and dropped keys', { a: 1, b: 2 }, { b: 2, c: { d: 3 } }],
