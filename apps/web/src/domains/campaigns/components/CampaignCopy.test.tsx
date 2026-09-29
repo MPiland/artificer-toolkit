@@ -221,6 +221,19 @@ describe('CampaignCopy', () => {
     await user.click(screen.getByRole('button', { name: 'Copy again' }))
     expect(onOpen).toHaveBeenCalledWith(campaign)
   })
+  it('shows the entries limit refusal instead of the generic failure', () => {
+    mocks.jobs.results = [
+      {
+        ...runningCopy,
+        status: 'FAILED',
+        failureReason: 'This Campaign has reached its entries limit.'
+      }
+    ]
+    renderCopy(null)
+
+    expect(screen.getByText('This Campaign has reached its entries limit.')).toBeVisible()
+    expect(screen.queryByText('Copy could not be completed.')).not.toBeInTheDocument()
+  })
   it('keeps a revoked completed destination inline instead of opening it', async () => {
     mocks.jobs.results = [{ ...runningCopy, status: 'COMPLETED' }]
     mocks.progress.mockRejectedValueOnce(new Error('This copied Campaign is no longer available.'))

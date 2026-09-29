@@ -15,6 +15,7 @@ import type {
   CampaignNotebookSectionDto,
   UpdateCampaignNotebookSectionInput
 } from '@artificer-toolkit/schema/api/campaignSessions'
+import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
 import { scheduleOwnerCopyCleanup } from './copyJobCleanup'
 import { api } from '../_generated/api'
 import { fixture as characterFixture } from '../../tests/fixtures/characters'
@@ -461,6 +462,68 @@ describe('Campaign selected notebook copy jobs', () => {
         (row) => row.resource === 'activeHostedCampaigns' && row.sourceId !== source.id
       )
     ).toEqual([])
+    expect(after.notes.filter((row) => row.campaignId !== source.id)).toEqual([])
+  })
+
+  it('fails a copy whose next page passes the destination entries limit with that reason', async () => {
+    const base = await characterFixture()
+    await base.owner.caller.mutation(api.account.updateProfile, {
+      username: 'EntriesCopyOwner',
+      bio: null
+    })
+    const source = await base.owner.caller.mutation(create, input)
+    await base.t.run((ctx) =>
+      ctx.db.insert('campaignNotebookSections', {
+        id: crypto.randomUUID(),
+        campaignId: source.id,
+        title: 'Over the limit',
+        content: '<p>limit</p>',
+        visibility: 'GM_PRIVATE',
+        category: 'GENERAL',
+        sortOrder: 0,
+        version: 0,
+        createdBy: base.owner.userId,
+        updatedBy: base.owner.userId,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z'
+      })
+    )
+    const job = await base.owner.caller.mutation(begin, {
+      campaignId: source.id,
+      expectedVersion: source.version,
+      commandId: crypto.randomUUID(),
+      notebookCategories: ['GENERAL']
+    })
+    // Stands in for a destination already filled to the Free limit by earlier pages.
+    await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('campaignCopyJobs')
+        .withIndex('by_publicId', (q) => q.eq('id', job.copyId))
+        .unique()
+      if (!row) throw new Error('Missing job.')
+      await ctx.db.insert('campaignContentUsage', {
+        campaignId: row.destinationCampaignId,
+        entries: ENTITLEMENT_LIMITS.FREE.campaignEntriesPerCampaign,
+        scenes: 0
+      })
+    })
+    await base.t.mutation(run, { copyId: job.copyId })
+    expect(await base.owner.caller.query(progress, { copyId: job.copyId })).toMatchObject({
+      status: 'CLEANING',
+      copiedSections: 0,
+      failureReason: 'This Campaign has reached its entries limit.',
+      destination: null
+    })
+    await base.t.mutation(cleanup, { copyId: job.copyId })
+    expect(await base.owner.caller.query(progress, { copyId: job.copyId })).toMatchObject({
+      status: 'FAILED',
+      failureReason: 'This Campaign has reached its entries limit.'
+    })
+    const after = await base.t.run(async (ctx) => ({
+      campaigns: await ctx.db.query('campaigns').collect(),
+      notes: await ctx.db.query('campaignNotebookSections').collect()
+    }))
+    expect(after.campaigns.filter((row) => row.id !== source.id)).toEqual([])
     expect(after.notes.filter((row) => row.campaignId !== source.id)).toEqual([])
   })
 

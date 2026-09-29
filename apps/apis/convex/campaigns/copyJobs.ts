@@ -18,10 +18,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation, mutation } from '../lib/mutations'
 import { query } from '../lib/queries'
 import type { Doc } from '../_generated/dataModel'
+import type { MutationCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { readAuthUser } from '../lib/authUserReads'
 import { createCampaignForOwner } from './create'
-import { assertCampaignContentAllowed } from './contentUsage'
+import { readCampaignContentRefusal } from './contentUsage'
 import { readCampaignDetail, requireCampaignAuthority } from './documents'
 
 const PAGE_SIZE = 8
@@ -253,17 +254,25 @@ export const run = internalMutation({
       if (!row) return null
       const found = await findJob(ctx, args.copyId)
       if (found.job.status !== 'RUNNING') return null
-      await ctx.db.patch(found.row._id, {
-        status: 'CLEANING',
-        terminalStatus: 'FAILED',
-        failureReason: 'Copy could not be completed.',
-        updatedAt: new Date().toISOString()
-      })
-      await ctx.scheduler.runAfter(0, cleanupJob, args)
+      await failJob(ctx, found.row, 'Copy could not be completed.')
     }
     return null
   }
 })
+
+async function failJob(
+  ctx: MutationCtx,
+  row: Doc<'campaignCopyJobs'>,
+  failureReason: string
+): Promise<void> {
+  await ctx.db.patch(row._id, {
+    status: 'CLEANING',
+    terminalStatus: 'FAILED',
+    failureReason,
+    updatedAt: new Date().toISOString()
+  })
+  await ctx.scheduler.runAfter(0, cleanupJob, { copyId: row.id })
+}
 
 export const step = internalMutation({
   args: { copyId: v.string() },
@@ -331,12 +340,18 @@ export const step = internalMutation({
         maximumRowsRead: PAGE_SIZE,
         maximumBytesRead: MAX_BYTES
       })
-    await assertCampaignContentAllowed(
+    // A limit refusal is an expected outcome the owner can act on, so it fails the job with its own
+    // reason instead of throwing into the generic failure in `run`.
+    const refusal = await readCampaignContentRefusal(
       ctx.db,
       { id: job.destinationCampaignId, ownerUserId: job.ownerUserId },
       'campaignEntriesPerCampaign',
       page.page.length
     )
+    if (refusal) {
+      await failJob(ctx, found.row, refusal)
+      return null
+    }
     const now = new Date().toISOString()
     for (const row of page.page) {
       const { _id, _creationTime, ...stored } = row

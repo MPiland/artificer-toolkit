@@ -13,11 +13,12 @@ const counterFields = {
 } as const
 
 /**
- * Refuses a create that would take the Campaign past its host's per-Campaign limit. The hosting
- * owner's tier applies whoever creates the content; unlimited tiers use the hidden safety cap.
- * Content already over a limit after a downgrade stays readable; only new records are refused.
+ * The refusal message for a create that would take the Campaign past its host's per-Campaign
+ * limit, or null when it fits. The hosting owner's tier applies whoever creates the content;
+ * unlimited tiers use the hidden safety cap. Content already over a limit after a downgrade stays
+ * readable; only new records are refused.
  */
-export async function assertCampaignContentAllowed(
+export async function readCampaignContentRefusal(
   db: GenericDatabaseReader<DataModel>,
   campaign: { id: string; ownerUserId: string },
   resource: CampaignContentResource,
@@ -36,8 +37,16 @@ export async function assertCampaignContentAllowed(
   const limit =
     ENTITLEMENT_LIMITS[entitlement?.tier ?? 'FREE'][resource] ??
     CAMPAIGN_CONTENT_SAFETY_CAPS[resource]
-  if ((usage?.[counterFields[resource]] ?? 0) + added > limit)
-    throw new Error(`This Campaign has reached its ${resource} limit.`)
+  return (usage?.[counterFields[resource]] ?? 0) + added > limit
+    ? `This Campaign has reached its ${counterFields[resource]} limit.`
+    : null
+}
+
+export async function assertCampaignContentAllowed(
+  ...args: Parameters<typeof readCampaignContentRefusal>
+) {
+  const refusal = await readCampaignContentRefusal(...args)
+  if (refusal) throw new Error(refusal)
 }
 
 /** Maintained only by the table triggers in `lib/mutations.ts`. */

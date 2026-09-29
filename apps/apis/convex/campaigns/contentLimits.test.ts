@@ -183,7 +183,7 @@ describe('per-Campaign content limits (Q18)', () => {
     ).resolves.toMatchObject({ title: 'Prep' })
     expect(await readUsage(t, campaign.id)).toEqual({ entries: FREE_ENTRIES, scenes: 0 })
     await expect(owner.caller.mutation(createNotebook, section(campaign.id))).rejects.toThrow(
-      'This Campaign has reached its campaignEntriesPerCampaign limit.'
+      'This Campaign has reached its entries limit.'
     )
     expect(await readUsage(t, campaign.id)).toEqual({ entries: FREE_ENTRIES, scenes: 0 })
   }, 30000)
@@ -199,7 +199,7 @@ describe('per-Campaign content limits (Q18)', () => {
         assetId: file.id,
         displayName: 'Map'
       })
-    await expect(attach()).rejects.toThrow('campaignEntriesPerCampaign limit')
+    await expect(attach()).rejects.toThrow('entries limit')
     await setTier(t, owner.userId, 'GM')
     await setTier(t, other.userId, 'FREE')
     await expect(attach()).resolves.toMatchObject({ displayName: 'Map' })
@@ -216,7 +216,7 @@ describe('per-Campaign content limits (Q18)', () => {
     await seedUsage(t, campaign.id, { entries: FREE_ENTRIES + 50 })
     await setTier(t, owner.userId, 'FREE')
     await expect(owner.caller.mutation(createNotebook, section(campaign.id))).rejects.toThrow(
-      'campaignEntriesPerCampaign limit'
+      'entries limit'
     )
     const page = await other.caller.query(listNotebook, {
       campaignId: campaign.id,
@@ -241,7 +241,7 @@ describe('per-Campaign content limits (Q18)', () => {
       entries: CAMPAIGN_CONTENT_SAFETY_CAPS.campaignEntriesPerCampaign
     })
     await expect(owner.caller.mutation(createNotebook, section(campaign.id))).rejects.toThrow(
-      'campaignEntriesPerCampaign limit'
+      'entries limit'
     )
     const staged = { id: crypto.randomUUID(), ownerUserId: owner.userId }
     await setTier(t, owner.userId, 'FREE')
@@ -252,7 +252,7 @@ describe('per-Campaign content limits (Q18)', () => {
       t.run((ctx) =>
         assertCampaignContentAllowed(ctx.db, staged, 'campaignEntriesPerCampaign', FREE_ENTRIES + 1)
       )
-    ).rejects.toThrow('campaignEntriesPerCampaign limit')
+    ).rejects.toThrow('entries limit')
   }, 30000)
 
   it('counts published Scenes and refuses a new Scene at begin and publish once the limit is reached', async () => {
@@ -263,7 +263,7 @@ describe('per-Campaign content limits (Q18)', () => {
     expect(await readUsage(t, campaign.id)).toEqual({ entries: 0, scenes: FREE_SCENES })
     await expect(
       owner.caller.mutation(beginScene, { ...input, commandId: crypto.randomUUID() })
-    ).rejects.toThrow('This Campaign has reached its scenesPerCampaign limit.')
+    ).rejects.toThrow('This Campaign has reached its scenes limit.')
 
     await seedUsage(t, campaign.id, { scenes: FREE_SCENES - 1 })
     const save = await owner.caller.mutation(beginScene, {
@@ -272,7 +272,7 @@ describe('per-Campaign content limits (Q18)', () => {
     })
     await seedUsage(t, campaign.id, { scenes: FREE_SCENES })
     await expect(owner.caller.mutation(publishScene, { saveId: save.saveId })).rejects.toThrow(
-      'scenesPerCampaign limit'
+      'scenes limit'
     )
     await setTier(t, owner.userId, 'GM')
     await expect(

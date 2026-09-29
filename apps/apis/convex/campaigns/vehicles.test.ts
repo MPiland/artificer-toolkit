@@ -136,7 +136,7 @@ describe('native Campaign Vehicle instances', () => {
       await ctx.db.patch(row._id, { entries: 150 })
     })
     await expect(base.first.caller.mutation(create, input)).rejects.toThrow(
-      'This Campaign has reached its campaignEntriesPerCampaign limit.'
+      'This Campaign has reached its entries limit.'
     )
     await base.first.caller.mutation(remove, {
       campaignId: campaignRecord.id,

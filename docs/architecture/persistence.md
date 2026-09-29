@@ -396,12 +396,15 @@ and `scenes` counters. Triggers in `lib/mutations.ts` update the row on every in
 `campaignNotebookSections`, `campaignAttachments` and `campaignVehicles` (entries) and
 `sceneDefinitions` (Scenes), so cascades and cleanup jobs need no bookkeeping; the row is removed
 when both counters reach zero. `campaigns/contentUsage.assertCampaignContentAllowed` checks the
-hosting owner's tier, never the contributor's, before notebook, attachment, Vehicle and copy-job
-section inserts and before a new Scene begins and publishes. Unlimited tiers use the hidden
-`CAMPAIGN_CONTENT_SAFETY_CAPS`, which the entitlement DTO does not carry. Over-limit content after a
-downgrade stays readable and editable; only new records are refused. Sessions, session notes, chat,
-Encounters and content shares are not counted. There is no backfill:
-the product is pre-launch, so deployments that predate the counters are reset and reseeded.
+hosting owner's tier, never the contributor's, before notebook, attachment and Vehicle inserts and
+before a new Scene begins and publishes, and refuses with "This Campaign has reached its entries
+limit." (or "scenes limit"). A Campaign copy job reads the same refusal through
+`readCampaignContentRefusal` before each staged section page and fails the job with it as the
+`failureReason`, so the owner sees the limit rather than the generic copy failure. Unlimited tiers
+use the hidden `CAMPAIGN_CONTENT_SAFETY_CAPS`, which the entitlement DTO does not carry. Over-limit
+content after a downgrade stays readable and editable; only new records are refused. Sessions,
+session notes, chat, Encounters and content shares are not counted. There is no backfill: the
+product is pre-launch, so deployments that predate the counters are reset and reseeded.
 
 `accountEntitlements.setTier` is an internal deployment-operator mutation that validates the target
 profile and existing shared tier enum. The public read accepts no account ID or tier override. Account
