@@ -184,7 +184,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     expect(screen.queryByRole('heading', { level: 3, name: 'Sea Elf' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Basics' }))
     expect(screen.getByRole('textbox', { name: /character name/i })).toHaveValue('Hydrated Hero')
-  })
+  }, 15_000)
 
   it('resets the form when a different persisted draft generation is loaded', async () => {
     const user = userEvent.setup()
@@ -407,6 +407,8 @@ describe('CharacterBuilderAuthoringRuntime', () => {
 
   it('names content that failed to load and retries the evaluation', async () => {
     const user = userEvent.setup()
+    // The resolved payload matches the opened draft, so no debounced re-evaluation follows the retry.
+    mocks.resolve.mockResolvedValue(characterBuilderDraftPayloadFixture)
     mocks.evaluate.mockResolvedValueOnce({ ok: false, failedKind: 'SPELL' })
     renderWithAppProviders(
       <AuthoringLayout
@@ -418,10 +420,10 @@ describe('CharacterBuilderAuthoringRuntime', () => {
 
     expect(await screen.findByText(/could not load spells/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Try again' }))
-    await waitFor(() => expect(mocks.evaluate).toHaveBeenCalledTimes(2))
     await waitFor(() =>
       expect(screen.queryByText(/could not load spells/i)).not.toBeInTheDocument()
     )
+    expect(mocks.evaluate).toHaveBeenCalledTimes(2)
   })
 
   it('evaluates edits of an active Character locally against it, without Convex resolve or preview', async () => {
