@@ -3,12 +3,8 @@ import { makeFunctionReference } from 'convex/server'
 import {
   liveSessionTransientCaptureInputSchema,
   liveSessionTransientCaptureSchema,
-  liveSessionVisionRevisionsInputSchema,
-  liveSessionVisionRevisionsSchema,
   type LiveSessionTransientCapture,
-  type LiveSessionTransientCaptureInput,
-  type LiveSessionVisionRevisions,
-  type LiveSessionVisionRevisionsInput
+  type LiveSessionTransientCaptureInput
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import {
   liveSessionTransientHydrationInputSchema,
@@ -41,11 +37,6 @@ const capture = makeFunctionReference<
   LiveSessionTransientCaptureInput,
   LiveSessionTransientCapture
 >('liveSessions/transientCapture:capture')
-const visionRevisions = makeFunctionReference<
-  'query',
-  LiveSessionVisionRevisionsInput,
-  LiveSessionVisionRevisions
->('liveSessions/transientCapture:visionRevisions')
 const currentEntities = makeFunctionReference<
   'query',
   SceneCurrentEntityPageInput,
@@ -167,12 +158,6 @@ export const captureHttp = transientQueryHttp(
   liveSessionTransientCaptureInputSchema,
   (ctx, input) => ctx.runQuery(capture, input),
   liveSessionTransientCaptureSchema
-)
-
-export const visionRevisionsHttp = transientQueryHttp(
-  liveSessionVisionRevisionsInputSchema,
-  (ctx, input) => ctx.runQuery(visionRevisions, input),
-  liveSessionVisionRevisionsSchema
 )
 
 export const hydrationHttp = httpAction(async (ctx, request) => {

@@ -1,8 +1,8 @@
 /** Private Session Worker → Convex HTTP routes. Convex registers these paths; the Worker calls them. */
 export const LIVE_SESSION_ROUTE_PATHS = {
   capture: '/live-sessions/capture',
-  visionRevisions: '/live-sessions/vision-revisions',
   hydrate: '/live-sessions/hydrate',
+  roomAuthorization: '/live-sessions/room-authorization',
   bootstrap: '/live-sessions/bootstrap',
   activate: '/live-sessions/activate',
   publish: '/live-sessions/publish',

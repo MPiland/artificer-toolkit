@@ -85,6 +85,15 @@ export const liveSessionPresentationCommitInputSchema = lazySchema(() =>
   })
 )
 
+/**
+ * What changed in one Convex transaction for the room's cached inputs (ADR 0035 Amendment 14):
+ * CAMPAIGN (memberships, assignments, content shares, the Campaign), PLAY (`campaignPlaySettings`),
+ * CHARACTER (an assigned Character) and PREFERENCES (a member's auto-roll preference).
+ */
+export const liveSessionInputScopeSchema = lazySchema(() =>
+  z.enum(['CAMPAIGN', 'PLAY', 'CHARACTER', 'PREFERENCES'])
+)
+
 export const liveSessionControlInputSchema = lazySchema(() =>
   z.strictObject({
     campaignId: uuidSchema,
@@ -95,6 +104,14 @@ export const liveSessionControlInputSchema = lazySchema(() =>
         membershipEpoch: z.iso.datetime({ offset: true })
       }),
       z.strictObject({ type: z.literal('CLOSE_ROOM') }),
+      z.strictObject({
+        type: z.literal('INVALIDATE_INPUTS'),
+        scopes: z
+          .array(liveSessionInputScopeSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(4))
+          .check(z.refine((scopes) => new Set(scopes).size === scopes.length))
+      }),
       scenePresentationOperationSchema
     ])
   })
@@ -190,6 +207,7 @@ export const liveSessionWebSocketServerMessageDtoSchema = lazySchema(() =>
 export type LiveSessionTransientBroadcastDto = z.infer<
   typeof liveSessionTransientBroadcastDtoSchema
 >
+export type LiveSessionInputScope = z.infer<typeof liveSessionInputScopeSchema>
 export type LiveSessionControlInput = z.infer<typeof liveSessionControlInputSchema>
 export type LiveSessionPresentationControlInput = z.infer<
   typeof liveSessionPresentationControlInputSchema

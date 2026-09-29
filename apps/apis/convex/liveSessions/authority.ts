@@ -7,11 +7,13 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
+import { internalQuery } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import {
   isExpiredActivatingAuthority,
   readCampaignLiveAuthority,
+  readLiveCampaignAuthority,
   requireCampaignLiveAuthority
 } from './authorityGuard'
 
@@ -326,4 +328,12 @@ export const release = internalMutation({
     await ctx.db.delete(authority._id)
     return null
   }
+})
+
+/** Whether a room still holds the Campaign's live authority, so its evictions keep retrying. */
+export const held = internalQuery({
+  args: { campaignId: zodToConvex(postgresUuidSchema) },
+  returns: v.boolean(),
+  handler: async (ctx, { campaignId }) =>
+    (await readLiveCampaignAuthority(ctx, campaignId)) !== null
 })

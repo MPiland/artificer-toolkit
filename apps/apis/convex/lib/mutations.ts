@@ -1,6 +1,7 @@
-import { customCtx, customMutation } from 'convex-helpers/server/customFunctions'
+import { customMutation } from 'convex-helpers/server/customFunctions'
 import { Triggers } from 'convex-helpers/server/triggers'
 import type { GenericDatabaseWriter, GenericMutationCtx } from 'convex/server'
+import type { LiveSessionInputScope } from '@artificer-toolkit/schema/api/liveSessions'
 import type { SceneVisionRevision } from '@artificer-toolkit/schema/projections/sceneVisionRevisions'
 import {
   internalMutation as rawInternalMutation,
@@ -10,6 +11,7 @@ import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
 import { memoizeMutationReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 import { markContentSnapshotScope, type ContentSnapshotScopeRef } from '../contentSnapshots/marking'
+import { scheduleLiveSessionInputInvalidation } from '../liveSessions/controlScheduling'
 import { withDomainRejections } from './domainRejectionTransport'
 
 type SceneVisionScope = Pick<SceneVisionRevision, 'scope' | 'id'>
@@ -37,6 +39,10 @@ const transactionTriggerState = new WeakMap<
     runCampaignIds: Map<string, string>
     refreshedScopes: Set<string>
     markedContentScopes: Set<string>
+    /** Live-room inputs this transaction changed, by Campaign; sent once when it succeeds. */
+    liveRoomInputs: Map<string, Set<LiveSessionInputScope>>
+    /** Changed Characters, mapped to their Campaign through the assignment when it succeeds. */
+    liveRoomCharacterIds: Set<string>
   }
 >()
 
@@ -46,11 +52,69 @@ function triggerState(db: GenericDatabaseWriter<DataModel>) {
     state = {
       runCampaignIds: new Map(),
       refreshedScopes: new Set(),
-      markedContentScopes: new Set()
+      markedContentScopes: new Set(),
+      liveRoomInputs: new Map(),
+      liveRoomCharacterIds: new Set()
     }
     transactionTriggerState.set(db, state)
   }
   return state
+}
+
+function recordLiveRoomInput(
+  db: GenericDatabaseWriter<DataModel>,
+  campaignId: string,
+  scope: LiveSessionInputScope
+) {
+  const { liveRoomInputs } = triggerState(db)
+  const scopes = liveRoomInputs.get(campaignId) ?? new Set<LiveSessionInputScope>()
+  scopes.add(scope)
+  liveRoomInputs.set(campaignId, scopes)
+}
+
+/**
+ * Sends one `INVALIDATE_INPUTS` per Campaign whose inputs this transaction changed, only while its
+ * room holds `DO_ACTIVE` authority (ADR 0035 Amendment 14). SYSTEM changes are not pushed; the room
+ * pulls them. Scheduling here keeps the notice inside the transaction, so a rollback sends nothing.
+ */
+async function notifyLiveRooms(
+  db: GenericDatabaseWriter<DataModel>,
+  scheduler: GenericMutationCtx<DataModel>['scheduler']
+) {
+  const state = transactionTriggerState.get(db)
+  if (!state) return
+  for (const characterId of state.liveRoomCharacterIds) {
+    const assignment = await db
+      .query('campaignCharacterAssignments')
+      .withIndex('by_characterId', (query) => query.eq('characterId', characterId))
+      .unique()
+    if (assignment) recordLiveRoomInput(db, assignment.campaignId, 'CHARACTER')
+  }
+  for (const [campaignId, scopes] of state.liveRoomInputs) {
+    const authority = await db
+      .query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (query) => query.eq('campaignId', campaignId))
+      .unique()
+    if (authority?.phase === 'DO_ACTIVE')
+      await scheduleLiveSessionInputInvalidation({ scheduler }, campaignId, [...scopes].sort())
+  }
+}
+
+/** Change tracking for one transaction, with its live-room notices sent when it succeeds. */
+function trackedMutation(
+  db: (ctx: GenericMutationCtx<DataModel>) => GenericDatabaseWriter<DataModel>
+) {
+  return {
+    args: {},
+    input: (ctx: GenericMutationCtx<DataModel>) => {
+      const innerDb = db(ctx)
+      return {
+        ctx: withSceneVisionTracking({ ...ctx, db: innerDb }),
+        args: {},
+        onSuccess: () => notifyLiveRooms(innerDb, ctx.scheduler)
+      }
+    }
+  }
 }
 
 function registerScope<TableName extends TableNames>(
@@ -70,9 +134,11 @@ function registerScope<TableName extends TableNames>(
 
 async function refreshScope(db: GenericDatabaseWriter<DataModel>, scope: SceneVisionScope) {
   const id = scope.id.toLowerCase()
-  const { refreshedScopes } = triggerState(db)
+  const { refreshedScopes, liveRoomCharacterIds } = triggerState(db)
   if (refreshedScopes.has(`${scope.scope}:${id}`)) return
   refreshedScopes.add(`${scope.scope}:${id}`)
+  if (scope.scope === 'CAMPAIGN') recordLiveRoomInput(db, id, 'CAMPAIGN')
+  if (scope.scope === 'CHARACTER') liveRoomCharacterIds.add(id)
   const current = await db
     .query('sceneVisionRevisions')
     .withIndex('by_scope_id', (query) => query.eq('scope', scope.scope).eq('id', id))
@@ -270,6 +336,22 @@ registerScope('authoredRouteIds', (_, document) =>
 )
 
 registerScope('campaignScenePresentations', (_, document) => playScope(document.campaignId))
+// Play settings are the room's PLAY input; Encounter writes below come from the room's own commands.
+registerScope('campaignPlaySettings', (_, document) => playScope(document.campaignId))
+triggers.register('campaignPlaySettings', async (ctx, change) => {
+  for (const settings of [change.oldDoc, change.newDoc])
+    if (settings) recordLiveRoomInput(ctx.innerDb, settings.campaignId, 'PLAY')
+})
+triggers.register('userProfiles', async (ctx, change) => {
+  if (change.operation !== 'update' || change.oldDoc.autoRollDice === change.newDoc.autoRollDice)
+    return
+  for await (const membership of ctx.innerDb
+    .query('campaignMemberships')
+    .withIndex('by_userId_status_joinedAt', (query) =>
+      query.eq('userId', change.newDoc.userId).eq('status', 'ACTIVE')
+    ))
+    recordLiveRoomInput(ctx.innerDb, membership.campaignId, 'PREFERENCES')
+})
 registerScope('encounterRuns', (ctx, document) => {
   triggerState(ctx.innerDb).runCampaignIds.set(document.id, document.campaignId)
   return playScope(document.campaignId)
@@ -305,12 +387,22 @@ registerScope('encounterRuleOccurrences', (ctx, document) =>
   playScopeForEncounter(ctx, document.encounterId)
 )
 
+/**
+ * Change tracking alone, for callers that manage their own transaction; it sends no live-room
+ * notices, so product writes use `mutation` or `internalMutation`.
+ */
 export const withSceneVisionTracking = triggers.wrapDB
 export const mutation = withDomainRejections(
-  customMutation(rawMutation, customCtx(withSceneVisionTracking))
+  customMutation(
+    rawMutation,
+    trackedMutation((ctx) => ctx.db)
+  )
 )
 export const internalMutation = withDomainRejections(
-  customMutation(rawInternalMutation, customCtx(withSceneVisionTracking))
+  customMutation(
+    rawInternalMutation,
+    trackedMutation((ctx) => ctx.db)
+  )
 )
 /**
  * An internal mutation whose identical reads are served once per transaction. The memo sits
@@ -319,7 +411,7 @@ export const internalMutation = withDomainRejections(
 export const memoizedInternalMutation = withDomainRejections(
   customMutation(
     rawInternalMutation,
-    customCtx((ctx) => withSceneVisionTracking({ ...ctx, db: memoizeMutationReads(ctx.db) }))
+    trackedMutation((ctx) => memoizeMutationReads(ctx.db))
   )
 )
 /** An internal mutation that applies change tracking to its own context (`withSceneVisionTracking`). */

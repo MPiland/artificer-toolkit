@@ -31,7 +31,7 @@ export async function readSceneVisionFreshness(
 }
 
 /** Whether each observed Character still has the revision its Scene vision was composed from. */
-export async function sceneVisionCharactersCurrent(
+async function sceneVisionCharactersCurrent(
   ctx: QueryCtx,
   revisions: SceneSessionVisionComposition['characterRevisions']
 ): Promise<boolean> {

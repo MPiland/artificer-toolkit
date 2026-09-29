@@ -1,5 +1,8 @@
 import { makeFunctionReference } from 'convex/server'
-import type { LiveSessionControlInput } from '@artificer-toolkit/schema/api/liveSessions'
+import type {
+  LiveSessionControlInput,
+  LiveSessionInputScope
+} from '@artificer-toolkit/schema/api/liveSessions'
 import type { MutationCtx } from '../_generated/server'
 
 const send = makeFunctionReference<'action', LiveSessionControlInput, null>(
@@ -20,4 +23,15 @@ export function scheduleLiveSessionUserEviction(
 
 export function scheduleLiveSessionRoomClosure(ctx: MutationCtx, campaignId: string) {
   return ctx.scheduler.runAfter(0, send, { campaignId, operation: { type: 'CLOSE_ROOM' } })
+}
+
+export function scheduleLiveSessionInputInvalidation(
+  ctx: Pick<MutationCtx, 'scheduler'>,
+  campaignId: string,
+  scopes: LiveSessionInputScope[]
+) {
+  return ctx.scheduler.runAfter(0, send, {
+    campaignId,
+    operation: { type: 'INVALIDATE_INPUTS', scopes }
+  })
 }

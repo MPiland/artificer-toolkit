@@ -132,22 +132,35 @@ describe('native live-room control client', () => {
     ])
   })
 
-  it('retries transient room-control failures with bounded exponential backoff', async () => {
+  it('retries an eviction with capped backoff while the room holds authority, past five attempts', async () => {
     const base = await readyCharacterFixture()
     vi.useFakeTimers()
-    const statuses = [503, 429, 204]
-    const request = vi.fn(async () => new Response(null, { status: statuses.shift() ?? 204 }))
-    vi.stubGlobal('fetch', request)
     const input = {
       campaignId: crypto.randomUUID(),
       userId: crypto.randomUUID(),
       membershipEpoch: new Date().toISOString()
     }
+    await base.t.run(async (ctx) => {
+      const now = new Date().toISOString()
+      await ctx.db.insert('campaignLiveAuthorities', {
+        campaignId: input.campaignId,
+        epoch: crypto.randomUUID(),
+        phase: 'DO_ACTIVE',
+        activationFingerprint: 'a'.repeat(64),
+        persistedSequence: 0,
+        persistedStateChecksum: 'a'.repeat(64),
+        createdAt: now,
+        updatedAt: now
+      })
+    })
+    const statuses = [503, 429, 503, 503, 503, 503, 503, 503, 204]
+    const request = vi.fn(async () => new Response(null, { status: statuses.shift() ?? 204 }))
+    vi.stubGlobal('fetch', request)
 
     await expect(base.t.action(evictUser, input)).rejects.toThrow('status 503')
     await base.t.finishAllScheduledFunctions(vi.runAllTimers)
 
-    expect(request).toHaveBeenCalledTimes(3)
+    expect(request).toHaveBeenCalledTimes(9)
     const retries = await base.t.run((ctx) =>
       ctx.db.system
         .query('_scheduled_functions')
@@ -162,14 +175,35 @@ describe('native live-room control client', () => {
         membershipEpoch: input.membershipEpoch
       }
     }
-    expect(retries.map((job) => ({ args: job.args, state: job.state.kind }))).toEqual([
-      { args: [{ ...retry, attempt: 1 }], state: 'failed' },
-      { args: [{ ...retry, attempt: 2 }], state: 'success' }
-    ])
+    expect(retries.map((job) => ({ args: job.args, state: job.state.kind }))).toEqual(
+      Array.from({ length: 8 }, (_, index) => ({
+        args: [{ ...retry, attempt: index + 1 }],
+        state: index === 7 ? 'success' : 'failed'
+      }))
+    )
     expect(retries[1]!.scheduledTime - retries[0]!.scheduledTime).toBeGreaterThanOrEqual(2_000)
+    // The backoff is capped at one minute.
+    expect(retries[7]!.scheduledTime - retries[6]!.scheduledTime).toBeGreaterThanOrEqual(60_000)
+    expect(retries[7]!.scheduledTime - retries[6]!.scheduledTime).toBeLessThan(64_000)
     vi.useRealTimers()
   })
 
+  it('stops retrying an eviction once no room holds the Campaign', async () => {
+    const base = await readyCharacterFixture()
+    vi.useFakeTimers()
+    const unavailable = vi.fn(async () => new Response(null, { status: 503 }))
+    vi.stubGlobal('fetch', unavailable)
+    await expect(
+      base.t.action(evictUser, {
+        campaignId: crypto.randomUUID(),
+        userId: crypto.randomUUID(),
+        membershipEpoch: new Date().toISOString()
+      })
+    ).rejects.toThrow('status 503')
+    await base.t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(unavailable).toHaveBeenCalledOnce()
+    vi.useRealTimers()
+  })
   it('stops after the bounded attempts and never retries contract rejections', async () => {
     const base = await readyCharacterFixture()
     vi.useFakeTimers()

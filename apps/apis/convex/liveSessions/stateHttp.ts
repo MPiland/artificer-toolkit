@@ -21,6 +21,9 @@ const beginDrain = makeFunctionReference<'mutation', JsonObject, unknown>(
 const release = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/authority:release'
 )
+const roomAuthorization = makeFunctionReference<'query', JsonObject, unknown>(
+  'liveSessions/roomAuthorization:read'
+)
 const characterRules = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/characterRulesCapture:capture'
 )
@@ -98,6 +101,11 @@ export const bootstrapHttp = liveStateHttp(
   true,
   'Live Session bootstrap unavailable.',
   (ctx, input) => ctx.runQuery(bootstrap, input)
+)
+export const roomAuthorizationHttp = liveStateHttp(
+  false,
+  'Live Session authorization unavailable.',
+  (ctx, input) => ctx.runQuery(roomAuthorization, input)
 )
 export const characterRulesHttp = liveStateHttp(
   true,

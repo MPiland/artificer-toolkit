@@ -2,7 +2,7 @@ import { httpRouter, type PublicHttpAction } from 'convex/server'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import { createAuth } from './authFactory.helper'
 import { authComponent } from './lib/authClient.helper'
-import { captureHttp, hydrationHttp, visionRevisionsHttp } from './liveSessions/transientHttp'
+import { captureHttp, hydrationHttp } from './liveSessions/transientHttp'
 import {
   activateHttp,
   beginDrainHttp,
@@ -32,7 +32,8 @@ import {
   externalCommitResolveHttp,
   presentHttp,
   publishHttp,
-  releaseHttp
+  releaseHttp,
+  roomAuthorizationHttp
 } from './liveSessions/stateHttp'
 
 const http = httpRouter()
@@ -43,8 +44,8 @@ authComponent.registerRoutesLazy(http, createAuth, {
 
 const liveSessionHandlers = {
   capture: captureHttp,
-  visionRevisions: visionRevisionsHttp,
   hydrate: hydrationHttp,
+  roomAuthorization: roomAuthorizationHttp,
   bootstrap: bootstrapHttp,
   activate: activateHttp,
   publish: publishHttp,

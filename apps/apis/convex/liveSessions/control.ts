@@ -20,11 +20,15 @@ import { internalAction, type ActionCtx } from '../_generated/server'
 
 const CONTROL_MAX_ATTEMPTS = 5
 const CONTROL_RETRY_BASE_DELAY_MS = 1_000
+const EVICTION_RETRY_MAX_DELAY_MS = 60_000
 const retryReference = makeFunctionReference<
   'action',
   LiveSessionControlInput & { attempt: number },
   null
 >('liveSessions/control:send')
+const authorityHeld = makeFunctionReference<'query', { campaignId: string }, boolean>(
+  'liveSessions/authority:held'
+)
 
 const uuidSchema = z.string().check(z.uuid())
 const membershipEpochSchema = z.iso.datetime({ offset: true })
@@ -78,8 +82,11 @@ async function post(input: LiveSessionControlInput) {
 
 /**
  * Room control is fire-and-forget from its producing mutation, so network failures and transient
- * Worker statuses retry with bounded exponential backoff (1s, 2s, 4s, 8s). Configuration errors and
- * contract rejections fail immediately.
+ * Worker statuses retry with exponential backoff (1s, 2s, 4s, 8s). An eviction keeps retrying, at
+ * most a minute apart, until the room acknowledges it or no room holds the Campaign's authority: a
+ * lost eviction is the one gap the room's authorization lease must cover (ADR 0035 Amendment 14).
+ * Other control stops after five attempts. Configuration errors and contract rejections fail
+ * immediately.
  */
 async function deliver(ctx: ActionCtx, input: LiveSessionControlInput, attempt: number) {
   const dispatch = prepareRequest(input)
@@ -87,11 +94,17 @@ async function deliver(ctx: ActionCtx, input: LiveSessionControlInput, attempt: 
   if (response?.ok) return
   const transient =
     !response || response.status === 408 || response.status === 429 || response.status >= 500
-  if (transient && attempt + 1 < CONTROL_MAX_ATTEMPTS)
-    await ctx.scheduler.runAfter(CONTROL_RETRY_BASE_DELAY_MS * 2 ** attempt, retryReference, {
-      ...input,
-      attempt: attempt + 1
-    })
+  const retry =
+    transient &&
+    (input.operation.type === 'EVICT_USER'
+      ? await ctx.runQuery(authorityHeld, { campaignId: input.campaignId })
+      : attempt + 1 < CONTROL_MAX_ATTEMPTS)
+  if (retry)
+    await ctx.scheduler.runAfter(
+      Math.min(CONTROL_RETRY_BASE_DELAY_MS * 2 ** attempt, EVICTION_RETRY_MAX_DELAY_MS),
+      retryReference,
+      { ...input, attempt: attempt + 1 }
+    )
   throw response ? rejected(response.status) : new Error('Live Session Worker is unreachable.')
 }
 

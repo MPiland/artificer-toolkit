@@ -2,8 +2,6 @@ import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   liveSessionTransientCaptureInputSchema,
   liveSessionTransientCaptureSchema,
-  liveSessionVisionRevisionsInputSchema,
-  liveSessionVisionRevisionsSchema,
   type LiveSessionTransientCapture,
   type LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
@@ -18,11 +16,7 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { readLiveScene } from '../scenes/liveDocuments'
 import { readCompactScene } from '../scenes/recipientReads'
-import {
-  assertSceneVisionCharacters,
-  readSceneVisionFreshness,
-  sceneVisionCharactersCurrent
-} from '../scenes/visionFreshness'
+import { assertSceneVisionCharacters, readSceneVisionFreshness } from '../scenes/visionFreshness'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 function activeMember(
@@ -170,20 +164,5 @@ export const capture = internalQuery({
             })
           : null
     })
-  }
-})
-
-/** The member's check that the Character revisions behind a cached Scene vision are current (D33). */
-export const visionRevisions = internalQuery({
-  args: zodToConvexFields(liveSessionVisionRevisionsInputSchema.shape),
-  returns: zodToConvex(liveSessionVisionRevisionsSchema),
-  handler: async (ctx, args) => {
-    const input = liveSessionVisionRevisionsInputSchema.parse(args)
-    const { userId } = await requireIdentity(ctx)
-    const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    if (userId !== input.expectedUserId || membership.role !== input.expectedRole)
-      throw new Error('Live Session socket identity no longer matches its admission.')
-    return { current: await sceneVisionCharactersCurrent(ctx, input.observedCharacterRevisions) }
   }
 })

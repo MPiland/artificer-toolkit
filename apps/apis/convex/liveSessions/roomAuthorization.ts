@@ -1,0 +1,175 @@
+import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
+import {
+  liveSessionRoomAuthorizationInputSchema,
+  liveSessionRoomAuthorizationResponseSchema,
+  type LiveSessionRoomAuthorizationResponse
+} from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import type { Doc } from '../_generated/dataModel'
+import type { QueryCtx } from '../_generated/server'
+import { internalQuery } from '../lib/queries'
+import { readCharacterSheetState } from '../characters/sheetStateDocuments'
+import { readSceneVisionRevision } from '../scenes/visionFreshness'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
+
+/** The Encounter bound to the presented Scene: its actor control and health display. */
+async function readPlayAuthorization(ctx: QueryCtx, campaign: Doc<'campaigns'>) {
+  const presentation = await ctx.db
+    .query('campaignScenePresentations')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+    .unique()
+  const sceneId = presentation?.sceneId ?? null
+  const binding = sceneId
+    ? await ctx.db
+        .query('encounterSceneBindings')
+        .withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId))
+        .first()
+    : null
+  if (!binding) return { encounter: null }
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', binding.encounterId))
+    .unique()
+  if (!run || run.campaignId !== campaign.id)
+    throw new Error('The Scene Encounter binding is stale.')
+  const state = readRunState(run)
+  const [actors, tokens] = await Promise.all([
+    readRunActors(ctx, state),
+    ctx.db
+      .query('encounterActorTokenBindings')
+      .withIndex('by_encounterId_tokenId', (q) => q.eq('encounterId', run.id))
+      .collect()
+  ])
+  return {
+    encounter: {
+      encounterId: run.id,
+      sceneId: binding.sceneId,
+      healthDisplayDefault: state.healthDisplayDefault,
+      actors: actors.map(({ id, kind, sourceId, controllerUserIds, healthDisplay }) => ({
+        id,
+        kind,
+        sourceId,
+        controllerUserIds,
+        healthDisplay
+      })),
+      tokens: tokens.map(({ tokenId, actorId }) => ({ tokenId, actorId }))
+    }
+  }
+}
+
+/**
+ * The room's authorization cache (ADR 0035 Amendment 14), authorized by the Worker secret and the
+ * room's `DO_ACTIVE` epoch rather than a member's token. It always reads the revisions, which is
+ * small; it returns a section only when its revision differs from what the room already holds.
+ */
+export const read = internalQuery({
+  args: zodToConvexFields(liveSessionRoomAuthorizationInputSchema.shape),
+  returns: zodToConvex(liveSessionRoomAuthorizationResponseSchema),
+  handler: async (ctx, args): Promise<LiveSessionRoomAuthorizationResponse> => {
+    const input = liveSessionRoomAuthorizationInputSchema.parse(args)
+    await requireActiveCampaignLiveAuthority(ctx, input)
+    const campaign = await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', input.campaignId.toLowerCase()))
+      .unique()
+    if (!campaign) throw new Error('Campaign not found.')
+    const [memberships, assignments, campaignRevision, playRevision] = await Promise.all([
+      ctx.db
+        .query('campaignMemberships')
+        .withIndex('by_campaignId_status', (q) =>
+          q.eq('campaignId', campaign.id).eq('status', 'ACTIVE')
+        )
+        .collect(),
+      ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+        .collect(),
+      readSceneVisionRevision(ctx, 'CAMPAIGN', campaign.id),
+      readSceneVisionRevision(ctx, 'PLAY', campaign.id)
+    ])
+    // An archived Campaign has no live members; a role that disagrees with the owner fails closed.
+    const members =
+      campaign.status === 'ACTIVE'
+        ? memberships
+            .filter(
+              (membership) =>
+                (membership.role === 'OWNER') === (membership.userId === campaign.ownerUserId)
+            )
+            .map((membership) => ({
+              membershipEpoch: membership.accessStartedAt,
+              role: membership.role,
+              userId: membership.userId
+            }))
+            .sort((left, right) => left.userId.localeCompare(right.userId))
+        : []
+    const [preferences, characterRevisions] = await Promise.all([
+      Promise.all(
+        members.map(async ({ userId }) => {
+          const profile = await ctx.db
+            .query('userProfiles')
+            .withIndex('by_userId', (q) => q.eq('userId', userId))
+            .unique()
+          if (!profile) throw new Error('User profile is missing.')
+          return { userId, autoRollDice: profile.autoRollDice }
+        })
+      ),
+      Promise.all(
+        assignments
+          .map(({ characterId }) => characterId)
+          .sort((left, right) => left.localeCompare(right))
+          .map(async (characterId) => ({
+            characterId,
+            revision: await readSceneVisionRevision(ctx, 'CHARACTER', characterId)
+          }))
+      )
+    ])
+    const revisions = {
+      campaign: campaignRevision,
+      play: playRevision,
+      characters: characterRevisions,
+      preferences: checksumCanonicalJson(preferences)
+    }
+    const { known } = input
+    const knownCharacters = new Map(
+      known?.characters.map(({ characterId, revision }) => [characterId, revision])
+    )
+    const changedCharacters = characterRevisions.filter(
+      ({ characterId, revision }) =>
+        !knownCharacters.has(characterId) || knownCharacters.get(characterId) !== revision
+    )
+    const characters = await Promise.all(
+      changedCharacters.map(async ({ characterId }) => {
+        const character = await ctx.db
+          .query('characters')
+          .withIndex('by_publicId', (q) => q.eq('id', characterId))
+          .unique()
+        if (!character) throw new Error('Assigned Character is missing.')
+        return {
+          characterId,
+          ownerUserId: character.userId,
+          partyVisibility: readCharacterSheetState(character).partyVisibility
+        }
+      })
+    )
+    return liveSessionRoomAuthorizationResponseSchema.parse({
+      revisions,
+      ...(known && known.campaign === revisions.campaign
+        ? {}
+        : {
+            campaign: {
+              ownerUserId: campaign.ownerUserId,
+              members,
+              assignments: assignments
+                .map(({ characterId, userId }) => ({ characterId, userId }))
+                .sort((left, right) => left.characterId.localeCompare(right.characterId))
+            }
+          }),
+      characters,
+      ...(known && known.preferences === revisions.preferences ? {} : { preferences }),
+      ...(known && known.play === revisions.play
+        ? {}
+        : { play: await readPlayAuthorization(ctx, campaign) })
+    })
+  }
+})

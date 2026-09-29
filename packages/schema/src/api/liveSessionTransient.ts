@@ -74,25 +74,6 @@ export const liveSessionTransientCaptureSchema = lazySchema(() =>
   })
 )
 
-/**
- * A drag preview's check of the Character revisions its cached Scene vision was composed from
- * (D33): one small authorized read instead of a full capture.
- */
-export const liveSessionVisionRevisionsInputSchema = lazySchema(() =>
-  z.pick(liveSessionTransientCaptureInputSchema, {
-    campaignId: true,
-    expectedRole: true,
-    expectedUserId: true,
-    observedCharacterRevisions: true
-  })
-)
-
-export const liveSessionVisionRevisionsSchema = lazySchema(() =>
-  z.strictObject({ current: z.boolean() })
-)
-
-export type LiveSessionVisionRevisionsInput = z.infer<typeof liveSessionVisionRevisionsInputSchema>
-export type LiveSessionVisionRevisions = z.infer<typeof liveSessionVisionRevisionsSchema>
 export type LiveSessionTransientCapture = z.infer<typeof liveSessionTransientCaptureSchema>
 export type LiveSessionTransientCaptureInput = z.infer<
   typeof liveSessionTransientCaptureInputSchema
