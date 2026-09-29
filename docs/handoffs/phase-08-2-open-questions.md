@@ -443,6 +443,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - Idempotency is unchanged: no second effect and no reroll.
   - Run CREATE and decision replays already worked this way.
 
+- **D69** (2026-09-28) Heavy chat is the expected case for remote play, and the Social Hub promotes remote tables (user direction). Two problems today:
+  - `campaigns/chat:list` reads up to 500 entry headers on every re-run, to find the page and count unread entries.
+  - It throws past 500 ("Stored conversation history mismatch.").
+  - Because it is a subscription, every message re-runs it for every member.
+  - **Decisions:**
+    1. **Convex chat reads are bounded now.** Pages come through the index from a cursor. The unread count is a stored per-member counter. The 500 cap goes, and older history is paged.
+    2. **During live play, chat goes through the room.** Messages fan out to the table at once and are persisted to Convex in batches with each checkpoint (ADR 0035 Amendment 8 extended from roll cards to all live chat). Chat outside live play keeps the bounded Convex path.
+    3. **Cost models include heavy chat.** The V15 workload and the beta telemetry include heavy chat, and every cost figure states the chat volume it assumes.
+
 
 ## Resolved
 
