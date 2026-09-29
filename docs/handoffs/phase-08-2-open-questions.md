@@ -6,7 +6,21 @@
 
 ## Open
 
-_(none)_
+### Q20 Web app on Cloudflare (D65): three choices
+
+The feasibility check is [the D65 record](../validation/phase-08-2/d65-cloudflare-web-hosting-2026-09-28.md). Its verdict is **go with conditions**: TanStack Start supports Workers, the changes are small, and requests fit Workers Free with plenty of room (about 8% of the daily pool on an average Q16 day, 22% at peak). Three choices are yours:
+
+1. **Signed-in pages without server rendering.** The free plan allows 10 ms of CPU per request. Anonymous pages render in about 2–8 ms, but signed-in pages are estimated at 10–40 ms (not yet measured on Workers).
+   - **Recommendation:** render signed-in pages in the browser (`ssr: false` on `_authed`), whatever the staging measurement shows.
+   - **Why:** it costs $0. It removes duplicated Convex queries (today SSR runs the same queries the browser then subscribes to). And it matches how Foundry and Roll20 work (single-page apps).
+   - **Trade-off:** signed-in pages show a brief app shell before data arrives. Public and marketing pages keep server rendering, which search engines need.
+   - **Alternative:** Workers Paid at `$5` a month.
+2. **Stop refetching the session on tab refocus.** Better Auth re-fetches the session every time a tab regains focus; that is its default and the biggest web request driver. The recommendation is to turn it off. Sessions are still checked on navigation and by each server call, so security doesn't change.
+3. **When the daily request pool runs out** (bots and scanners are the real risk): the recommendation is to turn on Cloudflare's free Bot Fight Mode and fail closed, meaning requests are refused until midnight UTC rather than billed.
+   - **Worth knowing:** the same pool serves live tables.
+   - **The plan:** an alert at 60% of the daily pool.
+
+**Answer:**
 
 ## Decisions to review
 
