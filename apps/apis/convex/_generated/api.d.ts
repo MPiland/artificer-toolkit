@@ -12178,10 +12178,10 @@ export declare const api: {
         "query",
         "public",
         { id: string },
-        null | {
+        {
           entries: { limit: number; used: number };
           scenes: { limit: number; used: number };
-        }
+        } | null
       >;
       get: FunctionReference<
         "query",
