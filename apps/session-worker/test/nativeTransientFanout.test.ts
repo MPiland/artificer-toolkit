@@ -20,16 +20,19 @@ import {
 } from '@artificer-toolkit/schema/api/sceneSessionVision'
 import {
   liveSessionTransientCaptureInputSchema,
-  liveSessionVisionRevisionsInputSchema,
   type LiveSessionTransientCapture,
   type LiveSessionTransientCaptureInput
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import {
   canonicalizeSceneFogLayer,
   createSceneFogAreaPatch,
   VTT_SCENE_LIMITS,
   type SceneFogLayer
 } from '@artificer-toolkit/shared/vtt'
+
+import { ROOM_LIMITS } from '../src/roomLimits.js'
+import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const campaignId = '00000000-0000-4000-8000-000000000101'
@@ -150,6 +153,13 @@ function captureFor(
   }
 }
 
+/** Convex's room authorization beyond membership; tests change it to model assignments and grants. */
+type RoomAuthorizationState = {
+  assignments?: LiveSessionRoomAuthorization['campaign']['assignments']
+  characterRevisions?: LiveSessionRoomAuthorization['revisions']['characters']
+  play?: LiveSessionRoomAuthorization['play']
+}
+
 function installFetch(
   members: readonly ReturnType<typeof member>[],
   mutate?: (
@@ -158,13 +168,16 @@ function installFetch(
     input: LiveSessionTransientCaptureInput
   ) => LiveSessionTransientCapture | Response | Promise<LiveSessionTransientCapture | Response>,
   entity: typeof token = token,
-  fogLayers: readonly SceneFogLayer[] = []
+  fogLayers: readonly SceneFogLayer[] = [],
+  authorization: RoomAuthorizationState = {}
 ) {
   let captures = 0
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = new Request(input, init)
     const pathname = new URL(request.url).pathname
     backendPaths.push(pathname)
+    if (pathname === ROOM_AUTHORIZATION_PATH)
+      return Response.json(roomAuthorizationResponse({ members, ...authorization }))
     if (pathname === '/live-sessions/bootstrap') {
       return Response.json({
         activationFingerprint,
@@ -414,64 +427,157 @@ it('fans out token previews from room memory with no backend call or SQLite acce
   expect(sql).not.toHaveBeenCalled()
 })
 
+const encounterId = '00000000-0000-4000-8000-000000000120'
+const characterId = '00000000-0000-4000-8000-000000000121'
+const actorId = '00000000-0000-4000-8000-000000000122'
+
+/** The presented Scene's bound Encounter, with `tokenId` bound to one Character actor. */
+function boundEncounter(controllerUserIds: string[] = []): LiveSessionRoomAuthorization['play'] {
+  return {
+    encounter: {
+      encounterId,
+      sceneId,
+      healthDisplayDefault: 'HIDDEN',
+      actors: [
+        {
+          id: actorId,
+          kind: 'CHARACTER',
+          sourceId: characterId,
+          controllerUserIds,
+          healthDisplay: null
+        }
+      ],
+      tokens: [{ tokenId, actorId }]
+    }
+  }
+}
+
+/** A room whose presented Scene is bound to `boundEncounter`, answered from `authorization`. */
+async function boundRoom(
+  members: readonly ReturnType<typeof member>[],
+  authorization: RoomAuthorizationState,
+  entity: typeof token = token
+) {
+  const stub = newRoom()
+  await runInDurableObject(stub, () =>
+    installFetch(
+      members,
+      (_call, capture) => ({ ...capture, sceneEncounterId: encounterId }),
+      entity,
+      [],
+      authorization
+    )
+  )
+  const clients = await Promise.all(members.map((value) => connect(stub, value.userId, value.role)))
+  await synchronize(clients[0]!)
+  for (const client of clients) client.messages.length = 0
+  backendPaths.length = 0
+  return { clients, stub }
+}
+
+function invalidate(stub: DurableObjectStub, scopes: ('CAMPAIGN' | 'CHARACTER')[]) {
+  return stub.fetch(
+    new Request(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
+      body: JSON.stringify({ campaignId, operation: { type: 'INVALIDATE_INPUTS', scopes } }),
+      method: 'POST'
+    })
+  )
+}
+
 it.each([
-  ['controls', true],
-  ['does not control', false]
+  ['is assigned', true],
+  ['is not assigned', false]
 ] as const)(
-  "leases the bound-token control of a player who %s its actor, off the sample's path (D25)",
+  "answers bound-token previews of a player who %s the actor's Character from the authorization cache (D25)",
   async (_label, controlled) => {
     const advance = controlClock()
-    const stub = newRoom()
-    const captureModes: LiveSessionTransientCaptureInput['mode'][] = []
-    await runInDurableObject(stub, () =>
-      installFetch(
-        [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')],
-        (_call, capture, input) => {
-          captureModes.push(input.mode)
-          return {
-            ...capture,
-            sceneEncounterId: '00000000-0000-4000-8000-000000000120',
-            originBoundTokenControl:
-              capture.origin.role === 'PLAYER' ? [{ tokenId, controlled }] : []
-          }
-        }
-      )
-    )
-    const [owner, player] = await Promise.all([
-      connect(stub, ownerId, 'OWNER'),
-      connect(stub, playerId, 'PLAYER')
-    ])
-    await synchronize(owner)
-    captureModes.length = 0
-    owner.messages.length = 0
-    player.messages.length = 0
+    const {
+      clients: [owner, player]
+    } = await boundRoom([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')], {
+      assignments: [{ characterId, userId: controlled ? playerId : otherPlayerId }],
+      play: boundEncounter()
+    })
 
-    // The first sample finds no lease: it is dropped, and one background capture starts.
-    sendPreview(player, tokenPreview(1, { x: 15, y: 10 }))
-    await vi.waitFor(() => expect(captureModes).toEqual(['AUTHORITY']))
-    await noTransient(owner.messages)
-    for (const sequence of [2, 3, 4])
-      sendPreview(player, tokenPreview(sequence, { x: 10 + sequence * 5, y: 10 }))
+    for (const sequence of [1, 2, 3])
+      sendPreview(player!, tokenPreview(sequence, { x: 10 + sequence * 5, y: 10 }))
     if (controlled)
       await vi.waitFor(() => {
-        expect(transient(owner.messages)).toHaveLength(3)
-        expect(transient(player.messages)).toHaveLength(3)
+        expect(transient(owner!.messages)).toHaveLength(3)
+        expect(transient(player!.messages)).toHaveLength(3)
       })
     else {
-      await noTransient(owner.messages)
-      await noTransient(player.messages)
+      await noTransient(owner!.messages)
+      await noTransient(player!.messages)
     }
-    expect(captureModes).toEqual(['AUTHORITY'])
+    // No Convex call per sample, including long past the old 30 s preview lease.
+    advance(60_000)
+    sendPreview(player!, tokenPreview(4, { x: 35, y: 10 }))
+    if (controlled) await vi.waitFor(() => expect(transient(owner!.messages)).toHaveLength(4))
+    else await noTransient(owner!.messages)
+    expect(backendPaths).toEqual([])
 
-    // From half the lease, one background capture renews it while samples keep the current lease.
-    advance(15_001)
-    sendPreview(player, tokenPreview(5, { x: 35, y: 10 }))
-    sendPreview(player, tokenPreview(6, { x: 40, y: 10 }))
-    await vi.waitFor(() => expect(captureModes).toEqual(['AUTHORITY', 'AUTHORITY']))
-    if (controlled) await vi.waitFor(() => expect(transient(owner.messages)).toHaveLength(5))
+    // Past the authorization lease the sample is refused and one read renews the cache.
+    advance(ROOM_LIMITS.authorizationLeaseMs - 60_000)
+    sendPreview(player!, tokenPreview(5, { x: 40, y: 10 }))
+    await vi.waitFor(() => expect(backendPaths).toEqual([ROOM_AUTHORIZATION_PATH]))
+    if (!controlled) return
+    await vi.waitFor(() => {
+      sendPreview(player!, tokenPreview(6, { x: 45, y: 10 }))
+      expect(transient(owner!.messages)).toHaveLength(5)
+    })
+    expect(backendPaths).toEqual([ROOM_AUTHORIZATION_PATH])
   }
 )
 
+it('moves bound-token control to the new assignee on a Campaign Character assignment change', async () => {
+  const authorization: RoomAuthorizationState = {
+    assignments: [{ characterId, userId: playerId }],
+    play: boundEncounter()
+  }
+  const {
+    clients: [owner, player, other],
+    stub
+  } = await boundRoom(
+    [member(ownerId, 'OWNER'), member(playerId, 'PLAYER'), member(otherPlayerId, 'PLAYER')],
+    authorization,
+    // Both players see the token through its vision; the bound actor alone decides who drags it.
+    { ...token, controlledByUserIds: [playerId, otherPlayerId] }
+  )
+  sendPreview(player!, tokenPreview(1))
+  await vi.waitFor(() => expect(transient(owner!.messages)).toHaveLength(1))
+
+  authorization.assignments = [{ characterId, userId: otherPlayerId }]
+  expect(await (await invalidate(stub, ['CAMPAIGN'])).json()).toEqual({ invalidated: true })
+  await vi.waitFor(() => expect(backendPaths).toEqual([ROOM_AUTHORIZATION_PATH]))
+  owner!.messages.length = 0
+  let sequence = 0
+  await vi.waitFor(() => {
+    sequence += 1
+    sendPreview(other!, tokenPreview(sequence, { x: 10 + sequence, y: 10 }))
+    expect(transient(owner!.messages).length).toBeGreaterThan(0)
+  })
+  sendPreview(player!, tokenPreview(2, { x: 30, y: 10 }))
+  await new Promise((resolve) => setTimeout(resolve, 75))
+  expect(
+    transient(owner!.messages).filter((message) => message.message.userId === playerId)
+  ).toEqual([])
+  expect(backendPaths).toEqual([ROOM_AUTHORIZATION_PATH])
+})
+
+it("keeps a hidden bound token's drag preview from every player", async () => {
+  const {
+    clients: [owner, player, other]
+  } = await boundRoom(
+    [member(ownerId, 'OWNER'), member(playerId, 'PLAYER'), member(otherPlayerId, 'PLAYER')],
+    { assignments: [{ characterId, userId: playerId }], play: boundEncounter() },
+    { ...token, hidden: true }
+  )
+  sendPreview(owner!, tokenPreview(1))
+  sendPreview(player!, tokenPreview(1))
+  await noTransient(player!.messages)
+  await noTransient(other!.messages)
+  expect(backendPaths).toEqual([])
+})
 it.each([
   ['the cached Scene version', 1, true],
   ['a stale Scene version', 2, false]
@@ -809,8 +915,13 @@ it.each(['origin', 'recipient'] as const)(
       )
       return
     }
-    sendPreview(player, tokenPreview(1))
-    await vi.waitFor(() => expect(transient(player.messages)).toHaveLength(1))
+    // Past the authorization lease too: the first sample renews it, then samples flow.
+    let sequence = 0
+    await vi.waitFor(() => {
+      sequence += 1
+      sendPreview(player, tokenPreview(sequence, { x: 10 + sequence, y: 10 }))
+      expect(transient(player.messages).length).toBeGreaterThan(0)
+    })
     await vi.waitFor(() =>
       expect(owner.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
     )
@@ -950,16 +1061,16 @@ async function characterVisionRoom() {
   const room = {
     revisionA,
     revisionB,
+    /** The Character's current CHARACTER revision in Convex. */
+    revision: revisionA,
     captures: [] as LiveSessionTransientCaptureInput[],
     visionRequests: [] as string[],
-    visionChecks: 0,
-    invalidations: 0,
-    /** Set to change the Character: the next check or capture observing revision A is refused. */
-    revisionChanged: false,
-    /** Set to make the revision check fail. */
-    visionUnavailable: false
+    authorizationReads: 0,
+    /** Captures refused because they observed a superseded Character revision. */
+    staleCaptures: 0,
+    /** Set to make the authorization read fail. */
+    authorizationUnavailable: false
   }
-  let visionRevision = revisionA
   const stub = newRoom()
   await runInDurableObject(stub, () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -986,17 +1097,16 @@ async function characterVisionRoom() {
           updatedAt: now
         })
       }
-      if (pathname === '/live-sessions/vision-revisions') {
-        const body = liveSessionVisionRevisionsInputSchema.parse(await request.json())
-        room.visionChecks += 1
-        if (room.visionUnavailable) return new Response(null, { status: 503 })
-        return Response.json({
-          current:
-            !room.revisionChanged &&
-            body.observedCharacterRevisions.every(
-              (revision) => revision.revision === visionRevision
-            )
-        })
+      if (pathname === ROOM_AUTHORIZATION_PATH) {
+        room.authorizationReads += 1
+        if (room.authorizationUnavailable) return new Response(null, { status: 503 })
+        return Response.json(
+          roomAuthorizationResponse({
+            members,
+            assignments: [{ characterId, userId: playerId }],
+            characterRevisions: [{ characterId, revision: room.revision }]
+          })
+        )
       }
       if (pathname === '/live-sessions/capture') {
         const body = liveSessionTransientCaptureInputSchema.parse(await request.json())
@@ -1004,12 +1114,9 @@ async function characterVisionRoom() {
         const origin = members.find((candidate) => candidate.userId === body.expectedUserId)
         if (!origin || origin.role !== body.expectedRole) return new Response(null, { status: 409 })
         if (
-          room.revisionChanged &&
-          body.observedCharacterRevisions.some((revision) => revision.revision === revisionA)
+          body.observedCharacterRevisions.some((observed) => observed.revision !== room.revision)
         ) {
-          room.invalidations += 1
-          room.revisionChanged = false
-          visionRevision = revisionB
+          room.staleCaptures += 1
           return new Response(null, { status: 409 })
         }
         return Response.json(
@@ -1069,7 +1176,7 @@ async function characterVisionRoom() {
           })
         })
       if (body.request.kind === 'VISION_CHARACTER') {
-        room.visionRequests.push(visionRevision)
+        room.visionRequests.push(room.revision)
         return Response.json({
           kind: 'VISION_CHARACTER',
           result: sceneSessionCharacterVisionResultSchema.parse({
@@ -1079,10 +1186,10 @@ async function characterVisionRoom() {
               encounterId: binding.encounterId,
               tokenId
             },
-            characterRevision: visionRevision,
+            characterRevision: room.revision,
             characterVision: {
               characterId,
-              dimRange: visionRevision === revisionA ? { amount: 10, unit: 'FEET' } : null
+              dimRange: room.revision === revisionA ? { amount: 10, unit: 'FEET' } : null
             },
             snapshotChecksum: '0000000000000000000000000000000000000000000000000000000000000000'
           })
@@ -1099,15 +1206,17 @@ async function characterVisionRoom() {
   expect(room.visionRequests).toEqual([revisionA])
   owner.messages.length = 0
   player.messages.length = 0
-  return { room, owner, player }
+  return { room, owner, player, stub }
 }
 
-it('rechecks Character vision once in the background from half the lease and rehydrates a change (D33)', async () => {
+it('rehydrates Character vision after a CHARACTER notice, with no read per sample (D33)', async () => {
   const advance = controlClock()
-  const { room, owner, player } = await characterVisionRoom()
+  const { room, owner, player, stub } = await characterVisionRoom()
   const capturesAfterSync = room.captures.length
+  const readsAfterSync = room.authorizationReads
 
-  // Within half the lease, GM and player previews reuse the checked revisions with no read.
+  // GM and player previews use the cached revisions with no read, even past the old 30 s lease.
+  advance(60_000)
   sendPreview(owner, tokenPreview(1))
   sendPreview(player, tokenPreview(1))
   await vi.waitFor(() => {
@@ -1116,46 +1225,49 @@ it('rechecks Character vision once in the background from half the lease and reh
   })
   expect(transient(player.messages)).toContainEqual(
     expect.objectContaining({
-      message: expect.objectContaining({
-        userId: playerId,
-        visionLayers: [expect.anything()]
-      })
+      message: expect.objectContaining({ userId: playerId, visionLayers: [expect.anything()] })
     })
   )
-  expect(room.visionChecks).toBe(0)
+  expect(room.authorizationReads).toBe(readsAfterSync)
   expect(room.captures).toHaveLength(capturesAfterSync)
 
-  // The Character changes. From half the lease one background read finds it, while samples keep
-  // the lease; the rebuild rehydrates the new vision.
-  room.revisionChanged = true
-  advance(15_001)
+  // The Character changes and Convex notifies the room: the cache reloads, then the Scene's vision.
+  room.revision = room.revisionB
+  await invalidate(stub, ['CHARACTER'])
   player.messages.length = 0
-  sendPreview(player, tokenPreview(2, { x: 25, y: 10 }))
-  sendPreview(player, tokenPreview(3, { x: 30, y: 10 }))
-  await vi.waitFor(() => expect(room.visionRequests).toEqual([room.revisionA, room.revisionB]))
-  expect(room.visionChecks).toBe(1)
-  expect(room.invalidations).toBe(1)
-  let sequence = 3
+  let sequence = 1
   await vi.waitFor(() => {
     sequence += 1
-    sendPreview(player, tokenPreview(sequence, { x: 30 + sequence, y: 10 }))
+    sendPreview(player, tokenPreview(sequence, { x: 20 + sequence, y: 10 }))
     expect(transient(player.messages).at(-1)).toMatchObject({ message: { visionLayers: [] } })
   })
-  expect(room.visionChecks).toBe(1)
+  expect(room.visionRequests).toEqual([room.revisionA, room.revisionB])
+  expect(room.staleCaptures).toBe(1)
+  const readsAfterRebuild = room.authorizationReads
+  sendPreview(player, tokenPreview(sequence + 1, { x: 40, y: 10 }))
+  await vi.waitFor(() =>
+    expect(transient(player.messages).at(-1)?.message.envelope.sequence).toBe(sequence + 1)
+  )
+  expect(room.authorizationReads).toBe(readsAfterRebuild)
 })
 
-it('drops Character-vision previews once the lease passes without a confirmed check (D33)', async () => {
+it('refuses previews and pings while the authorization cache cannot be renewed', async () => {
   const advance = controlClock()
   const { room, owner, player } = await characterVisionRoom()
-  room.visionUnavailable = true
-  advance(30_001)
+  room.authorizationUnavailable = true
+  advance(ROOM_LIMITS.authorizationLeaseMs)
 
   sendPreview(player, tokenPreview(1))
-  await vi.waitFor(() => expect(room.visionChecks).toBe(1))
+  sendPreview(player, ping(1))
+  await vi.waitFor(() => expect(room.authorizationReads).toBeGreaterThan(2))
   await noTransient(player.messages)
   await noTransient(owner.messages)
 
-  // Pings carry no vision, so they still flow.
-  sendPreview(player, ping(1))
-  await vi.waitFor(() => expect(transient(owner.messages)).toHaveLength(1))
+  // After the retry window one read renews the cache, and broadcasts resume.
+  room.authorizationUnavailable = false
+  advance(ROOM_LIMITS.previewRetryMs)
+  await vi.waitFor(() => {
+    sendPreview(player, ping(2))
+    expect(transient(owner.messages)).toHaveLength(1)
+  })
 })

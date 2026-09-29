@@ -14,10 +14,10 @@ export const ROOM_LIMITS = {
   /** A player's Encounter commands run one at a time across all of their sockets. */
   maxInFlightEncounterCommandsPerPlayer: 1,
   /**
-   * Previews trust a player's bound-token control and the Character-vision revision check for this
-   * long, and renew them in the background from half of it (ADR 0035 Amendment 15).
+   * The room trusts its authorization cache for this long (2N, ADR 0035 Amendment 14). Each
+   * socket's re-authentication, and later each checkpoint response, renews it.
    */
-  previewLeaseMs: 30_000,
+  authorizationLeaseMs: 240_000,
   /** A background preview refresh starts at most once per input in this window. */
   previewRetryMs: 5_000,
   /** Rules captures reused across Encounter commands; see `nativeCaptureCache.ts`. */

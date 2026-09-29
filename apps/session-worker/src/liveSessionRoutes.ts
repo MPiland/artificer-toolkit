@@ -54,6 +54,10 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import {
+  liveSessionRoomAuthorizationInputSchema,
+  liveSessionRoomAuthorizationResponseSchema
+} from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import {
   liveSessionActivationInputSchema,
   liveSessionAuthorityDtoSchema,
   liveSessionBootstrapInputSchema,
@@ -64,9 +68,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import {
   liveSessionTransientCaptureInputSchema,
-  liveSessionTransientCaptureSchema,
-  liveSessionVisionRevisionsInputSchema,
-  liveSessionVisionRevisionsSchema
+  liveSessionTransientCaptureSchema
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import {
   liveSessionTransientHydrationInputSchema,
@@ -131,13 +133,13 @@ const liveSessionRoutes = {
     input: liveSessionTransientCaptureInputSchema,
     output: liveSessionTransientCaptureSchema
   },
-  visionRevisions: {
-    input: liveSessionVisionRevisionsInputSchema,
-    output: liveSessionVisionRevisionsSchema
-  },
   hydrate: {
     input: liveSessionTransientHydrationInputSchema,
     output: liveSessionTransientHydrationResponseSchema
+  },
+  roomAuthorization: {
+    input: liveSessionRoomAuthorizationInputSchema,
+    output: liveSessionRoomAuthorizationResponseSchema
   },
   bootstrap: { input: liveSessionBootstrapInputSchema, output: liveSessionBootstrapResponseSchema },
   activate: { input: liveSessionActivationInputSchema, output: liveSessionAuthorityDtoSchema },

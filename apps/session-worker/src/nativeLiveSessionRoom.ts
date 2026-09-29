@@ -11,6 +11,7 @@ import {
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { LiveSessionTransientCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import {
   liveSessionPublishInputSchema,
   type LiveSessionScenePublicationDto
@@ -87,6 +88,12 @@ import {
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
 import {
+  admitsRoomMember,
+  RoomAuthorization,
+  roomBoundTokenControl,
+  roomVisionCurrent
+} from './roomAuthorization.js'
+import {
   exceedsMessageBytes,
   messageClass,
   PendingWork,
@@ -132,8 +139,6 @@ interface TransientCache {
   scene: CampaignSceneStateDto | null
   presentation: LiveSessionScenePublicationDto['presentation'] | null
   synchronized: boolean
-  /** When Convex last confirmed `characterRevisions` current (D33); previews trust it for a lease. */
-  visionCheckedAt: number
 }
 
 /**
@@ -146,16 +151,6 @@ interface PreviewStream {
   path: ScenePoint[] | null
   sceneId: string
   sequence: number
-}
-
-/** A player's bound-token control on the Encounter-bound Scene (D25), leased for previews. */
-interface PreviewControl {
-  cacheGeneration: number
-  checkedAt: number
-  control: LiveSessionTransientCapture['originBoundTokenControl']
-  encounterId: string | null
-  membershipEpoch: string
-  sceneId: string | null
 }
 
 interface NativeRoomIdentityRow extends Record<string, SqlStorageValue> {
@@ -254,8 +249,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   >()
   #activation: Promise<void> | null = null
   readonly #previewStreams = new Map<WebSocket, Map<string, PreviewStream>>()
-  /** Keyed by user ID. */
-  readonly #previewControls = new Map<string, PreviewControl>()
+  readonly #authorization = new RoomAuthorization(({ epoch, known }) => {
+    const campaignId = this.#roomCampaignId()
+    if (!campaignId) throw new Error('Live Session room identity is missing.')
+    return callLiveSessionRoute(this.env, null, 'roomAuthorization', { campaignId, epoch, known })
+  })
+  /** A background authorization read runs at most once; after a failure, not before this time. */
+  #authorizationRefreshing = false
+  #authorizationRetryAt = 0
   /** Background preview refreshes by input: at most one running and one start per retry window. */
   readonly #previewRefreshes = new Map<string, { running: boolean; startedAt: number }>()
   readonly #budgets = new Map<WebSocket, SocketMessageBudget>()
@@ -308,6 +309,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         const closed = this.#closeSockets(parsed.data.operation)
         await this.#refreshIdleRelease()
         return Response.json({ closed })
+      }
+      if (parsed.data.operation.type === 'INVALIDATE_INPUTS') {
+        this.#authorization.invalidate()
+        // Membership can end sockets, so it reloads now; other inputs reload before their next use.
+        if (parsed.data.operation.scopes.includes('CAMPAIGN'))
+          this.ctx.waitUntil(this.#refreshAuthorization().catch(() => undefined))
+        return Response.json({ invalidated: true })
       }
       if (parsed.data.operation.type === 'SET_SCENE_PRESENTATION') {
         const input = { ...parsed.data, operation: parsed.data.operation }
@@ -614,7 +622,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return
       }
       await this.#ensureAuthority(value, accessToken, capture.origin.role, capture.origin.userId)
+      // Each (re-)authentication renews the room's authorization lease with one revisions read.
+      const authorization = await this.#refreshAuthorization()
       if (generation !== this.#generations.get(socket)) return
+      if (!admitsRoomMember(authorization, capture.origin)) {
+        this.#closeIfCurrent(socket, generation, 'Live-session membership changed.')
+        return
+      }
       if (this.#presentationChanging || cacheGeneration !== this.#cacheGeneration) {
         this.#challenge(socket, generation)
         return
@@ -823,6 +837,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#rejectCommand(socket, commandId, 'AUTHORITY_CHANGED', 'Live Session authority changed.')
       return
     }
+    // The command boundary: a stale or expired authorization cache reloads first, which closes the
+    // sockets of members who left, so their queued commands never run.
+    let authorization: LiveSessionRoomAuthorization
+    try {
+      authorization = await this.#authorizationBoundary(value)
+    } catch {
+      this.#rejectCommand(socket, commandId, 'UNAVAILABLE', LIVE_SESSION_TRY_AGAIN_MESSAGE)
+      return
+    }
+    if (this.#liveAdmission(socket)?.generation !== admission.generation) return
+    if (!admitsRoomMember(authorization, admission))
+      return this.#closeSocket(socket, 'Campaign access ended.')
     try {
       await this.#settleExternalCommit()
     } catch {
@@ -1152,6 +1178,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#rejectCommand(socket, command.commandId, refusal.code, refusal.message)
       return
     }
+    // The command may have changed actor control, which Convex does not push to the room.
+    this.#authorization.invalidatePlay()
     // Only the room's own movement commits settle a held Scene's decision without a new read.
     if (!movementCommitted && command.type !== 'ROLL_RULE_EVIDENCE')
       await this.#refreshMovementHold(socket, admission, value).catch(() => undefined)
@@ -1486,7 +1514,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       })
       if (this.#cache?.scene?.id === result.sceneId)
         this.#cache = { ...this.#cache, encounterId: result.encounterId }
-      this.#previewControls.clear()
+      this.#authorization.invalidatePlay()
       for (const member of this.ctx.getWebSockets())
         if (this.#liveAdmission(member)) send(member, committed)
     } catch (error) {
@@ -1588,6 +1616,30 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     })
     this.#bumpCacheGeneration()
     for (const socket of this.ctx.getWebSockets()) this.#challenge(socket)
+  }
+
+  /**
+   * Reloads the authorization cache for the room's active epoch and closes every socket whose member
+   * left, changed role or started a new membership epoch; they reconnect with a fresh admission.
+   */
+  async #refreshAuthorization(): Promise<LiveSessionRoomAuthorization> {
+    const current = this.#journal.readCurrent()
+    if (!current || current.status !== 'ACTIVE') throw new Error('Live Session authority changed.')
+    const authorization = await this.#authorization.refresh(current.authorityEpoch)
+    for (const socket of this.ctx.getWebSockets()) {
+      const value = attachment(socket)
+      const member =
+        this.#admissions.get(socket) ??
+        (value?.membershipEpoch ? { ...value, membershipEpoch: value.membershipEpoch } : null)
+      if (member && !admitsRoomMember(authorization, member))
+        this.#closeSocket(socket, 'Campaign access ended.')
+    }
+    return authorization
+  }
+
+  /** The cache a command or broadcast may use: current, or reloaded first by one read. */
+  async #authorizationBoundary(value: SocketAttachment): Promise<LiveSessionRoomAuthorization> {
+    return this.#authorization.current(value.authorityEpoch) ?? this.#refreshAuthorization()
   }
 
   #liveRulesRuntime(): Promise<RulesRuntimeService> {
@@ -1696,9 +1748,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   /**
    * Renders one preview sample from room memory within its message: the Scene cache, the members'
-   * admissions and leased bound-token control and Character-vision checks. A sample never calls or
-   * waits on Convex or storage. A missing or aging input starts a background refresh, and samples it
-   * cannot serve yet are dropped, since previews are lossy (ADR 0035 Amendment 15).
+   * admissions and the authorization cache (membership, bound-token control and the Character
+   * revisions behind the Scene's vision). A sample never calls or waits on Convex or storage. A
+   * missing, stale or expired input starts a background refresh, and samples it cannot serve yet are
+   * dropped, since previews are lossy (ADR 0035 Amendments 14 and 15).
    */
   #broadcastTransient(
     origin: WebSocket,
@@ -1708,27 +1761,35 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (this.#presentationChanging) return
     const originAttachment = attachment(origin)
     if (!originAttachment) return this.#challenge(origin)
+    // Broadcasts are refused while the authorization cache is stale or past its lease.
+    const authorization = this.#authorization.current(originAttachment.authorityEpoch)
+    if (!authorization) return this.#refreshAuthorizationInBackground()
+    if (!admitsRoomMember(authorization, originAdmission)) return
     const candidates = this.ctx.getWebSockets().flatMap((socket) => {
       const candidate = this.#liveAdmission(socket)
-      return candidate ? [{ admission: candidate, socket }] : (this.#challenge(socket), [])
+      if (!candidate) return (this.#challenge(socket), [])
+      return admitsRoomMember(authorization, candidate) ? [{ admission: candidate, socket }] : []
     })
     const cached = this.#cache
     if (!cached) return this.#refreshPreviewScene(originAttachment, originAdmission, candidates)
     const scene = cached.scene
     if (!scene || scene.id !== envelope.sceneId || scene.version !== envelope.baselineVersion)
       return
-    let boundTokenControl: PreviewControl['control'] | null = null
+    let boundTokenControl: LiveSessionTransientCapture['originBoundTokenControl'] | null = null
     if (envelope.kind === 'TOKEN_DRAG_PREVIEW') {
-      if (!this.#previewVisionCurrent(cached, originAttachment, originAdmission, candidates)) return
+      // A changed Character's vision rebuilds the Scene before drags preview it again (D33).
+      if (!roomVisionCurrent(authorization, cached.characterRevisions))
+        return this.#refreshPreviewVision(originAttachment, originAdmission, candidates)
       // A player's preview on an Encounter-bound Scene needs their bound-actor control (D25).
       if (originAdmission.role === 'PLAYER' && cached.encounterId !== null) {
-        boundTokenControl = this.#previewBoundTokenControl(
-          cached,
-          originAttachment,
-          originAdmission,
-          candidates
-        )
-        if (!boundTokenControl) return
+        const play = this.#authorization.currentPlay(originAttachment.authorityEpoch)
+        boundTokenControl = play
+          ? roomBoundTokenControl(play, originAdmission.userId, {
+              sceneId: scene.id,
+              encounterId: cached.encounterId
+            })
+          : null
+        if (!boundTokenControl) return this.#refreshAuthorizationInBackground()
       }
     }
     this.#sendTransient(
@@ -1775,97 +1836,40 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /**
-   * Whether the Character revisions behind the cached vision were confirmed within the preview
-   * lease (D33). From half the lease, one background read rechecks them; a changed revision rebuilds
-   * the Scene cache with the new vision.
+   * The Scene vision was built from Character revisions the authorization cache no longer holds
+   * (D33). The cache reloads first; a Character that really changed rebuilds the Scene's vision.
    */
-  #previewVisionCurrent(
-    cached: TransientCache,
+  #refreshPreviewVision(
     value: SocketAttachment,
     admission: Admission,
     candidates: readonly { admission: Admission; socket: WebSocket }[]
-  ): boolean {
-    if (cached.characterRevisions.length === 0) return true
-    const age = Date.now() - cached.visionCheckedAt
-    if (age >= ROOM_LIMITS.previewLeaseMs / 2)
-      this.#refreshPreviewInBackground('scene', async () => {
-        const checkedAt = Date.now()
-        if (!(await this.#visionRevisionsCurrent(value, admission, cached.characterRevisions))) {
-          await this.#refreshSceneCache(value, admission, candidates)
-          return
-        }
-        if (this.#cache?.key === cached.key)
-          this.#cache = { ...this.#cache, visionCheckedAt: checkedAt }
-      })
-    return age < ROOM_LIMITS.previewLeaseMs
+  ): void {
+    this.#refreshPreviewInBackground('scene', async () => {
+      const authorization = await this.#refreshAuthorization()
+      if (!roomVisionCurrent(authorization, this.#cache?.characterRevisions ?? []))
+        await this.#refreshSceneCache(value, admission, candidates)
+    })
   }
 
   /**
-   * The player's leased bound-token control on the cached Encounter-bound Scene, or null while no
-   * lease is current. From half the lease, one background AUTHORITY capture renews it.
+   * Reloads the authorization cache off the sample's path: one read at a time, and after a failure
+   * none for `previewRetryMs`.
    */
-  #previewBoundTokenControl(
-    cached: TransientCache,
-    value: SocketAttachment,
-    admission: Admission,
-    candidates: readonly { admission: Admission; socket: WebSocket }[]
-  ): PreviewControl['control'] | null {
-    const lease = this.#previewControls.get(admission.userId)
-    const age =
-      lease &&
-      lease.cacheGeneration === this.#cacheGeneration &&
-      lease.membershipEpoch === admission.membershipEpoch &&
-      lease.sceneId === cached.scene?.id &&
-      lease.encounterId === cached.encounterId
-        ? Date.now() - lease.checkedAt
-        : Number.POSITIVE_INFINITY
-    if (age >= ROOM_LIMITS.previewLeaseMs / 2)
-      this.#refreshPreviewInBackground(`control:${admission.userId}`, async () => {
-        const cacheGeneration = this.#cacheGeneration
-        const checkedAt = Date.now()
-        const capture = await this.#capture(value, admission, candidates, 'AUTHORITY', [])
-        if (
-          cacheGeneration !== this.#cacheGeneration ||
-          capture.origin.userId !== admission.userId ||
-          capture.origin.role !== admission.role ||
-          capture.origin.membershipEpoch !== admission.membershipEpoch
+  #refreshAuthorizationInBackground(): void {
+    if (this.#authorizationRefreshing || Date.now() < this.#authorizationRetryAt) return
+    this.#authorizationRefreshing = true
+    this.ctx.waitUntil(
+      this.#refreshAuthorization()
+        .then(
+          () => undefined,
+          () => {
+            this.#authorizationRetryAt = Date.now() + ROOM_LIMITS.previewRetryMs
+          }
         )
-          return
-        this.#previewControls.set(admission.userId, {
-          cacheGeneration,
-          checkedAt,
-          control: capture.originBoundTokenControl,
-          encounterId: capture.sceneEncounterId,
-          membershipEpoch: capture.origin.membershipEpoch,
-          sceneId: capture.sceneHeader?.id ?? null
+        .finally(() => {
+          this.#authorizationRefreshing = false
         })
-      })
-    return lease && age < ROOM_LIMITS.previewLeaseMs ? lease.control : null
-  }
-
-  /** Whether the Character revisions behind the cached Scene vision are still current (D33). */
-  async #visionRevisionsCurrent(
-    value: SocketAttachment,
-    admission: Admission,
-    observedCharacterRevisions: TransientCache['characterRevisions']
-  ): Promise<boolean> {
-    try {
-      const { current } = await callLiveSessionRoute(
-        this.env,
-        admission.accessToken,
-        'visionRevisions',
-        {
-          campaignId: value.campaignId,
-          expectedRole: admission.role,
-          expectedUserId: admission.userId,
-          observedCharacterRevisions
-        }
-      )
-      return current
-    } catch (error) {
-      if (error instanceof LiveSessionRouteError && error.status === 409) return false
-      throw error
-    }
+    )
   }
   #overlayDurableSceneCache(sceneId: string): void {
     const current = this.#journal.readCurrent()
@@ -1899,6 +1903,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const value = attachment(socket)
     const admission = this.#liveAdmission(socket)
     if (!value || !admission) return this.#challenge(socket)
+    // Synchronizing broadcasts every member's state, so the authorization cache must be current.
+    await this.#authorizationBoundary(value)
+    if (this.#liveAdmission(socket)?.generation !== admission.generation) return
     this.#overlayDurableSceneCache(sceneId)
     if (this.#matchesSceneSynchronization(sceneId, version, expectedPresentationVersion)) {
       if (!this.#cache) throw new Error('Synchronized Scene cache is missing.')
@@ -1961,8 +1968,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     let scene = hydrated.scene
     let revisions = hydrated.characterRevisions
     let baseOrdinals = hydrated.baseOrdinals
-    // The final capture confirms `revisions`; any retry confirms them later still.
-    const visionCheckedAt = Date.now()
     let finalCapture: LiveSessionTransientCapture
     try {
       finalCapture = await this.#capture(value, admission, candidates, 'FULL', revisions)
@@ -2000,8 +2005,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       presentation: finalCapture.presentation
         ? { expectedPresentationVersion: finalCapture.presentation.version }
         : null,
-      synchronized: false,
-      visionCheckedAt
+      synchronized: false
     }
     return finalCapture
   }
@@ -2031,7 +2035,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     originAttachment: SocketAttachment,
     originAdmission: Admission,
     candidates: readonly { admission: Admission; socket: WebSocket }[],
-    boundTokenControl: PreviewControl['control'] | null,
+    boundTokenControl: LiveSessionTransientCapture['originBoundTokenControl'] | null,
     scene: CampaignSceneStateDto,
     envelope: SceneTransientEnvelopeDto
   ): void {
@@ -2374,11 +2378,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return closed
   }
 
-  /** Cached Scene state and rules captures belong to one generation; a bump discards both. */
+  /**
+   * Cached Scene state and rules captures belong to one generation; a bump discards both, and the
+   * bound Encounter's actor control reloads before previews use it.
+   */
   #bumpCacheGeneration(): void {
     this.#cacheGeneration += 1
     this.#cache = null
     this.#captureCache.clear()
+    this.#authorization.invalidatePlay()
   }
 
   #json(value: string): unknown {

@@ -19,6 +19,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 
 import { DurableCommandJournal } from '../src/durableCommandJournal.js'
+import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const allowedOrigin = 'https://app.test'
@@ -96,6 +97,12 @@ async function room() {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
       routes.push(pathname)
+      if (pathname === ROOM_AUTHORIZATION_PATH)
+        return Response.json(
+          roomAuthorizationResponse({
+            members: [...members].map(([userId, member]) => ({ ...member, userId }))
+          })
+        )
       if (pathname === '/live-sessions/capture') {
         const body = liveSessionTransientCaptureInputSchema.parse(await request.json())
         const member = members.get(body.expectedUserId)

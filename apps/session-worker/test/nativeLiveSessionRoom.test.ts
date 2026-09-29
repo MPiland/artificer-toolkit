@@ -37,6 +37,8 @@ import {
   hydrateNativeLiveSessionState,
   projectNativeLiveSessionState
 } from '../src/nativeLiveSessionState.js'
+import { ROOM_LIMITS } from '../src/roomLimits.js'
+import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const sockets: WebSocket[] = []
@@ -274,11 +276,25 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
   const captureModes: Array<'AUTHORITY' | 'FULL' | undefined> = []
   const authorityLifecycleCalls: string[] = []
+  /** Convex's authorization state for the room; tests change it to model departures. */
+  const authorization = {
+    members: [
+      { membershipEpoch: capture.origin.membershipEpoch, role: 'OWNER' as const, userId },
+      { membershipEpoch: capture.origin.membershipEpoch, role: 'PLAYER' as const, userId: playerId }
+    ],
+    reads: 0
+  }
   await runInDurableObject(stub, () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
       expect(request.headers.get('x-artificer-live-session-secret')).toBe(secret)
+      if (pathname === ROOM_AUTHORIZATION_PATH) {
+        expect(request.headers.get('authorization')).toBeNull()
+        expect(await request.json()).toMatchObject({ campaignId })
+        authorization.reads += 1
+        return Response.json(roomAuthorizationResponse({ members: authorization.members }))
+      }
       if (pathname === '/live-sessions/capture') {
         const body = liveSessionTransientCaptureInputSchema.parse(await request.json())
         const expectedAccessToken =
@@ -372,6 +388,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
     accessToken,
     authorityEpoch,
     authorityLifecycleCalls,
+    authorization,
     capture,
     captureModes,
     issueAccessToken,
@@ -2404,6 +2421,151 @@ it('evicts only the exact departed membership epoch through private room control
   await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'Campaign access ended.' })
 })
 
+function invalidateInputs(base: Awaited<ReturnType<typeof fixture>>) {
+  return control({
+    campaignId: base.capture.campaignId,
+    operation: { type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] }
+  })
+}
+
+function sendPing(socket: WebSocket, scene: CampaignSceneStateDto, sequence: number) {
+  socket.send(
+    JSON.stringify({
+      type: 'TRANSIENT',
+      envelope: {
+        baselineVersion: scene.version,
+        audience: 'TABLE',
+        kind: 'PING',
+        position: { x: 50, y: 50 },
+        sceneId: scene.id,
+        sequence
+      }
+    })
+  )
+}
+
+function transients(messages: readonly LiveSessionWebSocketServerMessageDto[]) {
+  return messages.filter((message) => message.type === 'TRANSIENT')
+}
+
+it('closes a removed member at the next command boundary, refusing broadcasts and their queued command', async () => {
+  const { doorId, scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const player = await connectPlayer(base)
+  let releaseRead: () => void = () => undefined
+  const readHeld = new Promise<void>((resolve) => {
+    releaseRead = resolve
+  })
+  await routeEncounterRequests(base, async (pathname) => {
+    if (pathname === ROOM_AUTHORIZATION_PATH) await readHeld
+    return undefined
+  })
+
+  // The departure commits in Convex, which notifies the room.
+  base.authorization.members = base.authorization.members.filter(
+    (member) => member.userId !== base.playerId
+  )
+  const closed = waitForClose(player.socket)
+  expect(await (await invalidateInputs(base)).json()).toEqual({ invalidated: true })
+  player.messages.length = 0
+  // While the reload runs, no broadcast leaves the room and the player's command waits behind it.
+  sendPing(base.socket, scene, 1)
+  player.socket.send(JSON.stringify(doorCommand(scene, doorId, crypto.randomUUID())))
+  await new Promise((resolve) => setTimeout(resolve, 75))
+  expect(transients(player.messages)).toEqual([])
+  releaseRead()
+
+  await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'Campaign access ended.' })
+  expect(
+    player.messages.filter(
+      (message) => message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED'
+    )
+  ).toEqual([])
+  const sequence = await runInDurableObject(
+    base.stub,
+    (_instance, state) =>
+      state.storage.sql
+        .exec<{ sequence: number }>('SELECT sequence FROM durable_session_authority WHERE id = 1')
+        .one().sequence
+  )
+  expect(sequence).toBe(0)
+})
+
+it('closes a removed member within the lease when the notification is lost', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const player = await connectPlayer(base)
+  const readsAfterAdmission = base.authorization.reads
+  base.authorization.members = base.authorization.members.filter(
+    (member) => member.userId !== base.playerId
+  )
+  const closed = waitForClose(player.socket)
+
+  // Inside the lease the room cannot know yet: that one lease is the accepted exposure.
+  player.messages.length = 0
+  sendPing(base.socket, scene, 1)
+  await vi.waitFor(() => expect(transients(player.messages)).toHaveLength(1))
+  expect(base.authorization.reads).toBe(readsAfterAdmission)
+
+  // Past the lease the next broadcast is refused until one read renews it, which ends the member.
+  const realNow = Date.now
+  vi.spyOn(Date, 'now').mockImplementation(() => realNow() + ROOM_LIMITS.authorizationLeaseMs)
+  sendPing(base.socket, scene, 2)
+  await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'Campaign access ended.' })
+  expect(transients(player.messages)).toHaveLength(1)
+  expect(base.authorization.reads).toBe(readsAfterAdmission + 1)
+})
+
+it('follows an ownership transfer: both admissions end and the new owner rejoins with the GM view', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const player = await connectPlayer(base)
+  const transferredAt = new Date(Date.parse(base.capture.origin.membershipEpoch) + 1).toISOString()
+  base.authorization.members = [
+    { membershipEpoch: transferredAt, role: 'PLAYER', userId: base.userId },
+    { membershipEpoch: transferredAt, role: 'OWNER', userId: base.playerId }
+  ]
+  base.capture.origin = { ...base.capture.origin, membershipEpoch: transferredAt }
+  const ownerClosed = waitForClose(base.socket)
+  const playerClosed = waitForClose(player.socket)
+
+  await invalidateInputs(base)
+  await expect(ownerClosed).resolves.toMatchObject({ reason: 'Campaign access ended.' })
+  await expect(playerClosed).resolves.toMatchObject({ reason: 'Campaign access ended.' })
+
+  const response = await base.stub.fetch(
+    base.request(
+      await signTicket({
+        authorityEpoch: base.authorityEpoch,
+        campaignId: base.capture.campaignId,
+        issuedAt: base.issuedAt,
+        role: 'OWNER',
+        subject: base.playerId
+      })
+    )
+  )
+  const socket = response.webSocket
+  if (!socket) throw new Error('Missing new owner WebSocket.')
+  sockets.push(socket)
+  const messages: LiveSessionWebSocketServerMessageDto[] = []
+  socket.addEventListener('message', (event) => {
+    messages.push(liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(event.data))))
+  })
+  socket.accept()
+  socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.playerAccessToken }))
+  await vi.waitFor(() =>
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        state: expect.objectContaining({ recipientRole: 'OWNER' }),
+        type: 'STATE_SYNC'
+      })
+    )
+  )
+})
+
 it('closes every socket when the live Session ends', async () => {
   const base = await fixture()
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
@@ -2762,7 +2924,13 @@ it.each(['RENEWAL_TRAFFIC', 'OLD_TRANSIENT_FAILURE'] as const)(
       const started = new Promise<void>((resolve) => {
         markStarted = resolve
       })
-      vi.mocked(globalThis.fetch).mockImplementation(async () => Response.json(base.capture))
+      vi.mocked(globalThis.fetch).mockImplementation(async (input, init) =>
+        Response.json(
+          new URL(new Request(input, init).url).pathname === ROOM_AUTHORIZATION_PATH
+            ? roomAuthorizationResponse({ members: base.authorization.members })
+            : base.capture
+        )
+      )
       vi.mocked(globalThis.fetch).mockImplementationOnce(
         () =>
           new Promise<Response>((resolve) => {
