@@ -304,9 +304,12 @@ under the ignored `local-validation/d65-web-worker/` (`proof-*.json`, `netlify-e
 | Guest pages                              | `/sign-in`, `/sign-up`, `/reset-password`: 200                                                                                                                                                                            | same                                                |
 | Sign-out                                 | 200, four clearing `Set-Cookie`; session then `null`; `/characters` then 307 to `/sign-in`                                                                                                                                | same                                                |
 
-- **Not host-related:** `/spells` returns 500 in both runs because its Convex query exceeds Convex's
-  16 MiB read limit ("Too many bytes read in a single function execution"). `/library` has no index
-  route (404). Neither involves the web host.
+- **Not host-related, since fixed:** `/spells` returned 500 in both runs because its Convex list
+  and summary queries reread the System and every referenced Class root once per row and exceeded
+  Convex's 16 MiB read limit ("Too many bytes read in a single function execution"). The catalogue
+  queries now serve identical reads once per query (`catalogueReadBudget.test.ts`: Spell summary
+  37 MB to 1.5 MB, Spell page 4.6 MB to 0.48 MB). `/library` has no index route by design: Library
+  is a navigation menu (PRODUCT.md, DESIGN.md) and no link targets it.
 - **CSP identical to today's production (C1).** The pre-D65 `securityHeaders.ts`, evaluated with
   `NODE_ENV=production` and the same inlined values, gives byte-identical `Content-Security-Policy`
   (nonce normalised), `Permissions-Policy`, `Referrer-Policy`, `X-Content-Type-Options` and
