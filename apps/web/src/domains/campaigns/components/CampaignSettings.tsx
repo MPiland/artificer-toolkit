@@ -23,6 +23,7 @@ import { queryKeys } from '#app/lib/queryKeys'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import * as sharedStyles from '../campaigns.css'
 import * as settingsStyles from './campaignSettings.css'
+import { CampaignContentUsage } from './CampaignContentUsage'
 import { CampaignMetadataFields } from './CampaignMetadataFields'
 
 export function CampaignSettings({
@@ -227,6 +228,7 @@ function CampaignSettingsForm({
         </Group>
       ) : null}
       {error ? <Alert color='red'>{error.message}</Alert> : null}
+      <CampaignContentUsage campaignId={campaign.id} />
       <section className={sharedStyles.panel} aria-labelledby='campaign-lifecycle-title'>
         <Title order={2} id='campaign-lifecycle-title'>
           Campaign lifecycle

@@ -12174,6 +12174,15 @@ export declare const api: {
       >;
     };
     queries: {
+      contentUsage: FunctionReference<
+        "query",
+        "public",
+        { id: string },
+        null | {
+          entries: { limit: number; used: number };
+          scenes: { limit: number; used: number };
+        }
+      >;
       get: FunctionReference<
         "query",
         "public",

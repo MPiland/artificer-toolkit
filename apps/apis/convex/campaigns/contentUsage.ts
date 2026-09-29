@@ -3,6 +3,7 @@ import {
   CAMPAIGN_CONTENT_SAFETY_CAPS,
   ENTITLEMENT_LIMITS
 } from '@artificer-toolkit/shared/account/entitlements'
+import type { CampaignContentUsageDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { DataModel } from '../_generated/dataModel'
 
 type CampaignContentResource = keyof typeof CAMPAIGN_CONTENT_SAFETY_CAPS
@@ -12,18 +13,10 @@ const counterFields = {
   scenesPerCampaign: 'scenes'
 } as const
 
-/**
- * The refusal message for a create that would take the Campaign past its host's per-Campaign
- * limit, or null when it fits. The hosting owner's tier applies whoever creates the content;
- * unlimited tiers use the hidden safety cap. Content already over a limit after a downgrade stays
- * readable; only new records are refused.
- */
-export async function readCampaignContentRefusal(
-  db: GenericDatabaseReader<DataModel>,
-  campaign: { id: string; ownerUserId: string },
-  resource: CampaignContentResource,
-  added = 1
-) {
+type CampaignHost = { id: string; ownerUserId: string }
+
+/** The hosting owner's tier applies whoever creates the content. */
+async function readHostedContent(db: GenericDatabaseReader<DataModel>, campaign: CampaignHost) {
   const [entitlement, usage] = await Promise.all([
     db
       .query('accountEntitlements')
@@ -34,12 +27,41 @@ export async function readCampaignContentRefusal(
       .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
       .unique()
   ])
-  const limit =
-    ENTITLEMENT_LIMITS[entitlement?.tier ?? 'FREE'][resource] ??
-    CAMPAIGN_CONTENT_SAFETY_CAPS[resource]
-  return (usage?.[counterFields[resource]] ?? 0) + added > limit
+  return {
+    limits: ENTITLEMENT_LIMITS[entitlement?.tier ?? 'FREE'],
+    used: { entries: usage?.entries ?? 0, scenes: usage?.scenes ?? 0 }
+  }
+}
+
+/**
+ * The refusal message for a create that would take the Campaign past its host's per-Campaign
+ * limit, or null when it fits. Unlimited tiers use the hidden safety cap. Content already over a
+ * limit after a downgrade stays readable; only new records are refused.
+ */
+export async function readCampaignContentRefusal(
+  db: GenericDatabaseReader<DataModel>,
+  campaign: CampaignHost,
+  resource: CampaignContentResource,
+  added = 1
+) {
+  const { limits, used } = await readHostedContent(db, campaign)
+  const limit = limits[resource] ?? CAMPAIGN_CONTENT_SAFETY_CAPS[resource]
+  return used[counterFields[resource]] + added > limit
     ? `This Campaign has reached its ${counterFields[resource]} limit.`
     : null
+}
+
+/** Usage against the host's plan limits. Unlimited plans report null, never the hidden safety cap. */
+export async function readCampaignContentUsage(
+  db: GenericDatabaseReader<DataModel>,
+  campaign: CampaignHost
+): Promise<CampaignContentUsageDto> {
+  const { limits, used } = await readHostedContent(db, campaign)
+  if (limits.campaignEntriesPerCampaign === null || limits.scenesPerCampaign === null) return null
+  return {
+    entries: { used: used.entries, limit: limits.campaignEntriesPerCampaign },
+    scenes: { used: used.scenes, limit: limits.scenesPerCampaign }
+  }
 }
 
 export async function assertCampaignContentAllowed(

@@ -160,6 +160,23 @@ describe('per-Campaign content limits (Q18)', () => {
     })
   }, 30000)
 
+  it('reports Campaign usage to the host on limited plans only', async () => {
+    const { t, owner, other, campaign } = await setup()
+    await seedUsage(t, campaign.id, { entries: 42, scenes: 3 })
+    const read = () => owner.caller.query(api.campaigns.queries.contentUsage, { id: campaign.id })
+    expect(await read()).toEqual({
+      entries: { used: 42, limit: FREE_ENTRIES },
+      scenes: { used: 3, limit: FREE_SCENES }
+    })
+    await setTier(t, owner.userId, 'PLAYER')
+    expect(await read()).toMatchObject({ entries: { used: 42, limit: 150 } })
+    await setTier(t, owner.userId, 'GM')
+    expect(await read()).toBeNull()
+    await expect(
+      other.caller.query(api.campaigns.queries.contentUsage, { id: campaign.id })
+    ).rejects.toThrow('Only the Campaign owner can view Campaign usage.')
+  }, 30000)
+
   it('counts notebook sections and attachments through every insert and cascade delete', async () => {
     const { t, owner, other, campaign } = await setup()
     const note = await owner.caller.mutation(createNotebook, section(campaign.id))

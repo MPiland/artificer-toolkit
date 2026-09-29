@@ -47,6 +47,7 @@ vi.mock('#app/ui/primitives/RichTextEditor/RichTextEditor', () => ({
 }))
 
 vi.mock('./CampaignMetadataFields', () => ({ CampaignMetadataFields: () => null }))
+vi.mock('./CampaignContentUsage', () => ({ CampaignContentUsage: () => null }))
 
 describe('CampaignSettings deletion', () => {
   beforeEach(() => {

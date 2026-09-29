@@ -67,6 +67,21 @@ export const entitlementProjectionDtoSchema = lazySchema(() =>
     pricing: entitlementPricingDtoSchema
   })
 )
+const campaignContentMeterDtoSchema = lazySchema(() =>
+  z.strictObject({
+    used: z.number().check(z.int()).check(z.nonnegative()),
+    limit: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+/** A Campaign's content against its host's plan limits; null when the host's plan is unlimited. */
+export const campaignContentUsageDtoSchema = lazySchema(() =>
+  z.nullable(
+    z.strictObject({
+      entries: campaignContentMeterDtoSchema,
+      scenes: campaignContentMeterDtoSchema
+    })
+  )
+)
 
 export const campaignRoleDtoSchema = lazySchema(() => z.enum(['OWNER', 'PLAYER']))
 export const campaignStatusDtoSchema = lazySchema(() => z.enum(['ACTIVE', 'ARCHIVED']))
@@ -373,6 +388,7 @@ export type EntitlementLimitDto = z.infer<typeof entitlementLimitDtoSchema>
 export type EntitlementUsageDto = z.infer<typeof entitlementUsageDtoSchema>
 export type EntitlementPricingDto = z.infer<typeof entitlementPricingDtoSchema>
 export type EntitlementProjectionDto = z.infer<typeof entitlementProjectionDtoSchema>
+export type CampaignContentUsageDto = z.infer<typeof campaignContentUsageDtoSchema>
 export type CampaignSummaryDto = z.infer<typeof campaignSummaryDtoSchema>
 export type CampaignDetailDto = z.infer<typeof campaignDetailDtoSchema>
 export type CampaignAssignmentResult = z.infer<typeof campaignAssignmentResultSchema>

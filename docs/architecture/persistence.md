@@ -401,7 +401,9 @@ before a new Scene begins and publishes, and refuses with "This Campaign has rea
 limit." (or "scenes limit"). A Campaign copy job reads the same refusal through
 `readCampaignContentRefusal` before each staged section page and fails the job with it as the
 `failureReason`, so the owner sees the limit rather than the generic copy failure. Unlimited tiers
-use the hidden `CAMPAIGN_CONTENT_SAFETY_CAPS`, which the entitlement DTO does not carry. Over-limit
+use the hidden `CAMPAIGN_CONTENT_SAFETY_CAPS`, which neither the entitlement DTO nor
+`campaigns/queries.contentUsage` carries. That owner-only query backs "Entries 42 / 150" and
+"Scenes 3 / 5" in Campaign Settings and returns null on unlimited plans. Over-limit
 content after a downgrade stays readable and editable; only new records are refused. Sessions,
 session notes, chat, Encounters and content shares are not counted. There is no backfill: the
 product is pre-launch, so deployments that predate the counters are reset and reseeded.

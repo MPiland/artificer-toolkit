@@ -100,6 +100,15 @@ const meta = {
         { queryFn: async () => campaign }
       )
       queryClient.setQueryDefaults(
+        convexQuery(convexApi.campaigns.queries.contentUsage, { id: campaign.id }).queryKey,
+        {
+          queryFn: async () => ({
+            entries: { used: 42, limit: 150 },
+            scenes: { used: 3, limit: 5 }
+          })
+        }
+      )
+      queryClient.setQueryDefaults(
         convexQuery(convexApi.campaigns.playSettings.get, { campaignId: campaign.id }).queryKey,
         { queryFn: async () => playSettings }
       )
@@ -150,6 +159,7 @@ export const RulesAndAutomation: Story = {
     const canvas = within(canvasElement)
     const page = within(canvasElement.ownerDocument.body)
     await expect(await canvas.findByLabelText('Game System')).toHaveValue('D&D 5e SRD')
+    await expect(await canvas.findByText('Entries 42 / 150')).toBeVisible()
     await expect(await canvas.findByLabelText(/Primary Rules Catalogue/i)).toHaveValue('2014 SRD')
     await expect(await canvas.findByLabelText('Automation mode')).toHaveValue('Assisted')
     await expect(await canvas.findByLabelText('Manual reminders')).toHaveValue('Subtle reminders')

@@ -1,6 +1,8 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
+  campaignContentUsageDtoSchema,
   campaignDetailDtoSchema,
+  type CampaignContentUsageDto,
   type CampaignDetailDto
 } from '@artificer-toolkit/schema/api/campaignCore'
 import {
@@ -11,6 +13,7 @@ import {
 } from '@artificer-toolkit/schema/api/campaignList'
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
+import { readCampaignContentUsage } from './contentUsage'
 import {
   presentCampaignSummary,
   readActiveCampaignMembers,
@@ -39,6 +42,20 @@ export const settings = query({
   }
 })
 
+export const contentUsage = query({
+  args: zodToConvexFields(campaignLookupInputSchema.shape),
+  returns: zodToConvex(campaignContentUsageDtoSchema),
+  handler: async (ctx, args): Promise<CampaignContentUsageDto> => {
+    const { userId } = await requireIdentity(ctx)
+    const { id } = campaignLookupInputSchema.parse(args)
+    const { campaign, membership } = await requireCampaignAuthority(ctx, id, userId)
+    // Usage reveals the host's plan, so only the host sees it, beside the owner-only Settings.
+    if (membership.role !== 'OWNER')
+      throw new Error('Only the Campaign owner can view Campaign usage.')
+    return readCampaignContentUsage(ctx.db, campaign)
+  }
+})
+
 export const list = query({
   args: zodToConvexFields(campaignListInputSchema.shape),
   returns: zodToConvex(campaignListPageSchema),
@@ -53,25 +70,33 @@ export const list = query({
       .paginate({ ...paginationOpts, maximumRowsRead: 8, maximumBytesRead: 1024 * 1024 })
     return campaignListPageSchema.parse({
       ...result,
-      page: (await Promise.all(
-        result.page.map(async (member) => {
-          const [root, deletion] = await Promise.all([
-            ctx.db.query('campaigns').withIndex('by_publicId', (q) => q.eq('id', member.campaignId)).unique(),
-            ctx.db.query('campaignDeletionJobs').withIndex('by_campaignId', (q) => q.eq('campaignId', member.campaignId)).unique()
-          ])
-          if (!root || deletion) return null
-          const { campaign, membership } = await requireCampaignAuthority(
-            ctx,
-            member.campaignId,
-            userId
-          )
-          const [members, assignedCharacter] = await Promise.all([
-            readActiveCampaignMembers(ctx, campaign),
-            readCampaignAssignedCharacter(ctx, campaign, membership)
-          ])
-          return presentCampaignSummary(campaign, membership, members, assignedCharacter)
-        })
-      )).filter((campaign) => campaign !== null)
+      page: (
+        await Promise.all(
+          result.page.map(async (member) => {
+            const [root, deletion] = await Promise.all([
+              ctx.db
+                .query('campaigns')
+                .withIndex('by_publicId', (q) => q.eq('id', member.campaignId))
+                .unique(),
+              ctx.db
+                .query('campaignDeletionJobs')
+                .withIndex('by_campaignId', (q) => q.eq('campaignId', member.campaignId))
+                .unique()
+            ])
+            if (!root || deletion) return null
+            const { campaign, membership } = await requireCampaignAuthority(
+              ctx,
+              member.campaignId,
+              userId
+            )
+            const [members, assignedCharacter] = await Promise.all([
+              readActiveCampaignMembers(ctx, campaign),
+              readCampaignAssignedCharacter(ctx, campaign, membership)
+            ])
+            return presentCampaignSummary(campaign, membership, members, assignedCharacter)
+          })
+        )
+      ).filter((campaign) => campaign !== null)
     })
   }
 })
