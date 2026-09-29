@@ -1,6 +1,6 @@
 # ADR 0029: Convex backend cutover
 
-- **Status:** decision (Session-scoped room identity and Session presentation superseded by [ADR 0033](0033-campaign-owned-play-and-session-log.md); per-command Convex capture and commit for live Encounter commands superseded by [ADR 0035](0035-room-authoritative-live-encounters.md))
+- **Status:** decision (Session-scoped room identity and Session presentation superseded by [ADR 0033](0033-campaign-owned-play-and-session-log.md); per-command Convex capture and commit for live Encounter commands superseded by [ADR 0035](0035-room-authoritative-live-encounters.md); "Netlify hosts TanStack Start SSR" superseded by [ADR 0037](0037-web-app-on-cloudflare-workers.md))
 - **Date:** 2026-09-03
 - **Revised:** 2026-09-24
 
@@ -107,8 +107,9 @@ flowchart LR
 - Current live command coverage is Door state and standalone token movement/undo. Character Sheet
   and Encounter rule execution remains in Convex, using the same TypeScript Rules Kernel.
   Recipient-filtered pointer, measurement, drag, and fog previews remain ephemeral.
-- Netlify hosts TanStack Start SSR only. No GraphQL, generic document patches, dual writes, or
-  compatibility database layer is introduced.
+- The web host serves TanStack Start SSR only (Netlify at the cutover; a Cloudflare Worker since
+  [ADR 0037](0037-web-app-on-cloudflare-workers.md)). No GraphQL, generic document patches, dual
+  writes, or compatibility database layer is introduced.
 
 The [fixed acceptance contract](../roadmap/08-2-convex-cutover-acceptance.md) contains exactly 75 cases.
 Its denominator changes only with explicit user approval.

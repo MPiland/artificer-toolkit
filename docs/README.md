@@ -49,6 +49,7 @@ or JSDoc.
 ## Operator runbooks
 
 - [Phase 8.2 release lifecycle](runbooks/phase-8-2-release.md)
+- [Web Worker hosting](runbooks/web-worker-hosting.md)
 - [Convex notification delivery](runbooks/convex-notification-delivery.md)
 - [Social Hub retention](runbooks/social-retention.md)
 - [VTT map R2](runbooks/vtt-map-r2.md)

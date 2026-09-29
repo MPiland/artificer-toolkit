@@ -36,30 +36,51 @@ yarn validate:pre-staging:local
 
 ### Deployment configuration
 
-Netlify packages the TanStack Start client and SSR/server routes. Product data, auth email,
-notifications and media authority run through Convex; current browser code must not call a retired product API, database, or client-independent Netlify-function product boundary.
+The web app is its own Cloudflare Worker, `artificer-web` (ADR
+[0037](../../docs/adr/0037-web-app-on-cloudflare-workers.md)). `@cloudflare/vite-plugin` builds the
+client into Workers Static Assets and `src/server.ts` into the Worker, which serves SSR, server
+functions and the same-origin `/api/auth/*` proxy. It is separate from the session Worker. Product
+data, auth email, notifications and media authority run through Convex.
 
-Configure the web deployment with:
+- [`wrangler.jsonc`](wrangler.jsonc) declares the Worker, its `staging` environment, and the required
+  secrets. `workers_dev` and preview URLs are off.
+- [`public/_headers`](public/_headers) sets immutable caching for hashed `/assets/*` and `nosniff`
+  on every static asset. Worker responses get their headers from `src/server/securityHeaders.ts`.
+- The Worker bundle is checked at build time: `vite build` fails if any chunk includes the Node Sentry
+  SDK (`@sentry/node`), which does not run on `workerd`.
+- `yarn workspace @artificer-toolkit/web dev` and `preview` both run the server in local `workerd`.
+  The Vite config copies `CONVEX_SITE_URL` and `AUTH_PROXY_SECRET` from the root env file into the
+  process environment, where the Worker's declared secrets are read.
+
+Build-time (client and Worker) variables:
 
 - `VITE_CONVEX_URL`: public Convex client URL;
-- `CONVEX_SITE_URL`: server-side Better Auth/HTTP Actions origin;
 - `VITE_LIVE_SESSION_WEBSOCKET_URL`: exact managed Worker WebSocket origin;
 - `VITE_MEDIA_STORAGE_ORIGIN`: exact signed media origin used by CSP;
-- `VITE_SENTRY_DSN`: optional public Sentry DSN;
-- `SENTRY_ORG`, `SENTRY_PROJECT`, and secret `SENTRY_AUTH_TOKEN`: build-time source-map upload.
+- `VITE_SENTRY_DSN`: optional public Sentry DSN, used by the browser SDK and by `@sentry/cloudflare`
+  in the Worker;
+- `SENTRY_ORG`, `SENTRY_PROJECT`, and secret `SENTRY_AUTH_TOKEN`: source-map upload.
+
+Worker secrets (`wrangler secret put`, per environment): `CONVEX_SITE_URL`, the Better Auth/HTTP
+Actions origin, and `AUTH_PROXY_SECRET`, which must match the Convex deployment's value.
+
+The build mode, not `NODE_ENV`, selects the security policy: only a `development`-mode build relaxes
+CSP (`'unsafe-eval'`, loopback Convex, media and session Worker origins). `vite build` is always
+production mode. The auth proxy reads the client IP only from `CF-Connecting-IP` and fails closed
+without it.
 
 `PUBLIC_SIGN_UP_ENABLED`, `LIBRARY_IMPORT_ENABLED`, email credentials, R2 credentials and live-session
 secrets belong to the Convex or Worker deployment that reads them. They are never browser variables.
 
-See the [architecture overview](../../docs/architecture/overview.md),
+Deploys are manual only; see the [web Worker hosting runbook](../../docs/runbooks/web-worker-hosting.md).
+See also the [architecture overview](../../docs/architecture/overview.md),
 [transport guide](../../docs/architecture/transport.md),
 [live-session guide](../../docs/architecture/live-sessions.md), and
 [R2 runbook](../../docs/runbooks/vtt-map-r2.md).
 
 ## Historical Phase 8.2 implementation record
 
-The sections below preserve dated migration notes and the retired tRPC/Supabase/Netlify-function
-configuration. Every present-tense statement in those sections describes an intermediate historical
+The sections below preserve dated migration notes and the retired tRPC/Supabase configuration. Every present-tense statement in those sections describes an intermediate historical
 snapshot; it is not current deployment guidance, runtime behavior, or acceptance status.
 
 ### Owns and does not own
@@ -280,39 +301,6 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 Use the cheapest surface that covers the change: `yarn workspace @artificer-toolkit/web test:forms`, `test:authoring`, or a focused route test; use `yarn turbo:typecheck:web` for type changes. Use `yarn dev` plus browser verification for meaningful layout or interaction changes. The root `yarn dev` first rebuilds the API workspace so the web server does not load stale `apps/apis/dist` artifacts; run `yarn dev:prepare` first when starting the web workspace directly.
 
 TanStack Start's Vite plugin owns `src/routeTree.gen.ts` during development and builds. Do not run a separate route generator or edit the generated file manually.
-
-### Historical Supabase/Netlify product deployment
-
-The root Yarn resolution patches `@netlify/vite-plugin` 2.12.9 to cancel static
-response bodies that its middleware discards before handing the request to Vite.
-Without cleanup, those streams hold generated dependency files open and Windows
-rejects Vite's optimizer directory rename. Netlify emulation remains enabled.
-`netlify/tests/viteStaticResponse.test.ts` covers the actual middleware; remove the
-patch when an upstream version passes that regression without it.
-
-TanStack Start is deployed with `@netlify/vite-plugin-tanstack-start`, which packages SSR, server routes, and server functions for Netlify. The same project also deploys client-independent functions from the repository's root [`netlify/functions`](../../netlify/functions) directory. The workspace's [`netlify.toml`](netlify.toml) deliberately runs from the monorepo root so Yarn workspaces and Turbo build dependencies resolve correctly.
-
-When creating the Netlify project, set the package directory to `apps/web` and leave the base directory at the repository root. The committed configuration runs `yarn build:web` and publishes `apps/web/dist/client`.
-
-Production releases must be built by Netlify from the connected Git repository on Linux. Do not use a Windows `netlify deploy` artifact for this application: the server and live-session executor depend on GoRules' platform-native binding, and Windows manual packaging also preserves unusable absolute workspace symlinks. A local Windows build remains useful for validation, but pushing the reviewed source and allowing Netlify's Linux build to package all four functions is the release path.
-
-The committed edge function limits `/api/trpc/*` to 60 requests per 60 seconds per IP and domain so mixed tRPC batches cannot bypass it. The application rejects tRPC POST bodies over 1 MiB from their actual streamed bytes before authentication or JSON parsing, and Postgres enforces the durable per-account root-creation windows. Confirm the rate-limit rule appears in each production deploy log; Netlify may accept a deploy even when a rule is invalid.
-
-Set these values in the Netlify UI rather than in `netlify.toml`:
-
-- `VITE_MEDIA_STORAGE_ORIGIN` for native media uploads and delivery. Set the exact HTTPS origin used by signed R2 URLs, including the bucket hostname when applicable. This public origin extends CSP `connect-src` and `img-src`; credentials, paths, queries, fragments and wildcards are rejected. HTTP loopback is allowed only in development.
-- `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for the browser and SSR Supabase client. They are publishable values, not secrets.
-- `VITE_SENTRY_DSN` for production browser and server error reporting plus the opt-in feedback form. The DSN is a public client identifier, not a secret. Both runtimes use the same Sentry project because they ship as one TanStack Start deployment. Sentry callbacks remove URL queries, fragments, and referrers before transmission; the app also sends only the request origin in browser referrers. Product Campaign invitations are tokenless inbox records and never enter URLs.
-- `SENTRY_ORG=artificer-toolkit-rc` and `SENTRY_PROJECT=javascript-tanstackstart-react` for production source-map uploads during the build.
-- `SENTRY_AUTH_TOKEN` for production source-map uploads. Keep it secret and available only to the build environment.
-- `SUPABASE_URL` and `SUPABASE_SECRET_KEY` for server-only request authentication. They are required by the current server functions; make them available to Functions at runtime only. The application reads that exact secret-key name and does not fall back to `SUPABASE_SERVICE_ROLE_KEY`.
-- `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `AUTH_EMAIL_FROM`, and the canonical public app origin as `SITE_URL` for the server-only Supabase Auth Send Email Hook in `netlify/functions`. These values must be available to Functions at runtime only.
-- `DATABASE_CONNECTION_STRING` for database-backed server routes. Use Supabase's Transaction Pooler connection string for Netlify's transient serverless functions. Make it available during the build and to Functions at runtime.
-- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_VTT_MAP_BUCKET` for private VTT map multipart upload, processing, and delivery. Use separate bucket-scoped values for staging and production; see [`docs/runbooks/vtt-map-r2.md`](../../docs/runbooks/vtt-map-r2.md).
-- `PUBLIC_SIGN_UP_ENABLED=false` for closed alpha. Make it available during the build and to Functions at runtime.
-- `LIBRARY_IMPORT_ENABLED=false` until the importer is ready for public use. Make it available during the build and to Functions at runtime.
-
-Do not set `SUPABASE_SECRET_KEY`, any `R2_*` credential, `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `SENTRY_AUTH_TOKEN`, or any database credential in a `VITE_` variable. These values must remain build or server secrets and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add its `/auth/confirmed`, `/update-password`, and `/settings/account` paths to Supabase Auth's redirect URL allow list before sending invitations, password-recovery emails, or email-change confirmations.
 
 ### Canonical references
 

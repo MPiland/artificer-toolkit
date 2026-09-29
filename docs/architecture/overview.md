@@ -29,6 +29,8 @@ flowchart LR
 
 - `apps/web` owns route composition, generated Convex adapters, UI state, authoring, Builder, Sheet,
   Campaign, Encounter, and VTT presentation. It does not own product persistence or gameplay authority.
+  It deploys as its own Cloudflare Worker (SSR, server functions and the `/api/auth` proxy) with
+  Static Assets, separate from the session Worker ([ADR 0037](../adr/0037-web-app-on-cloudflare-workers.md)).
 - `apps/apis/convex` owns Better Auth integration, the Convex schema, queries, mutations, actions,
   scheduled cleanup, object-storage coordination, authorization, ordinary atomic product writes and
   replay, Session DO publication revalidation, and reactive durable state.

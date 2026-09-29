@@ -51,6 +51,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0034](0034-player-control-rules-assistance-and-roll-prompts.md)       | Player-controlled actors, rules assistance modes and roll prompts     | decision (implementation in progress)                     |
 | [0035](0035-room-authoritative-live-encounters.md)                     | The room is authoritative for live Encounters; Convex is the record   | decision (implementation not started)                     |
 | [0036](0036-versioned-content-snapshots-and-browser-builder.md)       | Versioned content snapshots and Builder evaluation in the browser     | decision (implementation not started)                     |
+| [0037](0037-web-app-on-cloudflare-workers.md)                          | Web app hosted on Cloudflare Workers                                  | decision (local prototype; cloud steps need approval)     |
 
 ## Updating an ADR
 

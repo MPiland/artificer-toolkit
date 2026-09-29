@@ -492,12 +492,13 @@ protected functions still validate the current Better Auth session, including af
 Discoverable endpoints and public UUIDs are not authorization.
 
 Better Auth rate limiting uses its persistent component storage. Direct/native HTTP requests use
-Convex `ctx.meta.getRequestMetadata()`. The same-origin web `/api/auth` proxy uses Netlify
-`getContext().ip`, strips caller IP claims, and signs a 30-second JOSE context bound to method, path,
-issuer, and deployment audience. A separate server-only `AUTH_PROXY_SECRET` (at least 64 random
-characters) must match in SSR and Convex; never use a `VITE_` prefix or reuse an account credential.
-Invalid signed context is rejected. Missing trusted IP fails closed. Only loopback development
-requests can fall back to one local bucket when no Netlify function context exists.
+Convex `ctx.meta.getRequestMetadata()`. The same-origin web `/api/auth` proxy, in the web Worker
+(ADR 0037), reads the client IP from `CF-Connecting-IP`, strips caller IP claims, and signs a
+30-second JOSE context bound to method, path, issuer, and deployment audience. A separate server-only
+`AUTH_PROXY_SECRET` (at least 64 random characters) must match in the web Worker and Convex; never
+use a `VITE_` prefix or reuse an account credential. Invalid signed context is rejected. A missing
+`CF-Connecting-IP` fails closed in every build mode; local `workerd` sets it from the connecting
+socket.
 
 The optional server-only Convex `JWKS` variable enables the integration's static-key mode in both
 `auth.config.ts` and the Better Auth Convex plugin. Convex then verifies JWTs from embedded public
@@ -518,10 +519,10 @@ value in process memory and never print it or use a command-line value argument.
 The web environment also requires public `VITE_CONVEX_URL` and server-only `CONVEX_SITE_URL`.
 Vite reads the worktree-root `.env.local`, not the CLI's `apps/apis/.env.local`; configure both
 for the same selected dev deployment. Supply the matching server-only `AUTH_PROXY_SECRET` when
-starting the local web process. A previous process's in-memory variables do not survive restart.
+starting the local web process; the Vite config passes it and `CONVEX_SITE_URL` to local `workerd`. A previous process's in-memory variables do not survive restart.
 Local Convex trusts `X-Forwarded-For` because it runs without the managed ingress; therefore local
 checks do not establish managed proxy trust. `F03` must prove actual SSR wiring and `R09` must prove
-Netlify/Convex ingress attribution; do not substitute arbitrary headers if platform context fails.
+Cloudflare/Convex ingress attribution; do not substitute arbitrary headers if platform context fails.
 Recovery requests additionally use an atomic
 per-account limit (three requests per 60 seconds) in existing Better Auth storage, applied identically
 to known and unknown emails. IP rotation does not bypass that resend limit.
