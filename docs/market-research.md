@@ -77,6 +77,20 @@ These products are references for capability research, not visual authorities or
 - **Player-facing node/board view** (a read-only, reveal-gated board for players, as both competitors offer in some form) should follow the GM-side board and its live-play links, since it is additive UI over the same data model rather than a prerequisite.
 - **Multi-board/module structure per Campaign** (Alkemion's "multiple boards per module," cross-module sync) adds real complexity; the Q18 150-entry cap on Free/Player makes a single board sufficient at launch.
 
+### How Alkemion built its following (researched 2026-09-28)
+
+- **Timeline:** a free web beta since July 2024. It had "a few hundred users" at first, about 5,000 by May 2026, and 14,000+ by the Kickstarter pre-launch page. Most of that growth came in the roughly 4 months before the campaign (Sept 1 – Oct 1, 2026: €67,435, 725% of goal, 658 backers).
+- **Channels found:**
+  - the founders' own posts on RPGGeek and therpgsite.com ("my son and I built a free TTRPG app");
+  - an email newsletter (Buttondown);
+  - a small Patreon;
+  - a small Discord (about 500 members), used for support rather than discovery;
+  - Bluesky and a small YouTube channel;
+  - at least one independent YouTube review.
+- **Not found:** paid ads beyond the one the user saw, and no Reddit presence in the major subreddits.
+- **Framing:** a free "passion project" by a father and son, told in warm, low-hype language. The pre-launch push was about the first 48 hours.
+- **Sources:** alkemion.com (/about, /desktop-crowdfunding); the Buttondown archive; the therpgsite.com and RPGGeek threads. The Kickstarter page itself returned 403, so its figures come from search snippets.
+
 ## Research rule
 
 Interesting competitor features belong here until they are understood. Moving an idea into the roadmap requires a concrete user need, its place in the Artificer Toolkit lifecycle, and a deliberately scoped implementation—not feature parity for its own sake.
