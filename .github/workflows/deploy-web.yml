@@ -1,0 +1,67 @@
+# Manual-only deploy of the web app Worker (ADR 0037). It never runs on pushes, pull requests or a
+# schedule, and Workers Builds' Git integration stays disconnected. Start it from GitHub
+# (Actions → Deploy web Worker → Run workflow) once this file is on the default branch.
+#
+# Inert until the user configures the GitHub environments `web-staging` and `web-production`
+# (docs/runbooks/web-worker-hosting.md):
+#   secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SENTRY_AUTH_TOKEN (optional)
+#   variables: VITE_CONVEX_URL, VITE_LIVE_SESSION_WEBSOCKET_URL, VITE_MEDIA_STORAGE_ORIGIN,
+#              VITE_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT (the Sentry ones optional)
+# Worker secrets (AUTH_PROXY_SECRET, CONVEX_SITE_URL) are set once with `wrangler secret put`; this
+# workflow never reads them.
+name: Deploy web Worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target Worker environment
+        type: choice
+        options: ['staging', 'production']
+        default: 'staging'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: web-${{ inputs.environment }}
+    env:
+      # The Cloudflare Vite plugin selects the Wrangler environment at build time; production is the
+      # top-level configuration.
+      CLOUDFLARE_ENV: ${{ inputs.environment == 'staging' && 'staging' || '' }}
+      VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+      VITE_LIVE_SESSION_WEBSOCKET_URL: ${{ vars.VITE_LIVE_SESSION_WEBSOCKET_URL }}
+      VITE_MEDIA_STORAGE_ORIGIN: ${{ vars.VITE_MEDIA_STORAGE_ORIGIN }}
+      VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    steps:
+      - name: Require the build variables
+        run: |
+          for name in VITE_CONVEX_URL VITE_LIVE_SESSION_WEBSOCKET_URL VITE_MEDIA_STORAGE_ORIGIN; do
+            if [ -z "${!name}" ]; then echo "::error::$name is not set for web-${{ inputs.environment }}"; exit 1; fi
+          done
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install
+        run: corepack enable && yarn install --immutable
+      - name: Build
+        run: yarn build:web
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # Deploys the configuration the build emitted (dist/server/wrangler.json) for the chosen
+        # environment, and records the version for `wrangler rollback`.
+        run: yarn workspace @artificer-toolkit/web exec wrangler deploy --message "${{ github.sha }}"
