@@ -136,8 +136,8 @@ function loadTable(
  * the in-memory aggregate follows only after that succeeds. A crash or eviction before it loses the
  * command completely (its memory was never durable); after it, the row alone reproduces the command.
  * Rehydration applies rows in order and discards an invalid last row (a command that never
- * committed); an invalid row anywhere else, or a broken snapshot, throws
- * {@link RoomStoreCorruptError}. Compaction folds the log into a new snapshot generation atomically.
+ * committed); an invalid row anywhere else, or a broken snapshot, leaves the store empty and
+ * reports {@link RoomStoreCorruptError} as `corruption`. Compaction folds the log into a new snapshot generation atomically.
  */
 export class RoomEncounterStore {
   /** Reads pass through; writes are refused outside {@link transact}. */
@@ -152,6 +152,7 @@ export class RoomEncounterStore {
   #sequence = 0
   #chain = EMPTY_CHAIN
   #open = false
+  #corruption: RoomStoreCorruptError | null = null
   #rowsRead = 0
   #rowsWritten = 0
 
@@ -188,7 +189,21 @@ export class RoomEncounterStore {
       checksum TEXT NOT NULL,
       chain TEXT NOT NULL
     )`)
-    this.#recover()
+    try {
+      this.#recover()
+    } catch (error) {
+      if (!(error instanceof RoomStoreCorruptError)) throw error
+      this.#discard(error)
+    }
+  }
+
+  /**
+   * Why the persisted store could not be rebuilt, or null. A corrupt store is empty with no epoch, so
+   * the next hydrate replaces it; whether Convex still holds every command of the epoch, or a new
+   * epoch is needed, is the caller's decision.
+   */
+  get corruption() {
+    return this.#corruption
   }
 
   /** The Convex authority epoch the aggregate was loaded for; null before the first hydrate. */
@@ -226,7 +241,9 @@ export class RoomEncounterStore {
   }
 
   records(kind: string) {
-    return [...this.#records.values()].filter((record) => record.kind === kind)
+    return [...this.#records.values()]
+      .filter((record) => record.kind === kind)
+      .sort((left, right) => (left.key < right.key ? -1 : left.key > right.key ? 1 : 0))
   }
 
   /**
@@ -270,6 +287,7 @@ export class RoomEncounterStore {
     this.#snapshotSequence = 0
     this.#sequence = 0
     this.#chain = chain
+    this.#corruption = null
   }
 
   /**
@@ -420,6 +438,19 @@ export class RoomEncounterStore {
     })
     this.#sequence = sequence
     this.#chain = chain
+  }
+
+  /** Forgets a store that could not be rebuilt, keeping the generation so a hydrate supersedes it. */
+  #discard(corruption: RoomStoreCorruptError) {
+    const [newest] = this.#exec('SELECT MAX(generation) AS generation FROM room_snapshot_chunks')
+    this.#memory = createMemoryEncounterStore({ idPrefix: 'room' })
+    this.#records = new Map()
+    this.#epoch = null
+    this.#generation = newest && typeof newest['generation'] === 'number' ? newest['generation'] : 0
+    this.#snapshotSequence = 0
+    this.#sequence = 0
+    this.#chain = EMPTY_CHAIN
+    this.#corruption = corruption
   }
 
   #recover() {

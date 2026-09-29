@@ -5,65 +5,12 @@ import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import {
   RoomEncounterStore,
   RoomStoreCorruptError,
-  RoomWriteSetTooLargeError,
-  type RoomDocument,
-  type RoomRecord
+  RoomWriteSetTooLargeError
 } from './roomEncounterStore.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
+import { aggregate, command, encounterId, playState, uuid } from './testing/roomAggregateFixture.js'
 
 const tables = Object.keys(encounterStoreSchemas) as EncounterTableName[]
-const uuid = (index: number) => `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
-const encounterId = uuid(1)
-const checksum = (label: string) => sha256Hex(label)
-const playState = (characterIndex: number) => ({
-  kind: 'CHARACTER_PLAY_STATE',
-  key: uuid(0x500 + characterIndex)
-})
-
-/** A Run aggregate sized like a live Encounter: JSON blobs the way the stored tables carry them. */
-function aggregate(actorCount: number) {
-  let creationTime = 1_780_000_000_000
-  const documents: RoomDocument[] = []
-  const add = (table: EncounterTableName, id: string, fields: Record<string, unknown>) =>
-    documents.push({ table, id, creationTime: creationTime++, fields })
-  add('encounterRuns', 'convex:run', {
-    id: encounterId,
-    campaignId: uuid(2),
-    gameSystemId: uuid(3),
-    status: 'ACTIVE',
-    version: 1,
-    stateJson: JSON.stringify({ padding: 'x'.repeat(30_000) }),
-    stateChecksum: checksum('run'),
-    createdAt: '2026-09-01T00:00:00.000Z',
-    updatedAt: '2026-09-01T00:00:00.000Z'
-  })
-  for (let source = 0; source < Math.ceil(actorCount / 5); source++)
-    add('encounterSourceProjectionFacts', `convex:source:${source}`, {
-      encounterId,
-      checksum: checksum(`source:${source}`),
-      factsJson: JSON.stringify({ statBlock: 'é'.repeat(40_000) })
-    })
-  for (let actor = 0; actor < actorCount; actor++) {
-    add('encounterRunActors', `convex:actor:${actor}`, {
-      id: uuid(0x100 + actor),
-      encounterId,
-      stateJson: JSON.stringify({ hitPoints: 10 + actor, padding: 'a'.repeat(6_000) }),
-      stateChecksum: checksum(`actor:${actor}`)
-    })
-    add('encounterActorProjectionFacts', `convex:facts:${actor}`, {
-      id: uuid(0x100 + actor),
-      encounterId,
-      factsJson: JSON.stringify({ padding: 'f'.repeat(4_000) }),
-      sourceFactsChecksum: checksum(`source:${actor % Math.ceil(actorCount / 5)}`)
-    })
-  }
-  const records: RoomRecord[] = Array.from({ length: Math.min(actorCount, 6) }, (_, index) => ({
-    ...playState(index),
-    revision: null,
-    json: JSON.stringify({ streamVersion: index })
-  }))
-  return { documents, records }
-}
 
 function open() {
   const { database, storage } = createNodeSqliteRoomStorage()
@@ -74,37 +21,6 @@ function hydrated(actorCount = 11) {
   const context = open()
   context.room.hydrate({ epoch: uuid(0x900), ...aggregate(actorCount) })
   return context
-}
-
-/** One command: a Run patch, a movement insert (and an earlier movement's delete), and a record. */
-async function command(room: RoomEncounterStore, ordinal: number) {
-  await room.transact(async (transaction) => {
-    const run = await room.store
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', encounterId))
-      .unique()
-    await room.store.patch(run!._id, {
-      version: run!.version + 1,
-      stateJson: JSON.stringify({ ordinal })
-    })
-    await room.store.insert('encounterTurnMovements', {
-      encounterId,
-      round: 1 + ordinal,
-      turnActorId: uuid(0x100),
-      actorId: uuid(0x100 + (ordinal % 11)),
-      usedFeet: ordinal,
-      speedBonuses: 0
-    })
-    if (ordinal % 3 === 0) {
-      const [oldest] = await room.store.query('encounterTurnMovements').collect()
-      await room.store.delete(oldest!._id)
-    }
-    transaction.setRecord({
-      ...playState(ordinal % 6),
-      revision: null,
-      json: JSON.stringify({ streamVersion: ordinal })
-    })
-  })
 }
 
 /** A room that ran commands 1..count without ever sleeping: the reference a recovered room must match. */
@@ -161,7 +77,7 @@ describe('room Encounter store', () => {
     expect(room.usage.rowsWritten - before).toBe(1)
     await room.transact(async (transaction) => {
       transaction.record('CHARACTER_PLAY_STATE', playState(0).key)
-      await room.store.get('convex:run')
+      await room.store.query('encounterTurnMovements').collect()
     })
     expect(room.usage.rowsWritten - before).toBe(1)
     expect(room.sequence).toBe(1)
@@ -304,23 +220,30 @@ describe('room Encounter store', () => {
       expect(state(new RoomEncounterStore(storage))).toEqual(state(reference))
     })
 
-    it('refuses a damaged row that is not the last', async () => {
+    it('reports a damaged row that is not the last, and a hydrate supersedes the damage', async () => {
       const { database, storage, room } = hydrated()
       for (let ordinal = 1; ordinal <= 3; ordinal++) await command(room, ordinal)
       database.prepare("UPDATE room_writeset_log SET json = '[]' WHERE sequence = 2").run()
-      expect(() => new RoomEncounterStore(storage)).toThrow(RoomStoreCorruptError)
+      const damaged = new RoomEncounterStore(storage)
+      expect(damaged.corruption).toBeInstanceOf(RoomStoreCorruptError)
+      expect(damaged.epoch).toBeNull()
+      expect(damaged.documents('encounterRuns')).toEqual([])
+
+      damaged.hydrate({ epoch: uuid(0x901), ...aggregate(11) })
+      expect(damaged.corruption).toBeNull()
+      expect(state(new RoomEncounterStore(storage))).toEqual(state(damaged))
     })
 
-    it('refuses an incomplete or altered snapshot and a log without a snapshot', () => {
+    it('reports an incomplete or altered snapshot and a log without a snapshot', () => {
       const { database, storage } = hydrated(100)
       const parts = database.prepare('SELECT COUNT(*) AS parts FROM room_snapshot_chunks').get()
       expect(Number((parts as { parts: number }).parts)).toBeGreaterThan(1)
       database.prepare('DELETE FROM room_snapshot_chunks WHERE part = 1').run()
-      expect(() => new RoomEncounterStore(storage)).toThrow('incomplete')
+      expect(new RoomEncounterStore(storage).corruption?.message).toContain('incomplete')
 
       const altered = hydrated()
       altered.database.prepare("UPDATE room_snapshot_chunks SET content = 'x' || content").run()
-      expect(() => new RoomEncounterStore(altered.storage)).toThrow('checksum')
+      expect(new RoomEncounterStore(altered.storage).corruption?.message).toContain('checksum')
 
       const orphan = open()
       insertRow(orphan.database, {
@@ -329,7 +252,7 @@ describe('room Encounter store', () => {
         checksum: sha256Hex('[]'),
         chain: 'a'.repeat(64)
       })
-      expect(() => new RoomEncounterStore(orphan.storage)).toThrow('no snapshot')
+      expect(new RoomEncounterStore(orphan.storage).corruption?.message).toContain('no snapshot')
     })
   })
 

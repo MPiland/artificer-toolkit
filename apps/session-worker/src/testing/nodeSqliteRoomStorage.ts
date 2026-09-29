@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { DatabaseSync } from 'node:sqlite'
 import type { RoomSqlValue, RoomStorage } from '../roomEncounterStore.js'
 
@@ -9,7 +10,10 @@ import type { RoomSqlValue, RoomStorage } from '../roomEncounterStore.js'
 export function createNodeSqliteRoomStorage(database = new DatabaseSync(':memory:')) {
   const storage: RoomStorage = {
     sql: {
-      exec(query, ...bindings) {
+      exec(query, ...values) {
+        const bindings = values.map((value) =>
+          value instanceof ArrayBuffer ? new Uint8Array(value) : value
+        )
         const statement = database.prepare(query)
         if (statement.columns().length === 0) {
           const { changes } = statement.run(...bindings)
