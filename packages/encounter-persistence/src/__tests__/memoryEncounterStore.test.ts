@@ -164,6 +164,23 @@ describe('memory Encounter store', () => {
       source.transaction.abort()
     })
 
+    it('exposes open writes and restores counters past deleted documents', async () => {
+      const source = await seed()
+      source.transaction.begin()
+      const created = await source.store.insert('encounterTurnMovements', movement(3, 3))
+      expect(source.transaction.writes()).toHaveLength(1)
+      await source.store.delete(created)
+      source.transaction.commit()
+      const restored = createMemoryEncounterStore()
+      restored.load('encounterTurnMovements', source.documents('encounterTurnMovements'))
+      restored.restoreCounters(source.counters())
+      expect(restored.counters()).toEqual(source.counters())
+      expect(await restored.store.insert('encounterTurnMovements', movement(4, 4))).toBe(
+        await source.store.insert('encounterTurnMovements', movement(4, 4))
+      )
+      expect(() => restored.transaction.writes()).toThrow('No store transaction')
+    })
+
     it('replays without validation for a trusted restore and prefixes identities', async () => {
       const source = createMemoryEncounterStore({ idPrefix: 'room' })
       source.transaction.begin()

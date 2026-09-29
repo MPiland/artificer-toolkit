@@ -316,6 +316,17 @@ export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?:
     ) {
       for (const document of documents) restoreDocument(table, document, validate)
     },
+    /**
+     * The next creation time and identity ordinals. A snapshot carries them so a restore keeps
+     * issuing exactly the identities the live store would, even after its newest documents were deleted.
+     */
+    counters() {
+      return { clock, sequence }
+    },
+    restoreCounters(counters: { clock: number; sequence: number }) {
+      clock = Math.max(clock, counters.clock)
+      sequence = Math.max(sequence, counters.sequence)
+    },
     /** Drops every document and resets identities and creation times. */
     clear() {
       if (recording) throw new Error('Cannot clear the store inside a transaction.')
@@ -325,7 +336,10 @@ export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?:
       sequence = 0
     },
     /** Replays recorded writes, as `commit` returned them, with the identities they carry. */
-    apply(writes: readonly EncounterStoreWrite[], { validate = true }: { validate?: boolean } = {}) {
+    apply(
+      writes: readonly EncounterStoreWrite[],
+      { validate = true }: { validate?: boolean } = {}
+    ) {
       withValidation(validate, () => {
         for (const change of writes) {
           if (change.op === 'INSERT') {
@@ -352,6 +366,11 @@ export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?:
       begin() {
         if (recording) throw new Error('A store transaction is already open.')
         recording = { writes: [], undo: [], clock, sequence }
+      },
+      /** The writes made so far, in order, without ending the transaction. */
+      writes(): readonly EncounterStoreWrite[] {
+        if (!recording) throw new Error('No store transaction is open.')
+        return recording.writes
       },
       /** Ends the transaction and returns its writes in order. */
       commit() {
