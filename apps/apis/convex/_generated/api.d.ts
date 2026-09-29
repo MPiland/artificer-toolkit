@@ -64727,6 +64727,12 @@ export declare const internal: {
           updatedAt: string;
         }
       >;
+      held: FunctionReference<
+        "query",
+        "internal",
+        { campaignId: string },
+        boolean
+      >;
       release: FunctionReference<
         "mutation",
         "internal",
@@ -64802,6 +64808,12 @@ export declare const internal: {
             | { membershipEpoch: string; type: "EVICT_USER"; userId: string }
             | { type: "CLOSE_ROOM" }
             | {
+                scopes: Array<
+                  "CAMPAIGN" | "PLAY" | "CHARACTER" | "PREFERENCES"
+                >;
+                type: "INVALIDATE_INPUTS";
+              }
+            | {
                 actorUserId: string;
                 epoch: string;
                 input: {
@@ -64872,6 +64884,64 @@ export declare const internal: {
     };
     externalCommit: {
       resolve: FunctionReference<"mutation", "internal", any, any>;
+    };
+    roomAuthorization: {
+      read: FunctionReference<
+        "query",
+        "internal",
+        {
+          campaignId: string;
+          epoch: string;
+          known: {
+            campaign: string | null;
+            characters: Array<{ characterId: string; revision: string | null }>;
+            play: string | null;
+            preferences: string;
+          } | null;
+        },
+        {
+          campaign?: {
+            assignments: Array<{ characterId: string; userId: string }>;
+            members: Array<{
+              membershipEpoch: string;
+              role: "OWNER" | "PLAYER";
+              userId: string;
+            }>;
+            ownerUserId: string;
+          };
+          characters: Array<{
+            characterId: string;
+            ownerUserId: string;
+            partyVisibility: {
+              health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+              sheet: boolean;
+            };
+          }>;
+          play?: {
+            encounter: {
+              actors: Array<{
+                controllerUserIds: Array<string>;
+                healthDisplay:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
+                id: string;
+                kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                sourceId: string | null;
+              }>;
+              encounterId: string;
+              healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+              sceneId: string;
+              tokens: Array<{ actorId: string; tokenId: string }>;
+            } | null;
+          };
+          preferences?: Array<{ autoRollDice: boolean; userId: string }>;
+          revisions: {
+            campaign: string | null;
+            characters: Array<{ characterId: string; revision: string | null }>;
+            play: string | null;
+            preferences: string;
+          };
+        }
+      >;
     };
     state: {
       activate: FunctionReference<
@@ -65755,20 +65825,6 @@ export declare const internal: {
             system: string | null;
           } | null;
         }
-      >;
-      visionRevisions: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          expectedRole: "OWNER" | "PLAYER";
-          expectedUserId: string;
-          observedCharacterRevisions: Array<{
-            characterId: string;
-            revision: string | null;
-          }>;
-        },
-        { current: boolean }
       >;
     };
   };
