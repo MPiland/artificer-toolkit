@@ -4,11 +4,12 @@ import type { EncounterTableName } from '@artificer-toolkit/encounter-persistenc
 import {
   liveRoomInputsInputSchema,
   liveRoomInputsResponseSchema,
-  MAX_ROOM_INPUT_PAGE_DOCUMENTS,
+  type LiveRoomCharacterPart,
   type LiveRoomInputsCursor,
   type LiveRoomInputsResponse,
   type LiveRoomInputsScope
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
+import { MAX_ROOM_INPUT_PAGE_DOCUMENTS } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
@@ -37,7 +38,8 @@ type RunTableQuery = (
 
 /**
  * One page stays far below Convex's 8 MiB / 16384-document read limits and the 16 MiB return limit.
- * Pages are large because each is one Worker subrequest, and Workers Free allows 50 per request.
+ * The route joins consecutive pages into one response (`readRoomInputsBatch`), since each Worker
+ * call is a subrequest and Workers Free allows 50 per invocation.
  */
 const PAGE: Omit<PageOptions, 'cursor'> = {
   numItems: MAX_ROOM_INPUT_PAGE_DOCUMENTS,
@@ -206,7 +208,7 @@ async function readRunPage(
   if (!run || run.campaignId !== campaign.id) throw new Error('Encounter not found.')
   const isFirstPage = scope.cursor === null
   const { paginationCursor } = scope.cursor ?? { paginationCursor: null }
-  let tableIndex = scope.cursor?.tableIndex ?? 0
+  let tableIndex = scope.cursor?.position ?? 0
   if (tableIndex >= RUN_TABLES.length) throw new Error('Room input cursor is invalid.')
   // A table's continuation is never empty, so only a fresh table can be skipped.
   if (paginationCursor === null)
@@ -227,9 +229,9 @@ async function readRunPage(
   const page = await entry.query(ctx, run.id).paginate({ ...PAGE, cursor: paginationCursor })
   assertAdvances(page, paginationCursor)
   const continueCursor: LiveRoomInputsCursor = !page.isDone
-    ? { tableIndex, paginationCursor: page.continueCursor }
+    ? { position: tableIndex, paginationCursor: page.continueCursor }
     : tableIndex + 1 < RUN_TABLES.length
-      ? { tableIndex: tableIndex + 1, paginationCursor: null }
+      ? { position: tableIndex + 1, paginationCursor: null }
       : null
   return {
     kind: 'RUN',
@@ -239,34 +241,59 @@ async function readRunPage(
   }
 }
 
-async function readCharacterPage(
+/**
+ * One page of the request's Characters: the next page of the Character at the cursor's position. A
+ * Character the Campaign no longer has assigned reads as UNASSIGNED (its Run actor holds its frozen
+ * state); every other unreadable state fails, so a broken Character never hides behind a departure.
+ */
+async function readCharactersPage(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
-  scope: Extract<LiveRoomInputsScope, { kind: 'CHARACTER' }>
+  scope: Extract<LiveRoomInputsScope, { kind: 'CHARACTERS' }>
 ): Promise<LiveRoomInputsResponse> {
+  const position = scope.cursor?.position ?? 0
+  const requested = scope.characterIds[position]
+  if (!requested) throw new Error('Room input cursor is invalid.')
+  const characterId = requested.toLowerCase()
+  const assignment = await ctx.db
+    .query('campaignCharacterAssignments')
+    .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+    .unique()
+  const next: LiveRoomInputsCursor =
+    position + 1 < scope.characterIds.length
+      ? { position: position + 1, paginationCursor: null }
+      : null
+  if (assignment?.campaignId !== campaign.id)
+    return {
+      kind: 'CHARACTERS',
+      parts: [{ status: 'UNASSIGNED', characterId: requested }],
+      continueCursor: next
+    }
   // The Campaign owner reads for the room, as the Encounter captures do for a command scope.
-  const active = await readAssignedActiveCharacter(
-    ctx,
-    campaign,
-    scope.characterId,
-    campaign.ownerUserId
-  )
+  const active = await readAssignedActiveCharacter(ctx, campaign, characterId, campaign.ownerUserId)
   const paginationCursor = scope.cursor?.paginationCursor ?? null
   const page = await ctx.db
     .query('characterActiveRuleEffects')
     .withIndex('by_characterId_id', (q) => q.eq('characterId', active.id))
     .paginate({ ...PAGE, cursor: paginationCursor })
   assertAdvances(page, paginationCursor)
-  return {
-    kind: 'CHARACTER',
+  const part: LiveRoomCharacterPart = {
+    status: 'ASSIGNED',
+    characterId: requested,
     revisions: await readLiveSessionRulesRevisions(ctx, {
       systemId: active.systemId,
       campaignId: campaign.id,
       characterId: active.id
     }),
-    inputs: scope.cursor === null ? await readStoredCharacterInputs(ctx, active, campaign) : null,
-    documents: page.page.map((row) => toDocument('characterActiveRuleEffects', row)),
-    continueCursor: page.isDone ? null : { tableIndex: 0, paginationCursor: page.continueCursor }
+    // A continuation always carries a pagination cursor, so a null one starts the Character.
+    inputs:
+      paginationCursor === null ? await readStoredCharacterInputs(ctx, active, campaign) : null,
+    documents: page.page.map((row) => toDocument('characterActiveRuleEffects', row))
+  }
+  return {
+    kind: 'CHARACTERS',
+    parts: [part],
+    continueCursor: page.isDone ? next : { position, paginationCursor: page.continueCursor }
   }
 }
 
@@ -294,8 +321,8 @@ async function readRoomInputs(
       }
     case 'RUN':
       return readRunPage(ctx, campaign, scope)
-    case 'CHARACTER':
-      return readCharacterPage(ctx, campaign, scope)
+    case 'CHARACTERS':
+      return readCharactersPage(ctx, campaign, scope)
     case 'DEFINITION': {
       // Encounter rules resolve the Campaign's definitions as its owner, for players too.
       const root = await readDefinitionRoot(

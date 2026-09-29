@@ -208,13 +208,15 @@ export async function readAssignedActiveCharacter(
   return active
 }
 
-/** An admitted Character's stored rules inputs; the room's Character read returns the same. */
+/**
+ * An admitted Character's stored rules inputs; the room's Character read returns the same. Both
+ * callers have already refused an archived Campaign, so the result states `ACTIVE`.
+ */
 export async function readStoredCharacterInputs(
   ctx: QueryCtx,
   active: Doc<'characters'>,
   campaign: Doc<'campaigns'>
 ) {
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   return {
     character: deriveOnce(active, readCharacterRecord),
     updatedAt: active.updatedAt,
@@ -223,7 +225,7 @@ export async function readStoredCharacterInputs(
     sheetState: readCharacterSheetState(active),
     campaign: {
       id: campaign.id,
-      status: campaign.status,
+      status: 'ACTIVE' as const,
       contentMaturity: campaign.contentMaturity,
       attunementSlotOverride: campaign.attunementSlotOverride,
       state: (await readCampaignCharacterState(ctx, campaign.id, active.id)).state,

@@ -1,13 +1,18 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { z } from 'zod'
 import type {
   CampaignDetailDto,
-  CreateCampaignInput
+  CreateCampaignInput,
+  leaveCampaignInputSchema,
+  campaignMembershipDepartureResultSchema
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  LiveRoomInputsInput,
-  LiveRoomInputsResponse,
-  LiveRoomInputsScope
+import {
+  liveRoomActorSourceSchema,
+  liveRoomInputsResponseSchema,
+  type LiveRoomInputsInput,
+  type LiveRoomInputsResponse,
+  type LiveRoomInputsScope
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -20,6 +25,16 @@ const read = makeFunctionReference<'query', LiveRoomInputsInput, LiveRoomInputsR
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
+const leave = makeFunctionReference<
+  'mutation',
+  z.input<typeof leaveCampaignInputSchema>,
+  z.output<typeof campaignMembershipDepartureResultSchema>
+>('campaigns/membershipDeparture:leave')
+const secret = 'private-room-inputs-test-secret-at-least-32-bytes'
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 async function setup() {
   const base = await setupCharacterRun()
@@ -51,7 +66,10 @@ async function setup() {
     } while (cursor)
     return pages
   }
-  return { ...base, epoch, request, runPages }
+  const characters = (
+    cursor: Extract<LiveRoomInputsScope, { kind: 'CHARACTERS' }>['cursor'] = null
+  ) => request({ kind: 'CHARACTERS', characterIds: [base.character.id], cursor })
+  return { ...base, epoch, request, characters, runPages }
 }
 
 describe('live room inputs (ADR 0035 S2)', () => {
@@ -96,38 +114,113 @@ describe('live room inputs (ADR 0035 S2)', () => {
         base.request({
           kind: 'RUN',
           encounterId: base.run.id,
-          cursor: { tableIndex: 999, paginationCursor: null }
+          cursor: { position: 999, paginationCursor: null }
         })
       )
     ).rejects.toThrow('cursor is invalid')
   })
 
-  it('serves the Character inputs on the first page only', async () => {
+  it('serves a Character as one part, with its inputs on the first page only', async () => {
     const base = await setup()
-    const first = await base.t.query(
-      read,
-      base.request({ kind: 'CHARACTER', characterId: base.character.id, cursor: null })
-    )
-    if (first.kind !== 'CHARACTER') throw new Error('Expected a Character page.')
-    expect(first.inputs).toMatchObject({
+    const first = await base.t.query(read, base.characters())
+    if (first.kind !== 'CHARACTERS') throw new Error('Expected a Characters page.')
+    const [part] = first.parts
+    if (part?.status !== 'ASSIGNED') throw new Error('Expected an assigned Character.')
+    expect(part.characterId).toBe(base.character.id)
+    expect(part.inputs).toMatchObject({
       character: expect.any(Object),
       campaign: { id: base.campaign.id }
     })
     expect(first.continueCursor).toBeNull()
-    expect(first.revisions).toContainEqual(
+    expect(part.revisions).toContainEqual(
       expect.objectContaining({ scope: 'CHARACTER', id: base.character.id })
     )
+  })
 
-    const later = await base.t.query(
-      read,
-      base.request({
-        kind: 'CHARACTER',
-        characterId: base.character.id,
-        cursor: { tableIndex: 0, paginationCursor: null }
+  it('rejects a Characters cursor past the requested list', async () => {
+    const base = await setup()
+    await expect(
+      base.t.query(read, base.characters({ position: 1, paginationCursor: null }))
+    ).rejects.toThrow('cursor is invalid')
+  })
+
+  it('serves a route response as one call with every Run page joined', async () => {
+    const base = await setup()
+    vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)
+    const post = (body: LiveRoomInputsInput) =>
+      base.owner.caller.fetch('/live-sessions/room-inputs', {
+        method: 'POST',
+        headers: { 'x-artificer-live-session-secret': secret },
+        body: JSON.stringify(body)
       })
+    const response = await post(
+      base.request({ kind: 'RUN', encounterId: base.run.id, cursor: null })
     )
-    if (later.kind !== 'CHARACTER') throw new Error('Expected a Character page.')
-    expect(later.inputs).toBeNull()
+    expect(response.status).toBe(200)
+    const batched = liveRoomInputsResponseSchema.parse(await response.json())
+    if (batched.kind !== 'RUN') throw new Error('Expected a Run response.')
+    const pages = await base.runPages()
+    expect(pages.length).toBeGreaterThan(1)
+    expect(batched.continueCursor).toBeNull()
+    expect(batched.documents).toEqual(pages.flatMap((page) => page.documents))
+
+    const characters = await post(base.characters())
+    expect(characters.status).toBe(200)
+    expect(liveRoomInputsResponseSchema.parse(await characters.json())).toMatchObject({
+      kind: 'CHARACTERS',
+      parts: [{ status: 'ASSIGNED', characterId: base.character.id }],
+      continueCursor: null
+    })
+  })
+
+  describe('a Character that left the Campaign', () => {
+    async function departed() {
+      const base = await setup()
+      const { version, accessStartedAt } = await base.t.run(async (ctx) => {
+        const campaign = await ctx.db
+          .query('campaigns')
+          .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+          .unique()
+        const membership = await ctx.db
+          .query('campaignMemberships')
+          .withIndex('by_campaignId_userId', (q) =>
+            q.eq('campaignId', base.campaign.id).eq('userId', base.player.userId)
+          )
+          .unique()
+        if (!campaign || !membership) throw new Error('Fixture Campaign is unavailable.')
+        return { version: campaign.version, accessStartedAt: membership.accessStartedAt }
+      })
+      await base.player.caller.mutation(leave, {
+        campaignId: base.campaign.id,
+        expectedCampaignVersion: version,
+        expectedMembershipAccessStartedAt: accessStartedAt,
+        commandId: crypto.randomUUID()
+      })
+      return base
+    }
+
+    it('reads as UNASSIGNED while its Run actor holds the frozen state', async () => {
+      const base = await departed()
+      expect(await base.t.query(read, base.characters())).toEqual({
+        kind: 'CHARACTERS',
+        parts: [{ status: 'UNASSIGNED', characterId: base.character.id }],
+        continueCursor: null
+      })
+
+      const actors = (await base.runPages())
+        .flatMap((page) => page.documents)
+        .filter((document) => document.table === 'encounterRunActors')
+        .map((document) =>
+          liveRoomActorSourceSchema.parse(JSON.parse(String(document.fields.stateJson)))
+        )
+      expect(actors).toContainEqual(
+        expect.objectContaining({
+          kind: 'CHARACTER',
+          sourceId: base.character.id,
+          frozenState: expect.any(Object)
+        })
+      )
+    })
   })
 
   it('serves the Campaign play scope, the System and its vocabulary', async () => {
@@ -216,12 +309,17 @@ describe('live room inputs (ADR 0035 S2)', () => {
       await expect(
         base.t.query(read, asOther({ kind: 'RUN', encounterId: base.run.id, cursor: null }))
       ).rejects.toThrow('Encounter not found')
-      await expect(
-        base.t.query(
+      // Another Campaign's Character is not assigned here, so it reads as UNASSIGNED, not as data.
+      expect(
+        await base.t.query(
           read,
-          asOther({ kind: 'CHARACTER', characterId: base.character.id, cursor: null })
+          asOther({ kind: 'CHARACTERS', characterIds: [base.character.id], cursor: null })
         )
-      ).rejects.toThrow()
+      ).toEqual({
+        kind: 'CHARACTERS',
+        parts: [{ status: 'UNASSIGNED', characterId: base.character.id }],
+        continueCursor: null
+      })
       // The first Campaign's epoch does not open the other Campaign.
       await expect(
         base.t.query(read, {

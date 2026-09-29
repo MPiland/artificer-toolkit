@@ -1,5 +1,11 @@
 import { constantTimeEqual } from 'better-auth/crypto'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
+import {
+  liveRoomInputsInputSchema,
+  type LiveRoomInputsInput,
+  type LiveRoomInputsResponse
+} from '@artificer-toolkit/schema/api/liveRoomInputs'
+import { readRoomInputsBatch } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { z } from 'zod'
@@ -24,7 +30,7 @@ const release = makeFunctionReference<'mutation', JsonObject, unknown>(
 const roomAuthorization = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/roomAuthorization:read'
 )
-const roomInputs = makeFunctionReference<'query', JsonObject, unknown>(
+const roomInputs = makeFunctionReference<'query', LiveRoomInputsInput, LiveRoomInputsResponse>(
   'liveSessions/roomInputs:read'
 )
 const characterRules = makeFunctionReference<'query', JsonObject, unknown>(
@@ -113,7 +119,11 @@ export const roomAuthorizationHttp = liveStateHttp(
 export const roomInputsHttp = liveStateHttp(
   false,
   'Live Session room inputs unavailable.',
-  (ctx, input) => ctx.runQuery(roomInputs, input)
+  (ctx, input) =>
+    readRoomInputsBatch(
+      (page) => ctx.runQuery(roomInputs, page),
+      liveRoomInputsInputSchema.parse(input)
+    )
 )
 export const characterRulesHttp = liveStateHttp(
   true,
