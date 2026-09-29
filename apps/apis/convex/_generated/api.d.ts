@@ -64723,6 +64723,37 @@ export declare const internal: {
         }
       >;
     };
+    roomInputs: {
+      read: FunctionReference<
+        "query",
+        "internal",
+        {
+          campaignId: string;
+          epoch: string;
+          scope:
+            | { kind: "CAMPAIGN_PLAY" }
+            | {
+                cursor: {
+                  paginationCursor: string | null;
+                  position: number;
+                } | null;
+                encounterId: string;
+                kind: "RUN";
+              }
+            | {
+                characterIds: Array<string>;
+                cursor: {
+                  paginationCursor: string | null;
+                  position: number;
+                } | null;
+                kind: "CHARACTERS";
+              }
+            | { definitionId: string; kind: "DEFINITION" }
+            | { kind: "SYSTEM"; part: "SYSTEM" | "VOCABULARY" };
+        },
+        any
+      >;
+    };
     state: {
       activate: FunctionReference<
         "mutation",
