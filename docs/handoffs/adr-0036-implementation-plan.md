@@ -168,8 +168,8 @@ Implemented locally (2026-09-29). Contract and behavior are in [persistence.md](
 - **Removed:** `content/catalogue:list`, `search` and `summary`, their schemas' page and total counters, the ranked-search UI, the paging regions and 48-row pagination on the list pages, and the browse and search tests that only exercised them. Publication and development tests read through `readVisibleCatalogue`.
 - **Added:** the `list` part, `contentSnapshots/manifest:catalogue`, `useContentCatalogue`, the `updating` state, and the CLI-only `content/development:listOwnedFixtureSubjects` for the development drivers.
 - **Deviations from the ADR:** the Spell School label is denormalized into the list entry (remove when D67's `SYSTEM` scope lands); search is a local substring match, not the ranked Convex index.
-- **Local data:** heads now require the `list` part, so the local snapshot tables must be reset or rebuilt. This could not be done here (no Docker).
-- **Not run here:** the local Convex codegen push (no Docker), so `apps/apis/convex/_generated/api.d.ts` was edited by hand and must be regenerated once; the live-backend Playwright four-page Equipment search proof was removed with paging.
+- **Local data:** heads now require the `list` part. `contentSnapshots/migrations:rebuild` rebuilt the local SRD head on 2026-09-29 (8 kinds, each with `list`); see [persistence.md](../architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11--local-implementation).
+- **Removed proof:** the live-backend Playwright four-page Equipment search proof went with paging.
 - **Follow-up:** delete the orphaned projection only the retired endpoints read (`catalogueMetadata.ts`, `catalogueFamilies.ts`, `authoredCatalogueOwnerCounts`, the `by_*_name_id` and `search_catalogue` indexes, `catalogueSearchBackfill.ts`, `spellClasses`). `counts` stays for the development drivers and publication tests until they read the snapshots.
 
 ## Budgets (estimates to verify in the slices)
