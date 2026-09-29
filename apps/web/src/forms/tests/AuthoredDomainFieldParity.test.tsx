@@ -48,6 +48,17 @@ const SYSTEM_MANAGED_PATH_KEYS = new Set([
 ])
 
 const scenarios = createBranchScenarios()
+// One case per resolved context: rendering a whole scenario in a single test made the
+// heaviest ones (equipment: 23 contexts) run ~10s alone and time out under CPU load.
+const registrationCases = scenarios.flatMap((scenario) =>
+  collectResolvedParity(
+    scenario.domain,
+    toActualFormValues(scenario.domain, parseScenarioRecord(scenario))
+  ).contexts.map((context, index) => ({
+    context,
+    name: `${scenario.label} registers every visible resolved node of ${context.model.mapId} context ${index} with TanStack Form`
+  }))
+)
 const RegistrationRenderer = FormRenderer<Record<string, unknown>>({ defaultValues: {} })
 
 afterEach(cleanup)
@@ -66,7 +77,7 @@ describe('authored domain schema, adapter, node, and field parity', () => {
 
     render(
       <TestRouterProvider>
-        <RegistrationHarness index={0} model={rootContext.model} values={formValues} />
+        <RegistrationHarness model={rootContext.model} values={formValues} />
       </TestRouterProvider>
     )
 
@@ -93,52 +104,29 @@ describe('authored domain schema, adapter, node, and field parity', () => {
     }
   )
 
-  for (const scenario of scenarios) {
-    it(
-      `${scenario.label} registers every visible resolved node with TanStack Form`,
-      async () => {
-        const parsedRecord = parseScenarioRecord(scenario)
-        const formValues = toActualFormValues(scenario.domain, parsedRecord)
-        const { contexts } = collectResolvedParity(scenario.domain, formValues)
+  for (const { context, name } of registrationCases) {
+    it(name, async () => {
+      render(
+        <TestRouterProvider>
+          <RegistrationHarness model={context.model} values={context.values} />
+        </TestRouterProvider>
+      )
 
-        render(
-          <TestRouterProvider>
-            {contexts.map((context, index) => (
-              <RegistrationHarness
-                key={`${context.model.mapId}-${index}`}
-                index={index}
-                model={context.model}
-                values={context.values}
-              />
-            ))}
-          </TestRouterProvider>
+      const expectedFieldNames = getDirectRenderableFieldNames(context.model)
+      await waitFor(() => {
+        const registered = new Set<string>(
+          JSON.parse(screen.getByTestId('registered-fields').textContent ?? '[]')
         )
-
-        await waitFor(() => {
-          contexts.forEach((context, index) => {
-            const registered = new Set<string>(
-              JSON.parse(screen.getByTestId(`registered-fields-${index}`).textContent ?? '[]')
-            )
-            const expectedFieldNames = getDirectRenderableFieldNames(context.model)
-            expect(expectedFieldNames.filter((fieldName) => !registered.has(fieldName))).toEqual([])
-          })
-        })
-      },
-      scenario.label === 'spell material and deep effects'
-        ? 15_000
-        : scenario.domain === 'equipment'
-          ? 15_000
-          : 5_000
-    )
+        expect(expectedFieldNames.filter((fieldName) => !registered.has(fieldName))).toEqual([])
+      })
+    })
   }
 })
 
 function RegistrationHarness({
-  index,
   model,
   values
 }: {
-  index: number
   model: NodeRuntimeResolveResponseDto
   values: Record<string, unknown>
 }) {
@@ -160,9 +148,7 @@ function RegistrationHarness({
           resolveModel={false}
           updateAuthoringState={false}
         />
-        <output data-testid={`registered-fields-${index}`}>
-          {JSON.stringify(registeredFields)}
-        </output>
+        <output data-testid='registered-fields'>{JSON.stringify(registeredFields)}</output>
       </form.AppForm>
     </AuthoringLayout>
   )
