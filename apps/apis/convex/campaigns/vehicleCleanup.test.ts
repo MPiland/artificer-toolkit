@@ -138,7 +138,7 @@ async function setup(cargoItems = 36) {
     command: {
       type: 'ADD_INVENTORY_ITEM',
       commandId: crypto.randomUUID(),
-      expectedVersion: beforeBag.character!.streamVersion,
+      expectedVersion: beforeBag.character!.play.streamVersion,
       equipmentId: backpack.id,
       quantity: 1
     }
@@ -151,7 +151,7 @@ async function setup(cargoItems = 36) {
     command: {
       type: 'ADJUST_CURRENCY',
       commandId: crypto.randomUUID(),
-      expectedVersion: beforeCredit.character!.streamVersion,
+      expectedVersion: beforeCredit.character!.play.streamVersion,
       currencyId: denominationId,
       kind: 'RULESET',
       amount: 7,
@@ -171,7 +171,7 @@ async function setup(cargoItems = 36) {
       destination: { kind: 'VEHICLE', vehicleId: vehicle.id },
       itemId: bag.id,
       amount: 1,
-      expectedSourceVersion: beforeTransfer.character!.streamVersion,
+      expectedSourceVersion: beforeTransfer.character!.play.streamVersion,
       expectedDestinationVersion: 0,
       idempotencyKey: crypto.randomUUID()
     }

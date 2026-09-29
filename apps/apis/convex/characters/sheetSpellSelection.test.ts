@@ -19,6 +19,7 @@ import { api, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import * as builderContext from './builderContext'
+import { readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -71,10 +72,7 @@ async function fixture(usesSpellbook = true) {
   })
   const readState = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, character.id),
       receipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))

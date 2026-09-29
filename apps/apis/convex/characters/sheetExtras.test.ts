@@ -4,9 +4,8 @@ import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
@@ -20,6 +19,7 @@ import {
   insertAuthoredVersion,
   readPublishedDocument
 } from '../content/documents'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -63,16 +63,11 @@ async function fixture() {
   })
   const readState = () =>
     base.t.run(async (ctx) => {
-      const stored = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
+      const stored = await readCharacterRow(ctx, character.id)
       return {
         character: stored,
-        authored: stored ? characterAuthoredDtoSchema.parse(JSON.parse(stored.documentJson)) : null,
-        sheetState: stored?.sheetState
-          ? characterSheetStateSchema.parse(JSON.parse(stored.sheetState.documentJson))
-          : null,
+        authored: stored ? readCharacterRecord(stored) : null,
+        sheetState: stored ? readCharacterSheetState(stored) : null,
         receipts: await ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))

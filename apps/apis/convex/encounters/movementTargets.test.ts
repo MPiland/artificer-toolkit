@@ -405,7 +405,7 @@ describe('native movement target facts', () => {
       ).get(fixture.actor.id)
       return {
         currentHitPoints: loaded?.state.current,
-        streamVersion: loaded?.characterFacts?.active.streamVersion
+        streamVersion: loaded?.characterFacts?.active.play.streamVersion
       }
     })
     expect(target).toEqual({

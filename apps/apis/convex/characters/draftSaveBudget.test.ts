@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterDraftSaveInput } from '@artificer-toolkit/schema/api/characterDrafts'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
+import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { api } from '../_generated/api'
@@ -125,17 +125,8 @@ describe('Character draft autosave budget', () => {
     })
     const active = { ...character, label: 'Active wizard', status: 'ACTIVE' as const }
     await t.run((ctx) =>
-      ctx.db.insert('characters', {
-        id: active.id,
-        userId: active.userId,
-        systemId: active.systemId,
-        label: active.label,
-        status: 'ACTIVE',
-        streamVersion: 1,
+      insertActiveCharacterRecord(ctx, active, {
         createdAt: draft.createdAt!,
-        updatedAt: draft.createdAt!,
-        documentJson: canonicalizeRuleDocument(active),
-        checksum: checksumRuleDocument(active),
         maximumHitPoints: 22,
         walkingSpeed: 30
       })

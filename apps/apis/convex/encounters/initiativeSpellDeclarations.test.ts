@@ -33,6 +33,7 @@ import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { insertAuthoredVersion } from '../content/documents'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -254,10 +255,7 @@ describe('native initiative Spell declarations', () => {
     }
     const option = spellOption(pending)
     const beforeCharacter = await base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       receipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
@@ -315,10 +313,7 @@ describe('native initiative Spell declarations', () => {
     })
     expect(
       await base.t.run(async (ctx) => ({
-        character: await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-          .unique(),
+        character: await readCharacterRow(ctx, base.character.id),
         receipts: await ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))

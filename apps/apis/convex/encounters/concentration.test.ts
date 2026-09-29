@@ -1,9 +1,8 @@
 // @vitest-environment node
 import { expect, it, vi } from 'vitest'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   concentrationAction,
   concentrationRecords,
@@ -11,6 +10,7 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { api } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { storeRunAutomationMode } from '../../tests/fixtures/playerControl'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
@@ -64,7 +64,7 @@ it('pauses an Assisted concentration child and settles success without cleanup',
   })
   expect(parent.occurrence?.status).toBe('COMPLETE')
   const staged = await concentrationRecords(fixture)
-  expect(staged.character?.streamVersion).toBe(before.character!.streamVersion + 1)
+  expect(staged.character?.play.streamVersion).toBe(before.character!.play.streamVersion + 1)
   expect(staged.states.map((state) => state.id)).toContain(seeded.state.id)
   const pending = await fixture.owner.caller.query(
     api.encounters.pendingReads.pendingRuleOccurrence,
@@ -154,22 +154,23 @@ it('does not create a concentration child when finalized applied damage is zero'
   const fixture = await setupConcentration('PROMPT')
   const seeded = await seedConcentration(fixture)
   await fixture.t.run(async (ctx) => {
-    const characterRow = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-      .unique()
+    const characterRow = await readCharacterRow(ctx, fixture.character.id)
     if (!characterRow) throw new Error('Concentration target is unavailable.')
-    const character = characterAuthoredDtoSchema.parse(JSON.parse(characterRow.documentJson))
-    const nextCharacter = {
-      ...character,
-      state: {
-        ...character.state,
-        hitpoints: { ...character.state.hitpoints, current: 0 }
-      }
-    }
-    await ctx.db.patch(characterRow._id, {
-      documentJson: canonicalizeRuleDocument(nextCharacter),
-      checksum: checksumRuleDocument(nextCharacter)
+    const character = readCharacterRecord(characterRow)
+    const encoded = encodeCharacterRecord(characterRow, {
+      document: {
+        ...character,
+        state: {
+          ...character.state,
+          hitpoints: { ...character.state.hitpoints, current: 0 }
+        }
+      },
+      streamVersion: characterRow.play.streamVersion,
+      updatedAt: characterRow.updatedAt
+    })
+    await ctx.db.patch(characterRow.play._id, {
+      playJson: encoded.play.playJson,
+      checksum: encoded.play.checksum
     })
   })
   const before = await concentrationRecords(fixture)
@@ -285,10 +286,10 @@ it('cleans the exact concentration state on failure and preserves an independent
   expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_FAILURE' })
   const after = await concentrationRecords(fixture)
   expect(after.run?.version).toBe(staged.run!.version + 1)
-  expect(after.character?.streamVersion).toBe(staged.character!.streamVersion + 1)
+  expect(after.character?.play.streamVersion).toBe(staged.character!.play.streamVersion + 1)
   expect(after.states.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.effects.map((effect) => effect.id)).toEqual([seeded.independent.id])
-  const character = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
+  const character = readCharacterRecord(after.character!)
   expect(character.state.conditions?.map((condition) => condition.conditionTypeId)).toEqual([
     seeded.poisoned.id
   ])

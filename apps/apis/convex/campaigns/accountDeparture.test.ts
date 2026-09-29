@@ -85,6 +85,7 @@ async function setup() {
       inventories: await ctx.db.query('campaignPartyInventories').collect(),
       currencies: await ctx.db.query('campaignPartyCurrencies').collect(),
       characters: await ctx.db.query('characters').collect(),
+      plays: await ctx.db.query('characterPlayStates').collect(),
       profiles: await ctx.db.query('userProfiles').collect(),
       scheduled: await ctx.db.system.query('_scheduled_functions').collect()
     }))

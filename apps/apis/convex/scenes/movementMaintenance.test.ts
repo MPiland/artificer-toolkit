@@ -3,7 +3,6 @@ import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -13,7 +12,9 @@ import {
 } from '../../tests/fixtures/automaticSceneMovement'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
@@ -121,7 +122,7 @@ async function createDetachedCharacter(base: MaintainedBase) {
   const { readState } = await readySheetFixture({}, undefined, base)
   const stored = (await readState()).character
   if (!stored) throw new Error('Detached Character fixture is unavailable.')
-  return { id: stored.id, streamVersion: stored.streamVersion }
+  return { id: stored.id, streamVersion: stored.play.streamVersion }
 }
 
 async function seedDetachedPassageDependents(
@@ -181,23 +182,15 @@ async function seedDetachedPassageDependents(
       lifecycle: laterTemplate.lifecycle,
       maintainedEffectStateId: laterState.id
     })
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', character.id))
-      .unique()
-    if (!row) throw new Error('Copied detached Character is unavailable.')
-    const document = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
-    const conditioned = characterAuthoredDtoSchema.parse({
-      ...document,
-      state: {
-        ...document.state,
-        conditions: [{ conditionTypeId: blinded.id }, { conditionTypeId: poisoned.id }]
-      }
-    })
-    await ctx.db.patch(row._id, {
-      documentJson: canonicalizeRuleDocument(conditioned),
-      checksum: checksumRuleDocument(conditioned)
-    })
+    await editCharacterRecord(ctx, character.id, (document) =>
+      characterAuthoredDtoSchema.parse({
+        ...document,
+        state: {
+          ...document.state,
+          conditions: [{ conditionTypeId: blinded.id }, { conditionTypeId: poisoned.id }]
+        }
+      })
+    )
     return {
       primaryStateId: primaryState.id,
       laterStateId: laterState.id,
@@ -213,10 +206,7 @@ async function passageRecords(base: MaintainedBase, characterId: string) {
   const encounter = await gameplay(base)
   return base.t.run(async (ctx) => ({
     encounter,
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterId))
-      .unique(),
+    character: await readCharacterRow(ctx, characterId),
     characterEffects: await ctx.db
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', characterId))
@@ -550,8 +540,8 @@ it('carries detached Character maintenance through a non-pausing passage to the 
   const published = await passage.publish()
   const after = await passageRecords(base, character.id)
   if (!after.character) throw new Error('Published detached Character is unavailable.')
-  expect(after.character.streamVersion).toBe(character.streamVersion + 2)
-  const document = characterAuthoredDtoSchema.parse(JSON.parse(after.character.documentJson))
+  expect(after.character.play.streamVersion).toBe(character.streamVersion + 2)
+  const document = readCharacterRecord(after.character)
   expect(document.state.conditions).toEqual([])
   expect(after.characterEffects).toEqual([])
   expect(after.encounter.maintainedStates).toHaveLength(2)

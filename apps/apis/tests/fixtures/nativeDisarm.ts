@@ -46,6 +46,7 @@ import {
 import type { QueryCtx } from '../../convex/_generated/server'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { readCharacterRow } from '../../convex/characters/stateDocuments'
 import { prepareNativeActionEconomy } from '../../convex/encounters/actionEconomy'
 import { prepareNativeEncounterActionMechanics } from '../../convex/encounters/actionMechanicsPreparation'
 import { readNativeActionSceneContext } from '../../convex/encounters/actionSceneContext'
@@ -364,10 +365,7 @@ export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarm
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
         .collect(),
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       characterReceipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))

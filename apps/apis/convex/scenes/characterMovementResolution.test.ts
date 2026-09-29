@@ -18,7 +18,6 @@ import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -28,7 +27,6 @@ import {
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -43,9 +41,15 @@ import {
   createDnd5eOpportunityReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { api, components, internal } from '../_generated/api'
+import {
+  joinCharacterPlay,
+  readCharacterRecord,
+  readCharacterRow
+} from '../characters/stateDocuments'
 import { sourceImportBatches } from '../content/importBatches'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { reactionBinding } from '../../tests/fixtures/reactionBinding'
@@ -211,23 +215,15 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
   const futurePlayer = futureReactor ? await addPlayer(base) : null
   if (futurePlayer && second)
     await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', second.character.id))
-        .unique()
+      const row = await readCharacterRow(ctx, second.character.id)
       const route = await ctx.db
         .query('authoredRouteIds')
         .withIndex('by_subjectId', (q) => q.eq('subjectId', second.character.id))
         .unique()
       if (!row || !route) throw new Error('Missing future Character.')
-      const character = characterAuthoredDtoSchema.parse({
-        ...JSON.parse(row.documentJson),
+      await writeCharacterRecord(ctx, row, {
+        document: readCharacterRecord(row),
         userId: futurePlayer.userId
-      })
-      await ctx.db.patch(row._id, {
-        userId: futurePlayer.userId,
-        documentJson: JSON.stringify(character),
-        checksum: checksumRuleDocument(character)
       })
       await ctx.db.patch(route._id, { ownerUserId: futurePlayer.userId })
     })
@@ -558,7 +554,9 @@ function decline(
 
 async function gameplayRows(value: Awaited<ReturnType<typeof setup>>) {
   return value.base.t.run(async (ctx) => ({
-    characters: await ctx.db.query('characters').collect(),
+    characters: await Promise.all(
+      (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+    ),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
     runCommands: await ctx.db.query('encounterRunCommands').collect(),
@@ -578,7 +576,9 @@ async function gameplayRows(value: Awaited<ReturnType<typeof setup>>) {
 
 async function reactionMechanics(value: Awaited<ReturnType<typeof setup>>) {
   return value.base.t.run(async (ctx) => ({
-    characters: await ctx.db.query('characters').collect(),
+    characters: await Promise.all(
+      (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+    ),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
     receipts: await ctx.db.query('encounterRuleReceipts').collect(),
@@ -601,12 +601,9 @@ async function advanceFutureCharacterSource(value: Awaited<ReturnType<typeof set
   // A Character write through the tracked writer advances its rules revision, as play does.
   await value.base.t.run(async (rawCtx) => {
     const ctx = withSceneVisionTracking(rawCtx)
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', value.futureCharacter!.id))
-      .unique()
+    const row = await readCharacterRow(ctx, value.futureCharacter!.id)
     if (!row) throw new Error('Missing future Character source record.')
-    await ctx.db.patch(row._id, { streamVersion: row.streamVersion + 1 })
+    await ctx.db.patch(row.play._id, { streamVersion: row.play.streamVersion + 1 })
   })
 }
 
@@ -816,12 +813,9 @@ describe('native Character movement-decision authority', () => {
       await value.base.t.run(async (rawCtx) => {
         const ctx = withSceneVisionTracking(rawCtx)
         if (stale === 'source') {
-          const row = await ctx.db
-            .query('characters')
-            .withIndex('by_publicId', (q) => q.eq('id', value.first.id))
-            .unique()
+          const row = await readCharacterRow(ctx, value.first.id)
           if (!row) throw new Error('Missing current Character source.')
-          await ctx.db.patch(row._id, { streamVersion: row.streamVersion + 1 })
+          await ctx.db.patch(row.play._id, { streamVersion: row.play.streamVersion + 1 })
           return
         }
         if (stale === 'scene') {

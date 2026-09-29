@@ -5,11 +5,11 @@ import type {
   CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { api } from '../_generated/api'
 import { readySheetFixture as fixture } from '../../tests/fixtures/readyCharacter'
 import { input } from '../../tests/fixtures/characters'
+import { readCharacterRecord } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -23,7 +23,7 @@ describe('native personal Sheet command transactions', () => {
   it('does not persist read-time Builder reconciliation through an unrelated Sheet command', async () => {
     const { t, owner, character, readState } = await fixture()
     const stored = await readState()
-    const before = characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson))
+    const before = readCharacterRecord(stored.character!)
     // A previously selected ancestry no longer exists on the current published Human.
     before.intent.ancestrySelections = [
       {
@@ -34,11 +34,15 @@ describe('native personal Sheet command transactions', () => {
         timing: { kind: 'IMMEDIATE' }
       }
     ]
-    const encoded: unknown = JSON.parse(JSON.stringify(before))
+    const encoded = encodeCharacterRecord(stored.character!, {
+      document: before,
+      streamVersion: stored.character!.play.streamVersion,
+      updatedAt: stored.character!.updatedAt
+    })
     await t.run((ctx) =>
       ctx.db.patch(stored.character!._id, {
-        documentJson: canonicalizeRuleDocument(encoded),
-        checksum: checksumRuleDocument(encoded)
+        documentJson: encoded.documentJson,
+        checksum: encoded.checksum
       })
     )
     const spy = vi.spyOn(projection, 'projectCharacterSheetBundle')
@@ -53,11 +57,11 @@ describe('native personal Sheet command transactions', () => {
     })
     expect(spy.mock.calls[0]?.[0].character.intent.ancestrySelections).toBeUndefined()
     const after = await readState()
-    const persisted = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
+    const persisted = readCharacterRecord(after.character!)
     expect(persisted.intent).toEqual(before.intent)
     expect(persisted.profile).toEqual(before.profile)
     expect(persisted.state.inspiration).toBe(true)
-    expect(after.character?.streamVersion).toBe(2)
+    expect(after.character?.play.streamVersion).toBe(2)
     expect(after.receipts).toHaveLength(1)
   })
 
@@ -83,7 +87,7 @@ describe('native personal Sheet command transactions', () => {
     })
     let stored = await readState()
     expect(stored.receipts).toHaveLength(1)
-    const authored = characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson))
+    const authored = readCharacterRecord(stored.character!)
     expect(authored.state.notes).toHaveLength(1)
     expect(authored.state.notes?.[0]).toMatchObject({ title: 'Private plan', body: 'Meet at dawn' })
     expect(authored.state.noteGroups).toHaveLength(1)
@@ -200,11 +204,9 @@ describe('native personal Sheet command transactions', () => {
     )
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
     const after = await readState()
-    expect(after.character?.streamVersion).toBe(3)
+    expect(after.character?.play.streamVersion).toBe(3)
     expect(after.receipts).toHaveLength(2)
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson)).state.notes
-    ).toHaveLength(1)
+    expect(readCharacterRecord(after.character!).state.notes).toHaveLength(1)
   })
 
   it('rolls back state and receipt when projection fails after the state write', async () => {
@@ -233,7 +235,7 @@ describe('native personal Sheet command transactions', () => {
     expect(await readState()).toEqual(before)
   })
 
-  it('preserves working drafts but makes their pre-command commit baseline stale', async () => {
+  it('preserves working drafts but makes their pre-command commit baseline stale after a structural command', async () => {
     const { owner, character, readState } = await fixture()
     const draft = await owner.caller.mutation(api.characters.drafts.create, {
       ...input(),
@@ -242,10 +244,10 @@ describe('native personal Sheet command transactions', () => {
     const result = await owner.caller.mutation(execute, {
       id: character.id,
       command: {
-        type: 'SET_INSPIRATION',
+        type: 'CREATE_NOTE_GROUP',
         commandId: crypto.randomUUID(),
         expectedVersion: 1,
-        inspired: true
+        label: 'Plans'
       }
     })
     expect(result.sheet.meta.hasBuilderDraft).toBe(true)
@@ -285,8 +287,7 @@ describe('native personal Sheet command transactions', () => {
       }
     })
     let stored = await readState()
-    const noteId = characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson))
-      .state.notes?.[0]?.id
+    const noteId = readCharacterRecord(stored.character!).state.notes?.[0]?.id
     if (!noteId) throw new Error('Missing created note')
     await owner.caller.mutation(execute, {
       id: character.id,
@@ -312,9 +313,7 @@ describe('native personal Sheet command transactions', () => {
       }
     })
     stored = await readState()
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson)).state.notes?.[0]
-    ).toMatchObject({
+    expect(readCharacterRecord(stored.character!).state.notes?.[0]).toMatchObject({
       id: noteId,
       title: 'Revised',
       body: 'Private',
@@ -352,11 +351,11 @@ describe('native personal Sheet command transactions', () => {
       }
     })
     stored = await readState()
-    const final = characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson))
+    const final = readCharacterRecord(stored.character!)
     expect(final.state.notes ?? []).toEqual([])
     expect(final.state.noteGroups ?? []).toEqual([])
     expect(stored.receipts).toHaveLength(6)
-    expect(stored.character?.streamVersion).toBe(7)
+    expect(stored.character?.play.streamVersion).toBe(7)
   })
 
   it('rejects corrupted replay history without mutating the aggregate', async () => {

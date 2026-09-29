@@ -7,7 +7,6 @@ import {
   type EncounterExecuteInput,
   type ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
@@ -21,6 +20,7 @@ import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/enco
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const creatureId = '00000000-0000-4000-8000-0000000008d0'
@@ -298,10 +298,7 @@ async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
 
 async function stored(base: Awaited<ReturnType<typeof setup>>) {
   return base.t.run(async (ctx) => ({
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique(),
+    character: await readCharacterRow(ctx, base.character.id),
     effects: await ctx.db
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', base.character.id))
@@ -319,10 +316,9 @@ async function stored(base: Awaited<ReturnType<typeof setup>>) {
 
 function rawConditionIds(snapshot: Awaited<ReturnType<typeof stored>>) {
   if (!snapshot.character) throw new Error('Character condition fixture record is unavailable.')
-  return (
-    characterAuthoredDtoSchema.parse(JSON.parse(snapshot.character.documentJson)).state
-      .conditions ?? []
-  ).map((condition) => condition.conditionTypeId)
+  return (readCharacterRecord(snapshot.character).state.conditions ?? []).map(
+    (condition) => condition.conditionTypeId
+  )
 }
 
 function action(

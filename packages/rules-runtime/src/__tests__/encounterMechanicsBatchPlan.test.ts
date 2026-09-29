@@ -433,7 +433,7 @@ describe('Character mechanics batch plan', () => {
     }
   }
   const characterFacts = {
-    active: { id: CHARACTER_ID, streamVersion: STREAM_VERSION },
+    active: { id: CHARACTER_ID, play: { streamVersion: STREAM_VERSION } },
     character: document,
     sheetState: characterSheetStateSchema.parse({
       adjustments: [],
@@ -659,7 +659,7 @@ describe('0 hit points (D63)', () => {
       partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY
     })
     const facts = (current: number, conditions: { conditionTypeId: string }[]) => ({
-      active: { id: CHARACTER_ID, streamVersion: STREAM_VERSION },
+      active: { id: CHARACTER_ID, play: { streamVersion: STREAM_VERSION } },
       character: {
         ...empty,
         state: { ...empty.state, hitpoints: { current, temp: 0, hitDice: [] }, conditions }

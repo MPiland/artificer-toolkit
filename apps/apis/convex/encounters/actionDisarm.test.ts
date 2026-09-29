@@ -8,7 +8,6 @@ import {
   encounterPlayerProjectionDtoSchema
 } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { readEncounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -23,6 +22,7 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { withRoomConvex } from '../../tests/fixtures/liveSessionWorker'
 import { planNativeLiveDisarm } from '../../../session-worker/src/nativeDisarm'
 import { api, internal } from '../_generated/api'
+import { readCharacterRecord } from '../characters/stateDocuments'
 import * as rollRandom from '../lib/rollRandom'
 
 function evidence(
@@ -326,12 +326,8 @@ describe('room Disarm commands', () => {
     }
     const after = await disarmRecords(base)
     if (!before.character || !after.character) throw new Error('Missing Character records.')
-    const beforeCharacter = characterAuthoredDtoSchema.parse(
-      JSON.parse(before.character.documentJson)
-    )
-    const afterCharacter = characterAuthoredDtoSchema.parse(
-      JSON.parse(after.character.documentJson)
-    )
+    const beforeCharacter = readCharacterRecord(before.character)
+    const afterCharacter = readCharacterRecord(after.character)
     expect(after.character.userId).toBe(before.character.userId)
     expect(afterCharacter).toEqual({
       ...beforeCharacter,
@@ -343,7 +339,7 @@ describe('room Disarm commands', () => {
         }
       }
     })
-    expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
+    expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
     expect(contestedOutput(after).stateTransition).toMatchObject({
       kind: 'CHARACTER_ITEM_USE_STATE',
       characterId: base.character.id,
@@ -620,7 +616,9 @@ describe('room Disarm commands', () => {
       const character = staged.character!
       await assisted.t.run(async (ctx) => {
         if (state.kind === 'CHARACTER')
-          await ctx.db.patch(character._id, { streamVersion: character.streamVersion + 1 })
+          await ctx.db.patch(character.play._id, {
+            streamVersion: character.play.streamVersion + 1
+          })
         else {
           const changed = { ...state, currentHitPoints: state.currentHitPoints - 1 }
           await writeRunActor(ctx, row._id, changed)
@@ -631,7 +629,7 @@ describe('room Disarm commands', () => {
       expect(await disarmRecords(assisted)).toEqual(changed)
       await assisted.t.run(async (ctx) => {
         if (state.kind === 'CHARACTER')
-          await ctx.db.patch(character._id, { streamVersion: character.streamVersion })
+          await ctx.db.patch(character.play._id, { streamVersion: character.play.streamVersion })
         else
           await ctx.db.patch(row._id, {
             stateJson: row.stateJson,

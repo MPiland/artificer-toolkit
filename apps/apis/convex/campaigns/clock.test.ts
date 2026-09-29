@@ -477,6 +477,7 @@ describe('native Campaign clock', () => {
     })
     const beforeFailure = await base.t.run(async (ctx) => ({
       characters: await ctx.db.query('characters').collect(),
+      plays: await ctx.db.query('characterPlayStates').collect(),
       receipts: await ctx.db.query('characterCommandReceipts').collect(),
       clocks: await ctx.db.query('campaignClocks').collect(),
       events: await ctx.db.query('campaignEvents').collect(),
@@ -495,6 +496,7 @@ describe('native Campaign clock', () => {
     expect(
       await base.t.run(async (ctx) => ({
         characters: await ctx.db.query('characters').collect(),
+        plays: await ctx.db.query('characterPlayStates').collect(),
         receipts: await ctx.db.query('characterCommandReceipts').collect(),
         clocks: await ctx.db.query('campaignClocks').collect(),
         events: await ctx.db.query('campaignEvents').collect(),

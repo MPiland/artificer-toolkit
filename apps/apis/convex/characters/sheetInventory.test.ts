@@ -8,14 +8,14 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { api, internal } from '../_generated/api'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -55,10 +55,7 @@ async function fixture() {
   })
   const readState = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, character.id),
       receipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
@@ -69,14 +66,14 @@ async function fixture() {
 
 function stateOf(snapshot: Awaited<ReturnType<Awaited<ReturnType<typeof fixture>>['readState']>>) {
   if (!snapshot.character?.sheetState) throw new Error('Missing Sheet state')
-  return characterSheetStateSchema.parse(JSON.parse(snapshot.character.sheetState.documentJson))
+  return readCharacterSheetState(snapshot.character)
 }
 
 function authoredOf(
   snapshot: Awaited<ReturnType<Awaited<ReturnType<typeof fixture>>['readState']>>
 ) {
   if (!snapshot.character) throw new Error('Missing Character')
-  return characterAuthoredDtoSchema.parse(JSON.parse(snapshot.character.documentJson))
+  return readCharacterRecord(snapshot.character)
 }
 
 function inventoryItems(sheet: CharacterSheetResponseDto, equipmentId: string) {

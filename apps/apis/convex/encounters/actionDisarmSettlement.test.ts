@@ -3,7 +3,6 @@ import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
@@ -13,6 +12,7 @@ import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-da
 import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { createRulesRuntime } from '../../tests/fixtures/rulesRuntime'
 import { prepareStoredDisarm } from '../../tests/fixtures/nativeDisarm'
+import { readCharacterRecord } from '../characters/stateDocuments'
 import { settleDisarm } from './actionDisarmSettlement'
 
 async function settle(
@@ -161,10 +161,10 @@ describe('native Disarm preparation and settlement transactions', () => {
       )
       if (characterTarget) {
         if (!before.character || !after.character) throw new Error('Missing Character records.')
-        const prior = characterAuthoredDtoSchema.parse(JSON.parse(before.character.documentJson))
-        const current = characterAuthoredDtoSchema.parse(JSON.parse(after.character.documentJson))
+        const prior = readCharacterRecord(before.character)
+        const current = readCharacterRecord(after.character)
         expect(after.character.userId).toBe(before.character.userId)
-        expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
+        expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
         expect(current).toEqual({
           ...prior,
           state: {

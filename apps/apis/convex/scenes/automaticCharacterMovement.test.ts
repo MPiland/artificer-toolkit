@@ -5,6 +5,7 @@ import type {
   SceneGeometryExecuteInput
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { api } from '../_generated/api'
+import { joinCharacterPlay, readCharacterRow } from '../characters/stateDocuments'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -40,7 +41,9 @@ it.each(['ROOT', 'RESPONSE'] as const)(
     )
     const snapshot = () =>
       value.base.t.run(async (ctx) => ({
-        characters: await ctx.db.query('characters').collect(),
+        characters: await Promise.all(
+          (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+        ),
         characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
         runs: await ctx.db.query('encounterRuns').collect(),
         actors: await ctx.db.query('encounterRunActors').collect(),
@@ -87,9 +90,9 @@ it.each(['ROOT', 'RESPONSE'] as const)(
     const result = await publish()
     expect(result.occurrence?.pending?.kind).toBe('MOVEMENT_REACTION')
     const after = await snapshot()
-    expect(after.characters.find((row) => row.id === value.base.character.id)?.streamVersion).toBe(
-      beforeCharacter.streamVersion + 1
-    )
+    expect(
+      after.characters.find((row) => row.id === value.base.character.id)?.play.streamVersion
+    ).toBe(beforeCharacter.play.streamVersion + 1)
     expect(after.characterReceipts.length).toBe(before.characterReceipts.length + 1)
     expect(after.runs.find((row) => row.id === value.base.run.id)?.version).toBe(
       beforeRun.version + 1
@@ -102,8 +105,8 @@ it.each(['ROOT', 'RESPONSE'] as const)(
     expect(stored.characterTransitions).toEqual([
       {
         characterId: value.base.character.id,
-        beforeStreamVersion: beforeCharacter.streamVersion,
-        afterStreamVersion: beforeCharacter.streamVersion + 1
+        beforeStreamVersion: beforeCharacter.play.streamVersion,
+        afterStreamVersion: beforeCharacter.play.streamVersion + 1
       }
     ])
     await expect(publish()).resolves.toMatchObject({
@@ -172,7 +175,9 @@ it('replays player movement with the original private projection before and afte
   expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const snapshot = () =>
     value.base.t.run(async (ctx) => ({
-      characters: await ctx.db.query('characters').collect(),
+      characters: await Promise.all(
+        (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+      ),
       characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
       runs: await ctx.db.query('encounterRuns').collect(),
       actors: await ctx.db.query('encounterRunActors').collect(),
@@ -291,13 +296,7 @@ it("shows a player their own actor's turn movement against its Character walking
   const value = await setupAutomaticCharacterMovement(['CHOICE'])
   const moverId = value.base.mover.id
   const walkingSpeed = await value.base.t.run(
-    async (ctx) =>
-      (
-        await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', value.base.character.id))
-          .unique()
-      )?.walkingSpeed
+    async (ctx) => (await readCharacterRow(ctx, value.base.character.id))?.play.walkingSpeed
   )
   // The budget is the Character's stored walking speed.
   expect(walkingSpeed).toBeGreaterThan(0)

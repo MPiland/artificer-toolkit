@@ -10,7 +10,7 @@ import {
   seedTurnSaveEffect,
   turnCharacterEffectFixture
 } from '../../tests/fixtures/turnActiveEffectFixtures'
-import { readCharacterRecord } from './documents'
+import { readCharacterRow } from './stateDocuments'
 import { removeAccountPrivateCharacters } from './accountDeletion'
 
 const tableNames = Object.keys(schema.tables) as TableNames[]
@@ -37,12 +37,7 @@ async function prepare() {
 
   await base.t.run((ctx) => removeAccountCampaignMemberships(ctx, base.player.userId))
 
-  const active = await base.t.run((ctx) =>
-    ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
-  )
+  const active = await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
   if (!active) throw new Error('Missing deleting Character.')
   await base.player.caller.mutation(api.characters.drafts.create, {
     id: base.character.id,
@@ -58,7 +53,7 @@ async function prepare() {
     command: {
       type: 'SET_INSPIRATION',
       commandId: receiptCommandId,
-      expectedVersion: active.streamVersion,
+      expectedVersion: active.play.streamVersion,
       inspired: true
     }
   })
@@ -72,25 +67,28 @@ async function prepare() {
   const foreignEffectId = crypto.randomUUID()
   const foreignRollId = crypto.randomUUID()
   await base.t.run(async (ctx) => {
-    const current = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
+    const current = await readCharacterRow(ctx, base.character.id)
     if (!current) throw new Error('Missing current deleting Character.')
-    const character = {
-      ...readCharacterRecord(current),
+    const structure = {
+      ...(JSON.parse(current.documentJson) as Record<string, unknown>),
       id: foreignCharacterId,
       userId: base.owner.userId,
       label: 'Unrelated Character'
     }
-    const { _id: _currentId, _creationTime, ...fields } = current
+    const { _id: _currentId, _creationTime, play, ...fields } = current
+    const { _id: _playId, _creationTime: _playCreated, ...playFields } = play
     await ctx.db.insert('characters', {
       ...fields,
       id: foreignCharacterId,
       userId: base.owner.userId,
-      label: character.label,
-      documentJson: canonicalizeRuleDocument(character),
-      checksum: checksumRuleDocument(character)
+      label: 'Unrelated Character',
+      documentJson: canonicalizeRuleDocument(structure),
+      checksum: checksumRuleDocument(structure)
+    })
+    await ctx.db.insert('characterPlayStates', {
+      ...playFields,
+      characterId: foreignCharacterId,
+      userId: base.owner.userId
     })
     await ensureAuthoredRouteId(ctx, 'CHARACTER', foreignCharacterId, false, base.owner.userId)
     await createActiveRuleEffectStore(ctx).create({
@@ -172,6 +170,7 @@ describe('trusted private Character account cleanup', () => {
       )
       const remaining = await base.t.run(async (ctx) => ({
         characters: await ctx.db.query('characters').collect(),
+        playStates: await ctx.db.query('characterPlayStates').collect(),
         drafts: await ctx.db.query('characterDrafts').collect(),
         payloads: await ctx.db.query('characterDraftPayloads').collect(),
         routes: await ctx.db.query('authoredRouteIds').collect(),
@@ -188,6 +187,7 @@ describe('trusted private Character account cleanup', () => {
           .unique()
       }))
       expect(remaining.characters.some((row) => row.id === base.character.id)).toBe(false)
+      expect(remaining.playStates.some((row) => row.characterId === base.character.id)).toBe(false)
       expect(
         remaining.drafts.some(
           (row) =>
@@ -215,6 +215,11 @@ describe('trusted private Character account cleanup', () => {
       expect(remaining.profile?.entitlementUsage.personalCharacters).toBe(0)
       expect(remaining.characters).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: fixture.foreignCharacterId })])
+      )
+      expect(remaining.playStates).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ characterId: fixture.foreignCharacterId })
+        ])
       )
       expect(remaining.effects).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: fixture.foreignEffectId })])

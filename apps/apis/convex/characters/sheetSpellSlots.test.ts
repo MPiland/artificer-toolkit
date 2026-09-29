@@ -12,6 +12,7 @@ import * as projection from '@artificer-toolkit/rules-runtime/character/sheetPro
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -40,10 +41,7 @@ async function fixture() {
   })
   const readState = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, character.id),
       receipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
@@ -84,10 +82,10 @@ describe('native Character Sheet spell slots', () => {
     })
     expect(second.sheet.spells.slots[0]).toMatchObject({ used: 2, remaining: 0 })
     const after = await readState()
-    expect(JSON.parse(after.character!.documentJson).intent).toEqual(
-      JSON.parse(before.character!.documentJson).intent
+    expect(readCharacterRecord(after.character!).intent).toEqual(
+      readCharacterRecord(before.character!).intent
     )
-    expect(JSON.parse(after.character!.documentJson).state.spellSlots).toEqual([
+    expect(readCharacterRecord(after.character!).state.spellSlots).toEqual([
       { slotKey: 'STANDARD:1', used: 2 }
     ])
     for (const command of [
@@ -129,7 +127,7 @@ describe('native Character Sheet spell slots', () => {
       })
       expect(restored.sheet.spells.slots[0]).toMatchObject({ used: 2 - remaining, remaining })
     }
-    expect(JSON.parse((await readState()).character!.documentJson).state.spellSlots).toBeUndefined()
+    expect(readCharacterRecord((await readState()).character!).state.spellSlots).toBeUndefined()
   })
 
   it('rolls back slot usage, version, and receipt when the post-write projection fails', async () => {

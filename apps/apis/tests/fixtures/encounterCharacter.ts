@@ -94,7 +94,7 @@ export async function setupCharacterRun(
     campaign,
     run,
     actor,
-    characterStreamVersion: stored.streamVersion
+    characterStreamVersion: stored.play.streamVersion
   }
 }
 

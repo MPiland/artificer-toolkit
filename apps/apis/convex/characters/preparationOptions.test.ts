@@ -19,6 +19,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { api, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { readCharacterRow } from './stateDocuments'
 
 const getOptions = makeFunctionReference<
   'query',
@@ -221,24 +222,14 @@ describe('native personal Character Sheet preparation options', () => {
       mode: 'create',
       character
     })
-    const before = await base.t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-    )
+    const before = await base.t.run((ctx) => readCharacterRow(ctx, character.id))
     expect(
       (await base.owner.caller.query(getOptions, { id: committed.publicId }))!.classes
     ).toEqual([])
     expect(await base.other.caller.query(getOptions, { id: committed.publicId })).toBeNull()
     expect(await base.owner.caller.query(getOptions, { id: crypto.randomUUID() })).toBeNull()
     await expect(base.t.query(getOptions, { id: character.id })).rejects.toThrow()
-    const after = await base.t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-    )
+    const after = await base.t.run((ctx) => readCharacterRow(ctx, character.id))
     expect(after).toEqual(before)
   })
 })

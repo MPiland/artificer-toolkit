@@ -19,6 +19,7 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 import { encounterWriteTransaction } from './encounterPorts'
+import { readCharacterRow } from '../characters/stateDocuments'
 
 const lifecycle: ActiveRuleEffectLifecycleDto = { schemaVersion: 1, remainingTicks: 3 }
 type EmptyPolicy = 'V1' | 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
@@ -95,10 +96,7 @@ async function runState(fixture: Awaited<ReturnType<typeof setupCharacterRun>>) 
 
 async function records(fixture: Awaited<ReturnType<typeof setupCharacterRun>>) {
   return fixture.t.run(async (ctx) => ({
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique(),
+    character: await readCharacterRow(ctx, fixture.character.id),
     receipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', fixture.character.id))
@@ -178,16 +176,19 @@ describe('native actor maintained-effect cleanup', () => {
         characterOwnerTransitions: [
           {
             characterId: fixture.character.id,
-            beforeStreamVersion: before.character!.streamVersion,
-            afterStreamVersion: before.character!.streamVersion + 1
+            beforeStreamVersion: before.character!.play.streamVersion,
+            afterStreamVersion: before.character!.play.streamVersion + 1
           }
         ]
       })
       const after = await records(fixture)
       expect(after.character).toEqual({
         ...before.character,
-        streamVersion: before.character!.streamVersion + 1,
-        updatedAt: removed.projection.updatedAt
+        play: {
+          ...before.character!.play,
+          streamVersion: before.character!.play.streamVersion + 1,
+          updatedAt: removed.projection.updatedAt
+        }
       })
       expect(after.receipts).toEqual(before.receipts)
       expect(after.characterEffects).toEqual([])

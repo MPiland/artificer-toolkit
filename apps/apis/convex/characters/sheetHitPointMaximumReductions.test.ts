@@ -108,7 +108,7 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
       ]
     })
     // The stored column keeps the maximum before active-effect reductions.
-    expect((await fixture.readState()).character?.maximumHitPoints).toBe(baseMaximum)
+    expect((await fixture.readState()).character?.play.maximumHitPoints).toBe(baseMaximum)
 
     const encounter = await fixture.owner.caller.query(api.encounters.projectionReads.get, {
       encounterId: fixture.run.id
@@ -170,6 +170,6 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
       currentHitPoints: baseMaximum,
       maxHitPointsReductions: []
     })
-    expect((await fixture.readState()).character?.maximumHitPoints).toBe(baseMaximum)
+    expect((await fixture.readState()).character?.play.maximumHitPoints).toBe(baseMaximum)
   }, 30000)
 })

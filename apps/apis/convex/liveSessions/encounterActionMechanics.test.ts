@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 
 type Fixture = Awaited<ReturnType<typeof setupCharacterRun>>
@@ -72,10 +73,7 @@ async function stored(fixture: Fixture) {
           q.eq('encounterId', fixture.run.id).eq('id', fixture.actor.id)
         )
         .unique(),
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-        .unique(),
+      readCharacterRow(ctx, fixture.character.id),
       ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', fixture.character.id))
@@ -113,8 +111,8 @@ describe('applyLiveEncounterMechanicsBatch', () => {
     expect(after.run).toEqual(before.run)
     expect(JSON.parse(after.actor.stateJson)).toEqual(live.updatedActor)
     expect(after.actor.stateChecksum).toBe(checksumCanonicalJson(live.updatedActor))
-    expect(after.character.streamVersion).toBe(fixture.characterStreamVersion + 1)
-    expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
+    expect(after.character.play.streamVersion).toBe(fixture.characterStreamVersion + 1)
+    expect(readCharacterRecord(after.character).state.hitpoints.current).toBe(
       fixture.actor.currentHitPoints - 1
     )
     expect(after.receipts).toHaveLength(before.receipts.length + 1)
@@ -123,10 +121,7 @@ describe('applyLiveEncounterMechanicsBatch', () => {
       characterId: fixture.character.id,
       commandId: input.commandId
     })
-    if (!after.character.sheetState) throw new Error('Character Sheet state is unavailable.')
-    const sheet = characterSheetStateSchema.parse(
-      JSON.parse(after.character.sheetState.documentJson)
-    )
+    const sheet = readCharacterSheetState(after.character)
     expect(sheet.resourceUsage).toEqual([expect.objectContaining({ used: 1 })])
   })
 
@@ -146,7 +141,7 @@ describe('applyLiveEncounterMechanicsBatch', () => {
           forceVersionAdvance: true,
           applications: [],
           characterResourceConsumption: undefined,
-          effectiveMaximumHitPoints: committed.character.maximumHitPoints
+          effectiveMaximumHitPoints: committed.character.play.maximumHitPoints
         })
       )
     ).rejects.toThrow('Encounter Character outcome command already exists.')
@@ -168,8 +163,8 @@ describe('applyLiveEncounterMechanicsBatch', () => {
     expect(await stored(fixture)).toEqual(before)
 
     await fixture.t.run(async (ctx) => {
-      await ctx.db.patch(before.character._id, {
-        streamVersion: before.character.streamVersion + 1
+      await ctx.db.patch(before.character.play._id, {
+        streamVersion: before.character.play.streamVersion + 1
       })
     })
     const changed = await stored(fixture)

@@ -265,7 +265,7 @@ it('keeps Character Sheet commands in Convex while Scene authority is active and
     message: expect.stringContaining('Character Sheet changed')
   })
   const stored = await base.readState()
-  expect(stored.character?.streamVersion).toBe(4)
+  expect(stored.character?.play.streamVersion).toBe(4)
   expect(stored.receipts).toHaveLength(3)
   const authorityRow = await base.t.run((ctx) =>
     ctx.db

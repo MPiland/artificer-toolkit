@@ -10,7 +10,7 @@ import type {
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   createDnd5eMovementReactionChoiceDefinition,
@@ -27,6 +27,8 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
+import { joinCharacterPlay, readCharacterRecord } from '../characters/stateDocuments'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import {
@@ -258,7 +260,9 @@ async function resetAndDetachScene(value: Awaited<ReturnType<typeof setup>>) {
 
 async function snapshot(value: Awaited<ReturnType<typeof setup>>) {
   return value.t.run(async (ctx) => ({
-    characters: await ctx.db.query('characters').collect(),
+    characters: await Promise.all(
+      (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+    ),
     actors: await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.run.id))
@@ -343,23 +347,15 @@ it('settles present and detached Character maintenance once per used automatic c
         lifecycle: template.lifecycle
       })
       independentIds.push(independent.id)
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', characterId))
-        .unique()
-      if (!row) throw new Error('Missing Character owner.')
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
-      const updated = {
-        ...character,
-        state: {
-          ...character.state,
-          conditions: [{ conditionTypeId: blinded.id }, { conditionTypeId: poisoned.id }]
-        }
-      }
-      await ctx.db.patch(row._id, {
-        documentJson: canonicalizeRuleDocument(updated),
-        checksum: checksumRuleDocument(updated)
-      })
+      await editCharacterRecord(ctx, characterId, (character) =>
+        characterAuthoredDtoSchema.parse({
+          ...character,
+          state: {
+            ...character.state,
+            conditions: [{ conditionTypeId: blinded.id }, { conditionTypeId: poisoned.id }]
+          }
+        })
+      )
     }
     return { removedIds, independentIds }
   })
@@ -397,8 +393,8 @@ it('settles present and detached Character maintenance once per used automatic c
   const after = await snapshot(value)
   const presentAfter = after.characters.find((row) => row.id === value.character.id)!
   const detachedAfter = after.characters.find((row) => row.id === value.detached.id)!
-  expect.soft(presentAfter.streamVersion).toBe(presentBefore.streamVersion + 2)
-  expect.soft(detachedAfter.streamVersion).toBe(detachedBefore.streamVersion + 1)
+  expect.soft(presentAfter.play.streamVersion).toBe(presentBefore.play.streamVersion + 2)
+  expect.soft(detachedAfter.play.streamVersion).toBe(detachedBefore.play.streamVersion + 1)
   const finalEffectIds = after.characterEffects.map((effect) => effect.id)
   expect(finalEffectIds.filter((id) => seeded.removedIds.includes(id))).toEqual([])
   expect(finalEffectIds).toEqual(expect.arrayContaining(seeded.independentIds))
@@ -406,18 +402,18 @@ it('settles present and detached Character maintenance once per used automatic c
     expect.arrayContaining([
       {
         characterId: value.character.id,
-        beforeStreamVersion: presentBefore.streamVersion,
-        afterStreamVersion: presentBefore.streamVersion + 1
+        beforeStreamVersion: presentBefore.play.streamVersion,
+        afterStreamVersion: presentBefore.play.streamVersion + 1
       },
       {
         characterId: value.character.id,
-        beforeStreamVersion: presentBefore.streamVersion + 1,
-        afterStreamVersion: presentBefore.streamVersion + 2
+        beforeStreamVersion: presentBefore.play.streamVersion + 1,
+        afterStreamVersion: presentBefore.play.streamVersion + 2
       },
       {
         characterId: value.detached.id,
-        beforeStreamVersion: detachedBefore.streamVersion,
-        afterStreamVersion: detachedBefore.streamVersion + 1
+        beforeStreamVersion: detachedBefore.play.streamVersion,
+        afterStreamVersion: detachedBefore.play.streamVersion + 1
       }
     ])
   )
@@ -434,16 +430,13 @@ it('settles present and detached Character maintenance once per used automatic c
     expect(damage.beforeCurrentHitPoints - damage.afterCurrentHitPoints).toBe(1)
   }
   for (const row of [presentAfter, detachedAfter]) {
-    const character = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
+    const character = readCharacterRecord(row)
     expect(character.state.conditions?.map((condition) => condition.conditionTypeId)).toEqual([
       poisoned.id
     ])
   }
-  expect(
-    characterAuthoredDtoSchema.parse(JSON.parse(presentAfter.documentJson)).state.hitpoints.current
-  ).toBe(
-    characterAuthoredDtoSchema.parse(JSON.parse(presentBefore.documentJson)).state.hitpoints
-      .current - 2
+  expect(readCharacterRecord(presentAfter).state.hitpoints.current).toBe(
+    readCharacterRecord(presentBefore).state.hitpoints.current - 2
   )
   const actor = after.actors.find((row) => row.id === value.mover.id)!
   const actorState = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))

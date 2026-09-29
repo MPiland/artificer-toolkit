@@ -37,6 +37,7 @@ import { automaticChargedBiteFeatureId } from '../../tests/fixtures/encounterAct
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
@@ -74,14 +75,7 @@ async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>)
     actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []
   )
   return base.t.run(async (ctx) => ({
-    characters: await Promise.all(
-      characterIds.map((id) =>
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', id))
-          .unique()
-      )
-    ),
+    characters: await Promise.all(characterIds.map((id) => readCharacterRow(ctx, id))),
     characterEffects: (
       await Promise.all(
         characterIds.map((id) =>
@@ -334,7 +328,7 @@ describe('private DO turn active-effect terminal', () => {
       const characterBefore = before.characters[0]
       const characterAfter = after.characters[0]
       if (!characterBefore || !characterAfter) throw new Error('Expected Character rows.')
-      expect(characterAfter.streamVersion).toBe(characterBefore.streamVersion + 2)
+      expect(characterAfter.play.streamVersion).toBe(characterBefore.play.streamVersion + 2)
       expect(after.characterReceipts).toHaveLength(before.characterReceipts.length + 2)
       expect(after.characterEffects).toEqual([
         expect.objectContaining({
@@ -753,10 +747,9 @@ describe('native public turn active-effect journeys', () => {
     const characterBefore = before.characters[0]
     const characterAfter = terminal.characters[0]
     if (!characterBefore || !characterAfter) throw new Error('Expected the Character rows.')
-    expect(characterAfter.streamVersion).toBe(characterBefore.streamVersion + 1)
+    expect(characterAfter.play.streamVersion).toBe(characterBefore.play.streamVersion + 1)
     expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(characterAfter.documentJson)).state.hitpoints
-        .current
+      characterAuthoredDtoSchema.parse(readCharacterRecord(characterAfter)).state.hitpoints.current
     ).toBe(actor.currentHitPoints - 1)
     expect(terminal.characterEffects).toEqual([])
     expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length + 1)
@@ -848,10 +841,9 @@ describe('native public turn active-effect journeys', () => {
     const characterAfter = terminal.characters[0]
     if (!characterBefore || !characterAfter)
       throw new Error('Expected the authoritative Character rows.')
-    expect(characterAfter.streamVersion).toBe(characterBefore.streamVersion + 1)
+    expect(characterAfter.play.streamVersion).toBe(characterBefore.play.streamVersion + 1)
     expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(characterAfter.documentJson)).state.hitpoints
-        .current
+      characterAuthoredDtoSchema.parse(readCharacterRecord(characterAfter)).state.hitpoints.current
     ).toBe(actor.currentHitPoints - 1)
     expect(
       encounterGmProjectionDtoSchema.parse(settled.projection).actors[0]!.currentHitPoints

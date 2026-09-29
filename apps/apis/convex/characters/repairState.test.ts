@@ -1,10 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import {
+  encodeCharacterRecord,
+  type CharacterDocument
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { reconcileCharacterAuthoredSourceLoss } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { api } from '../_generated/api'
+import type { MutationCtx } from '../_generated/server'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, type CharacterRow } from './stateDocuments'
+
+/** Stores `document` as the Character's repair state: status DRAFT, clocks and stream untouched. */
+async function storeRepairState(ctx: MutationCtx, row: CharacterRow, document: CharacterDocument) {
+  const stored = encodeCharacterRecord(row, {
+    document,
+    streamVersion: row.play.streamVersion,
+    updatedAt: row.updatedAt
+  })
+  await ctx.db.patch(row._id, {
+    status: 'DRAFT',
+    documentJson: stored.documentJson,
+    checksum: stored.checksum
+  })
+  await ctx.db.patch(row.play._id, {
+    playJson: stored.play.playJson,
+    checksum: stored.play.checksum,
+    updatedAt: stored.play.updatedAt
+  })
+}
 
 describe('native canonical Character repair state', () => {
   it('retains identity, history and Sheet state while repair drafts are saved, discarded and committed', async () => {
@@ -26,19 +49,10 @@ describe('native canonical Character repair state', () => {
     const before = await readState()
     if (!before.character) throw new Error('Missing canonical Character.')
     expect(before.character.sheetState).toBeDefined()
-    const repair = {
-      ...characterAuthoredDtoSchema.parse(JSON.parse(before.character.documentJson)),
-      status: 'DRAFT' as const
-    }
+    const repair = { ...readCharacterRecord(before.character), status: 'DRAFT' as const }
     repair.state.hitpoints.current = 3
     repair.state.hitpoints.temp = 2
-    await t.run((ctx) =>
-      ctx.db.patch(before.character!._id, {
-        status: 'DRAFT',
-        documentJson: canonicalizeRuleDocument(repair),
-        checksum: checksumRuleDocument(repair)
-      })
-    )
+    await t.run((ctx) => storeRepairState(ctx, before.character!, repair))
     const retained = await readState()
     const paginationOpts = { cursor: null, numItems: 48 }
     const open = () =>
@@ -114,9 +128,10 @@ describe('native canonical Character repair state', () => {
       mode: 'edit',
       character: reopened.payload.character
     })
+    // Committing the repair leaves play state as stored, so the play stream does not advance.
     expect(result).toMatchObject({
       publicId: committed.publicId,
-      streamVersion: 3,
+      streamVersion: retained.character!.play.streamVersion,
       character: { status: 'ACTIVE' }
     })
     const after = await readState()
@@ -132,7 +147,7 @@ describe('native canonical Character repair state', () => {
     const { t, owner, character, readState } = await readySheetFixture()
     const before = await readState()
     if (!before.character) throw new Error('Missing canonical Character.')
-    const current = characterAuthoredDtoSchema.parse(JSON.parse(before.character.documentJson))
+    const current = readCharacterRecord(before.character)
     const pruned = reconcileCharacterAuthoredSourceLoss(
       current as CharacterAuthored,
       {
@@ -142,14 +157,7 @@ describe('native canonical Character repair state', () => {
       new Map()
     )
     const repair = { ...pruned, status: 'DRAFT' as const }
-    const encoded: unknown = JSON.parse(JSON.stringify(repair))
-    await t.run((ctx) =>
-      ctx.db.patch(before.character!._id, {
-        status: 'DRAFT',
-        documentJson: canonicalizeRuleDocument(encoded),
-        checksum: checksumRuleDocument(encoded)
-      })
-    )
+    await t.run((ctx) => storeRepairState(ctx, before.character!, repair))
     const draft = await owner.caller.mutation(api.characters.drafts.create, {
       id: character.id,
       systemId: character.systemId

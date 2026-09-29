@@ -162,10 +162,10 @@ export async function verifyCharacterConcurrency({
   const staleSheetUpdate = await owner.mutation(api.characters.sheetCommands.execute, {
     id: first.character.id,
     command: {
-      type: 'SET_INSPIRATION' as const,
+      type: 'CREATE_NOTE_GROUP' as const,
       commandId: crypto.randomUUID(),
       expectedVersion: 4,
-      inspired: false
+      label: 'Stale baseline'
     }
   })
   assert.equal(staleSheetUpdate.streamVersion, 5)
@@ -220,14 +220,15 @@ export async function verifyCharacterConcurrency({
     throw new Error('Character edit did not reject a duplicate contender.')
   if (!(rejectedEdit.reason instanceof Error)) throw rejectedEdit.reason
   assert.match(rejectedEdit.reason.message, /Character draft is unavailable for the current user\./)
-  assert.equal(winningEdit.value.streamVersion, 6)
+  // A Builder commit that leaves play state alone does not advance the play stream.
+  assert.equal(winningEdit.value.streamVersion, 5)
   assert.deepEqual(
     winningEdit.value.character.state.equipment.inventory,
     create.value.character.state.equipment.inventory
   )
   const currentSheet = await owner.query(api.characters.sheet.get, { id: first.character.id })
   assert.ok(currentSheet)
-  assert.equal(currentSheet.meta.streamVersion, 6)
+  assert.equal(currentSheet.meta.streamVersion, 5)
   assert.deepEqual(currentSheet.overview, staleSheetUpdate.sheet.overview)
   assert.deepEqual(currentSheet.notes, staleSheetUpdate.sheet.notes)
   return {

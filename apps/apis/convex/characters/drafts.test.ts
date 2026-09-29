@@ -9,10 +9,13 @@ import type {
   CharacterDraftLookupInput,
   CharacterDraftSaveInput
 } from '@artificer-toolkit/schema/api/characterDrafts'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { ensureAuthoredRouteId } from '../content/routeIds'
+import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { deleteCharacterDraftPayloadByHead, insertCharacterDraftPayload } from './documents'
+import { readCharacterRow } from './stateDocuments'
 
 const create = makeFunctionReference<
   'mutation',
@@ -50,21 +53,7 @@ async function activate(
       label: 'Active character',
       status: 'ACTIVE' as const
     }
-    const now = new Date().toISOString()
-    return ctx.db.insert('characters', {
-      id: character.id,
-      userId: character.userId,
-      systemId: character.systemId,
-      label: character.label,
-      status: 'ACTIVE',
-      streamVersion: 1,
-      createdAt: now,
-      updatedAt: now,
-      documentJson: canonicalizeRuleDocument(character),
-      checksum: checksumRuleDocument(character),
-      maximumHitPoints: 0,
-      walkingSpeed: 0
-    })
+    return insertActiveCharacterRecord(ctx, character, { createdAt: new Date().toISOString() })
   })
 }
 
@@ -304,21 +293,27 @@ describe('native Character working drafts', () => {
     const edit = await owner.caller.mutation(create, request)
     expect(edit.mode).toBe('edit')
     const advanced = await t.run(async (ctx) => {
-      const active = await ctx.db.get(activeId)
+      const active = await readCharacterRow(ctx, request.id)
       if (!active) throw new Error('Missing active fixture.')
-      const character = {
-        ...edit.payload.character,
-        status: 'ACTIVE' as const,
-        state: {
-          ...edit.payload.character.state,
-          hitpoints: { ...edit.payload.character.state.hitpoints, current: 7 }
-        }
-      }
-      await ctx.db.patch(activeId, {
-        documentJson: canonicalizeRuleDocument(character),
-        checksum: checksumRuleDocument(character),
+      const updatedAt = new Date(Date.parse(active.updatedAt) + 1000).toISOString()
+      const encoded = encodeCharacterRecord(active, {
+        document: {
+          ...edit.payload.character,
+          status: 'ACTIVE' as const,
+          state: {
+            ...edit.payload.character.state,
+            hitpoints: { ...edit.payload.character.state.hitpoints, current: 7 }
+          }
+        },
         streamVersion: 2,
-        updatedAt: new Date(Date.parse(active.updatedAt) + 1000).toISOString()
+        updatedAt
+      })
+      await ctx.db.patch(activeId, { updatedAt })
+      await ctx.db.patch(active.play._id, {
+        playJson: encoded.play.playJson,
+        checksum: encoded.play.checksum,
+        streamVersion: encoded.play.streamVersion,
+        updatedAt: encoded.play.updatedAt
       })
       return (await ctx.db.get(activeId))!
     })

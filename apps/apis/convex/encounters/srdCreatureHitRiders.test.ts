@@ -22,6 +22,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 function srdId(entries: readonly { id: string; code: string }[], code: string) {
@@ -559,12 +560,9 @@ describe('seeded SRD Creature hit riders in the room', () => {
 
     // A long rest ends the reduction and restores every hit point.
     const streamVersion = await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
+      const row = await readCharacterRow(ctx, base.character.id)
       if (!row) throw new Error('The Life Drain Character is missing.')
-      return row.streamVersion
+      return row.play.streamVersion
     })
     const input = {
       restKind: 'LONG' as const,

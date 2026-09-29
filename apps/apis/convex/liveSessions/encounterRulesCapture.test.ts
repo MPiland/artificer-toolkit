@@ -19,6 +19,7 @@ import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-t
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { internal } from '../_generated/api'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 import {
@@ -255,15 +256,10 @@ it('captures only current Run members and current assigned Character actors', as
       stateChecksum: actorRow.stateChecksum
     })
   )
-  const characterRow = await base.t.run((ctx) =>
-    ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
-  )
+  const characterRow = await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
   if (!characterRow) throw new Error('Missing Character fixture.')
   await base.t.run((ctx) =>
-    ctx.db.patch(characterRow._id, { streamVersion: characterRow.streamVersion + 1 })
+    ctx.db.patch(characterRow.play._id, { streamVersion: characterRow.play.streamVersion + 1 })
   )
   await expect(
     base.owner.caller.query(capture, {
@@ -281,7 +277,10 @@ it('captures only current Run members and current assigned Character actors', as
       characterId: base.character.id,
       request: { kind: 'INPUTS' }
     })
-  ).resolves.toMatchObject({ kind: 'INPUTS', streamVersion: characterRow.streamVersion + 1 })
+  ).resolves.toMatchObject({
+    kind: 'INPUTS',
+    owner: { play: { streamVersion: characterRow.play.streamVersion + 1 } }
+  })
   await base.t.run((ctx) => ctx.db.patch(characterRow._id, { status: 'DRAFT' }))
   await expect(
     base.owner.caller.query(capture, {
@@ -289,8 +288,9 @@ it('captures only current Run members and current assigned Character actors', as
       request: { kind: 'ACTOR', actorId: base.actor.id }
     })
   ).rejects.toThrow('Stored Character identity mismatch')
+  await base.t.run((ctx) => ctx.db.patch(characterRow._id, { status: 'ACTIVE' }))
   await base.t.run((ctx) =>
-    ctx.db.patch(characterRow._id, { streamVersion: characterRow.streamVersion, status: 'ACTIVE' })
+    ctx.db.patch(characterRow.play._id, { streamVersion: characterRow.play.streamVersion })
   )
   const assignment = await base.t.run((ctx) =>
     ctx.db

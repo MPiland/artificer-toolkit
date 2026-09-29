@@ -9,6 +9,7 @@ import {
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { api } from '../_generated/api'
+import { readCharacterRow } from '../characters/stateDocuments'
 import * as rollRandom from '../lib/rollRandom'
 import { consumeUserRateLimit } from '../lib/rateLimits'
 import { seedConcentration } from '../../tests/fixtures/concentration'
@@ -39,14 +40,7 @@ async function records(base: Fixture) {
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (query) => query.eq('encounterId', base.run.id))
       .collect(),
-    characters: await Promise.all(
-      characterIds.map((id) =>
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (query) => query.eq('id', id))
-          .unique()
-      )
-    ),
+    characters: await Promise.all(characterIds.map((id) => readCharacterRow(ctx, id))),
     effects: (
       await Promise.all(
         characterIds.map((id) =>

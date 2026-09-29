@@ -32,9 +32,17 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { api, components, internal } from '../_generated/api'
 import { insertCharacterDraftPayload, readCharacterDraft } from '../characters/documents'
+import {
+  characterDocumentSchema,
+  joinCharacterPlay,
+  readCharacterRecord,
+  readCharacterRow
+} from '../characters/stateDocuments'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
+import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 
@@ -216,23 +224,14 @@ describe('native authored deletion source-loss cleanup', () => {
       mode: 'edit',
       character: ownerCandidate
     })
-    await base.t.run(async (ctx) => {
-      const record = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!record) throw new Error('Missing owner Character fixture.')
-      const document = characterAuthoredDtoSchema.parse({
-        ...ownerCandidate,
-        status: 'ACTIVE'
-      })
-      const encoded: unknown = JSON.parse(JSON.stringify(document))
-      await ctx.db.patch(record._id, {
-        documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded),
-        maximumHitPoints: 0
-      })
-    })
+    await base.t.run((ctx) =>
+      editCharacterRecord(
+        ctx,
+        base.character.id,
+        () => characterDocumentSchema.parse({ ...ownerCandidate, status: 'ACTIVE' }),
+        { maximumHitPoints: 0 }
+      )
+    )
     const otherDraft = await base.other.caller.mutation(api.characters.drafts.create, {
       id: crypto.randomUUID(),
       systemId: srdSystemRecord.id
@@ -252,25 +251,11 @@ describe('native authored deletion source-loss cleanup', () => {
     })
     await base.t.run(async (ctx) => {
       const now = new Date().toISOString()
-      const active = characterAuthoredDtoSchema.parse({
-        ...otherCandidate,
-        status: 'ACTIVE'
-      })
-      const encoded: unknown = JSON.parse(JSON.stringify(active))
-      await ctx.db.insert('characters', {
-        id: active.id,
-        userId: active.userId,
-        systemId: active.systemId,
-        label: active.label,
-        status: 'ACTIVE',
-        streamVersion: 1,
-        createdAt: now,
-        updatedAt: now,
-        documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded),
-        maximumHitPoints: 0,
-        walkingSpeed: 0
-      })
+      const active = {
+        ...characterDocumentSchema.parse({ ...otherCandidate, status: 'ACTIVE' }),
+        status: 'ACTIVE' as const
+      }
+      await insertActiveCharacterRecord(ctx, active, { createdAt: now })
       const storedDraft = await ctx.db
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', active.id))
@@ -307,25 +292,11 @@ describe('native authored deletion source-loss cleanup', () => {
     })
     await base.t.run(async (ctx) => {
       const now = new Date().toISOString()
-      const active = characterAuthoredDtoSchema.parse({
-        ...personalCandidate,
-        status: 'ACTIVE'
-      })
-      const encoded: unknown = JSON.parse(JSON.stringify(active))
-      await ctx.db.insert('characters', {
-        id: active.id,
-        userId: active.userId,
-        systemId: active.systemId,
-        label: active.label,
-        status: 'ACTIVE',
-        streamVersion: 1,
-        createdAt: now,
-        updatedAt: now,
-        documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded),
-        maximumHitPoints: 0,
-        walkingSpeed: 0
-      })
+      const active = {
+        ...characterDocumentSchema.parse({ ...personalCandidate, status: 'ACTIVE' }),
+        status: 'ACTIVE' as const
+      }
+      await insertActiveCharacterRecord(ctx, active, { createdAt: now })
       const storedDraft = await ctx.db
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', active.id))
@@ -372,7 +343,9 @@ describe('native authored deletion source-loss cleanup', () => {
       await ctx.db.patch(campaign._id, { status: 'ARCHIVED' })
     })
     const before = await base.t.run(async (ctx) => ({
-      characters: await ctx.db.query('characters').collect(),
+      characters: await Promise.all(
+        (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+      ),
       drafts: await ctx.db.query('characterDrafts').collect(),
       campaigns: await ctx.db.query('campaigns').collect()
     }))
@@ -391,7 +364,9 @@ describe('native authored deletion source-loss cleanup', () => {
         .query('authoredDrafts')
         .withIndex('by_subjectId', (q) => q.eq('subjectId', publication.subjectId))
         .unique(),
-      characters: await ctx.db.query('characters').collect(),
+      characters: await Promise.all(
+        (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+      ),
       drafts: await ctx.db.query('characterDrafts').collect(),
       campaigns: await ctx.db.query('campaigns').collect(),
       shares: await ctx.db
@@ -423,11 +398,11 @@ describe('native authored deletion source-loss cleanup', () => {
         id: beforeCharacter.id,
         userId: beforeCharacter.userId,
         status: 'DRAFT',
-        streamVersion: beforeCharacter.streamVersion + 1,
+        play: { streamVersion: beforeCharacter.play.streamVersion + 1 },
         createdAt: beforeCharacter.createdAt
       })
-      expect(current?.sheetState).toEqual(beforeCharacter.sheetState)
-      const document = characterAuthoredDtoSchema.parse(JSON.parse(current!.documentJson))
+      expect(readCharacterSheetState(current!)).toEqual(readCharacterSheetState(beforeCharacter))
+      const document = readCharacterRecord(current!)
       expect(document.intent.background.backgroundId).toBe('')
     }
     const createOnlyAfter = after.drafts.find(
@@ -503,24 +478,19 @@ describe('native authored deletion source-loss cleanup', () => {
         characterId: base.character.id,
         assignedAt: campaign.createdAt
       })
-      const record = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!record) throw new Error('Missing assigned owner Character fixture.')
-      const character = characterAuthoredDtoSchema.parse({
-        ...selectBackground(base.character, publication.subjectId, {
-          groupId: ownedBackground.startingEquipment!.sets[0]!.groups[0]!.id,
-          optionId: ownedBackground.startingEquipment!.sets[0]!.groups[0]!.options[0]!.id
-        }),
-        status: 'ACTIVE'
-      })
-      const encoded: unknown = JSON.parse(JSON.stringify(character))
-      await ctx.db.patch(record._id, {
-        documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded),
-        maximumHitPoints: 0
-      })
+      await editCharacterRecord(
+        ctx,
+        base.character.id,
+        () =>
+          characterDocumentSchema.parse({
+            ...selectBackground(base.character, publication.subjectId, {
+              groupId: ownedBackground.startingEquipment!.sets[0]!.groups[0]!.id,
+              optionId: ownedBackground.startingEquipment!.sets[0]!.groups[0]!.options[0]!.id
+            }),
+            status: 'ACTIVE'
+          }),
+        { maximumHitPoints: 0 }
+      )
     })
     await base.owner.caller.mutation(deleteActive, {
       subjectKind: 'BACKGROUND',
@@ -614,12 +584,7 @@ describe('native authored deletion source-loss cleanup', () => {
         label: 'Private working Character'
       }
     })
-    const before = await base.t.run(async (ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-    )
+    const before = await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
     await base.owner.caller.mutation(deleteActive, {
       subjectKind: 'CLASS',
       subjectId: publication.subjectId
@@ -629,10 +594,7 @@ describe('native authored deletion source-loss cleanup', () => {
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', publication.subjectId))
         .unique(),
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       draft: await ctx.db
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
@@ -645,10 +607,10 @@ describe('native authored deletion source-loss cleanup', () => {
       userId: before!.userId,
       label: before!.label,
       status: 'DRAFT',
-      streamVersion: before!.streamVersion + 1
+      play: { streamVersion: before!.play.streamVersion + 1 }
     })
-    const repaired = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
-    const committed = characterAuthoredDtoSchema.parse(JSON.parse(before!.documentJson))
+    const repaired = readCharacterRecord(after.character!)
+    const committed = readCharacterRecord(before!)
     expect(repaired.state.equipment).toEqual(committed.state.equipment)
     expect(repaired.intent.classes).toEqual([])
     expect(repaired.intent.hitpoints.levels).toEqual([])

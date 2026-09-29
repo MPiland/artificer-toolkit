@@ -23,6 +23,7 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   removeAccountCharacterActors,
@@ -127,6 +128,7 @@ async function capture(base: Fixture) {
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
     sceneBindings: await ctx.db.query('encounterSceneBindings').collect(),
     characters: await ctx.db.query('characters').collect(),
+    characterPlayStates: await ctx.db.query('characterPlayStates').collect(),
     characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
     effects: await ctx.db.query('encounterActiveRuleEffects').collect(),
     characterEffects: await ctx.db.query('characterActiveRuleEffects').collect(),
@@ -727,11 +729,9 @@ describe('native actor removal transaction', () => {
   it('fails closed when a Character actor source record is unavailable', async () => {
     const base = await setup()
     await base.t.run(async (ctx) => {
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
+      const character = await readCharacterRow(ctx, base.character.id)
       if (!character) throw new Error('Missing Character source fixture.')
+      await ctx.db.delete(character.play._id)
       await ctx.db.delete(character._id)
     })
     const before = await capture(base)

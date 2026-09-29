@@ -15,11 +15,12 @@ import {
   type CampaignCharacterState
 } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -195,26 +196,19 @@ describe('native Campaign GM state reads', () => {
   it('rechecks active membership, exact Campaign and assignment ownership before reading data', async () => {
     const { t, gm, player, input, memberId, assignmentId, character } = await setup()
     const otherCharacterId = await t.run(async (ctx) => {
-      const current = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
+      const current = await readCharacterRow(ctx, character.id)
       if (!current) throw new Error('Missing Character fixture.')
-      const { _id, _creationTime, ...metadata } = current
+      const { _id, _creationTime, play, ...structure } = current
+      const { _id: _playId, _creationTime: _playCreationTime, ...playRecord } = play
       const id = crypto.randomUUID()
       const userId = crypto.randomUUID()
-      const document = characterAuthoredDtoSchema.parse({
-        ...character,
-        id,
-        userId,
-        status: 'ACTIVE'
-      })
-      await ctx.db.insert('characters', {
-        ...metadata,
-        id,
-        userId,
-        documentJson: JSON.stringify(document),
-        checksum: checksumRuleDocument(document)
+      await ctx.db.insert('characters', { ...structure, id, userId })
+      await ctx.db.insert('characterPlayStates', { ...playRecord, characterId: id, userId })
+      const clone = await readCharacterRow(ctx, id)
+      if (!clone) throw new Error('Missing cloned Character.')
+      await writeCharacterRecord(ctx, clone, {
+        document: { ...readCharacterRecord(current), id, status: 'ACTIVE' },
+        userId
       })
       await ctx.db.insert('authoredRouteIds', {
         subjectKind: 'CHARACTER',

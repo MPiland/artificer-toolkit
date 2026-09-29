@@ -33,6 +33,7 @@ import {
   writeRunActor
 } from '@artificer-toolkit/encounter-persistence/documents'
 import { createEncounterInitiativeStore } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { loadMovementTargets } from '../encounters/movementTargets'
 import { prepareNativeEncounterActionMechanics } from '../encounters/actionMechanicsPreparation'
 import { readNativeActionSceneContext } from '../encounters/actionSceneContext'
@@ -324,10 +325,7 @@ it('plans the same Character action and target facts in the Worker using private
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) => q.eq('encounterId', fixture.run.id))
           .collect(),
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-          .unique(),
+        readCharacterRow(ctx, fixture.character.id),
         ctx.db
           .query('encounterActiveRuleEffects')
           .withIndex('by_encounterId_targetActorId_id', (q) => q.eq('encounterId', fixture.run.id))

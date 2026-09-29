@@ -171,6 +171,7 @@ it('detaches the incoming owner Character atomically and rolls the detachment ba
       assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
       overlays: await ctx.db.query('campaignCharacterStates').collect(),
       characters: await ctx.db.query('characters').collect(),
+      plays: await ctx.db.query('characterPlayStates').collect(),
       memberships: await ctx.db.query('campaignMemberships').collect(),
       campaigns: await ctx.db.query('campaigns').collect(),
       offers: await ctx.db.query('campaignOwnershipTransfers').collect(),

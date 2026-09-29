@@ -18,7 +18,9 @@ import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { readCharacterDraft } from '../characters/documents'
+import { readCharacterRecord } from '../characters/stateDocuments'
 import { readStoredAuthoredVersionDocument } from '../content/documents'
 import type { Id, TableNames } from '../_generated/dataModel'
 import schema from '../schema'
@@ -627,9 +629,7 @@ describe('native Campaign deletion', () => {
       })
       const before = await base.readState()
       if (!before.character) throw new Error('Missing assigned Character.')
-      const originalDocument = characterAuthoredDtoSchema.parse(
-        JSON.parse(before.character.documentJson)
-      )
+      const originalDocument = readCharacterRecord(before.character)
       const protectedRoots = await base.t.run(async (ctx) => ({
         roots: await ctx.db.query('authoredRoots').collect(),
         versions: await ctx.db.query('authoredVersions').collect(),
@@ -654,11 +654,13 @@ describe('native Campaign deletion', () => {
       const active = after.character
       expect(after.character).toMatchObject({
         status: 'DRAFT',
-        streamVersion: before.character.streamVersion + 1
+        play: { streamVersion: before.character.play.streamVersion + 1 }
       })
-      expect(after.character.sheetState).toEqual(before.character.sheetState)
+      expect(readCharacterSheetState(after.character)).toEqual(
+        readCharacterSheetState(before.character)
+      )
       expect(after.receipts).toEqual(before.receipts)
-      const repaired = characterAuthoredDtoSchema.parse(JSON.parse(after.character.documentJson))
+      const repaired = readCharacterRecord(after.character)
       expect(repaired.intent.background.backgroundId).toBe('')
       expect(repaired.intent.race).toEqual(originalDocument.intent.race)
       expect(repaired.intent.classes).toEqual(originalDocument.intent.classes)

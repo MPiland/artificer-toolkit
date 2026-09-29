@@ -29,9 +29,9 @@ import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import * as currencySystemDocuments from './currencySystemDocuments'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -183,18 +183,10 @@ async function setAssignedCurrency(
         characterId: base.character.id,
         assignedAt: base.campaign.createdAt
       })
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
-    if (!row) throw new Error('Missing Character.')
-    const character = readCharacterRecord(row)
-    const next = { ...character, state: { ...character.state, currency } }
-    const document: unknown = JSON.parse(JSON.stringify(next))
-    await ctx.db.patch(row._id, {
-      documentJson: canonicalizeRuleDocument(document),
-      checksum: checksumRuleDocument(document)
-    })
+    await editCharacterRecord(ctx, base.character.id, (character) => ({
+      ...character,
+      state: { ...character.state, currency }
+    }))
   })
 }
 
@@ -909,10 +901,8 @@ describe('native Campaign currency systems', () => {
     )
     const converted = (await readState()).character
     if (!converted) throw new Error('Missing assigned Character.')
-    const convertedDocument = JSON.parse(converted.documentJson) as {
-      state: { currency: Array<{ currencies: Array<Record<string, unknown>> }> }
-    }
-    expect(converted.streamVersion).toBe(3)
+    const convertedDocument = readCharacterRecord(converted)
+    expect(converted.play.streamVersion).toBe(3)
     expect(convertedDocument.state.currency.flatMap((group) => group.currencies)).toContainEqual(
       expect.objectContaining({
         currencyId: highId,
@@ -1027,7 +1017,7 @@ describe('native Campaign currency systems', () => {
     })
     const after = await base.readState()
     if (!before.character || !after.character) throw new Error('Missing Character.')
-    expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
+    expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
     const prior = readCharacterRecord(before.character),
       current = readCharacterRecord(after.character)
     expect(current).toEqual({

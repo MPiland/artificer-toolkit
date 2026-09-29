@@ -79,8 +79,9 @@ it('runs the actual-backend Character/Encounter assertions against local transac
         ctx.db.query('encounterRunActors').collect(),
         ctx.db.query('encounterRunCommands').collect(),
         ctx.db.query('characterCommandReceipts').collect(),
-        ctx.db.query('characters').collect()
+        ctx.db.query('characters').collect(),
+        ctx.db.query('characterPlayStates').collect()
       ])
     )
-  ).toEqual(Array.from({ length: 11 }, () => []))
+  ).toEqual(Array.from({ length: 12 }, () => []))
 }, 30000)

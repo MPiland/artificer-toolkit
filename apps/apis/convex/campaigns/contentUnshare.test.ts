@@ -6,16 +6,16 @@ import type {
   CreateCampaignInput,
   UnshareCampaignContentInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { acquiredEquipmentRulesSchema } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api } from '../_generated/api'
 import { readCharacterDraft } from '../characters/documents'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 
@@ -100,10 +100,7 @@ describe('native Campaign content-unshare reconciliation', () => {
       character: { ...opened.payload.character, label: 'Keep this draft' }
     })
     const before = await base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       draft: await ctx.db
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
@@ -127,14 +124,11 @@ describe('native Campaign content-unshare reconciliation', () => {
       {
         characterId: base.character.id,
         status: 'DRAFT',
-        streamVersion: before.character.streamVersion + 1
+        streamVersion: before.character.play.streamVersion + 1
       }
     ])
     const after = await base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       draft: await ctx.db
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
@@ -149,7 +143,7 @@ describe('native Campaign content-unshare reconciliation', () => {
       createdAt: before.character.createdAt,
       sheetState: before.character.sheetState,
       status: 'DRAFT',
-      streamVersion: before.character.streamVersion + 1
+      play: { streamVersion: before.character.play.streamVersion + 1 }
     })
     expect(after.receipts).toEqual(before.receipts)
     expect(after.draft).toMatchObject({
@@ -159,7 +153,7 @@ describe('native Campaign content-unshare reconciliation', () => {
       label: 'Keep this draft',
       baseActiveUpdatedAt: after.character?.updatedAt
     })
-    const canonical = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
+    const canonical = readCharacterRecord(after.character!)
     const working = await base.t.run(async (ctx) => {
       if (!after.draft || !after.character) throw new Error('Missing Character draft payload.')
       return (await readCharacterDraft(ctx, after.draft, after.character)).payload
@@ -204,19 +198,16 @@ describe('native Campaign content-unshare reconciliation', () => {
     })
     const before = await base.readState()
     if (!before.character) throw new Error('Missing active Character.')
-    const document = characterAuthoredDtoSchema.parse(JSON.parse(before.character.documentJson))
-    const overMaximum = {
-      ...document,
-      state: {
-        ...document.state,
-        hitpoints: { ...document.state.hitpoints, current: 999 }
-      }
-    }
-    const encoded: unknown = JSON.parse(JSON.stringify(overMaximum))
+    const document = readCharacterRecord(before.character)
     await base.t.run((ctx) =>
-      ctx.db.patch(before.character!._id, {
-        documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded)
+      writeCharacterRecord(ctx, before.character!, {
+        document: {
+          ...document,
+          state: {
+            ...document.state,
+            hitpoints: { ...document.state.hitpoints, current: 999 }
+          }
+        }
       })
     )
     const receipt = await base.other.caller.mutation(unshare, {
@@ -231,11 +222,11 @@ describe('native Campaign content-unshare reconciliation', () => {
       {
         characterId: base.character.id,
         status: 'ACTIVE',
-        streamVersion: before.character.streamVersion + 1
+        streamVersion: before.character.play.streamVersion + 1
       }
     ])
     const after = await base.readState()
-    const reconciled = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
+    const reconciled = readCharacterRecord(after.character!)
     expect(reconciled.status).toBe('ACTIVE')
     const physicalItems = (items: typeof document.state.equipment.inventory) =>
       items.map(({ retainedRulesJson: _retainedRulesJson, ...item }) => item)

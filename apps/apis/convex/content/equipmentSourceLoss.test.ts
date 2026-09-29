@@ -19,11 +19,13 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_LANGUAGES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { api, internal } from '../_generated/api'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readCharacterDraft } from '../characters/documents'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 const publish = makeFunctionReference<
   'mutation',
@@ -63,10 +65,7 @@ async function snapshot(base: Awaited<ReturnType<typeof readySheetFixture>>, sub
         .query('authoredDrafts')
         .withIndex('by_subjectId', (q) => q.eq('subjectId', subjectId))
         .unique(),
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       characterDraft: await ctx.db
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
@@ -154,7 +153,7 @@ describe('native Equipment deletion source-loss cleanup', () => {
     const nestedClubItemId = crypto.randomUUID()
     const noteGroupId = crypto.randomUUID()
     const noteId = crypto.randomUUID()
-    const current = characterAuthoredDtoSchema.parse(JSON.parse(record.documentJson))
+    const current = readCharacterRecord(record)
     const document = characterAuthoredDtoSchema.parse({
       ...current,
       intent: {
@@ -217,12 +216,7 @@ describe('native Equipment deletion source-loss cleanup', () => {
         ]
       }
     })
-    await base.t.run((ctx) =>
-      ctx.db.patch(record._id, {
-        documentJson: JSON.stringify(document),
-        checksum: checksumRuleDocument(document)
-      })
-    )
+    await base.t.run((ctx) => writeCharacterRecord(ctx, record, { document }))
     const opened = await base.owner.caller.mutation(api.characters.drafts.create, {
       id: base.character.id,
       systemId: base.character.systemId
@@ -292,7 +286,7 @@ describe('native Equipment deletion source-loss cleanup', () => {
     if (!after.character || !after.characterDraft) throw new Error('Missing reconciled Character.')
     const characterRecord = after.character
     const draftRecord = after.characterDraft
-    const active = characterAuthoredDtoSchema.parse(JSON.parse(characterRecord.documentJson))
+    const active = readCharacterRecord(characterRecord)
     const savedCharacter = (
       await base.t.run((ctx) => readCharacterDraft(ctx, draftRecord, characterRecord))
     ).payload.character
@@ -343,7 +337,7 @@ describe('native Equipment deletion source-loss cleanup', () => {
           equipmentId: publication.subjectId,
           quantity: 1,
           commandId: crypto.randomUUID(),
-          expectedVersion: after.character.streamVersion
+          expectedVersion: after.character.play.streamVersion
         }
       })
     ).rejects.toThrow('is not available for this character')
@@ -355,14 +349,16 @@ describe('native Equipment deletion source-loss cleanup', () => {
           itemId: removedItemId,
           quantity: 2,
           commandId: crypto.randomUUID(),
-          expectedVersion: after.character.streamVersion
+          expectedVersion: after.character.play.streamVersion
         }
       })
     ).rejects.toThrow('New Equipment copies require current source access')
     expect(await snapshot(base, publication.subjectId)).toEqual(after)
     expect(after.root).toBeNull()
     expect(await base.t.run((ctx) => ctx.db.get(before.version!._id))).toBeNull()
-    expect(after.character.sheetState).toEqual(before.character?.sheetState)
+    expect(readCharacterSheetState(after.character)).toEqual(
+      readCharacterSheetState(before.character!)
+    )
     expect(after.characterDraft).toMatchObject({
       id: saved.id,
       label: 'Saved equipment repair'

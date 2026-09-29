@@ -46,11 +46,13 @@ describe('native personal Character list', () => {
     })
     const before = await t.run(async (ctx) => ({
       characters: await ctx.db.query('characters').collect(),
+      playStates: await ctx.db.query('characterPlayStates').collect(),
       drafts: await ctx.db.query('characterDrafts').collect()
     }))
     const result = await owner.caller.query(list, pageInput())
     const after = await t.run(async (ctx) => ({
       characters: await ctx.db.query('characters').collect(),
+      playStates: await ctx.db.query('characterPlayStates').collect(),
       drafts: await ctx.db.query('characterDrafts').collect()
     }))
     expect(after).toEqual(before)

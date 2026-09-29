@@ -13,7 +13,6 @@ import type {
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createNativeLiveRulesRuntime } from '../../../session-worker/src/nativeRulesRuntime'
@@ -37,6 +36,7 @@ import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persis
 import { persistLiveMovementReaction } from './encounterMovementReactionCommit'
 import { persistLiveMovementConcentration } from './encounterMovementConcentrationCommit'
 import { commitLiveMovement } from './encounterMovementCommit'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
@@ -286,10 +286,7 @@ it.each([
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
           .collect(),
-        character: await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', value.base.character.id))
-          .unique(),
+        character: await readCharacterRow(ctx, value.base.character.id),
         maintained: await ctx.db
           .query('encounterMaintainedEffectStates')
           .withIndex('by_encounter_owner_definition_order', (q) =>
@@ -698,8 +695,8 @@ it.each([
       sourceActor && encounterRuleUsageUsed(sourceActor, reaction.allowance.definitionId)
     ).toBe(reaction.allowance.afterUsed)
     expect(targetActor?.kind).toBe('CHARACTER')
-    expect(committed.character?.streamVersion).toBe(
-      before.character!.streamVersion + (withSuffix ? 3 : 2)
+    expect(committed.character?.play.streamVersion).toBe(
+      before.character!.play.streamVersion + (withSuffix ? 3 : 2)
     )
     const priorCharacterReceiptIds = new Set(before.characterReceipts.map((entry) => entry.id))
     const movementCharacterReceipts = committed.characterReceipts.filter(
@@ -710,7 +707,7 @@ it.each([
       true
     )
     if (!committed.character) throw new Error('Settled Character is unavailable.')
-    const character = characterAuthoredDtoSchema.parse(JSON.parse(committed.character.documentJson))
+    const character = readCharacterRecord(committed.character)
     expect(character.state.hitpoints.current).toBe(
       withSuffix
         ? spatial.at(-1)!.targetTransition.after.currentHitPoints
@@ -824,7 +821,7 @@ it('bundles exactly the parts of a Character mover response the separate capture
   )
   expect(bundle.encounter[0]).toMatchObject({ kind: 'MOVEMENT_INPUTS' })
   // Each Character is admitted under its own movement scope; both INPUTS are bundled.
-  expect(bundle.characters.map(({ character }) => character.id).sort()).toEqual(
+  expect(bundle.characters.map(({ owner }) => owner.id).sort()).toEqual(
     [value.base.character.id, value.additionalCharacter!.id].sort()
   )
   expect(bundle).toEqual(separate)

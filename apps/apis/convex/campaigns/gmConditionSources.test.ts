@@ -13,7 +13,6 @@ import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
@@ -21,6 +20,7 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord } from '../characters/stateDocuments'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -86,7 +86,7 @@ describe('native Campaign GM condition sources', () => {
     const sheetConditionIds = async () => {
       const state = await base.readState()
       if (!state.character) throw new Error('Missing Character state.')
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(state.character.documentJson))
+      const character = readCharacterRecord(state.character)
       return (character.state?.conditions ?? []).map((condition) => condition.conditionTypeId)
     }
 

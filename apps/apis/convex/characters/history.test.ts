@@ -14,9 +14,10 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const list = makeFunctionReference<'query', CharacterHistoryInput, CharacterHistoryPage>(
   'characters/history:list'
@@ -127,17 +128,18 @@ describe('native personal Character history', () => {
       }
     })
     await t.run(async (ctx) => {
-      const stored = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
+      const stored = await readCharacterRow(ctx, character.id)
       if (!stored) throw new Error('Missing Character.')
-      const changed = characterAuthoredDtoSchema.parse(JSON.parse(stored.documentJson))
+      const changed = readCharacterRecord(stored)
       changed.state.equipment.inventory[0]!.equipmentId = crypto.randomUUID()
-      const encoded: unknown = JSON.parse(JSON.stringify(changed))
+      const encoded = encodeCharacterRecord(stored, {
+        document: changed,
+        streamVersion: stored.play.streamVersion,
+        updatedAt: stored.updatedAt
+      })
       await ctx.db.patch(stored._id, {
-        documentJson: canonicalizeRuleDocument(encoded),
-        checksum: checksumRuleDocument(encoded)
+        documentJson: encoded.documentJson,
+        checksum: encoded.checksum
       })
     })
     await expect(owner.caller.query(getSheet, { id: character.id })).rejects.toThrow()
@@ -189,16 +191,16 @@ describe('native personal Character history', () => {
     await expect(owner.caller.query(list, input)).rejects.toThrow('history checksum mismatch')
     await t.run(async (ctx) => {
       await ctx.db.patch(original._id, { historyChecksum: original.historyChecksum })
-      const stored = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
+      const stored = await readCharacterRow(ctx, character.id)
       if (!stored) throw new Error('Missing Character.')
-      const raw: unknown = JSON.parse(stored.documentJson)
-      const changed = { ...characterAuthoredDtoSchema.parse(raw), userId: 'other-owner' }
+      const encoded = encodeCharacterRecord(stored, {
+        document: { ...readCharacterRecord(stored), userId: 'other-owner' },
+        streamVersion: stored.play.streamVersion,
+        updatedAt: stored.updatedAt
+      })
       await ctx.db.patch(stored._id, {
-        documentJson: canonicalizeRuleDocument(changed),
-        checksum: checksumRuleDocument(changed)
+        documentJson: encoded.documentJson,
+        checksum: encoded.checksum
       })
     })
     await expect(owner.caller.query(list, input)).rejects.toThrow('Character identity mismatch')

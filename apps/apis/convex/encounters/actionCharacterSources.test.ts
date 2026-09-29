@@ -13,6 +13,7 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
@@ -34,6 +35,7 @@ import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
@@ -279,10 +281,7 @@ async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: Se
 async function records(fixture: Awaited<ReturnType<typeof setup>>) {
   return fixture.t.run(async (ctx) =>
     Promise.all([
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-        .unique(),
+      readCharacterRow(ctx, fixture.character.id),
       ctx.db
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) =>
@@ -303,10 +302,7 @@ async function records(fixture: Awaited<ReturnType<typeof setup>>) {
 
 async function maintenanceRecords(fixture: Awaited<ReturnType<typeof setup>>) {
   return fixture.t.run(async (ctx) => ({
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique(),
+    character: await readCharacterRow(ctx, fixture.character.id),
     actors: await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', fixture.run.id))
@@ -386,7 +382,7 @@ function expectLiveCharacterProjection(
   if (!snapshot.character) throw new Error('Character source is unavailable.')
   expect(projection.actors.find((candidate) => candidate.id === fixture.actor.id)).toMatchObject({
     sourceRevision: null,
-    currentHitPoints: JSON.parse(snapshot.character.documentJson).state.hitpoints.current
+    currentHitPoints: readCharacterRecord(snapshot.character).state.hitpoints.current
   })
 }
 
@@ -429,18 +425,18 @@ describe('native Character action sources', () => {
       })
       const after = await records(fixture)
       const character = after[0]
-      if (!character?.sheetState || !before[0]) throw new Error('Missing Character settlement.')
-      expect(character.streamVersion).toBe(before[0].streamVersion + 1)
-      expect(JSON.parse(character.sheetState.documentJson).resourceUsage).toEqual([
+      if (!character || !before[0]) throw new Error('Missing Character settlement.')
+      expect(character.play.streamVersion).toBe(before[0].play.streamVersion + 1)
+      expect(readCharacterSheetState(character).resourceUsage).toEqual([
         expect.objectContaining({ used: 1 })
       ])
       expect(result.occurrence?.status).toBe('COMPLETE')
       expect(result.projection.version).toBe(1)
       if (self)
-        expect(JSON.parse(character.documentJson).state.hitpoints.current).toBe(
+        expect(readCharacterRecord(character).state.hitpoints.current).toBe(
           Math.min(
             fixture.actor.maxHitPoints!,
-            JSON.parse(before[0].documentJson).state.hitpoints.current + pending.request.max
+            readCharacterRecord(before[0]).state.hitpoints.current + pending.request.max
           )
         )
       else {
@@ -474,26 +470,20 @@ describe('native Character action sources', () => {
     const after = await records(fixture)
     const [beforeCharacter, beforeActor] = before
     const [afterCharacter, afterActor] = after
-    if (
-      !beforeCharacter ||
-      !beforeActor ||
-      !afterCharacter ||
-      !afterActor ||
-      !afterCharacter.sheetState
-    )
+    if (!beforeCharacter || !beforeActor || !afterCharacter || !afterActor)
       throw new Error('Missing records.')
-    expect(afterCharacter.streamVersion).toBe(beforeCharacter.streamVersion + 1)
-    expect(JSON.parse(afterCharacter.documentJson).state.hitpoints.current).toBe(
-      JSON.parse(beforeCharacter.documentJson).state.hitpoints.current - 1
+    expect(afterCharacter.play.streamVersion).toBe(beforeCharacter.play.streamVersion + 1)
+    expect(readCharacterRecord(afterCharacter).state.hitpoints.current).toBe(
+      readCharacterRecord(beforeCharacter).state.hitpoints.current - 1
     )
-    expect(JSON.parse(afterCharacter.sheetState.documentJson).resourceUsage).toEqual([
+    expect(readCharacterSheetState(afterCharacter).resourceUsage).toEqual([
       expect.objectContaining({ used: 1 })
     ])
     expect(
       result.projection.actors.find((candidate) => candidate.id === fixture.actor.id)
     ).toMatchObject({
       sourceRevision: null,
-      currentHitPoints: JSON.parse(afterCharacter.documentJson).state.hitpoints.current
+      currentHitPoints: readCharacterRecord(afterCharacter).state.hitpoints.current
     })
     const receipt = await fixture.t.run((ctx) =>
       ctx.db
@@ -514,7 +504,7 @@ describe('native Character action sources', () => {
       sourceCharacterId: fixture.character.id,
       targetActorId: fixture.actor.id,
       sourceCharacterStreamVersion: null,
-      targetCharacterStreamVersion: afterCharacter.streamVersion
+      targetCharacterStreamVersion: afterCharacter.play.streamVersion
     })
     await expect(replayInRoom(fixture.owner.caller, { command })).resolves.toEqual(result)
     expect(await records(fixture)).toEqual(after)
@@ -535,10 +525,7 @@ describe('native Character action sources', () => {
     const snapshot = () =>
       fixture.t.run(async (ctx) =>
         Promise.all([
-          ctx.db
-            .query('characters')
-            .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-            .unique(),
+          readCharacterRow(ctx, fixture.character.id),
           ctx.db
             .query('encounterRunActors')
             .withIndex('by_encounterId_id', (q) =>
@@ -556,10 +543,10 @@ describe('native Character action sources', () => {
       command
     })
     const after = await snapshot()
-    if (!before[0] || !before[1] || !after[0] || !after[1] || !after[0].sheetState)
+    if (!before[0] || !before[1] || !after[0] || !after[1])
       throw new Error('Missing separate source records.')
-    expect(after[0].streamVersion).toBe(before[0].streamVersion + 1)
-    expect(JSON.parse(after[0].sheetState.documentJson).resourceUsage).toEqual([
+    expect(after[0].play.streamVersion).toBe(before[0].play.streamVersion + 1)
+    expect(readCharacterSheetState(after[0]).resourceUsage).toEqual([
       expect.objectContaining({ used: 1 })
     ])
     expect(JSON.parse(after[1].stateJson).currentHitPoints).toBe(
@@ -571,7 +558,7 @@ describe('native Character action sources', () => {
         expect.objectContaining({
           id: fixture.actor.id,
           sourceRevision: null,
-          currentHitPoints: JSON.parse(after[0].documentJson).state.hitpoints.current
+          currentHitPoints: readCharacterRecord(after[0]).state.hitpoints.current
         })
       ])
     )
@@ -581,10 +568,7 @@ describe('native Character action sources', () => {
     const rollbackFixture = await setup(false)
     const rollbackBefore = await rollbackFixture.t.run(async (ctx) =>
       Promise.all([
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', rollbackFixture.character.id))
-          .unique(),
+        readCharacterRow(ctx, rollbackFixture.character.id),
         ctx.db
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) =>
@@ -599,10 +583,7 @@ describe('native Character action sources', () => {
     )
     const rollbackAfter = await rollbackFixture.t.run(async (ctx) =>
       Promise.all([
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', rollbackFixture.character.id))
-          .unique(),
+        readCharacterRow(ctx, rollbackFixture.character.id),
         ctx.db
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) =>
@@ -628,11 +609,11 @@ describe('native Character action sources', () => {
       command: root
     })
     const afterCreated = await maintenanceRecords(fixture)
-    if (!before.character || !afterCreated.character || !afterCreated.character.sheetState)
+    if (!before.character || !afterCreated.character)
       throw new Error('Automatic maintained Character is unavailable.')
     expect(created.occurrence?.status).toBe('COMPLETE')
-    expect(afterCreated.character.streamVersion).toBe(before.character.streamVersion + 1)
-    expect(JSON.parse(afterCreated.character.sheetState.documentJson).resourceUsage).toEqual([
+    expect(afterCreated.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
+    expect(readCharacterSheetState(afterCreated.character).resourceUsage).toEqual([
       expect.objectContaining({ used: 1 })
     ])
     expect(afterCreated.maintainedStates).toHaveLength(1)
@@ -646,7 +627,7 @@ describe('native Character action sources', () => {
       sourceCharacterId: fixture.character.id,
       targetActorId: fixture.actor.id,
       sourceCharacterStreamVersion: null,
-      targetCharacterStreamVersion: afterCreated.character.streamVersion,
+      targetCharacterStreamVersion: afterCreated.character.play.streamVersion,
       maintenanceTransition: {
         priorState: null,
         createdState: {
@@ -674,12 +655,12 @@ describe('native Character action sources', () => {
       command: replacementRoot
     })
     const afterReplacement = await maintenanceRecords(fixture)
-    if (!beforeReplacement.character || !afterReplacement.character?.sheetState)
+    if (!beforeReplacement.character || !afterReplacement.character)
       throw new Error('Replaced maintained Character is unavailable.')
-    expect(afterReplacement.character.streamVersion).toBe(
-      beforeReplacement.character.streamVersion + 1
+    expect(afterReplacement.character.play.streamVersion).toBe(
+      beforeReplacement.character.play.streamVersion + 1
     )
-    expect(JSON.parse(afterReplacement.character.sheetState.documentJson).resourceUsage).toEqual([
+    expect(readCharacterSheetState(afterReplacement.character).resourceUsage).toEqual([
       expect.objectContaining({ used: 2 })
     ])
     expect(afterReplacement.maintainedStates).toHaveLength(1)
@@ -697,7 +678,7 @@ describe('native Character action sources', () => {
       sourceCharacterId: fixture.character.id,
       targetActorId: fixture.actor.id,
       sourceCharacterStreamVersion: null,
-      targetCharacterStreamVersion: afterReplacement.character.streamVersion,
+      targetCharacterStreamVersion: afterReplacement.character.play.streamVersion,
       maintenanceTransition: {
         priorState: { id: afterCreated.maintainedStates[0]!.id },
         removedDependentEffects: [
@@ -765,15 +746,9 @@ describe('native Character action sources', () => {
     const firstComplete = await maintenanceRecords(fixture)
     if (!before.character || !firstComplete.character)
       throw new Error('Assisted maintained Character is unavailable.')
-    expect(firstComplete.character.streamVersion).toBe(before.character.streamVersion)
-    expect(
-      firstComplete.character.sheetState
-        ? JSON.parse(firstComplete.character.sheetState.documentJson).resourceUsage
-        : []
-    ).toEqual(
-      before.character.sheetState
-        ? JSON.parse(before.character.sheetState.documentJson).resourceUsage
-        : []
+    expect(firstComplete.character.play.streamVersion).toBe(before.character.play.streamVersion)
+    expect(readCharacterSheetState(firstComplete.character).resourceUsage).toEqual(
+      readCharacterSheetState(before.character).resourceUsage
     )
     expect(firstComplete.maintainedStates).toHaveLength(1)
     expect(firstComplete.actorEffects).toHaveLength(1)
@@ -929,20 +904,14 @@ describe('native Character action sources', () => {
     const replacementComplete = await maintenanceRecords(fixture)
     if (!beforeReplacement.character || !replacementComplete.character)
       throw new Error('Cleaned Character maintenance source is unavailable.')
-    expect(replacementComplete.character.streamVersion).toBe(
-      beforeReplacement.character.streamVersion + 1
+    expect(replacementComplete.character.play.streamVersion).toBe(
+      beforeReplacement.character.play.streamVersion + 1
     )
-    expect(JSON.parse(replacementComplete.character.documentJson).state.hitpoints).toEqual(
-      JSON.parse(beforeReplacement.character.documentJson).state.hitpoints
+    expect(readCharacterRecord(replacementComplete.character).state.hitpoints).toEqual(
+      readCharacterRecord(beforeReplacement.character).state.hitpoints
     )
-    expect(
-      replacementComplete.character.sheetState
-        ? JSON.parse(replacementComplete.character.sheetState.documentJson).resourceUsage
-        : []
-    ).toEqual(
-      beforeReplacement.character.sheetState
-        ? JSON.parse(beforeReplacement.character.sheetState.documentJson).resourceUsage
-        : []
+    expect(readCharacterSheetState(replacementComplete.character).resourceUsage).toEqual(
+      readCharacterSheetState(beforeReplacement.character).resourceUsage
     )
     expect(replacementComplete.characterEffects).toHaveLength(0)
     expect(replacementComplete.actorEffects).toHaveLength(1)
@@ -959,7 +928,7 @@ describe('native Character action sources', () => {
       kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
       sourceActorId: fixture.actor.id,
       sourceCharacterId: fixture.character.id,
-      sourceCharacterStreamVersion: replacementComplete.character.streamVersion,
+      sourceCharacterStreamVersion: replacementComplete.character.play.streamVersion,
       targetActorId: fixture.target.id,
       maintenanceTransition: {
         priorState: { id: firstComplete.maintainedStates[0]!.id },
@@ -974,8 +943,8 @@ describe('native Character action sources', () => {
         characterOwnerTransitions: [
           {
             characterId: fixture.character.id,
-            beforeStreamVersion: beforeReplacement.character.streamVersion,
-            afterStreamVersion: beforeReplacement.character.streamVersion + 1
+            beforeStreamVersion: beforeReplacement.character.play.streamVersion,
+            afterStreamVersion: beforeReplacement.character.play.streamVersion + 1
           }
         ],
         createdState: { id: replacementComplete.maintainedStates[0]!.id },
@@ -1006,27 +975,27 @@ describe('native Character action sources', () => {
         type: 'ADJUST_HIT_POINTS',
         mode: 'DAMAGE',
         amount: 1,
-        expectedVersion: created.streamVersion,
+        expectedVersion: created.play.streamVersion,
         commandId: crypto.randomUUID()
       }
     })
     const [edited] = await records(fixture)
     if (!edited) throw new Error('Missing edited Character.')
-    expect(edited.streamVersion).toBe(created.streamVersion + 1)
+    expect(edited.play.streamVersion).toBe(created.play.streamVersion + 1)
     const result = await executeInRoom(fixture.owner.caller, {
       command: input(fixture)
     })
     const [after] = await records(fixture)
     if (!after) throw new Error('Missing settled Character.')
-    expect(after.streamVersion).toBe(edited.streamVersion + 1)
-    expect(JSON.parse(after.documentJson).state.hitpoints.current).toBe(
-      JSON.parse(edited.documentJson).state.hitpoints.current - 1
+    expect(after.play.streamVersion).toBe(edited.play.streamVersion + 1)
+    expect(readCharacterRecord(after).state.hitpoints.current).toBe(
+      readCharacterRecord(edited).state.hitpoints.current - 1
     )
     expect(
       result.projection.actors.find((candidate) => candidate.id === fixture.actor.id)
     ).toMatchObject({
       sourceRevision: null,
-      currentHitPoints: JSON.parse(after.documentJson).state.hitpoints.current
+      currentHitPoints: readCharacterRecord(after).state.hitpoints.current
     })
   }, 30000)
 })

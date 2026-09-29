@@ -4,9 +4,9 @@ import type {
   CharacterSheetExecuteInput,
   CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -18,13 +18,18 @@ describe('native Character play-state commands', () => {
   it('absorbs temporary HP, clamps healing, spends hit dice once and retains receipt replay', async () => {
     const { t, owner, character, readState } = await readySheetFixture()
     const stored = await readState()
-    const before = characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson))
+    const before = readCharacterRecord(stored.character!)
     before.state.hitpoints.temp = 3
-    const encoded: unknown = JSON.parse(JSON.stringify(before))
+    const encoded = encodeCharacterRecord(stored.character!, {
+      document: before,
+      streamVersion: stored.character!.play.streamVersion,
+      updatedAt: stored.character!.play.updatedAt
+    })
     await t.run((ctx) =>
-      ctx.db.patch(stored.character!._id, {
-        documentJson: canonicalizeRuleDocument(encoded),
-        checksum: checksumRuleDocument(encoded)
+      ctx.db.patch(stored.character!.play._id, {
+        playJson: encoded.play.playJson,
+        checksum: encoded.play.checksum,
+        updatedAt: encoded.play.updatedAt
       })
     )
     const damage = {
@@ -61,10 +66,9 @@ describe('native Character play-state commands', () => {
       }
     })
     const spent = await readState()
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(spent.character!.documentJson)).state.hitpoints
-        .hitDice
-    ).toEqual([{ die: 10, total: 1, used: 1 }])
+    expect(readCharacterRecord(spent.character!).state.hitpoints.hitDice).toEqual([
+      { die: 10, total: 1, used: 1 }
+    ])
     for (const die of [10, 12]) {
       await expect(
         owner.caller.mutation(execute, {
@@ -162,10 +166,10 @@ describe('native Character play-state commands', () => {
     })
     expect(recovered.sheet.overview.exhaustion.level).toBe(0)
     const after = await readState()
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson)).intent
-    ).toEqual(characterAuthoredDtoSchema.parse(JSON.parse(before.character!.documentJson)).intent)
+    expect(readCharacterRecord(after.character!).intent).toEqual(
+      readCharacterRecord(before.character!).intent
+    )
     expect(after.receipts).toHaveLength(4)
-    expect(after.character?.streamVersion).toBe(5)
+    expect(after.character?.play.streamVersion).toBe(5)
   })
 })

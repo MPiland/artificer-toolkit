@@ -57,5 +57,5 @@ it('proves Character commit and Sheet command concurrency through native functio
     expect(firstDraft).toBeNull()
     expect(secondDraft).toBeNull()
   })
-  expect(result.currentSheet.meta.streamVersion).toBe(6)
+  expect(result.currentSheet.meta.streamVersion).toBe(5)
 }, 30000)
