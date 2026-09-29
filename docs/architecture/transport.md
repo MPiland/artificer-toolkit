@@ -254,17 +254,22 @@ through Convex directly.
 ```mermaid
 flowchart LR
   chat["CampaignChat"] --> open["conversations:open mutation"]
-  open --> history["chat:list subscriptions for requested cursor pages"]
+  open --> history["chat:list subscription for the newest page; one-shot reads for older pages"]
   chat --> writes["chat:send / edit / unsend; conversations:markRead"]
   notes["Notebook editors and note pickers"] --> pages["notebooks:list native pagination, eight rows per request"]
   notes --> edits["notebooks:create / update / remove"]
 ```
 
 Chat opens the selected room before reading it. Its scope includes Campaign, room, DIRECT peer and
-current membership access epoch. Requested history pages subscribe through the existing Convex
-TanStack Query adapter; a changed cursor boundary discards the old tail before loading its replacement.
-Changing membership authority withholds cached history until opening succeeds, and an authority error
-clears displayed messages. The public chat contract retains UUID cursors and a 50-entry page.
+current membership access epoch. Only the newest page subscribes, through the existing Convex
+TanStack Query adapter, so a new message re-runs one page per reader (D69). Older pages are read
+once on request (`useConvex().query`) and kept below it: entries that slide out of the newest page
+join the older history, and a newest page that no longer reaches the previous one (more than a page
+arrived between two results) restarts older history from itself. Older entries therefore do not
+show later edits or unsends; both windows are short (15 and 5 minutes). Changing membership authority
+withholds cached history until opening succeeds, and an authority error clears displayed messages.
+The public chat contract retains UUID cursors and a 50-entry page. Unread counts are capped at
+`campaignChatUnreadCountLimit` (50); the badge shows `50+` at the cap.
 
 Notebook editors, the notes drawer and Session/file note pickers use Convex native pagination with
 explicit Load more controls. Shared/private visibility is enforced by the backend query. Native

@@ -45,7 +45,7 @@ No phase should be implemented as one repository-wide branch. Start a new sessio
 - Player-only chat excludes Campaign GMs at fetch, subscription, counts, notification, and ordinary analytics boundaries; it is not end-to-end encrypted. Access by authorized staff occurs only through an audited safety or report workflow.
 - Alpha and early beta may remain free while the web loop is built. Free, Player, GM, and Pro GM pricing, limits, and paid-table platform fees use the launch-planning matrix below; evidence may change them before public launch.
 - Beta sizing targets ordinary tabletop use: approximately 20 connected users and 100 actors in one scope.
-- Each Phase 03 Campaign chat room retains its newest 500 timeline entries, including Campaign rolls. Encounter retention starts at 2,000 rolls and changes only from observed beta usage.
+- Phase 03 Campaign chat rooms retained their newest 500 timeline entries, including Campaign rolls; since D69 (2026-09-28) rooms keep full history and page it. Encounter retention starts at 2,000 rolls and changes only from observed beta usage.
 - Character portraits are distinct from account avatars. Characters and user-authored content use one source image plus normalized user-selected thumbnail crop metadata; compact controls render the generated thumbnail while detail pages use the display variant.
 - User uploads are private by default. Current image limits, dimensions, quotas, and retention are centrally configured; later supporting-file profiles define their own allowlists and safety limits.
 - Ordinary Campaign supporting files and handout maps are size-limited separately from larger VTT maps.

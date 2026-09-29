@@ -174,8 +174,8 @@ cleanup remains with Campaign lifecycle; see
 `campaigns/conversations:open` establishes TABLE/PARTY/DIRECT room membership in a mutation; `list`
 and `campaigns/chat:list` are reactive reads. `chat:send`, `edit`, `unsend` and `conversations:markRead`
 use current room authority, access epochs, canonical UUIDs and retained message-time identity.
-Compact entry headers keep unread counts bounded without hydrating every message/roll payload.
-Text and public rolls share per-room 500-entry retention and the rolling send policy; edits/unsends
+Pages and unread counts read compact entry headers through the room's time index, one page at a
+time; history is kept in full and paged. Text and public rolls share the rolling send policy; edits/unsends
 remain text-only. Admission/deletion lifecycle and native web wiring remain pending;
 see [native conversations](../../docs/architecture/persistence.md#native-conversations-and-text-chat--partial-local-implementation).
 

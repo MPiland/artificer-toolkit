@@ -1580,19 +1580,41 @@ current-membership predicate below. Opening/read bookkeeping is allowed on archi
 send/edit/unsend is not.
 
 Conversation lists derive possible DIRECT pairs from the bounded active roster rather than scanning
-historical peer memberships. At most fourteen visible rooms each read at most 500 compact headers;
-counts never load message/roll bodies. The two row parts are authoritative halves of one entry, not
-a cache: insert and retention deletion commit together. Payload hydration is restricted to the
-requested visible page. Retention keeps the newest 500 CHAT/ROLL/tombstone entries per conversation,
-ordered by timestamp and UUID descending. Unread includes the actor's own retained entries after
-the current cutoff and strictly after the last-read timestamp; equal-time entries share read state.
+historical peer memberships. The two row parts are authoritative halves of one entry, not a cache:
+they are inserted together. Every CHAT/ROLL/tombstone entry is kept; there is no per-room retention
+cap (D69), so history grows with play and is paged.
+
+`chat:list` reads one page through `by_conversationId_createdAt_id`, newest first by timestamp then
+UUID. The cursor is the previous page's last entry UUID: the page takes entries tied with the
+cursor's timestamp and a lower UUID, then entries strictly older and at or after the member's access
+cutoff, reading `limit + 1` headers to know whether an older page exists, and hydrates only that
+page's payloads and each distinct author's label once. A cursor that is unknown, in another room or
+before the cutoff returns an empty last page. Reads never scale with history length.
+
+Unread invariant: `unreadCount = min(50, |visible entries with createdAt > lastReadAt|)`, where
+visible means at or after the member's access cutoff. It is read from the same index with
+`take(campaignChatUnreadCountLimit)`, from the member row's `lastReadAt` alone, so no stored counter
+exists and send, edit, unsend and mark-read maintain nothing else. `50` means "50 or more". Unread
+includes the actor's own entries; equal-time entries share read state; mark-read only moves
+`lastReadAt` forward. An unsent entry keeps its header as a tombstone in the log and still counts
+until read. The cap keeps a reader's cost per room at about one page of headers. The D69 note
+recorded a stored per-member counter; this derived count replaced it because a counter would need
+every send and unsend to write every member row (contending with each reader's mark-read) and would
+still need a bounded recount on mark-read and on a new access epoch.
+
+Measured with 2,000 messages in a room (`chat.test.ts`), a new message costs each subscribed reader
+one newest-page re-run of about 40 KB (58 KB for a reader 50 or more behind), each room in their
+room list at most about 20 KB (the room list re-reads every visible room, up to fourteen), and an older page about 40 KB. `send` reads about 3 KB and no
+history. Before D69 the newest page read 224 KB and `send` 187 KB at the 500-entry cap. Mark-read
+after a new message re-runs the reader's newest page once more.
 
 Text sends retain the 2,000-character limit. Text and public rolls share the
 thirty-retained-sends-per-actor/Campaign/rolling-minute policy.
 The nonce key is Campaign plus author plus nonce: same-conversation, same-kind retries return the original
 entry, while a different conversation or entry kind conflicts. A replay cannot expose pre-cutoff
 history. UUID storage and lookup keys are canonical lowercase. Current assigned-Character authority
-is required for ROLEPLAY; OOC uses the authenticated username. Message-time account/Character snapshots
+is required for ROLEPLAY; OOC uses the authenticated username. Entries are never trimmed, so
+a nonce replays its original entry for the life of the room. Message-time account/Character snapshots
 remain unchanged by later account renames or assignment removal. STANDARD text is masked for every
 chat viewer, including the GM. Author-only edits expire after fifteen minutes; unsend expires after
 five minutes and retains a tombstone. Roll payloads are immutable.
@@ -1604,8 +1626,9 @@ Native text-room opening now supplies the PARTY prerequisite used by the announc
 Actual admission/removal lifecycle, Campaign/account
 deletion cleanup and complete multi-client/local acceptance remain
 unfinished. No old Broadcast or SQL adapter is called by these native endpoints.
-The frontend now opens selected rooms explicitly and subscribes to requested history pages through
-the [native collaboration transport](transport.md#native-campaign-collaboration-transport).
+The frontend now opens selected rooms explicitly, subscribes to the newest page only and reads older
+pages once through the
+[native collaboration transport](transport.md#native-campaign-collaboration-transport).
 
 ### Native Campaign rolls — partial local implementation
 
@@ -1621,7 +1644,7 @@ sequenceDiagram
     participant Rest as Scoped rest preview + COMPLETE_REST
     Actor->>Public: TABLE or GM destination + nonce + structured roll request
     Public->>Sheet: Validate assignment and current non-manual source
-    Public->>Table: Generate evidence and insert/trim atomically (GM: player-owner DIRECT room)
+    Public->>Table: Generate evidence and insert header + payload atomically (GM: player-owner DIRECT room)
     Public-->>Actor: Original stored roll, shared-text presentation
     Actor->>Private: GM-only manual or Character request + blind flag
     Private->>History: Generate evidence and insert/trim atomically, bound to the Campaign
@@ -1672,9 +1695,9 @@ algorithm is introduced; resetting the player's private maximum-HP modifier rema
 Current Campaign/Character authority and the room access epoch precede public replay. The existing
 nonce contract returns the original same-room/same-kind entry, even when a retry supplies another
 valid expression; it is not an exact-payload command receipt. Deduplication lasts only while the entry
-is retained; no permanent secondary receipt is added. Replayed entries do not reroll, consume
-rate capacity or change retention. Revocation, archive, changed assignment and pre-cutoff history
-reject; a CHAT or other-room nonce conflicts. Public rolls share text retention and rate accounting
+is kept, which is now the life of the room; no secondary receipt is added. Replayed entries do not
+reroll or consume rate capacity. Revocation, archive, changed assignment and pre-cutoff history
+reject; a CHAT or other-room nonce conflicts. Public rolls share text storage and rate accounting
 through the same native helpers. The personal roll endpoint remains owner-only and gains no implicit
 GM access. Private GM calls have no nonce: a new explicit invocation generates a new roll.
 

@@ -17,7 +17,7 @@ Deliver the usable Campaign web core and its approved management extension: acco
 - Accounts start Free. Tier changes are manually assigned until Phase 09 billing. Existing over-limit records remain usable; limits block new creation or activation.
 - A Character has at most one active Campaign assignment. Archived Campaigns are read-only; permanent deletion runs the defined reconciliation.
 - Campaign routes use a public base-36 identifier plus slug: `/campaigns/<public-id>/<slug>`. Session routes stay nested and do not expose UUIDs.
-- Conversation retention is the newest 500 entries per `TABLE`, `PARTY`, or `DIRECT` conversation. Structured conversations and notes do not consume media storage.
+- Conversation retention was the newest 500 entries per `TABLE`, `PARTY`, or `DIRECT` conversation; D69 (2026-09-28) replaced it with full history read one page at a time. Structured conversations and notes do not consume media storage.
 - Campaign notes include GM-private and GM-shared sections; sessions remain collaborative with version-conflict reporting, not CRDT merging.
 - Supabase Storage remains the object store. A provider abstraction or R2 migration is deferred to [Phase 08](08-vtt.md).
 
