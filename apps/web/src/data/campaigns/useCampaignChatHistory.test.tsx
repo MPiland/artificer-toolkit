@@ -9,16 +9,21 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getCampaignChat } from './queries'
 import { useCampaignChatHistory } from './useCampaignChatHistory'
 
-const mocks = vi.hoisted(() => ({ open: vi.fn<() => Promise<void>>() }))
+const mocks = vi.hoisted(() => ({
+  open: vi.fn<() => Promise<void>>(),
+  query: vi.fn<(reference: unknown, args: unknown) => Promise<CampaignChatPageDto>>()
+}))
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
-  useMutation: () => mocks.open
+  useMutation: () => mocks.open,
+  useConvex: () => ({ query: mocks.query })
 }))
 const campaignId = '11111111-1111-4111-8111-111111111111'
 const conversationId = '22222222-2222-4222-8222-222222222222'
 const clients: QueryClient[] = []
 beforeEach(() => {
   mocks.open.mockReset().mockResolvedValue(undefined)
+  mocks.query.mockReset()
 })
 afterEach(() => clients.splice(0).forEach((client) => client.clear()))
 
@@ -52,12 +57,24 @@ function page(indexes: number[], nextCursor: string | null = null): CampaignChat
   }
 }
 
-function setup(read: (cursor?: string) => CampaignChatPageDto | Promise<CampaignChatPageDto>) {
+function setup(
+  newest: () => CampaignChatPageDto,
+  older: (cursor: string) => CampaignChatPageDto | Promise<CampaignChatPageDto> = () => {
+    throw new Error('Unexpected older page read.')
+  }
+) {
+  // The subscription serves only the newest page; older pages are one-shot reads.
   const queryFn = vi.fn(({ queryKey }: { queryKey: readonly unknown[] }) => {
     expect(queryKey[1]).toBe('campaigns/chat:list')
     const input = listCampaignChatEntriesInputSchema.parse(queryKey[2])
     expect(input.limit).toBe(50)
-    return read(input.cursor)
+    expect(input.cursor).toBeUndefined()
+    return newest()
+  })
+  mocks.query.mockImplementation(async (_reference, args) => {
+    const input = listCampaignChatEntriesInputSchema.parse(args)
+    expect(input.limit).toBe(50)
+    return older(input.cursor!)
   })
   const client = new QueryClient({ defaultOptions: { queries: { queryFn, retry: false } } })
   clients.push(client)
@@ -74,52 +91,79 @@ function setup(read: (cursor?: string) => CampaignChatPageDto | Promise<Campaign
   return { ...hook, client, queryFn }
 }
 
-it('loads older pages on request and drops a stale tail when a live boundary changes', async () => {
-  let finishReplacement: ((value: CampaignChatPageDto) => void) | undefined
-  const hook = setup((cursor) => {
-    if (!cursor) return page([4, 3], entryId(3))
-    if (cursor === entryId(3)) return page([2, 1])
-    return new Promise((resolve) => {
-      finishReplacement = resolve
-    })
-  })
-  await waitFor(() =>
-    expect(hook.result.current.entries.map((entry) => entry.body)).toEqual([
-      'Message 3',
-      'Message 4'
-    ])
-  )
-  expect(hook.queryFn).toHaveBeenCalledTimes(1)
-  act(() => hook.result.current.fetchNextPage())
-  await waitFor(() => expect(hook.result.current.entries).toHaveLength(4))
-  const edited = page([2, 1])
-  edited.entries[0]!.body = 'Edited older message'
-  act(() =>
-    hook.client.setQueryData(
-      getCampaignChat(campaignId, 'TABLE', undefined, entryId(3)).queryKey,
-      edited
-    )
-  )
-  await waitFor(() => expect(hook.result.current.entries[1]?.body).toBe('Edited older message'))
+const indexes = (hook: ReturnType<typeof setup>) =>
+  hook.result.current.entries.map((entry) => Number.parseInt(entry.id.slice(-12), 10))
+const newest = (hook: ReturnType<typeof setup>, value: CampaignChatPageDto) =>
+  act(() => hook.client.setQueryData(getCampaignChat(campaignId, 'TABLE').queryKey, value))
 
-  act(() =>
-    hook.client.setQueryData(
-      getCampaignChat(campaignId, 'TABLE').queryKey,
-      page([6, 5], entryId(5))
-    )
+it('subscribes to the newest page only and keeps older pages below it as it slides', async () => {
+  const hook = setup(
+    () => page([4, 3], entryId(3)),
+    (cursor) => (cursor === entryId(3) ? page([2, 1], entryId(1)) : page([0]))
   )
-  await waitFor(() => expect(finishReplacement).toBeDefined())
-  expect(hook.result.current.entries.map((entry) => entry.body)).toEqual(['Message 5', 'Message 6'])
-  await act(async () => finishReplacement!(page([4, 3])))
-  await waitFor(() =>
-    expect(hook.result.current.entries.map((entry) => entry.body)).toEqual([
-      'Message 3',
-      'Message 4',
-      'Message 5',
-      'Message 6'
-    ])
-  )
+  await waitFor(() => expect(indexes(hook)).toEqual([3, 4]))
+  expect(hook.result.current).toMatchObject({ hasNextPage: true, unreadCount: 2 })
+  act(() => hook.result.current.fetchNextPage())
+  await waitFor(() => expect(indexes(hook)).toEqual([1, 2, 3, 4]))
+  expect(mocks.query).toHaveBeenLastCalledWith(expect.anything(), {
+    campaignId,
+    room: 'TABLE',
+    cursor: entryId(3),
+    limit: 50
+  })
+
+  // A new message slides entry 3 out of the newest page; it stays in place below it.
+  newest(hook, page([5, 4], entryId(4)))
+  await waitFor(() => expect(indexes(hook)).toEqual([1, 2, 3, 4, 5]))
+  const edited = page([5, 4], entryId(4))
+  edited.entries[1]!.body = 'Edited recent message'
+  newest(hook, edited)
+  await waitFor(() => expect(hook.result.current.entries[3]?.body).toBe('Edited recent message'))
+  act(() => hook.result.current.fetchNextPage())
+  await waitFor(() => expect(indexes(hook)).toEqual([0, 1, 2, 3, 4, 5]))
   expect(hook.result.current.hasNextPage).toBe(false)
+  expect(mocks.query).toHaveBeenLastCalledWith(
+    expect.anything(),
+    expect.objectContaining({ cursor: entryId(1) })
+  )
+
+  // A newest page that no longer reaches the one before it restarts history from itself.
+  newest(hook, page([9, 8], entryId(8)))
+  await waitFor(() => expect(indexes(hook)).toEqual([8, 9]))
+  expect(hook.result.current.hasNextPage).toBe(true)
+  expect(hook.queryFn).toHaveBeenCalledTimes(1)
+  expect(mocks.query).toHaveBeenCalledTimes(2)
+})
+
+it('appends an older page requested before the newest page slid, and retries a failed read', async () => {
+  let finish: ((value: CampaignChatPageDto) => void) | undefined
+  const hook = setup(
+    () => page([4, 3], entryId(3)),
+    (cursor) => {
+      if (cursor === entryId(3))
+        return new Promise((resolve) => {
+          finish = resolve
+        })
+      if (mocks.query.mock.calls.length === 2) throw new Error('Network down.')
+      return page([0])
+    }
+  )
+  await waitFor(() => expect(indexes(hook)).toEqual([3, 4]))
+  act(() => hook.result.current.fetchNextPage())
+  await waitFor(() => expect(finish).toBeDefined())
+  expect(hook.result.current.isFetchingNextPage).toBe(true)
+  newest(hook, page([5, 4], entryId(4)))
+  await waitFor(() => expect(indexes(hook)).toEqual([3, 4, 5]))
+  await act(async () => finish!(page([2, 1], entryId(1))))
+  await waitFor(() => expect(indexes(hook)).toEqual([1, 2, 3, 4, 5]))
+
+  act(() => hook.result.current.fetchNextPage())
+  await waitFor(() => expect(hook.result.current.error?.message).toBe('Network down.'))
+  expect(indexes(hook)).toEqual([1, 2, 3, 4, 5])
+  expect(hook.result.current.hasNextPage).toBe(true)
+  act(() => hook.result.current.fetchNextPage())
+  await waitFor(() => expect(indexes(hook)).toEqual([0, 1, 2, 3, 4, 5]))
+  expect(hook.result.current.error).toBeUndefined()
 })
 
 it('withholds cached messages while new membership authority opens and when it is denied', async () => {

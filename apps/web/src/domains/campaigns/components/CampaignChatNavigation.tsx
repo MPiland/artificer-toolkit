@@ -1,7 +1,12 @@
 import { Badge, Button, Group, Menu, Text } from '@mantine/core'
 import { ChevronDown } from 'lucide-react'
+import { campaignChatUnreadCountLimit } from '@artificer-toolkit/schema/api/campaignCommunication'
 import * as chatStyles from './CampaignChat.css'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
+
+/** Counts at the server's cap mean "at least this many". */
+const unreadLabel = (count: number) =>
+  count >= campaignChatUnreadCountLimit ? `${campaignChatUnreadCountLimit}+` : String(count)
 
 export function CampaignChatNavigation({
   canReadPartyChat,
@@ -41,11 +46,11 @@ export function CampaignChatNavigation({
           Table{' '}
           {roomUnread.TABLE ? (
             <Badge
-              aria-label={`${roomUnread.TABLE} unread`}
+              aria-label={`${unreadLabel(roomUnread.TABLE)} unread`}
               className={chatStyles.navigationBadge}
               size='xs'
             >
-              {roomUnread.TABLE}
+              {unreadLabel(roomUnread.TABLE)}
             </Badge>
           ) : null}
         </Button>
@@ -60,11 +65,11 @@ export function CampaignChatNavigation({
             Party{' '}
             {roomUnread.PARTY ? (
               <Badge
-                aria-label={`${roomUnread.PARTY} unread`}
+                aria-label={`${unreadLabel(roomUnread.PARTY)} unread`}
                 className={chatStyles.navigationBadge}
                 size='xs'
               >
-                {roomUnread.PARTY}
+                {unreadLabel(roomUnread.PARTY)}
               </Badge>
             ) : null}
           </Button>
@@ -102,11 +107,11 @@ export function CampaignChatNavigation({
               Direct{' '}
               {directUnread ? (
                 <Badge
-                  aria-label={`${directUnread} unread`}
+                  aria-label={`${unreadLabel(directUnread)} unread`}
                   className={chatStyles.navigationBadge}
                   size='xs'
                 >
-                  {directUnread}
+                  {unreadLabel(directUnread)}
                 </Badge>
               ) : null}
             </Button>
@@ -117,8 +122,8 @@ export function CampaignChatNavigation({
                 <Group gap='xs' justify='space-between' wrap='nowrap'>
                   <Text truncate>@{member.username}</Text>
                   {member.unreadCount ? (
-                    <Badge aria-label={`${member.unreadCount} unread`} size='xs'>
-                      {member.unreadCount}
+                    <Badge aria-label={`${unreadLabel(member.unreadCount)} unread`} size='xs'>
+                      {unreadLabel(member.unreadCount)}
                     </Badge>
                   ) : null}
                 </Group>

@@ -44,14 +44,12 @@ export function getCampaignConversations(campaignId: string) {
 export function getCampaignChat(
   campaignId: string,
   room: 'TABLE' | 'PARTY' | 'DIRECT',
-  directUserId?: string,
-  cursor?: string
+  directUserId?: string
 ) {
   return convexQuery(convexApi.campaigns.chat.list, {
     campaignId,
     room,
     ...(room === 'DIRECT' && directUserId ? { directUserId } : {}),
-    ...(cursor ? { cursor } : {}),
     limit: 50
   })
 }
