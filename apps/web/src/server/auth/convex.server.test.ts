@@ -278,7 +278,9 @@ describe('Convex auth SSR boundary', () => {
       edgeRequest('https://app.example/home', { headers: { cookie: 'session=expired' } })
     )
     expect(mocks.setAuth).not.toHaveBeenCalled()
-    expect(mocks.tokenFetch.mock.calls[0][1].redirect).toBe('error')
+    // workerd rejects redirect: 'error'; a redirect must surface as a non-2xx response instead.
+    expect(mocks.tokenFetch.mock.calls[0][1].redirect).toBe('manual')
+    expect(mocks.sessionFetch.mock.calls[0][1].redirect).toBe('manual')
     expect(mocks.sessionFetch.mock.calls[0][1].headers.get('host')).toBe('example.convex.site')
     expect(mocks.sign).toHaveBeenLastCalledWith(
       { ip: EDGE_CLIENT_IP, path: '/api/auth/get-session', method: 'GET' },
@@ -286,7 +288,7 @@ describe('Convex auth SSR boundary', () => {
     )
   })
 
-  it.each([500, 200])(
+  it.each([302, 500, 200])(
     'rejects token denial without confirmed signed-out state (%i)',
     async (status) => {
       mocks.tokenFetch.mockResolvedValue(new Response(null, { status: 401 }))
@@ -302,15 +304,18 @@ describe('Convex auth SSR boundary', () => {
     }
   )
 
-  it.each([403, 429, 500])('does not turn HTTP %i into an anonymous session', async (status) => {
-    mocks.tokenFetch.mockResolvedValue(new Response(null, { status }))
-    await expect(
-      loadConvexSession(
-        edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
-      )
-    ).rejects.toThrow('Authentication verification is unavailable')
-    expect(mocks.query).not.toHaveBeenCalled()
-  })
+  it.each([302, 403, 429, 500])(
+    'does not turn HTTP %i into an anonymous session',
+    async (status) => {
+      mocks.tokenFetch.mockResolvedValue(new Response(null, { status }))
+      await expect(
+        loadConvexSession(
+          edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
+        )
+      ).rejects.toThrow('Authentication verification is unavailable')
+      expect(mocks.query).not.toHaveBeenCalled()
+    }
+  )
 
   it.each([{}, { token: null }, { token: '' }])(
     'rejects malformed success payloads: %j',

@@ -14,7 +14,7 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => 
 // Sentry wrapper never sees them. The Start compiler strips these server bodies, and with them the
 // Sentry import, from the client bundle.
 function reportServerErrors(mechanism: string) {
-  return async <Result>({ next }: { next: () => Promise<Result> }) => {
+  return async <Result>({ next }: { next: () => Result | Promise<Result> }) => {
     try {
       return await next()
     } catch (error) {

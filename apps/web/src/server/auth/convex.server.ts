@@ -68,10 +68,11 @@ export async function createAuthenticatedConvexClient(request: Request) {
   if (request.headers.has('cookie') || request.headers.has('authorization')) {
     headers.set('host', new URL(convexSiteUrl).host)
     // The SDK's token helper discards HTTP failures. Preserve them so outages
-    // cannot masquerade as anonymous SSR reads.
+    // cannot masquerade as anonymous SSR reads. workerd has no `redirect: 'error'`, so redirects
+    // are not followed and fail the `ok` checks below instead.
     const response = await fetch(`${convexSiteUrl}/api/auth/convex/token`, {
       headers,
-      redirect: 'error'
+      redirect: 'manual'
     })
     if (response.status === 401) {
       // Better Auth's token middleware also maps session-adapter failures to 401.
@@ -81,7 +82,7 @@ export async function createAuthenticatedConvexClient(request: Request) {
       sessionHeaders.set('host', new URL(convexSiteUrl).host)
       const session = await fetch(`${convexSiteUrl}/api/auth/get-session`, {
         headers: sessionHeaders,
-        redirect: 'error'
+        redirect: 'manual'
       })
       if (!session.ok || (await session.json()) !== null) {
         throw new Error('Authentication verification is unavailable.')
