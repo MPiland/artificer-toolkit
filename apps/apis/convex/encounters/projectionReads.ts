@@ -10,7 +10,9 @@ import {
   encounterProjectionListDtoSchema,
   getCampaignEncounterInputDtoSchema,
   getEncounterInputDtoSchema,
+  encounterSummaryListDtoSchema,
   type EncounterGmProjectionDto,
+  type EncounterSummaryDto,
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
@@ -214,43 +216,63 @@ export const active = query({
   }
 })
 
+/**
+ * The Campaign's Runs as summaries, read from each Run document alone, so the list costs one
+ * document per Run whatever its actors. The GM sees every status, a player only the ACTIVE Run.
+ */
+export async function readRunSummaries(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  role: Doc<'campaignMemberships'>['role']
+): Promise<EncounterSummaryDto[]> {
+  const statuses = role === 'OWNER' ? encounterStatusOrder : (['ACTIVE'] as const)
+  const rows = (
+    await Promise.all(
+      statuses.map((status) =>
+        ctx.db
+          .query('encounterRuns')
+          .withIndex('by_campaignId_status', (q) =>
+            q.eq('campaignId', campaign.id).eq('status', status)
+          )
+          .collect()
+      )
+    )
+  )
+    .flat()
+    .sort(
+      (left, right) =>
+        encounterStatusOrder.indexOf(left.status) - encounterStatusOrder.indexOf(right.status) ||
+        right.updatedAt.localeCompare(left.updatedAt) ||
+        right.id.localeCompare(left.id)
+    )
+  return rows.map((row) => {
+    const state = readCampaignRunState(row, campaign)
+    return {
+      id: row.id,
+      name: state.name,
+      status: row.status,
+      round: state.round,
+      actorCount: role === 'OWNER' ? state.actorIds.length : null,
+      updatedAt: row.updatedAt,
+      version: row.version
+    }
+  })
+}
+
 export const list = query({
   args: zodToConvexFields(getCampaignEncounterInputDtoSchema.shape),
-  get returns(): Validator<EncounterProjection[], 'required', string> {
-    return zodToConvex<z.core.$ZodType<EncounterProjection[]>>(encounterProjectionListDtoSchema)
-  },
-  handler: async (ctx, args): Promise<EncounterProjection[]> => {
+  returns: zodToConvex(encounterSummaryListDtoSchema),
+  handler: async (ctx, args): Promise<EncounterSummaryDto[]> => {
     const input = getCampaignEncounterInputDtoSchema.parse({
       campaignId: args.campaignId.toLowerCase()
     })
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    const statuses = membership.role === 'OWNER' ? encounterStatusOrder : (['ACTIVE'] as const)
-    const rows = (
-      await Promise.all(
-        statuses.map((status) =>
-          ctx.db
-            .query('encounterRuns')
-            .withIndex('by_campaignId_status', (q) =>
-              q.eq('campaignId', campaign.id).eq('status', status)
-            )
-            .collect()
-        )
-      )
-    )
-      .flat()
-      .sort(
-        (left, right) =>
-          encounterStatusOrder.indexOf(left.status) - encounterStatusOrder.indexOf(right.status) ||
-          right.updatedAt.localeCompare(left.updatedAt) ||
-          right.id.localeCompare(left.id)
-      )
-    return encounterProjectionListDtoSchema.parse(
-      await Promise.all(rows.map((row) => presentRun(ctx, row, campaign, membership)))
+    return encounterSummaryListDtoSchema.parse(
+      await readRunSummaries(ctx, campaign, membership.role)
     )
   }
 })
-
 /** Makes a paused START discoverable without exposing other prepared Encounters. */
 export const pendingPrepared = query({
   args: zodToConvexFields(getCampaignEncounterInputDtoSchema.shape),

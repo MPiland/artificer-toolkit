@@ -73,13 +73,16 @@ export {
   getEncounterBlueprintsInputDtoSchema,
   getEncounterTimelineInputDtoSchema,
   encounterProjectionDtoSchema,
-  encounterProjectionListDtoSchema
+  encounterProjectionListDtoSchema,
+  encounterSummaryDtoSchema,
+  encounterSummaryListDtoSchema
 } from './encounterData.js'
 export type {
   EncounterActorDispositionDto,
   EncounterPlayerProjectionDto,
   EncounterGmProjectionDto,
   EncounterGmActorDto,
+  EncounterSummaryDto,
   EncounterCommandResultDto,
   EncounterEvidenceRollDto,
   EncounterRuleOccurrenceSummaryDto,

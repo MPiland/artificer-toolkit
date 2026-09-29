@@ -6,10 +6,16 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useState } from 'react'
 import {
   encounterGmProjectionDtoSchema,
-  type EncounterGmProjectionDto
+  type EncounterGmProjectionDto,
+  type EncounterSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import { getCampaignEncounters, getEncounterBlueprints } from '#app/data/encounters/queries'
+import {
+  getCampaignEncounters,
+  getEncounter,
+  getEncounterBlueprints
+} from '#app/data/encounters/queries'
+import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
@@ -38,27 +44,34 @@ export function CampaignEncounters({
     ...getEncounterBlueprints(campaign.gameSystemId, convex),
     enabled: canManage && encounterAdderOpen
   })
-  const ordered = (encounters.data ?? [])
-    .flatMap((candidate) => {
-      const parsed = encounterGmProjectionDtoSchema.safeParse(candidate)
-      return parsed.success ? [parsed.data] : []
-    })
-    .sort((left, right) => encounterStatusOrder[left.status] - encounterStatusOrder[right.status])
-  const selected = ordered.find((candidate) => candidate.id === selectedEncounterId) ?? ordered[0]
+  const summaries = encounters.data ?? []
+  const selected =
+    summaries.find((candidate) => candidate.id === selectedEncounterId) ?? summaries[0]
+  const selectedEncounter = useQuery({
+    ...getEncounter(selected?.id ?? '', convex),
+    enabled: selected !== undefined,
+    select: encounterGmProjectionDtoSchema.parse
+  })
   const addEncounter = useMutation({
-    mutationFn: (blueprintId: string) =>
-      convex.mutation(convexApi.encounters.runs.create, {
-        campaignId: campaign.id,
-        blueprintId,
-        commandId: crypto.randomUUID()
-      }),
+    mutationFn: async (blueprintId: string) =>
+      encounterGmProjectionDtoSchema.parse(
+        await convex.mutation(convexApi.encounters.runs.create, {
+          campaignId: campaign.id,
+          blueprintId,
+          commandId: crypto.randomUUID()
+        })
+      ),
     onSuccess: (created) => {
       setSelectedEncounterId(created.id)
       setSelectedBlueprintId(null)
       setEncounterAdderOpen(false)
+      queryClient.setQueryData(queryKeys.encounters.detail(created.id), created)
       queryClient.setQueryData(
         queryKeys.encounters.list(campaign.id),
-        (current: typeof encounters.data) => [...(current ?? []), created]
+        (current: EncounterSummaryDto[] | undefined) => [
+          ...(current ?? []),
+          summarizeEncounterProjection(created)
+        ]
       )
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaign.id) })
     }
@@ -76,9 +89,10 @@ export function CampaignEncounters({
       setSelectedEncounterId(null)
       queryClient.setQueryData(
         queryKeys.encounters.list(campaign.id),
-        (current: typeof encounters.data) =>
+        (current: EncounterSummaryDto[] | undefined) =>
           current?.filter((candidate) => candidate.id !== encounterId)
       )
+      queryClient.removeQueries({ queryKey: queryKeys.encounters.detail(encounterId), exact: true })
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaign.id) })
     }
   })
@@ -103,11 +117,14 @@ export function CampaignEncounters({
       {selected ? (
         <Stack gap='md'>
           <Group align='end' justify='space-between' wrap='wrap'>
-            {ordered.length > 1 ? (
+            {summaries.length > 1 ? (
               <Select
                 className={sessionsStyles.sessionEncounterSelect}
                 classNames={{ input: sharedStyles.input }}
-                data={ordered.map((encounter) => ({ label: encounter.name, value: encounter.id }))}
+                data={summaries.map((encounter) => ({
+                  label: encounter.name,
+                  value: encounter.id
+                }))}
                 label='Encounter'
                 value={selected.id}
                 onChange={setSelectedEncounterId}
@@ -126,12 +143,18 @@ export function CampaignEncounters({
               ) : null}
             </Group>
           </Group>
-          <CampaignEncounterWorkspace
-            campaign={campaign}
-            currentUserId={currentUserId}
-            encounter={selected}
-            onUpdated={(updated) => setSelectedEncounterId(updated.id)}
-          />
+          {selectedEncounter.isPending ? <Text c='dimmed'>Loading encounter…</Text> : null}
+          {selectedEncounter.error ? (
+            <Alert color='red'>That encounter couldn’t be loaded.</Alert>
+          ) : null}
+          {selectedEncounter.data ? (
+            <CampaignEncounterWorkspace
+              campaign={campaign}
+              currentUserId={currentUserId}
+              encounter={selectedEncounter.data}
+              onUpdated={(updated) => setSelectedEncounterId(updated.id)}
+            />
+          ) : null}
           <Modal
             centered
             opened={deleteConfirmOpen}
@@ -152,8 +175,11 @@ export function CampaignEncounters({
                 </Button>
                 <Button
                   color='red'
+                  disabled={!selectedEncounter.data}
                   loading={deleteEncounter.isPending}
-                  onClick={() => deleteEncounter.mutate(selected)}
+                  onClick={() =>
+                    selectedEncounter.data && deleteEncounter.mutate(selectedEncounter.data)
+                  }
                 >
                   Delete encounter
                 </Button>
@@ -243,13 +269,7 @@ export function CampaignEncounters({
   )
 }
 
-const encounterStatusOrder: Record<EncounterGmProjectionDto['status'], number> = {
-  ACTIVE: 0,
-  PREPARED: 1,
-  COMPLETED: 2
-}
-
-function encounterStatusLabel(status: EncounterGmProjectionDto['status']) {
+function encounterStatusLabel(status: EncounterSummaryDto['status']) {
   if (status === 'PREPARED') return 'Ready'
   if (status === 'ACTIVE') return 'In progress'
   return 'Completed'

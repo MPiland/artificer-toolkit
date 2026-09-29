@@ -40,6 +40,10 @@ export function CampaignEncounterDecision({
     mutationFn: sendCommand,
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaignId) })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.encounters.detail(encounter.id),
+        exact: true
+      })
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.timeline(encounter.id) })
       onResolved?.(result)
     }

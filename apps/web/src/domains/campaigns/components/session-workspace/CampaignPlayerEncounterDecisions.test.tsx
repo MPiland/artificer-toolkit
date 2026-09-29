@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { getFunctionName } from 'convex/server'
-import type { EncounterPlayerProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  EncounterPlayerProjectionDto,
+  EncounterSummaryDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
@@ -59,7 +62,7 @@ vi.mock('convex/react', async (importOriginal) => ({
 import { CampaignPlayerEncounterDecisions } from './CampaignPlayerEncounterDecisions'
 
 describe('CampaignPlayerEncounterDecisions', () => {
-  let listed: EncounterPlayerProjectionDto[]
+  let listed: EncounterSummaryDto[]
   let pendingPrepared: EncounterPlayerProjectionDto[]
 
   beforeEach(() => {
@@ -80,7 +83,7 @@ describe('CampaignPlayerEncounterDecisions', () => {
     mocks.useMutation.mockReturnValue({ isPending: false, mutateAsync: vi.fn() })
   })
 
-  it('shows the eligible prepared decision and retains a newer active projection', async () => {
+  it('shows the eligible prepared decision and retains a newer active summary', async () => {
     const user = userEvent.setup()
     const view = renderWithAppProviders(
       <CampaignPlayerEncounterDecisions campaign={createTabletopCampaign('PLAYER')} />
@@ -90,7 +93,17 @@ describe('CampaignPlayerEncounterDecisions', () => {
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
     expect(await screen.findByRole('combobox', { name: 'Primary action' })).toBeVisible()
 
-    listed = [tabletopPlayerEncounter]
+    listed = [
+      {
+        id: tabletopPlayerEncounter.id,
+        name: tabletopPlayerEncounter.name,
+        status: 'ACTIVE',
+        round: tabletopPlayerEncounter.round,
+        actorCount: null,
+        updatedAt: tabletopPlayerEncounter.updatedAt,
+        version: tabletopPlayerEncounter.version
+      }
+    ]
     view.rerender(<CampaignPlayerEncounterDecisions campaign={createTabletopCampaign('PLAYER')} />)
 
     expect(screen.getByText('In progress')).toBeVisible()

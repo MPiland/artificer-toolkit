@@ -3,7 +3,10 @@ import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import type { EncounterBlueprintDto } from '@artificer-toolkit/schema/api/encounterData'
+import type {
+  EncounterBlueprintDto,
+  EncounterSummaryDto
+} from '@artificer-toolkit/schema/api/encounterData'
 import { encounterBlueprintListInputSchema } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
 import { getCampaignEncounters, getEncounterBlueprints } from './queries'
 
@@ -19,6 +22,15 @@ const blueprint = {
   updatedAt: '2026-09-12T00:00:00.000Z',
   setupChecksum: 'a'.repeat(64)
 } satisfies EncounterBlueprintDto
+const summary = {
+  id: '00000000-0000-4000-8000-000000000004',
+  name: 'Vault sentries',
+  status: 'PREPARED',
+  round: 0,
+  actorCount: 2,
+  updatedAt: '2026-09-12T00:00:00.000Z',
+  version: 1
+} satisfies EncounterSummaryDto
 
 function client() {
   return new ConvexReactClient('https://unit-test.convex.cloud', { logger: false })
@@ -26,14 +38,14 @@ function client() {
 
 afterEach(() => vi.restoreAllMocks())
 
-it('reads campaign encounters from the native query endpoint', async () => {
+it('reads campaign encounter summaries from the native query endpoint', async () => {
   const convex = client()
-  const query = vi.spyOn(convex, 'query').mockResolvedValue([])
+  const query = vi.spyOn(convex, 'query').mockResolvedValue([summary])
   const queryClient = new QueryClient()
 
-  await expect(queryClient.fetchQuery(getCampaignEncounters(campaignId, convex))).resolves.toEqual(
-    []
-  )
+  await expect(queryClient.fetchQuery(getCampaignEncounters(campaignId, convex))).resolves.toEqual([
+    summary
+  ])
   expect(getFunctionName(query.mock.calls[0]![0])).toBe(
     getFunctionName(convexApi.encounters.projectionReads.list)
   )

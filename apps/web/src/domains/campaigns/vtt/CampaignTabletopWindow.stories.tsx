@@ -366,9 +366,6 @@ function renderWindow(
     encounterId: encounter.id,
     sceneId: scene.id
   })
-  const encountersQuery = convexQuery(convexApi.encounters.projectionReads.list, {
-    campaignId: tabletopCampaignId
-  })
   const activeEncounterQuery = convexQuery(convexApi.encounters.activeReads.active, {
     campaignId: tabletopCampaignId
   })
@@ -385,9 +382,6 @@ function renderWindow(
   queryClient.setQueryDefaults(sceneBindingQuery.queryKey.slice(0, 2), {
     queryFn: async () => sceneBinding
   })
-  queryClient.setQueryDefaults(encountersQuery.queryKey, {
-    queryFn: async () => [encounter]
-  })
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
     queryFn: async () => ({ encounter, pending: null, waitingOn: null, turnMovement: [] })
   })
@@ -402,7 +396,6 @@ function renderWindow(
   queryClient.setQueryData(presentationQuery.queryKey, presentation)
   queryClient.setQueryData(headerQuery.queryKey, header)
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
-  queryClient.setQueryData(encountersQuery.queryKey, [encounter])
   queryClient.setQueryData(activeEncounterQuery.queryKey, {
     encounter,
     pending: null,
@@ -417,7 +410,6 @@ function renderWindow(
   Object.defineProperty(convex, 'query', {
     value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference, args]) => {
       const name = getFunctionName(reference)
-      if (name === getFunctionName(convexApi.encounters.projectionReads.list)) return [encounter]
       if (name === getFunctionName(convexApi.encounters.activeReads.active))
         return { encounter, pending: null, waitingOn: null, turnMovement: [] }
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []

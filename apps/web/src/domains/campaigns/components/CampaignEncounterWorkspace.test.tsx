@@ -1,9 +1,14 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { getFunctionName } from 'convex/server'
-import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  EncounterGmProjectionDto,
+  EncounterSummaryDto
+} from '@artificer-toolkit/schema/api/encounters'
+import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
+import { queryKeys } from '#app/lib/queryKeys'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   createTabletopCampaign,
@@ -153,6 +158,40 @@ describe('CampaignEncounterWorkspace controls', () => {
         ]
       })
     )
+  })
+
+  it('writes a command result into the Run detail and its list summary', async () => {
+    const setQueryData = vi.fn()
+    mocks.useQueryClient.mockReturnValue({ invalidateQueries: vi.fn(), setQueryData })
+    const user = userEvent.setup()
+    renderWorkspace()
+
+    await user.click(screen.getByRole('button', { name: 'Move Third enemy earlier' }))
+
+    await waitFor(() => expect(setQueryData).toHaveBeenCalledTimes(2))
+    const [[detailKey, updateDetail], [listKey, updateList]] = setQueryData.mock.calls as [
+      [unknown, (current: EncounterGmProjectionDto | undefined) => EncounterGmProjectionDto],
+      [unknown, (current: EncounterSummaryDto[] | undefined) => EncounterSummaryDto[]]
+    ]
+    expect(detailKey).toEqual(queryKeys.encounters.detail(tabletopGmEncounter.id))
+    expect(updateDetail(undefined)).toEqual(tabletopGmEncounter)
+    const newer = { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 }
+    expect(updateDetail(newer)).toBe(newer)
+
+    expect(listKey).toEqual(queryKeys.encounters.list(createTabletopCampaign('OWNER').id))
+    const other = {
+      ...summarizeEncounterProjection(tabletopGmEncounter),
+      id: '99999999-9999-4999-8999-999999999905'
+    }
+    const stale = {
+      ...summarizeEncounterProjection(tabletopGmEncounter),
+      name: 'Stale name',
+      version: tabletopGmEncounter.version - 1
+    }
+    expect(updateList([other, stale])).toEqual([
+      other,
+      summarizeEncounterProjection(tabletopGmEncounter)
+    ])
   })
 
   it('disables command controls until the live table is command-ready', () => {

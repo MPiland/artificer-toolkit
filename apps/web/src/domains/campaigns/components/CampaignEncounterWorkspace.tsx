@@ -23,11 +23,14 @@ import { useEffect, useState } from 'react'
 import {
   encounterGmProjectionDtoSchema,
   type EncounterCommandInputDto,
-  type EncounterGmProjectionDto
+  type EncounterGmProjectionDto,
+  type EncounterPlayerProjectionDto,
+  type EncounterSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { healthDisplayLevelDtoSchema } from '@artificer-toolkit/schema/api/healthDisplay'
 import { getEncounterTimeline } from '#app/data/encounters/queries'
+import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
 import { useSystemList } from '#app/data/systems/useSystemList'
 import { AppSelect } from '#app/ui/primitives/Select'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -87,11 +90,16 @@ export function CampaignEncounterWorkspace({
         })
       }
       queryClient.setQueryData(
+        queryKeys.encounters.detail(updated.id),
+        (current: EncounterGmProjectionDto | EncounterPlayerProjectionDto | undefined) =>
+          current && current.version > updated.version ? current : updated
+      )
+      queryClient.setQueryData(
         queryKeys.encounters.list(campaign.id),
-        (current: Array<EncounterGmProjectionDto> | undefined) =>
+        (current: EncounterSummaryDto[] | undefined) =>
           current?.map((candidate) =>
             candidate.id === updated.id && candidate.version <= updated.version
-              ? updated
+              ? summarizeEncounterProjection(updated)
               : candidate
           )
       )

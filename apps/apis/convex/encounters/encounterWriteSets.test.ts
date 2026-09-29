@@ -13,7 +13,7 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { playerControlFixture, type PlayerControlFixture } from '../../tests/fixtures/playerControl'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { presentRun } from './projectionReads'
+import { presentRun, readRunSummaries } from './projectionReads'
 
 /**
  * What one Encounter command writes, and what building a member's projection reads, at 11 and 100
@@ -160,6 +160,20 @@ async function projectionReadCost(base: PlayerControlFixture, role: 'OWNER' | 'P
   return { presentMs: median(samples), queryMs: median(queries), ...read }
 }
 
+/** What listing the Campaign's Run summaries reads, for the GM. */
+async function summaryReadCost(base: PlayerControlFixture) {
+  return base.t.run(async (ctx) => {
+    const campaign = await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+      .unique()
+    if (!campaign) throw new Error('Missing write-set Campaign.')
+    const { db, counter } = countingReads(ctx.db)
+    const summaries = await readRunSummaries({ ...ctx, db }, campaign, 'OWNER')
+    return { runs: summaries.length, ...counter }
+  })
+}
+
 /** An Assisted START of identical Creatures whose tied initiatives the GM orders. */
 async function tiedStart(actors: number) {
   const base = await fixture()
@@ -256,6 +270,10 @@ async function tiedStart(actors: number) {
     after = await snapshot(base.t)
     choices.push(writeSet(before, after))
   }
+  // Settling the occurrence deletes its snapshot parts.
+  expect(
+    await base.t.run((ctx) => ctx.db.query('encounterPendingSnapshotParts').collect())
+  ).toEqual([])
   const written = choices.map((choice) => choice.written).sort((left, right) => left - right)
   return {
     start,
@@ -270,12 +288,10 @@ async function tiedStart(actors: number) {
 describe.each([11, 100])('Tied initiative write sets at %i actors', (actors) => {
   it('measures START and each tie order choice', { timeout: 1_200_000 }, async () => {
     const measured = await tiedStart(actors)
-  // Settling the occurrence deletes its snapshot parts.
-  expect(
-    await base.t.run((ctx) => ctx.db.query('encounterPendingSnapshotParts').collect())
-  ).toEqual([])
     console.log(JSON.stringify({ actors, tiedStart: measured }, null, 2))
     expect(measured.start.documents).toBeGreaterThan(0)
+    // Each order choice writes its snapshot delta, not the whole sealed snapshot (Amendment 12).
+    expect(measured.totalWritten).toBeLessThanOrEqual(2 * 1024 * 1024)
   })
 })
 
@@ -290,8 +306,6 @@ describe.each([11, 100])('Encounter write sets at %i actors', (actors) => {
         commandId: crypto.randomUUID(),
         expectedVersion: await base.version(),
         actorId: base.enemy.id,
-    // Each order choice writes its snapshot delta, not the whole sealed snapshot (Amendment 12).
-    expect(measured.totalWritten).toBeLessThanOrEqual(2 * 1024 * 1024)
         currentHitPoints: 5
       })),
       RESOLVE_ACTION: await measure(base, () => base.bite(base.companion.id, base.enemy.id)),
@@ -308,7 +322,19 @@ describe.each([11, 100])('Encounter write sets at %i actors', (actors) => {
     }
     // Projections read each actor's small projection facts, never its source snapshot.
     for (const read of Object.values(reads)) expect(read.bytes).toBeLessThanOrEqual(250 * 1024)
-    console.log(JSON.stringify({ actors, commands, reads }, null, 2))
+    const summaries = [await summaryReadCost(base)]
+    for (let run = 0; run < 2; run++) {
+      await base.owner.caller.mutation(api.encounters.runs.create, {
+        campaignId: base.campaign.id,
+        blueprintId: base.run.blueprintId,
+        commandId: crypto.randomUUID()
+      })
+      summaries.push(await summaryReadCost(base))
+    }
+    console.log(JSON.stringify({ actors, commands, reads, summaries }, null, 2))
     expect(Object.keys(commands)).toHaveLength(3)
+    // The Run list reads each Run document alone, whatever its actors.
+    for (const summary of summaries) expect(summary.documents).toBe(summary.runs)
+    expect(summaries.map((summary) => summary.runs - summaries[0]!.runs)).toEqual([0, 1, 2])
   })
 })

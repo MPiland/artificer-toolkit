@@ -9,7 +9,8 @@ import type {
   CreateEncounterInputDto,
   EncounterBlueprintDto,
   EncounterGmProjectionDto,
-  EncounterPlayerProjectionDto
+  EncounterPlayerProjectionDto,
+  EncounterSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -17,6 +18,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { encounterSummaryOf } from '../../tests/fixtures/encounterSummaries'
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
@@ -52,11 +54,9 @@ const active = makeFunctionReference<
   { campaignId: string },
   EncounterGmProjectionDto | EncounterPlayerProjectionDto | null
 >('encounters/projectionReads:active')
-const list = makeFunctionReference<
-  'query',
-  { campaignId: string },
-  Array<EncounterGmProjectionDto | EncounterPlayerProjectionDto>
->('encounters/projectionReads:list')
+const list = makeFunctionReference<'query', { campaignId: string }, EncounterSummaryDto[]>(
+  'encounters/projectionReads:list'
+)
 const pending = makeFunctionReference<'query', { encounterId: string }, unknown>(
   'encounters/pendingReads:pendingRuleOccurrence'
 )
@@ -206,11 +206,6 @@ describe('native Encounter reads', () => {
           (actor) => actor.public
         )?.conditions
       ).toEqual(expected)
-      expect(
-        (await viewer.caller.query(list, { campaignId: campaign.id }))[0]?.actors.find(
-          (actor) => actor.public
-        )?.conditions
-      ).toEqual(expected)
       if (viewer === other) expect(JSON.stringify(single)).not.toContain('Private condition note')
     }
     expect(await records()).toEqual(stored)
@@ -298,7 +293,7 @@ describe('native Encounter reads', () => {
       activeOwnerProjection
     )
     expect(await owner.caller.query(list, { campaignId: campaign.id })).toEqual([
-      activeOwnerProjection
+      encounterSummaryOf(activeOwnerProjection)
     ])
     expect(await other.caller.query(active, { campaignId: campaign.id })).toEqual(
       projectPlayerEncounterProjection(activeOwnerProjection, {

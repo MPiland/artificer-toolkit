@@ -438,6 +438,26 @@ export const encounterProjectionDtoSchema = lazySchema(() =>
 export const encounterProjectionListDtoSchema = lazySchema(() =>
   z.array(encounterProjectionDtoSchema)
 )
+/**
+ * One Run in a Campaign's Encounter list: what the picker and the player list show, read from the
+ * Run alone. The selected Run's projection comes from `projectionReads:get`.
+ */
+export const encounterSummaryDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    status: encounterStatusDtoSchema,
+    round: z.number().check(z.int()).check(z.nonnegative()),
+    /** Null for a player, who sees only the Run's public actors. */
+    actorCount: z.nullable(
+      z.number().check(z.int()).check(z.nonnegative()).check(z.lte(MAX_ENCOUNTER_ACTORS))
+    ),
+    updatedAt: timestampSchema,
+    version: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+export const encounterSummaryListDtoSchema = lazySchema(() => z.array(encounterSummaryDtoSchema))
+export type EncounterSummaryDto = z.infer<typeof encounterSummaryDtoSchema>
 export const encounterSessionStateDtoSchema = lazySchema(() =>
   z.strictObject({
     encounter: z.nullable(encounterProjectionDtoSchema),

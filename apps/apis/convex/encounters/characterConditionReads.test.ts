@@ -11,11 +11,13 @@ import type {
 import type {
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
+  EncounterSummaryDto,
   EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { encounterSummaryOf } from '../../tests/fixtures/encounterSummaries'
 import { api, components, internal } from '../_generated/api'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
@@ -33,11 +35,9 @@ const active = makeFunctionReference<
   { campaignId: string },
   EncounterGmProjectionDto | EncounterPlayerProjectionDto | null
 >('encounters/projectionReads:active')
-const list = makeFunctionReference<
-  'query',
-  { campaignId: string },
-  Array<EncounterGmProjectionDto | EncounterPlayerProjectionDto>
->('encounters/projectionReads:list')
+const list = makeFunctionReference<'query', { campaignId: string }, EncounterSummaryDto[]>(
+  'encounters/projectionReads:list'
+)
 const timeline = makeFunctionReference<
   'query',
   { encounterId: string; limit: number },
@@ -272,10 +272,10 @@ describe('native Encounter current Character conditions', () => {
       secretOverlay
     ])
     expect(ownerActive).toEqual(ownerGet)
-    expect(ownerList).toEqual([ownerGet])
+    expect(ownerList).toEqual([encounterSummaryOf(ownerGet)])
     expect(characterConditions(playerGet, actor.id)).toEqual([personal, visibleOverlay])
     expect(playerActive).toEqual(playerGet)
-    expect(playerList).toEqual([playerGet])
+    expect(playerList).toEqual([encounterSummaryOf(playerGet)])
     expect(characterConditions(partyGet, actor.id)).toEqual([personal, visibleOverlay])
     expect(JSON.stringify(playerGet)).not.toContain('SECRET-CONDITION-NOTE')
     expect(JSON.stringify(partyGet)).not.toContain('SECRET-CONDITION-NOTE')
@@ -316,7 +316,9 @@ describe('native Encounter current Character conditions', () => {
       const detached = await caller.query(get, { encounterId: run.id })
       expect(characterConditions(detached, actor.id)).toEqual([])
       expect(await caller.query(active, { campaignId: campaign.id })).toEqual(detached)
-      expect(await caller.query(list, { campaignId: campaign.id })).toEqual([detached])
+      expect(await caller.query(list, { campaignId: campaign.id })).toEqual([
+        encounterSummaryOf(detached)
+      ])
       expect(JSON.stringify(detached)).not.toContain('SECRET-CONDITION-NOTE')
     }
     expect(await t.run((ctx) => ctx.db.get(detachedRow._id))).toEqual(detachedRow)
@@ -367,7 +369,9 @@ describe('native Encounter current Character conditions', () => {
       return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(row))
     })
     expect(await owner.caller.query(get, { encounterId: run.id })).toEqual(completed)
-    expect(await owner.caller.query(list, { campaignId: campaign.id })).toEqual([completed])
+    expect(await owner.caller.query(list, { campaignId: campaign.id })).toEqual([
+      encounterSummaryOf(completed)
+    ])
     expect(
       characterConditions(await player.caller.query(get, { encounterId: run.id }), actor.id)
     ).toEqual([])

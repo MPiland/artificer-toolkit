@@ -18,6 +18,7 @@ import {
   type EncounterGmProjectionDto,
   type EncounterExecuteInput,
   type EncounterPlayerProjectionDto,
+  type EncounterSummaryDto,
   type EncounterTimelineDto,
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -33,6 +34,7 @@ import { airElemental } from '@artificer-toolkit/source-data/srd/creatures/air-e
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { encounterSummaryOf } from '../../tests/fixtures/encounterSummaries'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -84,7 +86,7 @@ const getActiveEncounter = makeFunctionReference<
 const listEncounters = makeFunctionReference<
   'query',
   { campaignId: string },
-  Array<EncounterGmProjectionDto | EncounterPlayerProjectionDto>
+  EncounterSummaryDto[]
 >('encounters/projectionReads:list')
 const getPendingOccurrence = makeFunctionReference<
   'query',
@@ -1270,7 +1272,7 @@ describe('native Encounter Run commands', () => {
       pending.projection
     )
     expect(await owner.caller.query(listEncounters, { campaignId: campaign.id })).toEqual([
-      pending.projection
+      encounterSummaryOf(encounterGmProjectionDtoSchema.parse(pending.projection))
     ])
     expect(await owner.caller.query(getActiveEncounter, { campaignId: campaign.id })).toBeNull()
     expect(await owner.caller.query(getPendingOccurrence, { encounterId: run.id })).toEqual(

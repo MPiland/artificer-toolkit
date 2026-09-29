@@ -8,6 +8,7 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import type { EncounterBlueprintDto } from '@artificer-toolkit/schema/api/encounters'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
+import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { CampaignEncounterBuilderPage } from './CampaignEncounterBuilderPage'
 import { CampaignEncounters } from './components/CampaignEncounters'
@@ -107,7 +108,9 @@ const meta = {
           return { page: [blueprint], isDone: true, continueCursor: '' }
         }
         if (name === getFunctionName(convexApi.encounters.projectionReads.list))
-          return encounterRunCreated ? [createdEncounter] : []
+          return encounterRunCreated ? [summarizeEncounterProjection(createdEncounter)] : []
+        if (name === getFunctionName(convexApi.encounters.projectionReads.get))
+          return createdEncounter
         throw new Error(`Unexpected encounter fixture query: ${name}`)
       })
     })

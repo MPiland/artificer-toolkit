@@ -5,7 +5,7 @@ import { encounterBlueprintPageSchema } from '@artificer-toolkit/schema/api/enco
 import type { EncounterBlueprintDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterProjectionDtoSchema,
-  encounterProjectionListDtoSchema,
+  encounterSummaryListDtoSchema,
   encounterTimelineDtoSchema,
   pendingEncounterRuleOccurrenceSummaryDtoSchema
 } from '@artificer-toolkit/schema/api/encounters'
@@ -39,7 +39,7 @@ export function getCampaignEncounters(campaignId: string, client: ConvexReactCli
   return queryOptions({
     queryKey: queryKeys.encounters.list(campaignId),
     queryFn: async () =>
-      encounterProjectionListDtoSchema.parse(
+      encounterSummaryListDtoSchema.parse(
         await client.query(convexApi.encounters.projectionReads.list, { campaignId })
       ),
     refetchInterval: 5_000
