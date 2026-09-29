@@ -14,11 +14,35 @@ const expectedWorkspaces = new Map([
   ['packages/authoring', '@artificer-toolkit/authoring'],
   ['packages/design-system', '@artificer-toolkit/design-system'],
   ['packages/emails', '@artificer-toolkit/emails'],
+  ['packages/encounter-persistence', '@artificer-toolkit/encounter-persistence'],
   ['packages/rules-runtime', '@artificer-toolkit/rules-runtime'],
   ['packages/schema', '@artificer-toolkit/schema'],
   ['packages/shared', '@artificer-toolkit/shared'],
   ['packages/source-data', '@artificer-toolkit/source-data']
 ])
+
+// Allowed workspace-to-workspace dependency directions (docs/architecture/persistence.md,
+// rules-runtime.md, ADR 0001). A package never depends on an app; no app depends on another app
+// except the web app's type-only reach into the Convex API surface of `apps/apis`.
+const packageWorkspaceDependencies = new Map([
+  ['@artificer-toolkit/authoring', ['schema', 'shared']],
+  ['@artificer-toolkit/design-system', []],
+  ['@artificer-toolkit/emails', ['design-system', 'schema']],
+  ['@artificer-toolkit/encounter-persistence', ['rules-runtime', 'schema', 'shared']],
+  ['@artificer-toolkit/rules-runtime', ['schema', 'shared', 'source-data']],
+  ['@artificer-toolkit/schema', ['design-system', 'shared']],
+  ['@artificer-toolkit/shared', ['design-system']],
+  ['@artificer-toolkit/source-data', ['schema', 'shared']]
+])
+const appWorkspaceNames = new Set([
+  '@artificer-toolkit/apis',
+  '@artificer-toolkit/session-worker',
+  '@artificer-toolkit/web'
+])
+const allowedAppToApp = new Set(['@artificer-toolkit/web>@artificer-toolkit/apis'])
+// A package source file must not import an app, by workspace name or by relative path.
+const packageAppImport =
+  /(?:from\s+|import\s*\(\s*|require\(\s*)['"](?:@artificer-toolkit\/(?:apis|session-worker|web)(?=\/|['"])|(?:\.{1,2}\/)+(?:[^'"]*\/)?apps\/)/u
 
 const retiredPaths = [
   'apps/apis/src/trpc',
@@ -168,6 +192,14 @@ function sourceViolations(path, source) {
       ? [{ line: 1, path, rule: 'removed Kysely/Postgres application SQL', source: 'SQL file' }]
       : []
   for (const [index, line] of source.split(/\r?\n/u).entries()) {
+    if (path.startsWith('packages/') && packageAppImport.test(line)) {
+      violations.push({
+        line: index + 1,
+        path,
+        rule: 'package imports an app',
+        source: line.trim().slice(0, 200)
+      })
+    }
     for (const rule of sourceRules) {
       if (!rule.pattern.test(line)) continue
       violations.push({
@@ -212,10 +244,33 @@ async function workspaceAudit() {
   return { actualWorkspaces, violations }
 }
 
+function workspaceDependencyViolations(path, manifest) {
+  const dependencies = [
+    'dependencies',
+    'devDependencies',
+    'optionalDependencies',
+    'peerDependencies'
+  ]
+    .flatMap((section) => Object.keys(manifest[section] ?? {}))
+    .filter((name) => name.startsWith('@artificer-toolkit/'))
+  const allowed = packageWorkspaceDependencies.get(manifest.name)
+  return dependencies.flatMap((name) => {
+    if (allowed) {
+      return allowed.includes(name.slice('@artificer-toolkit/'.length))
+        ? []
+        : [{ path, rule: manifest.name + ' must not depend on ' + name }]
+    }
+    return appWorkspaceNames.has(name) && !allowedAppToApp.has(manifest.name + '>' + name)
+      ? [{ path, rule: manifest.name + ' must not depend on app ' + name }]
+      : []
+  })
+}
+
 async function dependencyAudit(manifestPaths) {
   const violations = []
   for (const path of manifestPaths) {
     const manifest = JSON.parse(await readFile(resolve(root, path), 'utf8'))
+    if (path !== 'package.json') violations.push(...workspaceDependencyViolations(path, manifest))
     for (const section of [
       'dependencies',
       'devDependencies',
@@ -288,11 +343,40 @@ function selfTest() {
       "import { getContext } from '@netlify/functions'",
       'removed Netlify hosting surface (ADR 0037)'
     ],
-    ['client.ts', "import '@artificer-toolkit/db'", 'retired workspace path']
+    ['client.ts', "import '@artificer-toolkit/db'", 'retired workspace path'],
+    [
+      'packages/encounter-persistence/src/store.ts',
+      "import { api } from '@artificer-toolkit/apis/convex/api'",
+      'package imports an app'
+    ],
+    [
+      'packages/encounter-persistence/src/store.ts',
+      "import { db } from '../../../apps/apis/convex/db'",
+      'package imports an app'
+    ]
   ]
   for (const [path, source, expectedRule] of fixtures) {
     assert(sourceViolations(path, source).some(({ rule }) => rule === expectedRule))
   }
+  assert(!sourceViolations('apps/apis/convex/a.ts', "import '@artificer-toolkit/apis'").length)
+  assert(
+    workspaceDependencyViolations('packages/encounter-persistence/package.json', {
+      name: '@artificer-toolkit/encounter-persistence',
+      dependencies: { '@artificer-toolkit/apis': 'workspace:^' }
+    }).length === 1
+  )
+  assert(
+    workspaceDependencyViolations('packages/rules-runtime/package.json', {
+      name: '@artificer-toolkit/rules-runtime',
+      dependencies: { '@artificer-toolkit/encounter-persistence': 'workspace:^' }
+    }).length === 1
+  )
+  assert(
+    workspaceDependencyViolations('apps/session-worker/package.json', {
+      name: '@artificer-toolkit/session-worker',
+      dependencies: { '@artificer-toolkit/apis': 'workspace:^' }
+    }).length === 1
+  )
   assert(forbiddenDependency.test('@trpc/server'))
   assert(forbiddenDependency.test('@netlify/vite-plugin-tanstack-start'))
   assert(forbiddenDependency.test('netlify-cli'))
