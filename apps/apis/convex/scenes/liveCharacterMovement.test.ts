@@ -1,8 +1,8 @@
 import { expect, it, vi } from 'vitest'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
 import { api } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -11,15 +11,11 @@ it('moves a Character whose Sheet changed after Run creation and damages its cur
   const characterId = value.base.character.id
   const readCharacter = () =>
     value.base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', characterId))
-        .unique()
+      const row = await readCharacterRow(ctx, characterId)
       if (!row) throw new Error('Missing moving Character.')
       return {
-        streamVersion: row.streamVersion,
-        hitPoints: characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson)).state.hitpoints
-          .current
+        streamVersion: row.play.streamVersion,
+        hitPoints: readCharacterRecord(row).state.hitpoints.current
       }
     })
   const created = await readCharacter()

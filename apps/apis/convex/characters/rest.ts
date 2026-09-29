@@ -80,7 +80,7 @@ export async function prepareCharacterRest(
     throw new CharacterSheetCommandError(
       'Campaign owners cannot reset a player maximum-HP modifier.'
     )
-  if (input.expectedVersion !== current.active.streamVersion)
+  if (input.expectedVersion !== current.active.play.streamVersion)
     throw new CharacterSheetCommandError(
       'Character Sheet changed; refresh before previewing this rest.'
     )

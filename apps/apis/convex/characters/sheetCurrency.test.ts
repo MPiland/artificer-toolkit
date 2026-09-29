@@ -8,7 +8,6 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
@@ -16,6 +15,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { api, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -45,10 +45,7 @@ async function fixture() {
   const sheet = (await base.owner.caller.query(getSheet, { id: character.id }))!
   const readState = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, character.id),
       receipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
@@ -163,12 +160,8 @@ describe('native Character Sheet currency and containers', () => {
     expect(removed.sheet.inventory.currencies).toContainEqual(
       expect.objectContaining({ currencyId, amount: loose + 10 })
     )
-    const stored = characterAuthoredDtoSchema.parse(
-      JSON.parse((await readState()).character!.documentJson)
-    )
-    expect(stored.intent).toEqual(
-      characterAuthoredDtoSchema.parse(JSON.parse(before.character!.documentJson)).intent
-    )
+    const stored = readCharacterRecord((await readState()).character!)
+    expect(stored.intent).toEqual(readCharacterRecord(before.character!).intent)
     expect(stored.state.currency.every((group) => group.containerId !== bag.id)).toBe(true)
   })
 
@@ -290,10 +283,8 @@ describe('native Character Sheet currency and containers', () => {
     expect(debited.sheet.inventory.currencies).toContainEqual(
       expect.objectContaining({ currencyId, amount: 0 })
     )
-    const stored = characterAuthoredDtoSchema.parse(
-      JSON.parse((await readState()).character!.documentJson)
-    )
-    const original = characterAuthoredDtoSchema.parse(JSON.parse(before.character!.documentJson))
+    const stored = readCharacterRecord((await readState()).character!)
+    const original = readCharacterRecord(before.character!)
     expect(stored.state.currency.map((group) => group.id)).toEqual(
       original.state.currency.map((group) => group.id)
     )

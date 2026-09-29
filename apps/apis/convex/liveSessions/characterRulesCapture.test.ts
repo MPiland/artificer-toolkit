@@ -19,7 +19,7 @@ import {
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject, makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { characterStoredRowSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
 import { readCampaignCharacterState } from '../campaigns/characterState'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
@@ -122,11 +122,8 @@ it('captures the assigned player Character stored inputs for the GM and rejects 
     if (!campaign) throw new Error('Missing Campaign fixture.')
     return {
       kind: 'INPUTS',
-      character: readCharacterRecord(base.stored),
-      characterChecksum: base.stored.checksum,
-      updatedAt: base.stored.updatedAt,
+      owner: characterStoredRowSchema.parse(base.stored),
       sheetState: readCharacterSheetState(base.stored),
-      streamVersion: base.stored.streamVersion,
       system: await requireSystem(ctx, base.stored.systemId),
       campaign: {
         id: campaign.id,

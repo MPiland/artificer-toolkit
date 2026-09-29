@@ -6,7 +6,11 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { movementReactionActionExecutionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMovementReactionReceipts'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  encodeCharacterRecord,
+  type StoredCharacter
+} from '@artificer-toolkit/schema/projections/characterStoredState'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
@@ -20,13 +24,7 @@ import {
 } from './encounterActionProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 
-export type MovementCharacterRow = {
-  id: string
-  streamVersion: number
-  documentJson: string
-  checksum: string
-  updatedAt: string
-}
+export type MovementCharacterRow = StoredCharacter
 export type MovementMaintenanceOwner<TRow extends MovementCharacterRow> = {
   owner: ActiveRuleEffectRecord['owner']
   effects: ActiveRuleEffectRecord[]
@@ -109,12 +107,7 @@ function projectEncounterMovementMaintenanceOwners<
     let row = snapshot.character
     if (active) {
       if (!row) throw new Error('Movement maintenance Character row is unavailable.')
-      row = {
-        ...row,
-        ...active,
-        documentJson: active.documentJson ?? row.documentJson,
-        updatedAt: active.updatedAt ?? row.updatedAt
-      }
+      row = { ...row, ...active }
     }
     let characterUpdate: Parameters<typeof projectEncounterActionTarget>[0]['plan'] = null
     if (owner.kind === 'CHARACTER') {
@@ -124,7 +117,7 @@ function projectEncounterMovementMaintenanceOwners<
       if (
         !row ||
         before === undefined ||
-        (row.streamVersion !== before && row.streamVersion !== before + 1)
+        (row.play.streamVersion !== before && row.play.streamVersion !== before + 1)
       )
         throw new Error('Movement maintenance Character forecast is stale.')
       const character = readCharacter(row)
@@ -137,17 +130,11 @@ function projectEncounterMovementMaintenanceOwners<
               ...character,
               state: { ...character.state, conditions: retained }
             }
-      row = {
-        ...row,
-        ...(retained.length === conditions.length
-          ? {}
-          : {
-              documentJson: canonicalizeRuleDocument(next),
-              checksum: checksumRuleDocument(next)
-            }),
+      row = encodeCharacterRecord(row, {
+        document: next,
         streamVersion: before + 1,
         updatedAt: input.occurredAt
-      }
+      })
       if (retained.length !== conditions.length)
         characterUpdate = {
           characterUpdate: {
@@ -202,12 +189,7 @@ function projectEncounterMovementMaintenanceOwners<
       owners.set(key, {
         owner,
         effects: remaining,
-        character: {
-          ...row,
-          ...projected.characterFacts.active,
-          documentJson: projected.characterFacts.active.documentJson ?? row.documentJson,
-          updatedAt: projected.characterFacts.active.updatedAt ?? row.updatedAt
-        }
+        character: { ...row, ...projected.characterFacts.active }
       })
   }
   return {

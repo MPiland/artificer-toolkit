@@ -8,7 +8,11 @@ import {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import {
+  readCharacterRecord,
+  readCharacterRow,
+  type CharacterRow
+} from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { requireSystem } from '../content/systemDocuments'
 import { readCampaignAssignedCharacter } from './assignedCharacter'
@@ -19,7 +23,7 @@ type CharacterCurrencyGroup = CharacterAuthored['state']['currency'][number]
 type CharacterCurrency = CharacterCurrencyGroup['currencies'][number]
 
 export type CharacterCurrencyRewrite = {
-  record: Doc<'characters'>
+  record: CharacterRow
   character: CharacterAuthored
   streamVersion: number
   updatedAt: string
@@ -162,10 +166,7 @@ export async function prepareCampaignCharacterCurrencyRewrites(
     const assigned = await readCampaignAssignedCharacter(ctx, input.campaign, membership)
     if (!assigned || assigned.id !== assignment.characterId)
       throw new Error('Stored Campaign Character assignment mismatch.')
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', assignment.characterId))
-      .unique()
+    const record = await readCharacterRow(ctx, assignment.characterId)
     if (!record) throw new Error('Stored Campaign Character is unavailable.')
     const character = readCharacterRecord(record)
     const groups = character.state.currency.map((group) =>
@@ -193,7 +194,7 @@ export async function prepareCampaignCharacterCurrencyRewrites(
             .map((group) => group.group)
         }
       },
-      streamVersion: requireSafeNextStreamVersion(record.streamVersion),
+      streamVersion: requireSafeNextStreamVersion(record.play.streamVersion),
       updatedAt: new Date(Math.max(Date.now(), priorUpdatedAt + 1)).toISOString()
     })
   }

@@ -84,6 +84,12 @@ it('removes only the exact personal fixture and its private descendants, with id
         .withIndex('by_publicId', (q) => q.eq('id', input.characterId))
         .unique()
     ).toBeNull()
+    expect(
+      await ctx.db
+        .query('characterPlayStates')
+        .withIndex('by_characterId', (q) => q.eq('characterId', input.characterId))
+        .unique()
+    ).toBeNull()
     expect(await ctx.db.query('characterDrafts').collect()).toHaveLength(0)
     expect(await ctx.db.query('characterCommandReceipts').collect()).toHaveLength(0)
     expect(

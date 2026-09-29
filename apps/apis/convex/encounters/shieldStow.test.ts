@@ -38,6 +38,7 @@ import { getNativeActionChoices } from '../../tests/fixtures/nativeDisarm'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 import {
   readRunActor,
@@ -211,13 +212,7 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
       ).get(actor.id)
       return source?.effectiveRulePolicyOutput?.derivedStats.armorClass.effective
     })
-  const characterRow = () =>
-    base.t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-    )
+  const characterRow = () => base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
   return {
     ...base,
     run,
@@ -321,9 +316,9 @@ describe('shield stow on two-handed attacks', () => {
           sourceCommandId: crypto.randomUUID(),
           commandId: crypto.randomUUID(),
           occurredAt: '2026-09-24T00:00:00.000Z',
-          expectedCharacterStreamVersion: loaded.active.streamVersion,
+          expectedCharacterStreamVersion: loaded.active.play.streamVersion,
           applications: [],
-          effectiveMaximumHitPoints: loaded.active.maximumHitPoints,
+          effectiveMaximumHitPoints: loaded.active.play.maximumHitPoints,
           forceVersionAdvance: false,
           stowEquippedItemInstanceId: base.shieldItemId,
           characterResourceConsumption: {
@@ -337,7 +332,7 @@ describe('shield stow on two-handed attacks', () => {
             beforeRemaining: 1,
             afterRemaining: 0,
             characterId: loaded.active.id,
-            expectedStreamVersion: loaded.active.streamVersion
+            expectedStreamVersion: loaded.active.play.streamVersion
           }
         },
         actor,
@@ -345,7 +340,7 @@ describe('shield stow on two-handed attacks', () => {
         characterFacts: loaded
       })
       expect(plan.shouldAdvance).toBe(true)
-      expect(plan.characterStreamVersion).toBe(loaded.active.streamVersion + 1)
+      expect(plan.characterStreamVersion).toBe(loaded.active.play.streamVersion + 1)
       expect(plan.updatedActor).toEqual(actor)
       expect(plan.characterUpdate?.character.state.equipment.equipped).not.toContain(
         base.shieldItemId
@@ -359,8 +354,8 @@ describe('shield stow on two-handed attacks', () => {
         itemInstanceId: base.shieldItemId,
         fromState: 'EQUIPPED',
         toState: 'CARRIED',
-        beforeStreamVersion: loaded.active.streamVersion,
-        afterStreamVersion: loaded.active.streamVersion + 1
+        beforeStreamVersion: loaded.active.play.streamVersion,
+        afterStreamVersion: loaded.active.play.streamVersion + 1
       })
     })
   }, 60000)
@@ -380,13 +375,11 @@ describe('shield stow on two-handed attacks', () => {
     })
     expect(result.occurrence?.status).toBe('COMPLETE')
     const after = await base.characterRow()
-    expect(after?.streamVersion).toBe(before!.streamVersion + 1)
-    expect(JSON.parse(after!.documentJson).state.equipment.equipped).not.toContain(
-      base.shieldItemId
-    )
+    expect(after?.play.streamVersion).toBe(before!.play.streamVersion + 1)
+    expect(readCharacterRecord(after!).state.equipment.equipped).not.toContain(base.shieldItemId)
     expect(await base.armorClass()).toBe(12)
     expect(await replayInRoom(base.owner.caller, { command })).toEqual(result)
-    expect((await base.characterRow())?.streamVersion).toBe(after!.streamVersion)
+    expect((await base.characterRow())?.play.streamVersion).toBe(after!.play.streamVersion)
   }, 60000)
 
   it('plans the stow in the room and commits it once through the live action commit', async () => {
@@ -452,10 +445,8 @@ describe('shield stow on two-handed attacks', () => {
       await commitNativeLiveEncounterAction(environment, 'fixture-access-token', scope, plan)
     ).toEqual(committed)
     const after = await base.characterRow()
-    expect(after?.streamVersion).toBe(before!.streamVersion + 1)
-    expect(JSON.parse(after!.documentJson).state.equipment.equipped).not.toContain(
-      base.shieldItemId
-    )
+    expect(after?.play.streamVersion).toBe(before!.play.streamVersion + 1)
+    expect(readCharacterRecord(after!).state.equipment.equipped).not.toContain(base.shieldItemId)
     expect(await base.armorClass()).toBe(12)
     const receipt = await base.t.run((ctx) =>
       ctx.db
@@ -474,8 +465,8 @@ describe('shield stow on two-handed attacks', () => {
         : null
     ).toMatchObject({
       itemInstanceId: base.shieldItemId,
-      beforeStreamVersion: before!.streamVersion,
-      afterStreamVersion: after!.streamVersion
+      beforeStreamVersion: before!.play.streamVersion,
+      afterStreamVersion: after!.play.streamVersion
     })
   }, 60000)
 })
@@ -512,7 +503,7 @@ describe('versatile grips', () => {
     const result = await execute(base.command(accept(base.shieldItemId), twoHand.id))
     expect(result.occurrence?.status).toBe('COMPLETE')
     expect(
-      JSON.parse((await base.characterRow())!.documentJson).state.equipment.equipped
+      readCharacterRecord((await base.characterRow())!).state.equipment.equipped
     ).not.toContain(base.shieldItemId)
   }, 60000)
 })

@@ -35,7 +35,7 @@ export function projectCharacterSheetFacts(
   const { sheet, ruleProjection } = projectCharacterSheetBundle({
     character: facts.prepared.character,
     resolution: facts.prepared.resolution,
-    streamVersion: facts.active.streamVersion,
+    streamVersion: facts.active.play.streamVersion,
     hasBuilderDraft: facts.draft !== null,
     adjustments: facts.adjustments,
     additionalConditions: getVisibleCampaignConditions(facts.campaignContext),

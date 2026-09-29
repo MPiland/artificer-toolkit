@@ -4,6 +4,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from '../characters/acquiredEquipment'
 import { readCharacterRecord, readCharacterDraft } from '../characters/documents'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { readCharacterCampaign } from '../characters/context'
 import { readCharacterSourceAccessLoss } from '../characters/sourceAccessLoss'
 import { writeCharacterRecord } from '../characters/characterWrites'
@@ -24,10 +25,7 @@ export async function removeCampaignCharacterAssignment(input: {
   authorityScope?: import('./authority').CampaignInternalScope
 }) {
   const { ctx, campaign, assignment } = input
-  const record = await ctx.db
-    .query('characters')
-    .withIndex('by_publicId', (q) => q.eq('id', assignment.characterId))
-    .unique()
+  const record = await readCharacterRow(ctx, assignment.characterId)
   if (!record || record.userId !== assignment.userId || assignment.campaignId !== campaign.id)
     throw new Error('Stored Campaign Character assignment mismatch.')
   const character = readCharacterRecord(record) as CharacterAuthored
@@ -80,11 +78,11 @@ export async function removeCampaignCharacterAssignment(input: {
     stateAfterContextChange: returned.state
   })
   // Campaign adjustments and attunement no longer apply to the stored maximum hit points.
-  const departed = await ctx.db.get(record._id)
+  const departed = await readCharacterRow(ctx, record.id)
   if (!departed) throw new Error('Departing Character is unavailable.')
   await writeCharacterRecord(ctx, {
     current: departed,
-    fields: { streamVersion: departed.streamVersion, updatedAt: departed.updatedAt }
+    fields: { streamVersion: departed.play.streamVersion, updatedAt: departed.updatedAt }
   })
   if (result)
     await ctx.db.insert(

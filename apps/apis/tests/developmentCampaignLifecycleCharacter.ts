@@ -11,7 +11,15 @@ import type {
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { sceneVisionRevisionSchema } from '@artificer-toolkit/schema/projections/sceneVisionRevisions'
-import { CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES } from '@artificer-toolkit/schema/projections/characterPersistence'
+import {
+  CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES,
+  characterStoredPlayStateSchema,
+  characterStoredRecordSchema
+} from '@artificer-toolkit/schema/projections/characterPersistence'
+import {
+  encodeCharacterRecord,
+  readCharacterRecord
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { reconcileCharacterAuthoredSourceLoss } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -414,16 +422,25 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
 }) {
   const { expected, actual, campaign, characterId, backgroundId, fenceTimeMs } = input
   const records = expected.characters!.filter((row) => row.id === characterId)
+  const plays = expected.characterPlayStates!.filter((row) => row.characterId === characterId)
   const drafts = expected.characterDrafts!.filter((row) => row.characterId === characterId)
   assert.equal(records.length, 1)
+  assert.equal(plays.length, 1)
   assert.equal(drafts.length, 1)
   const record = records[0]!
+  const play = plays[0]!
   const draft = drafts[0]!
   assert.equal(typeof record.documentJson, 'string')
   assert.equal(typeof record.updatedAt, 'string')
   assert.equal(typeof draft.updatedAt, 'string')
-  assert.equal(typeof record.streamVersion, 'number')
-  const original = characterAuthoredDtoSchema.parse(JSON.parse(record.documentJson as string))
+  assert.equal(typeof play.streamVersion, 'number')
+  const { _id: _recordId, _creationTime: _recordCreationTime, ...storedRecord } = record
+  const { _id: _playId, _creationTime: _playCreationTime, ...storedPlay } = play
+  const stored = {
+    ...characterStoredRecordSchema.parse(storedRecord),
+    play: characterStoredPlayStateSchema.parse(storedPlay)
+  }
+  const original = readCharacterRecord(stored)
   const originalDraft = readNativeCharacterDraftPayload(expected, draft).payload
   assert.equal(original.status, 'ACTIVE')
   assert.equal(original.intent.background.backgroundId, backgroundId)
@@ -466,7 +483,6 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   assert.equal(character.intent.background.backgroundId, '')
   assert.equal(character.intent.startingEquipment?.background, undefined)
   assert.deepEqual(character.state, { ...original.state, currency })
-  const encoded: unknown = JSON.parse(JSON.stringify(character))
   const actualRecords = actual.characters!.filter((row) => row._id === record._id)
   assert.equal(actualRecords.length, 1)
   const updatedAt = actualRecords[0]!.updatedAt
@@ -474,8 +490,15 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   assert.equal(new Date(updatedAt).toISOString(), updatedAt)
   assert.ok(Date.parse(updatedAt) >= fenceTimeMs)
   assert.ok(Date.parse(updatedAt) > Date.parse(record.updatedAt as string))
-  const checksum = checksumRuleDocument(encoded)
-  assert.notEqual(checksum, record.checksum)
+  // The prune rewrites the structure (status, label, currency) and advances the play stream; the
+  // play content itself is unchanged.
+  const written = encodeCharacterRecord(stored, {
+    document: character,
+    streamVersion: stored.play.streamVersion + 1,
+    updatedAt
+  })
+  assert.notEqual(written.checksum, record.checksum)
+  assert.equal(written.play.playJson, play.playJson)
   expected.characters = expected.characters!.map((row) =>
     row._id !== record._id
       ? row
@@ -483,10 +506,20 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
           ...row,
           label: character.label,
           status: 'DRAFT',
-          streamVersion: (record.streamVersion as number) + 1,
-          documentJson: canonicalizeRuleDocument(encoded),
-          checksum,
+          documentJson: written.documentJson,
+          checksum: written.checksum,
           updatedAt
+        }
+  )
+  expected.characterPlayStates = expected.characterPlayStates!.map((row) =>
+    row._id !== play._id
+      ? row
+      : {
+          ...row,
+          streamVersion: written.play.streamVersion,
+          playJson: written.play.playJson,
+          checksum: written.play.checksum,
+          updatedAt: written.play.updatedAt
         }
   )
   const prunedDraft = reconcileCharacterAuthoredSourceLoss(
@@ -520,8 +553,8 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
     checksum: draftChecksum
   }
   assert.deepEqual(actualDraft, expectedDraft)
-  const stored = readNativeCharacterDraftPayload(actual, actualDraft)
-  assert.deepEqual(stored.payload, persistedPayload)
+  const storedDraft = readNativeCharacterDraftPayload(actual, actualDraft)
+  assert.deepEqual(storedDraft.payload, persistedPayload)
   const payloadJson = canonicalizeRuleDocument(encodedDraft)
   const totalByteLength = new TextEncoder().encode(payloadJson).byteLength
   // Inline in its one payload document below the limit; chunked above it (ADR 0036 S8).
@@ -529,12 +562,12 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
     totalByteLength > CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES
       ? encodeUtf8PayloadChunks(payloadJson)
       : []
-  assert.equal(stored.payloadJson, payloadJson)
+  assert.equal(storedDraft.payloadJson, payloadJson)
   // The payload document is replaced in place.
-  assert.equal(stored.payloadRow._id, draft.payloadDocumentId)
+  assert.equal(storedDraft.payloadRow._id, draft.payloadDocumentId)
   const expectedPayloadRow = {
-    _id: stored.payloadRow._id,
-    _creationTime: stored.payloadRow._creationTime,
+    _id: storedDraft.payloadRow._id,
+    _creationTime: storedDraft.payloadRow._creationTime,
     id: actualDraft.payloadId,
     characterId,
     ...(expectedChunks.length > 0
@@ -543,8 +576,8 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
     checksum: draftChecksum,
     createdAt: draftUpdatedAt
   }
-  assert.deepEqual(stored.payloadRow, expectedPayloadRow)
-  const expectedChunkRows = stored.chunks.map((row, index) => {
+  assert.deepEqual(storedDraft.payloadRow, expectedPayloadRow)
+  const expectedChunkRows = storedDraft.chunks.map((row, index) => {
     const bytes = materializeArrayBuffer(row.bytes)
     assert.deepEqual(new Uint8Array(bytes), new Uint8Array(expectedChunks[index]!))
     return {
@@ -556,7 +589,7 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
       bytes: row.bytes
     }
   })
-  assert.deepEqual(stored.chunks, expectedChunkRows)
+  assert.deepEqual(storedDraft.chunks, expectedChunkRows)
   if (typeof previousPayloadId === 'string') {
     assert.notEqual(actualDraft.payloadId, previousPayloadId)
     assert.equal(
@@ -572,7 +605,7 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
     row._id === draft._id ? actualDraft : row
   )
   expected.characterDraftPayloads = [
-    ...expected.characterDraftPayloads!.filter((row) => row._id !== stored.payloadRow._id),
+    ...expected.characterDraftPayloads!.filter((row) => row._id !== storedDraft.payloadRow._id),
     expectedPayloadRow
   ].sort((left, right) => String(left._id).localeCompare(String(right._id)))
   expected.characterDraftPayloadChunks = [
@@ -592,5 +625,10 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   expected.sceneVisionRevisions = expected.sceneVisionRevisions!.map((row) =>
     row._id !== beforeMarker._id ? row : { ...row, revision }
   )
-  return { updatedAt, draftUpdatedAt, removedCurrencyAmount: 8_589_934_594, checksum }
+  return {
+    updatedAt,
+    draftUpdatedAt,
+    removedCurrencyAmount: 8_589_934_594,
+    checksum: written.checksum
+  }
 }

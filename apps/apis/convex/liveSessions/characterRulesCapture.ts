@@ -23,7 +23,7 @@ import {
 import { readCampaignSharedRoot } from '../campaigns/contentAccess'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
-import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
+import { loadCharacterState, type CharacterRow } from '../characters/stateDocuments'
 import { readCharacterSources, recordCharacterSourceIdentity } from '../characters/sourceReads'
 import {
   canReadAuthoredRoot,
@@ -35,7 +35,6 @@ import { readVisibleAuthoredRouteId } from '../content/routeIds'
 import { requireSystem } from '../content/systemDocuments'
 import { isImportRowVisible } from '../imports/visibility'
 import { requireIdentity } from '../lib/identity'
-import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
@@ -214,14 +213,11 @@ export async function readAssignedActiveCharacter(
  */
 export async function readStoredCharacterInputs(
   ctx: QueryCtx,
-  active: Doc<'characters'>,
+  active: CharacterRow,
   campaign: Doc<'campaigns'>
 ) {
   return {
-    character: deriveOnce(active, readCharacterRecord),
-    updatedAt: active.updatedAt,
-    characterChecksum: active.checksum,
-    streamVersion: active.streamVersion,
+    owner: active,
     sheetState: readCharacterSheetState(active),
     campaign: {
       id: campaign.id,
@@ -259,7 +255,6 @@ async function readAdmittedCharacterCapture(
     const response = {
       kind: 'INPUTS' as const,
       ...(await readStoredCharacterInputs(ctx, active, campaign)),
-      ...(input.movement ? { movementOwner: active } : {}),
       system: await requireSystem(ctx, active.systemId)
     }
     return liveSessionCharacterRulesResponseSchema.parse({

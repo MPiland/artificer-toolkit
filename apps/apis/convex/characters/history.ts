@@ -8,6 +8,7 @@ import { presentCampaignCharacterHistory } from '@artificer-toolkit/rules-runtim
 import { requireIdentity } from '../lib/identity'
 import { readCharacterReceiptHistory, readCharacterRecord, resolveCharacterId } from './documents'
 import { readCharacterCampaign } from './context'
+import { readCharacterRow } from './stateDocuments'
 
 export const list = query({
   args: zodToConvexFields(characterHistoryInputSchema.shape),
@@ -17,10 +18,7 @@ export const list = query({
     const input = characterHistoryInputSchema.parse(args)
     const id = await resolveCharacterId(ctx, input.id)
     if (!id) throw new Error('Character history is unavailable for the current user.')
-    const active = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', id))
-      .unique()
+    const active = await readCharacterRow(ctx, id)
     if (!active || active.userId !== userId)
       throw new Error('Character history is unavailable for the current user.')
     const character = readCharacterRecord(active)

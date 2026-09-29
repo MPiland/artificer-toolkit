@@ -93,7 +93,7 @@ function prepareNativeActionMechanicsBatches(input: NativeEncounterActionMechani
         : input.commandId,
     occurredAt: input.occurredAt,
     applications: input.applications,
-    expectedCharacterStreamVersion: targetFacts.characterFacts?.active.streamVersion ?? null,
+    expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,

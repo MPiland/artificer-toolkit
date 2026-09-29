@@ -110,7 +110,6 @@ export const liveRoomCharacterPartSchema = lazySchema(() =>
           kind: true,
           revisions: true,
           readChecksum: true,
-          movementOwner: true,
           system: true
         })
       ),

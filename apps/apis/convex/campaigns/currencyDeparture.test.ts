@@ -8,11 +8,11 @@ import type {
   CurrencySystemDto,
   SaveCampaignCurrencySystemInput
 } from '@artificer-toolkit/schema/api/campaignInventory'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { editCharacterRecord, writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { returnDepartingCharacterCurrency } from './currencyDeparture'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -44,13 +44,7 @@ async function setup(amounts = [2, 3], destination = 7) {
   const personalId = srdSystemRecord.currencies[0]!.id
   const foreignId = crypto.randomUUID()
   await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
-    if (!row) throw new Error('Missing Character.')
-    const character = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
-    const next = {
+    await editCharacterRecord(ctx, base.character.id, (character) => ({
       ...character,
       state: {
         ...character.state,
@@ -68,11 +62,7 @@ async function setup(amounts = [2, 3], destination = 7) {
           }))
         ]
       }
-    }
-    await ctx.db.patch(row._id, {
-      documentJson: JSON.stringify(next),
-      checksum: checksumRuleDocument(next)
-    })
+    }))
     await ctx.db.insert('campaignPartyInventories', {
       campaignId: campaign.id,
       version: 0
@@ -88,10 +78,7 @@ async function setup(amounts = [2, 3], destination = 7) {
   })
   const snapshot = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       balances: await ctx.db
         .query('campaignPartyCurrencies')
         .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id))
@@ -113,16 +100,13 @@ async function setup(amounts = [2, 3], destination = 7) {
     }))
   const depart = (failAfter = false, reason = 'CHARACTER_UNASSIGNED') =>
     base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
+      const row = await readCharacterRow(ctx, base.character.id)
       const storedCampaign = await ctx.db
         .query('campaigns')
         .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
         .unique()
       if (!row || !storedCampaign) throw new Error('Missing departure fixture.')
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
+      const character = readCharacterRecord(row)
       const result = await returnDepartingCharacterCurrency({
         ctx,
         campaign: storedCampaign,
@@ -131,11 +115,7 @@ async function setup(amounts = [2, 3], destination = 7) {
         state: character.state,
         reason
       })
-      const next = { ...character, state: result.state }
-      await ctx.db.patch(row._id, {
-        documentJson: JSON.stringify(next),
-        checksum: checksumRuleDocument(next)
-      })
+      await writeCharacterRecord(ctx, row, { document: { ...character, state: result.state } })
       if (failAfter) throw new Error('Later reconciliation failed.')
       return result
     })
@@ -155,7 +135,7 @@ describe('Campaign departure currency return', () => {
   it('returns only this Campaign currency, preserves group identities and personal state, and does not replay money', async () => {
     const base = await setup()
     const before = await base.snapshot()
-    const original = characterAuthoredDtoSchema.parse(JSON.parse(before.character!.documentJson))
+    const original = readCharacterRecord(before.character!)
     const result = await base.depart()
     expect(result.moved).toEqual([{ denominationId: base.denominationId, amount: '5' }])
     expect(result.state).toEqual({
@@ -202,7 +182,7 @@ describe('Campaign departure currency return', () => {
       Number.MAX_SAFE_INTEGER
     )
     const before = await base.snapshot()
-    const original = characterAuthoredDtoSchema.parse(JSON.parse(before.character!.documentJson))
+    const original = readCharacterRecord(before.character!)
     const result = await base.depart(false, 'CAMPAIGN_DELETED')
     expect(result.moved).toEqual([])
     expect(result.eventId).toBeNull()
@@ -241,7 +221,7 @@ describe('Campaign departure currency return', () => {
       ]
     })
     const before = await base.snapshot()
-    const original = characterAuthoredDtoSchema.parse(JSON.parse(before.character!.documentJson))
+    const original = readCharacterRecord(before.character!)
     const result = await base.depart()
     expect(result.moved).toEqual([{ denominationId: base.denominationId, amount: '5' }])
     expect(result.state.currency[0]).toEqual(original.state.currency[0])
@@ -318,34 +298,27 @@ describe('Campaign departure currency return', () => {
     })
     const foreignSystemId = crypto.randomUUID()
     await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!row) throw new Error('Missing Character.')
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
-      character.state.currency[0]!.currencies = [
-        { currencyId: base.personalId, kind: 'RULESET', amount: 11 },
-        {
-          currencyId: base.personalId,
-          kind: 'CAMPAIGN',
-          campaignCurrencySystemId: custom.id,
-          amount: 3
-        },
-        {
-          currencyId: base.personalId,
-          kind: 'CAMPAIGN',
-          campaignCurrencySystemId: foreignSystemId,
-          amount: 4
-        }
-      ]
-      await ctx.db.patch(row._id, {
-        documentJson: JSON.stringify(character),
-        checksum: checksumRuleDocument(character)
+      await editCharacterRecord(ctx, base.character.id, (character) => {
+        character.state.currency[0]!.currencies = [
+          { currencyId: base.personalId, kind: 'RULESET', amount: 11 },
+          {
+            currencyId: base.personalId,
+            kind: 'CAMPAIGN',
+            campaignCurrencySystemId: custom.id,
+            amount: 3
+          },
+          {
+            currencyId: base.personalId,
+            kind: 'CAMPAIGN',
+            campaignCurrencySystemId: foreignSystemId,
+            amount: 4
+          }
+        ]
+        return character
       })
     })
     const before = await base.snapshot()
-    const original = characterAuthoredDtoSchema.parse(JSON.parse(before.character!.documentJson))
+    const original = readCharacterRecord(before.character!)
     const result = await base.depart()
     expect(result.state.currency[0]).toEqual({
       ...original.state.currency[0],

@@ -43,7 +43,7 @@ export async function loadCharacterEncounterInitiative(
   if (snapshot.characterId !== input.characterId || snapshot.systemId !== input.systemId)
     throw new Error('Character initiative source identity does not match the actor.')
   return characterEncounterInitiativeResultSchema.parse({
-    streamVersion: loaded.active.streamVersion,
+    streamVersion: loaded.active.play.streamVersion,
     initiativeActorFacts: toCharacterInitiativeActorFacts({
       snapshot,
       registry,

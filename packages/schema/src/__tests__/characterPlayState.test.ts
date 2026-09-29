@@ -1,0 +1,148 @@
+import fc from 'fast-check'
+import { describe, expect, it } from 'vitest'
+import {
+  characterPlayStateSchema,
+  mergeCharacterPlayState,
+  splitCharacterPlayState,
+  type CharacterPersistedState
+} from '../projections/characterPlayState.js'
+
+const text = fc.string({ maxLength: 12 })
+const uuid = fc.uuid().map((value) => value.toLowerCase())
+const count = fc.integer({ min: 0, max: 40 })
+
+const hitDie = fc.record({ die: fc.constantFrom(6, 8, 10, 12), total: count, used: fc.constant(0) })
+const state = fc.record(
+  {
+    equipment: fc.record({
+      inventory: fc.array(
+        fc.record(
+          { id: text, equipmentId: text, quantity: count, notes: text },
+          { requiredKeys: ['id', 'equipmentId', 'quantity'] }
+        ),
+        { maxLength: 4 }
+      ),
+      equipped: fc.array(text, { maxLength: 4 }),
+      attuned: fc.array(text, { maxLength: 3 })
+    }),
+    currency: fc.constant(new Array<never>()),
+    hitpoints: fc.record(
+      {
+        current: count,
+        temp: count,
+        hitDice: fc.array(hitDie, { maxLength: 3 })
+      },
+      { requiredKeys: ['current', 'hitDice'] }
+    ),
+    inspiration: fc.boolean(),
+    classes: fc.array(fc.record({ classId: text }), { maxLength: 3 }),
+    resources: fc.array(fc.record({ resourceGrantId: text, used: count }), { maxLength: 3 }),
+    spellSlots: fc.array(fc.record({ slotKey: text, used: count }), { maxLength: 3 }),
+    conditions: fc.array(fc.record({ conditionTypeId: text }), { maxLength: 3 }),
+    exhaustion: fc.record({ level: fc.integer({ min: 0, max: 6 }) }),
+    noteGroups: fc.array(
+      fc.record({
+        id: text,
+        label: text,
+        sortOrder: count,
+        kind: fc.constantFrom('SESSION', 'LOOT', 'CHARACTERS', 'PLACES', 'CUSTOM')
+      }),
+      { maxLength: 2 }
+    ),
+    creatureEquipment: fc.dictionary(
+      text,
+      fc.array(fc.record({ equipmentItemId: text }), { maxLength: 2 }),
+      {
+        maxKeys: 2
+      }
+    )
+  },
+  { requiredKeys: ['equipment', 'currency', 'hitpoints'] }
+)
+const sheetState = fc.record({
+  adjustments: fc.constant(new Array<never>()),
+  movementDisplayPreference: fc.constant({ mode: 'AUTO' as const }),
+  partyVisibility: fc.record({
+    sheet: fc.boolean(),
+    health: fc.constantFrom('HIDDEN' as const, 'EXACT' as const)
+  }),
+  resourceUsage: fc.array(
+    fc.record({
+      id: uuid,
+      characterId: uuid,
+      createdBy: uuid,
+      updatedBy: uuid,
+      createdAt: fc.constant('2026-01-01T00:00:00.000Z'),
+      updatedAt: fc.constant('2026-01-01T00:00:00.000Z'),
+      owner: fc.record({
+        kind: fc.constant('AUTHORED_GRANT' as const),
+        resourceGrantId: text
+      }),
+      used: count
+    }),
+    { maxLength: 3 }
+  ),
+  spellCustomizations: fc.constant(new Array<never>())
+})
+
+const persisted: fc.Arbitrary<CharacterPersistedState> = fc.record({ state, sheetState })
+
+describe('Character play state split', () => {
+  it('merges back exactly what it split', () => {
+    fc.assert(
+      fc.property(persisted, (input) => {
+        expect(mergeCharacterPlayState(splitCharacterPlayState(input))).toEqual(input)
+      })
+    )
+  })
+
+  it('keeps play and structure fields disjoint', () => {
+    fc.assert(
+      fc.property(persisted, (input) => {
+        const { structure, play } = splitCharacterPlayState(input)
+        const structureKeys = new Set([
+          ...Object.keys(structure.state),
+          ...Object.keys(structure.sheetState)
+        ])
+        for (const key of [
+          'hitpoints',
+          'inspiration',
+          'resources',
+          'spellSlots',
+          'conditions',
+          'exhaustion'
+        ])
+          expect(structureKeys.has(key)).toBe(false)
+        expect(structureKeys.has('resourceUsage')).toBe(false)
+        expect(structureKeys.has('partyVisibility')).toBe(false)
+        expect('equipped' in structure.state.equipment).toBe(false)
+        expect('attuned' in structure.state.equipment).toBe(false)
+        expect(Object.keys(play).every((key) => key in characterPlayStateSchema.shape)).toBe(true)
+      })
+    )
+  })
+
+  it('does not carry absent optional play fields as undefined keys', () => {
+    const { play } = splitCharacterPlayState({
+      state: {
+        equipment: { inventory: [], equipped: [], attuned: [] },
+        currency: [],
+        hitpoints: { current: 5, hitDice: [] }
+      },
+      sheetState: {
+        adjustments: [],
+        movementDisplayPreference: { mode: 'AUTO' },
+        partyVisibility: { sheet: false, health: 'HIDDEN' },
+        resourceUsage: [],
+        spellCustomizations: []
+      }
+    })
+    expect(Object.keys(play).sort()).toEqual([
+      'attuned',
+      'equipped',
+      'hitpoints',
+      'partyVisibility',
+      'resourceUsage'
+    ])
+  })
+})

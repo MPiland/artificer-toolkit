@@ -12,10 +12,12 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { fixture, input } from '../../tests/fixtures/characters'
+import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { readCharacterSourceAccessLoss } from './sourceAccessLoss'
 import { readCharacterDraft } from './documents'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 import {
   reconcileCharacterSourceLoss,
   reconcileCreateOnlyCharacterDraftSourceLoss
@@ -407,27 +409,17 @@ describe('Character authored source access loss', () => {
             })
           ).toEqual(targets)
         } else {
-          const encoded = JSON.parse(JSON.stringify(character))
           const now = new Date().toISOString()
-          const id = await ctx.db.insert('characters', {
-            id: character.id,
-            userId: character.userId,
-            systemId: character.systemId,
-            label: character.label,
-            status: 'DRAFT',
-            streamVersion: 1,
-            createdAt: now,
-            updatedAt: now,
-            documentJson: JSON.stringify(encoded),
-            checksum: checksumRuleDocument(encoded),
-            maximumHitPoints: 0,
-            walkingSpeed: 0
-          })
+          await insertActiveCharacterRecord(
+            ctx,
+            { ...characterAuthoredDtoSchema.parse(character), status: 'DRAFT' as const },
+            { createdAt: now }
+          )
           await ctx.db.patch(draft._id, {
             mode: 'edit',
             baseActiveUpdatedAt: now
           })
-          const record = await ctx.db.get(id)
+          const record = await readCharacterRow(ctx, character.id)
           if (!record) throw new Error('Missing canonical Character.')
           expect(await reconcileCharacterSourceLoss({ ctx, record, targets })).toMatchObject({
             removedSources: targets,
@@ -435,9 +427,9 @@ describe('Character authored source access loss', () => {
             draftOnly: false,
             streamVersion: 2
           })
-          const after = await ctx.db.get(id)
+          const after = await readCharacterRow(ctx, character.id)
           if (!after) throw new Error('Missing reconciled Character.')
-          const pruned = characterAuthoredDtoSchema.parse(JSON.parse(after.documentJson))
+          const pruned = readCharacterRecord(after)
           expect(pruned.intent.chosenGrantSelections).toBeUndefined()
           expect(pruned.intent.featureAcquisitions).toEqual(character.intent.featureAcquisitions)
           expect(await reconcileCharacterSourceLoss({ ctx, record: after, targets })).toBeNull()
@@ -447,10 +439,7 @@ describe('Character authored source access loss', () => {
         // The payload document is replaced in place.
         expect(afterDraft.payloadDocumentId).toBe(draft.payloadDocumentId)
         expect(afterDraft.payloadId).not.toBe(draft.payloadId)
-        const active = await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', afterDraft.characterId))
-          .unique()
+        const active = await readCharacterRow(ctx, afterDraft.characterId)
         const payload = (await readCharacterDraft(ctx, afterDraft, active)).payload
         expect(payload.character.label).toBe(savedCharacter.label)
         expect(payload.character.intent.chosenGrantSelections).toBeUndefined()

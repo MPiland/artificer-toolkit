@@ -14,7 +14,7 @@ import type {
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
-import type { EncounterDocument } from './store.js'
+import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
 export type EncounterMechanicsBatchResult = {
@@ -100,7 +100,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
   target: Awaited<ReturnType<typeof readEncounterMechanicsBatchTarget>>,
   prepared: {
     actor: Awaited<ReturnType<typeof readRunActor>>
-    character: EncounterDocument<'characters'> | null
+    character: EncounterCharacterRow | null
     plan: EncounterMechanicsBatchPlan
     /** Authored sources already loaded for this Character, reused to evaluate its written state. */
     sourceContext?: CharacterSources
@@ -157,27 +157,33 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     character.status !== 'ACTIVE'
   )
     throw new Error('Encounter Character source is unavailable.')
-  if (character.streamVersion !== input.expectedCharacterStreamVersion)
+  if (character.play.streamVersion !== input.expectedCharacterStreamVersion)
     throw new Error('Encounter Character changed after the outcome was planned.')
   const { assignment } = await ctx.ports.requireCampaignCharacterAuthority(
     campaign.id,
     character.id,
     campaign.ownerUserId
   )
-  const currentCharacter = await ctx.db.get(character._id)
+  const [currentCharacter, currentPlay] = await Promise.all([
+    ctx.db.get(character._id),
+    ctx.db.get(character.play._id)
+  ])
   if (
     !currentCharacter ||
+    !currentPlay ||
     assignment.userId !== character.userId ||
-    checksumCanonicalJson(currentCharacter) !== checksumCanonicalJson(character)
+    checksumCanonicalJson({ ...currentCharacter, play: currentPlay }) !==
+      checksumCanonicalJson(character)
   )
     throw new Error('Encounter Character changed before settlement.')
   if (
     plan.shouldAdvance !== (plan.characterUpdate !== null) ||
-    plan.characterStreamVersion !== (plan.shouldAdvance ? character.streamVersion + 1 : null) ||
+    plan.characterStreamVersion !==
+      (plan.shouldAdvance ? character.play.streamVersion + 1 : null) ||
     (plan.itemUseStateTransition &&
       (!plan.shouldAdvance ||
         plan.itemUseStateTransition.characterId !== character.id ||
-        plan.itemUseStateTransition.beforeStreamVersion !== character.streamVersion)) ||
+        plan.itemUseStateTransition.beforeStreamVersion !== character.play.streamVersion)) ||
     (plan.characterUpdate &&
       (plan.characterUpdate.character.id !== character.id ||
         plan.characterUpdate.character.systemId !== character.systemId ||

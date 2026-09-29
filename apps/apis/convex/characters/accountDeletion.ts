@@ -9,9 +9,10 @@ import {
   readCharacterRecord,
   readCharacterSheetState
 } from './documents'
+import { joinCharacterPlay, type CharacterRow } from './stateDocuments'
 
 type OwnedCharacterState = {
-  active: Doc<'characters'> | null
+  active: CharacterRow | null
   draft: Doc<'characterDrafts'> | null
 }
 
@@ -21,7 +22,8 @@ export async function removeAccountPrivateCharacters(ctx: MutationCtx, userId: s
     ctx.db
       .query('characters')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
-      .collect(),
+      .collect()
+      .then((rows) => Promise.all(rows.map((row) => joinCharacterPlay(ctx, row)))),
     ctx.db
       .query('characterDrafts')
       .withIndex('by_userId_updatedAt', (q) => q.eq('userId', userId))
@@ -117,7 +119,10 @@ export async function removeAccountPrivateCharacters(ctx: MutationCtx, userId: s
       await deleteCharacterDraftPayload(ctx, draft)
       await ctx.db.delete(draft._id)
     }
-    if (active) await ctx.db.delete(active._id)
+    if (active) {
+      await ctx.db.delete(active.play._id)
+      await ctx.db.delete(active._id)
+    }
     await ctx.db.delete(route._id)
     await syncAccountUsage(ctx, 'personalCharacters', characterId)
   }

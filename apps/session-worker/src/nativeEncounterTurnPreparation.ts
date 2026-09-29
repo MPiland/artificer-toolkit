@@ -172,7 +172,7 @@ export function createNativeLiveTurnStages(
               const facts = await loadCharacter(actor)
               const { snapshot, registry, output } = facts.ruleEvaluation
               return {
-                streamVersion: facts.active.streamVersion,
+                streamVersion: facts.active.play.streamVersion,
                 initiativeActorFacts: toCharacterInitiativeActorFacts({
                   snapshot,
                   registry,

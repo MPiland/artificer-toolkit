@@ -93,7 +93,7 @@ function toSpatialMovementTarget<TCharacterFacts extends ProjectableCharacterFac
       target.actor.kind === 'CHARACTER'
         ? {
             id: target.actor.sourceId,
-            streamVersion: target.characterFacts!.active.streamVersion,
+            streamVersion: target.characterFacts!.active.play.streamVersion,
             ...target.characterCurrentness!
           }
         : null,

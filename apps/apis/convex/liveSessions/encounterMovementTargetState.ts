@@ -7,13 +7,10 @@ import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/
 import type { MutationCtx } from '../_generated/server'
 import { readCampaignCharacterState } from '../campaigns/characterState'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 async function readLiveCharacterRow(ctx: MutationCtx, state: EncounterRunState, id: string) {
-  const row = await ctx.db
-    .query('characters')
-    .withIndex('by_publicId', (q) => q.eq('id', id))
-    .unique()
+  const row = await readCharacterRow(ctx, id)
   if (!row || row.status !== 'ACTIVE' || row.systemId !== state.gameSystemId)
     throw new Error('Live Session Character changed.')
   return row
@@ -28,7 +25,10 @@ export async function readLiveCharacterMaximumHitPoints(
   state: EncounterRunState,
   characterId: string
 ) {
-  return readCharacterMaximumHitPoints(ctx, await readLiveCharacterRow(ctx, state, characterId))
+  return readCharacterMaximumHitPoints(
+    ctx,
+    (await readLiveCharacterRow(ctx, state, characterId)).play
+  )
 }
 
 /** The current Character stream version that a room plan's captured version must equal. */
@@ -37,7 +37,7 @@ export async function readLiveCharacterStreamVersion(
   state: EncounterRunState,
   characterId: string
 ) {
-  return (await readLiveCharacterRow(ctx, state, characterId)).streamVersion
+  return (await readLiveCharacterRow(ctx, state, characterId)).play.streamVersion
 }
 
 /**

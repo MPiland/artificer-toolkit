@@ -10,6 +10,7 @@ import { importedSubject, publicationFixture } from '../../tests/fixtures/public
 import { createDevelopmentCharacter } from '../../tests/developmentCharacterFixture'
 import { populateCampaignLifecycleCharacter } from '../../tests/developmentCampaignLifecycleCharacter'
 import { api, internal } from '../_generated/api'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { verifyEquipmentCharacterDeletion } from '../../tests/developmentEquipmentCharacter'
 import type { DevelopmentClient } from '../../tests/developmentClient'
 import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
@@ -92,12 +93,7 @@ it('keeps same-owner Character fixtures independently publishable', async () => 
     )
   ).toBe(true)
 
-  const firstRecord = await t.run((ctx) =>
-    ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', firstId))
-      .unique()
-  )
+  const firstRecord = await t.run((ctx) => readCharacterRow(ctx, firstId))
   const secondFixture = await createDevelopmentCharacter(owner, secondId)
   const [firstAfter, secondSheet] = await Promise.all([
     owner.query(api.characters.sheet.get, { id: firstId }),
@@ -107,14 +103,7 @@ it('keeps same-owner Character fixtures independently publishable', async () => 
   expect(await owner.query(api.characters.equipmentOptions.list, { id: firstId })).toContainEqual(
     expect.objectContaining({ id: secondFixture.equipment.subjectId, isContainer: true })
   )
-  expect(
-    await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', firstId))
-        .unique()
-    )
-  ).toEqual(firstRecord)
+  expect(await t.run((ctx) => readCharacterRow(ctx, firstId))).toEqual(firstRecord)
   expect(secondSheet).not.toBeNull()
   expect(secondSheet?.meta.characterId).toBe(secondId)
   expect(secondSheet?.inventory.items.find((item) => item.equipmentId === club.id)?.quantity).toBe(

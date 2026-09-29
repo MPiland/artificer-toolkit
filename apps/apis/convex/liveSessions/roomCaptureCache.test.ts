@@ -39,6 +39,7 @@ import {
 import { input as characterInput } from '../../tests/fixtures/characters'
 import { readBundleAndSeparateCaptures } from '../../tests/fixtures/captureBundleParity'
 import { api, components, internal } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { withSceneVisionTracking } from '../lib/mutations'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { createEncounterRun } from '../encounters/runs'
@@ -253,12 +254,9 @@ async function bumpCampaignRevision(fixture: Awaited<ReturnType<typeof roomFixtu
 
 async function storedHitPoints(fixture: Awaited<ReturnType<typeof roomFixture>>) {
   return fixture.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique()
+    const row = await readCharacterRow(ctx, fixture.character.id)
     if (!row) throw new Error('Missing room Character.')
-    return characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson)).state.hitpoints.current
+    return readCharacterRecord(row).state.hitpoints.current
   })
 }
 

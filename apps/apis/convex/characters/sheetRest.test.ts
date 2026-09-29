@@ -15,8 +15,7 @@ import type {
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { formatCharacterHitDiceRollExpression } from '@artificer-toolkit/shared/character'
 import {
   buildCharacterRestPreview,
@@ -26,6 +25,7 @@ import * as projection from '@artificer-toolkit/rules-runtime/character/sheetPro
 import * as evaluation from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterSheet } from './sheetPreparation'
+import { readCharacterRecord } from './stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 const preview = makeFunctionReference<
@@ -245,9 +245,7 @@ describe('native Character rest preview and completion', () => {
 
   it('consumes exact hit-die evidence with HP/state/receipt atomically and replays after history clearing', async () => {
     const { t, owner, character, readState } = await readySheetFixture()
-    const originalIntent = characterAuthoredDtoSchema.parse(
-      JSON.parse((await readState()).character!.documentJson)
-    ).intent
+    const originalIntent = readCharacterRecord((await readState()).character!).intent
     const damaged = await owner.caller.mutation(execute, {
       id: character.id,
       command: {
@@ -420,9 +418,7 @@ describe('native Character rest preview and completion', () => {
       completed.historyEntry!.occurredAt
     )
     const stored = await readState()
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson)).intent
-    ).toEqual(originalIntent)
+    expect(readCharacterRecord(stored.character!).intent).toEqual(originalIntent)
     await expect(
       owner.caller.query(preview, { ...input, input: { ...input.input, expectedVersion: 3 } })
     ).rejects.toThrow('authoritative roll')
@@ -583,15 +579,13 @@ describe('native Character rest preview and completion', () => {
       throw new Error('Missing completed rest result.')
     expect(completed.result.rest.resetMaximumHitPointModifier).toBe(true)
     const after = (await readState()).character!
-    const state = characterSheetStateSchema.parse(JSON.parse(after.sheetState!.documentJson))
+    const state = readCharacterSheetState(after)
     expect(
       state.adjustments.some(
         (adjustment) =>
           adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
       )
     ).toBe(false)
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(after.documentJson)).state.exhaustion?.notes
-    ).toBe('Fatigued')
+    expect(readCharacterRecord(after).state.exhaustion?.notes).toBe('Fatigued')
   })
 })

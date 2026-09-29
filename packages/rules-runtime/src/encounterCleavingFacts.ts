@@ -145,7 +145,7 @@ export function nativeCleavingSourceCurrentness(
       kind: 'CHARACTER',
       actorId: actor.id,
       characterId: actor.sourceId,
-      streamVersion: target.characterFacts.active.streamVersion,
+      streamVersion: target.characterFacts.active.play.streamVersion,
       ...target.characterCurrentness
     }
   }
@@ -185,7 +185,7 @@ export function buildEncounterCleavingCandidate(input: {
       : snapshotStatBlock(target.actor)?.armorClass
   const targetActorVersion =
     target.actor.kind === 'CHARACTER'
-      ? (target.characterFacts?.active.streamVersion ?? null)
+      ? (target.characterFacts?.active.play.streamVersion ?? null)
       : target.actor.sourceRevision
   if (armorClass == null || targetActorVersion === null) return null
   const range = rangeDtoSchema.parse(input.action.range)

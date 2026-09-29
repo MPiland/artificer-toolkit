@@ -220,7 +220,10 @@ describe('native Campaign GM state writes', () => {
     // A Campaign maximum adjustment moves only the Character's stored effective maximum.
     expect(await readState()).toEqual({
       ...before,
-      character: { ...before.character, maximumHitPoints: sheet.overview.maxHitPoints }
+      character: {
+        ...before.character,
+        play: { ...before.character!.play, maximumHitPoints: sheet.overview.maxHitPoints }
+      }
     })
     expect(
       await gm.caller.mutation(deleteAdjustment, {
@@ -369,7 +372,10 @@ describe('native Campaign GM state writes', () => {
     // The retained Campaign maximum adjustment moves only the Character's stored maximum.
     expect(await readState()).toEqual({
       ...before,
-      character: { ...before.character, maximumHitPoints: withCondition.overview.maxHitPoints }
+      character: {
+        ...before.character,
+        play: { ...before.character!.play, maximumHitPoints: withCondition.overview.maxHitPoints }
+      }
     })
   })
 

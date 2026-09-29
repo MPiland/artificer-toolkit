@@ -11,10 +11,10 @@ import { championMartialArchetype } from '@artificer-toolkit/source-data/srd/cla
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareNativeLiveCharacterSheet } from '../../../session-worker/src/nativeCharacterRules'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { importedSubject, makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
-import { readCharacterRecord } from '../characters/stateDocuments'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { deleteAuthoredVersion, insertAuthoredVersion } from '../content/documents'
 import { withSceneVisionTracking } from '../lib/mutations'
@@ -106,18 +106,11 @@ it('requires a share of the private Equipment parent and preserves prepared fact
     await makePublishedRootOwned(ctx, parent.id, fixture.player.userId)
     await makePublishedRootOwned(ctx, variant.id, fixture.owner.userId)
     await makePublishedRootOwned(ctx, unrelated.id, fixture.owner.userId)
-    const active = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique()
-    if (!active) throw new Error('Missing Character fixture.')
-    const character = readCharacterRecord(active)
-    character.state.equipment.inventory = [
-      { id: crypto.randomUUID(), equipmentId: variant.id, quantity: 1 }
-    ]
-    await ctx.db.patch(active._id, {
-      documentJson: canonicalizeRuleDocument(character),
-      checksum: checksumRuleDocument(character)
+    await editCharacterRecord(ctx, fixture.character.id, (character) => {
+      character.state.equipment.inventory = [
+        { id: crypto.randomUUID(), equipmentId: variant.id, quantity: 1 }
+      ]
+      return character
     })
   })
   await share('EQUIPMENT', variant.id, fixture.owner.userId)
@@ -181,16 +174,9 @@ it('rejects malformed stored Race parent metadata for a shared subrace', async (
   await fixture.t.run(async (ctx) => {
     await makePublishedRootOwned(ctx, parent.id, fixture.player.userId)
     await makePublishedRootOwned(ctx, child.id, fixture.owner.userId)
-    const active = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique()
-    if (!active) throw new Error('Missing Character fixture.')
-    const character = readCharacterRecord(active)
-    character.intent.race = { raceId: parent.id, subraceId: child.id }
-    await ctx.db.patch(active._id, {
-      documentJson: canonicalizeRuleDocument(character),
-      checksum: checksumRuleDocument(character)
+    await editCharacterRecord(ctx, fixture.character.id, (character) => {
+      character.intent.race = { raceId: parent.id, subraceId: child.id }
+      return character
     })
   })
   await share('RACE', child.id, fixture.owner.userId)
@@ -251,25 +237,18 @@ it('uses every paged Class catalogue candidate and rejects a share revision betw
       canonicalizeRuleDocument(document)
     )
     await ctx.db.patch(root._id, { checksum, currentVersionId, currentVersionPublicId })
-    const active = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique()
-    if (!active) throw new Error('Missing Character fixture.')
-    const character = readCharacterRecord(active)
-    character.intent.classes[0] = {
-      ...character.intent.classes[0]!,
-      classLevel: 3,
-      subclassId: championMartialArchetype.id
-    }
-    character.intent.hitpoints.levels = [
-      character.intent.hitpoints.levels[0]!,
-      { level: 2, classId: fixture.baseClass.id, classLevel: 2, value: 6 },
-      { level: 3, classId: fixture.baseClass.id, classLevel: 3, value: 6 }
-    ]
-    await ctx.db.patch(active._id, {
-      documentJson: canonicalizeRuleDocument(character),
-      checksum: checksumRuleDocument(character)
+    await editCharacterRecord(ctx, fixture.character.id, (character) => {
+      character.intent.classes[0] = {
+        ...character.intent.classes[0]!,
+        classLevel: 3,
+        subclassId: championMartialArchetype.id
+      }
+      character.intent.hitpoints.levels = [
+        character.intent.hitpoints.levels[0]!,
+        { level: 2, classId: fixture.baseClass.id, classLevel: 2, value: 6 },
+        { level: 3, classId: fixture.baseClass.id, classLevel: 3, value: 6 }
+      ]
+      return character
     })
   })
   const shares: Awaited<ReturnType<typeof share>>[] = []
@@ -341,16 +320,9 @@ it('rejects 501 direct Class headers before loading catalogue bodies', async () 
     })
   }
   await fixture.t.run(async (ctx) => {
-    const active = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique()
-    if (!active) throw new Error('Missing Character fixture.')
-    const character = readCharacterRecord(active)
-    character.intent.classes[0] = { ...character.intent.classes[0]!, classLevel: 3 }
-    await ctx.db.patch(active._id, {
-      documentJson: canonicalizeRuleDocument(character),
-      checksum: checksumRuleDocument(character)
+    await editCharacterRecord(ctx, fixture.character.id, (character) => {
+      character.intent.classes[0] = { ...character.intent.classes[0]!, classLevel: 3 }
+      return character
     })
   })
   await expect(prepare()).rejects.toThrow(

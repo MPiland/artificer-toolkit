@@ -4,11 +4,11 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { api } from '../_generated/api'
 import { input } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const getSheet = makeFunctionReference<
   'query',
@@ -26,12 +26,7 @@ describe('native personal Character Sheet reads', () => {
       mode: 'create',
       character
     })
-    const stored = await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-    )
+    const stored = await t.run((ctx) => readCharacterRow(ctx, character.id))
     const sheet = await owner.caller.query(getSheet, { id: character.id.toUpperCase() })
     expect(sheet).toMatchObject({
       publicId: committed.publicId,
@@ -69,14 +64,7 @@ describe('native personal Character Sheet reads', () => {
     })
     const afterDraft = await owner.caller.query(getSheet, { id: character.id })
     expect(afterDraft).toEqual({ ...sheet, meta: { ...sheet!.meta, hasBuilderDraft: true } })
-    expect(
-      await t.run((ctx) =>
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', character.id))
-          .unique()
-      )
-    ).toEqual(stored)
+    expect(await t.run((ctx) => readCharacterRow(ctx, character.id))).toEqual(stored)
   })
 
   it('fails closed when acquired Equipment no longer matches its committed scope', async () => {
@@ -88,17 +76,18 @@ describe('native personal Character Sheet reads', () => {
       character
     })
     await t.run(async (ctx) => {
-      const stored = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
+      const stored = await readCharacterRow(ctx, character.id)
       if (!stored) throw new Error('Missing committed Character fixture.')
-      const changed = characterAuthoredDtoSchema.parse(JSON.parse(stored.documentJson))
+      const changed = readCharacterRecord(stored)
       changed.state.equipment.inventory[0]!.equipmentId = crypto.randomUUID()
-      const encoded: unknown = JSON.parse(JSON.stringify(changed))
+      const encoded = encodeCharacterRecord(stored, {
+        document: changed,
+        streamVersion: stored.play.streamVersion,
+        updatedAt: stored.updatedAt
+      })
       await ctx.db.patch(stored._id, {
-        documentJson: canonicalizeRuleDocument(encoded),
-        checksum: checksumRuleDocument(encoded)
+        documentJson: encoded.documentJson,
+        checksum: encoded.checksum
       })
     })
     await expect(owner.caller.query(getSheet, { id: character.id })).rejects.toThrow(

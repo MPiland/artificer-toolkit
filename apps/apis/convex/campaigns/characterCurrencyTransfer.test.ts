@@ -12,12 +12,12 @@ import type {
   SaveCampaignCurrencySystemInput,
   CurrencySystemDto
 } from '@artificer-toolkit/schema/api/campaignInventory'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -73,10 +73,7 @@ async function setup() {
   })
   const readStored = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       inventories: await ctx.db.query('campaignPartyInventories').collect(),
       currencies: await ctx.db.query('campaignPartyCurrencies').collect(),
       groups: await ctx.db.query('campaignPartyCurrencyGroups').collect(),
@@ -90,21 +87,12 @@ async function setCurrency(
   base: Fixture,
   currency: ReturnType<typeof readCharacterRecord>['state']['currency']
 ) {
-  await base.t.run(async (ctx) => {
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
-    if (!record) throw new Error('Missing Character fixture.')
-    const document = {
-      ...readCharacterRecord(record),
-      state: { ...readCharacterRecord(record).state, currency }
-    }
-    await ctx.db.patch(record._id, {
-      documentJson: canonicalizeRuleDocument(document),
-      checksum: checksumRuleDocument(document)
-    })
-  })
+  await base.t.run((ctx) =>
+    editCharacterRecord(ctx, base.character.id, (document) => ({
+      ...document,
+      state: { ...document.state, currency }
+    }))
+  )
 }
 function command(
   base: Fixture,
@@ -132,10 +120,10 @@ describe('native Character currency custody', () => {
   it('publishes both fences once, replays exact actor-bound input after later changes, and refuses lost authority', async () => {
     const base = await setup()
     const before = await base.readStored()
-    const input = command(base, before.character!.streamVersion, 0)
+    const input = command(base, before.character!.play.streamVersion, 0)
     const result = await base.owner.caller.mutation(transfer, { input })
     const after = await base.readStored()
-    expect(after.character!.streamVersion).toBe(before.character!.streamVersion + 1)
+    expect(after.character!.play.streamVersion).toBe(before.character!.play.streamVersion + 1)
     expect(
       currencyOf(after.character!)
         .flatMap((group) => group.currencies)
@@ -224,11 +212,11 @@ describe('native Character currency custody', () => {
       }
     ])
     const initial = await base.readStored()
-    const ruleInput = { ...command(base, initial.character!.streamVersion, 0), amount: 3 }
+    const ruleInput = { ...command(base, initial.character!.play.streamVersion, 0), amount: 3 }
     await base.owner.caller.mutation(transfer, { input: ruleInput })
     const rule = await base.readStored()
     const campaignInput = {
-      ...command(base, rule.character!.streamVersion, 1),
+      ...command(base, rule.character!.play.streamVersion, 1),
       campaignCurrencySystemId: system.id.toUpperCase(),
       amount: 2
     }
@@ -273,7 +261,7 @@ describe('native Character currency custody', () => {
     const ambiguous = await base.readStored()
     await expect(
       base.owner.caller.mutation(transfer, {
-        input: command(base, ambiguous.character!.streamVersion, 2)
+        input: command(base, ambiguous.character!.play.streamVersion, 2)
       })
     ).rejects.toThrow('ambiguous')
     expect(await base.readStored()).toEqual(ambiguous)
@@ -301,13 +289,13 @@ describe('native Character currency custody', () => {
     ])
     const before = await base.readStored()
     await base.owner.caller.mutation(transfer, {
-      input: { ...command(base, before.character!.streamVersion, 0), amount: 49 }
+      input: { ...command(base, before.character!.play.streamVersion, 0), amount: 49 }
     })
     const after = await base.readStored()
     expect(currencyOf(after.character!)).toEqual([foreign])
     expect(after.currencies).toHaveLength(1)
     expect(after.currencies[0]?.amount).toBe(49)
-    expect(after.character!.streamVersion).toBe(before.character!.streamVersion + 1)
+    expect(after.character!.play.streamVersion).toBe(before.character!.play.streamVersion + 1)
   })
 
   it('accepts party currency into a Character and rolls back both owners after late failure or overflow', async () => {
@@ -325,7 +313,7 @@ describe('native Character currency custody', () => {
     })
     const before = await base.readStored()
     const input = {
-      ...command(base, 1, before.character!.streamVersion),
+      ...command(base, 1, before.character!.play.streamVersion),
       source: { kind: 'CAMPAIGN' as const, campaignId: base.campaign.id },
       destination: { kind: 'CHARACTER' as const, characterId: base.character.id },
       amount: 6
@@ -346,7 +334,7 @@ describe('native Character currency custody', () => {
     ).toBe(121)
     expect(after.currencies).toHaveLength(0)
     expect(after.inventories[0]?.version).toBe(2)
-    expect(after.character!.streamVersion).toBe(before.character!.streamVersion + 1)
+    expect(after.character!.play.streamVersion).toBe(before.character!.play.streamVersion + 1)
     await base.other.caller.mutation(mutateParty, {
       input: {
         kind: 'CURRENCY_ADJUST',
@@ -373,7 +361,7 @@ describe('native Character currency custody', () => {
           ...input,
           amount: 1,
           expectedSourceVersion: 3,
-          expectedDestinationVersion: overflow.character!.streamVersion,
+          expectedDestinationVersion: overflow.character!.play.streamVersion,
           idempotencyKey: crypto.randomUUID()
         }
       })

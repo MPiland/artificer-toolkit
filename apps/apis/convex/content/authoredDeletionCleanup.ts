@@ -6,6 +6,11 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { readCharacterRecord } from '../characters/documents'
+import {
+  joinCharacterPlay,
+  readCharacterRow,
+  type CharacterRow
+} from '../characters/stateDocuments'
 import { retainCharacterEquipmentRules } from '../characters/acquiredEquipment'
 import { retainCampaignEquipmentRules } from '../campaigns/acquiredEquipment'
 import { finalizeCampaignContentRemoval } from '../campaigns/contentRemovalFinalization'
@@ -38,7 +43,7 @@ function presentShare(share: Doc<'campaignContentShares'>) {
 }
 
 async function collectOwnerCharacters(ctx: MutationCtx, userId: string, systemId: string) {
-  const records: Doc<'characters'>[] = []
+  const records: CharacterRow[] = []
   let afterId: string | null = null
   do {
     const page = await ctx.db
@@ -50,7 +55,7 @@ async function collectOwnerCharacters(ctx: MutationCtx, userId: string, systemId
       )
       .order('asc')
       .take(100)
-    records.push(...page)
+    records.push(...(await Promise.all(page.map((row) => joinCharacterPlay(ctx, row)))))
     afterId = page.length === 100 ? page.at(-1)!.id : null
   } while (afterId !== null)
   return records
@@ -156,10 +161,7 @@ export async function prepareAuthoredDeletionRetention(input: {
     for await (const assignment of input.ctx.db
       .query('campaignCharacterAssignments')
       .withIndex('by_campaignId', (q) => q.eq('campaignId', id))) {
-      const record = await input.ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', assignment.characterId))
-        .unique()
+      const record = await readCharacterRow(input.ctx, assignment.characterId)
       if (!record || record.userId !== assignment.userId || record.systemId !== input.systemId)
         throw new Error('Stored acquired Equipment Character assignment mismatch.')
       records.set(record.id, record)
@@ -225,10 +227,7 @@ export async function reconcileAuthoredDeletionDependencies(input: {
         throw new Error('Stored Campaign Character assignment mismatch.')
       expectedCampaignByCharacterId.set(assignment.characterId, work.campaign.id)
       if (charactersById.has(assignment.characterId)) continue
-      const record = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', assignment.characterId))
-        .unique()
+      const record = await readCharacterRow(ctx, assignment.characterId)
       if (
         !record ||
         record.userId !== assignment.userId ||

@@ -9,7 +9,7 @@ import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persis
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
-import { readCharacterSheetState } from '../characters/sheetStateDocuments'
+import { readCharacterPlay } from '../characters/stateDocuments'
 import { readSceneVisionRevision } from '../scenes/visionFreshness'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 
@@ -140,15 +140,16 @@ export const read = internalQuery({
     )
     const characters = await Promise.all(
       changedCharacters.map(async ({ characterId }) => {
-        const character = await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', characterId))
+        // Party visibility lives on the small play record; the Character document is never loaded.
+        const play = await ctx.db
+          .query('characterPlayStates')
+          .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
           .unique()
-        if (!character) throw new Error('Assigned Character is missing.')
+        if (!play) throw new Error('Assigned Character is missing.')
         return {
           characterId,
-          ownerUserId: character.userId,
-          partyVisibility: readCharacterSheetState(character).partyVisibility
+          ownerUserId: play.userId,
+          partyVisibility: readCharacterPlay(play).partyVisibility
         }
       })
     )

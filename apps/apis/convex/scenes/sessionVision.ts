@@ -25,6 +25,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSceneVisionRevision } from './visionFreshness'
 import { readSessionVisionScope } from './sessionVisionDocuments'
@@ -142,10 +143,7 @@ export const bindings = internalQuery({
         // The authenticated member may hydrate current facts; source access remains owner-derived.
         scope.campaign.ownerUserId
       )
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', characterId))
-        .unique()
+      const character = await readCharacterRow(ctx, characterId)
       if (
         !character ||
         character.id !== assignment.characterId ||
@@ -157,7 +155,7 @@ export const bindings = internalQuery({
         sceneSessionCharacterVisionInputSchema.parse({
           ...runInput,
           characterId: character.id,
-          streamVersion: character.streamVersion,
+          streamVersion: character.play.streamVersion,
           actorId: actor.id,
           tokenId: tokenBinding.tokenId
         })

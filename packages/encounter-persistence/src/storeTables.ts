@@ -32,6 +32,7 @@ import {
 } from '@artificer-toolkit/schema/projections/campaignPersistence'
 import {
   characterStoredCommandReceiptSchema,
+  characterStoredPlayStateSchema,
   characterStoredRecordSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
 
@@ -65,6 +66,7 @@ export const encounterStoreSchemas = {
   campaignMemberships: campaignStoredMembershipSchema,
   campaignCharacterAssignments: campaignStoredAssignmentSchema,
   characters: characterStoredRecordSchema,
+  characterPlayStates: characterStoredPlayStateSchema,
   characterCommandReceipts: characterStoredCommandReceiptSchema
 }
 
@@ -203,6 +205,7 @@ export const encounterStoreIndexes = {
     by_portraitAssetId: ['portraitAssetId'],
     by_userId_systemId_id: ['userId', 'systemId', 'id']
   },
+  characterPlayStates: { by_characterId: ['characterId'] },
   characterCommandReceipts: {
     by_characterId_commandId: ['characterId', 'commandId'],
     by_characterId_occurredAt_id: ['characterId', 'occurredAt', 'id'],

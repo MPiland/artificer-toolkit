@@ -3,6 +3,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readCharacterRecord, readCharacterDraft } from '../characters/documents'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { readCharacterSourceAccessLoss } from '../characters/sourceAccessLoss'
 import { prepareCharacterBuilder } from '../characters/builderPreparation'
 import { writeCharacterRecord } from '../characters/characterWrites'
@@ -35,10 +36,7 @@ export async function validateCampaignUpdateDependencies(
     throw new Error('Stored Campaign Character assignment capacity exceeded.')
   for (const assignment of assignments.sort((a, b) => a.characterId.localeCompare(b.characterId))) {
     await requireCampaignCharacterAuthority(ctx, campaign.id, assignment.characterId, userId)
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', assignment.characterId))
-      .unique()
+    const record = await readCharacterRow(ctx, assignment.characterId)
     if (!record) throw new Error('Assigned Character is unavailable.')
     if (removedSources.size > 0) {
       const current = readCharacterRecord(record) as CharacterAuthored
@@ -79,7 +77,7 @@ export async function validateCampaignUpdateDependencies(
     if (attunementChanged && record.status === 'ACTIVE') {
       const { facts } = await writeCharacterRecord(ctx, {
         current: record,
-        fields: { streamVersion: record.streamVersion, updatedAt: record.updatedAt },
+        fields: { streamVersion: record.play.streamVersion, updatedAt: record.updatedAt },
         evaluateAs: { userId, campaignId: campaign.id }
       })
       if (!facts) throw new Error(`Assigned Character ${record.id} could not be evaluated.`)

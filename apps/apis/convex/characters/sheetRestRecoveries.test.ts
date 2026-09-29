@@ -6,8 +6,7 @@ import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
@@ -20,6 +19,7 @@ import {
 import { api, internal } from '../_generated/api'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -115,16 +115,11 @@ async function fixture(spellcasting?: typeof wizard.spellcasting) {
   })
   const readState = () =>
     base.t.run(async (ctx) => {
-      const stored = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
+      const stored = await readCharacterRow(ctx, character.id)
       return {
         character: stored,
-        authored: stored ? characterAuthoredDtoSchema.parse(JSON.parse(stored.documentJson)) : null,
-        sheetState: stored?.sheetState
-          ? characterSheetStateSchema.parse(JSON.parse(stored.sheetState.documentJson))
-          : null,
+        authored: stored ? readCharacterRecord(stored) : null,
+        sheetState: stored ? readCharacterSheetState(stored) : null,
         receipts: await ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))

@@ -22,17 +22,17 @@ import type {
   ExecuteCampaignRollInput
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { RollHistoryEntryDto, RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { formatCharacterHitDiceRollExpression } from '@artificer-toolkit/shared/character'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
+import { readCharacterRecord } from '../characters/stateDocuments'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -189,17 +189,11 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     await player.caller.mutation(api.account.updateProfile, { username: 'RepairPlayer', bio: null })
     const stored = await readState()
     if (!stored.character) throw new Error('Missing canonical Character.')
-    const repair = {
-      ...characterAuthoredDtoSchema.parse(JSON.parse(stored.character.documentJson)),
-      status: 'DRAFT' as const
-    }
-    await t.run((ctx) =>
-      ctx.db.patch(stored.character!._id, {
-        status: 'DRAFT',
-        documentJson: canonicalizeRuleDocument(repair),
-        checksum: checksumRuleDocument(repair)
-      })
-    )
+    const repair = { ...readCharacterRecord(stored.character), status: 'DRAFT' as const }
+    await t.run(async (ctx) => {
+      await writeCharacterRecord(ctx, stored.character!, { document: repair })
+      await ctx.db.patch(stored.character!._id, { status: 'DRAFT' })
+    })
     const before = await readPrivate()
     for (const actor of [player, gm]) {
       await expect(
@@ -317,19 +311,11 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     expect(completed.historyEntry?.actorId).toBe(gm.userId)
     const after = await readState()
     expect(after.receipts).toHaveLength(before.receipts.length + 1)
-    const originalCharacter = characterAuthoredDtoSchema.parse(
-      JSON.parse(before.character!.documentJson)
-    )
-    const currentCharacter = characterAuthoredDtoSchema.parse(
-      JSON.parse(after.character!.documentJson)
-    )
+    const originalCharacter = readCharacterRecord(before.character!)
+    const currentCharacter = readCharacterRecord(after.character!)
     expect(currentCharacter.intent).toEqual(originalCharacter.intent)
-    expect(
-      characterSheetStateSchema.parse(JSON.parse(after.character!.sheetState!.documentJson))
-        .adjustments
-    ).toEqual(
-      characterSheetStateSchema.parse(JSON.parse(before.character!.sheetState!.documentJson))
-        .adjustments
+    expect(readCharacterSheetState(after.character!).adjustments).toEqual(
+      readCharacterSheetState(before.character!).adjustments
     )
     const ownerSheet = await player.caller.query(api.characters.sheet.get, {
       id: character.id

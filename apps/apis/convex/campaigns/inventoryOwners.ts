@@ -53,7 +53,7 @@ async function readOwnerVersion(
   const characterId = record.id
   return campaignInventoryOwnerVersionDtoSchema.parse({
     owner: { kind: 'CHARACTER', characterId },
-    version: record.streamVersion
+    version: record.play.streamVersion
   })
 }
 

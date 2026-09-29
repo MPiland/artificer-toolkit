@@ -2,9 +2,12 @@ import { planEncounterMaintenanceOwner } from '@artificer-toolkit/rules-runtime/
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import {
+  readCharacterRecord,
+  readCharacterRow,
+  type CharacterRow
+} from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -34,13 +37,10 @@ export async function reconcileNativeMaintenanceOwners(
     )
     const remaining = await store.list(owner)
     let characterInput: Parameters<typeof planEncounterMaintenanceOwner>[0]['character'] = null
-    let characterRow: Doc<'characters'> | null = null
+    let characterRow: CharacterRow | null = null
     let character: ReturnType<typeof readCharacterRecord> | null = null
     if (owner.kind === 'CHARACTER') {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', owner.characterId))
-        .unique()
+      const row = await readCharacterRow(ctx, owner.characterId)
       const before = maintenance.characterVersions.find(
         (entry) => entry.characterId === owner.characterId
       )?.beforeStreamVersion
@@ -49,7 +49,7 @@ export async function reconcileNativeMaintenanceOwners(
       character = readCharacterRecord(row)
       characterRow = row
       characterInput = {
-        currentStreamVersion: row.streamVersion,
+        currentStreamVersion: row.play.streamVersion,
         beforeStreamVersion: before,
         conditions: character.state.conditions ?? []
       }

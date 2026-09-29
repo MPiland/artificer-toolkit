@@ -26,8 +26,7 @@ import type {
   CharacterHistoryPage
 } from '@artificer-toolkit/schema/api/characterHistory'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
@@ -43,6 +42,7 @@ import {
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, components, internal } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -470,10 +470,7 @@ describe('native Campaign Character Sheet boundary', () => {
     })
     const readState = () =>
       fixture.t.run(async (ctx) => ({
-        character: await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', character.id))
-          .unique(),
+        character: await readCharacterRow(ctx, character.id),
         receipts: await ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
@@ -639,17 +636,14 @@ describe('native Campaign Character Sheet boundary', () => {
     expect(JSON.stringify(renamedSpell.sheet)).not.toContain('PRIVATE-')
     const afterRenames = await readState()
     expect(
-      characterAuthoredDtoSchema
-        .parse(JSON.parse(afterRenames.character!.documentJson))
-        .state.creatures?.find((entry) => entry.id === companion.id)
+      readCharacterRecord(afterRenames.character!).state.creatures?.find(
+        (entry) => entry.id === companion.id
+      )
     ).toMatchObject({
       customName: 'shit renamed familiar',
       notes: 'shit PRIVATE-EXTRA'
     })
-    expect(
-      characterSheetStateSchema.parse(JSON.parse(afterRenames.character!.sheetState!.documentJson))
-        .spellCustomizations
-    ).toContainEqual(
+    expect(readCharacterSheetState(afterRenames.character!).spellCustomizations).toContainEqual(
       expect.objectContaining({ customName: 'shit renamed flame', notes: 'shit PRIVATE-SPELL' })
     )
     expect(afterRenames.receipts).toHaveLength(before.receipts.length + 2)
@@ -740,14 +734,14 @@ describe('native Campaign Character Sheet boundary', () => {
       cleared.sheet.inventory.items.find((item) => item.id === itemId)?.customName
     ).toBeUndefined()
     const final = await readState()
-    const authored = characterAuthoredDtoSchema.parse(JSON.parse(final.character!.documentJson))
+    const authored = readCharacterRecord(final.character!)
     expect(authored.state.equipment.inventory.find((item) => item.id === itemId)).toMatchObject({
       notes: 'PRIVATE-UNCHANGED'
     })
     expect(
       authored.state.equipment.inventory.find((item) => item.id === itemId)?.customName
     ).toBeUndefined()
-    expect(final.character?.streamVersion).toBe(5)
+    expect(final.character?.play.streamVersion).toBe(5)
     expect(final.receipts).toHaveLength(4)
     expect(final.receipts.filter((receipt) => receipt.actorId === gm.userId)).toHaveLength(2)
     const ownerHistory = await player.caller.query(history, {
@@ -853,18 +847,11 @@ describe('native Campaign Character Sheet boundary', () => {
     expect(first.sheet.overview.currentHitPoints).toBe(15)
     expect(first.historyEntry?.actorId).toBe(gm.userId)
     const after = await readState()
-    expect(after.character?.streamVersion).toBe(4)
+    expect(after.character?.play.streamVersion).toBe(4)
     expect(after.receipts).toHaveLength(before.receipts.length + 1)
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson)).state.hitpoints
-        .current
-    ).toBe(15)
-    expect(
-      characterSheetStateSchema.parse(JSON.parse(after.character!.sheetState!.documentJson))
-        .adjustments
-    ).toEqual(
-      characterSheetStateSchema.parse(JSON.parse(before.character!.sheetState!.documentJson))
-        .adjustments
+    expect(readCharacterRecord(after.character!).state.hitpoints.current).toBe(15)
+    expect(readCharacterSheetState(after.character!).adjustments).toEqual(
+      readCharacterSheetState(before.character!).adjustments
     )
     expect(await t.run((ctx) => ctx.db.get(stateId))).toEqual(overlayBefore)
     const replay = await gm.caller.mutation(execute, { ...input, command })
@@ -927,14 +914,11 @@ describe('native Campaign Character Sheet boundary', () => {
     const result = await gm.caller.mutation(execute, { ...input, command })
     expect(result.sheet.inventory.items.find((item) => item.id === itemId)?.attuned).toBe(true)
     const after = await readState()
-    expect(after.character?.streamVersion).toBe(4)
+    expect(after.character?.play.streamVersion).toBe(4)
     expect(after.receipts).toHaveLength(before.receipts.length + 1)
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson)).state.equipment
-        .attuned
-    ).toContain(itemId)
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson)).intent
-    ).toEqual(characterAuthoredDtoSchema.parse(JSON.parse(before.character!.documentJson)).intent)
+    expect(readCharacterRecord(after.character!).state.equipment.attuned).toContain(itemId)
+    expect(readCharacterRecord(after.character!).intent).toEqual(
+      readCharacterRecord(before.character!).intent
+    )
   })
 })

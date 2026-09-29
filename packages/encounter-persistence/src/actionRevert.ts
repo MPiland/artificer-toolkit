@@ -42,6 +42,7 @@ import { removeTurnSpeedBonus } from './turnMovement.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
+import { readEncounterCharacterRow } from './characterPlay.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
@@ -549,13 +550,10 @@ async function restoreCharacter(
   }
 ) {
   const { inverse } = input
-  const row: EncounterDocument<'characters'> | null = await ctx.db
-    .query('characters')
-    .withIndex('by_publicId', (q) => q.eq('id', input.characterId))
-    .unique()
+  const row = await readEncounterCharacterRow(ctx, input.characterId)
   if (!row || row.status !== 'ACTIVE' || row.systemId !== input.gameSystemId)
     throw new Error('Encounter Character is unavailable.')
-  if (row.streamVersion !== inverse.expectedStreamVersion)
+  if (row.play.streamVersion !== inverse.expectedStreamVersion)
     unavailable(`${row.label}'s Sheet changed after this action; adjust manually.`)
   const character = ctx.ports.readCharacterRecord(row)
   let state = character.state
@@ -603,7 +601,7 @@ async function restoreCharacter(
     : null
   await ctx.ports.writeCharacterRecord({
     current: row,
-    fields: { streamVersion: row.streamVersion + 1, updatedAt: input.updatedAt },
+    fields: { streamVersion: row.play.streamVersion + 1, updatedAt: input.updatedAt },
     document: JSON.parse(JSON.stringify({ ...character, state })),
     ...(nextSheetState ? { sheetState: nextSheetState } : {})
   })

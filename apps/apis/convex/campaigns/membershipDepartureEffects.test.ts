@@ -9,7 +9,6 @@ import type {
   CurrencySystemDto,
   SaveCampaignCurrencySystemInput
 } from '@artificer-toolkit/schema/api/campaignInventory'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import {
   campaignStoredPartyCurrencySchema,
   campaignStoredPartyInventorySchema,
@@ -24,10 +23,16 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject, makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { readCharacterDraft } from '../characters/documents'
+import {
+  joinCharacterPlay,
+  readCharacterRecord,
+  readCharacterRow
+} from '../characters/stateDocuments'
 
 const removeMember = makeFunctionReference<
   'mutation',
@@ -122,10 +127,7 @@ describe('native Campaign membership departure effects', () => {
     })
     const before = await base.t.run(async (ctx) => ({
       campaign: (await ctx.db.query('campaigns').collect())[0],
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
       overlays: await ctx.db.query('campaignCharacterStates').collect(),
       drafts: await ctx.db.query('characterDrafts').collect(),
@@ -143,10 +145,7 @@ describe('native Campaign membership departure effects', () => {
     const after = await base.t.run(async (ctx) => ({
       memberships: await ctx.db.query('campaignMemberships').collect(),
       campaign: (await ctx.db.query('campaigns').collect())[0],
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
       overlays: await ctx.db.query('campaignCharacterStates').collect(),
       drafts: await ctx.db.query('characterDrafts').collect(),
@@ -159,10 +158,10 @@ describe('native Campaign membership departure effects', () => {
     expect(after.overlays).toEqual(before.overlays)
     expect(after.character).toMatchObject({
       status: 'DRAFT',
-      streamVersion: before.character!.streamVersion + 1
+      play: { streamVersion: before.character!.play.streamVersion + 1 }
     })
     expect(after.character?.sheetState).toEqual(before.character?.sheetState)
-    const canonical = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
+    const canonical = readCharacterRecord(after.character!)
     expect(canonical.intent.background.backgroundId).toBe('')
     expect(after.drafts).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: draft.id })])
@@ -186,7 +185,9 @@ describe('native Campaign membership departure effects', () => {
       await base.t.run(async (ctx) => ({
         memberships: await ctx.db.query('campaignMemberships').collect(),
         campaigns: await ctx.db.query('campaigns').collect(),
-        characters: await ctx.db.query('characters').collect(),
+        characters: await Promise.all(
+          (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+        ),
         assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
         overlays: await ctx.db.query('campaignCharacterStates').collect(),
         drafts: await ctx.db.query('characterDrafts').collect(),
@@ -221,13 +222,7 @@ describe('native Campaign membership departure effects', () => {
         characterId: base.character.id,
         assignedAt: base.campaign.createdAt
       })
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!row) throw new Error('Missing Character.')
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
-      const next = {
+      await editCharacterRecord(ctx, base.character.id, (character) => ({
         ...character,
         state: {
           ...character.state,
@@ -239,11 +234,7 @@ describe('native Campaign membership departure effects', () => {
             }
           ]
         }
-      }
-      await ctx.db.patch(row._id, {
-        documentJson: JSON.stringify(next),
-        checksum: checksumRuleDocument(next)
-      })
+      }))
     })
     await base.t.mutation(internal.content.import.importSubjects, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -349,15 +340,8 @@ describe('native Campaign membership departure effects', () => {
     expect(
       await base.t.run((ctx) => ctx.db.query('campaignCharacterAssignments').collect())
     ).toEqual([])
-    const departedCharacter = await base.t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-    )
-    const departedDocument = characterAuthoredDtoSchema.parse(
-      JSON.parse(departedCharacter!.documentJson)
-    )
+    const departedCharacter = await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
+    const departedDocument = readCharacterRecord(departedCharacter!)
     expect(
       departedDocument.state.currency
         .flatMap((group) => group.currencies)

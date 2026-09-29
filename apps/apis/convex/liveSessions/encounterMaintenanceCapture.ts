@@ -1,8 +1,8 @@
 import type { LiveSessionEncounterRulesRequest } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { QueryCtx } from '../_generated/server'
-import type { Doc } from '../_generated/dataModel'
 import { readCharacterRecord, readCharacterSheetState } from '../characters/documents'
+import { readCharacterRow, type CharacterRow } from '../characters/stateDocuments'
 import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   readCharacterEffect,
@@ -72,7 +72,7 @@ export async function readEncounterMaintenanceCapture(
   }
 
   const { owner } = request
-  let character: Doc<'characters'> | null = null
+  let character: CharacterRow | null = null
   if (owner.kind === 'CHARACTER') {
     const dependent = await ctx.db
       .query('characterActiveRuleEffects')
@@ -86,10 +86,7 @@ export async function readEncounterMaintenanceCapture(
     if (!dependent) throw new Error('Maintained effect owner is not a current dependent.')
     readCharacterEffect(dependent)
     // A detached owner is authorized through this live dependent, never an arbitrary Character ID.
-    character = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', owner.characterId))
-      .unique()
+    character = await readCharacterRow(ctx, owner.characterId)
     if (
       !character ||
       character.status !== 'ACTIVE' ||

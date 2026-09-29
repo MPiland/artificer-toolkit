@@ -10,39 +10,19 @@ import {
   MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { characterStoredRowSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import type { MovementMaintenanceProjection } from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { ProjectableCharacterFacts } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import * as z from 'zod/mini'
+import {
+  readCharacterRecord,
+  type StoredCharacter
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 
-export type NativeLiveMovementMaintenanceProjection = MovementMaintenanceProjection<
-  NonNullable<
-    Extract<LiveSessionEncounterRulesResponse, { kind: 'MAINTENANCE_OWNER' }>['character']
-  >
->
+export type NativeLiveMovementMaintenanceProjection = MovementMaintenanceProjection<StoredCharacter>
 
-const characterDocument = z.omit(characterAuthoredDtoSchema, { primaryRulesCatalogueId: true })
-export function readNativeLiveMaintenanceCharacter(
-  row: NonNullable<
-    Extract<LiveSessionEncounterRulesResponse, { kind: 'MAINTENANCE_OWNER' }>['character']
-  >,
-  gameSystemId: string
-) {
-  const raw: unknown = JSON.parse(row.documentJson)
-  if (checksumRuleDocument(raw) !== row.checksum)
-    throw new Error('Movement Character checksum mismatch.')
-  const character = characterDocument.parse(raw)
-  if (
-    character.id !== row.id ||
-    character.systemId !== gameSystemId ||
-    character.userId !== row.userId ||
-    character.label !== row.label ||
-    character.status !== row.status
-  )
-    throw new Error('Movement Character identity mismatch.')
+export function readNativeLiveMaintenanceCharacter(row: StoredCharacter, gameSystemId: string) {
+  const character = readCharacterRecord(row)
+  if (character.systemId !== gameSystemId) throw new Error('Movement Character identity mismatch.')
   return character
 }
 
@@ -124,10 +104,7 @@ export async function readNativeLiveMaintenanceOwners(input: {
   const owners: Array<{
     owner: ActiveRuleEffectRecord['owner']
     effects: ActiveRuleEffectRecord[]
-    character: Extract<
-      LiveSessionEncounterRulesResponse,
-      { kind: 'MAINTENANCE_OWNER' }
-    >['character']
+    character: StoredCharacter | null
   }> = []
   const characterVersions: Array<{ characterId: string; beforeStreamVersion: number }> = []
   const uniqueOwners = new Map(
@@ -192,10 +169,7 @@ export async function readNativeLiveMaintenanceOwners(input: {
     }
     const character =
       owner.kind === 'CHARACTER' && (target || projected)
-        ? characterStoredRowSchema.parse({
-            ...projected?.character,
-            ...target?.characterFacts?.active
-          })
+        ? (target?.characterFacts?.active ?? projected?.character ?? null)
         : response?.kind === 'MAINTENANCE_OWNER'
           ? response.character
           : null
@@ -209,7 +183,7 @@ export async function readNativeLiveMaintenanceOwners(input: {
         throw new Error('Maintained-effect Character owner is unavailable.')
       characterVersions.push({
         characterId: character.id,
-        beforeStreamVersion: character.streamVersion
+        beforeStreamVersion: character.play.streamVersion
       })
     } else if (character) throw new Error('Maintenance actor owner contains Character state.')
     owners.push({ owner, effects, character })

@@ -208,7 +208,9 @@ describe('planNativeSpatialMovementPrefix', () => {
       expect(result.settlements[0]!.batch.expectedCharacterStreamVersion).toBe(
         base.characterStreamVersion
       )
-      expect(projected.characterFacts?.active.streamVersion).toBe(base.characterStreamVersion + 1)
+      expect(projected.characterFacts?.active.play.streamVersion).toBe(
+        base.characterStreamVersion + 1
+      )
       // Dropping to 0 also makes the Character unconscious (D63).
       expect(projected.state).toEqual({
         current: 0,

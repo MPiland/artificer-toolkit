@@ -16,7 +16,6 @@ import type {
   CampaignVehicleLifecycleResult,
   CreateCampaignVehicleInput
 } from '@artificer-toolkit/schema/api/campaignVehicles'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -26,10 +25,11 @@ import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { pouch } from '@artificer-toolkit/source-data/srd/equipment/pouch.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { editCharacterRecord, writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -95,10 +95,7 @@ async function setup() {
   })
   const readStored = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       inventories: await ctx.db.query('campaignPartyInventories').collect(),
       items: await ctx.db.query('campaignPartyItems').collect(),
       groups: await ctx.db.query('campaignPartyCurrencyGroups').collect(),
@@ -116,18 +113,7 @@ async function setCharacterState(
     character: ReturnType<typeof readCharacterRecord>
   ) => ReturnType<typeof readCharacterRecord>
 ) {
-  await base.t.run(async (ctx) => {
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
-    if (!record) throw new Error('Missing Character fixture.')
-    const character = update(readCharacterRecord(record))
-    await ctx.db.patch(record._id, {
-      documentJson: canonicalizeRuleDocument(character),
-      checksum: checksumRuleDocument(character)
-    })
-  })
+  await base.t.run((ctx) => editCharacterRecord(ctx, base.character.id, update))
 }
 
 function itemCommand(
@@ -201,20 +187,15 @@ async function addThirdAssignedPlayer(base: Fixture) {
       joinedAt: base.campaign.createdAt,
       leftAt: null
     })
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', committed.character.id))
-      .unique()
+    const record = await readCharacterRow(ctx, committed.character.id)
     const route = await ctx.db
       .query('authoredRouteIds')
       .withIndex('by_subjectId', (q) => q.eq('subjectId', committed.character.id))
       .unique()
     if (!record || !route) throw new Error('Missing third-player Character.')
-    const character = { ...readCharacterRecord(record), userId: identity.userId }
-    await ctx.db.patch(record._id, {
-      userId: identity.userId,
-      documentJson: canonicalizeRuleDocument(character),
-      checksum: checksumRuleDocument(character)
+    await writeCharacterRecord(ctx, record, {
+      document: readCharacterRecord(record),
+      userId: identity.userId
     })
     await ctx.db.patch(route._id, { ownerUserId: identity.userId })
     await ctx.db.insert('campaignCharacterAssignments', {
@@ -228,12 +209,7 @@ async function addThirdAssignedPlayer(base: Fixture) {
 }
 
 async function readCharacter(base: Fixture, characterId: string) {
-  return base.t.run((ctx) =>
-    ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterId))
-      .unique()
-  )
+  return base.t.run((ctx) => readCharacterRow(ctx, characterId))
 }
 describe('native Character item custody', () => {
   it('moves a filled Character bag with exact item fields and currency groups, cleans only departed equipment references, and rolls back late aborts', async () => {
@@ -287,7 +263,7 @@ describe('native Character item custody', () => {
       { kind: 'CHARACTER', characterId: base.character.id },
       { kind: 'CAMPAIGN', campaignId: base.campaign.id },
       bagId,
-      before.character!.streamVersion,
+      before.character!.play.streamVersion,
       0,
       2
     )
@@ -302,7 +278,7 @@ describe('native Character item custody', () => {
     await base.owner.caller.mutation(transfer, { input })
     const after = await base.readStored()
     const state = readCharacterRecord(after.character!).state
-    expect(after.character!.streamVersion).toBe(before.character!.streamVersion + 1)
+    expect(after.character!.play.streamVersion).toBe(before.character!.play.streamVersion + 1)
     expect(after.inventories).toContainEqual(
       expect.objectContaining({ campaignId: base.campaign.id, version: 1 })
     )
@@ -416,7 +392,7 @@ describe('native Character item custody', () => {
       { kind: 'CHARACTER', characterId: base.character.id },
       bagId,
       0,
-      before.character!.streamVersion
+      before.character!.play.streamVersion
     )
     await base.owner.caller.mutation(transfer, { input })
     const after = await base.readStored()
@@ -481,7 +457,7 @@ describe('native Character item custody', () => {
       { kind: 'CHARACTER', characterId: base.character.id },
       { kind: 'VEHICLE', vehicleId: vehicle.id },
       itemId,
-      before.character!.streamVersion,
+      before.character!.play.streamVersion,
       0
     )
     const unavailableSnapshot = await base.readStored()
@@ -503,7 +479,7 @@ describe('native Character item custody', () => {
       { kind: 'CHARACTER', characterId: base.character.id },
       { kind: 'VEHICLE', vehicleId: vehicle.id },
       itemId,
-      before.character!.streamVersion,
+      before.character!.play.streamVersion,
       0
     )
     await base.owner.caller.mutation(transfer, { input: source })
@@ -519,7 +495,7 @@ describe('native Character item custody', () => {
           { kind: 'CHARACTER', characterId: base.character.id },
           itemId,
           1,
-          loaded.character!.streamVersion
+          loaded.character!.play.streamVersion
         )
       })
     ).rejects.toThrow('Campaign owner')
@@ -531,7 +507,7 @@ describe('native Character item custody', () => {
         { kind: 'CHARACTER', characterId: base.character.id },
         itemId,
         1,
-        loaded.character!.streamVersion
+        loaded.character!.play.streamVersion
       )
     })
     const returned = await base.readStored()
@@ -567,8 +543,8 @@ describe('native Character item custody', () => {
       { kind: 'CHARACTER', characterId: base.character.id },
       { kind: 'CHARACTER', characterId: third.characterId },
       itemId,
-      sourceBefore.character!.streamVersion,
-      destinationBefore.streamVersion
+      sourceBefore.character!.play.streamVersion,
+      destinationBefore.play.streamVersion
     )
     const result = await base.owner.caller.mutation(transfer, { input })
     const sourceAfter = await base.readStored()
@@ -588,7 +564,7 @@ describe('native Character item custody', () => {
     )
     expect(readCharacterRecord(destinationAfter).state.equipment.equipped).not.toContain(itemId)
     expect(readCharacterRecord(destinationAfter).state.equipment.attuned).not.toContain(itemId)
-    expect(destinationAfter.streamVersion).toBe(destinationBefore.streamVersion + 1)
+    expect(destinationAfter.play.streamVersion).toBe(destinationBefore.play.streamVersion + 1)
     const replaySnapshot = await base.readStored()
     expect(await base.owner.caller.mutation(transfer, { input })).toEqual(result)
     expect(await base.readStored()).toEqual(replaySnapshot)
@@ -638,7 +614,7 @@ describe('native Character item custody', () => {
           { kind: 'CHARACTER', characterId: itemCollision.character.id },
           { kind: 'CAMPAIGN', campaignId: itemCollision.campaign.id },
           itemId,
-          itemBefore.character!.streamVersion,
+          itemBefore.character!.play.streamVersion,
           0
         )
       })
@@ -678,7 +654,7 @@ describe('native Character item custody', () => {
           { kind: 'CHARACTER', characterId: groupCollision.character.id },
           { kind: 'CAMPAIGN', campaignId: groupCollision.campaign.id },
           bagId,
-          groupBefore.character!.streamVersion,
+          groupBefore.character!.play.streamVersion,
           0
         )
       })
@@ -711,7 +687,7 @@ describe('native Character item custody', () => {
           { kind: 'CHARACTER', characterId: cyclic.character.id },
           { kind: 'CAMPAIGN', campaignId: cyclic.campaign.id },
           bagId,
-          cycleBefore.character!.streamVersion,
+          cycleBefore.character!.play.streamVersion,
           0
         )
       })
@@ -759,7 +735,7 @@ describe('native Character item custody', () => {
           { kind: 'CHARACTER', characterId: duplicate.character.id },
           sharedBagId,
           0,
-          duplicateBefore.character!.streamVersion
+          duplicateBefore.character!.play.streamVersion
         )
       })
     ).rejects.toThrow('duplicate balances')

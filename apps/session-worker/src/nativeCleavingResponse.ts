@@ -175,7 +175,7 @@ export async function planNativeLiveCleavingResponse(
             occurredAt,
             applications: [application],
             expectedCharacterStreamVersion:
-              chosen.target.characterFacts?.active.streamVersion ?? null,
+              chosen.target.characterFacts?.active.play.streamVersion ?? null,
             effectiveMaximumHitPoints: chosen.target.effectiveMaximumHitPoints,
             effectiveScalarValues: chosen.target.effectiveScalarValues,
             forceVersionAdvance: false

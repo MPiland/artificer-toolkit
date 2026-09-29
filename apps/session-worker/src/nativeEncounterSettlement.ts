@@ -1,7 +1,10 @@
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import {
+  encodeCharacterRecord,
+  readCharacterRecord
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import type { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
@@ -19,23 +22,17 @@ import {
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { EncounterMechanicsBatchPlan } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
 import type { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
-import * as z from 'zod/mini'
 
 type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
 type Maintenance = NonNullable<Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>>
 export type NativeLiveMaintenanceOwner = {
   owner: ActiveRuleEffectRecord['owner']
   effects: ActiveRuleEffectRecord[]
-  character: Pick<
-    NonNullable<Maintenance['owners'][number]['character']>,
-    'id' | 'streamVersion' | 'documentJson' | 'checksum' | 'sheetState' | 'updatedAt'
-  > | null
+  character: Maintenance['owners'][number]['character']
 }
-const characterDocument = z.omit(characterAuthoredDtoSchema, { primaryRulesCatalogueId: true })
 
 /** Projects the exact state after mechanics, effects and maintenance, before concentration runs. */
 export function planNativeLiveEncounterSettlement(input: {
@@ -236,23 +233,16 @@ export function projectNativeLiveMaintenanceOwners(input: {
     let row = snapshot.character
     const characterPlan = target ? input.characterPlans?.get(target.actor.id) : null
     if (row && characterPlan?.characterUpdate && characterPlan.characterStreamVersion !== null) {
-      row = {
-        ...row,
-        documentJson: canonicalizeRuleDocument(characterPlan.characterUpdate.character),
-        checksum: checksumRuleDocument(characterPlan.characterUpdate.character),
+      row = encodeCharacterRecord(row, {
+        document: characterPlan.characterUpdate.character,
         ...(characterPlan.characterUpdate.sheetState
-          ? {
-              sheetState: {
-                documentJson: canonicalizeRuleDocument(characterPlan.characterUpdate.sheetState),
-                checksum: checksumRuleDocument(characterPlan.characterUpdate.sheetState)
-              }
-            }
+          ? { sheetState: characterPlan.characterUpdate.sheetState }
           : {}),
         streamVersion: characterPlan.characterStreamVersion,
         updatedAt: input.occurredAt
-      }
+      })
     }
-    const character = row ? characterDocument.parse(JSON.parse(row.documentJson)) : null
+    const character = row ? readCharacterRecord(row) : null
     const beforeVersion =
       owner.kind === 'CHARACTER'
         ? maintenance.characterVersions.find((entry) => entry.characterId === owner.characterId)
@@ -266,7 +256,7 @@ export function projectNativeLiveMaintenanceOwners(input: {
       character:
         row && character && beforeVersion !== undefined
           ? {
-              currentStreamVersion: row.streamVersion,
+              currentStreamVersion: row.play.streamVersion,
               beforeStreamVersion: beforeVersion,
               conditions: character.state.conditions ?? []
             }
@@ -281,17 +271,11 @@ export function projectNativeLiveMaintenanceOwners(input: {
       effects: remaining,
       character:
         row && nextCharacter && planned.character
-          ? {
-              ...row,
-              ...(planned.character.changed
-                ? {
-                    documentJson: canonicalizeRuleDocument(nextCharacter),
-                    checksum: checksumRuleDocument(nextCharacter)
-                  }
-                : {}),
+          ? encodeCharacterRecord(row, {
+              document: nextCharacter,
               streamVersion: planned.character.streamVersion,
               updatedAt: input.occurredAt
-            }
+            })
           : row
     })
     for (const { after: actor } of planned.actors) {

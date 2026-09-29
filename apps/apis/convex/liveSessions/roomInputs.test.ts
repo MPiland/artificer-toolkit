@@ -128,7 +128,7 @@ describe('live room inputs (ADR 0035 S2)', () => {
     if (part?.status !== 'ASSIGNED') throw new Error('Expected an assigned Character.')
     expect(part.characterId).toBe(base.character.id)
     expect(part.inputs).toMatchObject({
-      character: expect.any(Object),
+      owner: expect.objectContaining({ id: base.character.id }),
       campaign: { id: base.campaign.id }
     })
     expect(first.continueCursor).toBeNull()

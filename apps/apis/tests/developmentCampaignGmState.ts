@@ -255,7 +255,7 @@ export async function verifyCampaignGmState(input: {
     playerScoped.overview.maxHitPoints + 4
   )
   assert.equal(
-    characterRow(current.personal, input.characterId).maximumHitPoints,
+    characterPlayRow(current.personal, input.characterId).maximumHitPoints,
     scopedWithInitialOverlay.overview.maxHitPoints
   )
   assert.equal(
@@ -369,7 +369,7 @@ export async function verifyCampaignGmState(input: {
     playerScoped.overview.maxHitPoints + 6
   )
   assert.equal(
-    characterRow(current.personal, input.characterId).maximumHitPoints,
+    characterPlayRow(current.personal, input.characterId).maximumHitPoints,
     scopedWithUpdatedOverlay.overview.maxHitPoints
   )
   const personalWithUpdatedOverlay = await input.player.query(api.characters.sheet.get, {
@@ -608,10 +608,11 @@ async function assertCommit(input: {
   expectedPersonal.sceneVisionRevisions = expectedPersonal.sceneVisionRevisions.map((row) =>
     row._id === beforeMarker._id ? afterMarker : row
   )
-  // Campaign overlays feed the Character's evaluation; only its stored maximum may move.
-  const { maximumHitPoints } = characterRow(after.personal, input.characterId)
-  expectedPersonal.characters = expectedPersonal.characters.map((row) =>
-    row.id === input.characterId ? { ...row, maximumHitPoints } : row
+  // Campaign overlays feed the Character's evaluation; only its stored maximum may move, and it
+  // lives on the play record.
+  const { maximumHitPoints } = characterPlayRow(after.personal, input.characterId)
+  expectedPersonal.characterPlayStates = expectedPersonal.characterPlayStates.map((row) =>
+    matchesCharacter(row, input.characterId) ? { ...row, maximumHitPoints } : row
   )
 
   assert.deepEqual(normalize(after.campaign), normalize(expectedCampaign))
@@ -879,8 +880,10 @@ function marker(tables: TableMap, characterId: string): Record<string, unknown> 
   return rows[0]!
 }
 
-function characterRow(tables: TableMap, characterId: string): Record<string, unknown> {
-  const rows = (tables.characters ?? []).filter((row) => row.id === characterId)
+function characterPlayRow(tables: TableMap, characterId: string): Record<string, unknown> {
+  const rows = (tables.characterPlayStates ?? []).filter((row) =>
+    matchesCharacter(row, characterId)
+  )
   assert.equal(rows.length, 1)
   return rows[0]!
 }

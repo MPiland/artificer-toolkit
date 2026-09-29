@@ -23,9 +23,9 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { api, components, internal } from '../_generated/api'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -141,20 +141,15 @@ async function addThirdAssignedPlayer(base: Awaited<ReturnType<typeof setup>>) {
       joinedAt: base.campaign.createdAt,
       leftAt: null
     })
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', committed.character.id))
-      .unique()
+    const record = await readCharacterRow(ctx, committed.character.id)
     const route = await ctx.db
       .query('authoredRouteIds')
       .withIndex('by_subjectId', (q) => q.eq('subjectId', committed.character.id))
       .unique()
     if (!record || !route) throw new Error('Missing third-player Character')
-    const document = { ...readCharacterRecord(record), userId: identity.userId }
-    await ctx.db.patch(record._id, {
-      userId: identity.userId,
-      documentJson: canonicalizeRuleDocument(document),
-      checksum: checksumRuleDocument(document)
+    await writeCharacterRecord(ctx, record, {
+      document: readCharacterRecord(record),
+      userId: identity.userId
     })
     await ctx.db.patch(route._id, { ownerUserId: identity.userId })
     await ctx.db.insert('campaignCharacterAssignments', {

@@ -19,6 +19,7 @@ import type { LiveSessionControlInput } from '@artificer-toolkit/schema/api/live
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -89,19 +90,14 @@ async function setup() {
       })
     })
   async function setVisibility(visibility: CharacterPartyVisibilityDto) {
-    const current = await t.run(async (ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-    )
+    const current = await t.run((ctx) => readCharacterRow(ctx, character.id))
     if (!current) throw new Error('Missing Character.')
     return player.caller.mutation(personalExecute, {
       id: character.id,
       command: {
         type: 'SET_PARTY_VISIBILITY',
         commandId: crypto.randomUUID(),
-        expectedVersion: current.streamVersion,
+        expectedVersion: current.play.streamVersion,
         visibility
       }
     })

@@ -103,7 +103,7 @@ export function planNativeSpatialMovementPrefix<
           : input.sourceCommandId,
       occurredAt: input.occurredAt,
       applications,
-      expectedCharacterStreamVersion: target.characterFacts?.active.streamVersion ?? null,
+      expectedCharacterStreamVersion: target.characterFacts?.active.play.streamVersion ?? null,
       effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
       effectiveScalarValues: target.effectiveScalarValues,
       forceVersionAdvance: target.actor.kind === 'CHARACTER'

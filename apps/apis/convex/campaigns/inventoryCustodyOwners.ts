@@ -1,7 +1,11 @@
 import { versionSchema } from '@artificer-toolkit/schema/api/campaignContractSchemas'
 import type { InventoryOwnerRefDto } from '@artificer-toolkit/schema/api/campaignInventory'
 import { campaignStoredPartyInventorySchema } from '@artificer-toolkit/schema/projections/campaignInventoryPersistence'
-import { readCharacterRecord, characterDocumentSchema } from '../characters/stateDocuments'
+import {
+  readCharacterRecord,
+  characterDocumentSchema,
+  type CharacterRow
+} from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
@@ -15,7 +19,7 @@ export type InventoryCustodyOwner = BaseOwner &
   (
     | {
         kind: 'CHARACTER'
-        record: Doc<'characters'>
+        record: CharacterRow
         character: ReturnType<typeof readCharacterRecord>
       }
     | {
@@ -45,7 +49,7 @@ export async function readInventoryCustodyOwner(
       ref: { kind: 'CHARACTER', characterId: record.id },
       record,
       character,
-      version: versionSchema.parse(record.streamVersion)
+      version: versionSchema.parse(record.play.streamVersion)
     }
   }
   if (ref.kind === 'CAMPAIGN' && ref.campaignId.toLowerCase() !== campaign.id)

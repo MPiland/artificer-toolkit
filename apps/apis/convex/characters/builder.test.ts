@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { characterDocumentSchema } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { api } from '../_generated/api'
+import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { readActiveCharacter } from './builder'
@@ -20,20 +21,11 @@ describe('Builder active Character query', () => {
     }
     active.state.hitpoints.current = 4
     await t.run((ctx) =>
-      ctx.db.insert('characters', {
-        id: active.id,
-        userId: active.userId,
-        systemId: active.systemId,
-        status: 'ACTIVE',
-        streamVersion: 1,
-        label: active.label,
-        documentJson: canonicalizeRuleDocument(active),
-        checksum: checksumRuleDocument(active),
-        maximumHitPoints: 0,
-        walkingSpeed: 0,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-01T00:00:00.000Z'
-      })
+      insertActiveCharacterRecord(
+        ctx,
+        { ...characterDocumentSchema.parse(active), status: 'ACTIVE' },
+        { createdAt: '2026-01-01T00:00:00.000Z' }
+      )
     )
     await owner.caller.mutation(api.characters.drafts.save, {
       characterId: draft.characterId,

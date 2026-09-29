@@ -26,6 +26,7 @@ import { api, internal } from '../_generated/api'
 import schema from '../schema'
 import { removeAccountCampaignMemberships } from '../campaigns/accountDeparture.helper'
 import { removeAccountPrivateCharacters } from '../characters/accountDeletion'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import * as rollRandom from '../lib/rollRandom'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -286,10 +287,7 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
   return base.t.run(async (ctx) => {
     const [character, target, source, run, commands, occurrences, receipts, characterReceipts] =
       await Promise.all([
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-          .unique(),
+        readCharacterRow(ctx, base.character.id),
         ctx.db
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) =>
@@ -346,14 +344,12 @@ describe('native Creature actions against Character targets', () => {
       const after = await records(base)
       if (!before.character || !after.character || !before.target || !after.target)
         throw new Error('Missing Character effect records.')
-      expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
-        JSON.parse(before.character.documentJson).state.hitpoints.current
-      )
-      expect(JSON.parse(after.character.documentJson).state.conditions).toEqual(
-        JSON.parse(before.character.documentJson).state.conditions ?? []
-      )
+      const beforeState = readCharacterRecord(before.character).state
+      const afterState = readCharacterRecord(after.character).state
+      expect(afterState.hitpoints.current).toBe(beforeState.hitpoints.current)
+      expect(afterState.conditions ?? []).toEqual(beforeState.conditions ?? [])
       expect(after.target.stateJson).toBe(before.target.stateJson)
-      expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
+      expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
       const row = after.receipts.find((receipt) => receipt.commandId === input.commandId)
       if (!row) throw new Error('Missing Character effect receipt.')
       const receipt = storedRuleExecutionResultDtoSchema.parse(JSON.parse(row.resultJson))
@@ -404,15 +400,14 @@ describe('native Creature actions against Character targets', () => {
     const after = await records(base)
     if (!before.character || !after.character || !before.target || !after.target || !after.source)
       throw new Error('Missing settled records.')
-    expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
-      JSON.parse(before.character.documentJson).state.hitpoints.current - 1
-    )
+    const afterHitPoints = readCharacterRecord(after.character).state.hitpoints.current
+    expect(afterHitPoints).toBe(readCharacterRecord(before.character).state.hitpoints.current - 1)
     expect(after.target.stateJson).toBe(before.target.stateJson)
     expect(
       result.projection.actors.find((candidate) => candidate.id === base.target.id)
     ).toMatchObject({
       sourceRevision: null,
-      currentHitPoints: JSON.parse(after.character.documentJson).state.hitpoints.current
+      currentHitPoints: afterHitPoints
     })
     expect(
       featureChargeUsed(
@@ -420,7 +415,7 @@ describe('native Creature actions against Character targets', () => {
         creature.features!.find((feature) => feature.label === 'Bite')!.id
       )
     ).toBe(1)
-    expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
+    expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
     expect(after.characterReceipts).toHaveLength(1)
     const receipt = after.receipts.find((value) => value.commandId === input.commandId)
     if (!receipt) throw new Error('Missing Creature action receipt.')
@@ -523,13 +518,13 @@ describe('native Creature actions against Character targets', () => {
         type: 'ADJUST_HIT_POINTS',
         mode: 'DAMAGE',
         amount: 1,
-        expectedVersion: created.streamVersion,
+        expectedVersion: created.play.streamVersion,
         commandId: crypto.randomUUID()
       }
     })
     const before = await records(base)
     if (!before.character) throw new Error('Missing edited Character.')
-    expect(before.character.streamVersion).toBe(created.streamVersion + 1)
+    expect(before.character.play.streamVersion).toBe(created.play.streamVersion + 1)
     await executeInRoom(base.owner.caller, {
       command: command({
         encounterId: base.run.id,
@@ -541,9 +536,9 @@ describe('native Creature actions against Character targets', () => {
     })
     const after = await records(base)
     if (!after.character) throw new Error('Missing settled Character.')
-    expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
-    expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
-      JSON.parse(before.character.documentJson).state.hitpoints.current - 1
+    expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
+    expect(readCharacterRecord(after.character).state.hitpoints.current).toBe(
+      readCharacterRecord(before.character).state.hitpoints.current - 1
     )
   }, 30000)
 })

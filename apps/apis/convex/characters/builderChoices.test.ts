@@ -626,7 +626,8 @@ describe('native Character Builder choices', () => {
     )
     const result = await owner.caller.mutation(api.characters.commit.commit, staleCandidate)
     expect(result.publicId).toBe(committed.publicId)
-    expect(result.streamVersion).toBe(3)
+    // A Builder commit that leaves play state alone does not advance the play stream.
+    expect(result.streamVersion).toBe(damaged.streamVersion)
     expect(result.character.id).toBe(first.character.id)
     expect(result.character.intent.chosenGrantSelections).toBeUndefined()
     expect(result.character.state.hitpoints.current).toBe(8)

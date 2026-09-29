@@ -8,14 +8,14 @@ import {
   type DevelopmentAccountDeletionRollbackResult
 } from '@artificer-toolkit/schema/api/developmentAccountDeletionRollback'
 import { authoredStoredImportReferenceSchema } from '@artificer-toolkit/schema/api/imports'
-import { characterStoredRecordSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
+import { characterDocumentSchema } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { reusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { insertActiveCharacterRecord } from '../tests/fixtures/characterRows'
 import { publicationFixture, importedSubject } from '../tests/fixtures/publication'
 import { api, components, internal } from './_generated/api'
 import type { TableNames } from './_generated/dataModel'
@@ -199,23 +199,13 @@ async function fixture() {
       systemId: srdSystemRecord.id,
       userId: subject.userId
     })
-    const encoded: unknown = JSON.parse(JSON.stringify(authored))
-    await ctx.db.insert(
-      'characters',
-      characterStoredRecordSchema.parse({
-        id: characterId,
-        userId: subject.userId,
-        systemId: srdSystemRecord.id,
-        label: authored.label,
-        status: authored.status,
-        streamVersion: 0,
-        maximumHitPoints: 0,
-        walkingSpeed: 0,
-        documentJson: canonicalizeRuleDocument(encoded),
-        checksum: checksumRuleDocument(encoded),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      })
+    await insertActiveCharacterRecord(
+      ctx,
+      {
+        ...characterDocumentSchema.parse(JSON.parse(JSON.stringify(authored))),
+        status: 'DRAFT'
+      },
+      { createdAt: new Date().toISOString(), streamVersion: 0 }
     )
     await ensureAuthoredRouteId(ctx, 'CHARACTER', characterId, false, subject.userId)
   })

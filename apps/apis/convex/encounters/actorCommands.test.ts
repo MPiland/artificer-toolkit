@@ -27,6 +27,7 @@ import {
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import * as sheetCommands from '../characters/sheetCommands'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
@@ -223,14 +224,9 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     expect(encounterRunActorStateSchema.parse(JSON.parse(after.actor!.stateJson)).kind).toBe(
       'CHARACTER'
     )
-    const storedCharacter = await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-    )
-    expect(storedCharacter!.maximumHitPoints).toBe(15)
-    expect(JSON.parse(storedCharacter!.documentJson).state.conditions).toHaveLength(1)
+    const storedCharacter = await t.run((ctx) => readCharacterRow(ctx, character.id))
+    expect(storedCharacter!.play.maximumHitPoints).toBe(15)
+    expect(readCharacterRecord(storedCharacter!).state.conditions).toHaveLength(1)
     const receipt = after.receipts.find((candidate) => candidate.commandId === commandId)!
     if (receipt.commandType !== 'UPDATE_ACTOR') throw new Error('Missing UPDATE_ACTOR receipt.')
     const nestedReceipt = (await readState()).receipts.find(

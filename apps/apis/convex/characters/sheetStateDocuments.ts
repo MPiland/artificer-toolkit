@@ -2,30 +2,19 @@ import {
   createCharacterResourceOwnerKey,
   createCharacterSpellSourceKey
 } from '@artificer-toolkit/shared/character'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
-import {
-  characterSheetStateSchema,
-  type CharacterSheetState
-} from '@artificer-toolkit/schema/projections/characterSheetState'
-import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
+import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterSheetState as readJoinedSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { getCharacterSheetAdjustmentSlotKey } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
-import type { Doc } from '../_generated/dataModel'
+import type { CharacterRecordRow } from './stateDocuments'
 
+/**
+ * The Character's Sheet state: the Sheet structure its row stores, joined with the play fields
+ * (resource usage, party visibility) its play record holds, and checked for ownership and uniqueness.
+ */
 export function readCharacterSheetState(
-  record: Pick<Doc<'characters'>, 'id' | 'sheetState'>
+  record: Pick<CharacterRecordRow, 'id' | 'sheetState' | 'play'>
 ): CharacterSheetState {
-  if (!record.sheetState)
-    return {
-      adjustments: [],
-      movementDisplayPreference: { mode: 'AUTO' },
-      partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY,
-      resourceUsage: [],
-      spellCustomizations: []
-    }
-  const raw: unknown = JSON.parse(record.sheetState.documentJson)
-  if (checksumRuleDocument(raw) !== record.sheetState.checksum)
-    throw new Error('Stored Character Sheet state checksum mismatch.')
-  const state = characterSheetStateSchema.parse(raw)
+  const state = readJoinedSheetState(record)
   if (state.adjustments.some((adjustment) => adjustment.characterId !== record.id))
     throw new Error('Stored Character Sheet adjustment ownership mismatch.')
   if (

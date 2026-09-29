@@ -22,23 +22,14 @@ export const characterStoredRecordSchema = lazySchema(() =>
     primaryRulesCatalogueId: z.optional(postgresUuidSchema),
     label: z.string(),
     status: z.enum(['ACTIVE', 'DRAFT']),
-    streamVersion: z.number().check(z.int()).check(z.nonnegative()),
+    /** The Builder-owned structure (`characterStructureDocumentSchema`); play state lives in the play record. */
     documentJson: z.string(),
     checksum: projectionChecksumSchema,
-    /**
-     * Effective maximum hit points from the Character's own rules evaluation, before active-effect
-     * hit point maximum reductions, rewritten by every Character write (`characters/characterWrites`).
-     * Readers subtract the Character's active reductions (`characters/characterMaximumHitPoints`), so
-     * reduction effects never rewrite the row. Rules evaluate live. Published-content changes reach it
-     * on the Character's next write.
-     */
-    maximumHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-    /** Effective walking speed in feet, stored beside `maximumHitPoints` for the movement budget (D38). */
-    walkingSpeed: z.number().check(z.nonnegative()),
     portraitAssetId: z.optional(uuid),
     portraitRevision: z.optional(z.number().check(z.int()).check(z.nonnegative())),
     /** The portrait's own framing; the same image framed differently elsewhere is unaffected. */
     portraitCrop: z.optional(normalizedImageCropSchema),
+    /** The Sheet-owned structure records (`characterSheetStructureSchema`); play fields live in the play record. */
     sheetState: z.optional(
       z.strictObject({
         documentJson: z.string(),
@@ -46,15 +37,56 @@ export const characterStoredRecordSchema = lazySchema(() =>
       })
     ),
     createdAt: z.iso.datetime(),
+    /** The structure clock: it advances only when the document or the Sheet structure changes. */
     updatedAt: z.iso.datetime()
   })
 )
 
-/** Private DO captures preserve existing pending-maintenance checksums, including row identity. */
+/**
+ * A Character's small, hot play record, one per Character (ADR 0035 Amendment 12): the play fields
+ * (`characterPlayStateSchema`) as canonical JSON beside the Character's own version and derived
+ * stats. Every play write replaces only this record, never the large Character document.
+ */
+export const characterStoredPlayStateSchema = lazySchema(() =>
+  z.strictObject({
+    characterId: uuid,
+    /** The owner, copied from the Character so party-visibility reads never load the document. */
+    userId: uuid,
+    /**
+     * The play version: play commands check it, and a Builder commit advances it only when it changes
+     * play state. A Builder commit that leaves play state alone never invalidates a Sheet command.
+     */
+    streamVersion: z.number().check(z.int()).check(z.nonnegative()),
+    /**
+     * Effective maximum hit points from the Character's own rules evaluation, before active-effect
+     * hit point maximum reductions, rewritten by every Character write (`characters/characterWrites`).
+     * Readers subtract the Character's active reductions (`characters/characterMaximumHitPoints`), so
+     * reduction effects never rewrite the record. Rules evaluate live. Published-content changes reach
+     * it on the Character's next write.
+     */
+    maximumHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    /** Effective walking speed in feet, stored beside `maximumHitPoints` for the movement budget (D38). */
+    walkingSpeed: z.number().check(z.nonnegative()),
+    playJson: z.string(),
+    checksum: projectionChecksumSchema,
+    /** The play clock: it advances only when the play state changes. */
+    updatedAt: z.iso.datetime()
+  })
+)
+
+const storedDocumentIdentity = lazySchemaParts(() => ({
+  _id: z.string().check(z.minLength(1)),
+  _creationTime: z.number().check(z.nonnegative())
+}))
+
+/**
+ * A Character row with its play record, as private DO captures carry it and as readers join it.
+ * Captures preserve existing pending-maintenance checksums, including row identity.
+ */
 export const characterStoredRowSchema = lazySchema(() =>
   z.extend(characterStoredRecordSchema, {
-    _id: z.string().check(z.minLength(1)),
-    _creationTime: z.number().check(z.nonnegative())
+    ...storedDocumentIdentity(),
+    play: z.extend(characterStoredPlayStateSchema, storedDocumentIdentity())
   })
 )
 

@@ -23,11 +23,11 @@ import type {
   RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components } from '../_generated/api'
@@ -522,18 +522,11 @@ describe('native Campaign authoritative rolls', () => {
         .query('campaigns')
         .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
         .unique()
-      const active = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-      if (!row || !active) throw new Error('Missing Campaign/Character fixture')
-      const raw: unknown = JSON.parse(active.documentJson)
-      const document = { ...characterAuthoredDtoSchema.parse(raw), label: characterLabel }
-      await ctx.db.patch(active._id, {
-        label: characterLabel,
-        documentJson: JSON.stringify(document),
-        checksum: checksumRuleDocument(document)
-      })
+      if (!row) throw new Error('Missing Campaign fixture')
+      await editCharacterRecord(ctx, character.id, (document) => ({
+        ...document,
+        label: characterLabel
+      }))
       await ctx.db.patch(row._id, { contentMaturity: 'MATURE' })
       return row
     })

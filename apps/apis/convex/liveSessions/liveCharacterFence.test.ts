@@ -14,7 +14,6 @@ import {
   liveSessionEncounterActionCommitInputSchema,
   type LiveSessionEncounterActionCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -37,6 +36,7 @@ import {
 } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 
 const createBlueprint = makeFunctionReference<
@@ -211,12 +211,9 @@ async function setup() {
 
 async function storedHitPoints(fixture: Awaited<ReturnType<typeof setup>>) {
   return fixture.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique()
+    const row = await readCharacterRow(ctx, fixture.character.id)
     if (!row) throw new Error('Missing fence Character.')
-    return characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson)).state.hitpoints.current
+    return readCharacterRecord(row).state.hitpoints.current
   })
 }
 

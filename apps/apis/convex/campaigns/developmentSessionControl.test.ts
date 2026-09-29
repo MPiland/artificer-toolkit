@@ -283,6 +283,7 @@ describe('P15 Session fixture cleanup', () => {
     })
     const cleared = await base.t.run(async (ctx) => ({
       characters: await ctx.db.query('characters').collect(),
+      plays: await ctx.db.query('characterPlayStates').collect(),
       campaigns: await ctx.db.query('campaigns').collect(),
       receipts: await ctx.db.query('characterCommandReceipts').collect(),
       recoveries: await ctx.db.query('campaignClockRecoveries').collect(),
@@ -291,6 +292,7 @@ describe('P15 Session fixture cleanup', () => {
     }))
     expect(cleared).toEqual({
       characters: [],
+      plays: [],
       campaigns: [],
       receipts: [],
       recoveries: [],

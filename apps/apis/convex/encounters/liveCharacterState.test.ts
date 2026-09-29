@@ -29,6 +29,7 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import * as rollRandom from '../lib/rollRandom'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -220,12 +221,9 @@ async function sheetCommand(
 
 async function storedCharacter(fixture: Fixture) {
   return fixture.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique()
+    const row = await readCharacterRow(ctx, fixture.character.id)
     if (!row) throw new Error('Missing journey Character.')
-    return characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson)) as CharacterAuthored
+    return characterAuthoredDtoSchema.parse(readCharacterRecord(row)) as CharacterAuthored
   })
 }
 

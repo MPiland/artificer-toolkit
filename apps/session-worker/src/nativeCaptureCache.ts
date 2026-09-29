@@ -323,7 +323,7 @@ export function bundleCaptures(
     const input = liveSessionCharacterRulesInputSchema.parse({
       ...liveSessionCharacterRulesScope(admission, {
         id: actorId,
-        sourceId: response.character.id
+        sourceId: response.owner.id
       }),
       request: { kind: 'INPUTS' }
     })

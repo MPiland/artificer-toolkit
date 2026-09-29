@@ -22,10 +22,12 @@ import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogu
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api } from '../_generated/api'
+import { editCharacterRecord, writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import * as preparation from '../characters/builderPreparation'
 import { readCharacterDraft } from '../characters/documents'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -159,7 +161,7 @@ describe('native Campaign Character assignments', () => {
     if (!record || !route) throw new Error('Character binding fixture is unavailable.')
     const { _id: recordId, _creationTime: _recordTime, ...recordDocument } = record
     const { _id: routeId, _creationTime: _routeTime, ...routeDocument } = route
-    const character = characterAuthoredDtoSchema.parse(JSON.parse(record.documentJson))
+    const character: Record<string, unknown> = JSON.parse(record.documentJson)
     const snapshot = () =>
       base.t.run(async (ctx) => ({
         campaigns: await ctx.db.query('campaigns').collect(),
@@ -172,6 +174,7 @@ describe('native Campaign Character assignments', () => {
         balances: await ctx.db.query('campaignPartyCurrencies').collect(),
         events: await ctx.db.query('campaignEvents').collect(),
         characters: await ctx.db.query('characters').collect(),
+        plays: await ctx.db.query('characterPlayStates').collect(),
         drafts: await ctx.db.query('characterDrafts').collect(),
         routes: await ctx.db.query('authoredRouteIds').collect()
       }))
@@ -316,19 +319,11 @@ describe('native Campaign Character assignments', () => {
       name: 'Owner character campaign'
     })
     await t.run(async (ctx) => {
-      const storedCharacter = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
+      const storedCharacter = await readCharacterRow(ctx, character.id)
       if (!storedCharacter) throw new Error('Missing Character.')
-      const document = characterAuthoredDtoSchema.parse({
-        ...JSON.parse(storedCharacter.documentJson),
+      await writeCharacterRecord(ctx, storedCharacter, {
+        document: readCharacterRecord(storedCharacter),
         userId: gm.userId
-      })
-      await ctx.db.patch(storedCharacter._id, {
-        userId: gm.userId,
-        documentJson: JSON.stringify(document),
-        checksum: checksumRuleDocument(document)
       })
     })
     await expect(
@@ -376,31 +371,26 @@ describe('native Campaign Character assignments', () => {
     })
     const { denominationId, campaignCurrencySystemId } = await departureCurrency(base)
     const before = await base.t.run(async (ctx) => {
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
+      const character = await readCharacterRow(ctx, base.character.id)
       if (!character) throw new Error('Missing Character.')
-      const document = characterAuthoredDtoSchema.parse(JSON.parse(character.documentJson))
-      const next = characterAuthoredDtoSchema.parse({
-        ...document,
-        state: {
-          ...document.state,
-          currency: [
-            {
-              id: crypto.randomUUID(),
-              currencies: [{ currencyId: denominationId, amount: 2 }]
-            },
-            {
-              id: crypto.randomUUID(),
-              currencies: [{ currencyId: denominationId, amount: 3 }]
-            }
-          ]
+      const document = readCharacterRecord(character)
+      await writeCharacterRecord(ctx, character, {
+        document: {
+          ...document,
+          state: {
+            ...document.state,
+            currency: [
+              {
+                id: crypto.randomUUID(),
+                currencies: [{ currencyId: denominationId, amount: 2 }]
+              },
+              {
+                id: crypto.randomUUID(),
+                currencies: [{ currencyId: denominationId, amount: 3 }]
+              }
+            ]
+          }
         }
-      })
-      await ctx.db.patch(character._id, {
-        documentJson: JSON.stringify(next),
-        checksum: checksumRuleDocument(next)
       })
       await ctx.db.insert('campaignPartyInventories', {
         campaignId: base.campaign.id,
@@ -416,7 +406,7 @@ describe('native Campaign Character assignments', () => {
       })
       return {
         sheetState: character.sheetState,
-        streamVersion: character.streamVersion
+        streamVersion: character.play.streamVersion
       }
     })
     const opened = await base.owner.caller.mutation(api.characters.drafts.create, {
@@ -434,10 +424,7 @@ describe('native Campaign Character assignments', () => {
       base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
     ).resolves.toEqual({ ok: true })
     const after = await base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, base.character.id),
       draft: await ctx.db
         .query('characterDrafts')
         .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
@@ -465,7 +452,7 @@ describe('native Campaign Character assignments', () => {
     expect(after.overlay).toBeNull()
     expect(after.character).toMatchObject({
       status: 'DRAFT',
-      streamVersion: before.streamVersion + 1
+      play: { streamVersion: before.streamVersion + 1 }
     })
     expect(after.character?.sheetState).toEqual(before.sheetState)
     expect(after.character).not.toHaveProperty('primaryRulesCatalogueId')
@@ -544,10 +531,10 @@ describe('native Campaign Character assignments', () => {
       characterId: base.character.id
     })
     const after = await base.readState()
-    const character = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
+    const character = readCharacterRecord(after.character!)
     expect(character.status).toBe('ACTIVE')
     expect(character.state.hitpoints.current).toBe(personal.overview.maxHitPoints)
-    expect(after.character?.streamVersion).toBe(before.character!.streamVersion + 1)
+    expect(after.character?.play.streamVersion).toBe(before.character!.play.streamVersion + 1)
     expect(after.character?.sheetState).toEqual(before.character?.sheetState)
     expect(after.receipts).toEqual(before.receipts)
     expect(await base.assignmentRows()).toEqual([])
@@ -606,13 +593,7 @@ describe('native Campaign Character assignments', () => {
     })
     const { denominationId } = await departureCurrency(base)
     await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!row) throw new Error('Missing Character.')
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
-      const next = {
+      await editCharacterRecord(ctx, base.character.id, (character) => ({
         ...character,
         state: {
           ...character.state,
@@ -621,22 +602,12 @@ describe('native Campaign Character assignments', () => {
             { id: crypto.randomUUID(), currencies: [{ currencyId: denominationId, amount: 5 }] }
           ]
         }
-      }
-      await ctx.db.patch(row._id, {
-        documentJson: JSON.stringify(next),
-        checksum: checksumRuleDocument(next)
-      })
+      }))
     })
     const snapshot = () =>
       base.t.run(async (ctx) => ({
-        current: await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-          .unique(),
-        candidate: await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', committed.character.id))
-          .unique(),
+        current: await readCharacterRow(ctx, base.character.id),
+        candidate: await readCharacterRow(ctx, committed.character.id),
         assignments: await ctx.db
           .query('campaignCharacterAssignments')
           .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
@@ -692,13 +663,7 @@ describe('native Campaign Character assignments', () => {
     })
     const { denominationId, campaignCurrencySystemId } = await departureCurrency(base)
     await base.t.run(async (ctx) => {
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!character) throw new Error('Missing Character.')
-      const document = characterAuthoredDtoSchema.parse(JSON.parse(character.documentJson))
-      const next = characterAuthoredDtoSchema.parse({
+      await editCharacterRecord(ctx, base.character.id, (document) => ({
         ...document,
         state: {
           ...document.state,
@@ -709,11 +674,7 @@ describe('native Campaign Character assignments', () => {
             }
           ]
         }
-      })
-      await ctx.db.patch(character._id, {
-        documentJson: JSON.stringify(next),
-        checksum: checksumRuleDocument(next)
-      })
+      }))
       await ctx.db.insert('campaignPartyInventories', {
         campaignId: base.campaign.id,
         version: 0
@@ -729,10 +690,7 @@ describe('native Campaign Character assignments', () => {
     })
     const snapshot = () =>
       base.t.run(async (ctx) => ({
-        character: await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-          .unique(),
+        character: await readCharacterRow(ctx, base.character.id),
         assignments: await ctx.db
           .query('campaignCharacterAssignments')
           .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
@@ -759,7 +717,7 @@ describe('native Campaign Character assignments', () => {
     expect(after.balances.find((balance) => balance.groupId === after.groups[0]?.id)?.amount).toBe(
       1
     )
-    const character = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
+    const character = readCharacterRecord(after.character!)
     expect(character.state.currency[0]?.currencies).toEqual([])
   })
 })

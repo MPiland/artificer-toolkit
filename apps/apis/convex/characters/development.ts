@@ -3,6 +3,7 @@ import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { releaseAsset } from '../media/assets'
+import { readCharacterPlayRow } from './stateDocuments'
 
 // This is not personal Character/account deletion. It only retires isolated test data.
 export const removePersonalFixtureCharacter = internalMutation({
@@ -78,7 +79,10 @@ export const removePersonalFixtureCharacter = internalMutation({
       await releaseAsset(ctx, portrait.id)
     }
     if (draft) await ctx.db.delete(draft._id)
-    if (character) await ctx.db.delete(character._id)
+    if (character) {
+      await ctx.db.delete((await readCharacterPlayRow(ctx, characterId))._id)
+      await ctx.db.delete(character._id)
+    }
     if (route) await ctx.db.delete(route._id)
     await syncAccountUsage(ctx, 'personalCharacters', characterId)
     return null

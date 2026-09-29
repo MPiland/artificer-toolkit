@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import {
   applyEncounterMechanicsBatch,
   type EncounterMechanicsBatchInput
@@ -54,12 +54,9 @@ function command(
 
 async function storedCharacterState(fixture: Awaited<ReturnType<typeof setupCharacterRun>>) {
   return fixture.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique()
+    const row = await readCharacterRow(ctx, fixture.character.id)
     if (!row) throw new Error('Missing Character.')
-    return characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson)).state
+    return readCharacterRecord(row).state
   })
 }
 
@@ -110,18 +107,14 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
       const condition = prepared.sourceContext.context.registry.system?.conditionTypes[0]
       if (!condition) throw new Error('Missing System condition.')
       const authoredReads = queries.mock.calls.filter(([table]) => table === 'authoredRoots').length
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(prepared.active.documentJson))
+      const character = readCharacterRecord(prepared.active)
       if (character.state.hitpoints.current < 2)
         throw new Error('Character fixture requires at least 2 HP.')
       const currentHitPoints = character.state.hitpoints.current - 1
-      const streamVersion = prepared.active.streamVersion + 1
+      const streamVersion = prepared.active.play.streamVersion + 1
       character.state.hitpoints.current = currentHitPoints
       character.state.conditions = [{ conditionTypeId: condition.id }]
-      await ctx.db.patch(prepared.active._id, {
-        documentJson: canonicalizeRuleDocument(character),
-        checksum: checksumRuleDocument(character),
-        streamVersion
-      })
+      await writeCharacterRecord(ctx, prepared.active, { document: character, streamVersion })
       const applied = await applyEncounterMechanicsBatch(
         ctx,
         {
@@ -131,7 +124,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
               actorId: fixture.actor.id,
               current: currentHitPoints,
               temporary: character.state.hitpoints.temp ?? 0,
-              maximum: prepared.active.maximumHitPoints
+              maximum: prepared.active.play.maximumHitPoints
             }),
             {
               sourceNodeId: 'condition',
@@ -268,10 +261,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     const input = command(fixture.run, fixture.actor, fixture.characterStreamVersion)
     const before = await fixture.t.run(async (ctx) => {
       const [character, actor, receipts] = await Promise.all([
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-          .unique(),
+        readCharacterRow(ctx, fixture.character.id),
         ctx.db
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (query) =>
@@ -305,10 +295,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     ).rejects.toThrow('later terminal write failed')
     const after = await fixture.t.run(async (ctx) => {
       const [character, actor, receipts] = await Promise.all([
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-          .unique(),
+        readCharacterRow(ctx, fixture.character.id),
         ctx.db
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (query) =>
@@ -331,10 +318,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     const fixture = await setupCharacterRun()
     const read = () =>
       fixture.t.run(async (ctx) => ({
-        character: await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-          .unique(),
+        character: await readCharacterRow(ctx, fixture.character.id),
         actor: await ctx.db
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) =>
@@ -361,8 +345,8 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     expect(result.characterReceiptId).toBeNull()
     const after = await read()
     if (!before.character || !after.character) throw new Error('Missing Character.')
-    const original = characterAuthoredDtoSchema.parse(JSON.parse(before.character.documentJson))
-    expect(JSON.parse(after.character.documentJson)).toEqual({
+    const original = readCharacterRecord(before.character)
+    expect(readCharacterRecord(after.character)).toEqual({
       ...original,
       state: {
         ...original.state,
@@ -387,12 +371,9 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
   it('rejects a Character that changed after its outcome was planned', async () => {
     const fixture = await setupCharacterRun()
     await fixture.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-        .unique()
+      const row = await readCharacterRow(ctx, fixture.character.id)
       if (!row) throw new Error('Missing Character.')
-      await ctx.db.patch(row._id, { streamVersion: row.streamVersion + 1 })
+      await ctx.db.patch(row.play._id, { streamVersion: row.play.streamVersion + 1 })
     })
     await expect(
       fixture.owner.caller.run((ctx) =>
@@ -411,17 +392,11 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
       const [oldCondition, nextCondition] = srdSystemRecord.conditionTypes
       if (!oldCondition || !nextCondition) throw new Error('Missing System conditions.')
       await fixture.t.run(async (ctx) => {
-        const characterRow = await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-          .unique()
+        const characterRow = await readCharacterRow(ctx, fixture.character.id)
         if (!characterRow) throw new Error('Missing target state.')
-        const character = characterAuthoredDtoSchema.parse(JSON.parse(characterRow.documentJson))
+        const character = readCharacterRecord(characterRow)
         character.state.conditions = [{ conditionTypeId: oldCondition.id }]
-        await ctx.db.patch(characterRow._id, {
-          documentJson: canonicalizeRuleDocument(character),
-          checksum: checksumRuleDocument(character)
-        })
+        await writeCharacterRecord(ctx, characterRow, { document: character })
       })
       const trace = {
         sourceNodeId: 'condition',
@@ -454,12 +429,9 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
       expect(result.characterReceiptId).not.toBeNull()
       const expectedIds = [...(retained ? [oldCondition.id] : []), nextCondition.id]
       const stored = await fixture.t.run(async (ctx) => {
-        const row = await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-          .unique()
+        const row = await readCharacterRow(ctx, fixture.character.id)
         if (!row) throw new Error('Missing Character.')
-        return characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
+        return readCharacterRecord(row)
       })
       expect(stored.state.conditions?.map((condition) => condition.conditionTypeId)).toEqual(
         expectedIds
@@ -534,13 +506,8 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     })
     const effectiveMaximumHitPoints = adjusted.sheet.overview.maxHitPoints
     expect(effectiveMaximumHitPoints).toBe(fixture.actor.maxHitPoints + 2)
-    const characterRow = await fixture.t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-        .unique()
-    )
-    expect(characterRow?.maximumHitPoints).toBe(effectiveMaximumHitPoints)
+    const characterRow = await fixture.t.run((ctx) => readCharacterRow(ctx, fixture.character.id))
+    expect(characterRow?.play.maximumHitPoints).toBe(effectiveMaximumHitPoints)
     const input = command(fixture.run, fixture.actor, fixture.characterStreamVersion + 1)
     const result = await fixture.owner.caller.run((ctx) =>
       applyEncounterMechanicsBatch(ctx, {

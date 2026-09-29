@@ -2,13 +2,16 @@ import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/en
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { MutationCtx } from '../_generated/server'
-import type { Doc } from '../_generated/dataModel'
 import {
   readCampaignCharacterState,
   requireCampaignCharacterAuthority
 } from '../campaigns/characterState'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
-import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
+import {
+  loadCharacterState,
+  readCharacterRecord,
+  type CharacterRow
+} from '../characters/stateDocuments'
 import {
   persistEncounterMechanicsBatchPlan,
   readEncounterMechanicsBatchTarget,
@@ -32,7 +35,7 @@ export async function applyLiveEncounterMechanicsBatch(
     expectedCharacterStreamVersion: null
   })
   const { actor, campaign, userId } = read
-  let characterRecord: Doc<'characters'> | null = null
+  let characterRecord: CharacterRow | null = null
   let characterFacts: Parameters<typeof planEncounterMechanicsBatch>[0]['characterFacts']
   if (actor.kind === 'CHARACTER') {
     const { assignment } = await requireCampaignCharacterAuthority(
@@ -68,7 +71,10 @@ export async function applyLiveEncounterMechanicsBatch(
   }
   const target = {
     ...read,
-    input: { ...read.input, expectedCharacterStreamVersion: characterRecord?.streamVersion ?? null }
+    input: {
+      ...read.input,
+      expectedCharacterStreamVersion: characterRecord?.play.streamVersion ?? null
+    }
   }
   const plan = planEncounterMechanicsBatch({
     batch: target.input,

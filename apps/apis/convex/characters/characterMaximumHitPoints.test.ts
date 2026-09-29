@@ -9,12 +9,12 @@ import type {
   CampaignInventoryTransferResultDto,
   TransferCampaignInventoryInput
 } from '@artificer-toolkit/schema/api/campaignInventory'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_SPEEDS, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api } from '../_generated/api'
+import { readCharacterRecord } from './stateDocuments'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -86,11 +86,11 @@ describe('stored Character effective maximum hit points', () => {
   it('is set on creation and follows a Builder write', async () => {
     const fixture = await setup()
     const created = await fixture.read()
-    expect(created.row.maximumHitPoints).toBe(created.sheet.overview.maxHitPoints)
-    expect(created.row.maximumHitPoints).toBeGreaterThan(0)
+    expect(created.row.play.maximumHitPoints).toBe(created.sheet.overview.maxHitPoints)
+    expect(created.row.play.maximumHitPoints).toBeGreaterThan(0)
 
     // Swap Strength 15 and Constitution 13: the Constitution modifier rises from +1 to +2.
-    const current = characterAuthoredDtoSchema.parse(JSON.parse(created.row.documentJson))
+    const current = readCharacterRecord(created.row)
     const abilities = current.intent.abilities
     if (abilities?.method !== 'STANDARD_ARRAY') throw new Error('Expected a standard array.')
     const draft = await fixture.owner.caller.mutation(api.characters.drafts.create, {
@@ -118,8 +118,8 @@ describe('stored Character effective maximum hit points', () => {
       }
     })
     const edited = await fixture.read()
-    expect(edited.row.maximumHitPoints).toBe(edited.sheet.overview.maxHitPoints)
-    expect(edited.row.maximumHitPoints).toBe(created.row.maximumHitPoints + 1)
+    expect(edited.row.play.maximumHitPoints).toBe(edited.sheet.overview.maxHitPoints)
+    expect(edited.row.play.maximumHitPoints).toBe(created.row.play.maximumHitPoints + 1)
   })
 
   it('follows a GM Campaign maximum hit point adjustment without advancing the stream', async () => {
@@ -139,8 +139,8 @@ describe('stored Character effective maximum hit points', () => {
       expectedVersion: 0
     })
     const after = await fixture.read()
-    expect(after.row.maximumHitPoints).toBe(before.row.maximumHitPoints + 4)
-    expect(after.row.streamVersion).toBe(before.row.streamVersion)
+    expect(after.row.play.maximumHitPoints).toBe(before.row.play.maximumHitPoints + 4)
+    expect(after.row.play.streamVersion).toBe(before.row.play.streamVersion)
   })
 
   it('drops an item bonus when inventory custody moves the item out', async () => {
@@ -153,12 +153,12 @@ describe('stored Character effective maximum hit points', () => {
       command: {
         type: 'EQUIP_ITEM',
         commandId: crypto.randomUUID(),
-        expectedVersion: carried.row.streamVersion,
+        expectedVersion: carried.row.play.streamVersion,
         itemId: item.id
       }
     })
     const equipped = await fixture.read()
-    expect(equipped.row.maximumHitPoints).toBe(equipped.sheet.overview.maxHitPoints)
+    expect(equipped.row.play.maximumHitPoints).toBe(equipped.sheet.overview.maxHitPoints)
     await fixture.owner.caller.mutation(transfer, {
       input: {
         kind: 'ITEM',
@@ -167,14 +167,14 @@ describe('stored Character effective maximum hit points', () => {
         destination: { kind: 'CAMPAIGN', campaignId: fixture.campaign.id },
         itemId: item.id,
         amount: item.quantity,
-        expectedSourceVersion: equipped.row.streamVersion,
+        expectedSourceVersion: equipped.row.play.streamVersion,
         expectedDestinationVersion: 0,
         idempotencyKey: crypto.randomUUID()
       }
     })
     const moved = await fixture.read()
-    expect(moved.row.maximumHitPoints).toBe(moved.sheet.overview.maxHitPoints)
-    expect(moved.row.maximumHitPoints).toBe(equipped.row.maximumHitPoints - 5)
+    expect(moved.row.play.maximumHitPoints).toBe(moved.sheet.overview.maxHitPoints)
+    expect(moved.row.play.maximumHitPoints).toBe(equipped.row.play.maximumHitPoints - 5)
   })
 })
 
@@ -182,17 +182,17 @@ describe('stored Character walking speed (D38)', () => {
   it('is set on creation and follows a Sheet speed override', async () => {
     const fixture = await setup()
     const created = await fixture.read()
-    expect(created.row.walkingSpeed).toBeGreaterThan(0)
+    expect(created.row.play.walkingSpeed).toBeGreaterThan(0)
     const walk = SRD_SPEEDS.find((speed) => speed.code === 'WALK')!
     await fixture.owner.caller.mutation(api.characters.sheetCommands.execute, {
       id: fixture.character.id,
       command: {
         type: 'UPSERT_SHEET_ADJUSTMENT',
         commandId: crypto.randomUUID(),
-        expectedVersion: created.row.streamVersion,
+        expectedVersion: created.row.play.streamVersion,
         adjustment: { family: 'MOVEMENT', speedId: walk.id, field: 'SPEED_OVERRIDE', value: 45 }
       }
     })
-    expect((await fixture.read()).row.walkingSpeed).toBe(45)
+    expect((await fixture.read()).row.play.walkingSpeed).toBe(45)
   })
 })

@@ -8,8 +8,10 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  encodeCharacterRecord,
+  readCharacterSheetState
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
@@ -17,6 +19,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { api, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -73,19 +76,13 @@ async function fixture() {
   const source = spell.sources!.find((entry) => entry.source.sourceKind === 'FEATURE')!
   const readState = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, character.id),
       receipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
         .collect()
     }))
-  const readSheetState = async () =>
-    characterSheetStateSchema.parse(
-      JSON.parse((await readState()).character!.sheetState!.documentJson)
-    )
+  const readSheetState = async () => readCharacterSheetState((await readState()).character!)
   return { ...base, character, sheet, source, readState, readSheetState }
 }
 
@@ -346,14 +343,13 @@ describe('native Character Sheet spell customization', () => {
       [row, { ...row, id: crypto.randomUUID() }]
     ]) {
       const invalid = { ...state, spellCustomizations }
-      await t.run((ctx) =>
-        ctx.db.patch(stored._id, {
-          sheetState: {
-            documentJson: canonicalizeRuleDocument(invalid),
-            checksum: checksumRuleDocument(invalid)
-          }
-        })
-      )
+      const encoded = encodeCharacterRecord(stored, {
+        document: readCharacterRecord(stored),
+        sheetState: invalid,
+        streamVersion: stored.play.streamVersion,
+        updatedAt: stored.updatedAt
+      })
+      await t.run((ctx) => ctx.db.patch(stored._id, { sheetState: encoded.sheetState }))
       const beforeInvalid = await readState()
       await expect(owner.caller.query(getSheet, { id: character.id })).rejects.toThrow(
         /ownership|unique/

@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
+import { joinCharacterPlay } from '../characters/stateDocuments'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -20,7 +21,9 @@ it.each([false, true])(
     const { publish, prepared } = await useMovementReactions(value, 1)
     const snapshot = () =>
       value.base.t.run(async (ctx) => ({
-        characters: await ctx.db.query('characters').collect(),
+        characters: await Promise.all(
+          (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+        ),
         spatialEffects: await ctx.db.query('encounterSpatialRuleEffects').collect(),
         characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
         runs: await ctx.db.query('encounterRuns').collect(),
@@ -78,9 +81,9 @@ it.each([false, true])(
     expect(after.characterReceipts).toHaveLength(
       before.characterReceipts.length + characterCommands
     )
-    expect(after.characters.find((row) => row.id === value.base.character.id)?.streamVersion).toBe(
-      beforeCharacter.streamVersion + characterCommands
-    )
+    expect(
+      after.characters.find((row) => row.id === value.base.character.id)?.play.streamVersion
+    ).toBe(beforeCharacter.play.streamVersion + characterCommands)
     expect(after.runs.find((row) => row.id === value.base.run.id)?.version).toBe(
       beforeRun.version + 1
     )

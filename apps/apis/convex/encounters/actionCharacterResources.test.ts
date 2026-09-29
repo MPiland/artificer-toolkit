@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import {
+  encodeCharacterRecord,
+  readCharacterSheetState
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
@@ -10,6 +13,7 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { api } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { prepareNativeCharacterActionState } from '@artificer-toolkit/rules-runtime/character/characterNativeActionResources'
 import {
   applyEncounterMechanicsBatch,
@@ -83,10 +87,7 @@ function damage(input: { actorId: string; current: number; temporary: number; ma
 async function read(fixture: Awaited<ReturnType<typeof setupCharacterRun>>) {
   return fixture.t.run(async (ctx) => {
     const [character, actor] = await Promise.all([
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-        .unique(),
+      readCharacterRow(ctx, fixture.character.id),
       ctx.db
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (query) =>
@@ -170,7 +171,7 @@ describe('native Character action resource persistence', () => {
         policyOutput: current.ruleEvaluation.output,
         resourceUsage: current.sheetState.resourceUsage,
         characterId: character.id,
-        expectedStreamVersion: current.active.streamVersion,
+        expectedStreamVersion: current.active.play.streamVersion,
         automationMode: 'ASSISTED',
         overridable: false
       })
@@ -190,7 +191,7 @@ describe('native Character action resource persistence', () => {
           policyOutput: current.ruleEvaluation.output,
           resourceUsage: current.sheetState.resourceUsage,
           characterId: character.id,
-          expectedStreamVersion: current.active.streamVersion,
+          expectedStreamVersion: current.active.play.streamVersion,
           automationMode: 'ASSISTED',
           overridable: false
         })
@@ -214,7 +215,7 @@ describe('native Character action resource persistence', () => {
             }
           ],
           characterId: character.id,
-          expectedStreamVersion: current.active.streamVersion,
+          expectedStreamVersion: current.active.play.streamVersion,
           automationMode: 'ASSISTED',
           overridable: false
         })
@@ -261,7 +262,7 @@ describe('native Character action resource persistence', () => {
           }
         ],
         characterId: character.id,
-        expectedStreamVersion: current.active.streamVersion,
+        expectedStreamVersion: current.active.play.streamVersion,
         automationMode: 'ASSISTED' as const
       }
       const overridden = prepareNativeCharacterActionState({ ...exhausted, overridable: true })
@@ -283,7 +284,7 @@ describe('native Character action resource persistence', () => {
         }),
         resourceUsage: current.sheetState.resourceUsage,
         characterId: character.id,
-        expectedStreamVersion: current.active.streamVersion,
+        expectedStreamVersion: current.active.play.streamVersion,
         automationMode: 'ASSISTED',
         overridable: true
       })
@@ -311,10 +312,7 @@ describe('native Character action resource persistence', () => {
       resourceGrantId: crypto.randomUUID()
     }
     await fixture.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-        .unique()
+      const row = await readCharacterRow(ctx, fixture.character.id)
       if (!row) throw new Error('Missing Character.')
       const sheetState = characterSheetStateSchema.parse({
         adjustments: [],
@@ -334,11 +332,16 @@ describe('native Character action resource persistence', () => {
           }
         ]
       })
-      await ctx.db.patch(row._id, {
-        sheetState: {
-          documentJson: JSON.stringify(sheetState),
-          checksum: checksumRuleDocument(sheetState)
-        }
+      // Resource usage is play state: it lives in the play record, not the Sheet structure.
+      const encoded = encodeCharacterRecord(row, {
+        document: readCharacterRecord(row),
+        sheetState,
+        streamVersion: row.play.streamVersion,
+        updatedAt: row.updatedAt
+      })
+      await ctx.db.patch(row.play._id, {
+        playJson: encoded.play.playJson,
+        checksum: encoded.play.checksum
       })
     })
     const input = command(fixture)
@@ -354,11 +357,8 @@ describe('native Character action resource persistence', () => {
       })
     )
     const after = await read(fixture)
-    if (!after.character || !after.actor || !after.character.sheetState)
-      throw new Error('Missing persisted Character state.')
-    const state = characterSheetStateSchema.parse(
-      JSON.parse(after.character.sheetState.documentJson)
-    )
+    if (!after.character || !after.actor) throw new Error('Missing persisted Character state.')
+    const state = readCharacterSheetState(after.character)
     expect(state.resourceUsage).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ owner: unrelatedOwner, used: 1 }),
@@ -367,7 +367,7 @@ describe('native Character action resource persistence', () => {
     )
     expect(state.resourceUsage).toHaveLength(2)
     expect(result.characterReceiptId).toBeNull()
-    expect(after.character.streamVersion).toBe(fixture.characterStreamVersion + 1)
+    expect(after.character.play.streamVersion).toBe(fixture.characterStreamVersion + 1)
   })
 
   it('commits hit point and resource state in one Character stream advance', async () => {
@@ -391,17 +391,15 @@ describe('native Character action resource persistence', () => {
       })
     )
     const after = await read(fixture)
-    if (!after.character || !after.actor || !after.character.sheetState)
-      throw new Error('Missing persisted Character state.')
-    expect(after.character.streamVersion).toBe(fixture.characterStreamVersion + 1)
-    expect(result.characterStreamVersion).toBe(after.character.streamVersion)
-    expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
+    if (!after.character || !after.actor) throw new Error('Missing persisted Character state.')
+    expect(after.character.play.streamVersion).toBe(fixture.characterStreamVersion + 1)
+    expect(result.characterStreamVersion).toBe(after.character.play.streamVersion)
+    expect(readCharacterRecord(after.character).state.hitpoints.current).toBe(
       fixture.actor.currentHitPoints - 1
     )
-    expect(
-      characterSheetStateSchema.parse(JSON.parse(after.character.sheetState.documentJson))
-        .resourceUsage
-    ).toEqual([expect.objectContaining({ used: 1 })])
+    expect(readCharacterSheetState(after.character).resourceUsage).toEqual([
+      expect.objectContaining({ used: 1 })
+    ])
   })
 
   it('refuses stale resource usage or stream state without writes', async () => {

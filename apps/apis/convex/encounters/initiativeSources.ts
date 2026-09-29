@@ -40,7 +40,7 @@ export async function loadEncounterInitiativeSources(
         if (snapshot.characterId !== actor.sourceId || snapshot.systemId !== state.gameSystemId)
           throw new Error('Character initiative source identity does not match the actor.')
         return characterEncounterInitiativeResultSchema.parse({
-          streamVersion: facts.active.streamVersion,
+          streamVersion: facts.active.play.streamVersion,
           initiativeActorFacts: toCharacterInitiativeActorFacts({
             snapshot,
             registry,

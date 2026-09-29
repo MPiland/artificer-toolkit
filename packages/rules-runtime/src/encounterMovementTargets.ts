@@ -39,7 +39,7 @@ import { resolveCharacterRulePolicyRollModes } from './character/characterRuleRo
 import type { Dnd5eQualifiedDamageDefense } from './systems/dnd5e/attackDamageDefenses.js'
 
 export type CharacterMovementFacts = {
-  active: { id: string; streamVersion: number; checksum: string }
+  active: { id: string; checksum: string; play: { streamVersion: number } }
   character: Pick<CharacterAuthored, 'systemId' | 'state'>
   campaignContext: Pick<
     CharacterSheetCampaignContext,
@@ -204,7 +204,7 @@ export function buildMovementTarget<
             characterReactionSource: {
               id: actor.sourceId,
               systemId: characterFacts.character.systemId,
-              streamVersion: characterFacts.active.streamVersion,
+              streamVersion: characterFacts.active.play.streamVersion,
               actor,
               activeConditionDefinitionIds: conditionIds,
               mechanics: {

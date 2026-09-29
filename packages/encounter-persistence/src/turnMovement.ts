@@ -6,6 +6,7 @@ import { encounterStoredTurnMovementSchema } from '@artificer-toolkit/schema/pro
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { resolveWalkingSpeedFeet } from '@artificer-toolkit/rules-runtime/walkingSpeed'
+import { readEncounterCharacterPlay } from './characterPlay.js'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
 import type { EncounterDocument } from './store.js'
@@ -144,12 +145,7 @@ export async function readTurnMovementView(
       const record = records.get(actor.id)
       const speed =
         actor.kind === 'CHARACTER'
-          ? ((
-              await ctx.db
-                .query('characters')
-                .withIndex('by_publicId', (q) => q.eq('id', actor.sourceId))
-                .unique()
-            )?.walkingSpeed ?? null)
+          ? ((await readEncounterCharacterPlay(ctx, actor.sourceId))?.walkingSpeed ?? null)
           : actor.kind === 'CREATURE'
             ? resolveWalkingSpeedFeet(snapshotStatBlock(actor)?.speeds ?? [], speeds)
             : null

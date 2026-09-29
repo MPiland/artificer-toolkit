@@ -19,10 +19,14 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignCore'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import {
+  joinCharacterPlay,
+  readCharacterRecord,
+  readCharacterRow
+} from '../characters/stateDocuments'
 import { api, components, internal } from '../_generated/api'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
@@ -142,23 +146,15 @@ async function addSecondPlayer(base: Awaited<ReturnType<typeof setup>>) {
   })
   await markFixtureAccount(base, identity.userId, '2')
   await base.t.run(async (ctx) => {
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', committed.character.id))
-      .unique()
+    const record = await readCharacterRow(ctx, committed.character.id)
     const route = await ctx.db
       .query('authoredRouteIds')
       .withIndex('by_subjectId', (q) => q.eq('subjectId', committed.character.id))
       .unique()
     if (!record || !route) throw new Error('Fixture second-player Character is unavailable.')
-    const document = {
-      ...readCharacterRecord(record),
+    await writeCharacterRecord(ctx, record, {
+      document: readCharacterRecord(record),
       userId: identity.userId
-    }
-    await ctx.db.patch(record._id, {
-      userId: identity.userId,
-      documentJson: canonicalizeRuleDocument(document),
-      checksum: checksumRuleDocument(document)
     })
     await ctx.db.patch(route._id, { ownerUserId: identity.userId })
   })
@@ -254,7 +250,9 @@ async function readScoped(base: Awaited<ReturnType<typeof setup>>) {
       .query('campaignPartyCurrencyGroups')
       .withIndex('by_campaignId_id', (q) => q.eq('campaignId', base.campaign.id))
       .collect(),
-    characters: await ctx.db.query('characters').collect(),
+    characters: await Promise.all(
+      (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+    ),
     authoredRoots: await ctx.db.query('authoredRoots').collect(),
     authoredDrafts: await ctx.db.query('authoredDrafts').collect(),
     currencySystems: await ctx.db
@@ -475,7 +473,7 @@ describe('development custody fixture cleanup', () => {
     if (!active) throw new Error('Repaired original Character is unavailable.')
     await base.t.run((ctx) =>
       ctx.db.patch(reconciliation._id, {
-        payloadJson: JSON.stringify({ ...raw, streamVersion: active.streamVersion + 1 })
+        payloadJson: JSON.stringify({ ...raw, streamVersion: active.play.streamVersion + 1 })
       })
     )
     const tamperedVersion = await readScoped(base)
@@ -1001,7 +999,9 @@ describe('development custody fixture cleanup', () => {
     expect(Date.parse(reconciliation.createdAt)).toBeLessThanOrEqual(
       Date.parse(leaveRemoval.createdAt)
     )
-    expect(reconciliationPayload.streamVersion).toBeLessThanOrEqual(currentCharacter.streamVersion)
+    expect(reconciliationPayload.streamVersion).toBeLessThanOrEqual(
+      currentCharacter.play.streamVersion
+    )
     await base.t.run((ctx) =>
       ctx.db.patch(reconciliation._id, {
         payloadJson: JSON.stringify({

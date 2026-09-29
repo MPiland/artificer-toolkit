@@ -50,6 +50,7 @@ async function setup() {
     base.t.run(async (ctx) => ({
       campaigns: await ctx.db.query('campaigns').collect(),
       characters: await ctx.db.query('characters').collect(),
+      plays: await ctx.db.query('characterPlayStates').collect(),
       drafts: await ctx.db.query('characterDrafts').collect(),
       assignments: await ctx.db.query('campaignCharacterAssignments').collect(),
       items: await ctx.db.query('campaignPartyItems').collect(),

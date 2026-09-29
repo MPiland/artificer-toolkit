@@ -19,6 +19,7 @@ import {
   prepareCharacterRuleContext
 } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
+import { readCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import {
@@ -81,25 +82,14 @@ export async function prepareNativeLiveCharacterSheet(
   const inputs = await capture({ kind: 'INPUTS' })
   if (
     inputs.kind !== 'INPUTS' ||
-    inputs.character.id !== initialInput.characterId ||
+    inputs.owner.id !== initialInput.characterId ||
     inputs.campaign.id !== initialInput.campaignId ||
-    inputs.system.id !== inputs.character.systemId
+    inputs.system.id !== inputs.owner.systemId
   )
     throw new Error('Character rules input binding mismatch.')
+  if (inputs.owner.status !== 'ACTIVE') throw new Error('Character owner binding mismatch.')
   // Validated DTOs use literal starting-equipment sources for the authored string enum.
-  if (
-    initialInput.movement &&
-    (!inputs.movementOwner ||
-      inputs.movementOwner.id !== inputs.character.id ||
-      inputs.movementOwner.userId !== inputs.character.userId ||
-      inputs.movementOwner.systemId !== inputs.system.id ||
-      inputs.movementOwner.status !== 'ACTIVE' ||
-      inputs.movementOwner.streamVersion !== inputs.streamVersion ||
-      inputs.movementOwner.checksum !== inputs.characterChecksum ||
-      inputs.movementOwner.updatedAt !== inputs.updatedAt)
-  )
-    throw new Error('Movement Character owner binding mismatch.')
-  const character = inputs.character as CharacterAuthored
+  const character = readCharacterRecord(inputs.owner) as CharacterAuthored
   type CapturedPublication = Extract<
     LiveSessionCharacterRulesResponse,
     { kind: 'PUBLICATIONS' }
@@ -436,14 +426,7 @@ export async function prepareNativeLiveCharacterSheet(
     campaignContext
   })
   return {
-    active: {
-      ...inputs.movementOwner,
-      id: character.id,
-      userId: character.userId,
-      updatedAt: inputs.updatedAt,
-      streamVersion: inputs.streamVersion,
-      checksum: inputs.characterChecksum
-    },
+    active: inputs.owner,
     character,
     sheetState: inputs.sheetState,
     campaignContext,

@@ -6,6 +6,7 @@ import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api, internal } from '../../convex/_generated/api'
+import { readCharacterRow } from '../../convex/characters/stateDocuments'
 import { fixture, input } from './characters'
 import { importedSubject } from './publication'
 
@@ -139,10 +140,7 @@ export async function readySheetFixture(
   })
   const readState = () =>
     base.t.run(async (ctx) => ({
-      character: await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique(),
+      character: await readCharacterRow(ctx, character.id),
       receipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))

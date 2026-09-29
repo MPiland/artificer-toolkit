@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { api } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 import { input } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 
@@ -44,17 +44,13 @@ describe('native Character commit', () => {
     expect(result.character).not.toHaveProperty('primaryRulesCatalogueId')
     expect(result.character.intent.startingEquipment?.class?.applied).toBe(true)
     expect(result.character.intent.startingEquipment?.background?.applied).toBe(true)
-    const stored = await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-    )
-    expect(stored?.streamVersion).toBe(1)
+    const stored = await t.run((ctx) => readCharacterRow(ctx, character.id))
     if (!stored) throw new Error('Missing committed row')
+    expect(stored.play.streamVersion).toBe(1)
     expect(stored).not.toHaveProperty('primaryRulesCatalogueId')
-    const materialized = characterAuthoredDtoSchema.parse(JSON.parse(stored.documentJson))
-    expect(stored.checksum).toBe(checksumRuleDocument(materialized))
+    // The stored document holds structure only; the play state lives in its own record.
+    expect(JSON.parse(stored.documentJson).state).not.toHaveProperty('hitpoints')
+    const materialized = readCharacterRecord(stored)
     expect(materialized.status).toBe('ACTIVE')
     expect(materialized.state.hitpoints.current).toBe(11)
     expect(materialized.state.hitpoints.temp).toBeUndefined()
@@ -77,8 +73,9 @@ describe('native Character commit', () => {
         character: forged
       })
     ).rejects.toThrow()
-    expect(await t.run((ctx) => ctx.db.get(stored._id))).toEqual(stored)
+    expect(await t.run((ctx) => readCharacterRow(ctx, character.id))).toEqual(stored)
     expect(await t.run((ctx) => ctx.db.query('characters').collect())).toHaveLength(1)
+    expect(await t.run((ctx) => ctx.db.query('characterPlayStates').collect())).toHaveLength(1)
   })
 
   it('preserves authoritative Sheet state during active edits and never regrants', async () => {
@@ -89,14 +86,9 @@ describe('native Character commit', () => {
       mode: 'create',
       character: first.character
     })
-    const active = await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', first.character.id))
-        .unique()
-    )
+    const active = await t.run((ctx) => readCharacterRow(ctx, first.character.id))
     if (!active) throw new Error('Missing active row')
-    const authoritative = characterAuthoredDtoSchema.parse(JSON.parse(active.documentJson))
+    const authoritative = readCharacterRecord(active)
     authoritative.state.hitpoints.current = 600
     authoritative.state.hitpoints.temp = 2
     const inventory = authoritative.state.equipment.inventory[0]
@@ -104,16 +96,25 @@ describe('native Character commit', () => {
     if (!inventory || !currency) throw new Error('Missing materialized starting state')
     inventory.quantity = 9
     currency.amount = 7
-    await t.run((ctx) =>
-      ctx.db.patch(active._id, {
-        documentJson: canonicalizeRuleDocument(authoritative),
-        checksum: checksumRuleDocument(authoritative),
+    const encoded = encodeCharacterRecord(active, {
+      document: authoritative,
+      streamVersion: active.play.streamVersion,
+      updatedAt: new Date(Date.parse(active.updatedAt) + 1000).toISOString()
+    })
+    await t.run(async (ctx) => {
+      await ctx.db.patch(active._id, {
+        documentJson: encoded.documentJson,
+        checksum: encoded.checksum,
         portraitAssetId: 'f79f6425-a523-4e9e-8603-a3db03c176f1',
         portraitRevision: 4,
-        updatedAt: new Date(Date.parse(active.updatedAt) + 1000).toISOString()
+        updatedAt: encoded.updatedAt
       })
-    )
-    const advanced = await t.run((ctx) => ctx.db.get(active._id))
+      await ctx.db.patch(active.play._id, {
+        playJson: encoded.play.playJson,
+        checksum: encoded.play.checksum
+      })
+    })
+    const advanced = await t.run((ctx) => readCharacterRow(ctx, first.character.id))
     if (!advanced) throw new Error('Missing advanced active row')
     const edit = await owner.caller.mutation(api.characters.drafts.create, {
       ...input(),
@@ -142,15 +143,13 @@ describe('native Character commit', () => {
       mode: 'edit',
       character: submitted
     })
-    expect(result.streamVersion).toBe(2)
-    const row = await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', first.character.id))
-        .unique()
-    )
+    // The edit changed no play state, so the play stream did not advance.
+    expect(result.streamVersion).toBe(advanced.play.streamVersion)
+    const row = await t.run((ctx) => readCharacterRow(ctx, first.character.id))
     if (!row) throw new Error('Missing committed row')
-    const document = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
+    expect(row.play.streamVersion).toBe(advanced.play.streamVersion)
+    expect(row.play.updatedAt).toBe(advanced.play.updatedAt)
+    const document = readCharacterRecord(row)
     expect(document.state).toEqual(authoritative.state)
     expect(document.state.hitpoints.current).toBe(600)
     expect(document.state.hitpoints.temp).toBe(2)
@@ -325,16 +324,12 @@ describe('native Character commit', () => {
       })
     ])
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
-    const row = await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', concurrent.character.id))
-        .unique()
-    )
-    expect(row?.streamVersion).toBe(1)
+    const row = await t.run((ctx) => readCharacterRow(ctx, concurrent.character.id))
     if (!row) throw new Error('Missing concurrent committed row')
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson)).state.equipment.inventory[0]
-    ).toMatchObject({ equipmentId: club.id, quantity: 2 })
+    expect(row.play.streamVersion).toBe(1)
+    expect(readCharacterRecord(row).state.equipment.inventory[0]).toMatchObject({
+      equipmentId: club.id,
+      quantity: 2
+    })
   })
 })

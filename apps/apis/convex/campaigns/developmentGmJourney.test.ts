@@ -2,15 +2,14 @@ import { createFunctionHandle } from 'convex/server'
 import { convexToJson, type Value } from 'convex/values'
 import { it } from 'vitest'
 import type { DevelopmentCampaignInspection } from '@artificer-toolkit/schema/api/developmentCampaignLifecycle'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { characterStoredRecordSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { verifyCampaignGmState } from '../../tests/developmentCampaignGmState'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
 import type { TableNames } from '../_generated/dataModel'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import schema from '../schema'
 import { ensureAuthoredRouteId } from '../content/routeIds'
 import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
@@ -46,26 +45,16 @@ it('proves native GM overlays through public Campaign handlers', async () => {
 
   // Unrelated scope fixture follows gmReads.test; Builder is exercised by the assigned Character.
   const unrelatedCharacterId = await base.t.run(async (ctx) => {
-    const current = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
+    const current = await readCharacterRow(ctx, base.character.id)
     if (!current) throw new Error('Missing committed Character fixture.')
-    const { _id: _storedId, _creationTime: _storedCreationTime, ...metadata } = current
+    const { _id: _storedId, _creationTime: _storedCreationTime, play, ...structure } = current
+    const { _id: _playId, _creationTime: _playCreationTime, ...playRecord } = play
     const id = crypto.randomUUID()
-    const document = characterAuthoredDtoSchema.parse({
-      ...characterAuthoredDtoSchema.parse(JSON.parse(current.documentJson)),
-      id
-    })
-    await ctx.db.insert(
-      'characters',
-      characterStoredRecordSchema.parse({
-        ...metadata,
-        id,
-        documentJson: canonicalizeRuleDocument(document),
-        checksum: checksumRuleDocument(document)
-      })
-    )
+    await ctx.db.insert('characters', { ...structure, id })
+    await ctx.db.insert('characterPlayStates', { ...playRecord, characterId: id })
+    const clone = await readCharacterRow(ctx, id)
+    if (!clone) throw new Error('Missing cloned Character fixture.')
+    await writeCharacterRecord(ctx, clone, { document: { ...readCharacterRecord(current), id } })
     await ensureAuthoredRouteId(ctx, 'CHARACTER', id, false, player.userId)
     return id
   })

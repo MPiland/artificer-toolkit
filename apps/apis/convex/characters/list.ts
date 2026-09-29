@@ -8,6 +8,7 @@ import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
 import { readCharacterDraftSummary, readCharacterRecord } from './documents'
+import { joinCharacterPlay } from './stateDocuments'
 
 export const list = query({
   args: zodToConvexFields(characterDraftListInputSchema.shape),
@@ -24,7 +25,8 @@ export const list = query({
     return characterListPageSchema.parse({
       ...result,
       page: await Promise.all(
-        result.page.map(async (active) => {
+        result.page.map(async (row) => {
+          const active = await joinCharacterPlay(ctx, row)
           const character = readCharacterRecord(active)
           const [draft, route] = await Promise.all([
             ctx.db
@@ -43,7 +45,7 @@ export const list = query({
             label: draft?.label ?? character.label,
             status: active.status,
             systemId: character.systemId,
-            streamVersion: active.streamVersion,
+            streamVersion: active.play.streamVersion,
             ...(draft ? { draft: readCharacterDraftSummary(draft, active) } : {})
           }
         })

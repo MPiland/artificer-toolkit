@@ -15,10 +15,12 @@ import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogu
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { api } from '../_generated/api'
 import { readCharacterDraft } from '../characters/documents'
+import { joinCharacterPlay, readCharacterRecord } from '../characters/stateDocuments'
 import * as removal from './contentShareRemoval'
 
 const leave = makeFunctionReference<
@@ -72,7 +74,9 @@ async function setup() {
       overlays: await ctx.db.query('campaignCharacterStates').collect(),
       shares: await ctx.db.query('campaignContentShares').collect(),
       events: await ctx.db.query('campaignEvents').collect(),
-      characters: await ctx.db.query('characters').collect(),
+      characters: await Promise.all(
+        (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
+      ),
       drafts: await ctx.db.query('characterDrafts').collect(),
       conversations: await ctx.db.query('campaignConversations').collect(),
       conversationMembers: await ctx.db.query('campaignConversationMembers').collect(),
@@ -312,13 +316,7 @@ describe('native Campaign membership departure', () => {
     })
     const denominationId = system.denominations[0]!.id
     await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!row) throw new Error('Missing assigned Character.')
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson))
-      const next = {
+      await editCharacterRecord(ctx, base.character.id, (character) => ({
         ...character,
         state: {
           ...character.state,
@@ -327,11 +325,7 @@ describe('native Campaign membership departure', () => {
             { id: crypto.randomUUID(), currencies: [{ currencyId: denominationId, amount: 5 }] }
           ]
         }
-      }
-      await ctx.db.patch(row._id, {
-        documentJson: JSON.stringify(next),
-        checksum: checksumRuleDocument(next)
-      })
+      }))
     })
     const opened = await base.owner.caller.mutation(api.characters.drafts.create, {
       id: base.character.id,
@@ -345,13 +339,10 @@ describe('native Campaign membership departure', () => {
     expect(after.shares).toEqual(before.shares)
     expect(after.characters[0]).toMatchObject({
       status: 'DRAFT',
-      streamVersion: before.characters[0]!.streamVersion + 1
+      play: { streamVersion: before.characters[0]!.play.streamVersion + 1 }
     })
     expect(after.characters[0]?.sheetState).toEqual(before.characters[0]?.sheetState)
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(after.characters[0]!.documentJson)).intent
-        .background.backgroundId
-    ).toBe('')
+    expect(readCharacterRecord(after.characters[0]!).intent.background.backgroundId).toBe('')
     expect(after.drafts[0]?.id).toBe(opened.id)
     const active = after.characters[0]
     const savedDraft = after.drafts.find((candidate) => candidate.id === opened.id)
@@ -364,8 +355,7 @@ describe('native Campaign membership departure', () => {
       { denominationId, campaignCurrencySystemId: system.id, amount: 5, containerId: null }
     ])
     expect(
-      characterAuthoredDtoSchema
-        .parse(JSON.parse(after.characters[0]!.documentJson))
+      readCharacterRecord(after.characters[0]!)
         .state.currency.flatMap((group) => group.currencies)
         .some((currency) => currency.currencyId === denominationId)
     ).toBe(false)
@@ -387,10 +377,9 @@ describe('native Campaign membership departure', () => {
     const after = await base.snapshot()
     expect(after.shares).toEqual([])
     expect(after.characters[0]?.status).toBe('ACTIVE')
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(after.characters[0]!.documentJson)).intent
-        .background.backgroundId
-    ).toBe(acolyte.id)
+    expect(readCharacterRecord(after.characters[0]!).intent.background.backgroundId).toBe(
+      acolyte.id
+    )
     const event = after.events.find((candidate) => candidate.commandId === base.request.commandId)
     expect(JSON.parse(event!.payloadJson!)).toMatchObject({
       reason: 'MEMBER_LEFT',

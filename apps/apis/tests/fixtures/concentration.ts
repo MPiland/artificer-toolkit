@@ -1,8 +1,7 @@
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
@@ -13,6 +12,7 @@ import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal } from '../../convex/_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../../convex/characters/stateDocuments'
 import { sourceImportBatches } from '../../convex/content/importBatches'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { setupCharacterRun } from './encounterCharacter'
@@ -279,22 +279,23 @@ export async function seedConcentration(fixture: {
       },
       lifecycle: { schemaVersion: 1, remainingTicks: 3 }
     })
-    const characterRow = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-      .unique()
+    const characterRow = await readCharacterRow(ctx, fixture.character.id)
     if (!characterRow) throw new Error('Concentration Character is unavailable.')
-    const character = characterAuthoredDtoSchema.parse(JSON.parse(characterRow.documentJson))
-    const nextCharacter = {
-      ...character,
-      state: {
-        ...character.state,
-        conditions: [{ conditionTypeId: blinded.id }, { conditionTypeId: poisoned.id }]
-      }
-    }
-    await ctx.db.patch(characterRow._id, {
-      documentJson: canonicalizeRuleDocument(nextCharacter),
-      checksum: checksumRuleDocument(nextCharacter)
+    const character = readCharacterRecord(characterRow)
+    const encoded = encodeCharacterRecord(characterRow, {
+      document: {
+        ...character,
+        state: {
+          ...character.state,
+          conditions: [{ conditionTypeId: blinded.id }, { conditionTypeId: poisoned.id }]
+        }
+      },
+      streamVersion: characterRow.play.streamVersion,
+      updatedAt: characterRow.updatedAt
+    })
+    await ctx.db.patch(characterRow.play._id, {
+      playJson: encoded.play.playJson,
+      checksum: encoded.play.checksum
     })
     return { state, dependent, independent, blinded, poisoned }
   })
@@ -324,10 +325,7 @@ export async function concentrationRecords(
         query.eq('characterId', fixture.character.id)
       )
       .collect(),
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-      .unique(),
+    character: await readCharacterRow(ctx, fixture.character.id),
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (query) => query.eq('encounterId', fixture.run.id))

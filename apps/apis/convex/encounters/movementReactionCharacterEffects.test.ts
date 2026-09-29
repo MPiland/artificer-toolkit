@@ -2,9 +2,9 @@ import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID as UNCONSCIOUS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { setupMovementReactionCharacterEffects } from '../../tests/fixtures/movementReactionCharacterEffects'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import {
   planMovementDecisionInRoom,
   planStagedMovementInRoom
@@ -38,10 +38,7 @@ function response(
 
 async function snapshot(value: Awaited<ReturnType<typeof setupMovementReactionCharacterEffects>>) {
   return value.base.t.run(async (ctx) => ({
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', value.base.character.id))
-      .unique(),
+    character: await readCharacterRow(ctx, value.base.character.id),
     campaignState: await ctx.db
       .query('campaignCharacterStates')
       .withIndex('by_campaignId_characterId', (q) =>
@@ -81,8 +78,7 @@ function conditionSources(value: Awaited<ReturnType<typeof snapshot>>) {
   if (!value.character || !value.campaignState)
     throw new Error('Character condition source records are unavailable.')
   return {
-    sheet: characterAuthoredDtoSchema.parse(JSON.parse(value.character.documentJson)).state
-      .conditions,
+    sheet: readCharacterRecord(value.character).state.conditions,
     campaign: campaignCharacterStateSchema.parse(JSON.parse(value.campaignState.documentJson))
       .conditions
   }
@@ -142,7 +138,9 @@ it('creates one Character reaction effect after the public choice and preserves 
     sourceEncounterId: value.base.run.id,
     createdOrdinal: 1
   })
-  expect(afterSettlement.character.streamVersion).toBe(beforeSettlement.character.streamVersion + 1)
+  expect(afterSettlement.character.play.streamVersion).toBe(
+    beforeSettlement.character.play.streamVersion + 1
+  )
   expect(afterSettlement.characterReceipts).toHaveLength(
     beforeSettlement.characterReceipts.length + 1
   )
@@ -189,7 +187,9 @@ it('projects the first used automatic Character reaction into the second reactio
   )
     throw new Error('First Character reaction records are unavailable.')
   expect(afterFirstReaction.effects).toMatchObject([{ createdOrdinal: 1 }])
-  expect(afterFirstReaction.character.streamVersion).toBe(beforeRoot.character.streamVersion + 1)
+  expect(afterFirstReaction.character.play.streamVersion).toBe(
+    beforeRoot.character.play.streamVersion + 1
+  )
   expect(afterFirstReaction.characterReceipts).toHaveLength(beforeRoot.characterReceipts.length + 1)
   expect(afterFirstReaction.run.version).toBe(beforeRoot.run.version + 1)
   expect(conditionSources(afterFirstReaction)).toEqual(conditionSources(beforeRoot))
@@ -217,7 +217,9 @@ it('projects the first used automatic Character reaction into the second reactio
     { characterId: value.base.character.id, createdOrdinal: 1 },
     { characterId: value.base.character.id, createdOrdinal: 2 }
   ])
-  expect(afterSecondReaction.character.streamVersion).toBe(beforeRoot.character.streamVersion + 2)
+  expect(afterSecondReaction.character.play.streamVersion).toBe(
+    beforeRoot.character.play.streamVersion + 2
+  )
   expect(afterSecondReaction.characterReceipts).toHaveLength(
     beforeRoot.characterReceipts.length + 2
   )

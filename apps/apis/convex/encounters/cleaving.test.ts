@@ -28,7 +28,6 @@ import {
   sceneStoredDefinitionEntitySchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { featureChargeUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
@@ -50,6 +49,8 @@ import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import {
@@ -254,24 +255,16 @@ async function setup(
       if (!identity) throw new Error('Missing target controller identity.')
       targetController = { caller, userId: identity.userId }
       await ready.t.run(async (ctx) => {
-        const row = await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (query) => query.eq('id', targetCharacterId!))
-          .unique()
+        const row = await readCharacterRow(ctx, targetCharacterId!)
         if (!row) throw new Error('Missing target Character row.')
         const route = await ctx.db
           .query('authoredRouteIds')
           .withIndex('by_subjectId', (query) => query.eq('subjectId', targetCharacterId!))
           .unique()
         if (!route) throw new Error('Missing target Character route.')
-        const document = characterAuthoredDtoSchema.parse({
-          ...JSON.parse(row.documentJson),
+        await writeCharacterRecord(ctx, row, {
+          document: readCharacterRecord(row),
           userId: identity.userId
-        })
-        await ctx.db.patch(row._id, {
-          userId: identity.userId,
-          documentJson: canonicalizeRuleDocument(document),
-          checksum: checksumRuleDocument(document)
         })
         await ctx.db.patch(route._id, { ownerUserId: identity.userId })
       })
@@ -1103,10 +1096,7 @@ describe('native Cleaving action settlement', () => {
       const current = async () => ({
         records: await records(base),
         ...(await base.t.run(async (ctx) => ({
-          character: await ctx.db
-            .query('characters')
-            .withIndex('by_publicId', (query) => query.eq('id', base.characterId!))
-            .unique(),
+          character: await readCharacterRow(ctx, base.characterId!),
           effects: await ctx.db
             .query('characterActiveRuleEffects')
             .withIndex('by_characterId_createdOrdinal_id', (query) =>
@@ -1126,7 +1116,7 @@ describe('native Cleaving action settlement', () => {
       // The target's automatic Concentration save rolls a natural 1.
       const applied = await room(base, base.owner, input, () => 0)
       const after = await current()
-      expect(after.character?.streamVersion).toBe(before.character.streamVersion + 1)
+      expect(after.character?.play.streamVersion).toBe(before.character.play.streamVersion + 1)
       const concentration = after.records.receipts
         .map((receipt) => storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson)))
         .find(
@@ -1137,7 +1127,7 @@ describe('native Cleaving action settlement', () => {
       expect(concentration).toMatchObject({
         applicationOutputs: { outcome: 'SAVE_FAILURE' }
       })
-      const character = characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
+      const character = characterAuthoredDtoSchema.parse(readCharacterRecord(after.character!))
       expect(character.state.conditions).toEqual([{ conditionTypeId: seeded.poisoned.id }])
       const source = encounterRunActorStateSchema.parse(
         JSON.parse(after.records.actors.find((actor) => actor.id === base.actor.id)!.stateJson)
@@ -1316,15 +1306,10 @@ describe('native Cleaving action settlement', () => {
       const before = await records(base)
       const pending = before.occurrences.find((occurrence) => occurrence.state === 'PENDING')!
       const snapshot = await base.t.run((ctx) => readPendingSnapshot(ctx, pending))
-      const sourceCharacter = await base.t.run((ctx) =>
-        ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', base.characterId!))
-          .unique()
-      )
+      const sourceCharacter = await base.t.run((ctx) => readCharacterRow(ctx, base.characterId!))
       expect(snapshot?.applicationContext).toMatchObject({
         kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING',
-        sourceCurrentness: { kind: 'CHARACTER', streamVersion: sourceCharacter?.streamVersion }
+        sourceCurrentness: { kind: 'CHARACTER', streamVersion: sourceCharacter?.play.streamVersion }
       })
       await expect(
         room(base, base.other, {

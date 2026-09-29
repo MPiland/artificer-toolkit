@@ -115,7 +115,7 @@ export async function createEncounterRun(
       throw new Error('Assigned Character does not match the Campaign Game System.')
     characterStates.set(
       character.id,
-      characterProjectionState(character, sheet.overview.maxHitPoints, conditionTypes)
+      characterProjectionState(character.state, sheet.overview.maxHitPoints, conditionTypes)
     )
     actors.push(
       encounterRunActorStateSchema.parse({

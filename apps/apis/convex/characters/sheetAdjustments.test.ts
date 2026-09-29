@@ -8,15 +8,17 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  encodeCharacterRecord,
+  readCharacterSheetState
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { api } from '../_generated/api'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { input } from '../../tests/fixtures/characters'
 import * as builderContext from './builderContext'
+import { readCharacterRecord } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -56,9 +58,7 @@ describe('native Character Sheet adjustment storage', () => {
       first.sheet.overview.abilities.find((ability) => ability.ability === 'STRENGTH')?.score
     ).toBe(20)
     const firstStored = await readState()
-    const firstState = characterSheetStateSchema.parse(
-      JSON.parse(firstStored.character!.sheetState!.documentJson)
-    )
+    const firstState = readCharacterSheetState(firstStored.character!)
     expect(firstState.adjustments).toHaveLength(1)
     expect(firstState.adjustments[0]).toMatchObject({
       id: adjustmentId,
@@ -85,9 +85,7 @@ describe('native Character Sheet adjustment storage', () => {
       }
     })
     const updated = await readState()
-    const state = characterSheetStateSchema.parse(
-      JSON.parse(updated.character!.sheetState!.documentJson)
-    )
+    const state = readCharacterSheetState(updated.character!)
     expect(state.adjustments).toHaveLength(1)
     expect(state.adjustments[0]).toMatchObject({
       id: adjustmentId,
@@ -139,11 +137,7 @@ describe('native Character Sheet adjustment storage', () => {
       }
     })
     expect(reset.sheet.overview.abilities).toEqual(before!.overview.abilities)
-    expect(
-      characterSheetStateSchema.parse(
-        JSON.parse((await readState()).character!.sheetState!.documentJson)
-      ).adjustments
-    ).toEqual([])
+    expect(readCharacterSheetState((await readState()).character!).adjustments).toEqual([])
   })
 
   it('persists HP clamps against prospective overrides and keeps override separate from the HP modifier panel', async () => {
@@ -209,10 +203,7 @@ describe('native Character Sheet adjustment storage', () => {
       maxHitPointsOverride: null
     })
     let stored = await readState()
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson)).state.hitpoints
-        .current
-    ).toBe(11)
+    expect(readCharacterRecord(stored.character!).state.hitpoints.current).toBe(11)
     sourceLoads.mockClear()
     const reduced = await owner.caller.mutation(execute, {
       id: character.id,
@@ -226,13 +217,8 @@ describe('native Character Sheet adjustment storage', () => {
     expect(sourceLoads).toHaveBeenCalledTimes(1)
     expect(reduced.sheet.overview).toMatchObject({ currentHitPoints: 0, maxHitPoints: 0 })
     stored = await readState()
-    expect(
-      characterAuthoredDtoSchema.parse(JSON.parse(stored.character!.documentJson)).state.hitpoints
-        .current
-    ).toBe(0)
-    const adjustmentId = characterSheetStateSchema.parse(
-      JSON.parse(stored.character!.sheetState!.documentJson)
-    ).adjustments[0]!.id
+    expect(readCharacterRecord(stored.character!).state.hitpoints.current).toBe(0)
+    const adjustmentId = readCharacterSheetState(stored.character!).adjustments[0]!.id
     sourceLoads.mockClear()
     const removed = await owner.caller.mutation(execute, {
       id: character.id,
@@ -347,18 +333,15 @@ describe('native Character Sheet adjustment storage', () => {
         (ability) => ability.ability === 'STRENGTH'
       )?.score
     ).toBe(20)
-    const invalid = characterSheetStateSchema.parse(
-      JSON.parse(after.character!.sheetState!.documentJson)
-    )
+    const invalid = readCharacterSheetState(after.character!)
     invalid.adjustments[0]!.characterId = crypto.randomUUID()
-    await t.run((ctx) =>
-      ctx.db.patch(after.character!._id, {
-        sheetState: {
-          documentJson: canonicalizeRuleDocument(invalid),
-          checksum: checksumRuleDocument(invalid)
-        }
-      })
-    )
+    const encoded = encodeCharacterRecord(after.character!, {
+      document: readCharacterRecord(after.character!),
+      sheetState: invalid,
+      streamVersion: after.character!.play.streamVersion,
+      updatedAt: after.character!.updatedAt
+    })
+    await t.run((ctx) => ctx.db.patch(after.character!._id, { sheetState: encoded.sheetState }))
     const corrupted = await readState()
     await expect(
       owner.caller.mutation(execute, {
@@ -366,7 +349,7 @@ describe('native Character Sheet adjustment storage', () => {
         command: {
           type: 'SET_INSPIRATION',
           commandId: crypto.randomUUID(),
-          expectedVersion: 3,
+          expectedVersion: after.character!.play.streamVersion,
           inspired: true
         }
       })

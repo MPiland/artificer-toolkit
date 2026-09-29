@@ -4,6 +4,7 @@ import { writeRunActor } from '@artificer-toolkit/encounter-persistence/document
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import type { MutationCtx } from '../_generated/server'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+import { readCharacterRow } from '../characters/stateDocuments'
 import {
   persistEncounterMechanicsBatchPlan,
   readEncounterMechanicsBatchTarget
@@ -25,10 +26,7 @@ async function storedState(
         q.eq('encounterId', fixture.run.id).eq('id', fixture.actor.id)
       )
       .unique(),
-    ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-      .unique(),
+    readCharacterRow(ctx, fixture.character.id),
     ctx.db
       .query('campaignCharacterAssignments')
       .withIndex('by_characterId', (q) => q.eq('characterId', fixture.character.id))
@@ -109,7 +107,9 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
         const next = { ...target.actor, gmNotes: 'Changed before settlement' }
         await writeRunActor(ctx, target.actorRow._id, next)
       } else if (changed === 'character') {
-        await ctx.db.patch(loaded.active._id, { streamVersion: loaded.active.streamVersion + 1 })
+        await ctx.db.patch(loaded.active.play._id, {
+          streamVersion: loaded.active.play.streamVersion + 1
+        })
       } else if (changed === 'run') {
         await ctx.db.patch(target.runRow._id, { version: target.runRow.version + 1 })
       } else {

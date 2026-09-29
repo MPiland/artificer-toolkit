@@ -6,8 +6,10 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import {
+  readCharacterRecord,
+  readCharacterSheetState
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
@@ -33,7 +35,6 @@ import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runti
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
 import type { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
-import * as z from 'zod/mini'
 
 type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
 type CleavingProjection = Pick<
@@ -48,7 +49,6 @@ type CleavingReads = {
   loadTarget: (actor: EncounterRunActorState) => Promise<MovementTarget<CharacterFacts>>
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
 }
-const characterDocument = z.omit(characterAuthoredDtoSchema, { primaryRulesCatalogueId: true })
 
 async function readNativeLiveCleavingCandidates(
   input: CleavingReads & {
@@ -100,12 +100,10 @@ async function readNativeLiveCleavingCandidates(
           actor,
           plan: row
             ? {
-                characterStreamVersion: row.streamVersion,
+                characterStreamVersion: row.play.streamVersion,
                 characterUpdate: {
-                  character: characterDocument.parse(JSON.parse(row.documentJson)),
-                  sheetState: row.sheetState
-                    ? characterSheetStateSchema.parse(JSON.parse(row.sheetState.documentJson))
-                    : null
+                  character: readCharacterRecord(row),
+                  sheetState: readCharacterSheetState(row)
                 }
               }
             : null,

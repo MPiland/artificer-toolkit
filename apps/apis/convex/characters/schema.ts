@@ -6,6 +6,7 @@ import {
   characterStoredDraftPayloadChunkSchema,
   characterStoredDraftPayloadHeadSchema,
   characterStoredDraftSchema,
+  characterStoredPlayStateSchema,
   characterStoredRecordSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
 
@@ -15,6 +16,10 @@ export const characterTables = {
     .index('by_userId', ['userId'])
     .index('by_portraitAssetId', ['portraitAssetId'])
     .index('by_userId_systemId_id', ['userId', 'systemId', 'id']),
+  characterPlayStates: defineTable(zodToConvexFields(characterStoredPlayStateSchema.shape)).index(
+    'by_characterId',
+    ['characterId']
+  ),
   characterDrafts: defineTable(zodToConvexFields(characterStoredDraftSchema.shape))
     .index('by_characterId', ['characterId'])
     .index('by_userId_systemId_characterId', ['userId', 'systemId', 'characterId'])

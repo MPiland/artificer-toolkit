@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_RULES_CATALOGUE,
@@ -8,30 +8,31 @@ import {
 import { api } from '../_generated/api'
 import { input } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 describe('native Character System-only binding', () => {
   it('reads checksummed legacy active and draft fields without exposing or rewriting them', async () => {
     const base = await readyCharacterFixture()
     const first = await base.createCharacter()
-    const initialCommit = await base.owner.caller.mutation(api.characters.commit.commit, {
+    await base.owner.caller.mutation(api.characters.commit.commit, {
       expectedDraftId: first.draft.id,
       mode: 'create',
       character: first.character
     })
-    const active = await base.t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', first.character.id))
-        .unique()
-    )
+    const active = await base.t.run((ctx) => readCharacterRow(ctx, first.character.id))
     if (!active) throw new Error('Missing active Character fixture.')
     const legacyId = crypto.randomUUID()
-    const legacyActive = { ...initialCommit.character, primaryRulesCatalogueId: legacyId }
+    const legacyActive = { ...readCharacterRecord(active), primaryRulesCatalogueId: legacyId }
+    const legacyStored = encodeCharacterRecord(active, {
+      document: legacyActive,
+      streamVersion: active.play.streamVersion,
+      updatedAt: active.updatedAt
+    })
     await base.t.run((ctx) =>
       ctx.db.patch(active._id, {
         primaryRulesCatalogueId: legacyId,
-        documentJson: canonicalizeRuleDocument(legacyActive),
-        checksum: checksumRuleDocument(legacyActive)
+        documentJson: legacyStored.documentJson,
+        checksum: legacyStored.checksum
       })
     )
     const activeBefore = await base.t.run((ctx) => ctx.db.get(active._id))
@@ -147,17 +148,10 @@ describe('native Character System-only binding', () => {
       character: committed.character
     })
     expect(result.character).not.toHaveProperty('primaryRulesCatalogueId')
-    const stored = await base.t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', committed.character.id))
-        .unique()
-    )
+    const stored = await base.t.run((ctx) => readCharacterRow(ctx, committed.character.id))
     expect(stored).not.toHaveProperty('primaryRulesCatalogueId')
     if (!stored) throw new Error('Missing committed Character fixture.')
-    expect(characterAuthoredDtoSchema.parse(JSON.parse(stored.documentJson))).not.toHaveProperty(
-      'primaryRulesCatalogueId'
-    )
+    expect(readCharacterRecord(stored)).not.toHaveProperty('primaryRulesCatalogueId')
     await expect(
       base.owner.caller.mutation(api.characters.drafts.create, {
         ...input(),

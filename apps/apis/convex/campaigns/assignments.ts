@@ -10,6 +10,7 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { readCharacterRecord } from '../characters/documents'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { prepareCharacterBuilder } from '../characters/builderPreparation'
 import { readCharacterSourceAccessLoss } from '../characters/sourceAccessLoss'
@@ -27,10 +28,7 @@ export const assign = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const characterId = input.characterId.toLowerCase()
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterId))
-      .unique()
+    const record = await readCharacterRow(ctx, characterId)
     if (!record || (membership.role === 'PLAYER' && record.userId !== userId))
       throw new Error('Character is unavailable.')
     const { membership: player } = await requireCampaignAuthority(ctx, campaign.id, record.userId)
@@ -100,7 +98,7 @@ export const assign = mutation({
     // The Campaign's attunement override now feeds the Character's stored maximum hit points.
     await writeCharacterRecord(ctx, {
       current: record,
-      fields: { streamVersion: record.streamVersion, updatedAt: record.updatedAt }
+      fields: { streamVersion: record.play.streamVersion, updatedAt: record.updatedAt }
     })
     return { ok: true as const }
   }

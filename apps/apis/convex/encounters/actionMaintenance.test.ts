@@ -50,6 +50,7 @@ import {
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from './encounterPorts'
 import { loadMovementTargets } from './movementTargets'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { sourceImportBatches } from '../content/importBatches'
 import { withSceneVisionTracking } from '../lib/mutations'
@@ -417,10 +418,7 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
         q.eq('encounterId', base.run.id).eq('state', 'COMPLETED')
       )
       .take(32),
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique(),
+    character: await readCharacterRow(ctx, base.character.id),
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
@@ -792,13 +790,13 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   })
   expect(await records(base)).toEqual(sameTargetStaged)
 
-  const beforeSameTargetVersion = sameTargetStaged.character!.streamVersion
+  const beforeSameTargetVersion = sameTargetStaged.character!.play.streamVersion
   const beforeDmState = sameTargetStaged.campaignCharacterState
   const sameTargetReplaced = await executeInRoom(base.owner.caller, sameTargetResponse)
   const sameTargetComplete = await records(base)
   expect(sameTargetComplete.characterEffects).toHaveLength(1)
   expect(sameTargetComplete.characterEffects[0]?.id).not.toBe(firstComplete.characterEffects[0]?.id)
-  expect(sameTargetComplete.character?.streamVersion).toBe(beforeSameTargetVersion + 1)
+  expect(sameTargetComplete.character?.play.streamVersion).toBe(beforeSameTargetVersion + 1)
   expect(sameTargetComplete.campaignCharacterState).toEqual(beforeDmState)
   expect(sameTargetComplete.maintainedStates[0]?.id).not.toBe(firstComplete.maintainedStates[0]?.id)
   expect(
@@ -869,12 +867,12 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     await ctx.db.patch(character._id, { status: 'ACTIVE' })
   })
   expect(await records(base)).toEqual(detachedStaged)
-  const beforeDetachedVersion = detachedStaged.character!.streamVersion
+  const beforeDetachedVersion = detachedStaged.character!.play.streamVersion
   const detachedReplaced = await executeInRoom(base.owner.caller, detachedResponse)
   projection = encounterGmProjectionDtoSchema.parse(detachedReplaced.projection)
   const detachedComplete = await records(base)
   expect(detachedComplete.characterEffects).toEqual([])
-  expect(detachedComplete.character?.streamVersion).toBe(beforeDetachedVersion + 1)
+  expect(detachedComplete.character?.play.streamVersion).toBe(beforeDetachedVersion + 1)
   expect(detachedComplete.campaignCharacterState).toEqual(beforeDmState)
   expect(detachedComplete.maintainedStates).toHaveLength(1)
   expect(detachedComplete.maintainedStates[0]?.id).not.toBe(
@@ -1034,7 +1032,7 @@ it('commits a maintained Character action from the Worker plan with one atomic r
   expect(after.actors.map((actor) => checksumCanonicalJson(JSON.parse(actor.stateJson)))).toEqual(
     plan.settlement.actors.map((actor) => checksumCanonicalJson(actor))
   )
-  expect(after.character?.streamVersion).toBe(before.character!.streamVersion + 1)
+  expect(after.character?.play.streamVersion).toBe(before.character!.play.streamVersion + 1)
   expect(after.maintainedStates.map((entry) => entry.id)).not.toContain(state.id)
   expect(after.maintainedStates.map((entry) => entry.id)).toContain(
     plan.settlement.maintainedState.id
@@ -1053,12 +1051,9 @@ it('captures five real maintained dependents and matches the Convex action prefl
   const { base, state, scope } = await setupMaintenanceCapture(5)
   await base.t.run(async (rawCtx) => {
     const ctx = withSceneVisionTracking(rawCtx)
-    const character = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
+    const character = await readCharacterRow(ctx, base.character.id)
     if (!character) throw new Error('Missing unrelated Character fixture.')
-    await ctx.db.patch(character._id, { streamVersion: character.streamVersion + 1 })
+    await ctx.db.patch(character.play._id, { streamVersion: character.play.streamVersion + 1 })
   })
   const command = action(base, scope.expectedVersion, base.actor.id)
   const slotRequest = {
@@ -1298,15 +1293,12 @@ it('commits the post-mechanics maintenance settlement the Worker projects', asyn
     expect(await store.list({ kind: 'CHARACTER', characterId: base.character.id })).toEqual(
       planned.settlement.activeEffectsByActorId.get(base.characterTarget.id)
     )
-    const character = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique()
+    const character = await readCharacterRow(ctx, base.character.id)
     expect(character).toEqual(
       planned.settlement.maintenanceOwners.find((entry) => entry.owner.kind === 'CHARACTER')
         ?.character
     )
-    expect(character?.streamVersion).toBe(beforePlanning.character!.streamVersion + 1)
+    expect(character?.play.streamVersion).toBe(beforePlanning.character!.play.streamVersion + 1)
     const row = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))

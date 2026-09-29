@@ -615,6 +615,76 @@ over the row it wrote (`loadCharacterSheetFacts` and `loadCharacterSheetInputs` 
 row), `loadCharacterSheetFacts` asks `listActiveRuleEffects` not to re-verify an owner it just
 loaded or wrote, and commit passes the verified owner to `syncAccountUsage`.
 
+### Character play state (ADR 0035 Amendment 12) — local implementation
+
+> Status: current local implementation of the Character part of Amendment 12. Inventory, currency,
+> companion hit points and class-spell state still sit in the structure document (see below).
+
+A Character is two stored records, so a play change never rewrites the large document.
+
+| Record | Owner | Holds | Concurrency clock |
+| --- | --- | --- | --- |
+| `characters` | Builder | `documentJson` (structure), `sheetState` (adjustments, movement preference, spell customizations), identity | `updatedAt` |
+| `characterPlayStates` | Sheet, rests, Encounter mechanics, GM adjustments | `playJson` (below), `maximumHitPoints`, `walkingSpeed`, identity | `streamVersion` |
+
+- **Contract.** `packages/schema/src/projections/characterPlayState.ts` names the play fields
+  (`characterPlayStateSchema`): the state's hit points (current, temporary, hit dice), resources,
+  spell slots, conditions, exhaustion, inspiration and equipment item-use state, plus the Sheet state's
+  resource usage and party visibility. `splitCharacterPlayState` and `mergeCharacterPlayState` are
+  pure, and a property test proves split then merge round-trips. `characterStoredState.ts` is the one
+  reader (`readCharacterRecord`, `readCharacterSheetState`, checksum and identity checks) and pure
+  re-encoder (`encodeCharacterRecord`) for a Character row joined with its play record. Apis,
+  rules-runtime and the session worker all use it, so none of them re-implements the join.
+- **One writer.** `writeCharacterRecord` splits the document and Sheet state it is given, replaces a
+  record only when its checksum changed, and advances the structure `updatedAt` only when the
+  structure changed. A play write therefore replaces only the small record. The Encounter
+  persistence port (`writeCharacterRecord`) reaches the same function.
+- **Readers merge.** `readCharacterRow` joins the two records; the Sheet projection, rules
+  evaluation, Encounter facts and the live-session INPUTS capture (one joined `owner` row, from which
+  the Worker derives the Character) all read the merged Character. Party visibility and health
+  display for the room authorization cache read the play record alone.
+- **Campaign state stays separate.** `campaignCharacterStates` and `characterActiveRuleEffects`
+  remain per Character per Campaign. Folding them into the play record would fan one Character
+  record out across every Campaign context that uses it and make each Campaign's write rewrite the
+  others'. The room holds them beside the play record when it is built.
+
+#### Concurrency rule
+
+Two clocks, so a Builder save and a play change do not conflict on one version:
+
+1. **Play commands** (Sheet commands, rests, GM adjustments, Encounter mechanics) check
+   `expectedVersion` against `characterPlayStates.streamVersion` and advance it by one per
+   transaction. They do not read `characters.updatedAt` for concurrency.
+2. **Builder commits** check the draft's `baseActiveUpdatedAt` against `characters.updatedAt`. The
+   commit overlays the live play state onto the draft's candidate before preparation, so a Builder
+   save preserves current HP, slots and resources spent while the draft was open. It advances the
+   play stream only when the commit itself changes play content (a new Character, hit dice
+   reconciled to a class change, or current HP clamped to a lowered maximum); otherwise a play
+   command in flight during the save still succeeds.
+3. **Level-down clamp.** If the committed maximum hit points fall below the previous stored maximum
+   and current HP is above the new maximum, the commit rewrites only the play record with current HP
+   equal to the new maximum. The comparison uses the Character-only maximum, so a Campaign hit point
+   adjustment is not visible to the Builder; readers still clamp to the effective maximum.
+4. **Structure changes made by the Sheet** (inventory, currency, Sheet adjustments, spell
+   customizations, movement preference) advance `characters.updatedAt`, so a stale Builder draft
+   still conflicts with them.
+5. **Stat refresh** (`maximumHitPoints`, `walkingSpeed`) re-evaluates after a Campaign-owned change and
+   rewrites the play record without advancing `streamVersion`.
+
+Convex retries a transaction whose reads or writes conflict, so a Builder commit and a play command
+that overlap both survive: whichever runs second reads the first's result.
+
+#### Write cost
+
+`playStateBudget.test.ts` counts stored bytes through the `countDatabaseIo` wrapper. Before the
+split both paths replaced the whole 7.6 KB Character row; now they replace the play record (about
+0.5 KB), so the total is dominated by the command receipt.
+
+| Path | Before | After |
+| --- | --- | --- |
+| Sheet HP change | 8.2 KB (Character 7,589 B, receipt 648 B) | 1.1 KB (play record 496 B, receipt 648 B) |
+| Encounter damage to a Character | 8.3 KB (Character 7,606 B, receipt 676 B) | 1.2 KB (play record 513 B, receipt 676 B) |
+
 ### Neutral Sheet commands — extraction, native persistence pending
 
 ```mermaid

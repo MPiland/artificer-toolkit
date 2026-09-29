@@ -5,7 +5,6 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
   concentrationCommandId,
@@ -31,6 +30,7 @@ import {
   privateMovementWorkerSecret
 } from '../../tests/fixtures/liveMovementResponse'
 import { internal } from '../_generated/api'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
@@ -162,10 +162,7 @@ async function seedMovingSpatialEffect(
 
 async function records(value: MovementFixture) {
   return value.base.t.run(async (ctx) => ({
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', value.base.character.id))
-      .unique(),
+    character: await readCharacterRow(ctx, value.base.character.id),
     characterEffects: await ctx.db
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (q) =>
@@ -236,7 +233,7 @@ it('settles a used automatic reaction Concentration check once with its damage r
   expect(random).toHaveBeenCalledTimes(3)
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.characterEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
-  expect(after.character?.streamVersion).toBe(before.character.streamVersion + 2)
+  expect(after.character?.play.streamVersion).toBe(before.character.play.streamVersion + 2)
   // The Use response continues the paused movement, so its receipt holds the terminal result.
   const receipt = after.receipts.find((entry) => entry.commandId === responseCommandId)
   if (!receipt) throw new Error('Movement Concentration receipt is unavailable.')
@@ -701,13 +698,9 @@ it.each(['room', 'private'] as const)(
       | null = null
     const moverHitPoints = async () =>
       value.base.t.run(async (ctx) => {
-        const character = await ctx.db
-          .query('characters')
-          .withIndex('by_publicId', (q) => q.eq('id', value.base.character.id))
-          .unique()
+        const character = await readCharacterRow(ctx, value.base.character.id)
         if (!character) throw new Error('Movement Concentration target Character is unavailable.')
-        return characterAuthoredDtoSchema.parse(JSON.parse(character.documentJson)).state.hitpoints
-          .current
+        return readCharacterRecord(character).state.hitpoints.current
       })
     const damagedHitPoints = await moverHitPoints()
     if (route === 'private') {

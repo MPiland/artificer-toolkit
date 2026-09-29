@@ -1,7 +1,7 @@
 import { campaignStoredAssignmentSchema } from '@artificer-toolkit/schema/projections/campaignPersistence'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { requireCampaignAuthority } from './authority'
 import { readCampaignAssignedCharacter } from './assignedCharacter'
 
@@ -27,10 +27,7 @@ export async function readAssignedInventoryCharacter(
   const { membership: target } = await requireCampaignAuthority(ctx, campaign.id, assignment.userId)
   if ((await readCampaignAssignedCharacter(ctx, campaign, target))?.id !== characterId)
     throw new Error('Stored Campaign Character assignment mismatch.')
-  const record = await ctx.db
-    .query('characters')
-    .withIndex('by_publicId', (q) => q.eq('id', characterId))
-    .unique()
+  const record = await readCharacterRow(ctx, characterId)
   if (!record) throw new Error('Assigned Character is unavailable in this Campaign.')
   const character = readCharacterRecord(record)
   return { record, character }

@@ -11,6 +11,7 @@ import { api, internal } from '../_generated/api'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { srdCreatureRecord } from '../../tests/fixtures/srdCreatures'
+import { readCharacterRow } from './stateDocuments'
 
 const cat = srdCreatureRecord(rawCat.id)
 
@@ -179,12 +180,7 @@ describe('native personal Character Sheet extra source options', () => {
       subjectId: foreign.subjectId,
       expectedDraftUpdatedAt: foreign.updatedAt!
     })
-    const before = await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-    )
+    const before = await t.run((ctx) => readCharacterRow(ctx, character.id))
     const result = await owner.caller.query(list, {
       id: committed.publicId,
       kind: 'CREATURE',
@@ -194,12 +190,7 @@ describe('native personal Character Sheet extra source options', () => {
       expect.arrayContaining([ids.sameA, owned.subjectId])
     )
     expect(result.items.map(({ id }) => id)).not.toContain(foreign.subjectId)
-    const after = await t.run((ctx) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', character.id))
-        .unique()
-    )
+    const after = await t.run((ctx) => readCharacterRow(ctx, character.id))
     expect(after).toEqual(before)
   })
 

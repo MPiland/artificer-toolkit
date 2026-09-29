@@ -28,7 +28,7 @@ import {
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
 import { campaignStoredAssignmentSchema } from '@artificer-toolkit/schema/projections/campaignPersistence'
 import { campaignStoredCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterStatePersistence'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 
@@ -206,14 +206,7 @@ export const removeFixtureState = internalMutation({
         .query('campaignCharacterStates')
         .withIndex('by_campaignId_characterId', (q) => q.eq('campaignId', campaign.id))
         .take(3),
-      Promise.all(
-        characterIds.map((id) =>
-          ctx.db
-            .query('characters')
-            .withIndex('by_publicId', (q) => q.eq('id', id))
-            .unique()
-        )
-      ),
+      Promise.all(characterIds.map((id) => readCharacterRow(ctx, id))),
       Promise.all(
         characterIds.map((id) =>
           ctx.db
@@ -528,7 +521,7 @@ export const removeFixtureState = internalMutation({
               index < 0 ||
               !character ||
               affected.status !== 'ACTIVE' ||
-              affected.streamVersion > character.streamVersion
+              affected.streamVersion > character.play.streamVersion
             )
           })
         )
@@ -579,7 +572,7 @@ export const removeFixtureState = internalMutation({
               index < 0 ||
               !character ||
               affected.status !== 'ACTIVE' ||
-              affected.streamVersion > character.streamVersion
+              affected.streamVersion > character.play.streamVersion
             )
           }) ||
           checksumCanonicalJson(payload) !==
@@ -648,7 +641,7 @@ export const removeFixtureState = internalMutation({
             index < 0 ||
             !character ||
             affected.status !== 'ACTIVE' ||
-            affected.streamVersion > character.streamVersion
+            affected.streamVersion > character.play.streamVersion
           )
         }) ||
         checksumCanonicalJson(payload) !== checksumCanonicalJson({ receipt }) ||
@@ -1061,7 +1054,7 @@ export const removeFixtureState = internalMutation({
           typeof payload.streamVersion !== 'number' ||
           !Number.isSafeInteger(payload.streamVersion) ||
           payload.streamVersion < 0 ||
-          payload.streamVersion > character.streamVersion ||
+          payload.streamVersion > character.play.streamVersion ||
           typeof payload.draftOnly !== 'boolean' ||
           !Array.isArray(payload.removedSources) ||
           recognizedReconciledCharacters.has(identity) ||
@@ -1126,7 +1119,7 @@ export const removeFixtureState = internalMutation({
           !Number.isSafeInteger(payload.streamVersion) ||
           payload.streamVersion < 0 ||
           affected.streamVersion !== payload.streamVersion ||
-          payload.streamVersion > character.streamVersion ||
+          payload.streamVersion > character.play.streamVersion ||
           !Array.isArray(payload.removedSources) ||
           typeof payload.draftOnly !== 'boolean' ||
           removedSourceKeys.some(
@@ -1230,7 +1223,7 @@ export const removeFixtureState = internalMutation({
               })
           : event.subjectCharacterId !== departure.departingCharacterId ||
             payload.characterId !== event.subjectCharacterId ||
-            payload.streamVersion > character.streamVersion ||
+            payload.streamVersion > character.play.streamVersion ||
             payload.status !== 'ACTIVE' ||
             checksumCanonicalJson(payload) !==
               checksumCanonicalJson({

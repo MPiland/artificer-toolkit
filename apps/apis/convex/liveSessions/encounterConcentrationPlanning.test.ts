@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { afterEach, expect, it, vi } from 'vitest'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -21,6 +20,7 @@ import {
 } from '../../tests/fixtures/concentration'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { loadMovementTargets } from '../encounters/movementTargets'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
@@ -126,13 +126,10 @@ it.each([
         characterId: fixture.character.id
       })
       expect(effectsAfter).toEqual(concentration.activeEffectsByActorId.get(fixture.target.id))
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
-        .unique()
+      const character = await readCharacterRow(ctx, fixture.character.id)
       if (!character) throw new Error('Concentration Character is unavailable after settlement.')
-      expect(character.streamVersion).toBe(
-        before.character!.streamVersion + (outcome === 'SAVE_FAILURE' ? 2 : 1)
+      expect(character.play.streamVersion).toBe(
+        before.character!.play.streamVersion + (outcome === 'SAVE_FAILURE' ? 2 : 1)
       )
       if (outcome === 'SAVE_FAILURE') {
         expect(concentration.cleanups[0]?.removed.map((effect) => effect.id)).toContain(
@@ -141,7 +138,7 @@ it.each([
         expect(concentration.cleanups[0]?.characterVersions).toEqual([
           {
             characterId: fixture.character.id,
-            beforeStreamVersion: before.character!.streamVersion + 1
+            beforeStreamVersion: before.character!.play.streamVersion + 1
           }
         ])
         expect(character).toEqual(
@@ -149,7 +146,7 @@ it.each([
             ?.character
         )
       }
-      const authored = characterAuthoredDtoSchema.parse(JSON.parse(character.documentJson))
+      const authored = readCharacterRecord(character)
       expect(authored.state.conditions?.map((condition) => condition.conditionTypeId)).toEqual(
         outcome === 'SAVE_FAILURE' ? [seeded.poisoned.id] : [seeded.blinded.id, seeded.poisoned.id]
       )
@@ -201,11 +198,8 @@ it.each([
     }
     expect(after.run?.version).toBe(before.run!.version + 1)
     expect(after.characterReceipts.length).toBeGreaterThan(before.characterReceipts.length)
-    expect(after.character?.checksum).toBe(
-      checksumRuleDocument(
-        characterAuthoredDtoSchema.parse(JSON.parse(after.character!.documentJson))
-      )
-    )
+    // Reading verifies the structure and play checksums against the stored JSON.
+    expect(() => readCharacterRecord(after.character!)).not.toThrow()
     expect(after.actors.map((actor) => checksumCanonicalJson(JSON.parse(actor.stateJson)))).toEqual(
       concentration.actors.map((actor) => checksumCanonicalJson(actor))
     )
@@ -322,8 +316,8 @@ it.each([
         encounterId: fixture.run.id
       })
     ).toEqual(committed.projection)
-    expect(after.character?.streamVersion).toBe(
-      before.character!.streamVersion + (outcome === 'SAVE_FAILURE' ? 2 : 1)
+    expect(after.character?.play.streamVersion).toBe(
+      before.character!.play.streamVersion + (outcome === 'SAVE_FAILURE' ? 2 : 1)
     )
     expect(after.actors.map((actor) => checksumCanonicalJson(JSON.parse(actor.stateJson)))).toEqual(
       plan.concentration.actors.map((actor) => checksumCanonicalJson(actor))
