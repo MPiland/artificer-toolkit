@@ -16,6 +16,7 @@ import {
   type AuthoredCatalogueScope,
   type AuthoredCatalogueSummary
 } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import { memoizeTransactionReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import type { Doc } from '../_generated/dataModel'
@@ -205,7 +206,9 @@ async function readSpellSummaryRows(
 export const list = query({
   args: zodToConvexFields(authoredCatalogueReadInputSchema.shape),
   returns: zodToConvex(authoredCataloguePageSchema),
-  handler: async (ctx, args): Promise<AuthoredCataloguePage> => {
+  handler: async (transaction, args): Promise<AuthoredCataloguePage> => {
+    // Rows share one System, one Source and a few Class roots; each is read once, not once per row.
+    const ctx: QueryCtx = { ...transaction, db: memoizeTransactionReads(transaction.db) }
     const input = authoredCatalogueReadInputSchema.parse(args)
     requireSupportedCategory(input)
     requireSupportedSpell(input)
@@ -367,7 +370,8 @@ export const list = query({
 export const search = query({
   args: zodToConvexFields(authoredCatalogueSearchInputSchema.shape),
   returns: zodToConvex(authoredCataloguePageSchema),
-  handler: async (ctx, args): Promise<AuthoredCataloguePage> => {
+  handler: async (transaction, args): Promise<AuthoredCataloguePage> => {
+    const ctx: QueryCtx = { ...transaction, db: memoizeTransactionReads(transaction.db) }
     const input = authoredCatalogueSearchInputSchema.parse(args)
     requireSupportedCategory(input)
     const userId = (await getAuthenticatedProfile(ctx))?.identity.userId ?? null
@@ -409,7 +413,8 @@ export const search = query({
 export const summary = query({
   args: zodToConvexFields(authoredCatalogueSummaryInputSchema.shape),
   returns: zodToConvex(authoredCatalogueSummarySchema),
-  handler: async (ctx, args): Promise<AuthoredCatalogueSummary> => {
+  handler: async (transaction, args): Promise<AuthoredCatalogueSummary> => {
+    const ctx: QueryCtx = { ...transaction, db: memoizeTransactionReads(transaction.db) }
     const input = authoredCatalogueSummaryInputSchema.parse(args)
     requireSupportedCategory(input)
     requireSupportedSpell(input)

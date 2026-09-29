@@ -412,6 +412,13 @@ Class and magic-school labels, level facets, and the exact filtered total. Facet
 complete visible Spell catalogue independently of the selected source or Spell filters; a larger
 owner catalogue fails with an explicit error until its facets are materialized.
 
+`content/catalogue.list`, `search` and `summary` run over a per-query read memo
+(`memoizeTransactionReads`), so the System, each content Source and each Class root a row's
+display reads are read once per query, not once per row. `catalogueReadBudget.test.ts` holds the
+bound with the full SRD plus Homebrew: a list page stays under 1.25 MiB (Class pages, whose roots
+are about 38 KB each, are the largest) and the Spell summary under 2 MiB, against Convex's 16 MiB
+read limit. Before the memo the Spell summary read about 37 MB and a Spell page 4.6-5.7 MB.
+
 Native catalogue query endpoints read checksum-bound summary metadata on the
 published root, not full authored documents or compiled mechanics. Import and publication update
 that metadata and per-source/domain counts in the same mutation. Replacement does not recount a
