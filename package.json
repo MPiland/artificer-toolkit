@@ -53,10 +53,9 @@
     "lint": "yarn lint:ox && yarn lint:schemas",
     "lint:ox": "oxlint --deny-warnings",
     "lint:schemas": "node scripts/lazySchemas.mjs --check",
-    "lint:ox:type-aware": "yarn lint:ox:type-aware:design-system && yarn lint:ox:type-aware:emails && yarn lint:ox:type-aware:netlify && yarn lint:ox:type-aware:schema && yarn lint:ox:type-aware:shared && yarn lint:ox:type-aware:apis && yarn lint:ox:type-aware:web",
+    "lint:ox:type-aware": "yarn lint:ox:type-aware:design-system && yarn lint:ox:type-aware:emails && yarn lint:ox:type-aware:schema && yarn lint:ox:type-aware:shared && yarn lint:ox:type-aware:apis && yarn lint:ox:type-aware:web",
     "lint:ox:type-aware:design-system": "oxlint packages/design-system --type-aware --tsconfig packages/design-system/tsconfig.json --deny-warnings",
     "lint:ox:type-aware:emails": "oxlint packages/emails --type-aware --tsconfig packages/emails/tsconfig.json --deny-warnings",
-    "lint:ox:type-aware:netlify": "oxlint netlify --type-aware --tsconfig netlify/tsconfig.json --deny-warnings",
     "lint:ox:type-aware:schema": "oxlint packages/schema --type-aware --tsconfig packages/schema/tsconfig.json --deny-warnings",
     "lint:ox:type-aware:shared": "oxlint packages/shared --type-aware --tsconfig packages/shared/tsconfig.json --deny-warnings",
     "lint:ox:type-aware:apis": "oxlint apps/apis --type-aware --tsconfig apps/apis/tsconfig.json --deny-warnings",
@@ -79,7 +78,6 @@
     "@types/node": "^25.6.1",
     "@typescript/analyze-trace": "^0.11.0",
     "gitpick": "^5.4.1",
-    "netlify-cli": "^26.2.0",
     "oxc-parser": "^0.127.0",
     "oxfmt": "^0.52.0",
     "oxlint": "^1.67.0",
@@ -92,7 +90,6 @@
   },
   "resolutions": {
     "@convex-dev/react-query@npm:0.1.0": "patch:@convex-dev/react-query@npm%3A0.1.0#~/.yarn/patches/convex-react-query-npm-0.1.0-stale-query-removal.patch",
-    "@netlify/vite-plugin@npm:2.12.9": "patch:@netlify/vite-plugin@npm%3A2.12.9#~/.yarn/patches/netlify-vite-plugin-npm-2.12.9-static-response.patch",
     "convex@npm:1.45.0": "patch:convex@npm%3A1.45.0#~/.yarn/patches/convex-npm-1.45.0-static-api-never.patch",
     "sanitize-html": "2.17.5"
   },

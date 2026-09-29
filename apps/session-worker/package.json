@@ -28,6 +28,6 @@
     "@vitest/snapshot": "^4.1.9",
     "typescript": "^7.0.2",
     "vitest": "^4.1.9",
-    "wrangler": "^4.123.0"
+    "wrangler": "^4.143.0"
   }
 }

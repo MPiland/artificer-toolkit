@@ -1,6 +1,6 @@
-import './instrument.server'
-import * as Sentry from '@sentry/tanstackstart-react'
+import * as Sentry from '@sentry/cloudflare'
 import handler, { type ServerEntry } from '@tanstack/react-start/server-entry'
+import { serverSentryOptions } from '#app/observability/sentry.server'
 import { withSecurityHeaders } from '#app/server/securityHeaders'
 import { handleConvexAuthRequest } from '#app/server/auth/convex.server'
 
@@ -14,4 +14,4 @@ const serverEntry = {
   }
 } satisfies ServerEntry
 
-export default Sentry.wrapFetchWithSentry(serverEntry) satisfies ServerEntry
+export default Sentry.withSentry(serverSentryOptions, serverEntry) satisfies ServerEntry

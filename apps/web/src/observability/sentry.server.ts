@@ -1,35 +1,20 @@
-import * as Sentry from '@sentry/tanstackstart-react'
+import type { CloudflareOptions } from '@sentry/cloudflare'
+import { isSentryConfigured } from './sentry.config'
 import { redactSentryEvent } from './sentryPrivacy'
 
-interface SentryServerEnvironment {
-  dsn?: string
-  isProduction: boolean
-}
-
-function getSentryServerEnvironment(): SentryServerEnvironment {
+/** Per-request options for `withSentry` in the Worker entry; the DSN is inlined at build time. */
+export function serverSentryOptions(): CloudflareOptions {
   return {
-    dsn: process.env.VITE_SENTRY_DSN,
-    isProduction: process.env.NODE_ENV === 'production'
-  }
-}
-
-export function initializeServerSentry(
-  environment: SentryServerEnvironment = getSentryServerEnvironment()
-): void {
-  if (!environment.isProduction || !environment.dsn || Sentry.isInitialized()) {
-    return
-  }
-
-  Sentry.init({
     beforeSend: redactSentryEvent,
     beforeSendTransaction: redactSentryEvent,
     dataCollection: {
       httpBodies: [],
       userInfo: false
     },
-    dsn: environment.dsn,
+    dsn: import.meta.env.VITE_SENTRY_DSN,
     enableLogs: true,
     enableMetrics: true,
+    enabled: isSentryConfigured(),
     sendDefaultPii: false
-  })
+  }
 }

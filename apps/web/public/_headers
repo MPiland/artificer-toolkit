@@ -1,0 +1,6 @@
+# Static asset headers (ADR 0037). Worker responses get theirs from src/server/securityHeaders.ts.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  X-Content-Type-Options: nosniff

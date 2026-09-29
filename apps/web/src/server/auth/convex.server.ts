@@ -1,4 +1,3 @@
-import { getContext } from '@netlify/functions'
 import { convexBetterAuthReactStart } from '@convex-dev/better-auth/react-start'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '@artificer-toolkit/apis/convex/api'
@@ -16,22 +15,13 @@ function connection() {
 }
 
 async function proxyHeaders(request: Request, path: string, method: 'GET' | 'POST') {
-  let ip: string
-  try {
-    ip = getContext().ip
-  } catch {
-    // Vite does not always run inside a Netlify function. Local requests share a loopback bucket.
-    const hostname = new URL(request.url).hostname
-    if (
-      process.env.NODE_ENV === 'production' ||
-      !['localhost', '127.0.0.1', '[::1]'].includes(hostname)
-    ) {
-      throw new Error('Trusted authentication request context is unavailable.')
-    }
-    ip = '127.0.0.1'
-  }
+  // The Cloudflare edge sets CF-Connecting-IP to the connecting client, and workerd sets it in local
+  // dev. Without it the request did not arrive through the platform, so auth fails closed.
+  const ip = request.headers.get('cf-connecting-ip')
+  if (!ip) throw new Error('Trusted authentication request context is unavailable.')
   const headers = new Headers(request.headers)
   for (const name of [
+    'cf-connecting-ip',
     'x-forwarded-for',
     'x-real-ip',
     'x-artificer-client-ip',
@@ -52,7 +42,6 @@ export async function handleConvexAuthRequest(request: Request) {
     return new Response(null, { status: 405, headers: { Allow: 'GET, POST' } })
   }
   const headers = await proxyHeaders(request, new URL(request.url).pathname, request.method)
-  // TanStack's NodeRequest exposes Web fields but is not a native Undici Request.
   const init: RequestInit & { duplex: 'half' } = {
     method: request.method,
     headers,

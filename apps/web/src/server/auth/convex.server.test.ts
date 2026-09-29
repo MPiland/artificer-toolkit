@@ -1,10 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createServer, IncomingMessage } from 'node:http'
-import { Socket } from 'node:net'
-import { NodeRequest } from 'srvx/node'
+import { createServer } from 'node:http'
 
 const mocks = vi.hoisted(() => ({
-  getContext: vi.fn(),
   handler: vi.fn(),
   sign: vi.fn(),
   tokenFetch: vi.fn(),
@@ -13,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   setAuth: vi.fn(),
   query: vi.fn()
 }))
-vi.mock('@netlify/functions', () => ({ getContext: mocks.getContext }))
 vi.mock('@convex-dev/better-auth/react-start', () => ({
   convexBetterAuthReactStart: () => ({ handler: mocks.handler })
 }))
@@ -41,13 +37,21 @@ import {
   loadConvexSession
 } from './convex.server'
 
+const EDGE_CLIENT_IP = '198.51.100.10'
+
+/** A request as Cloudflare delivers it: the edge sets CF-Connecting-IP to the connecting client. */
+function edgeRequest(url: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers)
+  headers.set('cf-connecting-ip', EDGE_CLIENT_IP)
+  return new Request(url, { ...init, headers })
+}
+
 describe('Convex auth SSR boundary', () => {
   beforeEach(async () => {
     vi.resetAllMocks()
     mocks.clients.length = 0
     vi.stubEnv('VITE_CONVEX_URL', 'https://example.convex.cloud')
     vi.stubEnv('CONVEX_SITE_URL', 'https://example.convex.site')
-    mocks.getContext.mockReturnValue({ ip: '198.51.100.10' })
     mocks.sign.mockResolvedValue('server-signed-context')
     // fetch responses have immutable headers, unlike a Response constructed by a test.
     const upstream = await fetch('data:application/json,%7B%7D')
@@ -69,9 +73,9 @@ describe('Convex auth SSR boundary', () => {
     vi.restoreAllMocks()
   })
 
-  it('overwrites spoofed context and signs only the platform client IP', async () => {
+  it('overwrites spoofed context and signs only the edge client IP', async () => {
     const result = await handleConvexAuthRequest(
-      new Request('https://app.example/api/auth/sign-in/email', {
+      edgeRequest('https://app.example/api/auth/sign-in/email', {
         method: 'POST',
         headers: {
           'x-artificer-auth-proxy-context': 'forged',
@@ -83,7 +87,7 @@ describe('Convex auth SSR boundary', () => {
     )
     expect(mocks.sign).toHaveBeenCalledWith(
       {
-        ip: '198.51.100.10',
+        ip: EDGE_CLIENT_IP,
         method: 'POST',
         path: '/api/auth/sign-in/email'
       },
@@ -91,20 +95,39 @@ describe('Convex auth SSR boundary', () => {
     )
     const forwarded: Request = mocks.handler.mock.calls[0][0]
     expect(forwarded.headers.get('x-artificer-auth-proxy-context')).toBe('server-signed-context')
-    for (const name of ['x-artificer-client-ip', 'x-forwarded-for', 'x-real-ip']) {
+    for (const name of [
+      'cf-connecting-ip',
+      'x-artificer-client-ip',
+      'x-forwarded-for',
+      'x-real-ip'
+    ]) {
       expect(forwarded.headers.has(name)).toBe(false)
     }
     expect(result.headers.get('Cache-Control')).toBe('no-store')
   })
 
-  it('fails closed without platform context in production and rejects unsupported methods', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
-    mocks.getContext.mockImplementation(() => {
-      throw new Error('No platform request')
-    })
-    await expect(
-      handleConvexAuthRequest(new Request('https://app.example/api/auth/get-session'))
-    ).rejects.toThrow('Trusted authentication request context')
+  it.each(['production', 'development'])(
+    'fails closed without CF-Connecting-IP in a %s build, even on loopback',
+    async (mode) => {
+      vi.stubEnv('MODE', mode)
+      for (const url of [
+        'https://app.example/api/auth/get-session',
+        'http://localhost:3000/api/auth/get-session'
+      ]) {
+        await expect(handleConvexAuthRequest(new Request(url))).rejects.toThrow(
+          'Trusted authentication request context'
+        )
+        await expect(
+          loadConvexSession(new Request(url, { headers: { cookie: 'session=test' } }))
+        ).rejects.toThrow('Trusted authentication request context')
+      }
+      expect(mocks.sign).not.toHaveBeenCalled()
+      expect(mocks.handler).not.toHaveBeenCalled()
+      expect(mocks.tokenFetch).not.toHaveBeenCalled()
+    }
+  )
+
+  it('rejects unsupported methods before reading the client IP', async () => {
     const result = await handleConvexAuthRequest(
       new Request('https://app.example/api/auth/get-session', { method: 'DELETE' })
     )
@@ -112,39 +135,22 @@ describe('Convex auth SSR boundary', () => {
     expect(mocks.handler).not.toHaveBeenCalled()
   })
 
-  it.each(['GET', 'POST'])(
-    'forwards a real TanStack NodeRequest for %s without native Request brand assumptions',
-    async (method) => {
-      const incoming = new IncomingMessage(new Socket())
-      incoming.method = method
-      incoming.url = '/api/auth/sign-in/email?test=1'
-      incoming.headers = {
-        host: 'app.example',
-        cookie: 'session=test',
-        'content-type': 'application/json'
-      }
-      incoming.rawHeaders = [
-        'Host',
-        'app.example',
-        'Cookie',
-        'session=test',
-        'Content-Type',
-        'application/json'
-      ]
-      incoming.complete = true
-      const payload = JSON.stringify({ email: 'player@example.com', password: 'test-password' })
-      if (method === 'POST') incoming.push(payload)
-      incoming.push(null)
-      const request = new NodeRequest({ req: incoming })
-      await handleConvexAuthRequest(request)
-      const forwarded: Request = mocks.handler.mock.calls[0][0]
-      expect(forwarded.url).toBe('http://app.example/api/auth/sign-in/email?test=1')
-      expect(forwarded.method).toBe(method)
-      expect(forwarded.headers.get('cookie')).toBe('session=test')
-      expect(forwarded.headers.get('x-artificer-auth-proxy-context')).toBe('server-signed-context')
-      expect(await forwarded.text()).toBe(method === 'POST' ? payload : '')
-    }
-  )
+  it.each(['GET', 'POST'])('streams a native %s request through the proxy', async (method) => {
+    const payload = JSON.stringify({ email: 'player@example.com', password: 'test-password' })
+    await handleConvexAuthRequest(
+      edgeRequest('https://app.example/api/auth/sign-in/email?test=1', {
+        method,
+        headers: { cookie: 'session=test', 'content-type': 'application/json' },
+        body: method === 'POST' ? payload : undefined
+      })
+    )
+    const forwarded: Request = mocks.handler.mock.calls[0][0]
+    expect(forwarded.url).toBe('https://app.example/api/auth/sign-in/email?test=1')
+    expect(forwarded.method).toBe(method)
+    expect(forwarded.headers.get('cookie')).toBe('session=test')
+    expect(forwarded.headers.get('x-artificer-auth-proxy-context')).toBe('server-signed-context')
+    expect(await forwarded.text()).toBe(method === 'POST' ? payload : '')
+  })
 
   it('preserves redirects and separate cookies from a real local HTTP response', async () => {
     const cookies = [
@@ -161,7 +167,7 @@ describe('Convex auth SSR boundary', () => {
       const upstream = await fetch(`http://127.0.0.1:${address.port}`, { redirect: 'manual' })
       mocks.handler.mockResolvedValue(upstream)
       const result = await handleConvexAuthRequest(
-        new Request('https://app.example/api/auth/verify-email')
+        edgeRequest('https://app.example/api/auth/verify-email')
       )
       expect(result.status).toBe(302)
       expect(result.headers.get('Location')).toBe('/sign-in')
@@ -175,11 +181,7 @@ describe('Convex auth SSR boundary', () => {
     }
   })
 
-  it('uses a loopback bucket only locally and keeps the backend JWT out of the session projection', async () => {
-    vi.stubEnv('NODE_ENV', 'development')
-    mocks.getContext.mockImplementation(() => {
-      throw new Error('Vite request')
-    })
+  it('keeps the backend JWT out of the session projection', async () => {
     mocks.tokenFetch.mockResolvedValue(Response.json({ token: 'private-backend-jwt' }))
     const snapshot = {
       user: null,
@@ -188,11 +190,11 @@ describe('Convex auth SSR boundary', () => {
     }
     mocks.query.mockResolvedValue(snapshot)
     const result = await loadConvexSession(
-      new Request('http://localhost:3000/home', { headers: { cookie: 'session=test' } })
+      edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
     )
     expect(mocks.sign).toHaveBeenCalledWith(
       {
-        ip: '127.0.0.1',
+        ip: EDGE_CLIENT_IP,
         method: 'GET',
         path: '/api/auth/convex/token'
       },
@@ -201,7 +203,6 @@ describe('Convex auth SSR boundary', () => {
     expect(mocks.setAuth).toHaveBeenCalledWith('private-backend-jwt')
     expect(result).toEqual(snapshot)
     expect(JSON.stringify(result)).not.toContain('private-backend-jwt')
-    await expect(loadConvexSession(new Request('http://public.example/home'))).rejects.toThrow()
   })
 
   it('skips token exchange only for credential-free requests and still reads current backend flags', async () => {
@@ -211,7 +212,7 @@ describe('Convex auth SSR boundary', () => {
       featureFlags: { libraryImportEnabled: true, publicSignUpEnabled: false }
     }
     mocks.query.mockResolvedValue(snapshot)
-    const request = new Request('https://app.example/sign-in', {
+    const request = edgeRequest('https://app.example/sign-in', {
       headers: { 'x-user-id': 'spoofed', 'x-artificer-auth-proxy-context': 'forged' }
     })
     expect(await loadConvexSession(request)).toEqual(snapshot)
@@ -231,7 +232,7 @@ describe('Convex auth SSR boundary', () => {
       }
       mocks.tokenFetch.mockResolvedValue(Response.json({ token: 'verified-backend-jwt' }))
       mocks.query.mockResolvedValue(snapshot)
-      const request = new Request('https://app.example/home', {
+      const request = edgeRequest('https://app.example/home', {
         headers: { [header]: header === 'cookie' ? 'session=test' : 'Bearer supplied-token' }
       })
       expect(await loadConvexSession(request)).toEqual(snapshot)
@@ -254,12 +255,12 @@ describe('Convex auth SSR boundary', () => {
     )
     const clients = await Promise.all([
       createAuthenticatedConvexClient(
-        new Request('https://app.example/backgrounds', { headers: { cookie: 'session=first' } })
+        edgeRequest('https://app.example/backgrounds', { headers: { cookie: 'session=first' } })
       ),
       createAuthenticatedConvexClient(
-        new Request('https://app.example/backgrounds', { headers: { cookie: 'session=second' } })
+        edgeRequest('https://app.example/backgrounds', { headers: { cookie: 'session=second' } })
       ),
-      createAuthenticatedConvexClient(new Request('https://app.example/backgrounds'))
+      createAuthenticatedConvexClient(edgeRequest('https://app.example/backgrounds'))
     ])
     expect(new Set(clients).size).toBe(3)
     expect(mocks.clients.map((client) => client.token).sort()).toEqual([
@@ -274,13 +275,13 @@ describe('Convex auth SSR boundary', () => {
     mocks.tokenFetch.mockResolvedValue(new Response(null, { status: 401 }))
     mocks.sessionFetch.mockResolvedValue(Response.json(null))
     await createAuthenticatedConvexClient(
-      new Request('https://app.example/home', { headers: { cookie: 'session=expired' } })
+      edgeRequest('https://app.example/home', { headers: { cookie: 'session=expired' } })
     )
     expect(mocks.setAuth).not.toHaveBeenCalled()
     expect(mocks.tokenFetch.mock.calls[0][1].redirect).toBe('error')
     expect(mocks.sessionFetch.mock.calls[0][1].headers.get('host')).toBe('example.convex.site')
     expect(mocks.sign).toHaveBeenLastCalledWith(
-      { ip: '198.51.100.10', path: '/api/auth/get-session', method: 'GET' },
+      { ip: EDGE_CLIENT_IP, path: '/api/auth/get-session', method: 'GET' },
       'https://example.convex.site'
     )
   })
@@ -294,7 +295,7 @@ describe('Convex auth SSR boundary', () => {
       )
       await expect(
         loadConvexSession(
-          new Request('https://app.example/home', { headers: { cookie: 'session=test' } })
+          edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
         )
       ).rejects.toThrow('Authentication verification is unavailable')
       expect(mocks.query).not.toHaveBeenCalled()
@@ -305,7 +306,7 @@ describe('Convex auth SSR boundary', () => {
     mocks.tokenFetch.mockResolvedValue(new Response(null, { status }))
     await expect(
       loadConvexSession(
-        new Request('https://app.example/home', { headers: { cookie: 'session=test' } })
+        edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
       )
     ).rejects.toThrow('Authentication verification is unavailable')
     expect(mocks.query).not.toHaveBeenCalled()
@@ -317,7 +318,7 @@ describe('Convex auth SSR boundary', () => {
       mocks.tokenFetch.mockResolvedValue(Response.json(payload))
       await expect(
         loadConvexSession(
-          new Request('https://app.example/home', { headers: { cookie: 'session=test' } })
+          edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
         )
       ).rejects.toThrow('invalid response')
       expect(mocks.query).not.toHaveBeenCalled()

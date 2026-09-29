@@ -8,8 +8,9 @@ interface WithSecurityHeadersOptions extends SecurityHeaderOptions {
   preserveExisting?: boolean
 }
 
+// Vite inlines the build mode, so a deployed Worker never depends on a runtime NODE_ENV (ADR 0037).
 function isDevelopment() {
-  return process.env.NODE_ENV !== 'production'
+  return import.meta.env.MODE === 'development'
 }
 
 function getScriptSrc(nonce?: string) {
@@ -28,7 +29,7 @@ function getStyleSrc() {
 }
 
 function getSentryConnectSource() {
-  const dsn = process.env.VITE_SENTRY_DSN
+  const dsn = process.env.VITE_SENTRY_DSN ?? import.meta.env.VITE_SENTRY_DSN
   if (!dsn) return []
 
   try {
