@@ -180,8 +180,19 @@ so the Session room can later run the same code against its own store. It depend
 
 ### Encounter record shapes (ADR 0035 Amendment 12)
 
-> Status: current local implementation of the Encounter part of Amendment 12. The Character
-> play-state split and packed history per checkpoint (S3) are not done yet.
+> Status: current local implementation of the Encounter and Character parts of Amendment 12.
+> Packed history per checkpoint (S3) is not done yet.
+
+- **Character play state.** A Character is a `characters` row (Builder-owned structure and the
+  Sheet's structure envelope, clocked by `updatedAt`) and a `characterPlayStates` row (hit points,
+  resources, slots, conditions, exhaustion, inspiration, item-use state, resource usage, party
+  visibility, `maximumHitPoints`, `walkingSpeed`, clocked by `streamVersion`). `writeCharacterRecord`
+  is the only writer and replaces only the record whose checksum changed, so a play change writes
+  the small record (about 0.5 KB, against the 7.6 KB document) and never the document. Readers join the two with `readCharacterRow`; party
+  visibility reads the play row alone. `campaignCharacterStates` and `characterActiveRuleEffects`
+  stay per Campaign. See [Character play state](character.md#character-play-state-adr-0035-amendment-12--local-implementation)
+  for the concurrency rule. The contract is `schema/projections/characterPlayState`; the room store
+  takes its record shape from it.
 
 - **No stored projection.** `encounterRuns` holds the Run state only. Every projection is built on
   read by `readEncounterGmProjection` (`nativeProjection.ts`) from the Run state, its actors'
