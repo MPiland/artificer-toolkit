@@ -6,7 +6,9 @@
 was used. It is not acceptance evidence, and the ledger is unchanged.
 
 **Change.** The Run stores no projection, a command stores a replay receipt instead of its result,
-and initiative and occurrence updates patch only changed fields. See
+and initiative and occurrence updates patch only changed fields. The follow-ups add per-actor
+projection facts, pending snapshots stored as a base and deltas, and Run summaries for the Run list.
+See
 [Encounter record shapes](../../architecture/persistence.md#encounter-record-shapes-adr-0035-amendment-12).
 
 ## Method
@@ -53,6 +55,36 @@ Building on read reads every actor document (about 6 KB each, mostly its source 
 initiative round, and evaluates the actor rules. It costs about 1.5 times the bytes at 11 actors and
 2.8 times at 100; the Character document is still read once.
 
+## Follow-ups: projection facts, snapshot parts and Run summaries
+
+The three follow-ups the plan recorded, measured with the same test on `51f9e71ee` ("after") against
+the numbers above ("before").
+
+**(a) Projection facts.** Projections read each actor's projection facts (about 0.9 KB for a Wolf)
+and one stat block and Feature set per Creature source, never the actor documents.
+
+| Actors | Viewer | Before: documents, bytes | After: documents, bytes, present, query |
+| ------ | ------ | ------------------------ | --------------------------------------- |
+| 11     | GM     | 38, 120 KB               | 39, 77 KB, 5.4 ms, 11.3 ms              |
+| 11     | Player | 39, 127 KB               | 40, 85 KB, 5.0 ms, 7.8 ms               |
+| 100    | GM     | 216, 691 KB              | 217, 218 KB, 11.5 ms, 66 ms             |
+| 100    | Player | 217, 699 KB              | 218, 225 KB, 11.7 ms, 48 ms             |
+
+The remaining 100-actor bytes are the facts rows (about 100 KB), the initiative participants and the
+Character. Each changed actor now also writes its facts row, so a command writes about 1 KB more per
+changed actor: GM `UPDATE_ACTOR` 8.8 → 9.7 KB (11 actors) and 12.4 → 13.3 KB (100), `RESOLVE_ACTION`
+20.5 → 22.3 KB and 24.1 → 26.0 KB; `ADVANCE_TURN` is unchanged (6.1 and 9.7 KB).
+
+**(b) Pending snapshot parts.** At 100 actors the tied START writes the snapshot's base once
+(308 KB) and each of the 50 order choices writes a delta part and the occurrence's small row: the
+median choice writes 2.9 KB (339 KB before). The whole START writes 0.82 MB instead of 17.2 MB. At 11
+actors the dice produced no tie; START wrote 41.3 KB, as before. Settling the occurrence deletes its
+parts.
+
+**(c) Run summaries.** `projectionReads:list` built a full projection per Run (at 100 actors, 216
+documents and 691 KB per Run). It now reads one document per Run: about 2.0 KB per Run at 11 actors
+and 5.7 KB at 100 (the Run's actor list), whatever the number of Runs.
+
 ## Tests
 
 - `encounterProjectionParity.test.ts`: the GM, player and second-player projections, timelines and
@@ -62,6 +94,12 @@ initiative round, and evaluates the actor rules. It costs about 1.5 times the by
 - The same file checks that an immediate replay returns identical bytes to the GM (GM tool, action,
   turn, actor removal), to a player for their action, and for a paused action.
 - `encounterStoreConformance.test.ts` goldens changed only by the removed fields and the new receipt.
+- Follow-ups: the parity suite also checks, after every conformance operation, that the stored
+  projection facts project exactly what projecting the actor documents does; the goldens stayed
+  unchanged. `encounterWriteSets.test.ts` asserts a 100-actor projection read of at most 250 KB, a
+  tied 100-actor START of at most 2 MB with no snapshot parts left afterwards, and a Run list of one
+  document per Run. `jsonDelta.test.ts` checks that deltas rebuild the next value. The store
+  conformance goldens gained the facts and part rows.
 
 ## Uncertainty
 

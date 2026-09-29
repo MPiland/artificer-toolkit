@@ -184,12 +184,29 @@ so the Session room can later run the same code against its own store. It depend
 > play-state split and packed history per checkpoint (S3) are not done yet.
 
 - **No stored projection.** `encounterRuns` holds the Run state only. Every projection is built on
-  read by `readEncounterGmProjection` (`nativeProjection.ts`) from the Run state, its
-  `encounterRunActors`, the current initiative round and each Character: the actor rules are
-  evaluated, then `projectCurrentEncounterGm` projects them. `presentRun` (`projectionReads`)
-  supplies each viewer's Character values itself and projects through `projectEncounterActors`, so
-  a Character document is read once per query. Command results use the same code, after the
-  command's writes; the live commit handlers still project in memory from the planner's rules.
+  read by `readEncounterGmProjection` (`nativeProjection.ts`) from the Run state, its actors'
+  projection facts, the current initiative round and each Character, through
+  `projectCurrentEncounterGmFacts`. `presentRun` (`projectionReads`) supplies each viewer's
+  Character values itself and projects through `projectEncounterFacts`, so a Character document is
+  read once per query. Command results use the same code, after the command's writes; the live
+  commit handlers still project in memory from the planner's rules, through the same per-actor facts
+  function (`projectGm` builds the facts, then `projectGmFacts` projects them).
+- **Actor projection facts.** Beside each `encounterRunActors` row, `encounterActorProjectionFacts`
+  holds what projections show of that actor (`encounterActorProjectionFactsSchema`): the actor state
+  without its source snapshot, its health for a Creature or custom actor, `frozenState` for a
+  Character, and each Feature's resource with the actor rules already evaluated (each actor's rules
+  depend on that actor alone). A Creature's stat block and Feature references are shared by
+  identical Creatures in the Run: `encounterSourceProjectionFacts` holds them once per checksum, and
+  the last actor naming a checksum deletes it. Every actor write goes through `insertRunActor`,
+  `writeRunActor` or `deleteRunActor` (`documents.ts`), which rewrite the facts in the same
+  transaction (`actorProjectionFacts.ts`), so a projection never reads an actor document or its
+  snapshot. The parity suite checks after every conformance operation that the stored facts project
+  exactly what projecting the actor documents does. Changing the actor rules or projection code
+  changes stored facts, which the pre-launch data reset rebuilds.
+- **Run summaries.** `projectionReads:list` returns `encounterSummaryDtoSchema` rows (id, name,
+  status, round, actor count, `updatedAt`, version) read from each Run document alone, one document
+  per Run. The actor count is null for a player, who sees only public actors. The web picks from the
+  summaries and renders the selected Run through `projectionReads:get`.
 - **Character values outside play.** A Character actor reads its current Character while the Run
   is open and the Character is assigned to the Campaign. It keeps `frozenState` (hit points and
   conditions) for the times the Run stops reading it: the COMPLETE command freezes every Character,
@@ -205,13 +222,22 @@ so the Session room can later run the same code against its own store. It depend
   replay receipt the same way.
 - **Changed fields only.** Initiative round, participant and side updates and occurrence updates
   patch only the fields that changed (`changedFields` in `documents.ts`), which is the delta a
-  checkpoint carries. A pending decision whose sealed snapshot changes (for example each tied
-  initiative-order choice) still rewrites that snapshot field.
+  checkpoint carries.
+- **Pending snapshot parts.** An occurrence keeps only its pending snapshot's checksum
+  (`pendingSnapshotChecksum`). The sealed snapshot lives in `encounterPendingSnapshotParts`: part 0
+  is the base, and each later update adds one structural delta (`jsonDelta.ts`: changed object keys,
+  and arrays as kept leading and trailing items around new middle items), so each tied
+  initiative-order choice writes only what it changed. `readPendingSnapshot` rebuilds the snapshot,
+  checks it against the occurrence's checksum and parses it once per transaction and checksum;
+  `writePendingSnapshot` stores the base or the delta and returns the checksum, and a null snapshot
+  deletes the parts when the occurrence settles. A delta at least half the base's size, or a chain of
+  128 parts, starts a new base. The checksum is still the whole snapshot's, so every seal, fence and
+  replay comparison is unchanged.
 - **Live capture.** The Concentration response capture no longer carries a projection; the Worker
   never read it.
-- **Cost.** An action writes about 20–24 KB instead of 58–395 KB, and a projection read costs about
-  1.5 times the bytes at 11 actors and 2.8 times at 100
-  ([record](../validation/phase-08-2/adr-0035-s1b-record-shapes-2026-09-28.md)).
+- **Cost.** See the [record](../validation/phase-08-2/adr-0035-s1b-record-shapes-2026-09-28.md) for
+  the bytes each command writes, the projection read, the tied-initiative START and the Run list at
+  11 and 100 actors.
 
 ## Oversized inventory cleanup — approved 2026-09-18
 
