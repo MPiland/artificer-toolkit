@@ -86,6 +86,18 @@ This replaces the long Advanced authoring form with a mind-map editor. Selecting
   - mobile behavior;
   - usage analytics before the form is retired.
 
+## Crowdfunding campaign (user direction, 2026-09-28)
+
+The user wants a Kickstarter campaign with realistic goals to fund finishing the build and early hosting.
+
+- **Timing:** it runs alongside closed beta, not after it. The campaign ends just before beta opens, and higher-tier backers join a Founders' Beta and help shape the product.
+- **Guardrails:**
+  - rewards are bounded: no lifetime subscriptions, only beta access, time-limited plans, badges and credits;
+  - it launches only once there is working footage;
+  - the page states plainly what the money funds;
+  - the wording is "compatible with 5th edition", never the Dungeons & Dragons trademark.
+- **Next step:** Claude drafts a campaign plan for the user's review. It covers the goal built from real costs, the reward tiers, a timeline tied to the Phase 8.2 and 8.3 finish, a page outline, a video shot list, the waitlist and the risks.
+
 ## Post-launch
 
 ### Shared live cursors (Q19)
