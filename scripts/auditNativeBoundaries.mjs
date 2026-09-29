@@ -27,9 +27,9 @@ const retiredPaths = [
   'apps/web/src/domains/rules',
   'apps/web/src/routes/_authed/admin/rules.tsx',
   'apps/web/src/server/trpc.ts',
+  'apps/web/netlify.toml',
   'apps/web/src/supabase',
-  'netlify/edge-functions',
-  'netlify/functions',
+  'netlify',
   'packages/db',
   'packages/functions'
 ]
@@ -41,7 +41,7 @@ const retiredWorkspaceNames = new Set([
 ])
 
 const forbiddenDependency =
-  /^(?:@gorules\/|@supabase\/|@trpc\/|@types\/pg$|kysely(?:-supabase)?$|pg$|postgres(?:-js)?$|supabase$)/iu
+  /^(?:@gorules\/|@netlify\/|@supabase\/|@trpc\/|@types\/pg$|kysely(?:-supabase)?$|netlify-cli$|pg$|postgres(?:-js)?$|supabase$)/iu
 const sourceRules = [
   {
     name: 'removed Supabase product API',
@@ -64,12 +64,8 @@ const sourceRules = [
       /@artificer-toolkit\/(?:db|functions|session-host)\b|(?:apps\/session-host|packages\/(?:db|functions))(?:\/|\b)/iu
   },
   {
-    name: 'removed product Netlify function request',
-    pattern: /\/\.netlify\/functions\b|\bnetlify\/(?:edge-)?functions\//iu
-  },
-  {
-    name: 'Netlify Functions import outside retained SSR bridge',
-    pattern: /@netlify\/functions\b/u
+    name: 'removed Netlify hosting surface (ADR 0037)',
+    pattern: /@netlify\/|\/\.netlify\/|\bnetlify\/(?:edge-)?functions\/|\bnetlify\.(?:app|toml)\b/iu
   }
 ]
 
@@ -138,7 +134,7 @@ function isExcluded(path) {
 }
 
 // The audited source is what git would ship (tracked and unignored untracked files), never ignored
-// local build or dev-server output such as apps/web/.netlify or storybook-static.
+// local build or dev-server output such as apps/web/.wrangler or storybook-static.
 function sourceInventory() {
   const result = spawnSync(
     'git',
@@ -174,15 +170,6 @@ function sourceViolations(path, source) {
   for (const [index, line] of source.split(/\r?\n/u).entries()) {
     for (const rule of sourceRules) {
       if (!rule.pattern.test(line)) continue
-      if (
-        rule.name === 'Netlify Functions import outside retained SSR bridge' &&
-        ((path === 'apps/web/src/server/auth/convex.server.ts' &&
-          line.trim() === "import { getContext } from '@netlify/functions'") ||
-          (path === 'apps/web/package.json' &&
-            /^"@netlify\/functions":\s*"[^"]+",$/.test(line.trim())))
-      ) {
-        continue
-      }
       violations.push({
         line: index + 1,
         path,
@@ -239,12 +226,6 @@ async function dependencyAudit(manifestPaths) {
         if (retiredWorkspaceNames.has(name) || forbiddenDependency.test(name)) {
           violations.push({ path, rule: 'forbidden direct dependency ' + name })
         }
-        if (name === '@netlify/functions' && path !== 'apps/web/package.json') {
-          violations.push({
-            path,
-            rule: '@netlify/functions is allowed only for the web SSR bridge'
-          })
-        }
       }
     }
   }
@@ -265,7 +246,7 @@ async function audit() {
   const inventory = sourceInventory()
   const files = [
     ...rootConfigPaths.filter((path) => existsSync(resolve(root, path))),
-    ...['apps', 'packages', 'netlify', 'scripts'].flatMap((path) => collectFiles(inventory, path))
+    ...['apps', 'packages', 'scripts'].flatMap((path) => collectFiles(inventory, path))
   ]
   const uniqueFiles = [...new Set(files)].sort()
   for (const path of uniqueFiles) {
@@ -286,7 +267,7 @@ async function audit() {
   )
   console.log('Workspaces: ' + [...actualWorkspaces.values()].sort().join(', '))
   console.log(
-    'Allowlisted: Markdown and test/spec/story/preview paths; generated Convex/SRD/Worker declarations; yarn.lock transitive Better Auth/Netlify SSR dependencies; @netlify/functions only in the web SSR bridge.'
+    'Allowlisted: Markdown and test/spec/story/preview paths; generated Convex/SRD/Worker declarations; yarn.lock transitive dependencies.'
   )
 }
 
@@ -300,21 +281,21 @@ function selfTest() {
     [
       'client.ts',
       "fetch('/.netlify/functions/cleanup-media')",
-      'removed product Netlify function request'
+      'removed Netlify hosting surface (ADR 0037)'
+    ],
+    [
+      'apps/web/src/server/auth/convex.server.ts',
+      "import { getContext } from '@netlify/functions'",
+      'removed Netlify hosting surface (ADR 0037)'
     ],
     ['client.ts', "import '@artificer-toolkit/db'", 'retired workspace path']
   ]
   for (const [path, source, expectedRule] of fixtures) {
     assert(sourceViolations(path, source).some(({ rule }) => rule === expectedRule))
   }
-  assert.equal(
-    sourceViolations(
-      'apps/web/src/server/auth/convex.server.ts',
-      "import { getContext } from '@netlify/functions'"
-    ).length,
-    0
-  )
   assert(forbiddenDependency.test('@trpc/server'))
+  assert(forbiddenDependency.test('@netlify/vite-plugin-tanstack-start'))
+  assert(forbiddenDependency.test('netlify-cli'))
   assert(retiredWorkspaceNames.has('@artificer-toolkit/functions'))
   assert(isExcluded('docs/history.md'))
   assert(isExcluded('apps/web/src/legacy.test.ts'))

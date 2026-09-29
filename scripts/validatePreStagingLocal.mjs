@@ -36,6 +36,7 @@ const localProofDirectory = 'local-validation/local-convex-proofs'
 const localResetDirectory = 'local-validation/convex-reset'
 const localHosts = new Set(['127.0.0.1', '::1', 'host.docker.internal', 'localhost'])
 const remoteOnlyEnvironmentNames = new Set([
+  'CLOUDFLARE_API_TOKEN',
   'CONFIRM_MANAGED_VTT_SMOKE',
   'MANAGED_LIVE_SESSION_ENDPOINT',
   'MANAGED_VTT_BASE_URL',
@@ -236,8 +237,6 @@ function isRemoteOnlyEnvironmentName(name) {
     name.startsWith('MANAGED_') ||
     name.startsWith('PROD_') ||
     name.startsWith('STAGING_') ||
-    name === 'DEPLOY_PRIME_URL' ||
-    name === 'DEPLOY_URL' ||
     remoteOnlyEnvironmentNames.has(name)
   )
 }
@@ -888,13 +887,6 @@ const stages = [
     'test'
   ]),
   stage('emails-tests', 'Email tests', 'yarn', ['workspace', '@artificer-toolkit/emails', 'test']),
-  stage('netlify-tests', 'Netlify infrastructure tests', 'yarn', [
-    'vitest',
-    'run',
-    '--config',
-    'vitest.config.ts',
-    'netlify/tests'
-  ]),
   stage('session-worker-tests', 'Session Worker tests', 'yarn', [
     'workspace',
     '@artificer-toolkit/session-worker',

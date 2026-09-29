@@ -1,6 +1,0 @@
-[build]
-command = "yarn build:web --concurrency=1"
-publish = "apps/web/dist/client"
-
-[build.environment]
-SECRETS_SCAN_OMIT_KEYS = "R2_VTT_MAP_BUCKET"

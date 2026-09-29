@@ -15,7 +15,6 @@ storybook-static/
 *.tsbuildinfo
 
 # Local tool state and generated test artifacts
-.netlify/
 .codex/
 .claude/worktrees/
 /local-validation/
@@ -26,8 +25,7 @@ storybook-static/
 .turbo/
 .cache/
 apps/*/.cache/
-apps/*/.netlify/
-apps/session-worker/.wrangler/
+apps/*/.wrangler/
 test-results/
 playwright-report/
 .playwright-cli/

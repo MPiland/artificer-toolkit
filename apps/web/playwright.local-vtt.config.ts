@@ -28,7 +28,6 @@ function localEnvironmentFile(path: string): Record<string, string> {
     (result, [key, value]) => {
       if (
         key.startsWith('MANAGED_') ||
-        key.startsWith('NETLIFY_') ||
         key.startsWith('PROD_') ||
         key.startsWith('STAGING_') ||
         key === 'VITE_SENTRY_DSN'
