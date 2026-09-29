@@ -10,6 +10,7 @@ import {
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { sceneCurrentEntityPageSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { sceneFogLayersPageSchema } from '@artificer-toolkit/schema/api/sceneFog'
 import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
@@ -33,6 +34,7 @@ import {
 
 import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
+import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const campaignId = '00000000-0000-4000-8000-000000000101'
@@ -178,6 +180,10 @@ function installFetch(
     backendPaths.push(pathname)
     if (pathname === ROOM_AUTHORIZATION_PATH)
       return Response.json(roomAuthorizationResponse({ members, ...authorization }))
+    if (pathname === ROOM_INPUTS_PATH)
+      return Response.json(
+        roomInputsResponse(liveRoomInputsInputSchema.parse(await request.json()).scope)
+      )
     if (pathname === '/live-sessions/bootstrap') {
       return Response.json({
         activationFingerprint,

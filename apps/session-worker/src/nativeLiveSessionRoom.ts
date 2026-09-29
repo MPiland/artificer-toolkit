@@ -87,6 +87,8 @@ import {
 } from './nativeExternalSceneCommit.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
+import { RoomEncounterStore } from './roomEncounterStore.js'
+import { RoomInputs } from './roomInputs.js'
 import {
   admitsRoomMember,
   RoomAuthorization,
@@ -237,6 +239,9 @@ function authorityFingerprint(capture: LiveSessionTransientCapture): unknown {
 
 export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
   readonly #journal: DurableCommandJournal
+  /** The room's Encounter aggregate (ADR 0035); loaded here, not yet read by commands (S6). */
+  readonly #roomStore: RoomEncounterStore
+  readonly #roomInputs: RoomInputs
   readonly #admissions = new Map<WebSocket, Admission>()
   readonly #authenticating = new Map<
     WebSocket,
@@ -278,6 +283,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   constructor(ctx: DurableObjectState, env: SessionWorkerEnvironment) {
     super(ctx, env)
     this.#journal = new DurableCommandJournal(ctx.storage)
+    this.#roomStore = new RoomEncounterStore(ctx.storage)
+    this.#roomInputs = new RoomInputs(this.#roomStore, (epoch, scope) => {
+      const campaignId = this.#roomCampaignId()
+      if (!campaignId) throw new Error('Live Session room identity is missing.')
+      return callLiveSessionRoute(this.env, null, 'roomInputs', { campaignId, epoch, scope })
+    })
     ctx.blockConcurrencyWhile(async () => {
       ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS native_room_identity (
@@ -789,6 +800,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         )
           throw new Error('Live Session publication checksum is inconsistent.')
         await this.#flushOutbox()
+        // Within an epoch the store already holds the aggregate from SQLite (ADR 0035, Amendment 2);
+        // a new epoch loads it from Convex.
+        if (this.#roomStore.epoch !== value.authorityEpoch) {
+          const authorization =
+            this.#authorization.currentPlay(value.authorityEpoch) ??
+            (await this.#authorization.refresh(value.authorityEpoch))
+          await this.#roomInputs.hydrate({
+            epoch: value.authorityEpoch,
+            encounterId: authorization.play.encounter?.encounterId ?? null
+          })
+        }
       })()
       this.#activation = work
       void work.catch(() => {
