@@ -43,6 +43,10 @@ export default defineConfig({
           environment: 'jsdom',
           setupFiles: ['./src/test/setup.ts'],
           css: true,
+          // jsdom + React tests are CPU-bound. Vitest's default (one worker per logical CPU) puts
+          // two busy workers on every physical core, which stretches multi-second tests 3-5x and
+          // trips their timeouts. One worker per physical core is also faster overall.
+          maxWorkers: '50%',
           include: ['src/**/*.{test,spec}.{ts,tsx}'],
           exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/*.browser.test.tsx'],
           // Workspace packages resolve outside node_modules, so Vitest transforms them, and its
