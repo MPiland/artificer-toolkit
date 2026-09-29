@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import type { ConvexHttpClient } from 'convex/browser'
 import type { SignedCampaignFileDeliveryDto } from '@artificer-toolkit/schema/api/media'
 import { api } from '../convex/_generated/api'
-import { verifyCampaignCollaborationBrowser } from '../../web/tests/convex/campaignCollaboration'
+import { verifyCampaignCollaborationBrowser } from '../../web/tests/live-backend/campaignCollaboration'
 
 export async function verifyCampaignCollaboration(input: {
   owner: { client: ConvexHttpClient; email: string; password: string; username: string }

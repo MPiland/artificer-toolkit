@@ -1265,7 +1265,7 @@ try {
     const characterId = crypto.randomUUID()
     characterFixtures.push({ userId: owner.identity.userId, characterId })
     const { verifyAccountEntitlementsBrowser } =
-      await import('../../web/tests/convex/accountEntitlements')
+      await import('../../web/tests/live-backend/accountEntitlements')
     await verifyAccountEntitlementsBrowser({
       email: owner.email,
       password: owner.password,
@@ -2223,7 +2223,7 @@ try {
           'Membership browser proof requires its unique retained evidence directory.'
         )
         const { verifyCampaignMembershipBrowser } =
-          await import('../../web/tests/convex/campaignMembership')
+          await import('../../web/tests/live-backend/campaignMembership')
         proof = await verifyCampaignMembershipBrowser(
           {
             origin: 'http://localhost:3000',
@@ -2475,7 +2475,8 @@ try {
     const initial = await owner.client.query(api.campaigns.queries.get, {
       id: campaign.id
     })
-    const { verifyCampaignContentBrowser } = await import('../../web/tests/convex/campaignContent')
+    const { verifyCampaignContentBrowser } =
+      await import('../../web/tests/live-backend/campaignContent')
     await verifyCampaignContentBrowser({
       email: owner.email,
       password: owner.password,
@@ -2589,7 +2590,8 @@ try {
         )
       )
     await mkdir(evidenceDirectory, { recursive: true })
-    const { openV15WorkloadBrowser } = await import('../../web/tests/convex/v15WorkloadBrowser')
+    const { openV15WorkloadBrowser } =
+      await import('../../web/tests/live-backend/v15WorkloadBrowser')
     const browser = await openV15WorkloadBrowser({
       owner: { email: owner.email, password: owner.password, username: owner.username },
       players: players.map(({ email, password, username }) => ({ email, password, username })),
@@ -2753,7 +2755,7 @@ try {
           browser: disarmBrowser
             ? async (fixture, verify) => {
                 const { verifyEncounterDisarmBrowser } =
-                  await import('../../web/tests/convex/encounterDisarm')
+                  await import('../../web/tests/live-backend/encounterDisarm')
                 owner.client.setAuth(await owner.fetchToken())
                 player.client.setAuth(await player.fetchToken())
                 await verifyEncounterDisarmBrowser(
@@ -2842,7 +2844,7 @@ try {
             playerUserId: player.identity.userId,
             browser: async (fixture, verify) => {
               const { verifyEncounterEffectsBrowser } =
-                await import('../../web/tests/convex/encounterEffects')
+                await import('../../web/tests/live-backend/encounterEffects')
               owner.client.setAuth(await owner.fetchToken())
               player.client.setAuth(await player.fetchToken())
               await verifyEncounterEffectsBrowser(
@@ -3047,7 +3049,7 @@ try {
         const { prepareEncounterMovementFixture, publishMovementReactionCreature } =
           await import('./developmentEncounterMovement')
         const { verifyEncounterMovementBrowser } =
-          await import('../../web/tests/convex/encounterMovement')
+          await import('../../web/tests/live-backend/encounterMovement')
         owner.client.setAuth(await owner.fetchToken())
         publicationAuthors.push({
           client: owner.client,
@@ -4504,7 +4506,7 @@ try {
         : undefined
     if (equipmentBrowser)
       assert.ok(equipmentParent, 'The canonical variant must have a visible base item.')
-    const { verifyNativeAuthoring } = await import('../../web/tests/convex/nativeAuthoring')
+    const { verifyNativeAuthoring } = await import('../../web/tests/live-backend/nativeAuthoring')
     let start: Parameters<typeof verifyNativeAuthoring>[0]['start']
     if (process.argv.includes('--guided-copy-browser') || publicationBrowser) {
       start = {
@@ -4790,7 +4792,7 @@ try {
       { developmentAccountDeletionInspectResultSchema }
     ] = await Promise.all([
       import('./developmentAccountDeletionFixture'),
-      import('../../web/tests/convex/accountDeletion'),
+      import('../../web/tests/live-backend/accountDeletion'),
       import('@artificer-toolkit/schema/api/campaignCommunication'),
       import('@artificer-toolkit/schema/api/developmentAccountDeletion')
     ])
@@ -5195,7 +5197,7 @@ try {
       }
     })
     const { verifyPasswordRecoveryBrowser } =
-      await import('../../web/tests/convex/passwordRecovery')
+      await import('../../web/tests/live-backend/passwordRecovery')
     await verifyPasswordRecoveryBrowser({
       email: author.email,
       unknownEmail,
@@ -5330,7 +5332,7 @@ try {
       )
     }
     const { verifyAuthenticatedBrowserSession } =
-      await import('../../web/tests/convex/authenticatedSession')
+      await import('../../web/tests/live-backend/authenticatedSession')
     await verifyAuthenticatedBrowserSession({
       email: author.email,
       password: author.password,

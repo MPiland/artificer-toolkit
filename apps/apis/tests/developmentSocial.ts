@@ -22,7 +22,7 @@ import { api } from '../convex/_generated/api.js'
 import { developmentCli as cli } from './developmentCli'
 import { verifySocialAdmission } from './developmentSocialAdmission'
 import { verifySocialPagination } from './developmentSocialPagination'
-import { verifySocialBrowser, type SocialBrowserStage } from '../../web/tests/convex/social'
+import { verifySocialBrowser, type SocialBrowserStage } from '../../web/tests/live-backend/social'
 
 export type SocialProofAccount = {
   client: ConvexHttpClient

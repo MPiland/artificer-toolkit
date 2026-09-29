@@ -6,7 +6,7 @@ import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 import {
   verifyCampaignCustodyBrowser as driveCampaignCustodyBrowser,
   type CampaignCustodyVerificationInput
-} from '../../web/tests/convex/campaignCustody'
+} from '../../web/tests/live-backend/campaignCustody'
 
 async function collectPages<T>(
   load: (cursor: string | null) => Promise<{ page: T[]; isDone: boolean; continueCursor: string }>

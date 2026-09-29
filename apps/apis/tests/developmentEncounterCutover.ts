@@ -1410,7 +1410,7 @@ export async function verifyEncounterCutoverWorkload({
   )
   let browser: Awaited<
     ReturnType<
-      (typeof import('../../web/tests/convex/v15WorkloadBrowser'))['openV15WorkloadBrowser']
+      (typeof import('../../web/tests/live-backend/v15WorkloadBrowser'))['openV15WorkloadBrowser']
     >
   > | null = null
   try {
@@ -1427,7 +1427,8 @@ export async function verifyEncounterCutoverWorkload({
         })
     })
     if (browserAccounts) {
-      const { openV15WorkloadBrowser } = await import('../../web/tests/convex/v15WorkloadBrowser')
+      const { openV15WorkloadBrowser } =
+        await import('../../web/tests/live-backend/v15WorkloadBrowser')
       browser = await openV15WorkloadBrowser({
         ...browserAccounts,
         map: workloadMap,

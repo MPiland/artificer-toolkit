@@ -7,7 +7,7 @@ import type { ConvexHttpClient } from 'convex/browser'
 import { api } from '../convex/_generated/api.js'
 import { developmentCli as cli } from './developmentCli'
 import { one, tables } from './developmentCampaignLifecycle'
-import { verifyCampaignLifecycleBrowser } from '../../web/tests/convex/campaignLifecycle'
+import { verifyCampaignLifecycleBrowser } from '../../web/tests/live-backend/campaignLifecycle'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   campaignCopyProgressSchema,

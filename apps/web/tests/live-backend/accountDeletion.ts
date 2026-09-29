@@ -52,7 +52,7 @@ type StrictSession = {
 }
 
 /**
- * Promotion candidate for apps/web/tests/convex/accountDeletion.ts.
+ * Promotion candidate for apps/web/tests/live-backend/accountDeletion.ts.
  * The coordinator supplies native inspection; this helper only drives native Settings UI and observes it.
  */
 export async function verifyAccountDeletionBrowser(
