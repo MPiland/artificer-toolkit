@@ -81,6 +81,14 @@ export const campaignConversationKindDtoSchema = lazySchema(() =>
 export const campaignChatRoomDtoSchema = campaignConversationKindDtoSchema
 export const campaignChatEntryKindDtoSchema = lazySchema(() => z.enum(['CHAT', 'ROLL']))
 export const campaignChatModeDtoSchema = lazySchema(() => z.enum(['OOC', 'ROLEPLAY']))
+/**
+ * Unread counts are exact below this value; this value means "at least this many". The count is
+ * read from the entry index, so the cap bounds its reads to about one page of entry headers.
+ */
+export const campaignChatUnreadCountLimit = 50
+const campaignChatUnreadCountSchema = lazySchema(() =>
+  z.number().check(z.int()).check(z.nonnegative()).check(z.lte(campaignChatUnreadCountLimit))
+)
 export const deletedCampaignAuthorLabel = 'Deleted user'
 /** The author shown on roll entries the rules write, such as a settled Concentration check. */
 export const ruleCheckAuthorLabel = 'Rules'
@@ -117,7 +125,7 @@ export const campaignConversationDtoSchema = lazySchema(() =>
       participantUserIds: z.array(uuidSchema).check(z.maxLength(2)),
       createdAt: timestampSchema,
       lastReadAt: z.nullable(timestampSchema),
-      unreadCount: z.number().check(z.int()).check(z.nonnegative())
+      unreadCount: campaignChatUnreadCountSchema
     })
     .check(
       z.superRefine((conversation, context) => {
@@ -324,7 +332,7 @@ export const campaignChatPageDtoSchema = lazySchema(() =>
     entries: z.array(campaignChatEntryDtoSchema),
     nextCursor: z.nullable(uuidSchema),
     lastReadAt: z.nullable(timestampSchema),
-    unreadCount: z.number().check(z.int()).check(z.nonnegative())
+    unreadCount: campaignChatUnreadCountSchema
   })
 )
 
@@ -337,3 +345,4 @@ export type ExecuteCampaignPrivateRollInput = z.input<typeof executeCampaignPriv
 export type CampaignRollDestinationDto = z.infer<typeof campaignRollDestinationDtoSchema>
 export type RevealCampaignRollInput = z.input<typeof revealCampaignRollInputSchema>
 export type CampaignChatPageDto = z.infer<typeof campaignChatPageDtoSchema>
+export type ListCampaignChatEntriesInput = z.input<typeof listCampaignChatEntriesInputSchema>

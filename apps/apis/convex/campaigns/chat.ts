@@ -8,13 +8,14 @@ import {
   unsendCampaignChatEntryInputSchema,
   type CampaignChatEntryDto,
   type CampaignChatPageDto,
+  type ListCampaignChatEntriesInput,
   type SendCampaignChatEntryInput
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 import {
   campaignStoredEntryHeaderSchema,
   campaignStoredEntryPayloadSchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
-import type { MutationCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
@@ -23,55 +24,93 @@ import { requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import {
   conversationAccess,
+  countUnreadEntries,
   findConversation,
   insertConversationEntry,
   openConversation,
+  presentChatEntries,
   presentChatEntry,
   readEntryPayload,
-  readCampaignAccessTime,
-  visibleConversationEntries
+  readCampaignAccessTime
 } from './conversationDocuments'
 import { consumeUserRateLimit } from '../lib/rateLimits'
 
 export const list = query({
   args: zodToConvexFields(listCampaignChatEntriesInputSchema.shape),
   returns: zodToConvex(campaignChatPageDtoSchema),
-  handler: async (ctx, args): Promise<CampaignChatPageDto> => {
-    const { userId } = await requireIdentity(ctx)
-    const input = listCampaignChatEntriesInputSchema.parse(args)
-    const authority = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    const participants =
-      input.room === 'DIRECT' ? [userId, input.directUserId!.toLowerCase()].sort() : []
-    const room = await findConversation(ctx, authority.campaign.id, input.room, participants)
-    if (!room) throw new Error('Conversation not found.')
-    const access = await conversationAccess(ctx, authority, room)
-    if (!access) throw new Error('Conversation not found.')
-    const headers = await visibleConversationEntries(ctx, room, access.member)
-    const cursorIndex = input.cursor
-      ? headers.findIndex((entry) => entry.id === input.cursor!.toLowerCase())
-      : -1
-    const start = input.cursor && cursorIndex === -1 ? headers.length : cursorIndex + 1
-    const page = headers.slice(start, start + input.limit)
-    return {
-      entries: await Promise.all(
-        page.map(async (header) =>
-          presentChatEntry(
-            ctx,
-            header,
-            await readEntryPayload(ctx, header.id),
-            room,
-            authority.campaign.contentMaturity
-          )
-        )
-      ),
-      nextCursor: start + input.limit < headers.length ? page.at(-1)!.id : null,
-      lastReadAt: access.member.lastReadAt,
-      unreadCount: headers.filter(
-        (entry) => access.member.lastReadAt === null || entry.createdAt > access.member.lastReadAt
-      ).length
-    }
-  }
+  handler: async (ctx, args): Promise<CampaignChatPageDto> =>
+    readCampaignChatPage(ctx, (await requireIdentity(ctx)).userId, args)
 })
+
+export async function readCampaignChatPage(
+  ctx: QueryCtx,
+  userId: string,
+  args: ListCampaignChatEntriesInput
+): Promise<CampaignChatPageDto> {
+  const input = listCampaignChatEntriesInputSchema.parse(args)
+  const authority = await requireCampaignAuthority(ctx, input.campaignId, userId)
+  const participants =
+    input.room === 'DIRECT' ? [userId, input.directUserId!.toLowerCase()].sort() : []
+  const room = await findConversation(ctx, authority.campaign.id, input.room, participants)
+  if (!room) throw new Error('Conversation not found.')
+  const access = await conversationAccess(ctx, authority, room)
+  if (!access) throw new Error('Conversation not found.')
+  const { member } = access
+  const status = {
+    lastReadAt: member.lastReadAt,
+    unreadCount: await countUnreadEntries(ctx, room, member)
+  }
+  const cursor = input.cursor
+    ? await ctx.db
+        .query('campaignConversationEntries')
+        .withIndex('by_publicId', (q) => q.eq('id', input.cursor!.toLowerCase()))
+        .unique()
+    : null
+  // A cursor outside this member's visible history ends the history, as an unknown one does.
+  if (
+    input.cursor &&
+    (!cursor || cursor.conversationId !== room.id || cursor.createdAt < member.accessStartedAt)
+  )
+    return { entries: [], nextCursor: null, ...status }
+  // Newest first by (createdAt, id): entries tied with the cursor's time, then strictly older ones.
+  const wanted = input.limit + 1
+  const tied = cursor
+    ? await ctx.db
+        .query('campaignConversationEntries')
+        .withIndex('by_conversationId_createdAt_id', (q) =>
+          q.eq('conversationId', room.id).eq('createdAt', cursor.createdAt).lt('id', cursor.id)
+        )
+        .order('desc')
+        .take(wanted)
+    : []
+  const older =
+    tied.length < wanted
+      ? await ctx.db
+          .query('campaignConversationEntries')
+          .withIndex('by_conversationId_createdAt_id', (q) => {
+            const visible = q.eq('conversationId', room.id).gte('createdAt', member.accessStartedAt)
+            return cursor ? visible.lt('createdAt', cursor.createdAt) : visible
+          })
+          .order('desc')
+          .take(wanted - tied.length)
+      : []
+  const headers = [...tied, ...older]
+  if (headers.some((header) => header.campaignId !== room.campaignId))
+    throw new Error('Stored conversation history mismatch.')
+  const page = headers.slice(0, input.limit)
+  return {
+    entries: await presentChatEntries(
+      ctx,
+      await Promise.all(
+        page.map(async (header) => ({ header, payload: await readEntryPayload(ctx, header.id) }))
+      ),
+      room,
+      authority.campaign.contentMaturity
+    ),
+    nextCursor: headers.length > input.limit ? page.at(-1)!.id : null,
+    ...status
+  }
+}
 
 export const send = mutation({
   args: zodToConvexFields(sendCampaignChatEntryInputSchema.shape),

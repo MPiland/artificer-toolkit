@@ -1,5 +1,6 @@
 import {
   campaignChatEntryDtoSchema,
+  campaignChatUnreadCountLimit,
   campaignConversationDtoSchema,
   type CampaignChatEntryDto,
   type CampaignConversationDto
@@ -13,8 +14,6 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { readCampaignAuthorLabels } from './authorLabels'
 import { requireCampaignAuthority, readActiveCampaignMembers } from './authority'
-
-export const conversationEntryLimit = 500
 
 /** Messages cannot precede a current member's freshly advanced access cutoff. */
 export async function readCampaignAccessTime(
@@ -147,24 +146,28 @@ export async function openConversation(
   return access
 }
 
-export async function visibleConversationEntries(
+/**
+ * Unread entries are the member's visible entries (at or after the access cutoff) strictly after
+ * the last-read timestamp, so equal-time entries share read state. The count comes from the entry
+ * index and the member row alone: send, edit, unsend and mark-read keep nothing else in step. An
+ * unsent entry keeps its header as a tombstone in the log, so it counts like any other entry.
+ */
+export async function countUnreadEntries(
   ctx: QueryCtx,
   conversation: Doc<'campaignConversations'>,
   member: Doc<'campaignConversationMembers'>
 ) {
-  const entries = await ctx.db
+  const { accessStartedAt, lastReadAt } = member
+  const unread = await ctx.db
     .query('campaignConversationEntries')
-    .withIndex('by_conversationId_createdAt_id', (q) =>
-      q.eq('conversationId', conversation.id).gte('createdAt', member.accessStartedAt)
-    )
-    .order('desc')
-    .take(conversationEntryLimit + 1)
-  if (
-    entries.length > conversationEntryLimit ||
-    entries.some((entry) => entry.campaignId !== conversation.campaignId)
-  )
-    throw new Error('Stored conversation history mismatch.')
-  return entries
+    .withIndex('by_conversationId_createdAt_id', (q) => {
+      const room = q.eq('conversationId', conversation.id)
+      return lastReadAt !== null && lastReadAt >= accessStartedAt
+        ? room.gt('createdAt', lastReadAt)
+        : room.gte('createdAt', accessStartedAt)
+    })
+    .take(campaignChatUnreadCountLimit)
+  return unread.length
 }
 
 export async function presentConversation(
@@ -172,7 +175,6 @@ export async function presentConversation(
   conversation: Doc<'campaignConversations'>,
   member: Doc<'campaignConversationMembers'>
 ): Promise<CampaignConversationDto> {
-  const entries = await visibleConversationEntries(ctx, conversation, member)
   return campaignConversationDtoSchema.parse({
     id: conversation.id,
     campaignId: conversation.campaignId,
@@ -180,9 +182,7 @@ export async function presentConversation(
     participantUserIds: conversation.participantUserIds,
     createdAt: conversation.createdAt,
     lastReadAt: member.lastReadAt,
-    unreadCount: entries.filter(
-      (entry) => member.lastReadAt === null || entry.createdAt > member.lastReadAt
-    ).length
+    unreadCount: await countUnreadEntries(ctx, conversation, member)
   })
 }
 
@@ -195,7 +195,7 @@ export async function readEntryPayload(ctx: QueryCtx, entryId: string) {
   return payload
 }
 
-/** Text and public rolls share one atomic header/payload retention boundary. */
+/** Text and rolls write both halves of an entry together; history is kept and paged, not trimmed. */
 export async function insertConversationEntry(
   ctx: MutationCtx,
   header: Omit<Doc<'campaignConversationEntries'>, '_id' | '_creationTime'>,
@@ -203,88 +203,100 @@ export async function insertConversationEntry(
 ) {
   await ctx.db.insert('campaignConversationEntries', header)
   await ctx.db.insert('campaignConversationEntryPayloads', payload)
-  const retained = await ctx.db
-    .query('campaignConversationEntries')
-    .withIndex('by_conversationId_createdAt_id', (q) =>
-      q.eq('conversationId', header.conversationId)
-    )
-    .order('desc')
-    .take(conversationEntryLimit + 2)
-  if (retained.length > conversationEntryLimit + 1)
-    throw new Error('Stored conversation retention limit exceeded.')
-  const expired = retained[conversationEntryLimit]
-  if (expired) {
-    const expiredPayload = await readEntryPayload(ctx, expired.id)
-    await ctx.db.delete(expiredPayload._id)
-    await ctx.db.delete(expired._id)
-  }
+}
+
+type StoredEntry = {
+  header:
+    | Doc<'campaignConversationEntries'>
+    | Omit<Doc<'campaignConversationEntries'>, '_id' | '_creationTime'>
+  payload:
+    | Doc<'campaignConversationEntryPayloads'>
+    | Omit<Doc<'campaignConversationEntryPayloads'>, '_id' | '_creationTime'>
 }
 
 export async function presentChatEntry(
   ctx: QueryCtx,
-  entry:
-    | Doc<'campaignConversationEntries'>
-    | Omit<Doc<'campaignConversationEntries'>, '_id' | '_creationTime'>,
-  payload:
-    | Doc<'campaignConversationEntryPayloads'>
-    | Omit<Doc<'campaignConversationEntryPayloads'>, '_id' | '_creationTime'>,
+  entry: StoredEntry['header'],
+  payload: StoredEntry['payload'],
   conversation: Doc<'campaignConversations'>,
   maturity: 'STANDARD' | 'MATURE'
 ): Promise<CampaignChatEntryDto> {
-  const [authorUsername] = await readCampaignAuthorLabels(ctx, [
-    { userId: entry.authorUserId, username: payload.authorUsername }
-  ])
-  return campaignChatEntryDtoSchema.parse({
-    id: entry.id,
-    campaignId: entry.campaignId,
-    conversationId: entry.conversationId,
-    room: conversation.kind,
-    kind: payload.kind,
-    mode: payload.mode,
-    // Masking can expand a short word; bound display text without changing stored snapshots.
-    body:
-      payload.body === null
-        ? null
-        : presentCampaignPlainText(payload.body, maturity).slice(0, 2000),
-    roll:
-      payload.roll === null
-        ? null
-        : {
-            ...payload.roll,
-            characterLabel: presentCampaignPlainText(payload.roll.characterLabel, maturity),
-            source: {
-              ...payload.roll.source,
-              label: presentCampaignPlainText(payload.roll.source.label, maturity).slice(0, 80)
-            },
-            ...(payload.roll.ruleCheck
-              ? {
-                  ruleCheck: {
-                    ...payload.roll.ruleCheck,
-                    actorLabel: presentCampaignPlainText(
-                      payload.roll.ruleCheck.actorLabel,
-                      maturity
-                    ).slice(0, 160),
-                    sourceLabel:
-                      payload.roll.ruleCheck.sourceLabel === null
-                        ? null
-                        : presentCampaignPlainText(
-                            payload.roll.ruleCheck.sourceLabel,
-                            maturity
-                          ).slice(0, 160)
+  const [presented] = await presentChatEntries(
+    ctx,
+    [{ header: entry, payload }],
+    conversation,
+    maturity
+  )
+  return presented!
+}
+
+/** Presents a page of entries, reading each distinct author's label once. */
+export async function presentChatEntries(
+  ctx: QueryCtx,
+  entries: StoredEntry[],
+  conversation: Doc<'campaignConversations'>,
+  maturity: 'STANDARD' | 'MATURE'
+): Promise<CampaignChatEntryDto[]> {
+  const authorUsernames = await readCampaignAuthorLabels(
+    ctx,
+    entries.map(({ header, payload }) => ({
+      userId: header.authorUserId,
+      username: payload.authorUsername
+    }))
+  )
+  return entries.map(({ header: entry, payload }, index) =>
+    campaignChatEntryDtoSchema.parse({
+      id: entry.id,
+      campaignId: entry.campaignId,
+      conversationId: entry.conversationId,
+      room: conversation.kind,
+      kind: payload.kind,
+      mode: payload.mode,
+      // Masking can expand a short word; bound display text without changing stored snapshots.
+      body:
+        payload.body === null
+          ? null
+          : presentCampaignPlainText(payload.body, maturity).slice(0, 2000),
+      roll:
+        payload.roll === null
+          ? null
+          : {
+              ...payload.roll,
+              characterLabel: presentCampaignPlainText(payload.roll.characterLabel, maturity),
+              source: {
+                ...payload.roll.source,
+                label: presentCampaignPlainText(payload.roll.source.label, maturity).slice(0, 80)
+              },
+              ...(payload.roll.ruleCheck
+                ? {
+                    ruleCheck: {
+                      ...payload.roll.ruleCheck,
+                      actorLabel: presentCampaignPlainText(
+                        payload.roll.ruleCheck.actorLabel,
+                        maturity
+                      ).slice(0, 160),
+                      sourceLabel:
+                        payload.roll.ruleCheck.sourceLabel === null
+                          ? null
+                          : presentCampaignPlainText(
+                              payload.roll.ruleCheck.sourceLabel,
+                              maturity
+                            ).slice(0, 160)
+                    }
                   }
-                }
-              : {})
-          },
-    revealedByGm: payload.revealedByGm,
-    authorUserId: entry.authorUserId,
-    authorUsername,
-    characterId: payload.characterId,
-    characterLabel:
-      payload.characterLabel === null
-        ? null
-        : presentCampaignPlainText(payload.characterLabel, maturity).slice(0, 100),
-    editedAt: payload.editedAt,
-    unsentAt: payload.unsentAt,
-    createdAt: entry.createdAt
-  })
+                : {})
+            },
+      revealedByGm: payload.revealedByGm,
+      authorUserId: entry.authorUserId,
+      authorUsername: authorUsernames[index],
+      characterId: payload.characterId,
+      characterLabel:
+        payload.characterLabel === null
+          ? null
+          : presentCampaignPlainText(payload.characterLabel, maturity).slice(0, 100),
+      editedAt: payload.editedAt,
+      unsentAt: payload.unsentAt,
+      createdAt: entry.createdAt
+    })
+  )
 }

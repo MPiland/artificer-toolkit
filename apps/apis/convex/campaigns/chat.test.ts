@@ -6,6 +6,7 @@ import type {
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
 import {
+  campaignChatUnreadCountLimit,
   type CampaignChatEntryDto,
   type CampaignChatPageDto,
   type CampaignConversationDto,
@@ -21,7 +22,12 @@ import { campaignStoredEntryPayloadSchema } from '@artificer-toolkit/schema/proj
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, components } from '../_generated/api'
+import type { MutationCtx } from '../_generated/server'
 import { fixture as characterFixture } from '../../tests/fixtures/characters'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
+import { requireCampaignAuthority } from './authority'
+import { postCampaignChatEntry, readCampaignChatPage } from './chat'
+import { conversationAccess, findConversation, presentConversation } from './conversationDocuments'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -578,30 +584,262 @@ describe('native Campaign text chat', () => {
     ).resolves.toMatchObject({ conversationId: direct.id })
   })
 
-  it('retains only the newest 500 entries by createdAt and id tie ordering', async () => {
+  it('keeps every entry and pages 2,000 of them newest first across createdAt ties', async () => {
     vi.useFakeTimers()
     const baseTime = new Date('2026-01-01T00:00:00.000Z')
-    vi.setSystemTime(new Date(baseTime.getTime() - 120_000))
+    vi.setSystemTime(baseTime)
     const { owner, campaign, t } = await setup()
     const conversation = await owner.caller.mutation(open, room(campaign.id, 'TABLE'))
+    const seeded = await seedHistory(t, conversation, owner.userId, 2_000, baseTime.getTime() + 1)
+    vi.setSystemTime(new Date(baseTime.getTime() + 60_000))
+    const newest = await owner.caller.mutation(send, chat(campaign.id, 'TABLE', 'newest'))
+    const counts = await t.run(async (ctx) => ({
+      headers: (await ctx.db.query('campaignConversationEntries').collect()).length,
+      payloads: (await ctx.db.query('campaignConversationEntryPayloads').collect()).length
+    }))
+    expect(counts).toEqual({ headers: 2_001, payloads: 2_001 })
+    const expected = [newest.id, ...seeded.toReversed()]
+    for (const limit of [50, 100]) {
+      const seen: string[] = []
+      let cursor: string | undefined
+      let pages = 0
+      do {
+        const page = await owner.caller.query(list, {
+          campaignId: campaign.id,
+          room: 'TABLE',
+          cursor,
+          limit
+        })
+        pages += 1
+        expect(page.entries.length).toBe(Math.min(limit, expected.length - seen.length))
+        seen.push(...page.entries.map((entry) => entry.id))
+        cursor = page.nextCursor ?? undefined
+      } while (cursor)
+      expect(seen).toEqual(expected)
+      expect(pages).toBe(Math.ceil(expected.length / limit))
+    }
+    const lastFullPage = await owner.caller.query(list, {
+      campaignId: campaign.id,
+      room: 'TABLE',
+      cursor: seeded[100],
+      limit: 100
+    })
+    expect(lastFullPage.entries.map((entry) => entry.id)).toEqual(seeded.slice(0, 100).toReversed())
+    expect(lastFullPage.nextCursor).toBeNull()
+  })
+
+  it('ends history at the access cutoff and returns an empty page for an unusable cursor', async () => {
+    vi.useFakeTimers()
+    const baseTime = new Date('2026-01-01T00:00:00.000Z')
     vi.setSystemTime(baseTime)
+    const { owner, other, campaign, t } = await setup()
+    const conversation = await owner.caller.mutation(open, room(campaign.id, 'TABLE'))
+    const seeded = await seedHistory(t, conversation, owner.userId, 120, baseTime.getTime() + 1)
+    const cutoff = (await t.run((ctx) =>
+      ctx.db
+        .query('campaignConversationEntries')
+        .withIndex('by_publicId', (q) => q.eq('id', seeded[60]!))
+        .unique()
+    ))!.createdAt
+    vi.setSystemTime(new Date(baseTime.getTime() + 60_000))
     await t.run(async (ctx) => {
-      const old = new Date(baseTime.getTime() - 120_000).toISOString()
-      for (let index = 0; index < 500; index++) {
-        const id = `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
+      const membership = await ctx.db
+        .query('campaignMemberships')
+        .withIndex('by_campaignId_userId', (q) =>
+          q.eq('campaignId', campaign.id).eq('userId', other.userId)
+        )
+        .unique()
+      await ctx.db.patch(membership!._id, { accessStartedAt: cutoff })
+    })
+    await other.caller.mutation(open, room(campaign.id, 'TABLE'))
+    const direct = await owner.caller.mutation(open, room(campaign.id, 'DIRECT', other.userId))
+    const foreign = await owner.caller.mutation(
+      send,
+      chat(campaign.id, 'DIRECT', 'direct', other.userId)
+    )
+    const read = (cursor?: string) =>
+      other.caller.query(list, { campaignId: campaign.id, room: 'TABLE', cursor, limit: 50 })
+    const first = await read()
+    expect(first.entries.map((entry) => entry.id)).toEqual(seeded.slice(70).toReversed())
+    expect(first.unreadCount).toBe(campaignChatUnreadCountLimit)
+    const second = await read(first.nextCursor!)
+    expect(second.entries.map((entry) => entry.id)).toEqual(seeded.slice(60, 70).toReversed())
+    expect(second.nextCursor).toBeNull()
+    expect(foreign.conversationId).toBe(direct.id)
+    for (const cursor of [seeded[59]!, crypto.randomUUID(), foreign.id])
+      expect(await read(cursor)).toMatchObject({ entries: [], nextCursor: null })
+  })
+
+  it('counts unread entries from the index across send, edit, unsend and mark-read', async () => {
+    vi.useFakeTimers()
+    const baseTime = new Date('2026-01-01T00:00:00.000Z')
+    vi.setSystemTime(baseTime)
+    const { owner, other, campaign, t } = await setup()
+    const conversation = await owner.caller.mutation(open, room(campaign.id, 'TABLE'))
+    await other.caller.mutation(open, room(campaign.id, 'TABLE'))
+    const unread = async (caller: typeof other.caller) => {
+      const page = await caller.query(list, { campaignId: campaign.id, room: 'TABLE', limit: 1 })
+      const rooms = await caller.query(conversations, { campaignId: campaign.id })
+      expect(rooms.find((entry) => entry.kind === 'TABLE')?.unreadCount).toBe(page.unreadCount)
+      return page.unreadCount
+    }
+    const read = (entryId: string) =>
+      other.caller.mutation(markRead, {
+        campaignId: campaign.id,
+        conversationId: conversation.id,
+        entryId
+      })
+    vi.setSystemTime(new Date(baseTime.getTime() + 1_000))
+    const first = await owner.caller.mutation(send, chat(campaign.id, 'TABLE', 'one'))
+    vi.setSystemTime(new Date(baseTime.getTime() + 2_000))
+    const second = await owner.caller.mutation(send, chat(campaign.id, 'TABLE', 'two'))
+    expect(await unread(other.caller)).toBe(2)
+    expect(await unread(owner.caller)).toBe(2)
+    await owner.caller.mutation(edit, { campaignId: campaign.id, entryId: second.id, body: 'too' })
+    expect(await unread(other.caller)).toBe(2)
+    // The tombstone stays in the log, so it stays unread until read like any other entry.
+    await owner.caller.mutation(unsend, { campaignId: campaign.id, entryId: first.id })
+    expect(await unread(other.caller)).toBe(2)
+    await read(first.id)
+    expect(await unread(other.caller)).toBe(1)
+    await read(second.id)
+    expect(await unread(other.caller)).toBe(0)
+    await read(first.id)
+    expect(await unread(other.caller)).toBe(0)
+    const seeded = await seedHistory(
+      t,
+      conversation,
+      owner.userId,
+      campaignChatUnreadCountLimit + 10,
+      baseTime.getTime() + 3_000
+    )
+    expect(await unread(other.caller)).toBe(campaignChatUnreadCountLimit)
+    // Seeded entries share each createdAt in threes, and equal-time entries share read state.
+    await read(seeded[5]!)
+    expect(await unread(other.caller)).toBe(campaignChatUnreadCountLimit)
+    await read(seeded[9]!)
+    expect(await unread(other.caller)).toBe(campaignChatUnreadCountLimit - 2)
+    await read(seeded.at(-1)!)
+    expect(await unread(other.caller)).toBe(0)
+  })
+
+  it('costs a reader one page per new message and sends without reading history', async () => {
+    vi.useFakeTimers()
+    const baseTime = new Date('2026-01-01T00:00:00.000Z')
+    vi.setSystemTime(baseTime)
+    const { owner, other, campaign, t } = await setup()
+    const conversation = await owner.caller.mutation(open, room(campaign.id, 'TABLE'))
+    await other.caller.mutation(open, room(campaign.id, 'TABLE'))
+    const seeded = await seedHistory(t, conversation, owner.userId, 2_000, baseTime.getTime() + 1)
+    vi.setSystemTime(new Date(baseTime.getTime() + 60_000))
+    await other.caller.mutation(markRead, {
+      campaignId: campaign.id,
+      conversationId: conversation.id,
+      entryId: seeded.at(-1)!
+    })
+    const measure = async <T>(
+      label: string,
+      caller: typeof owner.caller,
+      read: (ctx: MutationCtx) => Promise<T>
+    ) => {
+      const totals = createDatabaseIoTotals()
+      const result = await caller.run((ctx) =>
+        read({ ...ctx, db: countDatabaseIo(ctx.db, totals) })
+      )
+      const tables = Object.fromEntries(
+        Object.entries(totals.reads.byTable).map(([table, entry]) => [table, entry.documents])
+      )
+      const kb = Math.round(totals.reads.bytes / 102.4) / 10
+      console.info('D69 chat reads', label, JSON.stringify({ kb, tables }))
+      return { result, reads: totals.reads, writes: totals.writes }
+    }
+    const pageRead = (userId: string, cursor?: string) => (ctx: MutationCtx) =>
+      readCampaignChatPage(ctx, userId, { campaignId: campaign.id, room: 'TABLE', cursor })
+
+    const sent = await measure('send', owner.caller, async (ctx) =>
+      postCampaignChatEntry(
+        ctx,
+        await requireCampaignAuthority(ctx, campaign.id, owner.userId),
+        'CampaignOwner',
+        chat(campaign.id, 'TABLE', 'new message')
+      )
+    )
+    const reader = await measure(
+      'caught-up reader newest page',
+      other.caller,
+      pageRead(other.userId)
+    )
+    const away = await measure('away reader newest page', owner.caller, pageRead(owner.userId))
+    const older = await measure(
+      'older page at depth 1,000',
+      other.caller,
+      pageRead(other.userId, seeded[1_000])
+    )
+    const rooms = await measure('away reader room list entry', owner.caller, async (ctx) => {
+      const authority = await requireCampaignAuthority(ctx, campaign.id, owner.userId)
+      const access = await conversationAccess(
+        ctx,
+        authority,
+        (await findConversation(ctx, campaign.id, 'TABLE', []))!
+      )
+      return presentConversation(ctx, access!.conversation, access!.member)
+    })
+
+    expect(reader.result.entries[0]?.id).toBe(sent.result.id)
+    expect(reader.result).toMatchObject({ unreadCount: 1, nextCursor: expect.any(String) })
+    expect(away.result.unreadCount).toBe(campaignChatUnreadCountLimit)
+    expect(older.result.entries.map((entry) => entry.id)).toEqual(
+      seeded.slice(950, 1_000).toReversed()
+    )
+    expect(rooms.result.unreadCount).toBe(campaignChatUnreadCountLimit)
+    // Send touches only its own nonce key: no history header or payload is read or deleted.
+    expect(sent.reads.byTable.campaignConversationEntries?.documents ?? 0).toBe(0)
+    expect(sent.reads.byTable.campaignConversationEntryPayloads).toBeUndefined()
+    expect(sent.writes.byTable.delete).toBeUndefined()
+    const page = 50
+    for (const { reads } of [reader, away, older]) {
+      // One page of headers (plus the look-ahead and cursor rows) and the unread index window.
+      expect(reads.byTable.campaignConversationEntries!.documents).toBeLessThanOrEqual(
+        page + 2 + campaignChatUnreadCountLimit
+      )
+      expect(reads.byTable.campaignConversationEntryPayloads!.documents).toBe(page)
+      expect(reads.bytes).toBeLessThanOrEqual(64 * 1024)
+    }
+    expect(rooms.reads.byTable.campaignConversationEntries!.documents).toBe(
+      campaignChatUnreadCountLimit
+    )
+  }, 120_000)
+})
+
+/** Inserts `count` entries oldest first, three to each createdAt, and returns their ids in that order. */
+async function seedHistory(
+  t: Awaited<ReturnType<typeof setup>>['t'],
+  conversation: CampaignConversationDto,
+  authorUserId: string,
+  count: number,
+  startMs: number
+) {
+  const ids = Array.from(
+    { length: count },
+    (_, index) => `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
+  )
+  for (let start = 0; start < count; start += 250)
+    await t.run(async (ctx) => {
+      for (let index = start; index < Math.min(count, start + 250); index++) {
+        const id = ids[index]!
         await ctx.db.insert('campaignConversationEntries', {
           id,
-          campaignId: campaign.id,
+          campaignId: conversation.campaignId,
           conversationId: conversation.id,
-          authorUserId: owner.userId,
-          createdAt: old,
-          clientNonce: nonce()
+          authorUserId,
+          createdAt: new Date(startMs + Math.floor(index / 3)).toISOString(),
+          clientNonce: crypto.randomUUID()
         })
         await ctx.db.insert('campaignConversationEntryPayloads', {
           entryId: id,
           kind: 'CHAT',
           mode: 'OOC',
-          body: `seed ${index}`,
+          body: `Seeded message ${index} with a realistic amount of table talk in it.`,
           roll: null,
           revealedByGm: false,
           authorUsername: 'CampaignOwner',
@@ -613,42 +851,5 @@ describe('native Campaign text chat', () => {
         })
       }
     })
-    vi.setSystemTime(new Date(baseTime.getTime() + 1_000))
-    const newest = await owner.caller.mutation(send, chat(campaign.id, 'TABLE', '501'))
-    const rows = await t.run((ctx) => ctx.db.query('campaignConversationEntries').collect())
-    expect(rows).toHaveLength(500)
-    const oldestId = '00000000-0000-4000-8000-000000000000'
-    expect(rows.map((row) => row.id)).not.toContain(oldestId)
-    expect(rows.map((row) => row.id)).toContain(newest.id)
-    const payloads = await t.run((ctx) =>
-      ctx.db.query('campaignConversationEntryPayloads').collect()
-    )
-    expect(payloads).toHaveLength(500)
-    expect(payloads.map((payload) => payload.entryId)).not.toContain(oldestId)
-    expect(payloads.map((payload) => payload.entryId)).toContain(newest.id)
-    expect(payloads.map((payload) => payload.entryId).sort()).toEqual(
-      rows.map((row) => row.id).sort()
-    )
-    const seen: string[] = []
-    let cursor: string | undefined
-    for (let pageIndex = 0; pageIndex < 6; pageIndex++) {
-      const page = await owner.caller.query(list, {
-        campaignId: campaign.id,
-        room: 'TABLE',
-        cursor,
-        limit: 100
-      })
-      seen.push(...page.entries.map((entry) => entry.id))
-      if (!page.nextCursor) break
-      cursor = page.nextCursor
-    }
-    expect(seen).toHaveLength(500)
-    expect(seen[0]).toBe(newest.id)
-    expect(seen.slice(1)).toEqual(
-      Array.from(
-        { length: 499 },
-        (_, index) => `00000000-0000-4000-8000-${(499 - index).toString(16).padStart(12, '0')}`
-      )
-    )
-  })
-})
+  return ids
+}
