@@ -20,7 +20,7 @@ The feasibility check is [the D65 record](../validation/phase-08-2/d65-cloudflar
    - **Worth knowing:** the same pool serves live tables.
    - **The plan:** an alert at 60% of the daily pool.
 
-**Answer:**
+**Answer (user, 2026-09-28):** Move to Cloudflare. A beta will test the real load. No paid plan: the user cannot fund monthly hosting before revenue. Protection against exhaustion comes from free measures (per-user rate limits, Bot Fight Mode, an early alert) plus beta measurement, not from paying. Choices 1 (SSR for signed-in pages) and 2 (refocus refetch) stay open until the staging CPU check. The local migration (steps 1–3 of the D65 plan) has started; every cloud step needs the user's approval.
 
 ## Decisions to review
 
