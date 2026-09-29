@@ -290,7 +290,10 @@ function expectedAfter(
         if (name === 'campaigns') return rowString(row, 'id') !== target.id
         if (name === 'authoredRouteIds') return rowString(row, 'subjectId') !== target.id
         if (name === 'sceneVisionRevisions')
-          return !(rowString(row, 'scope') === 'CAMPAIGN' && rowString(row, 'id') === target.id)
+          return !(
+            (rowString(row, 'scope') === 'CAMPAIGN' || rowString(row, 'scope') === 'PLAY') &&
+            rowString(row, 'id') === target.id
+          )
         if (name === 'accountUsageEntries')
           return !(
             rowString(row, 'resource') === 'activeHostedCampaigns' &&

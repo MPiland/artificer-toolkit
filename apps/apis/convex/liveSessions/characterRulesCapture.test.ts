@@ -144,7 +144,8 @@ it('captures the assigned player Character stored inputs for the GM and rejects 
     revisions: expect.arrayContaining([
       { scope: 'SYSTEM', id: base.stored.systemId, revision: expect.any(String) },
       { scope: 'CAMPAIGN', id: base.campaign.id, revision: expect.any(String) },
-      { scope: 'PLAY', id: base.campaign.id, revision: null },
+      // Creating the Campaign's play settings sets its PLAY revision.
+      { scope: 'PLAY', id: base.campaign.id, revision: expect.any(String) },
       { scope: 'CHARACTER', id: base.character.id, revision: expect.any(String) }
     ])
   })
