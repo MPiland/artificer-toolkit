@@ -1,5 +1,4 @@
 import { z, lazySchema } from '../zod.js'
-import { keywordSearchSchema } from '../shared/keywordSearch.js'
 import { authoredSubjectKindSchema, projectionChecksumSchema } from '../projections/identity.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { castingTimeDtoSchema } from '../subjects/castingTime.js'
@@ -74,43 +73,13 @@ export const authoredCatalogueScopeSchema = lazySchema(() =>
   })
 )
 
-export const authoredCatalogueReadInputSchema = lazySchema(() =>
-  z.extend(authoredCatalogueScopeSchema, {
-    // Top-level catalogues span visible Systems; Guided callers supply their exact System.
-    systemId: z.optional(authoredCatalogueScopeSchema.shape.systemId),
-    category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
-    classId: z.optional(postgresUuidSchema),
-    level: z.optional(z.number().check(z.int()).check(z.gte(0)).check(z.lte(9))),
-    magicSchoolId: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
-    sort: z.optional(z.enum(['name', 'category', 'family', 'level', 'school'])),
-    paginationOpts: z.strictObject({
-      cursor: z.nullable(z.string()),
-      numItems: z.number().check(z.int()).check(z.gte(1)).check(z.lte(48)),
-      endCursor: z.optional(z.nullable(z.string())),
-      id: z.optional(z.number())
-    })
-  })
-)
-
-export const authoredCatalogueSearchInputSchema = lazySchema(() =>
-  z.extend(
-    z.omit(authoredCatalogueReadInputSchema, {
-      sort: true,
-      classId: true,
-      level: true,
-      magicSchoolId: true
-    }),
-    {
-      source: z.enum(['MASTER', 'OWNED']),
-      query: keywordSearchSchema.check(z.maxLength(160))
-    }
-  )
-)
-
 export const authoredCatalogueSearchBackfillInputSchema = lazySchema(() =>
   z.strictObject({
-    paginationOpts: z.extend(authoredCatalogueReadInputSchema.shape.paginationOpts, {
-      numItems: z.number().check(z.int()).check(z.gte(1)).check(z.lte(8))
+    paginationOpts: z.strictObject({
+      cursor: z.nullable(z.string()),
+      numItems: z.number().check(z.int()).check(z.gte(1)).check(z.lte(8)),
+      endCursor: z.optional(z.nullable(z.string())),
+      id: z.optional(z.number())
     })
   })
 )
@@ -143,16 +112,22 @@ export const authoredCatalogueItemSchema = lazySchema(() =>
     magicSchoolLabel: z.optional(z.string().check(z.minLength(1))),
     castingTimeUnit: z.optional(castingTimeDtoSchema.shape.unit),
     castingTimeAmount: z.optional(castingTimeDtoSchema.shape.amount),
-    activeUpdatedAt: z.iso.datetime(),
-    status: z.literal('ACTIVE'),
     provenance: authoredContentProvenanceDtoSchema,
     permissions: authoredContentPermissionsDtoSchema
   })
 )
 
+// The Campaign and Character option readers still page Convex reads and carry the revision.
+export const authoredCatalogueOptionSchema = lazySchema(() =>
+  z.extend(authoredCatalogueItemSchema, {
+    activeUpdatedAt: z.iso.datetime(),
+    status: z.literal('ACTIVE')
+  })
+)
+
 export const authoredCataloguePageSchema = lazySchema(() =>
   z.strictObject({
-    page: z.array(authoredCatalogueItemSchema),
+    page: z.array(authoredCatalogueOptionSchema),
     isDone: z.boolean(),
     continueCursor: z.string(),
     splitCursor: z.optional(z.nullable(z.string())),
@@ -180,15 +155,6 @@ export const authoredCatalogueCountsSchema = lazySchema(() =>
   })
 )
 
-export const authoredCatalogueSummaryInputSchema = lazySchema(() =>
-  z.extend(z.omit(authoredCatalogueScopeSchema, { systemId: true }), {
-    category: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64))),
-    classId: z.optional(postgresUuidSchema),
-    level: z.optional(z.number().check(z.int()).check(z.gte(0)).check(z.lte(9))),
-    magicSchoolId: z.optional(z.string().check(z.minLength(1)).check(z.maxLength(64)))
-  })
-)
-
 const authoredCatalogueSpellFacetSchema = lazySchema(() =>
   z.strictObject({
     id: z.string().check(z.minLength(1)),
@@ -198,12 +164,7 @@ const authoredCatalogueSpellFacetSchema = lazySchema(() =>
 
 export const authoredCatalogueSummarySchema = lazySchema(() =>
   z.extend(authoredCatalogueCountsSchema, {
-    totalCount: z
-      .number()
-      .check(z.int())
-      .check(z.gte(Number.MIN_SAFE_INTEGER), z.lte(Number.MAX_SAFE_INTEGER))
-      .check(z.nonnegative()),
-    // Facets include all visible active roots, independently of the selected filters.
+    // Facets cover every visible row, independently of the selected filters.
     categories: z.array(z.string()),
     spellFacets: z.optional(
       z.strictObject({
@@ -266,8 +227,6 @@ export const authoredCatalogueSourceCountsSchema = lazySchema(() =>
 )
 
 export type AuthoredCatalogueMetadata = z.infer<typeof authoredCatalogueMetadataSchema>
-export type AuthoredCatalogueReadInput = z.infer<typeof authoredCatalogueReadInputSchema>
-export type AuthoredCatalogueSearchInput = z.infer<typeof authoredCatalogueSearchInputSchema>
 export type AuthoredCatalogueSearchBackfillInput = z.infer<
   typeof authoredCatalogueSearchBackfillInputSchema
 >
@@ -275,8 +234,8 @@ export type AuthoredCatalogueSearchBackfillResult = z.infer<
   typeof authoredCatalogueSearchBackfillResultSchema
 >
 export type AuthoredCatalogueScope = z.infer<typeof authoredCatalogueScopeSchema>
+export type AuthoredCatalogueItem = z.infer<typeof authoredCatalogueItemSchema>
 export type AuthoredCataloguePage = z.infer<typeof authoredCataloguePageSchema>
 export type AuthoredCatalogueCounts = z.infer<typeof authoredCatalogueCountsSchema>
-export type AuthoredCatalogueSummaryInput = z.infer<typeof authoredCatalogueSummaryInputSchema>
 export type AuthoredCatalogueSummary = z.infer<typeof authoredCatalogueSummarySchema>
 export type AuthoredCatalogueOwnerCounts = z.infer<typeof authoredCatalogueOwnerCountsSchema>

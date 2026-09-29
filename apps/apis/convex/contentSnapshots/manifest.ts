@@ -1,8 +1,10 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
+  contentSnapshotCatalogueManifestDtoSchema,
   contentSnapshotManifestDtoSchema,
   contentSnapshotManifestInputSchema,
   contentSnapshotTokenGrantSchema,
+  type ContentSnapshotCatalogueManifestDto,
   type ContentSnapshotManifestDto,
   type ContentSnapshotTokenGrant
 } from '@artificer-toolkit/schema/api/contentSnapshots'
@@ -81,6 +83,42 @@ export const manifest = query({
 
 // Above the Builder's per-System source bound; more fails closed instead of truncating the grant.
 const MAX_TOKEN_SCOPES = 100
+
+/**
+ * The snapshot heads the authored-content lists read: every PLATFORM source and the caller's own
+ * Homebrew sources across Systems, with no Campaign shares (the visible set of
+ * `buildContentCatalogueItems`).
+ */
+export const catalogue = query({
+  args: {},
+  returns: zodToConvex(contentSnapshotCatalogueManifestDtoSchema),
+  handler: async (ctx): Promise<ContentSnapshotCatalogueManifestDto> => {
+    const { userId } = await requireIdentity(ctx)
+    const [platform, owned] = await Promise.all([
+      ctx.db
+        .query('contentSources')
+        .withIndex('by_ownerUserId', (q) => q.eq('ownerUserId', null))
+        .take(MAX_TOKEN_SCOPES + 1),
+      ctx.db
+        .query('contentSources')
+        .withIndex('by_ownerUserId', (q) => q.eq('ownerUserId', userId))
+        .take(MAX_TOKEN_SCOPES + 1)
+    ])
+    if (platform.length + owned.length > MAX_TOKEN_SCOPES)
+      throw new Error('Catalogue content source limit exceeded.')
+    return contentSnapshotCatalogueManifestDtoSchema.parse({
+      userId,
+      sources: await Promise.all(
+        [...platform, ...owned].map(async (source) => ({
+          contentSourceId: source.id,
+          systemId: source.gameSystemId,
+          kind: source.kind,
+          head: await readHead(ctx, { scope: 'SOURCE', scopeId: source.id })
+        }))
+      )
+    })
+  }
+})
 
 /** The private scopes named in a content token: own USER sources and active, undeleted Campaigns. */
 export const readTokenGrant = internalQuery({

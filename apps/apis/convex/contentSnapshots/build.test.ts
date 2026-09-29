@@ -6,8 +6,11 @@ import type {
   CampaignContentRemovalReceiptDto,
   UnshareCampaignContentInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { ContentSnapshotKind } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { contentSnapshotObjectKey } from '@artificer-toolkit/rules-runtime/contentSnapshots'
+import {
+  contentSnapshotObjectKey,
+  type ContentSnapshotKind,
+  type ContentSnapshotPart
+} from '@artificer-toolkit/schema/api/contentSnapshots'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_CONTENT_SOURCE,
@@ -24,6 +27,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { startLocalR2 } from '../../tests/localR2'
 import { api, internal } from '../_generated/api'
 import type { Doc } from '../_generated/dataModel'
+import { catalogueMetadata } from '../content/catalogueMetadata'
 import { insertAuthoredVersion } from '../content/documents'
 import { requireDefaultUserContentSource } from '../content/sources'
 import { withSceneVisionTracking } from '../lib/mutations'
@@ -100,6 +104,11 @@ async function setup() {
       const fields = {
         label: document.label,
         checksum,
+        catalogue: await catalogueMetadata(ctx, authored, {
+          checksum,
+          publicId: document.id,
+          createdAt: Date.now()
+        }),
         currentVersionId,
         currentVersionPublicId: versionId
       }
@@ -129,15 +138,16 @@ async function setup() {
         .withIndex('by_scope_scopeId', (q) => q.eq('scope', ref.scope).eq('scopeId', ref.scopeId))
         .unique()
     )
-  async function readIndex(
+  async function readPart(
     ref: ContentSnapshotScopeRef,
     snapshot: Doc<'contentSnapshotHeads'> | null,
-    kind: ContentSnapshotKind
+    kind: ContentSnapshotKind,
+    part: ContentSnapshotPart = 'index'
   ) {
-    const object = snapshot?.kinds[kind]?.index
+    const object = snapshot?.kinds[kind]?.[part]
     if (!object) return []
     const stored = server.contentSnapshotObjects.get(
-      contentSnapshotObjectKey({ format: 1, ...ref, kind, part: 'index' }, object.sha256)
+      contentSnapshotObjectKey({ format: 1, ...ref, kind, part }, object.sha256)
     )
     if (!stored) throw new Error('Committed snapshot object is missing from R2.')
     const json = await new Response(
@@ -156,12 +166,12 @@ async function setup() {
     head,
     objects: () => t.run((ctx) => ctx.db.query('contentSnapshotObjects').collect()),
     puts: () => server.methods.filter((method) => method === 'PUT').length,
-    readIndex,
+    readPart,
     rootIds: async (
       ref: ContentSnapshotScopeRef,
       snapshot: Doc<'contentSnapshotHeads'> | null,
       kind: ContentSnapshotKind
-    ) => (await readIndex(ref, snapshot, kind)).map((root) => root.id)
+    ) => (await readPart(ref, snapshot, kind)).map((root) => root.id)
   }
 }
 
@@ -171,7 +181,8 @@ function homebrew(document: HomebrewDocument) {
 
 describe('content snapshot builds', () => {
   it('rebuilds only the published scope and kind, and a retried build changes nothing', async () => {
-    const { t, server, userSource, srdSource, publish, settle, head, puts, rootIds } = await setup()
+    const { t, server, userSource, srdSource, publish, settle, head, puts, rootIds, readPart } =
+      await setup()
     try {
       await t.mutation(internal.content.import.importSubjects, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -190,13 +201,21 @@ describe('content snapshot builds', () => {
       expect(before.user).toMatchObject({ revision: 2, builtRevision: 2 })
       expect(Object.keys(before.user!.kinds).sort()).toEqual(['FEAT', 'RACE'])
       expect(before.user!.buildScheduledAt).toBeUndefined()
-      expect(puts()).toBe(6)
+      expect(await readPart(userSource, before.user, 'RACE', 'list')).toEqual([
+        expect.objectContaining({
+          id: race.id,
+          publicId: race.id,
+          label: elf.label,
+          category: elf.category
+        })
+      ])
+      expect(puts()).toBe(9)
       // Only PLATFORM source objects carry the public marker the Worker serves publicly.
       const access = [...server.contentSnapshotObjects].map(([key, object]) => [
         key.split('/')[2],
         object.metadata
       ])
-      expect(access).toHaveLength(6)
+      expect(access).toHaveLength(9)
       for (const [scopeId, metadata] of access)
         expect(metadata).toEqual(scopeId === SRD_CONTENT_SOURCE.id ? { access: 'public' } : {})
 
@@ -207,13 +226,13 @@ describe('content snapshot builds', () => {
       expect(after.user).toMatchObject({ revision: 3, builtRevision: 3 })
       expect(after.user!.kinds.FEAT).toEqual(before.user!.kinds.FEAT)
       expect(after.user!.kinds.RACE!.index.sha256).not.toBe(before.user!.kinds.RACE!.index.sha256)
-      expect(puts()).toBe(8)
-      expect(server.contentSnapshotObjects.size).toBe(8)
+      expect(puts()).toBe(12)
+      expect(server.contentSnapshotObjects.size).toBe(12)
 
       // A duplicate or retried build of a built revision reads nothing new and uploads nothing.
       await t.action(internal.contentSnapshots.actions.build, userSource)
       expect(await head(userSource)).toEqual(after.user)
-      expect(puts()).toBe(8)
+      expect(puts()).toBe(12)
     } finally {
       await server.close()
     }
@@ -297,12 +316,12 @@ describe('content snapshot builds', () => {
   }, 30_000)
 
   it('projects Equipment without a stored builder projection instead of dropping it', async () => {
-    const { server, userSource, publish, settle, head, readIndex } = await setup()
+    const { server, userSource, publish, settle, head, readPart } = await setup()
     try {
       const parent = await publish('EQUIPMENT', homebrew(club))
       const variant = await publish('EQUIPMENT', homebrew(clubPlus1), { parentId: parent })
       await settle()
-      const roots = await readIndex(userSource, await head(userSource), 'EQUIPMENT')
+      const roots = await readPart(userSource, await head(userSource), 'EQUIPMENT')
       expect(roots).toHaveLength(2)
       expect(roots.find((root) => root.id === variant)).toMatchObject({
         parentEquipmentId: parent,
@@ -378,7 +397,7 @@ describe('content snapshot builds', () => {
       const superseded = new Set(
         (await objects()).filter((row) => row.supersededAt !== undefined).map((row) => row.key)
       )
-      for (const part of ['index', 'documents'] as const)
+      for (const part of ['index', 'list', 'documents'] as const)
         expect(
           superseded.has(
             contentSnapshotObjectKey(

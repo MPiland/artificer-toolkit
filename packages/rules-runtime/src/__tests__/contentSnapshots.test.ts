@@ -2,10 +2,14 @@ import {
   contentSnapshotDocumentsObjectSchema,
   contentSnapshotHeadSchema,
   contentSnapshotIndexObjectSchema,
+  contentSnapshotListObjectSchema,
+  contentSnapshotObjectKey,
+  parseContentSnapshotObjectKey,
   type ContentSnapshotDocument,
   type ContentSnapshotHeader,
   type ContentSnapshotIndexEntry,
-  type ContentSnapshotKind
+  type ContentSnapshotKind,
+  type ContentSnapshotPart
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
 import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
@@ -18,10 +22,10 @@ import { describe, expect, it } from 'vitest'
 import { toCharacterBuilderEquipmentCatalogRecord } from '../character/builderCatalog.js'
 import {
   buildContentSnapshotPart,
-  contentSnapshotObjectKey,
-  parseContentSnapshotObjectKey,
   toContentSnapshotIndexEntry,
-  type ContentSnapshotIndexSource
+  toContentSnapshotListEntry,
+  type ContentSnapshotIndexSource,
+  type ContentSnapshotListSource
 } from '../contentSnapshots.js'
 
 const SCOPE_ID = '00000000-0000-4000-8000-000000000302'
@@ -75,7 +79,18 @@ function indexSource<Kind extends ContentSnapshotKind>(
   return source as unknown as Source
 }
 
-function header<Kind extends ContentSnapshotKind, Part extends 'index' | 'documents'>(
+function listSource<Kind extends ContentSnapshotKind>(
+  kind: Kind,
+  document: ContentSnapshotDocument<Kind>
+) {
+  return {
+    ...indexSource(kind, document),
+    publicId: `${kind.toLowerCase()}-${document.id}`,
+    magicSchoolLabel: 'School'
+  } as Extract<ContentSnapshotListSource, { subjectKind: Kind }>
+}
+
+function header<Kind extends ContentSnapshotKind, Part extends ContentSnapshotPart>(
   kind: Kind,
   part: Part,
   scope: ContentSnapshotHeader['scope'] = 'SOURCE',
@@ -161,6 +176,47 @@ describe('content snapshot parts', () => {
     })
   })
 
+  it('carries what a catalogue page shows and filters on in the list part, without documents', () => {
+    const list = contentSnapshotListObjectSchema.parse(
+      JSON.parse(
+        buildContentSnapshotPart(
+          header('RACE', 'list'),
+          races.map((race) => toContentSnapshotListEntry(listSource('RACE', race)))
+        ).json
+      )
+    )
+    const documents = races as RaceAuthoredDto[]
+    for (const root of list.roots) {
+      const race = documents.find((document) => document.id === root.id)!
+      expect(root).toMatchObject({ label: race.label, category: race.category })
+      expect(root).not.toHaveProperty('features')
+      expect(root).not.toHaveProperty('size')
+    }
+    const subrace = list.roots.find((root) => 'category' in root && root.category === 'SUBRACE')
+    expect(subrace).toMatchObject({ parentRaceId: expect.any(String) })
+
+    const spells = srdDocuments('SPELL')
+    const spellList = contentSnapshotListObjectSchema.parse(
+      JSON.parse(
+        buildContentSnapshotPart(
+          header('SPELL', 'list'),
+          spells.map((spell) => toContentSnapshotListEntry(listSource('SPELL', spell)))
+        ).json
+      )
+    )
+    expect(spellList.roots.length).toBe(spells.length)
+    for (const root of spellList.roots) {
+      const classIds = 'classIds' in root ? root.classIds : []
+      expect(classIds).toEqual([...new Set(classIds.map((id) => id.toLowerCase()))].sort())
+    }
+    expect(() =>
+      toContentSnapshotListEntry({
+        ...listSource('SPELL', spells[0]!),
+        magicSchoolLabel: undefined
+      })
+    ).toThrow(/magic school label/)
+  })
+
   it('rejects roots that do not match the header kind, duplicate roots and unknown fields', () => {
     const entries = races.map((race) => toContentSnapshotIndexEntry(indexSource('RACE', race)))
 
@@ -184,6 +240,10 @@ describe('content snapshot parts', () => {
           header(kind, 'index'),
           documents.map((document) => toContentSnapshotIndexEntry(indexSource(kind, document)))
         ),
+        buildContentSnapshotPart(
+          header(kind, 'list'),
+          documents.map((document) => toContentSnapshotListEntry(listSource(kind, document)))
+        ),
         buildContentSnapshotPart(header(kind, 'documents'), documents)
       ]
       for (const part of parts) {
@@ -191,7 +251,9 @@ describe('content snapshot parts', () => {
         const schema =
           parsed.part === 'index'
             ? contentSnapshotIndexObjectSchema
-            : contentSnapshotDocumentsObjectSchema
+            : parsed.part === 'list'
+              ? contentSnapshotListObjectSchema
+              : contentSnapshotDocumentsObjectSchema
         expect(canonicalizeJson(schema.parse(parsed)), `${kind} ${parsed.part}`).toBe(part.json)
       }
     }
@@ -205,7 +267,9 @@ describe('content snapshot parts', () => {
     expect(() => contentSnapshotHeadSchema.parse(head)).toThrow()
     const complete = {
       ...head,
-      kinds: { RACE: { ...head.kinds.RACE, documents: head.kinds.RACE.index } }
+      kinds: {
+        RACE: { ...head.kinds.RACE, list: head.kinds.RACE.index, documents: head.kinds.RACE.index }
+      }
     }
     expect(contentSnapshotHeadSchema.parse(complete)).toEqual(complete)
   })

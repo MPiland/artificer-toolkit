@@ -64,7 +64,8 @@ function scopeObjects(
       )
     )
     const sources = published.map((entry) => {
-      if (entry.subjectKind !== 'EQUIPMENT') return entry
+      const listFacts = { publicId: entry.document.id, magicSchoolLabel: 'School' }
+      if (entry.subjectKind !== 'EQUIPMENT') return { ...entry, ...listFacts }
       // The stored projection the build reads: the effective facts along the variant chain.
       const effective = resolveEquipmentAuthored(
         entry.document as EquipmentAuthored,
@@ -87,7 +88,7 @@ function scopeObjects(
         }
       })
       if (!builder) throw new Error('Expected Equipment builder facts.')
-      return { ...entry, builder }
+      return { ...entry, builder, ...listFacts }
     })
     const { index, documents: part } = buildContentSnapshotKind(
       { format: 1, scope, scopeId, kind },

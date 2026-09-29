@@ -2,15 +2,23 @@ import {
   contentSnapshotDocumentsObjectSchema,
   contentSnapshotIndexObjectSchema,
   contentSnapshotKindSchema,
+  contentSnapshotListObjectSchema,
   type ContentSnapshotIndexObject,
+  type ContentSnapshotKind,
   type ContentSnapshotObject
 } from '@artificer-toolkit/schema/api/contentSnapshots'
+import {
+  buildContentCatalogueItems,
+  sortContentCatalogueItems,
+  toContentCatalogueSource,
+  type ContentCatalogueSource
+} from '@artificer-toolkit/rules-runtime/contentCatalogue'
 import { createLazySnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
 import {
   buildContentSnapshotKind,
-  type ContentSnapshotIndexSource
+  type ContentSnapshotListSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
-import { internal } from '../../convex/_generated/api'
+import { api, internal } from '../../convex/_generated/api'
 import type { ContentSnapshotScopeRef } from '../../convex/contentSnapshots/marking'
 import type { fixture } from './characters'
 
@@ -20,21 +28,25 @@ type Test = Awaited<ReturnType<typeof fixture>>['t']
 export async function readScopeObjects(t: Test, ref: ContentSnapshotScopeRef) {
   const objects: ContentSnapshotObject[] = []
   for (const kind of contentSnapshotKindSchema.options) {
-    const sources: ContentSnapshotIndexSource[] = []
+    const sources: ContentSnapshotListSource[] = []
     let cursor: string | null = null
     for (let isDone = false; !isDone; ) {
       const page: { sources: string[]; continueCursor: string; isDone: boolean } = await t.query(
         internal.contentSnapshots.heads.readScopeKind,
         { ...ref, kind, paginationOpts: { numItems: 100, cursor } }
       )
-      for (const json of page.sources) sources.push(JSON.parse(json) as ContentSnapshotIndexSource)
+      for (const json of page.sources) sources.push(JSON.parse(json) as ContentSnapshotListSource)
       cursor = page.continueCursor
       isDone = page.isDone
     }
     if (sources.length === 0) continue
-    const { index, documents } = buildContentSnapshotKind({ format: 1, ...ref, kind }, sources)
+    const { index, list, documents } = buildContentSnapshotKind(
+      { format: 1, ...ref, kind },
+      sources
+    )
     objects.push(
       contentSnapshotIndexObjectSchema.parse(JSON.parse(index.json)),
+      contentSnapshotListObjectSchema.parse(JSON.parse(list.json)),
       contentSnapshotDocumentsObjectSchema.parse(JSON.parse(documents.json))
     )
   }
@@ -52,4 +64,34 @@ export function createBrowserReaders(objects: readonly ContentSnapshotObject[]) 
     }
   )
   return { readers, loadedKinds }
+}
+
+/**
+ * The authored-content list rows a browser derives for one caller: every visible source's list
+ * part, in name order, optionally narrowed to one System or to master or owned rows.
+ */
+export async function readVisibleCatalogue(
+  t: Test,
+  caller: Pick<Test, 'query'>,
+  subjectKind: ContentSnapshotKind,
+  { systemId, source }: { systemId?: string; source?: 'MASTER' | 'OWNED' } = {}
+) {
+  const manifest = await caller.query(api.contentSnapshots.manifest.catalogue, {})
+  const sources: ContentCatalogueSource[] = []
+  for (const contentSource of manifest.sources)
+    for (const object of await readScopeObjects(t, {
+      scope: 'SOURCE',
+      scopeId: contentSource.contentSourceId
+    })) {
+      const source = toContentCatalogueSource(object, contentSource)
+      if (source) sources.push(source)
+    }
+  return sortContentCatalogueItems(
+    buildContentCatalogueItems(subjectKind, sources, manifest.userId).filter(
+      (item) =>
+        (systemId === undefined || item.systemId === systemId) &&
+        (source === undefined || item.provenance.kind === source)
+    ),
+    'name'
+  )
 }

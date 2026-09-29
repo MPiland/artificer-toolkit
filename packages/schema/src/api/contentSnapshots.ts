@@ -9,9 +9,11 @@ import {
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
 import {
+  creatureCategoryCodeSchema,
   equipmentCategoryCodeSchema,
   equipmentPropertyCodeSchema,
-  sizeCodeSchema
+  sizeCodeSchema,
+  vehicleCategoryCodeSchema
 } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { speedDtoSchema } from '../shared/speed.js'
@@ -26,13 +28,14 @@ import {
   classHitpointDtoSchema,
   classMulticlassRequirementGroupsDtoSchema
 } from '../subjects/shared.js'
+import { castingTimeDtoSchema } from '../subjects/castingTime.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
 import { vehicleAuthoredDtoSchema } from '../subjects/vehicle.js'
 
 // ADR 0036: immutable, content-addressed published content. One object per scope x kind x part.
 export const contentSnapshotScopeSchema = lazySchema(() => z.enum(['SYSTEM', 'SOURCE', 'CAMPAIGN']))
 export const contentSnapshotKindSchema = authoredSubjectKindSchema
-export const contentSnapshotPartSchema = lazySchema(() => z.enum(['index', 'documents']))
+export const contentSnapshotPartSchema = lazySchema(() => z.enum(['index', 'list', 'documents']))
 
 const headerShape = () => ({
   format: z.literal(1),
@@ -48,6 +51,32 @@ export const contentSnapshotHeaderSchema = lazySchema(() =>
     part: contentSnapshotPartSchema
   })
 )
+
+/** `v1/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`: the R2 key and Worker path of one object. */
+export function contentSnapshotObjectKey(header: ContentSnapshotHeader, sha256: string): string {
+  const { scope, scopeId, kind, part } = contentSnapshotHeaderSchema.parse(header)
+  return `v1/${scope.toLowerCase()}/${scopeId}/${kind.toLowerCase()}/${part}/${projectionChecksumSchema.parse(sha256)}.json`
+}
+
+/** The inverse of `contentSnapshotObjectKey`; null for anything that is not a canonical key. */
+export function parseContentSnapshotObjectKey(
+  key: string
+): { header: ContentSnapshotHeader; sha256: string } | null {
+  const [, scope = '', scopeId, kind = '', part, hash] =
+    /^v1\/([a-z]+)\/([^/]+)\/([a-z]+)\/([a-z]+)\/([^/]+)\.json$/.exec(key) ?? []
+  const header = contentSnapshotHeaderSchema.safeParse({
+    format: 1,
+    scope: scope.toUpperCase(),
+    scopeId,
+    kind: kind.toUpperCase(),
+    part
+  })
+  const sha256 = projectionChecksumSchema.safeParse(hash)
+  if (!header.success || !sha256.success) return null
+  return contentSnapshotObjectKey(header.data, sha256.data) === key
+    ? { header: header.data, sha256: sha256.data }
+    : null
+}
 
 const identityShape = () => ({ id: authoredIdentifierSchema, label: authoredShortTextSchema })
 
@@ -143,6 +172,71 @@ export const contentSnapshotIdentityIndexEntrySchema = lazySchema(() =>
   z.strictObject(identityShape())
 )
 
+// List entries hold what a catalogue page shows and filters on. They are a separate part so the
+// Builder's index stays small and neither reads `documents`. Labels of other roots (a parent,
+// a Spell's Classes) are joined by the reader from the visible entries of that kind.
+const listIdentityShape = () => ({
+  ...identityShape(),
+  publicId: z.string().check(z.minLength(1)),
+  description: z.optional(authoredRichTextSchema)
+})
+
+export const contentSnapshotRaceListEntrySchema = lazySchema(() =>
+  z.discriminatedUnion('category', [
+    z.strictObject({
+      ...listIdentityShape(),
+      category: z.literal('BASE'),
+      selectionMode: baseRaceAuthoredDtoSchema.shape.selectionMode
+    }),
+    z.strictObject({
+      ...listIdentityShape(),
+      category: z.literal('SUBRACE'),
+      parentRaceId: authoredIdentifierSchema
+    })
+  ])
+)
+
+export const contentSnapshotClassListEntrySchema = lazySchema(() =>
+  z.discriminatedUnion('category', [
+    z.strictObject({ ...listIdentityShape(), category: z.literal('BASE') }),
+    z.strictObject({
+      ...listIdentityShape(),
+      category: z.literal('SUBCLASS'),
+      parentClassId: authoredIdentifierSchema
+    })
+  ])
+)
+
+export const contentSnapshotEquipmentListEntrySchema = lazySchema(() =>
+  z.strictObject({ ...listIdentityShape(), category: equipmentCategoryCodeSchema })
+)
+
+export const contentSnapshotCreatureListEntrySchema = lazySchema(() =>
+  z.strictObject({ ...listIdentityShape(), category: creatureCategoryCodeSchema })
+)
+
+export const contentSnapshotVehicleListEntrySchema = lazySchema(() =>
+  z.strictObject({ ...listIdentityShape(), category: vehicleCategoryCodeSchema })
+)
+
+/** Backgrounds and Feats have no category. */
+export const contentSnapshotPlainListEntrySchema = lazySchema(() =>
+  z.strictObject(listIdentityShape())
+)
+
+export const contentSnapshotSpellListEntrySchema = lazySchema(() =>
+  z.strictObject({
+    ...listIdentityShape(),
+    level: spellAuthoredDtoSchema.shape.level,
+    magicSchoolId: spellAuthoredDtoSchema.shape.magicSchoolId,
+    // Denormalized from the System vocabulary at build time; System rows are insert-only.
+    magicSchoolLabel: authoredShortTextSchema,
+    // Lowercased, deduplicated and sorted, as the Convex catalogue projection stored them.
+    classIds: z.array(postgresUuidSchema),
+    castingTime: castingTimeDtoSchema
+  })
+)
+
 const partShape = <Kind extends z.infer<typeof contentSnapshotKindSchema>, Roots>(
   kind: Kind,
   part: z.infer<typeof contentSnapshotPartSchema>,
@@ -165,6 +259,22 @@ export const contentSnapshotIndexObjectSchema = lazySchema(() =>
     z.strictObject(partShape('RACE', 'index', z.array(contentSnapshotRaceIndexEntrySchema))),
     z.strictObject(partShape('SPELL', 'index', z.array(contentSnapshotSpellIndexEntrySchema))),
     z.strictObject(partShape('VEHICLE', 'index', z.array(contentSnapshotIdentityIndexEntrySchema)))
+  ])
+)
+
+/** What the authored-content list pages read: the only part they fetch. */
+export const contentSnapshotListObjectSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject(partShape('BACKGROUND', 'list', z.array(contentSnapshotPlainListEntrySchema))),
+    z.strictObject(partShape('CLASS', 'list', z.array(contentSnapshotClassListEntrySchema))),
+    z.strictObject(partShape('CREATURE', 'list', z.array(contentSnapshotCreatureListEntrySchema))),
+    z.strictObject(
+      partShape('EQUIPMENT', 'list', z.array(contentSnapshotEquipmentListEntrySchema))
+    ),
+    z.strictObject(partShape('FEAT', 'list', z.array(contentSnapshotPlainListEntrySchema))),
+    z.strictObject(partShape('RACE', 'list', z.array(contentSnapshotRaceListEntrySchema))),
+    z.strictObject(partShape('SPELL', 'list', z.array(contentSnapshotSpellListEntrySchema))),
+    z.strictObject(partShape('VEHICLE', 'list', z.array(contentSnapshotVehicleListEntrySchema)))
   ])
 )
 
@@ -201,6 +311,7 @@ export const contentSnapshotHeadSchema = lazySchema(() =>
       contentSnapshotKindSchema,
       z.strictObject({
         index: contentSnapshotObjectRefSchema,
+        list: contentSnapshotObjectRefSchema,
         documents: contentSnapshotObjectRefSchema
       })
     )
@@ -281,21 +392,49 @@ export const contentSnapshotManifestDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The scopes the authored-content lists read (no Character, no Campaign): every PLATFORM source
+ * and the caller's own Homebrew sources across Systems, as the Convex catalogue listed them.
+ */
+export const contentSnapshotCatalogueManifestDtoSchema = lazySchema(() =>
+  z.strictObject({
+    userId: z.string().check(z.minLength(1)),
+    sources: z.array(
+      z.strictObject({
+        contentSourceId: postgresUuidSchema,
+        systemId: postgresUuidSchema,
+        kind: z.enum(['PLATFORM', 'USER']),
+        head: z.nullable(contentSnapshotHeadSchema)
+      })
+    )
+  })
+)
+
 export type ContentSnapshotScope = z.infer<typeof contentSnapshotScopeSchema>
 export type ContentSnapshotKind = z.infer<typeof contentSnapshotKindSchema>
 export type ContentSnapshotPart = z.infer<typeof contentSnapshotPartSchema>
 export type ContentSnapshotHeader = z.infer<typeof contentSnapshotHeaderSchema>
 export type ContentSnapshotIndexObject = z.infer<typeof contentSnapshotIndexObjectSchema>
+export type ContentSnapshotListObject = z.infer<typeof contentSnapshotListObjectSchema>
 export type ContentSnapshotDocumentsObject = z.infer<typeof contentSnapshotDocumentsObjectSchema>
-export type ContentSnapshotObject = ContentSnapshotIndexObject | ContentSnapshotDocumentsObject
+export type ContentSnapshotObject =
+  | ContentSnapshotIndexObject
+  | ContentSnapshotListObject
+  | ContentSnapshotDocumentsObject
 export type ContentSnapshotIndexEntry<Kind extends ContentSnapshotKind = ContentSnapshotKind> =
   Extract<ContentSnapshotIndexObject, { kind: Kind }>['roots'][number]
+export type ContentSnapshotListEntry<Kind extends ContentSnapshotKind = ContentSnapshotKind> =
+  Extract<ContentSnapshotListObject, { kind: Kind }>['roots'][number]
 export type ContentSnapshotDocument<Kind extends ContentSnapshotKind = ContentSnapshotKind> =
   Extract<ContentSnapshotDocumentsObject, { kind: Kind }>['roots'][number]
 export type ContentSnapshotRoot<
   Kind extends ContentSnapshotKind,
   Part extends ContentSnapshotPart
-> = Part extends 'index' ? ContentSnapshotIndexEntry<Kind> : ContentSnapshotDocument<Kind>
+> = Part extends 'index'
+  ? ContentSnapshotIndexEntry<Kind>
+  : Part extends 'list'
+    ? ContentSnapshotListEntry<Kind>
+    : ContentSnapshotDocument<Kind>
 export type ContentSnapshotObjectRef = z.infer<typeof contentSnapshotObjectRefSchema>
 export type ContentSnapshotHead = z.infer<typeof contentSnapshotHeadSchema>
 export type ContentSnapshotTokenClaims = z.infer<typeof contentSnapshotTokenClaimsSchema>
@@ -303,3 +442,6 @@ export type ContentSnapshotTokenGrant = z.infer<typeof contentSnapshotTokenGrant
 export type ContentSnapshotAccessDto = z.infer<typeof contentSnapshotAccessDtoSchema>
 export type ContentSnapshotManifestInput = z.infer<typeof contentSnapshotManifestInputSchema>
 export type ContentSnapshotManifestDto = z.infer<typeof contentSnapshotManifestDtoSchema>
+export type ContentSnapshotCatalogueManifestDto = z.infer<
+  typeof contentSnapshotCatalogueManifestDtoSchema
+>
