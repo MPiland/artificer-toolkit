@@ -44,13 +44,14 @@ function compareValues(left: unknown, right: unknown): number {
   return 0
 }
 
-/** A copy with object fields in key order, as Convex stores and returns documents. */
+/** A copy with object fields in key order and no `undefined` fields, as Convex stores documents. */
 function withSortedFields<Value>(value: Value): Value {
   if (Array.isArray(value)) return value.map(withSortedFields) as Value
   if (typeof value !== 'object' || value === null || value instanceof ArrayBuffer) return value
   return Object.fromEntries(
     Object.keys(value)
       .sort()
+      .filter((key) => (value as Record<string, unknown>)[key] !== undefined)
       .map((key) => [key, withSortedFields((value as Record<string, unknown>)[key])])
   ) as Value
 }
@@ -107,16 +108,43 @@ function query<Document>(read: () => Document[]): EncounterQuery<Document> {
 }
 
 /**
+ * One write a store made, in the order it was made. Replaying a transaction's writes onto a store
+ * holding the same documents reproduces its documents, identities and creation times exactly.
+ */
+export type EncounterStoreWrite =
+  | {
+      op: 'INSERT'
+      table: EncounterTableName
+      id: string
+      creationTime: number
+      fields: Record<string, unknown>
+    }
+  | { op: 'PATCH'; id: string; fields: Record<string, unknown>; remove: string[] }
+  | { op: 'REPLACE'; id: string; fields: Record<string, unknown> }
+  | { op: 'DELETE'; id: string }
+
+/**
  * An in-memory Encounter store with Convex's transaction semantics: index order with the
  * creation-time tiebreaker, `unique` refusing duplicates, a private copy on every read, stored
  * schema validation on every write, and `patch` removing fields set to `undefined`. The
  * conformance suite checks the Convex adapter against it.
+ *
+ * `transaction` records the writes made between `begin` and `commit` (which returns them) or
+ * `abort` (which undoes them, including the identities and creation times they consumed); `apply`
+ * replays recorded writes. The room's durable store journals each command's writes this way.
  */
-export function createMemoryEncounterStore() {
+export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?: string } = {}) {
   const tables = new Map<EncounterTableName, Map<string, StoredDocument>>()
   const tableById = new Map<string, EncounterTableName>()
   let clock = 0
   let sequence = 0
+  let validating = true
+  let recording: {
+    writes: EncounterStoreWrite[]
+    undo: Array<() => void>
+    clock: number
+    sequence: number
+  } | null = null
 
   const rowsOf = (table: EncounterTableName) => {
     let rows = tables.get(table)
@@ -134,9 +162,61 @@ export function createMemoryEncounterStore() {
   }
   const write = (table: EncounterTableName, document: StoredDocument) => {
     const { _id, _creationTime, ...fields } = document
-    encounterStoreSchemas[table].parse(fields)
+    if (validating) encounterStoreSchemas[table].parse(fields)
+    const previous = rowsOf(table).get(_id)
     rowsOf(table).set(_id, withSortedFields(document))
     tableById.set(_id, table)
+    recording?.undo.push(
+      previous
+        ? () => rowsOf(table).set(_id, previous)
+        : () => {
+            rowsOf(table).delete(_id)
+            tableById.delete(_id)
+          }
+    )
+  }
+  const remove = (id: string) => {
+    const { table, document } = existing(id, 'Delete')
+    tables.get(table)?.delete(id)
+    tableById.delete(id)
+    recording?.undo.push(() => {
+      rowsOf(table).set(id, document)
+      tableById.set(id, table)
+    })
+  }
+  const fieldsOf = ({ _id, _creationTime, ...fields }: StoredDocument) => fields
+  const insert = (
+    table: EncounterTableName,
+    id: string,
+    creationTime: number,
+    value: Record<string, unknown>
+  ) => {
+    write(table, { ...value, _id: id, _creationTime: creationTime })
+    recording?.writes.push({
+      op: 'INSERT',
+      table,
+      id,
+      creationTime,
+      fields: fieldsOf(rowsOf(table).get(id)!)
+    })
+  }
+  const patch = (id: string, value: Record<string, unknown>) => {
+    const { table, document } = existing(id, 'Patch')
+    const next: StoredDocument = { ...document, ...value }
+    const removed = Object.keys(value).filter((field) => value[field] === undefined)
+    for (const field of removed) delete next[field]
+    write(table, next)
+    recording?.writes.push({
+      op: 'PATCH',
+      id,
+      fields: withSortedFields(value),
+      remove: removed.sort()
+    })
+  }
+  const replace = (id: string, value: Record<string, unknown>) => {
+    const { table, document } = existing(id, 'Replace')
+    write(table, { ...value, _id: id, _creationTime: document._creationTime })
+    recording?.writes.push({ op: 'REPLACE', id, fields: fieldsOf(rowsOf(table).get(id)!) })
   }
   const inCreationOrder = (table: EncounterTableName) =>
     [...rowsOf(table).values()]
@@ -147,7 +227,9 @@ export function createMemoryEncounterStore() {
     const fields = indexes[index]
     if (!fields) throw new Error(`Unknown index ${table}.${index}.`)
     const key = [...fields, '_creationTime']
-    return inCreationOrder(table)
+    // Filter and order the stored documents, then copy only the matches; the key ends with the
+    // creation time, so the order is total.
+    return [...rowsOf(table).values()]
       .filter((document) => bounds.every((bound) => inRange(document, bound)))
       .sort((left, right) => {
         for (const field of key) {
@@ -156,6 +238,7 @@ export function createMemoryEncounterStore() {
         }
         return 0
       })
+      .map((document) => structuredClone(document))
   }
 
   const store = {
@@ -175,27 +258,44 @@ export function createMemoryEncounterStore() {
     },
     async insert(table: EncounterTableName, value: Record<string, unknown>) {
       // Not a UUID: identities never consume the transaction's random UUIDs.
-      let _id = `memory:${++sequence}`
-      while (tableById.has(_id)) _id = `memory:${++sequence}`
-      write(table, { ...value, _id, _creationTime: ++clock })
-      return _id
+      let id = `${idPrefix}:${++sequence}`
+      while (tableById.has(id)) id = `${idPrefix}:${++sequence}`
+      insert(table, id, ++clock, value)
+      return id
     },
     async patch(id: string, value: Record<string, unknown>) {
-      const { table, document } = existing(id, 'Patch')
-      const next: StoredDocument = { ...document, ...value }
-      for (const [field, fieldValue] of Object.entries(value))
-        if (fieldValue === undefined) delete next[field]
-      write(table, next)
+      patch(id, value)
     },
     async replace(id: string, value: Record<string, unknown>) {
-      const { table, document } = existing(id, 'Replace')
-      write(table, { ...value, _id: id, _creationTime: document._creationTime })
+      replace(id, value)
     },
     async delete(id: string) {
-      const { table } = existing(id, 'Delete')
-      tables.get(table)?.delete(id)
-      tableById.delete(id)
+      remove(id)
+      recording?.writes.push({ op: 'DELETE', id })
     }
+  }
+
+  /** Runs `restore` with schema validation off for trusted restores such as checksummed rows. */
+  const withValidation = (validate: boolean, restore: () => void) => {
+    const previous = validating
+    validating = validate
+    try {
+      restore()
+    } finally {
+      validating = previous
+    }
+  }
+  const restoreDocument = (
+    table: EncounterTableName,
+    document: StoredDocument,
+    validate: boolean
+  ) => {
+    clock = Math.max(clock, document._creationTime)
+    if (document._id.startsWith(`${idPrefix}:`)) {
+      const ordinal = Number(document._id.slice(idPrefix.length + 1))
+      if (Number.isSafeInteger(ordinal)) sequence = Math.max(sequence, ordinal)
+    }
+    withValidation(validate, () => write(table, { ...document }))
   }
 
   return {
@@ -205,11 +305,69 @@ export function createMemoryEncounterStore() {
     documents<Table extends EncounterTableName>(table: Table) {
       return inCreationOrder(table) as unknown as EncounterDocument<Table>[]
     },
-    /** Restores documents with their stored identities and creation times. */
-    load<Table extends EncounterTableName>(table: Table, documents: EncounterDocument<Table>[]) {
-      for (const document of documents) {
-        clock = Math.max(clock, document._creationTime)
-        write(table, { ...document })
+    /**
+     * Restores documents with their stored identities and creation times. `validate: false` skips
+     * schema validation for a restore from checksummed rows.
+     */
+    load<Table extends EncounterTableName>(
+      table: Table,
+      documents: EncounterDocument<Table>[],
+      { validate = true }: { validate?: boolean } = {}
+    ) {
+      for (const document of documents) restoreDocument(table, document, validate)
+    },
+    /** Drops every document and resets identities and creation times. */
+    clear() {
+      if (recording) throw new Error('Cannot clear the store inside a transaction.')
+      tables.clear()
+      tableById.clear()
+      clock = 0
+      sequence = 0
+    },
+    /** Replays recorded writes, as `commit` returned them, with the identities they carry. */
+    apply(writes: readonly EncounterStoreWrite[], { validate = true }: { validate?: boolean } = {}) {
+      withValidation(validate, () => {
+        for (const change of writes) {
+          if (change.op === 'INSERT') {
+            restoreDocument(
+              change.table,
+              { ...change.fields, _id: change.id, _creationTime: change.creationTime },
+              validate
+            )
+            recording?.writes.push(change)
+          } else if (change.op === 'PATCH') {
+            patch(change.id, {
+              ...change.fields,
+              ...Object.fromEntries(change.remove.map((field) => [field, undefined]))
+            })
+          } else if (change.op === 'REPLACE') replace(change.id, change.fields)
+          else {
+            remove(change.id)
+            recording?.writes.push(change)
+          }
+        }
+      })
+    },
+    transaction: {
+      begin() {
+        if (recording) throw new Error('A store transaction is already open.')
+        recording = { writes: [], undo: [], clock, sequence }
+      },
+      /** Ends the transaction and returns its writes in order. */
+      commit() {
+        if (!recording) throw new Error('No store transaction is open.')
+        const { writes } = recording
+        recording = null
+        return writes
+      },
+      /** Ends the transaction and undoes its writes, its identities and its creation times. */
+      abort() {
+        if (!recording) throw new Error('No store transaction is open.')
+        const { undo, clock: startClock, sequence: startSequence } = recording
+        recording = null
+        for (const reverse of undo.reverse()) reverse()
+        clock = startClock
+        sequence = startSequence
       }
     }
   }

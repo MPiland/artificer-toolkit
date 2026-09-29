@@ -106,4 +106,78 @@ describe('memory Encounter store', () => {
     expect(rows.at(-1)!._id).toBe(insertedAfter)
     expect(rows[1]!._creationTime).toBeGreaterThan(rows[0]!._creationTime)
   })
+
+  describe('transactions', () => {
+    const seed = async (source = createMemoryEncounterStore()) => {
+      await source.store.insert('encounterTurnMovements', movement(1, 1))
+      await source.store.insert('encounterTurnMovements', movement(1, 2, 5))
+      return source
+    }
+
+    it('records a transaction that a replay onto the same documents reproduces exactly', async () => {
+      const source = await seed()
+      const replica = createMemoryEncounterStore()
+      const before = source.documents('encounterTurnMovements')
+      replica.load('encounterTurnMovements', before)
+
+      source.transaction.begin()
+      const [first, second] = before
+      const created = await source.store.insert('encounterTurnMovements', movement(2, 3))
+      await source.store.patch(first!._id, { usedFeet: 20 })
+      await source.store.replace(second!._id, movement(4, 4))
+      await source.store.delete(created)
+      await source.store.insert('encounterTurnMovements', movement(5, 5))
+      const writes = source.transaction.commit()
+
+      replica.apply(JSON.parse(JSON.stringify(writes)))
+      expect(replica.documents('encounterTurnMovements')).toEqual(
+        source.documents('encounterTurnMovements')
+      )
+      const nextOnSource = await source.store.insert('encounterTurnMovements', movement(6, 6))
+      const nextOnReplica = await replica.store.insert('encounterTurnMovements', movement(6, 6))
+      expect(nextOnReplica).toBe(nextOnSource)
+      expect(replica.documents('encounterTurnMovements')).toEqual(
+        source.documents('encounterTurnMovements')
+      )
+    })
+
+    it('abort restores documents, identities and creation times', async () => {
+      const source = await seed()
+      const before = source.documents('encounterTurnMovements')
+      source.transaction.begin()
+      await source.store.insert('encounterTurnMovements', movement(2, 3))
+      await source.store.patch(before[0]!._id, { usedFeet: 30 })
+      await source.store.replace(before[1]!._id, movement(4, 4))
+      await source.store.delete(before[0]!._id)
+      source.transaction.abort()
+      expect(source.documents('encounterTurnMovements')).toEqual(before)
+      const inserted = await source.store.insert('encounterTurnMovements', movement(2, 3))
+      expect(inserted).toBe('memory:3')
+      expect(source.documents('encounterTurnMovements').at(-1)!._creationTime).toBe(3)
+    })
+
+    it('records nothing outside a transaction and refuses nesting', async () => {
+      const source = await seed()
+      expect(() => source.transaction.commit()).toThrow('No store transaction')
+      source.transaction.begin()
+      expect(() => source.transaction.begin()).toThrow('already open')
+      source.transaction.abort()
+    })
+
+    it('replays without validation for a trusted restore and prefixes identities', async () => {
+      const source = createMemoryEncounterStore({ idPrefix: 'room' })
+      source.transaction.begin()
+      const id = await source.store.insert('encounterTurnMovements', movement(1, 1))
+      const writes = source.transaction.commit()
+      expect(id).toBe('room:1')
+      const replica = createMemoryEncounterStore({ idPrefix: 'room' })
+      const invalid = writes.map((change) =>
+        change.op === 'INSERT' ? { ...change, fields: { ...change.fields, round: 0 } } : change
+      )
+      expect(() => replica.apply(invalid)).toThrow()
+      replica.clear()
+      replica.apply(invalid, { validate: false })
+      expect(await replica.store.insert('encounterTurnMovements', movement(2, 1))).toBe('room:2')
+    })
+  })
 })
