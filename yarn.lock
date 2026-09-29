@@ -158,6 +158,7 @@ __metadata:
   dependencies:
     "@artificer-toolkit/design-system": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
+    fast-check: "npm:4.9.0"
     ts-to-zod: "npm:^5.1.0"
     typescript: "npm:^7.0.2"
     zod: "npm:^4.4.3"
