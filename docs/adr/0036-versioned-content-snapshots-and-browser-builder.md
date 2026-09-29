@@ -18,7 +18,7 @@ Q16 makes Convex database I/O the binding free-tier constraint. Published conten
 ## Decision
 
 1. **Snapshots.** Every publish-time change to System, source or Campaign-share content produces immutable, content-addressed objects in a private R2 bucket.
-   - **Granularity:** one object per scope × subject kind × part. The parts are `index`, the picker facts, and `documents`, the full published documents.
+   - **Granularity:** one object per scope × subject kind × part. The parts are `index`, the picker facts, `list`, the columns, filter facts and search text of the authored-content list pages (S11), and `documents`, the full published documents.
    - **Scopes:** a content source (`SOURCE`, PLATFORM sources such as the SRD included, because Campaign rules catalogues select PLATFORM sources) and a Campaign's share set (`CAMPAIGN`). A `SYSTEM` scope will hold only System-level data (the System document, vocabulary and definitions) with its own object format, added when a reader needs it (D67).
    - **Keys:** the SHA-256 of canonical JSON, which includes a format and scope header.
    - **Heads:** Convex records each scope's current hashes in `contentSnapshotHeads`.
@@ -49,18 +49,20 @@ Q16 makes Convex database I/O the binding free-tier constraint. Published conten
 ## Consequences
 
 **Benefits:**
+
 - Builder I/O drops about 100-fold per build.
 - Content egress is free.
 - The room and the Builder share one content path.
 - Editing and preview keep working offline with cached bundles.
 
 **Costs:**
+
 - A snapshot lags a publish by seconds; commit stays authoritative.
 - A user whose access is revoked may fetch objects they could already read for up to one token lifetime.
 - The web app ships part of the rules runtime.
 - Golden, round-trip and differential parity tests become mandatory.
 - Rules that depend on the size of a candidate pool need explicit count facts.
 
-**Removed:** `builder.get`, `builder.resolve`, `builder.preview` and full-catalogue Builder loading, with no compatibility layer (pre-launch).
+**Removed:** `builder.get`, `builder.resolve`, `builder.preview` and full-catalogue Builder loading, with no compatibility layer (pre-launch). S11 also removed `content/catalogue:list`, `search` and `summary`: the list pages read the `list` part in the browser.
 
 See [the implementation plan](../handoffs/adr-0036-implementation-plan.md).

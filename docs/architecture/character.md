@@ -491,7 +491,11 @@ against it, as commit does with its stored active document.
   parent, the feature scan or the Spell catalogue). Private objects carry the content token, reused
   until one minute before it expires and re-issued once when the Worker refuses it. Every object is
   checked against the manifest SHA-256 before it is parsed or kept in Cache Storage; a new manifest
-  evicts the hashes it no longer names. The content origin is the session Worker's HTTP origin
+  evicts the hashes it no longer names, within the parts it manages (`retain(keep, parts)`), so the
+  Builder's `index` and `documents` eviction never drops the authored-content lists' `list` objects
+  and the reverse. The Builder never reads the `list` part
+  ([persistence](persistence.md#authored-content-list-snapshots-adr-0036-s10--local-implementation)).
+  The content origin is the session Worker's HTTP origin
   (`VITE_LIVE_SESSION_WEBSOCKET_URL`), also allowed in `connect-src`.
 - **States.** Until the first evaluation the Builder shows only its content state; afterwards it
   keeps showing the last payload while content prepares. It shows the kinds being fetched, that content is still updating when a head's `revision` exceeds its
