@@ -1,6 +1,6 @@
 import {
-  authoredCatalogueItemSchema,
-  authoredCatalogueMetadataSchema
+  authoredCatalogueMetadataSchema,
+  authoredCatalogueOptionSchema
 } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
@@ -108,7 +108,7 @@ export async function catalogueItem(
   )
     throw new Error('Catalogue family projection mismatch.')
   const owned = root.ownerUserId !== undefined
-  return authoredCatalogueItemSchema.parse({
+  return authoredCatalogueOptionSchema.parse({
     id: root.id,
     publicId: metadata.publicId,
     systemId: root.systemId,

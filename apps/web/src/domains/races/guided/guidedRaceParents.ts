@@ -1,8 +1,8 @@
-import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredCatalogueItem } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 
 export function toGuidedRaceParentOptions(
-  items: AuthoredCataloguePage['page'],
+  items: readonly AuthoredCatalogueItem[],
   subjectId: string | undefined
 ) {
   return items

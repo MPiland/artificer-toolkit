@@ -7,6 +7,7 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignCore'
 import {
   contentSnapshotKindSchema,
+  type ContentSnapshotCatalogueManifestDto,
   type ContentSnapshotKind,
   type ContentSnapshotManifestDto,
   type ContentSnapshotManifestInput
@@ -29,6 +30,11 @@ const manifest = makeFunctionReference<
   ContentSnapshotManifestInput,
   ContentSnapshotManifestDto
 >('contentSnapshots/manifest:manifest')
+const catalogue = makeFunctionReference<
+  'query',
+  Record<string, never>,
+  ContentSnapshotCatalogueManifestDto
+>('contentSnapshots/manifest:catalogue')
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
@@ -253,6 +259,34 @@ describe('content snapshot manifest', () => {
     const outside = await owner.caller.query(manifest, { systemId: srdSystemRecord.id })
     expect(outside.campaign).toBeNull()
     expect(outside.sources.map((source) => source.contentSourceId)).toContain(extraSourceId)
+  }, 60_000)
+
+  it('names every PLATFORM source and only the caller’s own Homebrew for the lists', async () => {
+    const { t, owner, other, extraSourceId } = await setup()
+    const ownerView = await owner.caller.query(catalogue, {})
+    const otherView = await other.caller.query(catalogue, {})
+    const platformIds = ownerView.sources
+      .filter((source) => source.kind === 'PLATFORM')
+      .map((source) => source.contentSourceId)
+    expect(ownerView.userId).toBe(owner.userId)
+    expect(platformIds).toEqual(expect.arrayContaining([SRD_CONTENT_SOURCE.id, extraSourceId]))
+    const userSources = await t.run((ctx) =>
+      ctx.db.query('contentSources').withIndex('by_ownerUserId').take(50)
+    )
+    for (const [view, userId] of [
+      [ownerView, owner.userId],
+      [otherView, other.userId]
+    ] as const) {
+      const own = userSources.filter((source) => source.ownerUserId === userId)
+      expect(own.length).toBeGreaterThan(0)
+      expect(
+        view.sources
+          .filter((source) => source.kind === 'USER')
+          .map((source) => source.contentSourceId)
+      ).toEqual(own.map((source) => source.id))
+      expect(view.sources.every((source) => source.systemId === srdSystemRecord.id)).toBe(true)
+    }
+    await expect(t.query(catalogue, {})).rejects.toThrow('Unauthenticated')
   }, 60_000)
 
   it("refuses another user's Character, a System mismatch and anonymous callers", async () => {

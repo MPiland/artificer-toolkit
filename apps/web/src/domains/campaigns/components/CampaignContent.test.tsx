@@ -30,14 +30,13 @@ const mocks = vi.hoisted(() => ({
     loadMore: vi.fn()
   },
   candidates: {
-    results: [
+    items: [
       {
         id: '44444444-4444-4444-8444-444444444444',
         label: 'Ember Ward'
       }
     ],
-    status: 'CanLoadMore' as 'CanLoadMore' | 'Exhausted' | 'LoadingFirstPage' | 'LoadingMore',
-    loadMore: vi.fn()
+    isPending: false
   },
   share: vi.fn(),
   unshare: vi.fn(),
@@ -55,8 +54,8 @@ vi.mock('convex/react', async (importOriginal) => ({
   }
 }))
 
-vi.mock('convex-helpers/react', () => ({
-  usePaginatedQuery: (...args: unknown[]) => {
+vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
+  useContentCatalogue: (...args: unknown[]) => {
     mocks.candidateCalls(...args)
     return mocks.candidates
   }
@@ -107,7 +106,6 @@ describe('CampaignContent', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.content.status = 'CanLoadMore'
-    mocks.candidates.status = 'CanLoadMore'
   })
 
   it('uses native paginated content and removes content through Convex', async () => {
@@ -121,34 +119,18 @@ describe('CampaignContent', () => {
       { campaignId: campaign.id },
       { initialNumItems: 48 }
     )
-    expect(mocks.candidateCalls).toHaveBeenCalledWith(expect.anything(), 'skip', {
-      initialNumItems: 48
+    expect(mocks.candidateCalls).toHaveBeenCalledWith('CLASS', {
+      enabled: false,
+      source: 'OWNED'
     })
 
     await user.click(screen.getByRole('combobox', { name: 'Content type' }))
     await user.keyboard('{ArrowDown}{Enter}')
     await waitFor(() =>
-      expect(mocks.candidateCalls).toHaveBeenLastCalledWith(
-        expect.anything(),
-        { subjectKind: 'BACKGROUND', source: 'OWNED', sort: 'name' },
-        { initialNumItems: 48 }
-      )
-    )
-    await waitFor(() => expect(mocks.candidates.loadMore).toHaveBeenCalledWith(48))
-
-    mocks.candidates.status = 'LoadingMore'
-    view.rerender(
-      <CampaignContent campaign={campaign} currentUserId='22222222-2222-4222-8222-222222222222' />
-    )
-    mocks.candidates.status = 'CanLoadMore'
-    view.rerender(
-      <CampaignContent campaign={campaign} currentUserId='22222222-2222-4222-8222-222222222222' />
-    )
-    await waitFor(() => expect(mocks.candidates.loadMore).toHaveBeenCalledTimes(2))
-
-    mocks.candidates.status = 'Exhausted'
-    view.rerender(
-      <CampaignContent campaign={campaign} currentUserId='22222222-2222-4222-8222-222222222222' />
+      expect(mocks.candidateCalls).toHaveBeenLastCalledWith('BACKGROUND', {
+        enabled: true,
+        source: 'OWNED'
+      })
     )
     await user.click(screen.getByRole('combobox', { name: 'Owned homebrew' }))
     await user.keyboard('{ArrowDown}{Enter}')

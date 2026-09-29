@@ -1,12 +1,10 @@
 import { notifications } from '@mantine/notifications'
-import { api } from '@artificer-toolkit/apis/convex/api'
-import { convexQuery } from '@convex-dev/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
+import { useAuthoredCatalogue } from '#components/AuthoredList/useAuthoredCatalogue'
 import {
   buildVehicleListFilters,
   vehicleListAttributeColumns,
@@ -14,7 +12,6 @@ import {
 } from '#app/data/vehicles/vehicleListMapper'
 import { useDuplicateVehicleMutation } from '#app/data/vehicles/mutations'
 import { getVehicle } from '#app/data/vehicles/queries'
-import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
 import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
@@ -22,26 +19,13 @@ import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 
 const vehicleDetailMeta = ['currencies']
 export const Route = createFileRoute('/_authed/vehicles/')({
-  loader: async ({ context }): Promise<void> => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(
-        getAuthoredCatalogueList({
-          subjectKind: 'VEHICLE',
-          paginationOpts: { cursor: null, numItems: 48 }
-        })
-      ),
-      context.queryClient.ensureQueryData(
-        convexQuery(api.content.catalogue.summary, { subjectKind: 'VEHICLE' })
-      )
-    ])
-  },
   component: VehiclesRoute
 })
 
 function VehiclesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useNativeAuthoredCatalogWindow('VEHICLE')
+  const listing = useAuthoredCatalogue('VEHICLE')
   const duplicateMutation = useDuplicateVehicleMutation()
   const operations = createAuthoredOperations('VEHICLE', useConvex())
   const deleteAction = useAuthoredDeleteAction({
@@ -90,7 +74,7 @@ function VehiclesRoute() {
         filters={buildVehicleListFilters(listing.summary?.categories ?? [])}
         attributeColumns={vehicleListAttributeColumns}
         sortOptions={vehicleListSortOptions}
-        catalog={listing.catalog}
+        updating={listing.updating}
         error={listing.error}
         loading={listing.loading}
         onCreate={() => navigate({ to: '/vehicles/new' })}

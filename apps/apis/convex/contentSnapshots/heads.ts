@@ -1,18 +1,17 @@
 import { paginationOptsValidator, type PaginationOptions } from 'convex/server'
 import { v } from 'convex/values'
 import { zodToConvex } from 'convex-helpers/server/zod4'
+import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
 import {
   contentSnapshotHeadSchema,
   contentSnapshotKindSchema,
+  contentSnapshotObjectKey,
   type ContentSnapshotHead,
   type ContentSnapshotKind
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
-import {
-  contentSnapshotObjectKey,
-  type ContentSnapshotIndexSource
-} from '@artificer-toolkit/rules-runtime/contentSnapshots'
+import type { ContentSnapshotListSource } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
@@ -28,6 +27,7 @@ import {
   readPublishedDocument
 } from '../content/documents'
 import { compileCurrentEquipment } from '../content/equipmentRelationships'
+import { requireSystem } from '../content/systemDocuments'
 import { equipmentOptionFacts } from '../content/equipmentOptionFacts'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import { contentStream } from '../content/streams'
@@ -87,7 +87,8 @@ export const readBuildStart = internalQuery({
 
 /**
  * One page of one kind of a scope's readable current publications, by the Builder's source rules,
- * as JSON index sources. A missing scope has no roots. Pages bound each query's reads and time.
+ * as JSON list sources (the publication plus its public id and, for a Spell, its School label). A
+ * missing scope has no roots. Pages bound each query's reads and time.
  */
 export const readScopeKind = internalQuery({
   args: {
@@ -106,15 +107,34 @@ export const readScopeKind = internalQuery({
         ? await readSourcePublications(ctx, scopeId, kind, paginationOpts)
         : await readCampaignPublications(ctx, scopeId, kind, paginationOpts)
     const sources: string[] = []
+    const schoolLabels = new Map<string, ReadonlyMap<string, string>>()
     for (const { root, publication } of page) {
-      const source: ContentSnapshotIndexSource =
+      // Fails closed on a root whose catalogue metadata was never written.
+      const { publicId } = authoredCatalogueMetadataSchema.parse(root.catalogue)
+      let magicSchoolLabel: string | undefined
+      if (publication.subjectKind === 'SPELL') {
+        if (!schoolLabels.has(root.systemId))
+          schoolLabels.set(
+            root.systemId,
+            new Map(
+              (await requireSystem(ctx, root.systemId)).magicSchools.map(({ id, label }) => [
+                id,
+                label
+              ])
+            )
+          )
+        magicSchoolLabel = schoolLabels.get(root.systemId)!.get(publication.document.magicSchoolId)
+        if (!magicSchoolLabel) throw new Error('Spell Magic School is not in its System.')
+      }
+      const source: ContentSnapshotListSource =
         publication.subjectKind === 'EQUIPMENT'
           ? {
               subjectKind: 'EQUIPMENT',
               document: publication.document,
-              builder: await readEquipmentBuilderFacts(ctx, root, publication.document)
+              builder: await readEquipmentBuilderFacts(ctx, root, publication.document),
+              publicId
             }
-          : publication
+          : { ...publication, publicId, ...(magicSchoolLabel ? { magicSchoolLabel } : {}) }
       sources.push(JSON.stringify(source))
     }
     return { sources, continueCursor, isDone }
@@ -209,7 +229,7 @@ async function readEquipmentBuilderFacts(
   ctx: QueryCtx,
   root: Doc<'authoredRoots'>,
   document: EquipmentAuthoredDto
-): Promise<Extract<ContentSnapshotIndexSource, { subjectKind: 'EQUIPMENT' }>['builder']> {
+): Promise<Extract<ContentSnapshotListSource, { subjectKind: 'EQUIPMENT' }>['builder']> {
   if (root.equipmentOptions?.builder !== undefined) {
     const stored = authoredEquipmentOptionFactsSchema.parse(root.equipmentOptions)
     if (stored.checksum === root.checksum && stored.builder) return stored.builder
@@ -242,7 +262,7 @@ function referencedKeys(ref: ContentSnapshotScopeRef, kinds: ContentSnapshotHead
   for (const kind of contentSnapshotKindSchema.options) {
     const parts = kinds[kind]
     if (!parts) continue
-    for (const part of ['index', 'documents'] as const)
+    for (const part of ['index', 'list', 'documents'] as const)
       keys.add(contentSnapshotObjectKey({ format: 1, ...ref, kind, part }, parts[part].sha256))
   }
   return keys

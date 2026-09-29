@@ -27,6 +27,7 @@ import { collectReferenceIds, stripPortableMetadata } from '@artificer-toolkit/s
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, internal } from '../_generated/api'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
 const selectedCreatureIds = new Set([
@@ -210,31 +211,19 @@ describe('native Creature publication', () => {
         result: await first.caller.mutation(publish, publicationInput(draft))
       })
     }
-    const catalogueInput = {
-      subjectKind: 'CREATURE' as const,
-      systemId: defaultSystemId,
-      paginationOpts: { cursor: null, numItems: 48 }
-    }
-    const ownedCatalogue = await first.caller.query(api.content.catalogue.list, catalogueInput)
-    expect(ownedCatalogue.isDone).toBe(true)
     const masterIds = selectedCreatures.map((creature) => creature.id).sort()
-    expect(ownedCatalogue.page.map((item) => item.id).sort()).toEqual(
-      [...masterIds, ...copies.map(({ draft }) => draft.subjectId)].sort()
-    )
-    for (const caller of [t, second.caller]) {
-      expect(
-        (await caller.query(api.content.catalogue.list, catalogueInput)).page
-          .map((item) => item.id)
-          .sort()
-      ).toEqual(masterIds)
-    }
     expect(
-      (
-        await first.caller.query(api.content.catalogue.list, {
-          ...catalogueInput,
-          systemId: crypto.randomUUID()
-        })
-      ).page
+      (await readVisibleCatalogue(t, first.caller, 'CREATURE', { systemId: defaultSystemId }))
+        .map((item) => item.id)
+        .sort()
+    ).toEqual([...masterIds, ...copies.map(({ draft }) => draft.subjectId)].sort())
+    expect(
+      (await readVisibleCatalogue(t, second.caller, 'CREATURE', { systemId: defaultSystemId }))
+        .map((item) => item.id)
+        .sort()
+    ).toEqual(masterIds)
+    expect(
+      await readVisibleCatalogue(t, first.caller, 'CREATURE', { systemId: crypto.randomUUID() })
     ).toEqual([])
     const stored = await t.run(async (ctx) =>
       Promise.all(

@@ -1,9 +1,9 @@
 import {
   CONTENT_SNAPSHOT_PUBLIC_METADATA,
+  contentSnapshotObjectKey,
   CONTENT_SNAPSHOT_TOKEN_AUDIENCE,
   CONTENT_SNAPSHOT_TOKEN_ISSUER
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { contentSnapshotObjectKey } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { SignJWT } from 'jose'

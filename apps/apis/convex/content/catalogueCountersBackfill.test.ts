@@ -51,9 +51,6 @@ describe('exact catalogue counter backfill', () => {
         }
         for (const count of initial.ownerCounts) await ctx.db.delete(count._id)
       })
-      await expect(
-        t.query(api.content.catalogue.summary, { subjectKind: 'BACKGROUND' })
-      ).rejects.toThrow('backfill is incomplete')
       const input = { contentSourceId: SRD_CONTENT_SOURCE.id, subjects }
       await t.mutation(internal.content.import.importSubjects, input)
       const restored = await snapshot(t)
@@ -135,9 +132,6 @@ describe('exact catalogue counter backfill', () => {
       expect(restored.ownerCounts.map(({ _id, _creationTime, ...count }) => count)).toEqual(
         initial.ownerCounts.map(({ _id, _creationTime, ...count }) => count)
       )
-      expect(
-        await first.caller.query(api.content.catalogue.summary, { subjectKind: 'BACKGROUND' })
-      ).toEqual({ activeCount: 2, masterCount: 1, ownedCount: 1, totalCount: 2, categories: [] })
     }
   })
 

@@ -21,11 +21,8 @@ import {
   type AuthoredPublicationResult
 } from '@artificer-toolkit/schema/api/authoredPublication'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
-import type {
-  AuthoredCataloguePage,
-  AuthoredCatalogueReadInput,
-  AuthoredCatalogueSearchBackfillResult
-} from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredCatalogueSearchBackfillResult } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import { summarizeContentCatalogue } from '@artificer-toolkit/rules-runtime/contentCatalogue'
 import { nodeRuntimeResolveRequestDtoSchema } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime'
@@ -34,6 +31,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { collectReferenceIds, stripPortableMetadata } from '@artificer-toolkit/shared/utils'
 import { api, internal } from '../_generated/api'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
 const publish = makeFunctionReference<
@@ -164,30 +162,19 @@ describe('native Spell publication', () => {
       ).item
     ).toEqual({ kind: 'SPELL', data: stripPortableMetadata(draft.payload) })
     const result = await first.caller.mutation(publish, publicationInput(draft))
-    const catalogueInput = {
-      subjectKind: 'SPELL' as const,
-      systemId: fireball.systemId,
-      paginationOpts: { cursor: null, numItems: 48 }
-    }
-    const catalogue = await first.caller.query(api.content.catalogue.list, catalogueInput)
-    expect(catalogue.isDone).toBe(true)
-    expect(catalogue.page.map((item) => item.id).sort()).toEqual(
-      [fireball.id, prismaticWall.id, draft.subjectId].sort()
-    )
-    for (const caller of [t, second.caller]) {
-      expect(
-        (await caller.query(api.content.catalogue.list, catalogueInput)).page
-          .map((item) => item.id)
-          .sort()
-      ).toEqual([fireball.id, prismaticWall.id].sort())
-    }
+    const systemId = fireball.systemId
     expect(
-      (
-        await first.caller.query(api.content.catalogue.list, {
-          ...catalogueInput,
-          systemId: crypto.randomUUID()
-        })
-      ).page
+      (await readVisibleCatalogue(t, first.caller, 'SPELL', { systemId }))
+        .map((item) => item.id)
+        .sort()
+    ).toEqual([fireball.id, prismaticWall.id, draft.subjectId].sort())
+    expect(
+      (await readVisibleCatalogue(t, second.caller, 'SPELL', { systemId }))
+        .map((item) => item.id)
+        .sort()
+    ).toEqual([fireball.id, prismaticWall.id].sort())
+    expect(
+      await readVisibleCatalogue(t, first.caller, 'SPELL', { systemId: crypto.randomUUID() })
     ).toEqual([])
     const stored = await t.run(async (ctx) => {
       const root = await ctx.db
@@ -316,62 +303,26 @@ describe('native Spell publication', () => {
     )
   })
 
-  it('materializes, filters, orders, summarizes, and backfills Spell catalogue metadata', async () => {
+  it('lists Spell facts and facets from the list part, and backfills Spell catalogue metadata', async () => {
     const { t, first, second } = await fixture()
-    const input = {
-      subjectKind: 'SPELL' as const,
-      systemId: fireball.systemId,
-      classId: wizard.id,
-      level: fireball.level,
-      magicSchoolId: fireball.magicSchoolId,
-      paginationOpts: { cursor: null, numItems: 1 }
-    }
-    const filtered = await t.query(api.content.catalogue.list, input)
-    expect(filtered.page).toEqual([
-      expect.objectContaining({
-        id: fireball.id,
-        classIds: [...fireball.classIds].sort(),
-        classLabels: expect.arrayContaining([sorcerer.label, wizard.label]),
-        level: fireball.level,
-        magicSchoolId: fireball.magicSchoolId,
-        magicSchoolLabel: 'Evocation',
-        castingTimeUnit: fireball.castingTime.unit,
-        castingTimeAmount: fireball.castingTime.amount
-      })
-    ])
+    const systemId = fireball.systemId
     const draft = await copyDraft(first.caller)
     await first.caller.mutation(publish, publicationInput(draft))
-    const ids: string[] = []
-    let cursor: string | null = null
-    for (let index = 0; index < 4; index++) {
-      const request: AuthoredCatalogueReadInput = {
-        ...input,
-        classId: undefined,
-        level: undefined,
-        magicSchoolId: undefined,
-        sort: 'level',
-        paginationOpts: { cursor, numItems: 1 }
-      }
-      const page: AuthoredCataloguePage = await first.caller.query(
-        api.content.catalogue.list,
-        request
-      )
-      ids.push(...page.page.map((row) => row.id))
-      if (page.isDone) break
-      cursor = page.continueCursor
-    }
-    expect(ids).toEqual(expect.arrayContaining([fireball.id, prismaticWall.id, draft.subjectId]))
-    expect(new Set(ids).size).toBe(ids.length)
-    expect(
-      await first.caller.query(api.content.catalogue.summary, {
-        subjectKind: 'SPELL',
-        source: 'OWNED',
-        classId: wizard.id,
-        level: fireball.level,
-        magicSchoolId: fireball.magicSchoolId
-      })
-    ).toMatchObject({
-      totalCount: 1,
+    const items = await readVisibleCatalogue(t, first.caller, 'SPELL', { systemId })
+    expect(items.find((item) => item.id === fireball.id)).toMatchObject({
+      classIds: [...fireball.classIds].sort(),
+      classLabels: expect.arrayContaining([sorcerer.label, wizard.label]),
+      level: fireball.level,
+      magicSchoolId: fireball.magicSchoolId,
+      magicSchoolLabel: 'Evocation',
+      castingTimeUnit: fireball.castingTime.unit,
+      castingTimeAmount: fireball.castingTime.amount
+    })
+    expect(items.map((item) => item.id)).toEqual(
+      expect.arrayContaining([fireball.id, prismaticWall.id, draft.subjectId])
+    )
+    expect(summarizeContentCatalogue('SPELL', items)).toMatchObject({
+      ownedCount: 1,
       spellFacets: {
         classes: expect.arrayContaining([{ id: wizard.id, label: wizard.label }]),
         schools: expect.arrayContaining([{ id: fireball.magicSchoolId, label: 'Evocation' }]),
@@ -379,17 +330,8 @@ describe('native Spell publication', () => {
       }
     })
     expect(
-      await second.caller.query(api.content.catalogue.list, {
-        ...input,
-        source: 'OWNED'
-      })
-    ).toMatchObject({ page: [], isDone: true })
-    expect(
-      await t.query(api.content.catalogue.summary, {
-        subjectKind: 'SPELL',
-        source: 'OWNED'
-      })
-    ).toMatchObject({ ownedCount: 0, totalCount: 0 })
+      (await readVisibleCatalogue(t, second.caller, 'SPELL', { systemId, source: 'OWNED' })).length
+    ).toBe(0)
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -400,9 +342,6 @@ describe('native Spell publication', () => {
         catalogue: { ...root.catalogue, spell: undefined }
       })
     })
-    await expect(t.query(api.content.catalogue.list, input)).rejects.toThrow(
-      'Spell catalogue metadata'
-    )
     let backfillCursor: string | null = null
     for (let index = 0; index < 4; index++) {
       const result: AuthoredCatalogueSearchBackfillResult = await t.mutation(
@@ -412,8 +351,15 @@ describe('native Spell publication', () => {
       if (result.isDone) break
       backfillCursor = result.continueCursor
     }
-    const restored = await t.query(api.content.catalogue.list, input)
-    expect(restored.page.map((row) => row.id)).toEqual([fireball.id])
+    expect(
+      await t.run(async (ctx) => {
+        const root = await ctx.db
+          .query('authoredRoots')
+          .withIndex('by_publicId', (q) => q.eq('id', fireball.id))
+          .unique()
+        return root?.catalogue?.spell?.level
+      })
+    ).toBe(fireball.level)
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')

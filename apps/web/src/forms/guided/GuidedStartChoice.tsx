@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AppSelect } from '#ui/primitives/Select'
 import { Badge, Button, Group, Loader, Stack, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { CatchBoundary } from '@tanstack/react-router'
-import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { usePaginatedQuery } from 'convex-helpers/react'
 import { Copy, Sparkles } from 'lucide-react'
+import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import { getSpell } from '#app/data/spells/queries'
 import { useAuthoringForm } from '../layout/AuthoringFormContext'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
@@ -112,44 +111,33 @@ function GuidedNativeCopySourceLoader({
   domain: 'background' | 'class' | 'feat' | 'creature' | 'equipment' | 'race' | 'spell' | 'vehicle'
   systemId?: string
 }) {
-  const catalogue = usePaginatedQuery(
-    convexApi.content.catalogue.list,
-    systemId
-      ? {
-          subjectKind:
-            domain === 'background'
-              ? 'BACKGROUND'
-              : domain === 'class'
-                ? 'CLASS'
-                : domain === 'feat'
-                  ? 'FEAT'
-                  : domain === 'creature'
-                    ? 'CREATURE'
-                    : domain === 'equipment'
-                      ? 'EQUIPMENT'
-                      : domain === 'race'
-                        ? 'RACE'
-                        : domain === 'spell'
-                          ? 'SPELL'
-                          : 'VEHICLE',
-          systemId
-        }
-      : 'skip',
-    { initialNumItems: 48 }
+  const catalogue = useContentCatalogue(
+    domain === 'background'
+      ? 'BACKGROUND'
+      : domain === 'class'
+        ? 'CLASS'
+        : domain === 'feat'
+          ? 'FEAT'
+          : domain === 'creature'
+            ? 'CREATURE'
+            : domain === 'equipment'
+              ? 'EQUIPMENT'
+              : domain === 'race'
+                ? 'RACE'
+                : domain === 'spell'
+                  ? 'SPELL'
+                  : 'VEHICLE',
+    { enabled: Boolean(systemId), systemId }
   )
-
-  useEffect(() => {
-    if (catalogue.status === 'CanLoadMore') catalogue.loadMore(48)
-  }, [catalogue.loadMore, catalogue.status])
 
   if (!systemId) return <GuidedCopySourceSystemRequired domain={domain} />
 
   return (
     <GuidedCopySourcePicker
       domain={domain}
-      error={false}
-      loading={catalogue.status !== 'Exhausted'}
-      sources={toGuidedCopySources(catalogue.results)}
+      error={catalogue.isError}
+      loading={catalogue.isPending}
+      sources={toGuidedCopySources(catalogue.items ?? [])}
     />
   )
 }

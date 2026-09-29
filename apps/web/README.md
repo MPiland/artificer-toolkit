@@ -227,28 +227,25 @@ Public aliases resolve through the detail query; mutation arguments retain subje
 and draft subscriptions remain distinct, and publication forwards the saved draft's server timestamp.
 Vehicle node-map resolution is native; Guided copy reads the exact-System native catalogue. Vehicle artwork and owned active/draft
 JSON export also use the shared native adapters, without legacy fallback. Vehicle catalogue reads
-use native category browse and ranked search; Character/Campaign/Encounter usage is outside this authoring adapter change. Managed
+read the `list` content snapshot (category filter and local search); Character/Campaign/Encounter usage is outside this authoring adapter change. Managed
 verification and the complete local lifecycle remain required before promotion.
 
 Race uses the same native form/detail/edit, action, node-runtime, artwork and owned export adapters.
-Guided copy and parent selection use the exact-System paginated native catalogue, with BASE-only
+Guided copy and parent selection read the `list` content snapshot for the exact System, with BASE-only
 parent choices excluding the current subject. Detail inheritance subscribes to the parent named by
-the selected active/draft source and rejects non-BASE or other-System parents. Race catalogue-page
-reads now use native UUID-family ordering and preserve the Playable badge from current selection
-metadata. Canonical backfill execution and full lifecycle acceptance are still open.
+the selected active/draft source and rejects non-BASE or other-System parents. Race list reads
+group subraces under their parents and keep the Playable badge from the entry's selection mode. Canonical backfill execution and full lifecycle acceptance are still open.
 
 Creature uses the same native form/detail/edit, action, node-runtime, artwork and owned export
 adapters locally. Its detail page derives reader references from the current reactive response
-metadata. Guided copy loads exact-System native catalogue pages; catalogue-page list reads use
-native category browse and ranked search. No new Creature-specific publication
+metadata. Guided copy and the list page read the `list` content snapshot. No new Creature-specific publication
 or play-state model is introduced; managed proof and the complete local lifecycle remain open.
 
-Encounter Builder and reinforcement now read Creature options through the native
-`content/catalogue:list` endpoint and shared read/page contracts. Their existing paginator drains
-48-item pages to `isDone` and rejects empty, repeated, or cyclic continuations without a total-item
-cap. Setup selectors retain their existing scope across visible Systems; Guided copy remains scoped
-to the authoring session's exact System. Browser story fixtures exercise the native client and saved
-Creature UUID; they do not replace real backend or final release proof.
+Encounter Builder and reinforcement read Creature options from the Creature `list` content snapshot
+through `useContentCatalogue` (ADR 0036 S11), with no Convex catalogue read and no paging. Setup
+selectors retain their scope across visible Systems; Guided copy remains scoped to the authoring
+session's exact System. Browser story fixtures exercise the snapshot client and saved Creature UUID;
+they do not replace real backend or final release proof.
 Native Spell detail and Campaign query modules import the generated Convex references and shared
 schemas directly. Their unused legacy list/currency/content/Vehicle wrappers and unused Class/Feat
 mutation adapters have been removed; keep current authored writes in `data/authoredOperations.ts`.
@@ -262,8 +259,7 @@ Spell uses the same native adapters locally, including separate active/draft det
 reactive reader metadata and exact-System Guided copying. All eight authored roots now route
 resolution and prospective structural normalization to Convex. Nested-map reads use the same native
 queries; obsolete legacy resolver/normalizer fallback branches and their client argument are removed.
-Spell catalogue-page reads and Class/school filters
-remain transitional. The approved 25-level generic JSON guard now admits Prismatic Wall's depth-22
+Spell list reads (snapshot-backed, with Class and School filters) are current. The approved 25-level generic JSON guard now admits Prismatic Wall's depth-22
 mechanics in local resolver, normalizer and publication tests; nested facets remain capped at 20.
 Managed canonical backfill and the full lifecycle remain open, so the Spell port is not accepted.
 

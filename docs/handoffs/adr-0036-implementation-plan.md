@@ -1,6 +1,6 @@
 # ADR 0036 implementation plan
 
-> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3 to S9 (2026-09-28). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
+> Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3 to S9 (2026-09-28), S11 (2026-09-29). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
 
 ## What the code does today
 
@@ -160,6 +160,18 @@
 - **First paint.** The Builder route renders the draft's form and the content state; the view and step progress arrive with the first browser evaluation. It opens on the first step (or the URL's step) instead of the server's recommended step.
 - **Tests.** The selector-payload tests became pure snapshot tests (`rules-runtime/__tests__/builderCatalogueAssembly.test.ts`); the Equipment and Feat catalogue tests now exercise the server `resolution` pools; the parity test compares the browser path with a pure full-pool evaluation over the publications Convex authorizes (`apps/apis/tests/fixtures/builderEvaluation.ts`); `builderChoices.test.ts` evaluates through the browser path.
 
+## Authored-content lists (S11, current)
+
+Implemented locally (2026-09-29). Contract and behavior are in [persistence.md](../architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11--local-implementation); this section records what the slice removed and what it left.
+
+- **Reads per view.** Before: about 0.9 MB for a Class page, 0.48 MB for a Spell page and 1.5 MB for the Spell summary, each repeated on every filter, page and subscription change. After: 0 Convex documents beyond the manifest subscription (`content/catalogueReadBudget.test.ts` bounds the manifest and `counts`, 64 KiB each).
+- **Removed:** `content/catalogue:list`, `search` and `summary`, their schemas' page and total counters, the ranked-search UI, the paging regions and 48-row pagination on the list pages, and the browse and search tests that only exercised them. Publication and development tests read through `readVisibleCatalogue`.
+- **Added:** the `list` part, `contentSnapshots/manifest:catalogue`, `useContentCatalogue`, the `updating` state, and the CLI-only `content/development:listOwnedFixtureSubjects` for the development drivers.
+- **Deviations from the ADR:** the Spell School label is denormalized into the list entry (remove when D67's `SYSTEM` scope lands); search is a local substring match, not the ranked Convex index.
+- **Local data:** heads now require the `list` part, so the local snapshot tables must be reset or rebuilt. This could not be done here (no Docker).
+- **Not run here:** the local Convex codegen push (no Docker), so `apps/apis/convex/_generated/api.d.ts` was edited by hand and must be regenerated once; the live-backend Playwright four-page Equipment search proof was removed with paging.
+- **Follow-up:** delete the orphaned projection only the retired endpoints read (`catalogueMetadata.ts`, `catalogueFamilies.ts`, `authoredCatalogueOwnerCounts`, the `by_*_name_id` and `search_catalogue` indexes, `catalogueSearchBackfill.ts`, `spellClasses`). `counts` stays for the development drivers and publication tests until they read the snapshots.
+
 ## Budgets (estimates to verify in the slices)
 
 | Action                                        | Convex I/O                                                           | Network                                                         |
@@ -186,6 +198,7 @@
 | S8    | Debounced autosave and a cheaper `drafts.save`                                                                                                   | Budget test; debounce and flush; no reads of the old payload                                                                                                                                              |
 | S9    | Delete `builder.get`, `resolve`, `preview`, the selector scope and the full-pool loading; update `character.md`, `media.md` and `persistence.md` | Parity against a pure full-pool evaluation; catalogue rules as pure snapshot tests                                                                                                                        |
 | S10   | The room loads content from snapshots (after the ADR 0035 room slices)                                                                           | —                                                                                                                                                                                                         |
+| S11   | The authored-content list pages read `list` snapshot parts; delete `content/catalogue` `list`, `search` and `summary`                            | List, search and filter parity with the retired endpoints; updating state; private Homebrew with the token, cleared at sign-out; 0 Convex reads per page after the manifest                               |
 
 ## Risks and open points
 

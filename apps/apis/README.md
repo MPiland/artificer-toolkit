@@ -1093,14 +1093,12 @@ This avatar slice does not accept all of `F14`; other profile lifecycles remain 
 
 ### Historical tRPC transport record
 
-Native `content/catalogue.list` and `.counts` expose published authored-domain summaries
-without loading full documents. They share `packages/schema/api/authoredCatalogue` contracts;
-UUIDs remain public identities and continuation cursors are opaque. Master and current-owner
-index ranges are bounded before merging, with exact source checks and byte-limited pages.
-`list.systemId` is optional: Guided callers retain exact-System pages, while the global index
-supports browse across visible Systems. `.counts` remains exact-System; `.summary` owns global
-totals. All eight authored-domain catalogue pages use the global list/summary reads locally;
-managed verification remains incomplete.
+The authored-domain list pages read `list` content snapshot parts in the browser (ADR 0036 S11,
+[persistence.md](../../docs/architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11--local-implementation)),
+so `content/catalogue:list`, `search` and `summary` no longer exist. Convex serves the
+`contentSnapshots/manifest:catalogue` subscription; `content/catalogue.counts` remains exact-System
+for the development drivers and publication tests. The catalogue projection described below is
+read only by `counts` and the Campaign and Character option readers, and is a follow-up deletion.
 Import/publication maintain optional additive root metadata and source/domain counts atomically;
 queries fail closed during an incomplete backfill. Canonical seed replay backfills and audits them.
 Canonical replay and the existing bounded `catalogueSearchBackfill.backfill` also fill absent

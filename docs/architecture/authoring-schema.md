@@ -219,9 +219,10 @@ Guided Class parent choices select the native root model's `parentClassId` optio
 SUBCLASS branch active. The shared node map owns the BASE-only rule; the same source reader owns
 System/visibility restrictions. No duplicate catalogue filter or new parent-choice contract is added.
 
-Guided Background, Class, Equipment and Feat existing-source choices use native reactive `content/catalogue.list` pages
-scoped to the session System. It loads lazily and completes all pages before enabling local search,
-preserving the existing complete-options behavior. Missing System, failed loading or a source
+Guided Background, Class, Equipment and Feat existing-source choices read the ADR 0036 `list`
+snapshot parts through `useContentCatalogue`, scoped to the session System and to the master or
+owned source. The hook loads lazily (`enabled`) and reads the whole visible list, so local search
+keeps the complete-options behavior. Missing System, failed loading or a source
 removed by a reactive update cannot trigger a copy. The existing duplicate command reads only the
 validated published document of a readable master or owned homebrew root, uses the shared UUID
 clone operation and assigns the authenticated owner to a fresh draft. Working edits are not a
@@ -412,12 +413,16 @@ Class and magic-school labels, level facets, and the exact filtered total. Facet
 complete visible Spell catalogue independently of the selected source or Spell filters; a larger
 owner catalogue fails with an explicit error until its facets are materialized.
 
-`content/catalogue.list`, `search` and `summary` run over a per-query read memo
-(`memoizeTransactionReads`), so the System, each content Source and each Class root a row's
-display reads are read once per query, not once per row. `catalogueReadBudget.test.ts` holds the
-bound with the full SRD plus Homebrew: a list page stays under 1.25 MiB (Class pages, whose roots
-are about 38 KB each, are the largest) and the Spell summary under 2 MiB, against Convex's 16 MiB
-read limit. Before the memo the Spell summary read about 37 MB and a Spell page 4.6-5.7 MB.
+The eight authored-content list pages no longer call Convex for rows, search or summary. They read
+the ADR 0036 `list` snapshot parts and search and filter in the browser
+([persistence](persistence.md#authored-content-list-snapshots-adr-0036-s10--local-implementation)),
+so a page view reads 0 Convex documents beyond the catalogue manifest. `content/catalogue:list`,
+`search` and `summary` were deleted; before that, a Class page read about 0.9 MB, a Spell page
+0.48 MB and the Spell summary 1.5 MB (37 MB before the per-query read memo).
+`catalogueReadBudget.test.ts` now bounds the manifest and `counts` reads. The paragraphs below
+about the catalogue projection (metadata, counters, search text and the ranked Spell summary)
+describe the retained projection, which only `counts`, the Campaign and Character option readers and
+the development drivers still read; its deletion is a follow-up.
 
 Native catalogue query endpoints read checksum-bound summary metadata on the
 published root, not full authored documents or compiled mechanics. Import and publication update

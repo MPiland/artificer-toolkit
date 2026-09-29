@@ -1,15 +1,12 @@
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { api } from '@artificer-toolkit/apis/convex/api'
-import { convexQuery } from '@convex-dev/react-query'
 import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
+import { useAuthoredCatalogue } from '#components/AuthoredList/useAuthoredCatalogue'
 import { getSpell } from '#app/data/spells/queries'
 import { createAuthoredOperations } from '#app/data/authoredOperations'
-import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
 import {
   buildSpellFilters,
   spellListAttributeColumns,
@@ -21,26 +18,13 @@ import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
 
 const spellDetailMeta = ['classes', 'conditionTypes', 'damageTypes', 'magicSchools']
 export const Route = createFileRoute('/_authed/spells/')({
-  loader: async ({ context }): Promise<void> => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(
-        getAuthoredCatalogueList({
-          subjectKind: 'SPELL',
-          paginationOpts: { cursor: null, numItems: 48 }
-        })
-      ),
-      context.queryClient.ensureQueryData(
-        convexQuery(api.content.catalogue.summary, { subjectKind: 'SPELL' })
-      )
-    ])
-  },
   component: SpellsRoute
 })
 
 function SpellsRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useNativeAuthoredCatalogWindow('SPELL')
+  const listing = useAuthoredCatalogue('SPELL')
   const operations = createAuthoredOperations('SPELL', useConvex())
   const duplicateMutation = useMutation({
     mutationFn: operations.duplicate,
@@ -90,7 +74,7 @@ function SpellsRoute() {
         )}
         attributeColumns={spellListAttributeColumns}
         sortOptions={spellListSortOptions}
-        catalog={listing.catalog}
+        updating={listing.updating}
         error={listing.error}
         loading={listing.loading}
         onCreate={() => navigate({ to: '/spells/new' })}

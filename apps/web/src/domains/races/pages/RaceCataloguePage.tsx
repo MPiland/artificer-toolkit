@@ -4,7 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
+import { useAuthoredCatalogue } from '#components/AuthoredList/useAuthoredCatalogue'
 import {
   buildRaceListFilters,
   raceListAttributeColumns,
@@ -21,7 +21,7 @@ const raceDetailMeta = ['heritages', 'races', 'speeds']
 export function RaceCataloguePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useNativeAuthoredCatalogWindow('RACE')
+  const listing = useAuthoredCatalogue('RACE')
   const duplicateMutation = useDuplicateRaceMutation()
   const operations = createAuthoredOperations('RACE', useConvex())
   const deleteAction = useAuthoredDeleteAction({
@@ -49,7 +49,7 @@ export function RaceCataloguePage() {
         filters={buildRaceListFilters(listing.summary?.categories ?? [])}
         attributeColumns={raceListAttributeColumns}
         sortOptions={raceListSortOptions}
-        catalog={listing.catalog}
+        updating={listing.updating}
         error={listing.error}
         loading={listing.loading}
         onCreate={() => navigate({ to: '/races/new' })}

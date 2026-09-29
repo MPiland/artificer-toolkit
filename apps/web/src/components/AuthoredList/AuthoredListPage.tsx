@@ -11,7 +11,7 @@ import {
 import { useMediaQuery } from '@mantine/hooks'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import clsx from 'clsx'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ICreate from '#assets/icons/ICreate'
 import IGrid from '#assets/icons/IGrid'
 import IList from '#assets/icons/IList'
@@ -21,7 +21,6 @@ import { AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import { AuthoredListCards } from './AuthoredListCards'
 import { AuthoredListTable } from './AuthoredListTable'
-import { AuthoredCatalogueSearch } from './AuthoredCatalogueSearch'
 import type {
   AuthoredListActionHandlers,
   AuthoredListFilter,
@@ -62,7 +61,7 @@ export function AuthoredListPage({
   loading: activeLoading = false,
   initialViewMode,
   cardOnly = false,
-  catalog,
+  updating = false,
   onCreate,
   onView,
   onViewIntent,
@@ -72,10 +71,11 @@ export function AuthoredListPage({
 }: AuthoredListPageProps) {
   const isMobile = useMediaQuery(mobileQuery, false)
   const isTablet = useMediaQuery(tabletQuery, false)
-  const [uncontrolledQuery, setUncontrolledQuery] = useState('')
-  const [uncontrolledFilterValues, setUncontrolledFilterValues] =
-    useState<AuthoredListFilterValues>(() => buildInitialFilters(filters))
-  const [uncontrolledSort, setUncontrolledSort] = useState(defaultSort)
+  const [query, setQuery] = useState('')
+  const [filterValues, setFilterValues] = useState<AuthoredListFilterValues>(() =>
+    buildInitialFilters(filters)
+  )
+  const [sort, setSort] = useState(defaultSort)
   const [contentPanel, setContentPanel] = useState<'active' | 'draft'>('active')
   const loading = contentPanel === 'draft' ? draftLoading : activeLoading
   const [viewMode, setViewMode] = useState<AuthoredListViewMode>(() => {
@@ -86,15 +86,7 @@ export function AuthoredListPage({
     return window.matchMedia(mobileQuery).matches ? 'cards' : 'table'
   })
   const viewportRef = useRef<HTMLDivElement>(null)
-  const visibleItemRef = useRef<{ id: string; offset: number } | undefined>(undefined)
-  const previousWindowFirstItemIdRef = useRef<string | undefined>(undefined)
-  const controls = catalog?.controls
-  const query = controls?.query ?? uncontrolledQuery
-  const filterValues = controls?.filterValues ?? uncontrolledFilterValues
-  const sort = controls?.sort ?? uncontrolledSort
   const normalizedQuery = query.trim().toLowerCase()
-  const searchSubjectKind =
-    contentPanel === 'active' && normalizedQuery ? catalog?.searchSubjectKind : undefined
   const hasActiveFilters =
     normalizedQuery.length > 0 || Object.values(filterValues).some((value) => Boolean(value))
   const visibleItems = contentPanel === 'draft' ? draftItems : items
@@ -106,7 +98,7 @@ export function AuthoredListPage({
       />
     ) : null
 
-  const locallyFilteredItems = useMemo(() => {
+  const filteredItems = useMemo(() => {
     const matchingItems = visibleItems.filter((item) => {
       return (
         itemMatchesQuery(item, normalizedQuery) &&
@@ -116,24 +108,16 @@ export function AuthoredListPage({
 
     return sortAuthoredListItems(matchingItems, sort)
   }, [filterValues, filters, normalizedQuery, sort, visibleItems])
-  const filteredItems = catalog && contentPanel === 'active' ? items : locallyFilteredItems
-  const facetedFilterOptions = useMemo(() => {
-    if (catalog && contentPanel === 'active') {
-      return filters.reduce<Record<string, AuthoredListFilter['options']>>(
-        (optionsByKey, filter) => {
-          optionsByKey[filter.key] = filter.options
-          return optionsByKey
-        },
-        {}
-      )
-    }
-    return getFacetedFilterOptionsByKey({
-      filters,
-      filterValues,
-      items: visibleItems,
-      normalizedQuery
-    })
-  }, [catalog, contentPanel, filterValues, filters, normalizedQuery, visibleItems])
+  const facetedFilterOptions = useMemo(
+    () =>
+      getFacetedFilterOptionsByKey({
+        filters,
+        filterValues,
+        items: visibleItems,
+        normalizedQuery
+      }),
+    [filterValues, filters, normalizedQuery, visibleItems]
+  )
   const hasAccentColumn = visibleItems.some(hasAuthoredListAccent)
   const hasStatusColumn = visibleItems.some(hasAuthoredListStatus)
   const hasBadgeColumn = visibleItems.some(hasAuthoredListBadges)
@@ -141,16 +125,9 @@ export function AuthoredListPage({
     sortOptions.find((option) => option.value === defaultSort)?.label ??
     sortOptions[0]?.label ??
     'Default'
-  const activeCount = catalog?.activeCount ?? items.length
-  const resultCount =
-    catalog && contentPanel === 'active' ? catalog.totalCount : filteredItems.length
-
   const cardColumnCount = viewMode === 'cards' ? (isMobile ? 1 : isTablet ? 2 : 3) : 1
-  const virtualRowCount = searchSubjectKind
-    ? 0
-    : viewMode === 'cards'
-      ? Math.ceil(filteredItems.length / cardColumnCount)
-      : filteredItems.length
+  const virtualRowCount =
+    viewMode === 'cards' ? Math.ceil(filteredItems.length / cardColumnCount) : filteredItems.length
   const rowVirtualizer = useVirtualizer({
     count: virtualRowCount,
     getScrollElement: () => viewportRef.current,
@@ -173,58 +150,6 @@ export function AuthoredListPage({
     rowVirtualizer.measure()
     rowVirtualizer.scrollToOffset(0)
   }, [cardColumnCount, contentPanel, filterValues, query, rowVirtualizer, sort, viewMode])
-
-  useLayoutEffect(() => {
-    if (!catalog || contentPanel !== 'active' || searchSubjectKind) return
-    const previousFirstItemId = previousWindowFirstItemIdRef.current
-    const nextFirstItemId = filteredItems[0]?.id
-    previousWindowFirstItemIdRef.current = nextFirstItemId
-    const anchor = visibleItemRef.current
-    if (previousFirstItemId && previousFirstItemId !== nextFirstItemId && anchor) {
-      const index = filteredItems.findIndex((item) => item.id === anchor.id)
-      const position =
-        index < 0
-          ? undefined
-          : rowVirtualizer.getOffsetForIndex(Math.floor(index / cardColumnCount), 'start')
-      if (position) {
-        rowVirtualizer.scrollToOffset(position[0] + anchor.offset)
-        return
-      }
-    }
-    // Track the visible row, not an overscan row; restore before reading its new index.
-    const scrollTop = viewportRef.current?.scrollTop ?? 0
-    const row = virtualRows.find((row) => row.start <= scrollTop && row.end > scrollTop)
-    const item = row && filteredItems[row.index * cardColumnCount]
-    if (row && item) visibleItemRef.current = { id: item.id, offset: scrollTop - row.start }
-    else if (!filteredItems.length) visibleItemRef.current = undefined
-  }, [
-    cardColumnCount,
-    catalog,
-    contentPanel,
-    filteredItems,
-    rowVirtualizer,
-    searchSubjectKind,
-    virtualRows
-  ])
-
-  useEffect(() => {
-    if (!catalog || contentPanel !== 'active' || searchSubjectKind || virtualRows.length === 0)
-      return
-    // A restored scroll position reaches the virtualizer on the next scroll event.
-    if (rowVirtualizer.scrollOffset !== viewportRef.current?.scrollTop) return
-    const firstVisibleRow = virtualRows[0]?.index ?? 0
-    const lastVisibleRow = virtualRows.at(-1)?.index ?? 0
-    if (firstVisibleRow <= 3 && catalog.hasPreviousPage && !catalog.isFetchingPreviousPage) {
-      catalog.fetchPreviousPage()
-    }
-    if (
-      lastVisibleRow >= virtualRowCount - 4 &&
-      catalog.hasNextPage &&
-      !catalog.isFetchingNextPage
-    ) {
-      catalog.fetchNextPage()
-    }
-  }, [catalog, contentPanel, rowVirtualizer, searchSubjectKind, virtualRowCount, virtualRows])
 
   useEffect(() => {
     if ((cardOnly || isMobile) && viewMode !== 'cards') {
@@ -250,12 +175,20 @@ export function AuthoredListPage({
         <SegmentedControl
           aria-label='Choose content state'
           data={[
-            { label: `Active (${activeCount})`, value: 'active' },
+            { label: `Active (${items.length})`, value: 'active' },
             { label: `Drafts (${draftLoading ? '…' : draftItems.length})`, value: 'draft' }
           ]}
           value={contentPanel}
           onChange={(value) => setContentPanel(value === 'draft' ? 'draft' : 'active')}
         />
+      </div>
+
+      <div aria-live='polite'>
+        {updating ? (
+          <Text size='sm' c='dimmed'>
+            Content was just published and is still updating. This list refreshes on its own.
+          </Text>
+        ) : null}
       </div>
 
       {isMobile ? (
@@ -269,36 +202,13 @@ export function AuthoredListPage({
           sort={sort}
           defaultSort={defaultSort}
           defaultSortLabel={defaultSortLabel}
-          resultCount={resultCount}
-          rankedSearch={Boolean(searchSubjectKind)}
-          onQueryChange={(value) => {
-            if (controls) {
-              controls.onQueryChange(value)
-              return
-            }
-            setUncontrolledQuery(value)
-          }}
-          onFilterChange={(key, value) => {
-            if (controls) {
-              controls.onFilterChange(key, value)
-              return
-            }
-            setUncontrolledFilterValues((current) => ({ ...current, [key]: value }))
-          }}
-          onClearFilters={() => {
-            if (controls) {
-              controls.onClearFilters()
-              return
-            }
-            setUncontrolledFilterValues(buildInitialFilters(filters))
-          }}
-          onSortChange={(value) => {
-            if (controls) {
-              controls.onSortChange(value)
-              return
-            }
-            setUncontrolledSort(value)
-          }}
+          resultCount={filteredItems.length}
+          onQueryChange={setQuery}
+          onFilterChange={(key, value) =>
+            setFilterValues((current) => ({ ...current, [key]: value }))
+          }
+          onClearFilters={() => setFilterValues(buildInitialFilters(filters))}
+          onSortChange={setSort}
         />
       ) : (
         <div className={styles.toolbar} aria-label={`${title} list tools`}>
@@ -308,13 +218,7 @@ export function AuthoredListPage({
               classNames={{ input: inputStyles.input }}
               placeholder='Search...'
               value={query}
-              onChange={(event) => {
-                if (controls) {
-                  controls.onQueryChange(event.currentTarget.value)
-                  return
-                }
-                setUncontrolledQuery(event.currentTarget.value)
-              }}
+              onChange={(event) => setQuery(event.currentTarget.value)}
             />
             {filters.map((filter) => (
               <AppSelect
@@ -324,35 +228,19 @@ export function AuthoredListPage({
                 data={facetedFilterOptions[filter.key] ?? filter.options}
                 value={filterValues[filter.key]}
                 clearable
-                onChange={(value) => {
-                  if (controls) {
-                    controls.onFilterChange(filter.key, value)
-                    return
-                  }
-                  setUncontrolledFilterValues((current) => ({ ...current, [filter.key]: value }))
-                }}
+                onChange={(value) =>
+                  setFilterValues((current) => ({ ...current, [filter.key]: value }))
+                }
               />
             ))}
-            {searchSubjectKind ? (
-              <Text size='sm' c='dimmed'>
-                Sorted by relevance
-              </Text>
-            ) : (
-              <AppSelect
-                label='Sort'
-                data={sortOptions}
-                placeholder={defaultSortLabel}
-                value={sort === defaultSort ? null : sort}
-                allowDeselect={false}
-                onChange={(value) => {
-                  if (controls) {
-                    controls.onSortChange(value ?? defaultSort)
-                    return
-                  }
-                  setUncontrolledSort(value ?? defaultSort)
-                }}
-              />
-            )}
+            <AppSelect
+              label='Sort'
+              data={sortOptions}
+              placeholder={defaultSortLabel}
+              value={sort === defaultSort ? null : sort}
+              allowDeselect={false}
+              onChange={(value) => setSort(value ?? defaultSort)}
+            />
           </div>
           {!cardOnly ? (
             <Group
@@ -398,92 +286,69 @@ export function AuthoredListPage({
         className={clsx(
           styles.tableShell,
           viewMode === 'cards' &&
-            (searchSubjectKind || (!loading && !error && filteredItems.length > 0)) &&
+            !loading &&
+            !error &&
+            filteredItems.length > 0 &&
             styles.cardResultsShell
         )}
         aria-label={`${title} results`}
       >
-        {searchSubjectKind ? (
-          <AuthoredCatalogueSearch
-            subjectKind={searchSubjectKind}
-            query={query.trim()}
-            category={filterValues.category ?? undefined}
-            source={filterValues.source}
-            viewMode={viewMode}
-            cardColumnCount={cardColumnCount}
-            attributeColumns={attributeColumns}
-            onView={onView}
-            onViewIntent={onViewIntent}
-            actionHandlers={actionHandlers}
-            useMenuActions={isMobile}
+        {loading ? <LoadingRows title={title} /> : null}
+        {!loading && error ? (
+          <StatePanel
+            title={`Couldn't load ${title.toLowerCase()}.`}
+            copy='Refresh the page to try again.'
           />
-        ) : (
-          <>
-            {loading ? <LoadingRows title={title} /> : null}
-            {!loading && error ? (
+        ) : null}
+        {!loading && !error && filteredItems.length === 0
+          ? (draftEmptyState ??
+            emptyState ?? (
               <StatePanel
-                title={`Couldn't load ${title.toLowerCase()}.`}
-                copy='Refresh the page to try again.'
+                title={
+                  hasActiveFilters
+                    ? `No ${title.toLowerCase()} match these filters.`
+                    : `No ${title.toLowerCase()} yet.`
+                }
+                copy={
+                  hasActiveFilters
+                    ? 'Try a different search or clear a filter.'
+                    : `Use ${createLabel} to get started.`
+                }
               />
-            ) : null}
-            {!loading && !error && filteredItems.length === 0
-              ? (draftEmptyState ??
-                emptyState ?? (
-                  <StatePanel
-                    title={
-                      hasActiveFilters
-                        ? `No ${title.toLowerCase()} match these filters.`
-                        : `No ${title.toLowerCase()} yet.`
-                    }
-                    copy={
-                      hasActiveFilters
-                        ? 'Try a different search or clear a filter.'
-                        : `Use ${createLabel} to get started.`
-                    }
-                  />
-                ))
-              : null}
-            {!loading && !error && filteredItems.length > 0 ? (
-              viewMode === 'cards' ? (
-                <AuthoredListCards
-                  cardColumnCount={cardColumnCount}
-                  filteredItems={filteredItems}
-                  attributeColumns={attributeColumns}
-                  onView={onView}
-                  onViewIntent={onViewIntent}
-                  paddingBottom={paddingBottom}
-                  paddingTop={paddingTop}
-                  renderedRows={renderedRows}
-                  viewportRef={viewportRef}
-                  actionHandlers={actionHandlers}
-                  useMenuActions={isMobile}
-                />
-              ) : (
-                <AuthoredListTable
-                  filteredItems={filteredItems}
-                  attributeColumns={attributeColumns}
-                  hasAccentColumn={hasAccentColumn}
-                  hasStatusColumn={hasStatusColumn}
-                  hasBadgeColumn={hasBadgeColumn}
-                  onView={onView}
-                  onViewIntent={onViewIntent}
-                  paddingBottom={paddingBottom}
-                  paddingTop={paddingTop}
-                  renderedRows={renderedRows}
-                  viewportRef={viewportRef}
-                  actionHandlers={actionHandlers}
-                />
-              )
-            ) : null}
-            {catalog && contentPanel === 'active' ? (
-              <span aria-live='polite'>
-                {catalog.isFetchingNextPage || catalog.isFetchingPreviousPage
-                  ? `Loading more ${title.toLowerCase()}.`
-                  : ''}
-              </span>
-            ) : null}
-          </>
-        )}
+            ))
+          : null}
+        {!loading && !error && filteredItems.length > 0 ? (
+          viewMode === 'cards' ? (
+            <AuthoredListCards
+              cardColumnCount={cardColumnCount}
+              filteredItems={filteredItems}
+              attributeColumns={attributeColumns}
+              onView={onView}
+              onViewIntent={onViewIntent}
+              paddingBottom={paddingBottom}
+              paddingTop={paddingTop}
+              renderedRows={renderedRows}
+              viewportRef={viewportRef}
+              actionHandlers={actionHandlers}
+              useMenuActions={isMobile}
+            />
+          ) : (
+            <AuthoredListTable
+              filteredItems={filteredItems}
+              attributeColumns={attributeColumns}
+              hasAccentColumn={hasAccentColumn}
+              hasStatusColumn={hasStatusColumn}
+              hasBadgeColumn={hasBadgeColumn}
+              onView={onView}
+              onViewIntent={onViewIntent}
+              paddingBottom={paddingBottom}
+              paddingTop={paddingTop}
+              renderedRows={renderedRows}
+              viewportRef={viewportRef}
+              actionHandlers={actionHandlers}
+            />
+          )
+        ) : null}
       </section>
     </div>
   )

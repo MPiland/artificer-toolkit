@@ -93,12 +93,7 @@ describe('app query client Convex bridge', () => {
     const convex = new ConvexQueryClient(client)
     const queryClient = createAppQueryClient(convex)
     const options = {
-      ...convexQuery(api.content.catalogue.search, {
-        subjectKind: 'BACKGROUND',
-        source: 'OWNED',
-        query: 'browser catalogue',
-        paginationOpts: { cursor: null, numItems: 48 }
-      }),
+      ...convexQuery(api.content.systems.list, { cursor: null, limit: 48 }),
       gcTime: 0,
       initialData: initial,
       staleTime: Infinity

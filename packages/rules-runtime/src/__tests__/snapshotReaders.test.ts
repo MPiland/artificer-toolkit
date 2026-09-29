@@ -20,7 +20,7 @@ const subrace = raceAuthoredDtoSchema.parse(highElf)
 function raceObjects(scope: ContentSnapshotScope, races: readonly RaceAuthoredDto[]) {
   const { index, documents } = buildContentSnapshotKind(
     { format: 1, scope, scopeId: crypto.randomUUID(), kind: 'RACE' },
-    races.map((document) => ({ subjectKind: 'RACE' as const, document }))
+    races.map((document) => ({ subjectKind: 'RACE' as const, document, publicId: document.id }))
   )
   return [
     contentSnapshotIndexObjectSchema.parse(JSON.parse(index.json)),

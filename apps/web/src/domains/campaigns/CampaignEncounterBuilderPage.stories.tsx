@@ -5,9 +5,15 @@ import { ConvexReactClient, useConvex } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { expect, fn, mocked, spyOn, userEvent, waitFor, within } from 'storybook/test'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type {
+  ContentSnapshotCatalogueManifestDto,
+  ContentSnapshotListObject
+} from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { EncounterBlueprintDto } from '@artificer-toolkit/schema/api/encounters'
+import { CREATURE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
+import { getContentCatalogueManifest } from '#app/data/contentSnapshots/queries'
+import { contentCatalogueQueryKey } from '#app/data/contentSnapshots/useContentCatalogue'
 import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { CampaignEncounterBuilderPage } from './CampaignEncounterBuilderPage'
@@ -25,23 +31,51 @@ const createEncounterRun = fn()
 const deleteEncounterRun = fn()
 let encounterRunCreated = false
 
-const creatureCatalogue = {
-  page: [
+const creatureId = '99999999-9999-4999-8999-999999999904'
+const creatureScopeId = '99999999-9999-4999-8999-999999999905'
+const creatureListSha = 'b'.repeat(64)
+const objectRef = (sha256: string) => ({ sha256, byteLength: 100, rootCount: 1 })
+
+// The creature list is read from a PLATFORM `list` part named by the catalogue manifest.
+const catalogueManifest = {
+  userId: authoredRouteStoryUser.id,
+  sources: [
     {
-      id: '99999999-9999-4999-8999-999999999904',
-      publicId: 'iron-sentinel',
+      contentSourceId: creatureScopeId,
       systemId: campaign.gameSystemId,
-      label: 'Iron Sentinel',
-      description: null,
-      status: 'ACTIVE',
-      activeUpdatedAt: '2026-08-30T00:00:00.000Z',
-      provenance: { kind: 'MASTER', ownerUserId: null },
-      permissions: { canView: true, canEdit: false, canCopy: true, canDelete: false }
+      kind: 'PLATFORM',
+      head: {
+        scope: 'PLATFORM',
+        scopeId: creatureScopeId,
+        revision: 1,
+        builtRevision: 1,
+        kinds: {
+          CREATURE: {
+            index: objectRef('c'.repeat(64)),
+            list: objectRef(creatureListSha),
+            documents: objectRef('d'.repeat(64))
+          }
+        }
+      }
     }
-  ],
-  isDone: true,
-  continueCursor: ''
-} satisfies AuthoredCataloguePage
+  ]
+} satisfies ContentSnapshotCatalogueManifestDto
+
+const creatureListObject = {
+  format: 1,
+  scope: 'PLATFORM',
+  scopeId: creatureScopeId,
+  kind: 'CREATURE',
+  part: 'list',
+  roots: [
+    {
+      id: creatureId,
+      label: 'Iron Sentinel',
+      publicId: 'iron-sentinel',
+      category: CREATURE_CATEGORY_CODE.MONSTER
+    }
+  ]
+} satisfies ContentSnapshotListObject
 
 const blueprint = {
   id: blueprintId,
@@ -101,9 +135,6 @@ const meta = {
     Object.defineProperty(client, 'query', {
       value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference]) => {
         const name = getFunctionName(reference)
-        if (name === getFunctionName(convexApi.content.catalogue.list)) {
-          return creatureCatalogue
-        }
         if (name === getFunctionName(convexApi.encounters.blueprints.list)) {
           return { page: [blueprint], isDone: true, continueCursor: '' }
         }
@@ -145,6 +176,15 @@ const meta = {
       const campaignQuery = getCampaignDetail(campaign.id)
       queryClient.setQueryDefaults(campaignQuery.queryKey, { queryFn: async () => campaign })
       queryClient.setQueryData(campaignQuery.queryKey, campaign)
+      const manifestQuery = getContentCatalogueManifest()
+      queryClient.setQueryDefaults(manifestQuery.queryKey, {
+        queryFn: async () => catalogueManifest
+      })
+      queryClient.setQueryData(manifestQuery.queryKey, catalogueManifest)
+      queryClient.setQueryData(
+        contentCatalogueQueryKey(authoredRouteStoryUser.id, 'CREATURE', [creatureListSha]),
+        [creatureListObject]
+      )
       return <Story />
     }
   ],
@@ -182,7 +222,7 @@ export const AuthorBlueprint: Story = {
     await expect(createBlueprint).toHaveBeenCalledWith(
       expect.objectContaining({
         enemies: expect.arrayContaining([
-          expect.objectContaining({ kind: 'CREATURE', sourceId: creatureCatalogue.page[0].id })
+          expect.objectContaining({ kind: 'CREATURE', sourceId: creatureId })
         ])
       })
     )

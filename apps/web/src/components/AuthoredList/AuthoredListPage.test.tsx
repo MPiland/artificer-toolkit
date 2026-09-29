@@ -3,17 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { AuthoredListPage } from './AuthoredListPage'
-import type { AuthoredListCatalogWindow, AuthoredListItem } from './AuthoredList.types'
+import type { AuthoredListItem } from './AuthoredList.types'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 
 const originalScrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
   Element.prototype,
   'scrollIntoView'
 )
-
-vi.mock('./AuthoredCatalogueSearch', () => ({
-  AuthoredCatalogueSearch: ({ query }: { query: string }) => <div>Ranked search: {query}</div>
-}))
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -79,96 +75,30 @@ describe('AuthoredListPage', () => {
     expect(screen.queryByText('No draft spells.')).not.toBeInTheDocument()
   })
 
-  it('uses ranked search only for active native catalogues and hides exact search totals on mobile', async () => {
-    useMobileViewport()
-    const user = userEvent.setup()
-    const fetchNextPage = vi.fn()
-    const catalog: AuthoredListCatalogWindow = {
-      searchSubjectKind: 'FEAT',
-      activeCount: 312,
-      totalCount: 312,
-      controls: {
-        query: 'Magic',
-        sort: 'name',
-        filterValues: {},
-        onClearFilters: vi.fn(),
-        onFilterChange: vi.fn(),
-        onQueryChange: vi.fn(),
-        onSortChange: vi.fn()
-      },
-      fetchNextPage,
-      fetchPreviousPage: vi.fn(),
-      hasNextPage: true,
-      hasPreviousPage: true,
-      isFetchingNextPage: false,
-      isFetchingPreviousPage: false
-    }
-    renderWithAppProviders(
-      <AuthoredListPage
-        title='Feats'
-        summary='312 feats'
-        createLabel='Create Feat'
-        items={spellListItems}
-        draftItems={spellListItems}
-        filters={[]}
-        catalog={catalog}
-      />
-    )
-    expect(screen.getByText('Ranked search: Magic')).toBeVisible()
-    expect(screen.queryByText('Magic Missile')).not.toBeInTheDocument()
-    expect(fetchNextPage).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('button', { name: 'Filters' }))
-    await waitFor(() => expect(screen.getByText('Sorted by relevance')).toBeVisible())
-    expect(screen.getByRole('button', { name: 'Show results' })).toBeVisible()
-    expect(screen.queryByRole('button', { name: 'Show 312 results' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Show results' }))
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Show results' })).not.toBeInTheDocument()
-    )
-    await user.click(screen.getByText(`Drafts (${spellListItems.length})`))
-    expect(screen.queryByText('Ranked search: Magic')).not.toBeInTheDocument()
-    expect(screen.getByText('Magic Missile')).toBeVisible()
-  })
-
-  it('delegates active catalogue search to the cursor feed without locally filtering its page window', async () => {
-    const user = userEvent.setup()
-    const onQueryChange = vi.fn()
-    const catalog: AuthoredListCatalogWindow = {
-      activeCount: 312,
-      controls: {
-        filterValues: {},
-        onClearFilters: vi.fn(),
-        onFilterChange: vi.fn(),
-        onQueryChange,
-        onSortChange: vi.fn(),
-        query: '',
-        sort: 'name'
-      },
-      fetchNextPage: vi.fn(),
-      fetchPreviousPage: vi.fn(),
-      hasNextPage: true,
-      hasPreviousPage: false,
-      isFetchingNextPage: false,
-      isFetchingPreviousPage: false,
-      totalCount: 312
-    }
-
-    renderWithAppProviders(
+  it('announces that published content is still updating while keeping the rows usable', () => {
+    const { rerender } = renderWithAppProviders(
       <AuthoredListPage
         title='Spells'
-        summary='312 spells / 312 SRD / 0 homebrew'
+        summary='5 spells'
         createLabel='Create Spell'
         items={spellListItems}
-        filters={spellListFilters}
-        catalog={catalog}
+        filters={[]}
+        updating
       />
     )
+    expect(screen.getByText(/still updating/i)).toBeVisible()
+    expect(screen.getByRole('row', { name: /magic missile/i })).toBeInTheDocument()
 
-    expect(screen.getByText('Active (312)')).toBeInTheDocument()
-    await user.type(screen.getByRole('textbox', { name: /search spells/i }), 'e')
-
-    expect(onQueryChange).toHaveBeenCalledWith('e')
-    expect(screen.getByText('Magic Missile')).toBeInTheDocument()
+    rerender(
+      <AuthoredListPage
+        title='Spells'
+        summary='5 spells'
+        createLabel='Create Spell'
+        items={spellListItems}
+        filters={[]}
+      />
+    )
+    expect(screen.queryByText(/still updating/i)).not.toBeInTheDocument()
   })
 
   it('always exposes active and draft panels with a clear empty draft state', async () => {

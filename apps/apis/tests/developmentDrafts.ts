@@ -34,7 +34,6 @@ import type { ClassAuthoredDto } from '@artificer-toolkit/schema/subjects/class'
 import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
 import type { AuthoredPublishDraftInput } from '@artificer-toolkit/schema/api/authoredPublication'
-import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { expandNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { artificerPortableContentDtoSchema } from '@artificer-toolkit/schema/api/imports'
 import { stripPortableMetadata } from '@artificer-toolkit/shared/utils'
@@ -214,6 +213,34 @@ let retainVttFixtureAfterFailure = false
 function record(value: unknown): Record<string, unknown> {
   assert.ok(value && typeof value === 'object' && !Array.isArray(value))
   return value as Record<string, unknown>
+}
+
+// The lists read content snapshots in the browser, so the proofs page a fixture account's own
+// published subjects through the CLI-only development query.
+async function ownedSubjects(
+  { userId, systemId }: { userId: string; systemId: string },
+  subjectKind: AuthoredSubjectKind
+) {
+  const subjects: Array<{ id: string; label: string }> = []
+  let cursor: string | null = null
+  for (let pages = 0; pages < 20; pages++) {
+    const result = record(
+      await cli(
+        'content/development:listOwnedFixtureSubjects',
+        { userId, systemId, subjectKind, paginationOpts: { numItems: 48, cursor } },
+        false
+      )
+    )
+    assert.ok(Array.isArray(result.page) && typeof result.continueCursor === 'string')
+    for (const item of result.page) {
+      const { id, label } = record(item)
+      assert.ok(typeof id === 'string' && typeof label === 'string')
+      subjects.push({ id, label })
+    }
+    if (result.isDone === true) return subjects
+    cursor = result.continueCursor
+  }
+  throw new Error('Fixture account owns more published subjects than a proof creates.')
 }
 
 async function deleteAllAuthRecords(model: string, field: string, value: string) {
@@ -883,15 +910,7 @@ async function cleanup() {
     // ponytail: these proofs create at most two Class or three Equipment generations.
     const passes = author.subjectKind === 'EQUIPMENT' ? 3 : 2
     for (let pass = 0; pass < passes; pass++) {
-      const owned = await author.client.query(api.content.catalogue.list, {
-        subjectKind: author.subjectKind,
-        systemId: author.systemId,
-        source: 'OWNED',
-        paginationOpts: { numItems: 48, cursor: null }
-      })
-      assert.equal(owned.isDone, true, 'Fresh publication author exceeds one catalogue page.')
-      for (const item of owned.page) {
-        assert.equal(item.provenance.ownerUserId, author.userId)
+      for (const item of await ownedSubjects(author, author.subjectKind)) {
         for (let retry = 0; ; retry++) {
           try {
             await author.client.mutation(api.content.deletion.deleteActive, {
@@ -4299,25 +4318,15 @@ try {
     })
     playerTierFixtures.push(identity.userId)
     const generations = new Map<number, string>()
-    let cursor: string | null = null
-    for (;;) {
-      const page: AuthoredCataloguePage = await fixture.client.query(api.content.catalogue.list, {
-        subjectKind: 'EQUIPMENT',
-        systemId: srdSystemRecord.id,
-        source: 'OWNED',
-        paginationOpts: { numItems: 48, cursor }
-      })
-      for (const item of page.page) {
-        assert.equal(item.provenance.ownerUserId, identity.userId)
-        const match = /^Capacity generation (\d+)$/.exec(item.label)
-        assert.ok(match, 'Recovery may remove only named capacity fixtures.')
-        const generation = Number(match[1])
-        assert.ok(generation < 500 && !generations.has(generation))
-        generations.set(generation, item.id)
-      }
-      assert.ok(generations.size <= 500)
-      if (page.isDone) break
-      cursor = page.continueCursor
+    for (const item of await ownedSubjects(
+      { userId: identity.userId, systemId: srdSystemRecord.id },
+      'EQUIPMENT'
+    )) {
+      const match = /^Capacity generation (\d+)$/.exec(item.label)
+      assert.ok(match, 'Recovery may remove only named capacity fixtures.')
+      const generation = Number(match[1])
+      assert.ok(generation < 500 && !generations.has(generation))
+      generations.set(generation, item.id)
     }
     const { cleanupEquipmentCapacity } = await import('./developmentEquipmentCapacity')
     await cleanupEquipmentCapacity(

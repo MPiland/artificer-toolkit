@@ -6,12 +6,12 @@ import { v } from 'convex/values'
 import {
   CONTENT_SNAPSHOT_PUBLIC_METADATA,
   contentSnapshotKindSchema,
+  contentSnapshotObjectKey,
   type ContentSnapshotHead
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import {
   buildContentSnapshotKind,
-  contentSnapshotObjectKey,
-  type ContentSnapshotIndexSource
+  type ContentSnapshotListSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { components, internal } from '../_generated/api'
 import { internalAction } from '../_generated/server'
@@ -44,7 +44,7 @@ export const build = internalAction({
         if (!start.scopeExists) break
         // Pages read separate snapshots; a write between them bumps `revision`, so the commit
         // schedules another build.
-        const sources: ContentSnapshotIndexSource[] = []
+        const sources: ContentSnapshotListSource[] = []
         let cursor: string | null = null
         for (let isDone = false; !isDone; ) {
           const page: { sources: string[]; continueCursor: string; isDone: boolean } =
@@ -55,27 +55,28 @@ export const build = internalAction({
             })
           // Parsed from the query's own serialization; the part build validates every root.
           for (const json of page.sources)
-            sources.push(JSON.parse(json) as ContentSnapshotIndexSource)
+            sources.push(JSON.parse(json) as ContentSnapshotListSource)
           cursor = page.continueCursor
           isDone = page.isDone
         }
         if (sources.length === 0) continue
         const header = { format: 1 as const, ...ref, kind }
-        const { index, documents } = buildContentSnapshotKind(header, sources)
-        objects.set(
-          contentSnapshotObjectKey({ ...header, part: 'index' }, index.sha256),
-          index.json
-        )
-        objects.set(
-          contentSnapshotObjectKey({ ...header, part: 'documents' }, documents.sha256),
-          documents.json
-        )
-        const refOf = ({ sha256, byteLength, rootCount }: typeof index) => ({
+        const parts = buildContentSnapshotKind(header, sources)
+        for (const part of ['index', 'list', 'documents'] as const)
+          objects.set(
+            contentSnapshotObjectKey({ ...header, part }, parts[part].sha256),
+            parts[part].json
+          )
+        const refOf = ({ sha256, byteLength, rootCount }: typeof parts.index) => ({
           sha256,
           byteLength,
           rootCount
         })
-        kinds[kind] = { index: refOf(index), documents: refOf(documents) }
+        kinds[kind] = {
+          index: refOf(parts.index),
+          list: refOf(parts.list),
+          documents: refOf(parts.documents)
+        }
       }
       const uploadedKeys = await ctx.runQuery(
         internal.contentSnapshots.heads.readAbsentObjectKeys,

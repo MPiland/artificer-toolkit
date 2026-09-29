@@ -47,6 +47,12 @@ vi.mock('convex/react', async (importOriginal) => ({
   }
 }))
 
+const contentCatalogueMock = vi.hoisted(() => vi.fn())
+
+vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
+  useContentCatalogue: contentCatalogueMock
+}))
+
 vi.mock('convex-helpers/react', () => ({
   usePaginatedQuery: convexMocks.usePaginatedQuery
 }))
@@ -64,24 +70,6 @@ vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
       })
       client.setQueryDefaults(['convexQuery', 'media/assets:avatar'], {
         queryFn: async () => null
-      })
-      client.setQueryDefaults(['convexQuery', 'content/catalogue:list'], {
-        queryFn: () => ({
-          page: raceListResponseFixture.items.map((item) =>
-            item.label === 'Elf' ? { ...item, id: catalogueRaceId } : item
-          ),
-          isDone: true,
-          continueCursor: ''
-        })
-      })
-      client.setQueryDefaults(['convexQuery', 'content/catalogue:summary'], {
-        queryFn: () => ({
-          activeCount: 1,
-          masterCount: 1,
-          ownedCount: 0,
-          totalCount: 1,
-          categories: ['BASE']
-        })
       })
       client.setQueryDefaults(['convexQuery', 'authoring/nodeRuntime:resolve'], {
         queryFn: ({ queryKey }) => {
@@ -124,6 +112,22 @@ beforeEach(() => {
   convexMocks.mutation.mockClear()
   convexMocks.query.mockReset().mockImplementation(resolveStaticNormalization)
   convexMocks.usePaginatedQuery.mockClear()
+  contentCatalogueMock.mockReturnValue({
+    items: raceListResponseFixture.items.map((item) => ({
+      id: item.label === 'Elf' ? catalogueRaceId : item.id,
+      publicId: item.publicId,
+      systemId: item.systemId,
+      label: item.label,
+      description: item.description,
+      category: item.category,
+      provenance: item.provenance,
+      permissions: item.permissions
+    })),
+    summary: { activeCount: 1, masterCount: 1, ownedCount: 0, categories: ['BASE'] },
+    updating: false,
+    isPending: false,
+    isError: false
+  })
   convexMocks.mutation.mockResolvedValue(authoredRouteStoryDrafts.race)
   convexMocks.usePaginatedQuery.mockReturnValue({
     isLoading: false,

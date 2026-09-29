@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import type { AuthoredCatalogueSearchInput } from '@artificer-toolkit/schema/api/authoredCatalogue'
 
 export type AuthoredListProvenance = 'master' | 'owned'
 export type AuthoredListViewMode = 'table' | 'cards'
@@ -65,29 +64,6 @@ export interface AuthoredListSortOption {
 
 export type AuthoredListFilterValues = Record<string, string | null>
 
-export interface AuthoredListCatalogControls {
-  filterValues: AuthoredListFilterValues
-  onClearFilters: () => void
-  onFilterChange: (key: string, value: string | null) => void
-  onQueryChange: (value: string) => void
-  onSortChange: (value: string) => void
-  query: string
-  sort: string
-}
-
-export interface AuthoredListCatalogWindow {
-  searchSubjectKind?: AuthoredCatalogueSearchInput['subjectKind']
-  activeCount: number
-  controls: AuthoredListCatalogControls
-  fetchNextPage: () => void
-  fetchPreviousPage: () => void
-  hasNextPage: boolean
-  hasPreviousPage: boolean
-  isFetchingNextPage: boolean
-  isFetchingPreviousPage: boolean
-  totalCount: number
-}
-
 export interface AuthoredListPageProps {
   title: string
   summary: string
@@ -104,7 +80,8 @@ export interface AuthoredListPageProps {
   loading?: boolean
   initialViewMode?: AuthoredListViewMode
   cardOnly?: boolean
-  catalog?: AuthoredListCatalogWindow
+  /** The published content is still rebuilding; the list shows the previous build (ADR 0036). */
+  updating?: boolean
   onCreate?: () => void
   onView?: (item: AuthoredListItem) => void
   onViewIntent?: (item: AuthoredListItem) => void

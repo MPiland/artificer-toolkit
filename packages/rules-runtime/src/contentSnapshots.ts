@@ -4,13 +4,14 @@ import {
   contentSnapshotDocumentsObjectSchema,
   contentSnapshotHeaderSchema,
   contentSnapshotIndexObjectSchema,
+  contentSnapshotListObjectSchema,
   type ContentSnapshotHeader,
   type ContentSnapshotIndexEntry,
   type ContentSnapshotKind,
+  type ContentSnapshotListEntry,
   type ContentSnapshotPart,
   type ContentSnapshotRoot
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { projectionChecksumSchema } from '@artificer-toolkit/schema/projections/identity'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
@@ -35,7 +36,9 @@ export function buildContentSnapshotPart<
   const object =
     input.part === 'index'
       ? contentSnapshotIndexObjectSchema.parse(input)
-      : contentSnapshotDocumentsObjectSchema.parse(input)
+      : input.part === 'list'
+        ? contentSnapshotListObjectSchema.parse(input)
+        : contentSnapshotDocumentsObjectSchema.parse(input)
   const ordered = [...object.roots].sort((left, right) =>
     left.id < right.id ? -1 : left.id > right.id ? 1 : 0
   )
@@ -52,46 +55,25 @@ export function buildContentSnapshotPart<
   }
 }
 
-/** Both parts of one scope kind, from the same readable current publications. */
+/** All three parts of one scope kind, from the same readable current publications. */
 export function buildContentSnapshotKind(
   header: Omit<ContentSnapshotHeader, 'part'>,
-  sources: readonly ContentSnapshotIndexSource[]
+  sources: readonly ContentSnapshotListSource[]
 ) {
   return {
     index: buildContentSnapshotPart(
       { ...header, part: 'index' },
       sources.map((source) => toContentSnapshotIndexEntry(source))
     ),
+    list: buildContentSnapshotPart(
+      { ...header, part: 'list' },
+      sources.map((source) => toContentSnapshotListEntry(source))
+    ),
     documents: buildContentSnapshotPart(
       { ...header, part: 'documents' },
       sources.map((source) => source.document)
     )
   }
-}
-
-export function contentSnapshotObjectKey(header: ContentSnapshotHeader, sha256: string): string {
-  const { scope, scopeId, kind, part } = contentSnapshotHeaderSchema.parse(header)
-  return `v1/${scope.toLowerCase()}/${scopeId}/${kind.toLowerCase()}/${part}/${projectionChecksumSchema.parse(sha256)}.json`
-}
-
-/** The inverse of `contentSnapshotObjectKey`; null for anything that is not a canonical key. */
-export function parseContentSnapshotObjectKey(
-  key: string
-): { header: ContentSnapshotHeader; sha256: string } | null {
-  const [, scope = '', scopeId, kind = '', part, hash] =
-    /^v1\/([a-z]+)\/([^/]+)\/([a-z]+)\/([a-z]+)\/([^/]+)\.json$/.exec(key) ?? []
-  const header = contentSnapshotHeaderSchema.safeParse({
-    format: 1,
-    scope: scope.toUpperCase(),
-    scopeId,
-    kind: kind.toUpperCase(),
-    part
-  })
-  const sha256 = projectionChecksumSchema.safeParse(hash)
-  if (!header.success || !sha256.success) return null
-  return contentSnapshotObjectKey(header.data, sha256.data) === key
-    ? { header: header.data, sha256: sha256.data }
-    : null
 }
 
 /** Equipment picker facts come from the root's stored effective projection, not the variant alone. */
@@ -198,5 +180,55 @@ export function toContentSnapshotIndexEntry(
     case 'CREATURE':
     case 'VEHICLE':
       return { id, label }
+  }
+}
+
+/** A Spell's School label comes from the System vocabulary and is carried into its list entry. */
+export type ContentSnapshotListSource = ContentSnapshotIndexSource & {
+  publicId: string
+  magicSchoolLabel?: string
+}
+
+export function toContentSnapshotListEntry<Source extends ContentSnapshotListSource>(
+  source: Source
+): ContentSnapshotListEntry<Source['subjectKind']>
+export function toContentSnapshotListEntry(
+  source: ContentSnapshotListSource
+): ContentSnapshotListEntry {
+  const { id, label, description } = source.document
+  const identity = { id, label, publicId: source.publicId, description: description ?? undefined }
+  switch (source.subjectKind) {
+    case 'RACE': {
+      const race = source.document
+      return race.category === 'BASE'
+        ? { ...identity, category: race.category, selectionMode: race.selectionMode }
+        : { ...identity, category: race.category, parentRaceId: race.parentRaceId }
+    }
+    case 'CLASS': {
+      const record = source.document
+      return record.category === 'BASE'
+        ? { ...identity, category: record.category }
+        : { ...identity, category: record.category, parentClassId: record.parentClassId }
+    }
+    case 'EQUIPMENT':
+    case 'CREATURE':
+    case 'VEHICLE':
+      return { ...identity, category: source.document.category }
+    case 'SPELL': {
+      const spell = source.document
+      if (!source.magicSchoolLabel)
+        throw new Error('Spell list entry needs its magic school label.')
+      return {
+        ...identity,
+        level: spell.level,
+        magicSchoolId: spell.magicSchoolId,
+        magicSchoolLabel: source.magicSchoolLabel,
+        classIds: [...new Set(spell.classIds.map((classId) => classId.toLowerCase()))].sort(),
+        castingTime: spell.castingTime
+      }
+    }
+    case 'BACKGROUND':
+    case 'FEAT':
+      return identity
   }
 }

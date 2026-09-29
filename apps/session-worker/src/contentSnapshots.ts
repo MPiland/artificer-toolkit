@@ -1,9 +1,9 @@
 import {
   CONTENT_SNAPSHOT_PATH_PREFIX,
   CONTENT_SNAPSHOT_PUBLIC_METADATA,
+  parseContentSnapshotObjectKey,
   type ContentSnapshotTokenClaims
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { parseContentSnapshotObjectKey } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 
 import { verifyContentSnapshotToken } from './contentToken.js'
 import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'

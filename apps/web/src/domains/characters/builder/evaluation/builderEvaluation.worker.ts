@@ -1,5 +1,5 @@
+import { contentOrigin } from '#app/data/contentSnapshots/contentOrigin'
 import { createContentSnapshotStore } from '#app/data/contentSnapshots/contentSnapshotStore'
-import { LOCAL_SESSION_WORKER_URL, toSessionWorkerOrigins } from '#app/lib/sessionWorkerOrigin'
 import type {
   BuilderEvaluationWorkerMessage,
   BuilderEvaluationWorkerRequest
@@ -16,11 +16,6 @@ const tokenRequests = new Map<
   { resolve: (token: string) => void; reject: (error: Error) => void }
 >()
 let lastTokenRequestId = 0
-
-const configuredWorkerUrl =
-  import.meta.env.VITE_LIVE_SESSION_WEBSOCKET_URL ??
-  (import.meta.env.DEV ? LOCAL_SESSION_WORKER_URL : null)
-const contentOrigin = configuredWorkerUrl && toSessionWorkerOrigins(configuredWorkerUrl)?.http
 
 const evaluate = contentOrigin
   ? createBuilderEvaluator({

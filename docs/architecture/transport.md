@@ -243,7 +243,7 @@ Campaign version to consecutive content removals. Settings, table-settings and s
 panels call native Convex functions directly.
 `campaigns/queries:settings`, `campaigns/update:update` and `campaigns/playSettings:{get,options,save}`
 own the settings path. `campaigns/contentShares:{list,share,unshare}` owns shared-content pagination and
-writes, while `content/catalogue:list` supplies active owned candidates. Native subscriptions replace
+writes, while the ADR 0036 catalogue `list` snapshot parts supply active owned candidates. Native subscriptions replace
 the retired per-panel tRPC query caches. Campaign lifecycle, membership and Vehicles retain their
 transitional transports until their owning cases close. The legacy Campaign realtime hook is mounted
 only while the remaining Inventory tab needs it; native collaboration and Session surfaces subscribe

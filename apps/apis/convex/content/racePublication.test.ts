@@ -15,6 +15,7 @@ import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RaceAuthored } from '@artificer-toolkit/shared/authored'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { api, internal } from '../_generated/api'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -237,33 +238,20 @@ describe('native Race publication', () => {
       ).toBeNull()
       expect(await t.run((ctx) => ctx.db.get(root._id))).toEqual(root)
     }
-    const catalogueInput = {
-      subjectKind: 'RACE' as const,
-      systemId: subjects[0]!.systemId,
-      paginationOpts: { cursor: null, numItems: 48 }
-    }
+    const systemId = subjects[0]!.systemId
     const masterIds = subjects.map((subject) => subject.id).sort()
-    const ownedCatalogue = await first.caller.query(api.content.catalogue.list, catalogueInput)
-    expect(ownedCatalogue.isDone).toBe(true)
-    expect(ownedCatalogue.page.map((item) => item.id).sort()).toEqual(
+    const ownedCatalogue = await readVisibleCatalogue(t, first.caller, 'RACE', { systemId })
+    expect(ownedCatalogue.map((item) => item.id).sort()).toEqual(
       [...masterIds, ...copiedIds].sort()
     )
-    expect(ownedCatalogue.page.filter((item) => item.category === 'BASE')).toHaveLength(18)
+    expect(ownedCatalogue.filter((item) => item.category === 'BASE')).toHaveLength(18)
     expect(
-      (await second.caller.query(api.content.catalogue.list, catalogueInput)).page
+      (await readVisibleCatalogue(t, second.caller, 'RACE', { systemId }))
         .map((item) => item.id)
         .sort()
     ).toEqual(masterIds)
     expect(
-      (await t.query(api.content.catalogue.list, catalogueInput)).page.map((item) => item.id).sort()
-    ).toEqual(masterIds)
-    expect(
-      (
-        await first.caller.query(api.content.catalogue.list, {
-          ...catalogueInput,
-          systemId: crypto.randomUUID()
-        })
-      ).page
+      await readVisibleCatalogue(t, first.caller, 'RACE', { systemId: crypto.randomUUID() })
     ).toEqual([])
   }, 30_000)
 

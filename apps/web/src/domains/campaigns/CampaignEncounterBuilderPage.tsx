@@ -17,7 +17,7 @@ import type { CreateEncounterBlueprintInputDto } from '@artificer-toolkit/schema
 import { useConvex } from 'convex/react'
 import { useState } from 'react'
 import { useCampaignDetail } from '#app/data/campaigns/queries'
-import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
+import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import { getEncounterBlueprints } from '#app/data/encounters/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from './campaigns.css'
@@ -34,18 +34,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
     ...getEncounterBlueprints(campaign.gameSystemId, convex),
     enabled: campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   })
-  const creatures = useQuery({
-    queryFn: () =>
-      loadPagedAuthoredCatalogItems(
-        (input) => convex.query(convexApi.content.catalogue.list, input),
-        {
-          subjectKind: 'CREATURE',
-          sort: 'name',
-          paginationOpts: { cursor: null, numItems: 48 }
-        }
-      ),
-    queryKey: queryKeys.content.creatures.list()
-  })
+  const creatures = useContentCatalogue('CREATURE')
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [creatureId, setCreatureId] = useState<string | null>(null)
@@ -95,7 +84,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
           Back to Session
         </Button>
       </header>
-      {blueprints.error || creatures.error ? (
+      {blueprints.error || creatures.isError ? (
         <Alert color='red'>
           Encounter builder options couldn’t be loaded. Refresh the page to try again.
         </Alert>
@@ -119,7 +108,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
           <Group className={encounterStyles.encounterBuilderSourceRow} align='end' wrap='wrap'>
             <Select
               classNames={{ input: sharedStyles.input }}
-              data={(creatures.data ?? []).map((creature) => ({
+              data={(creatures.items ?? []).map((creature) => ({
                 value: creature.id,
                 label: creature.label
               }))}
@@ -132,7 +121,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
               disabled={!creatureId}
               variant='default'
               onClick={() => {
-                const creature = (creatures.data ?? []).find((item) => item.id === creatureId)
+                const creature = (creatures.items ?? []).find((item) => item.id === creatureId)
                 if (!creature) return
                 setEnemies((current) => [
                   ...current,

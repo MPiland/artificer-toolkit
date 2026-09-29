@@ -46,6 +46,15 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   useQuery: mocks.useQuery,
   useQueryClient: mocks.useQueryClient
 }))
+vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
+  useContentCatalogue: () => ({
+    items: [],
+    summary: undefined,
+    updating: false,
+    isPending: false,
+    isError: false
+  })
+}))
 vi.mock('#app/data/systems/useSystemList', () => ({
   useSystemList: () => ({ data: [], isPending: false })
 }))

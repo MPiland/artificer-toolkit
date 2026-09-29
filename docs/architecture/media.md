@@ -100,20 +100,26 @@ and served by the session Worker, the one exception to ADR 0028's "no Worker pro
   memberships, excluding Campaigns being deleted. More than 100 of either fails closed. Revoked
   access stays readable for at most one token lifetime.
 
-| Request | Result |
-| --- | --- |
-| PLATFORM object, no token or a valid one | 200, `public, max-age=31536000, immutable` |
-| Private object, token naming its USER source or Campaign | 200, `private, max-age=31536000, immutable` |
-| Private object, no token | 401 |
-| Private object, token without its scope (another user's source, a departed Campaign) | 403 |
-| Expired, wrongly signed, wrong-audience or non-Bearer token, on any object | 401 |
-| Any query string, such as a token in the URL | 400 |
-| Origin outside `LIVE_SESSION_ALLOWED_ORIGINS` | 403, no CORS headers |
-| Non-canonical key or missing object | 404 |
+| Request                                                                              | Result                                      |
+| ------------------------------------------------------------------------------------ | ------------------------------------------- |
+| PLATFORM object, no token or a valid one                                             | 200, `public, max-age=31536000, immutable`  |
+| Private object, token naming its USER source or Campaign                             | 200, `private, max-age=31536000, immutable` |
+| Private object, no token                                                             | 401                                         |
+| Private object, token without its scope (another user's source, a departed Campaign) | 403                                         |
+| Expired, wrongly signed, wrong-audience or non-Bearer token, on any object           | 401                                         |
+| Any query string, such as a token in the URL                                         | 400                                         |
+| Origin outside `LIVE_SESSION_ALLOWED_ORIGINS`                                        | 403, no CORS headers                        |
+| Non-canonical key or missing object                                                  | 404                                         |
 
 Allowed origins get `Access-Control-Allow-Origin` with `Vary: Origin`, and a preflight admits only
 `GET` with the `Authorization` header. The Worker never writes to the edge cache; `private` keeps
 private objects out of shared caches. Refusals are `no-store`.
+
+The authored-content list pages (ADR 0036 S11) fetch the `list` part of each visible source through
+this route, with the same matrix: PLATFORM objects without a token, the caller's own Homebrew with
+the content token (`useContentSnapshotToken`). Sign-out drops the token and deletes the snapshot
+Cache Storage (`clearPrivateContentSnapshots`); see
+[persistence](persistence.md#authored-content-list-snapshots-adr-0036-s10--local-implementation).
 
 ## Historical implementation record
 

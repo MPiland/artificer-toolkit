@@ -503,7 +503,7 @@ immutable R2 objects; Convex owns only their bookkeeping (`apps/apis/convex/cont
   neither shared nor an enabled official root is excluded (`hasCampaignContentParents`) instead of
   failing the build. No `SYSTEM` head is built yet: it will hold only System-level data, with its own object format (D67).
 - **`contentSnapshotHeads`** (one row per scope): the contract head (`revision`, `builtRevision`,
-  per-kind `index`/`documents` refs) plus bookkeeping: `buildScheduledAt`, a build lease that
+  per-kind `index`/`list`/`documents` refs) plus bookkeeping: `buildScheduledAt`, a build lease that
   expires after 15 minutes, and `failedBuilds`, which bounds automatic retries.
 - **`contentSnapshotObjects`** (one row per uploaded key): `createdAt`, `supersededAt` once no head
   references the key, and `deletingAt` while cleanup deletes it.
@@ -518,7 +518,7 @@ immutable R2 objects; Convex owns only their bookkeeping (`apps/apis/convex/cont
     System, owner or catalogue changes and deletes, and `campaignMemberships` status or role changes.
     Rules catalogues change only at canonical bootstrap and mark nothing.
 - **Build.** The Node action reads `revision` first, then each kind in pages of 100 roots per query (no
-  per-kind cap; a write between pages bumps `revision` and triggers another build), builds both parts with the S1 functions and uploads, gzipped, only
+  per-kind cap; a write between pages bumps `revision` and triggers another build), builds all three parts with the S1 functions and uploads, gzipped, only
   keys without an object row. Equipment index facts use the stored `equipmentOptions.builder` when
   its checksum is current and otherwise the Builder's projection (`compileCurrentEquipment` plus
   `equipmentOptionFacts`), so a missing backfill never drops a root. Every kind is rebuilt each
@@ -554,6 +554,54 @@ Character, assignment and Campaign authority, the sources and catalogues, and on
 Tests assert parity: the union of the roots each manifest scope's build reads equals
 `readCharacterSourceRoots` for every kind, without a Campaign, with a restricted catalogue and with
 shares. The S2 exclusion of a shared child whose parent share is gone still applies.
+
+### Authored-content list snapshots (ADR 0036 S11) — local implementation
+
+The eight authored-content list pages (Spells, Classes, Races, Equipment, Creatures, Feats,
+Backgrounds, Vehicles), Guided existing-source choices, the Campaign shared-content candidates and
+the Encounter Creature pickers read `list` snapshot parts in the browser. Convex serves only the
+manifest subscription: `content/catalogue:list`, `search` and `summary` were deleted, and a page view
+reads 0 Convex documents beyond the manifest (`catalogueReadBudget.test.ts`).
+
+- **`list` part.** A third part per kind (`contentSnapshotListObjectSchema`) beside `index` and
+  `documents`, so the Builder's index stays small and neither reads `documents`. Each entry holds the
+  columns, filter facts and search text a page shows: the identity, `publicId`, description,
+  category, parent or class ids, Spell level, School, casting time and Race selection mode. Labels
+  of other roots (a parent, a Spell's Classes) are joined by the reader from the visible entries of
+  that kind. `heads.readScopeKind` feeds `buildContentSnapshotKind`, which returns all three parts,
+  and `commitBuild` records the `list` ref; a head built before this part existed fails the head
+  schema.
+- **Manifest.** `contentSnapshots/manifest:catalogue` (no arguments, identity required) returns every
+  PLATFORM source and the caller's own USER sources across Systems, each with its System, kind and
+  head, at most 100 in all. It reads one row per source plus one head per source and no authored
+  content.
+- **Visible set (authorization).** PLATFORM plus the caller's own Homebrew, with no Campaign shares,
+  which is what the retired `catalogue.list` served (`buildContentCatalogueItems` in
+  `rules-runtime/contentCatalogue.ts`). Private objects need the content token, so another user's
+  Homebrew is unreadable at the Worker even by key. `contentSnapshots/catalogue.test.ts` proved the
+  rows and order equal the old endpoint's for Background, Class and Spell, for two callers, before
+  the endpoint was deleted; it now asserts the same visible set from the snapshots.
+- **Search and filters** run in the browser over the loaded entries: a case-insensitive substring
+  match on label and description plus the category, Class, level and School filters. The summary
+  (counts, categories and Spell facets) covers every visible row; the page's filter options narrow
+  by the other selected filters (`getFacetedFilterOptionsByKey`). This replaces the ranked Convex
+  full-text search, the 48-row paging and the exact-total counters on the list pages.
+- **Updating.** A head with `revision > builtRevision` still serves its previous build; the page
+  shows a "content updating" state until the manifest subscription delivers the new hashes, and the
+  list keeps the previous rows in the meantime (`keepPreviousData`). Objects are content-addressed,
+  so a changed part is fetched once and a cached one never again.
+- **Still Convex.** Detail pages keep one bounded document read (`content/details`); `counts` stays
+  for the development drivers and the publication tests. The projection that only the retired
+  endpoints read (`catalogueMetadata`, the `by_*_name_id` and search indexes, the owner counters and
+  the search backfill) is orphaned and is a follow-up deletion; `catalogueItem.ts` still serves the
+  Campaign and Character option readers.
+- **Deviation from the ADR.** A Spell entry carries its School label, denormalized at build time from
+  the System vocabulary, where the ADR has the reader join it. The build already reads the System,
+  and no `SYSTEM` head exists yet ([D67](../handoffs/phase-08-2-open-questions.md#decisions-to-review));
+  remove the denormalization when that scope lands. A School rename therefore appears after the next
+  build of each source.
+- **Local data.** Heads built before this slice lack the `list` part: reset the local snapshot tables
+  (or the deployment) so every scope rebuilds.
 
 ## Native System vocabulary snapshots — local implementation
 

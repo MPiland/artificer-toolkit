@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Alert, Stack } from '@mantine/core'
 import { useStore } from '@tanstack/react-form'
-import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { usePaginatedQuery } from 'convex-helpers/react'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
+import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
@@ -29,18 +28,11 @@ export const GuidedRaceAuthoring = withForm({
     const values = useStore(form.store, (state) => readRaceValues(state.values))
     const system = session.system
     const categoryLocked = session.mode === 'edit'
-    const parentRaces = usePaginatedQuery(
-      convexApi.content.catalogue.list,
-      values.category === RACE_CATEGORY_CODE.SUBRACE && session.systemId
-        ? { subjectKind: 'RACE', systemId: session.systemId }
-        : 'skip',
-      { initialNumItems: 48 }
-    )
-
-    useEffect(() => {
-      if (parentRaces.status === 'CanLoadMore') parentRaces.loadMore(48)
-    }, [parentRaces.loadMore, parentRaces.status])
-    const parentOptions = toGuidedRaceParentOptions(parentRaces.results, session.subjectId)
+    const parentRaces = useContentCatalogue('RACE', {
+      enabled: values.category === RACE_CATEGORY_CODE.SUBRACE && Boolean(session.systemId),
+      systemId: session.systemId
+    })
+    const parentOptions = toGuidedRaceParentOptions(parentRaces.items ?? [], session.subjectId)
 
     useEffect(() => {
       onStateChange({
@@ -107,9 +99,7 @@ export const GuidedRaceAuthoring = withForm({
                     <field.SelectField
                       data={parentOptions}
                       label='Parent race'
-                      placeholder={
-                        parentRaces.status !== 'Exhausted' ? 'Loading races…' : 'Choose a base race'
-                      }
+                      placeholder={parentRaces.isPending ? 'Loading races…' : 'Choose a base race'}
                       required
                     />
                   )}
