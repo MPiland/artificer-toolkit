@@ -300,6 +300,8 @@ describe.each([11, 100])('Encounter write sets at %i actors', (actors) => {
       OWNER: await projectionReadCost(base, 'OWNER'),
       PLAYER: await projectionReadCost(base, 'PLAYER')
     }
+    // Projections read each actor's small projection facts, never its source snapshot.
+    for (const read of Object.values(reads)) expect(read.bytes).toBeLessThanOrEqual(250 * 1024)
     console.log(JSON.stringify({ actors, commands, reads }, null, 2))
     expect(Object.keys(commands)).toHaveLength(3)
   })

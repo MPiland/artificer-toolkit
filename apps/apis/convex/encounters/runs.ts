@@ -20,7 +20,6 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   encounterStoredRunSchema,
-  encounterStoredRunActorSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -41,7 +40,7 @@ import { readBlueprint } from './blueprints'
 import { snapshotEncounterPolicies } from './policySnapshots'
 import { requireSystem } from '../content/systemDocuments'
 import { characterProjectionState } from '@artificer-toolkit/encounter-persistence/characterStates'
-import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { insertRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from './encounterPorts'
 import { removeEncounterRunChildren } from './campaignDeletion'
@@ -232,17 +231,7 @@ export async function createEncounterRun(
       updatedAt: now
     })
   )
-  for (const actor of actors) {
-    await ctx.db.insert(
-      'encounterRunActors',
-      encounterStoredRunActorSchema.parse({
-        id: actor.id,
-        encounterId,
-        stateJson: JSON.stringify(actor),
-        stateChecksum: checksumCanonicalJson(actor)
-      })
-    )
-  }
+  for (const actor of actors) await insertRunActor(ctx, actor)
   await insertRunCommand(
     ctx,
     encounterStoredRunCommandSchema.parse({

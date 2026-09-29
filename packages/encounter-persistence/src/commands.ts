@@ -30,7 +30,7 @@ import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/enc
 import { requireEncounterActorControllerCandidates } from './actorController.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
-import { readRunActors, readRunState } from './documents.js'
+import { readRunActors, readRunState, writeRunActor } from './documents.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -395,10 +395,7 @@ export async function recordEncounterCommand(
             updatedAt
           }
     )
-    await ctx.db.patch(actorRow._id, {
-      stateJson: JSON.stringify(actor),
-      stateChecksum: checksumCanonicalJson(actor)
-    })
+    await writeRunActor(ctx, actorRow._id, actor)
   } else if (input.type === 'ADJUST_FEATURE_RESOURCE') {
     if (state.status !== 'PREPARED' && state.status !== 'ACTIVE')
       rejectDomain(
@@ -431,17 +428,11 @@ export async function recordEncounterCommand(
       resources: withFeatureChargeUsed(actor, feature.id, nextUsed),
       updatedAt
     })
-    await ctx.db.patch(actorRow._id, {
-      stateJson: JSON.stringify(actor),
-      stateChecksum: checksumCanonicalJson(actor)
-    })
+    await writeRunActor(ctx, actorRow._id, actor)
   } else if (input.type === 'REPLACE_CREATURE_EQUIPMENT') {
     const { actorRow, actor } = await readCommandActor(ctx, state, input.actorId)
     const replacement = await replaceActorEquipment(ctx, userId, actor, input, updatedAt)
-    await ctx.db.patch(actorRow._id, {
-      stateJson: JSON.stringify(replacement.actor),
-      stateChecksum: checksumCanonicalJson(replacement.actor)
-    })
+    await writeRunActor(ctx, actorRow._id, replacement.actor)
     creatureEquipmentReplacement = replacement.provenance
   } else if (input.type === 'REPLACE_OPTIONAL_COMBAT_RULES') {
     if (state.status !== 'PREPARED' && state.status !== 'ACTIVE')
@@ -490,10 +481,7 @@ export async function recordEncounterCommand(
         resources: withFeatureChargeUsed(actor, feature.id, resource.used + definition.chargeCost),
         updatedAt
       })
-      await ctx.db.patch(actorRow._id, {
-        stateJson: JSON.stringify(actor),
-        stateChecksum: checksumCanonicalJson(actor)
-      })
+      await writeRunActor(ctx, actorRow._id, actor)
     }
     const system = await ctx.ports.requireSystem(state.gameSystemId)
     const expression = `${definition.expression.count}d${definition.expression.die}${

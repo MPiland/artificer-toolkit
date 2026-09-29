@@ -27,7 +27,11 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { seedTurnSaveEffect } from '../../tests/fixtures/turnActiveEffectFixtures'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
-import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  readRunActors,
+  readRunState,
+  writeRunActor
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { createEncounterInitiativeStore } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { loadMovementTargets } from '../encounters/movementTargets'
 import { prepareNativeEncounterActionMechanics } from '../encounters/actionMechanicsPreparation'
@@ -541,10 +545,7 @@ it('plans the same Character action and target facts in the Worker using private
         ...actor,
         resources: withEncounterRuleUsageUsed(actor, economy.definitionId, used)
       })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(next),
-        stateChecksum: checksumCanonicalJson(next)
-      })
+      await writeRunActor(ctx, row._id, next)
       return row
     })
   const unspent = await spendAllowance(economy.maximum)

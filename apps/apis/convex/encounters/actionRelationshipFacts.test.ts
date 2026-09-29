@@ -9,7 +9,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  insertRunActor,
+  readRunActors,
+  readRunState
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { loadNativeActionRelationshipFacts } from './actionRelationshipFacts'
 
 function relationshipEffect(input: {
@@ -116,12 +120,7 @@ describe('native action relationship facts', () => {
         stateJson: JSON.stringify(nextState),
         stateChecksum: checksumCanonicalJson(nextState)
       })
-      await ctx.db.insert('encounterRunActors', {
-        id: target.id,
-        encounterId: fixture.run.id,
-        stateJson: JSON.stringify(target),
-        stateChecksum: checksumCanonicalJson(target)
-      })
+      await insertRunActor(ctx, target)
       const effects = createActiveRuleEffectStore(ctx)
       await effects.create({
         id: effectId,

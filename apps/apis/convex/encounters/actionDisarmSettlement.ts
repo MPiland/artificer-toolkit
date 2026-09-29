@@ -17,6 +17,7 @@ import type { MutationCtx } from '../_generated/server'
 import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { consumeNativeActionEconomy } from '@artificer-toolkit/encounter-persistence/actionEconomyPersistence'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 
 type DisarmSettlementInput = Parameters<typeof disarmApplicationOutputs>[0]
 
@@ -106,10 +107,7 @@ export async function settleDisarm(
       )
     } else if (planned.kind === 'CREATURE') {
       target = planned.actor
-      await ctx.db.patch(targetRow._id, {
-        stateJson: JSON.stringify(target),
-        stateChecksum: checksumCanonicalJson(target)
-      })
+      await writeRunActor(ctx, targetRow._id, target)
     }
   }
   const actor = input.actionEconomy

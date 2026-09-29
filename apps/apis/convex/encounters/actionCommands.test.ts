@@ -50,6 +50,7 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { seededSrdCreature, srdWolf } from '../../tests/fixtures/srdCreatures'
 import { fixture } from '../../tests/fixtures/characters'
@@ -1701,10 +1702,7 @@ describe('native encounter actions', () => {
           0
         )
       })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(exhausted),
-        stateChecksum: checksumCanonicalJson(exhausted)
-      })
+      await writeRunActor(ctx, row._id, exhausted)
     })
     const exhausted = await rejection(
       executeInRoom(base.owner.caller, {

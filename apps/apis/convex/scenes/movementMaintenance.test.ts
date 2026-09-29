@@ -4,7 +4,6 @@ import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/ap
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -17,7 +16,7 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -91,10 +90,7 @@ async function resetReactionAndDetachScene(base: MaintainedBase) {
         ...actor,
         resources: withEncounterRuleUsageUsed(actor, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 0)
       })
-      await ctx.db.patch(reactor._id, {
-        stateJson: JSON.stringify(available),
-        stateChecksum: checksumCanonicalJson(available)
-      })
+      await writeRunActor(ctx, reactor._id, available)
     }
     const tokenBindings = await ctx.db
       .query('encounterActorTokenBindings')
@@ -305,10 +301,7 @@ async function seedPriorDependents(base: MaintainedBase) {
         ...JSON.parse(row.stateJson),
         conditions
       })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(actor),
-        stateChecksum: checksumCanonicalJson(actor)
-      })
+      await writeRunActor(ctx, row._id, actor)
     }
     return {
       stateId: state.id,

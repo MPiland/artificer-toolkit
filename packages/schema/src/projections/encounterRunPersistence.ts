@@ -50,6 +50,31 @@ export const encounterStoredRunActorSchema = lazySchema(() =>
 )
 
 /**
+ * One actor's projection facts (`encounterActorProjectionFactsSchema` JSON), written with its actor
+ * in the same transaction. Projections read these instead of the actor documents.
+ */
+export const encounterStoredActorProjectionFactsSchema = lazySchema(() =>
+  z.strictObject({
+    id: postgresUuidSchema,
+    encounterId: postgresUuidSchema,
+    factsJson: z.string(),
+    sourceFactsChecksum: z.nullable(projectionChecksumSchema)
+  })
+)
+
+/**
+ * One Creature source's projected stat block and Features (`encounterSourceProjectionFactsSchema`
+ * JSON), shared by the Run's actors whose facts name its checksum. Deleted with its last actor.
+ */
+export const encounterStoredSourceProjectionFactsSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: postgresUuidSchema,
+    checksum: projectionChecksumSchema,
+    factsJson: z.string()
+  })
+)
+
+/**
  * One app roll for a pending evidence request ("Roll dice"). Rows are immutable: a settle by
  * `rollId` reads these faces, and every attempt stays for the roll log and audit.
  */

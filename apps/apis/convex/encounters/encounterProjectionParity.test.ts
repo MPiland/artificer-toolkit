@@ -8,7 +8,15 @@ import {
 } from '../../tests/fixtures/playerControl'
 import { encounterConformanceCorpus } from '../../tests/fixtures/encounterConformanceCorpus'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { encounterWriteTransaction } from './encounterPorts'
+import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
+import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
+import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  projectNativeGm,
+  readEncounterGmProjection
+} from '@artificer-toolkit/encounter-persistence/nativeProjection'
 
 /**
  * What every member reads after each conformance operation: the GM and player projections, the
@@ -78,8 +86,34 @@ describe('Encounter projections built on read', () => {
       const result = await base.owner.caller.run((ctx) => operation(encounterWriteTransaction(ctx)))
       vi.useRealTimers()
       expect(golden({ result: result ?? null, views: await memberViews(base) })).toMatchSnapshot()
+      await expectProjectionFactsCurrent(base)
     })
 })
+
+/**
+ * The stored projection facts project exactly what projecting the actor documents does, so no write
+ * path left an actor's facts behind (ADR 0035 Amendment 12).
+ */
+async function expectProjectionFactsCurrent(base: PlayerControlFixture) {
+  await base.owner.caller.run(async (ctx) => {
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+      .unique()
+    if (!run) throw new Error('Missing parity Run.')
+    const state = readRunState(run)
+    const actors = await readRunActors(ctx, state)
+    const facts = buildEncounterActorRuleFacts({ actors })
+    const rules = reconcileEncounterActorRuleOutput(
+      evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
+      facts
+    )
+    const transaction = encounterReadTransaction(ctx)
+    expect(await readEncounterGmProjection(transaction, state)).toEqual(
+      await projectNativeGm(transaction, state, actors, rules)
+    )
+  })
+}
 
 describe('Encounter command replay', () => {
   async function expectExactReplay(

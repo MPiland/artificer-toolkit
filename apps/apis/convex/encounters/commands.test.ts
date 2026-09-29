@@ -32,6 +32,7 @@ import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { airElemental } from '@artificer-toolkit/source-data/srd/creatures/air-elemental.js'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -451,10 +452,7 @@ async function replaceActorResources(
     if (!actor) throw new Error('Missing Encounter resource fixture.')
     const actorState = JSON.parse(actor.stateJson) as { resources: unknown }
     actorState.resources = resources
-    await ctx.db.patch(actor._id, {
-      stateJson: JSON.stringify(actorState),
-      stateChecksum: checksumCanonicalJson(actorState)
-    })
+    await writeRunActor(ctx, actor._id, actorState)
   })
 }
 
@@ -2249,10 +2247,7 @@ describe('native Encounter Run commands', () => {
         snapshot: { sourceRevision: number }
       }
       state.snapshot.sourceRevision += 1
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state)
-      })
+      await writeRunActor(ctx, row._id, state)
     })
     await expect(
       executeInRoom(owner.caller, {
@@ -2315,10 +2310,7 @@ describe('native Encounter Run commands', () => {
         snapshot: { id: string }
       }
       state.snapshot.id = crypto.randomUUID()
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state)
-      })
+      await writeRunActor(ctx, row._id, state)
     })
     await expect(
       executeInRoom(owner.caller, {

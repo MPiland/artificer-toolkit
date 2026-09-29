@@ -14,6 +14,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { setupCharacterRun } from './encounterCharacter'
 import { sourceImportBatches } from '../../convex/content/importBatches'
 
@@ -164,10 +165,7 @@ export async function fixture() {
       optionalCombatSnapshot: optionalSnapshot,
       optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalSnapshot)
     })
-    await ctx.db.patch(blockerRow._id, {
-      stateJson: JSON.stringify(creature),
-      stateChecksum: checksumCanonicalJson(creature)
-    })
+    await writeRunActor(ctx, blockerRow._id, creature)
     await ctx.db.patch(run._id, {
       status: 'ACTIVE',
       stateJson: JSON.stringify(active),

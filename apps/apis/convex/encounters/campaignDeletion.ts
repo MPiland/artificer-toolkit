@@ -8,6 +8,14 @@ export async function removeEncounterRunChildren(ctx: MutationCtx, encounterId: 
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
       .take(8),
     ctx.db
+      .query('encounterActorProjectionFacts')
+      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
+      .take(8),
+    ctx.db
+      .query('encounterSourceProjectionFacts')
+      .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', encounterId))
+      .take(8),
+    ctx.db
       .query('encounterSceneBindings')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
       .take(8),

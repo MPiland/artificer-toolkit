@@ -3,7 +3,6 @@ import { characterSheetCommandInputDtoSchema } from '@artificer-toolkit/schema/a
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
@@ -15,6 +14,7 @@ import {
   SRD_DAMAGE_TYPES,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -113,10 +113,7 @@ async function setup(input: {
           : { currentHitPoints: input.creatureHitPoints }),
         public: !input.hidden
       }
-      await ctx.db.patch(actorRow._id, {
-        stateJson: JSON.stringify(adjusted),
-        stateChecksum: checksumCanonicalJson(adjusted)
-      })
+      await writeRunActor(ctx, actorRow._id, adjusted)
     }
     return discoverEncounterFeatureActionCapabilities({
       actor: actorState,

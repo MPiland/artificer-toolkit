@@ -4,27 +4,20 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
-import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
-import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  projectCurrentEncounterGm,
+  projectCurrentEncounterGmFacts
+} from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
-import { readRunActors } from './documents.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
 import type { EncounterReadTransaction } from './ports.js'
+import type { EncounterReadContext } from './store.js'
 
-async function projectRun(
-  ctx: EncounterReadTransaction,
-  state: EncounterRunState,
-  actors: readonly EncounterRunActorState[],
-  rules: EncounterActorRuleOutput,
-  characterStates: EncounterProjectionCharacterStates
-) {
-  const initiativeRoundState =
-    state.status === 'ACTIVE'
-      ? await readEncounterInitiativeRound(ctx, { encounterId: state.id, round: state.round })
-      : null
-  return projectCurrentEncounterGm({ state, actors, rules, initiativeRoundState, characterStates })
+function readCurrentInitiativeRound(ctx: EncounterReadContext, state: EncounterRunState) {
+  return state.status === 'ACTIVE'
+    ? readEncounterInitiativeRound(ctx, { encounterId: state.id, round: state.round })
+    : Promise.resolve(null)
 }
 
 /** Projects a Run's actors with rules already evaluated for them. */
@@ -34,43 +27,44 @@ export async function projectNativeGm(
   actors: readonly EncounterRunActorState[],
   rules: EncounterActorRuleOutput
 ) {
-  return projectRun(
-    ctx,
+  return projectCurrentEncounterGm({
     state,
     actors,
     rules,
-    await readEncounterCharacterStates(ctx, state, actors)
-  )
+    initiativeRoundState: await readCurrentInitiativeRound(ctx, state),
+    characterStates: await readEncounterCharacterStates(ctx, state, actors)
+  })
 }
 
-/** Projects a Run's stored actors with the Character values a reader chose for them. */
-export async function projectEncounterActors(
-  ctx: EncounterReadTransaction,
+/** Projects a Run's stored projection facts with the Character values a reader chose for them. */
+export async function projectEncounterFacts(
+  ctx: EncounterReadContext,
   state: EncounterRunState,
-  actors: readonly EncounterRunActorState[],
+  facts: Awaited<ReturnType<typeof readRunProjectionFacts>>,
   characterStates: EncounterProjectionCharacterStates
 ) {
-  const facts = buildEncounterActorRuleFacts({ actors })
-  const rules = reconcileEncounterActorRuleOutput(
-    evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
-    facts
-  )
-  return projectRun(ctx, state, actors, rules, characterStates)
+  return projectCurrentEncounterGmFacts({
+    state,
+    ...facts,
+    initiativeRoundState: await readCurrentInitiativeRound(ctx, state),
+    characterStates
+  })
 }
 
 /**
- * The Run's GM projection, built from its stored state, actors, initiative round and Characters (ADR
- * 0035 Amendment 12). The Run stores no projection; readers and command results build it here.
+ * The Run's GM projection, built from its stored state, its actors' projection facts, the current
+ * initiative round and each Character (ADR 0035 Amendment 12). The Run stores no projection; readers
+ * and command results build it here without reading the actor documents.
  */
 export async function readEncounterGmProjection(
   ctx: EncounterReadTransaction,
   state: EncounterRunState
 ) {
-  const actors = await readRunActors(ctx, state)
-  return projectEncounterActors(
+  const facts = await readRunProjectionFacts(ctx, state)
+  return projectEncounterFacts(
     ctx,
     state,
-    actors,
-    await readEncounterCharacterStates(ctx, state, actors)
+    facts,
+    await readEncounterCharacterStates(ctx, state, facts.actors)
   )
 }

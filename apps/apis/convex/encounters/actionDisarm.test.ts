@@ -10,7 +10,6 @@ import {
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
@@ -18,6 +17,7 @@ import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/en
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { withRoomConvex } from '../../tests/fixtures/liveSessionWorker'
@@ -623,10 +623,7 @@ describe('room Disarm commands', () => {
           await ctx.db.patch(character._id, { streamVersion: character.streamVersion + 1 })
         else {
           const changed = { ...state, currentHitPoints: state.currentHitPoints - 1 }
-          await ctx.db.patch(row._id, {
-            stateJson: JSON.stringify(changed),
-            stateChecksum: checksumCanonicalJson(changed)
-          })
+          await writeRunActor(ctx, row._id, changed)
         }
       })
       const changed = await disarmRecords(assisted)

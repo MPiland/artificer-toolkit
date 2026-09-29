@@ -15,7 +15,6 @@ import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_CONTENT_SOURCE,
@@ -30,6 +29,7 @@ import {
   createDnd5eMovementReactionChoiceDefinition,
   createDnd5eOpportunityReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from './characters'
 import { reactionBinding } from './reactionBinding'
 import { srdWolf } from './srdCreatures'
@@ -469,10 +469,7 @@ export async function setupCreatureReactionRun(
         sideId: party.id,
         disposition: 'FRIENDLY'
       })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state)
-      })
+      await writeRunActor(ctx, row._id, state)
     }
     await activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',

@@ -12,6 +12,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from '../../tests/fixtures/characters'
 import {
   applyEncounterMechanicsBatch,
@@ -224,10 +225,7 @@ describe('applyEncounterMechanicsBatch', () => {
           ...actor,
           conditions: [{ conditionTypeId: oldCondition, label: 'Retained metadata' }]
         }
-        await ctx.db.patch(row._id, {
-          stateJson: JSON.stringify(updated),
-          stateChecksum: checksumCanonicalJson(updated)
-        })
+        await writeRunActor(ctx, row._id, updated)
       })
       const trace = {
         sourceNodeId: 'condition',

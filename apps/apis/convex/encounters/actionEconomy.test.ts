@@ -14,7 +14,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { prepareNativeActionEconomy } from './actionEconomy'
 import { consumeNativeActionEconomy } from '@artificer-toolkit/encounter-persistence/actionEconomyPersistence'
-import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunActor, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { loadMovementTargets } from './movementTargets'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -158,10 +158,7 @@ describe('native action economy', () => {
         stateJson: JSON.stringify(state),
         stateChecksum: checksumCanonicalJson(state)
       })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(actor),
-        stateChecksum: checksumCanonicalJson(actor)
-      })
+      await writeRunActor(ctx, row._id, actor)
     })
     const read = () =>
       base.t.run((ctx) =>

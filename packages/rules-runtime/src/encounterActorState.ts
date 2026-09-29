@@ -1,5 +1,3 @@
-import { encounterFeatureReferenceDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import type { EncounterActorRuleResult } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
@@ -111,31 +109,6 @@ export function encounterRuleUsageSnapshot(
   return Object.fromEntries(
     Object.entries(normalized).sort(([left], [right]) => left.localeCompare(right))
   )
-}
-
-export function snapshotFeatures(
-  actor: Pick<ActorRead, 'kind' | 'snapshot'>,
-  rules: Pick<EncounterActorRuleResult, 'featureResources'>
-) {
-  const resourcesByFeatureId = new Map(
-    rules.featureResources.map((resource) => [resource.featureId, resource])
-  )
-  return snapshotFeatureDefinitions(actor).map((feature) => {
-    const resource = resourcesByFeatureId.get(feature.id)
-    const maximum = resource?.maximum ?? null
-    return encounterFeatureReferenceDtoSchema.parse({
-      ...feature,
-      resource:
-        maximum === null
-          ? null
-          : {
-              used: resource?.used ?? 0,
-              maximum,
-              remaining: resource?.remaining ?? 0,
-              resetKind: resource?.resetKind ?? 'MANUAL'
-            }
-    })
-  })
 }
 
 export function stableActors<

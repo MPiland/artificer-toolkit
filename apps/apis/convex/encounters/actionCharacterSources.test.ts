@@ -14,7 +14,6 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -28,6 +27,7 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
@@ -374,10 +374,7 @@ async function resetActionAllowance(fixture: Awaited<ReturnType<typeof setup>>) 
       ...actor,
       resources: withEncounterRuleUsageUsed(actor, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 0)
     })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(reset),
-      stateChecksum: checksumCanonicalJson(reset)
-    })
+    await writeRunActor(ctx, row._id, reset)
   })
 }
 

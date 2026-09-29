@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { deleteActorProjectionFacts, writeActorProjectionFacts } from './actorProjectionFacts.js'
 import { deriveOnce } from './transactionReads.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
@@ -110,10 +111,42 @@ export async function replaceRunActor(
     after.encounterId !== before.encounterId
   )
     throw new Error('Encounter actor changed before settlement.')
-  await ctx.db.patch(row._id, {
-    stateJson: JSON.stringify(after),
-    stateChecksum: checksumCanonicalJson(after)
+  await writeRunActor(ctx, row._id, after)
+}
+
+/**
+ * Every actor write goes through `insertRunActor`, `writeRunActor` or `deleteRunActor`, which keep
+ * the actor's projection facts in step in the same transaction (ADR 0035 Amendment 12).
+ */
+export async function insertRunActor(ctx: EncounterWriteContext, actor: EncounterRunActorState) {
+  await ctx.db.insert('encounterRunActors', {
+    id: actor.id,
+    encounterId: actor.encounterId,
+    stateJson: JSON.stringify(actor),
+    stateChecksum: checksumCanonicalJson(actor)
   })
+  await writeActorProjectionFacts(ctx, actor)
+}
+
+/** Rewrites a stored actor row the caller has already checked. */
+export async function writeRunActor(
+  ctx: EncounterWriteContext,
+  rowId: EncounterDocument<'encounterRunActors'>['_id'],
+  actor: EncounterRunActorState
+) {
+  await ctx.db.patch(rowId, {
+    stateJson: JSON.stringify(actor),
+    stateChecksum: checksumCanonicalJson(actor)
+  })
+  await writeActorProjectionFacts(ctx, actor)
+}
+
+export async function deleteRunActor(
+  ctx: EncounterWriteContext,
+  row: EncounterDocument<'encounterRunActors'>
+) {
+  await ctx.db.delete(row._id)
+  await deleteActorProjectionFacts(ctx, row.encounterId, row.id)
 }
 
 /** Read one actor without hydrating unrelated actor snapshots. */

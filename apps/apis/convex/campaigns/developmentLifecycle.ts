@@ -539,6 +539,32 @@ async function campaignRows(
       44,
       'encounterRunActors'
     ),
+    encounterActorProjectionFacts: await children(
+      descendants.encounterIds,
+      (id) =>
+        rows(
+          ctx.db
+            .query('encounterActorProjectionFacts')
+            .withIndex('by_encounterId_id', (q) => q.eq('encounterId', id)),
+          44,
+          'encounterActorProjectionFacts'
+        ),
+      44,
+      'encounterActorProjectionFacts'
+    ),
+    encounterSourceProjectionFacts: await children(
+      descendants.encounterIds,
+      (id) =>
+        rows(
+          ctx.db
+            .query('encounterSourceProjectionFacts')
+            .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', id)),
+          44,
+          'encounterSourceProjectionFacts'
+        ),
+      44,
+      'encounterSourceProjectionFacts'
+    ),
     encounterSceneBindings: await children(
       descendants.encounterIds,
       (id) =>

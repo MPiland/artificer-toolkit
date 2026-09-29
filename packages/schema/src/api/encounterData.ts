@@ -101,6 +101,15 @@ export const encounterPlayerActorDtoSchema = lazySchema(() =>
   })
 )
 
+export const encounterFeatureResourceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    used: z.number().check(z.int()).check(z.nonnegative()),
+    maximum: z.number().check(z.int()).check(z.nonnegative()),
+    remaining: z.number().check(z.int()).check(z.nonnegative()),
+    resetKind: z.enum(['DAILY', 'DAWN', 'DUSK', 'LONG_REST', 'SHORT_REST', 'MANUAL'])
+  })
+)
+
 export const encounterFeatureReferenceDtoSchema = lazySchema(() =>
   z.extend(
     z.pick(featureReferenceDtoSchema, {
@@ -110,19 +119,7 @@ export const encounterFeatureReferenceDtoSchema = lazySchema(() =>
       section: true,
       rollDefinitions: true
     }),
-    {
-      resource: z._default(
-        z.nullable(
-          z.strictObject({
-            used: z.number().check(z.int()).check(z.nonnegative()),
-            maximum: z.number().check(z.int()).check(z.nonnegative()),
-            remaining: z.number().check(z.int()).check(z.nonnegative()),
-            resetKind: z.enum(['DAILY', 'DAWN', 'DUSK', 'LONG_REST', 'SHORT_REST', 'MANUAL'])
-          })
-        ),
-        null
-      )
-    }
+    { resource: z._default(z.nullable(encounterFeatureResourceDtoSchema), null) }
   )
 )
 

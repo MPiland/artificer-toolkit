@@ -6,7 +6,7 @@ import type {
   ReceiptApplications,
   TargetState
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
-import { readRunActor, readRunState } from './documents.js'
+import { readRunActor, readRunState, writeRunActor } from './documents.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { z } from 'zod'
 import type {
@@ -140,11 +140,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       plan.itemUseStateTransition
     )
       throw new Error('Encounter non-Character plan contains Character state.')
-    if (plan.stateChanged)
-      await ctx.db.patch(actorRow._id, {
-        stateJson: JSON.stringify(plan.updatedActor),
-        stateChecksum: checksumCanonicalJson(plan.updatedActor)
-      })
+    if (plan.stateChanged) await writeRunActor(ctx, actorRow._id, plan.updatedActor)
     return {
       updatedActor: plan.updatedActor,
       receiptApplications: plan.receiptApplications,
@@ -253,10 +249,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     )
   }
   if (checksumCanonicalJson(plan.updatedActor) !== actorRow.stateChecksum)
-    await ctx.db.patch(actorRow._id, {
-      stateJson: JSON.stringify(plan.updatedActor),
-      stateChecksum: checksumCanonicalJson(plan.updatedActor)
-    })
+    await writeRunActor(ctx, actorRow._id, plan.updatedActor)
   return {
     updatedActor: plan.updatedActor,
     receiptApplications: plan.receiptApplications,

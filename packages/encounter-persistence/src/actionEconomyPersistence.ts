@@ -4,6 +4,7 @@ import {
   type EncounterActionEconomyConsumption
 } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { writeRunActor } from './documents.js'
 import type { EncounterWriteContext } from './store.js'
 
 export async function consumeNativeActionEconomy(
@@ -23,9 +24,6 @@ export async function consumeNativeActionEconomy(
     .unique()
   if (!row || row.stateChecksum !== checksumCanonicalJson(input.actor))
     throw new Error('The selected action allowance changed before settlement.')
-  await ctx.db.patch(row._id, {
-    stateJson: JSON.stringify(actor),
-    stateChecksum: checksumCanonicalJson(actor)
-  })
+  await writeRunActor(ctx, row._id, actor)
   return actor
 }

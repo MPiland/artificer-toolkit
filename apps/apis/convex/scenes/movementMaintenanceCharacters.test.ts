@@ -10,7 +10,6 @@ import type {
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
@@ -39,7 +38,7 @@ import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDe
 import { api, internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
@@ -231,10 +230,7 @@ async function resetAndDetachScene(value: Awaited<ReturnType<typeof setup>>) {
         ...actor,
         resources: withEncounterRuleUsageUsed(actor, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 0)
       })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(available),
-        stateChecksum: checksumCanonicalJson(available)
-      })
+      await writeRunActor(ctx, row._id, available)
     }
     for (const row of await ctx.db
       .query('encounterActorTokenBindings')

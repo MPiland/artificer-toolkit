@@ -6,6 +6,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 /** Reconciles owners after exact dependent deletion, sharing a preceding mechanics increment. */
@@ -84,10 +85,7 @@ export async function reconcileNativeMaintenanceOwners(
       if (!row || row.stateChecksum !== checksumCanonicalJson(actor))
         throw new Error('Maintained-effect Encounter mirror changed during settlement.')
       if (row.stateChecksum !== checksumCanonicalJson(updated))
-        await ctx.db.patch(row._id, {
-          stateJson: JSON.stringify(updated),
-          stateChecksum: checksumCanonicalJson(updated)
-        })
+        await writeRunActor(ctx, row._id, updated)
       actors.set(actor.id, updated)
     }
   }

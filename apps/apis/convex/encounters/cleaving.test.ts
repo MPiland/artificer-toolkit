@@ -62,7 +62,7 @@ import { api, components, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from './encounterPorts'
 import {
@@ -447,10 +447,7 @@ async function setup(
           ...JSON.parse(targetRow.stateJson),
           public: target.id === run.actors[2]!.id
         })
-        await ctx.db.patch(targetRow._id, {
-          stateJson: JSON.stringify(targetState),
-          stateChecksum: checksumCanonicalJson(targetState)
-        })
+        await writeRunActor(ctx, targetRow._id, targetState)
       }
     }
     const now = new Date().toISOString()
@@ -1497,10 +1494,7 @@ describe('native Cleaving action settlement', () => {
             ...JSON.parse(row.stateJson),
             currentHitPoints: 10
           })
-          await ctx.db.patch(row._id, {
-            stateJson: JSON.stringify(actor),
-            stateChecksum: checksumCanonicalJson(actor)
-          })
+          await writeRunActor(ctx, row._id, actor)
         })
       const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(reason === 'miss' ? 0 : 18)
       try {
@@ -1548,10 +1542,7 @@ describe('native Cleaving action settlement', () => {
       await base.t.run(async (ctx) => {
         const row = before.actors.find((actor) => actor.id === actorId)!
         const changed = { ...JSON.parse(row.stateJson), currentHitPoints: 1 }
-        await ctx.db.patch(row._id, {
-          stateJson: JSON.stringify(changed),
-          stateChecksum: checksumCanonicalJson(changed)
-        })
+        await writeRunActor(ctx, row._id, changed)
       })
       const stale = await records(base)
       // Fixture writes skip the revision triggers, so the stale plan meets the damage re-check.

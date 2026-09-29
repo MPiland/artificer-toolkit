@@ -12,7 +12,7 @@ import { createEncounterSceneFixture } from './encounterScene'
 import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
 import { readGeometrySave, readSpatialPreparation } from '../../convex/scenes/geometryDocuments'
 import { internal } from '../../convex/_generated/api'
-import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { seedSpatialEffect } from './spatialEffect'
 import { activateFixtureRun } from './activeInitiative'
 import { insertActiveLiveAuthority, planStagedMovementInRoom } from './liveSessionWorker'
@@ -148,10 +148,7 @@ export async function grantFixtureActorControl(
     ...JSON.parse(actorRow.stateJson),
     controllerUserIds: input.controllerUserIds
   })
-  await ctx.db.patch(actorRow._id, {
-    stateJson: JSON.stringify(actor),
-    stateChecksum: checksumCanonicalJson(actor)
-  })
+  await writeRunActor(ctx, actorRow._id, actor)
 }
 
 /**

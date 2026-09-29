@@ -22,6 +22,7 @@ import {
   SRD_REACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
@@ -238,10 +239,7 @@ async function exhaustFixtureReaction(value: Awaited<ReturnType<typeof setupPass
       ...state,
       resources: withEncounterRuleUsageUsed(state, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 1)
     })
-    await ctx.db.patch(actor._id, {
-      stateJson: JSON.stringify(exhausted),
-      stateChecksum: checksumCanonicalJson(exhausted)
-    })
+    await writeRunActor(ctx, actor._id, exhausted)
   })
 }
 

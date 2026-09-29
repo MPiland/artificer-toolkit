@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { loadMovementTargets } from './movementTargets'
-import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
@@ -180,10 +179,7 @@ describe('native movement target facts', () => {
           }
         }
       })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(creature),
-        stateChecksum: checksumCanonicalJson(creature)
-      })
+      await writeRunActor(ctx, row._id, creature)
     })
     const creature = await fixture.owner.caller.run(
       async (ctx) => (await loadMovementTargets(ctx, input)).get(actor.id)!

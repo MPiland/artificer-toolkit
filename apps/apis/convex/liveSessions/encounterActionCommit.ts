@@ -28,7 +28,11 @@ import { internalMutation } from '../lib/mutations'
 import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
-import { changedFields, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  changedFields,
+  readRunActors,
+  writeRunActor
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-persistence/allyAdvantage'
 import { readEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
@@ -269,10 +273,7 @@ export const commit = internalMutation({
         .unique()
       if (!row || row.stateChecksum !== checksumCanonicalJson(beforeSource))
         throw new Error('Encounter action source changed before settlement.')
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(settledSource),
-        stateChecksum: checksumCanonicalJson(settledSource)
-      })
+      await writeRunActor(ctx, row._id, settledSource)
     }
     let nextActors = actors.map((actor) =>
       actor.id === source.id

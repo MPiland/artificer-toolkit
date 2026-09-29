@@ -6,10 +6,10 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
@@ -155,10 +155,7 @@ it('a defeated reactor takes no opportunity attack (D63)', async () => {
       currentHitPoints: 0,
       defeated: true
     })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(defeated),
-      stateChecksum: checksumCanonicalJson(defeated)
-    })
+    await writeRunActor(ctx, row._id, defeated)
   })
   expect((await moveAwayFromReactor(base)).outcome.kind).not.toBe('PENDING')
 })

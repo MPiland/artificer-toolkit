@@ -1,7 +1,7 @@
 import type { EncounterProjectionCharacterStates } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import {
   encounterRunActorStateSchema,
-  type EncounterRunActorState,
+  type EncounterRunCharacterActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -46,7 +46,10 @@ export function characterProjectionState(
 export async function readEncounterCharacterStates(
   ctx: EncounterReadTransaction,
   state: Pick<EncounterRunState, 'campaignId' | 'gameSystemId' | 'status'>,
-  actors: readonly EncounterRunActorState[]
+  actors: readonly (
+    | Pick<EncounterRunCharacterActorState, 'kind' | 'sourceId' | 'frozenState'>
+    | { kind: 'CREATURE' | 'CUSTOM' }
+  )[]
 ): Promise<EncounterProjectionCharacterStates> {
   const states = new Map<
     string,

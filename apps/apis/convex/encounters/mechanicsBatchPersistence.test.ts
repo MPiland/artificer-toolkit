@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import type { MutationCtx } from '../_generated/server'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
@@ -107,10 +107,7 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
 
       if (changed === 'actor') {
         const next = { ...target.actor, gmNotes: 'Changed before settlement' }
-        await ctx.db.patch(target.actorRow._id, {
-          stateJson: JSON.stringify(next),
-          stateChecksum: checksumCanonicalJson(next)
-        })
+        await writeRunActor(ctx, target.actorRow._id, next)
       } else if (changed === 'character') {
         await ctx.db.patch(loaded.active._id, { streamVersion: loaded.active.streamVersion + 1 })
       } else if (changed === 'run') {

@@ -32,6 +32,7 @@ import {
   createDnd5eMovementReactionChoiceDefinition,
   createDnd5eOpportunityReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from './characters'
 import { reactionBinding } from './reactionBinding'
 import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
@@ -447,10 +448,7 @@ export async function setupCreatureReactionRun(
         sideId: party.id,
         disposition: 'FRIENDLY'
       })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state)
-      })
+      await writeRunActor(ctx, row._id, state)
     }
   })
   return { ...base, campaign, run, reactor, mover, additionalReactorActor }

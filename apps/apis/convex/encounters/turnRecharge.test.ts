@@ -25,7 +25,6 @@ import {
   liveSessionEncounterTurnCommitInputSchema,
   liveSessionEncounterTurnPendingInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_CONTENT_SOURCE,
@@ -41,6 +40,7 @@ import {
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from '../../tests/fixtures/characters'
 import {
   automaticChargedBiteFeatureId,
@@ -793,10 +793,7 @@ describe('native Encounter turn Recharge', () => {
         snapshot: { payload: { features: unknown[] } }
       }
       state.snapshot.payload.features = []
-      await ctx.db.patch(actor._id, {
-        stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state)
-      })
+      await writeRunActor(ctx, actor._id, state)
     })
     const staleBefore = await stored(base.t, base.run.id)
     await expect(executeInRoom(base.owner.caller, invalid)).rejects.toThrow(

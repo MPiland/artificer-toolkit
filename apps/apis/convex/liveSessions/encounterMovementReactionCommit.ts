@@ -14,6 +14,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { consumeEncounterAllyAdvantages } from '@artificer-toolkit/encounter-persistence/allyAdvantage'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import {
   prepareLiveEncounterActionMaintenance,
@@ -236,10 +237,7 @@ export async function persistLiveMovementReaction(
       .unique()
     if (!row || row.stateChecksum !== checksumCanonicalJson(before))
       throw new Error('Live movement reaction actor changed before settlement.')
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(after),
-      stateChecksum: checksumCanonicalJson(after)
-    })
+    await writeRunActor(ctx, row._id, after)
   }
   const beforeCleanup = input.actors.map((actor) =>
     actor.id === source.id ? nextSource : actor.id === target.id ? nextTarget : actor

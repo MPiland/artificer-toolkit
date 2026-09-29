@@ -42,7 +42,11 @@ import {
 import { api, internal } from '../_generated/api'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 import { prepareNativeActionEconomy } from './actionEconomy'
-import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  readRunActors,
+  readRunState,
+  writeRunActor
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from './encounterPorts'
 import { loadMovementTargets } from './movementTargets'
@@ -452,10 +456,7 @@ async function resetActionAllowance(base: Awaited<ReturnType<typeof setup>>) {
       ...actor,
       resources: withEncounterRuleUsageUsed(actor, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 0)
     })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(reset),
-      stateChecksum: checksumCanonicalJson(reset)
-    })
+    await writeRunActor(ctx, row._id, reset)
   })
 }
 
@@ -566,10 +567,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
       ...JSON.parse(row.stateJson),
       conditions: [frightened.id, poisoned.id, blinded.id]
     })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(actor),
-      stateChecksum: checksumCanonicalJson(actor)
-    })
+    await writeRunActor(ctx, row._id, actor)
     return {
       priorStateId: maintained.id,
       priorEffectIds: [dependent.id, conditionDependent.id],
@@ -1261,10 +1259,7 @@ it('commits the post-mechanics maintenance settlement the Worker projects', asyn
       ...JSON.parse(row.stateJson),
       conditions: [frightened.id, poisoned.id, blinded.id]
     })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(actor),
-      stateChecksum: checksumCanonicalJson(actor)
-    })
+    await writeRunActor(ctx, row._id, actor)
     return { characterDependent, actorDependent, independent }
   })
   const command = action(base, scope.expectedVersion, base.characterTarget.id)

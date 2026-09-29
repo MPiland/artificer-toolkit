@@ -27,7 +27,6 @@ import {
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
@@ -52,6 +51,7 @@ import {
   createDnd5eRechargeLifecycleDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/encounterLifecyclePolicy'
 import { DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from '../../tests/fixtures/characters'
 import {
   automaticChargedBiteFeatureId,
@@ -167,10 +167,7 @@ async function seedUsedAllowances(base: Awaited<ReturnType<typeof setup>>) {
           ...actor,
           resources: withEncounterRuleUsageUsed(actor, definitionId, 1)
         })
-      await ctx.db.patch(actorRow._id, {
-        stateJson: JSON.stringify(actor),
-        stateChecksum: checksumCanonicalJson(actor)
-      })
+      await writeRunActor(ctx, actorRow._id, actor)
     }
   })
 }
@@ -1006,19 +1003,17 @@ describe('native Encounter turn Legendary Actions', () => {
       const actor = encounterRunActorStateSchema.parse(JSON.parse(original.stateJson))
       const snapshot = actor.snapshot as { payload: { features: unknown[] } }
       snapshot.payload.features = []
-      await ctx.db.patch(original._id, {
-        stateJson: JSON.stringify(actor),
-        stateChecksum: checksumCanonicalJson(actor)
-      })
+      await writeRunActor(ctx, original._id, actor)
     })
     const changedSource = await stored(base.t, base.run.id)
     await expect(executeInRoom(base.owner.caller, remaining)).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(changedSource)
     await base.t.run((ctx) =>
-      ctx.db.patch(original._id, {
-        stateJson: original.stateJson,
-        stateChecksum: original.stateChecksum
-      })
+      writeRunActor(
+        ctx,
+        original._id,
+        encounterRunActorStateSchema.parse(JSON.parse(original.stateJson))
+      )
     )
     await base.t.run(async (ctx) => {
       const definition = await ctx.db

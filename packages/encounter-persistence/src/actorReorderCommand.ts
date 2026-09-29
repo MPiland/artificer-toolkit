@@ -13,7 +13,7 @@ import {
   type EncounterInitiativeRoundStateDto
 } from '@artificer-toolkit/schema/shared/initiativeState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { readRunActors, readRunState, changedFields } from './documents.js'
+import { readRunActors, readRunState, changedFields, writeRunActor } from './documents.js'
 import {
   encounterReplayReceipt,
   readEncounterReplayReceipt,
@@ -212,10 +212,7 @@ export async function reorderEncounterActors(
       manualOrder: input.actorIds.indexOf(actor.id),
       updatedAt: now
     })
-    await ctx.db.patch(stored._id, {
-      stateJson: JSON.stringify(next),
-      stateChecksum: checksumCanonicalJson(next)
-    })
+    await writeRunActor(ctx, stored._id, next)
   }
   const version = row.version + 1
   const nextState = encounterRunStateSchema.parse({

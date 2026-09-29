@@ -34,7 +34,8 @@ import {
   characterProjectionState,
   readEncounterCharacterStates
 } from '@artificer-toolkit/encounter-persistence/characterStates'
-import { projectEncounterActors } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { projectEncounterFacts } from '@artificer-toolkit/encounter-persistence/nativeProjection'
+import { readRunProjectionFacts } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { readEncounterHealthViewer } from '@artificer-toolkit/encounter-persistence/healthViewer'
 import {
   readCampaignRunState,
@@ -62,13 +63,14 @@ export async function presentRun(
   const { role } = viewer
   const transaction = encounterReadTransaction(ctx)
   const state = readCampaignRunState(row, campaign)
-  const actors = await readRunActors(ctx, state)
+  const facts = await readRunProjectionFacts(ctx, state)
+  const { actors } = facts
   // The GM reads a completed Run's Characters as they were when it completed.
   if (row.status === 'COMPLETED' && role === 'OWNER')
-    return projectEncounterActors(
+    return projectEncounterFacts(
       transaction,
       state,
-      actors,
+      facts,
       await readEncounterCharacterStates(transaction, state, actors)
     )
   const system = actors.some(
@@ -134,7 +136,7 @@ export async function presentRun(
       )
     )
   }
-  const projection = await projectEncounterActors(transaction, state, actors, characterStates)
+  const projection = await projectEncounterFacts(transaction, state, facts, characterStates)
   const current = {
     ...projection,
     actors: projection.actors.map((actor) => {

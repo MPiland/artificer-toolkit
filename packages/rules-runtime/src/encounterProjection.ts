@@ -1,10 +1,15 @@
 import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
-import type {
-  EncounterRunActorState,
-  EncounterRunState
+import {
+  encounterActorProjectionFactsSchema,
+  encounterSourceProjectionFactsSchema,
+  type EncounterActorProjectionFacts,
+  type EncounterRunActorState,
+  type EncounterRunState,
+  type EncounterSourceProjectionFacts
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import {
+  encounterFeatureReferenceDtoSchema,
   encounterGmProjectionDtoSchema,
   type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounterData'
@@ -14,8 +19,9 @@ import type {
   EncounterProjectionInput
 } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import { creatureQualifiedDamageDefenseDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
-import { snapshotFeatures, stableActors } from './encounterActorState.js'
+import { snapshotFeatureDefinitions, stableActors } from './encounterActorState.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
 import { isEncounterActorDefeated } from './encounterActorDefeat.js'
 import { healthBand } from './encounterPlayerProjection.js'
@@ -32,6 +38,27 @@ export function projectCurrentEncounterGm(input: {
   characterStates: EncounterProjectionCharacterStates
 }) {
   const { state, actors, rules, initiativeRoundState, characterStates } = input
+  requireCurrentInitiativeRound(state, initiativeRoundState)
+  return projectGm({ ...state, actors, initiativeRoundState }, rules, characterStates)
+}
+
+/** Projects a current Run from its stored projection facts and its normalized initiative round. */
+export function projectCurrentEncounterGmFacts(input: {
+  state: EncounterRunState
+  actors: readonly EncounterActorProjectionFacts[]
+  sources: ReadonlyMap<string, EncounterSourceProjectionFacts>
+  initiativeRoundState: EncounterInitiativeRoundStateDto | null
+  characterStates: EncounterProjectionCharacterStates
+}) {
+  const { state, actors, sources, initiativeRoundState, characterStates } = input
+  requireCurrentInitiativeRound(state, initiativeRoundState)
+  return projectGmFacts({ ...state, actors, initiativeRoundState }, sources, characterStates)
+}
+
+function requireCurrentInitiativeRound(
+  state: EncounterRunState,
+  initiativeRoundState: EncounterInitiativeRoundStateDto | null
+) {
   if (state.status === 'ACTIVE') {
     if (!initiativeRoundState) throw new Error('The normalized initiative round is unavailable.')
     if (
@@ -46,7 +73,6 @@ export function projectCurrentEncounterGm(input: {
       allowedSideIds: state.sides.map((side) => side.id)
     })
   }
-  return projectGm({ ...state, actors, initiativeRoundState }, rules, characterStates)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -95,7 +121,14 @@ export function snapshotStatBlock(actor: EncounterProjectionActorInput) {
   }
 }
 
-function currentActorIdForProjection(encounter: EncounterProjectionInput): string | null {
+function currentActorIdForProjection(
+  encounter: Pick<
+    EncounterProjectionInput,
+    'currentActorId' | 'initiativeRoundState' | 'round' | 'status'
+  > & {
+    actors: readonly { id: string }[]
+  }
+): string | null {
   const initiativeState = encounter.initiativeRoundState
   // Legacy in-memory fixtures do not carry normalized initiative state. Live
   // repository reads always set the field, including to null when no current
@@ -118,10 +151,113 @@ function currentActorIdForProjection(encounter: EncounterProjectionInput): strin
     : null
 }
 
+/**
+ * One actor's projection facts, from its state and its evaluated actor rules, and for a Creature the
+ * stat block and Feature references its source shares with identical Creatures (ADR 0035
+ * Amendment 12).
+ */
+export function projectEncounterActorFacts(
+  actor: EncounterProjectionActorInput,
+  actorRules: EncounterActorRuleOutput
+): { facts: EncounterActorProjectionFacts; source: EncounterSourceProjectionFacts | null } {
+  const shown = {
+    id: actor.id,
+    encounterId: actor.encounterId,
+    label: actor.label,
+    public: actor.public,
+    controllerUserIds: actor.controllerUserIds,
+    disposition: actor.disposition,
+    initiative: actor.initiative,
+    manualOrder: actor.manualOrder,
+    healthDisplay: actor.healthDisplay,
+    systemId: actor.systemId,
+    stableTieKey: actor.stableTieKey,
+    resources: actor.resources,
+    gmNotes: actor.gmNotes
+  }
+  if (actor.kind === 'CHARACTER')
+    return {
+      facts: encounterActorProjectionFactsSchema.parse({
+        ...shown,
+        kind: actor.kind,
+        sourceId: actor.sourceId,
+        frozenState: actor.frozenState
+      }),
+      source: null
+    }
+  const statBlock = snapshotStatBlock(actor)
+  const features = snapshotFeatureDefinitions(actor).map((feature) =>
+    encounterFeatureReferenceDtoSchema.parse({ ...feature, resource: null })
+  )
+  const source =
+    statBlock === null && features.length === 0
+      ? null
+      : encounterSourceProjectionFactsSchema.parse({ statBlock, features })
+  const resources = new Map(
+    requireEncounterActorRuleResult(actorRules, actor.id).featureResources.map((resource) => [
+      resource.featureId,
+      resource
+    ])
+  )
+  return {
+    facts: encounterActorProjectionFactsSchema.parse({
+      ...shown,
+      kind: actor.kind,
+      sourceId: actor.sourceId,
+      sourceRevision: actor.sourceRevision,
+      currentHitPoints: actor.currentHitPoints,
+      maxHitPoints: actor.maxHitPoints,
+      tempHitPoints: actor.tempHitPoints,
+      conditions: actor.conditions,
+      defeated: actor.defeated,
+      sourceFactsChecksum: source && checksumCanonicalJson(source),
+      featureResources: [...resources.values()].flatMap((resource) =>
+        resource.maximum === null
+          ? []
+          : [
+              {
+                featureId: resource.featureId,
+                used: resource.used,
+                maximum: resource.maximum,
+                remaining: resource.remaining ?? 0,
+                resetKind: resource.resetKind ?? 'MANUAL'
+              }
+            ]
+      )
+    }),
+    source
+  }
+}
+
 /** Character actors take hit points and conditions from the current Characters, never the Run. */
 export function projectGm(
   encounter: EncounterProjectionInput,
   actorRules: EncounterActorRuleOutput,
+  characterStates: EncounterProjectionCharacterStates
+): EncounterGmProjectionDto {
+  const projected = encounter.actors.map((actor) => projectEncounterActorFacts(actor, actorRules))
+  return projectGmFacts(
+    { ...encounter, actors: projected.map(({ facts }) => facts) },
+    new Map(
+      projected.flatMap(({ facts, source }) =>
+        source && facts.kind !== 'CHARACTER' && facts.sourceFactsChecksum
+          ? [[facts.sourceFactsChecksum, source] as const]
+          : []
+      )
+    ),
+    characterStates
+  )
+}
+
+/**
+ * The GM projection from the actors' projection facts and their sources' facts by checksum.
+ * Character actors take hit points and conditions from the current Characters, never the Run.
+ */
+export function projectGmFacts(
+  encounter: Omit<EncounterProjectionInput, 'actors'> & {
+    actors: readonly EncounterActorProjectionFacts[]
+  },
+  sources: ReadonlyMap<string, EncounterSourceProjectionFacts>,
   characterStates: EncounterProjectionCharacterStates
 ): EncounterGmProjectionDto {
   return encounterGmProjectionDtoSchema.parse({
@@ -167,6 +303,16 @@ export function projectGm(
               conditions: actor.conditions
             }
       if (!current) throw new Error('Encounter Character state is unavailable.')
+      const source =
+        actor.kind === 'CHARACTER' || actor.sourceFactsChecksum === null
+          ? null
+          : sources.get(actor.sourceFactsChecksum)
+      if (source === undefined) throw new Error('Encounter actor source facts are unavailable.')
+      const resources = new Map(
+        actor.kind === 'CHARACTER'
+          ? []
+          : actor.featureResources.map(({ featureId, ...resource }) => [featureId, resource])
+      )
       return {
         id: actor.id,
         encounterId: actor.encounterId,
@@ -187,11 +333,11 @@ export function projectGm(
         defeated: isEncounterActorDefeated(actor),
         resources: actor.resources,
         gmNotes: actor.gmNotes,
-        statBlock: snapshotStatBlock(actor),
-        features:
-          actor.kind === 'CHARACTER'
-            ? []
-            : snapshotFeatures(actor, requireEncounterActorRuleResult(actorRules, actor.id)),
+        statBlock: source?.statBlock ?? null,
+        features: (source?.features ?? []).map((feature) => ({
+          ...feature,
+          resource: resources.get(feature.id) ?? null
+        })),
         initiative: actor.initiative,
         manualOrder: actor.manualOrder,
         healthBand: healthBand(current.current, current.maximum)

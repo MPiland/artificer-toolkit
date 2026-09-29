@@ -14,7 +14,7 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import type { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { changedFields, readRunActors, readRunState } from './documents.js'
+import { changedFields, deleteRunActor, readRunActors, readRunState } from './documents.js'
 import {
   encounterReplayReceipt,
   readEncounterReplayReceipt,
@@ -355,7 +355,7 @@ async function removeEncounterActorCore(
     .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', input.actorId))
     .unique()
   if (!actorRow) throw new Error('Encounter actor was not found.')
-  await ctx.db.delete(actorRow._id)
+  await deleteRunActor(ctx, actorRow)
   const binding = await ctx.db
     .query('encounterActorTokenBindings')
     .withIndex('by_encounterId_actorId', (q) =>

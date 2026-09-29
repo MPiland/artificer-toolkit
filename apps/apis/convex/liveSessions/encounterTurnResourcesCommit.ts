@@ -30,7 +30,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import type { MutationCtx } from '../_generated/server'
 import { readDefinitionRoot } from '../content/definitionStore'
-import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunActor, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 
@@ -109,10 +109,7 @@ export async function persistLiveTurnResources(
     )
       throw new Error('Live Session turn resource actor changed before settlement.')
     const next = encounterRunActorStateSchema.parse({ ...after, updatedAt: occurredAt })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(next),
-      stateChecksum: checksumCanonicalJson(next)
-    })
+    await writeRunActor(ctx, row._id, next)
   }
 
   const seenOwners = new Set<string>()

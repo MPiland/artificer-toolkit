@@ -7,10 +7,7 @@ import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  encounterStoredRunActorSchema,
-  encounterStoredRunCommandSchema
-} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -22,7 +19,7 @@ import {
 import { projectGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { readEncounterCharacterStates } from './characterStates.js'
-import { readRunActors, readRunState } from './documents.js'
+import { insertRunActor, readRunActors, readRunState, writeRunActor } from './documents.js'
 import {
   encounterReplayReceipt,
   readEncounterReplayReceipt,
@@ -247,20 +244,9 @@ export async function reinforceEncounterActors(
       .unique()
     if (!actorRow || actorRow.stateChecksum !== checksumCanonicalJson(currentActor))
       throw new Error('Encounter actor changed before reinforcement.')
-    await ctx.db.patch(actorRow._id, {
-      stateJson: JSON.stringify(updatedActor),
-      stateChecksum: checksumCanonicalJson(updatedActor)
-    })
+    await writeRunActor(ctx, actorRow._id, updatedActor)
   }
-  await ctx.db.insert(
-    'encounterRunActors',
-    encounterStoredRunActorSchema.parse({
-      id: actor.id,
-      encounterId: row.id,
-      stateJson: JSON.stringify(actor),
-      stateChecksum: checksumCanonicalJson(actor)
-    })
-  )
+  await insertRunActor(ctx, actor)
   await ctx.db.patch(row._id, {
     version: nextState.version,
     updatedAt: now,
