@@ -29,6 +29,7 @@ import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subj
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, components, internal } from '../_generated/api'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
 import { assertPreparedClassDocument, readPublicationState } from './publicationPersistence'
 import { readStoredAuthoredVersionDocument } from './documents'
@@ -218,25 +219,13 @@ describe('native Class publication', () => {
         subjectId: child.subjectId
       })
     ).toEqual(workingDraft)
-    const listed = await first.caller.query(api.content.catalogue.list, {
-      subjectKind: 'CLASS',
-      source: 'OWNED',
-      paginationOpts: { cursor: null, numItems: 48 }
-    })
-    expect(listed.page.find((item) => item.id === child.subjectId)).toMatchObject({
+    const listed = await readVisibleCatalogue(t, first.caller, 'CLASS', { source: 'OWNED' })
+    expect(listed.find((item) => item.id === child.subjectId)).toMatchObject({
       label: 'Independent child name',
       parentClassId: base.subjectId,
       parentClassLabel: 'Aardvark'
     })
-    expect(
-      (
-        await second.caller.query(api.content.catalogue.list, {
-          subjectKind: 'CLASS',
-          source: 'OWNED',
-          paginationOpts: { cursor: null, numItems: 48 }
-        })
-      ).page
-    ).toEqual([])
+    expect(await readVisibleCatalogue(t, second.caller, 'CLASS', { source: 'OWNED' })).toEqual([])
 
     await t.run((ctx) =>
       ctx.db.patch(after.root._id, {
@@ -567,19 +556,9 @@ describe('native Class publication', () => {
       before.versions.find((version) => version.id === linkedSpell.subjectId)
     )
     expect(after.classes).toEqual(before.classes)
-    expect(
-      (
-        await first.caller.query(api.content.catalogue.list, {
-          subjectKind: 'SPELL',
-          source: 'OWNED',
-          paginationOpts: { cursor: null, numItems: 10 }
-        })
-      ).page
-    ).toEqual([
-      expect.objectContaining({
-        id: linkedSpell.subjectId,
-        classIds: [base.subjectId]
-      })
+    // The list row joins Class labels from the visible entries, so the deleted Class is left off.
+    expect(await readVisibleCatalogue(t, first.caller, 'SPELL', { source: 'OWNED' })).toEqual([
+      expect.objectContaining({ id: linkedSpell.subjectId, classIds: [], classLabels: [] })
     ])
 
     const backfill = await fixture()

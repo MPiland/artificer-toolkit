@@ -11,6 +11,7 @@ import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { verifyCampaignInventory } from '../../tests/developmentCampaignInventory'
+import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
@@ -276,26 +277,19 @@ it('proves the authenticated Campaign inventory subset through public handlers',
         .unique()
     )
   ).toEqual(preservedBefore.campaign)
-  const ownedVehicles = await base.other.caller.query(api.content.catalogue.list, {
-    subjectKind: 'VEHICLE',
+  const ownedVehicles = await readVisibleCatalogue(base.t, base.other.caller, 'VEHICLE', {
     systemId: srdSystemRecord.id,
-    source: 'OWNED',
-    paginationOpts: { cursor: null, numItems: 8 }
+    source: 'OWNED'
   })
-  expect(ownedVehicles.isDone).toBe(true)
-  expect(ownedVehicles.page).toHaveLength(1)
+  expect(ownedVehicles).toHaveLength(1)
   await base.other.caller.mutation(api.content.deletion.deleteActive, {
     subjectKind: 'VEHICLE',
-    subjectId: ownedVehicles.page[0]!.id
+    subjectId: ownedVehicles[0]!.id
   })
   expect(
-    (
-      await base.other.caller.query(api.content.catalogue.list, {
-        subjectKind: 'VEHICLE',
-        systemId: srdSystemRecord.id,
-        source: 'OWNED',
-        paginationOpts: { cursor: null, numItems: 8 }
-      })
-    ).page
+    await readVisibleCatalogue(base.t, base.other.caller, 'VEHICLE', {
+      systemId: srdSystemRecord.id,
+      source: 'OWNED'
+    })
   ).toEqual([])
 }, 30000)

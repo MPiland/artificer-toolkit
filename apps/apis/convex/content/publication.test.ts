@@ -20,8 +20,6 @@ import {
 } from '@artificer-toolkit/schema/api/authoredPublication'
 import type { AuthoredDraftResult } from '@artificer-toolkit/schema/api/authoredDrafts'
 import type {
-  AuthoredCatalogueReadInput,
-  AuthoredCataloguePage,
   AuthoredCatalogueScope,
   AuthoredCatalogueCounts
 } from '@artificer-toolkit/schema/api/authoredCatalogue'
@@ -33,6 +31,7 @@ import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime'
 import { api, components, internal } from '../_generated/api'
 import { removeEmptyFixtureSource } from './development'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
 const publish = makeFunctionReference<
@@ -45,9 +44,6 @@ const deleteActive = makeFunctionReference<'mutation', AuthoredDeleteActiveInput
 )
 const details = makeFunctionReference<'query', AuthoredDetailReadInput, AuthoredDetailReadResult>(
   'content/details:get'
-)
-const catalogue = makeFunctionReference<'query', AuthoredCatalogueReadInput, AuthoredCataloguePage>(
-  'content/catalogue:list'
 )
 const catalogueCounts = makeFunctionReference<
   'query',
@@ -237,13 +233,8 @@ describe('native Background publication', () => {
         description: 'Private unfinished description'
       }
     })
-    const visible = await first.caller.query(catalogue, {
-      ...catalogueScope,
-      paginationOpts: { cursor: null, numItems: 48 }
-    })
-    expect(visible.page.find((item) => item.id === original.subjectId)?.permissions.canCopy).toBe(
-      true
-    )
+    const visible = await readVisibleCatalogue(t, first.caller, 'BACKGROUND', catalogueScope)
+    expect(visible.find((item) => item.id === original.subjectId)?.permissions.canCopy).toBe(true)
     await expect(t.mutation(api.content.drafts.duplicate, lookup)).rejects.toThrow(
       'Unauthenticated'
     )
@@ -469,67 +460,9 @@ describe('native Background publication', () => {
     await expect(first.caller.query(catalogueCounts, catalogueScope)).rejects.toThrow(
       'backfill is incomplete'
     )
-    await expect(
-      first.caller.query(catalogue, {
-        ...catalogueScope,
-        paginationOpts: { numItems: 48, cursor: null }
-      })
-    ).rejects.toThrow('backfill is incomplete')
   })
 
-  it('splits large rich-text summaries by bytes without dropping catalogue entries', async () => {
-    const { first } = await fixture()
-    const description = `<p title="${'界'.repeat(99000)}">Readable description.</p>`
-    const expectedLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
-    for (const label of expectedLabels) {
-      const copied = await copyDraft(first.caller)
-      const saved = await first.caller.mutation(api.content.drafts.save, {
-        subjectKind: 'BACKGROUND',
-        subjectId: copied.subjectId,
-        systemId: copied.systemId,
-        label,
-        payload: { ...copied.payload, description }
-      })
-      await first.caller.mutation(publish, publicationInput(saved))
-    }
-    const leaf = await first.caller.query(catalogue, {
-      ...catalogueScope,
-      source: 'OWNED',
-      paginationOpts: { numItems: 1, cursor: null }
-    })
-    const replay = await first.caller.query(catalogue, {
-      ...catalogueScope,
-      source: 'OWNED',
-      paginationOpts: {
-        numItems: 1,
-        cursor: null,
-        endCursor: leaf.continueCursor
-      }
-    })
-    expect(leaf.pageStatus).not.toBe('SplitRequired')
-    expect(replay.pageStatus).not.toBe('SplitRequired')
-    expect(replay.page).toEqual(leaf.page)
-    let cursor: string | null = null
-    const labels: string[] = []
-    for (let index = 0; index < 5; index++) {
-      const result: AuthoredCataloguePage = await first.caller.query(catalogue, {
-        ...catalogueScope,
-        source: 'OWNED',
-        paginationOpts: { numItems: 48, cursor }
-      })
-      if (index === 0) {
-        expect(result.isDone).toBe(false)
-        expect(result.page.length).toBeLessThan(expectedLabels.length)
-      }
-      labels.push(...result.page.map((item) => item.label))
-      expect(result.page.every((item) => item.description === description)).toBe(true)
-      cursor = result.continueCursor
-      if (result.isDone) break
-    }
-    expect(labels).toEqual(expectedLabels)
-  })
-
-  it('merges only master and caller-owned catalogue pages, with exact counts and no mechanics hydration', async () => {
+  it('lists only master and caller-owned rows, with exact counts and no mechanics', async () => {
     const { t, first, second } = await fixture()
     for (const label of ['zebra', 'Aaron', 'Acolyte']) {
       const copied = await copyDraft(first.caller)
@@ -545,17 +478,7 @@ describe('native Background publication', () => {
     const foreign = await copyDraft(second.caller)
     await second.caller.mutation(publish, publicationInput(foreign))
     const draftOnly = await copyDraft(first.caller)
-    let cursor: string | null = null
-    const items: AuthoredCataloguePage['page'] = []
-    for (let pageNumber = 0; pageNumber < 5; pageNumber++) {
-      const result: AuthoredCataloguePage = await first.caller.query(catalogue, {
-        ...catalogueScope,
-        paginationOpts: { numItems: 1, cursor }
-      })
-      items.push(...result.page)
-      cursor = result.continueCursor
-      if (result.isDone) break
-    }
+    const items = await readVisibleCatalogue(t, first.caller, 'BACKGROUND', catalogueScope)
     expect(items.map((item) => item.label)).toEqual(['Aaron', 'Acolyte', 'Acolyte', 'zebra'])
     expect(new Set(items.map((item) => item.id)).size).toBe(4)
     expect(
@@ -576,34 +499,17 @@ describe('native Background publication', () => {
       masterCount: 1,
       ownedCount: 0
     })
-    const anonymous = await t.query(catalogue, {
-      ...catalogueScope,
-      paginationOpts: { numItems: 48, cursor: null }
-    })
-    expect(anonymous.page.map((item) => item.id)).toEqual([acolyte.id])
-    expect(anonymous.page[0].permissions).toEqual({
-      canView: true,
-      canEdit: false,
-      canCopy: false,
-      canDelete: false
-    })
     expect(
-      (
-        await first.caller.query(catalogue, {
-          ...catalogueScope,
-          source: 'OWNED',
-          paginationOpts: { numItems: 48, cursor: null }
-        })
-      ).page
+      await readVisibleCatalogue(t, first.caller, 'BACKGROUND', {
+        ...catalogueScope,
+        source: 'OWNED'
+      })
     ).toHaveLength(3)
     expect(
-      (
-        await first.caller.query(catalogue, {
-          ...catalogueScope,
-          source: 'MASTER',
-          paginationOpts: { numItems: 48, cursor: null }
-        })
-      ).page
+      await readVisibleCatalogue(t, first.caller, 'BACKGROUND', {
+        ...catalogueScope,
+        source: 'MASTER'
+      })
     ).toHaveLength(1)
     for (const item of items) {
       expect(item).not.toHaveProperty('_id')
@@ -612,34 +518,6 @@ describe('native Background publication', () => {
       expect(item).not.toHaveProperty('checksum')
       expect(item.permissions.canEdit).toBe(item.provenance.kind === 'OWNED')
     }
-    // Catalogue reads must not load a full document merely to display its summary.
-    await t.run(async (ctx) => {
-      const root = await ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', acolyte.id))
-        .unique()
-      if (!root) throw new Error('Missing fixture')
-      const version = await ctx.db.get(root.currentVersionId)
-      if (!version) throw new Error('Missing fixture version')
-      const chunk = await ctx.db
-        .query('authoredVersionPayloadChunks')
-        .withIndex('by_versionId_chunkIndex', (query) => query.eq('versionId', version.versionId))
-        .first()
-      if (!chunk) throw new Error('Missing fixture version chunk')
-      const corrupted = chunk.bytes.slice(0)
-      const corruptedBytes = new Uint8Array(corrupted)
-      corruptedBytes[0] = (corruptedBytes[0] ?? 0) ^ 1
-      await ctx.db.patch(chunk._id, { bytes: corrupted })
-    })
-    expect(
-      (
-        await t.query(catalogue, {
-          ...catalogueScope,
-          paginationOpts: { numItems: 48, cursor: null }
-        })
-      ).page
-    ).toHaveLength(1)
-    await expect(t.query(details, { subjectKind: 'BACKGROUND', id: acolyte.id })).rejects.toThrow()
   })
 
   it('refreshes list metadata without double counting replacement and preserves counts on rejected publication', async () => {
@@ -660,75 +538,11 @@ describe('native Background publication', () => {
       masterCount: 1,
       ownedCount: 1
     })
-    const result = await first.caller.query(catalogue, {
+    const result = await readVisibleCatalogue(t, first.caller, 'BACKGROUND', {
       ...catalogueScope,
-      source: 'OWNED',
-      paginationOpts: { numItems: 48, cursor: null }
+      source: 'OWNED'
     })
-    expect(result.page.map((item) => item.label)).toEqual(['New catalogue label'])
-    await t.run(async (ctx) => {
-      const root = await ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', copied.subjectId))
-        .unique()
-      if (!root?.catalogue) throw new Error('Missing fixture')
-      await ctx.db.patch(root._id, {
-        catalogue: { ...root.catalogue, checksum: '0'.repeat(64) }
-      })
-    })
-    await expect(
-      first.caller.query(catalogue, {
-        ...catalogueScope,
-        paginationOpts: { numItems: 48, cursor: null }
-      })
-    ).rejects.toThrow('Catalogue metadata is stale.')
-  })
-
-  it('keeps reactive page end boundaries stable across insertions', async () => {
-    const { first } = await fixture()
-    for (const label of ['B', 'D', 'F']) {
-      const copied = await copyDraft(first.caller)
-      const draft = await first.caller.mutation(api.content.drafts.save, {
-        subjectKind: 'BACKGROUND',
-        subjectId: copied.subjectId,
-        systemId: copied.systemId,
-        label,
-        payload: copied.payload
-      })
-      await first.caller.mutation(publish, publicationInput(draft))
-    }
-    const request = {
-      ...catalogueScope,
-      source: 'OWNED' as const,
-      paginationOpts: { numItems: 2, cursor: null }
-    }
-    const before = await first.caller.query(catalogue, request)
-    const copied = await copyDraft(first.caller)
-    const insert = await first.caller.mutation(api.content.drafts.save, {
-      subjectKind: 'BACKGROUND',
-      subjectId: copied.subjectId,
-      systemId: copied.systemId,
-      label: 'A',
-      payload: copied.payload
-    })
-    await first.caller.mutation(publish, publicationInput(insert))
-    const refreshed = await first.caller.query(catalogue, {
-      ...request,
-      paginationOpts: {
-        ...request.paginationOpts,
-        endCursor: before.continueCursor
-      }
-    })
-    const next = await first.caller.query(catalogue, {
-      ...request,
-      paginationOpts: {
-        ...request.paginationOpts,
-        cursor: before.continueCursor
-      }
-    })
-    expect(refreshed.page.map((item) => item.label)).toEqual(['A', 'B', 'D'])
-    expect(next.page.map((item) => item.label)).toEqual(['F'])
-    expect(refreshed.continueCursor).toBe(before.continueCursor)
+    expect(result.map((item) => item.label)).toEqual(['New catalogue label'])
   })
 
   it('gives same-millisecond saves distinct publication tokens', async () => {

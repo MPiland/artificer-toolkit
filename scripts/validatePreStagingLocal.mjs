@@ -964,7 +964,6 @@ const stages = [
     '@artificer-toolkit/web',
     'test:e2e',
     'tests/e2e/app/authConfirmation.spec.ts',
-    'tests/e2e/storybook/authoredCatalogueSearch.spec.ts',
     'tests/e2e/storybook/authoringWalkthrough.spec.ts',
     'tests/e2e/storybook/mobileCatalogueLayout.spec.ts',
     'tests/e2e/storybook/notifications.spec.ts'

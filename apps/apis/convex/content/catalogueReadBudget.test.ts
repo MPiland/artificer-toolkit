@@ -1,36 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import type {
-  AuthoredCataloguePage,
-  AuthoredCatalogueReadInput
-} from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { publicationFixture } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import type { QueryCtx } from '../_generated/server'
-import { list, summary } from './catalogue'
+import { catalogue as catalogueManifest } from '../contentSnapshots/manifest'
+import { counts } from './catalogue'
 
-// Convex aborts a function that reads more than 16 MiB. With the full SRD (319 Spells) plus
-// Homebrew, a list page costs its rows plus one System, one Source and the few Class roots its rows
-// reference (a Class root is about 38 KB, so the Class page is the largest), and never rereads them
-// per row. Before this bound, the Spell summary read 37 MB and a Spell page 4.6-5.7 MB.
+// ADR 0036: an authored-content list page reads content snapshot files, so its only Convex read is
+// the catalogue manifest subscription, which touches one row per content source and one head per
+// source and no authored content. Before the snapshots, a Class list page read about 0.9 MB, a Spell
+// page 0.48 MB and the Spell summary 1.5 MB (37 MB before that read was bounded).
 const HOMEBREW_SPELLS = 12
-const LIST_PAGE_BUDGET_BYTES = 1.25 * 1024 * 1024
-const SUMMARY_BUDGET_BYTES = 2 * 1024 * 1024
+const MANIFEST_BUDGET_BYTES = 64 * 1024
+const COUNTS_BUDGET_BYTES = 64 * 1024
 
 const { subjects } = srdBaselineContent
 const kinds = [
-  ['SPELL', subjects.spells],
-  ['CLASS', subjects.classes],
-  ['RACE', subjects.races],
-  ['EQUIPMENT', subjects.equipment],
-  ['CREATURE', subjects.creatures],
-  ['FEAT', subjects.feats],
-  ['BACKGROUND', subjects.backgrounds],
-  ['VEHICLE', subjects.vehicles]
+  'SPELL',
+  'CLASS',
+  'RACE',
+  'EQUIPMENT',
+  'CREATURE',
+  'FEAT',
+  'BACKGROUND',
+  'VEHICLE'
 ] as const
 
-type Kind = AuthoredCatalogueReadInput['subjectKind']
 type Handler = (ctx: QueryCtx, args: unknown) => Promise<unknown>
 
 function handlerOf(registered: object): Handler {
@@ -74,42 +71,23 @@ async function measure<T>(caller: Caller, registered: object, args: unknown) {
 }
 
 describe('catalogue read budget', () => {
-  it('bounds every list page and summary with the full SRD plus Homebrew', async () => {
+  it('reads no authored content for a list page and bounds the counts with the full SRD plus Homebrew', async () => {
     const { first } = await seed()
-    const report: Record<
-      string,
-      { pageBytes: number; nextPageBytes?: number; summaryBytes: number }
-    > = {}
-    for (const [kind] of kinds) {
-      const scope = {
-        subjectKind: kind as Kind,
-        ...(kind === 'CLASS' || kind === 'RACE' ? { sort: 'family' as const } : {})
-      }
-      const page = await measure<AuthoredCataloguePage>(first.caller, list, {
-        ...scope,
-        paginationOpts: { cursor: null, numItems: 48 }
+    const manifest = await measure<{ sources: unknown[] }>(first.caller, catalogueManifest, {})
+    expect(manifest.result.sources.length).toBeGreaterThan(0)
+    expect(manifest.reads.bytes, 'catalogue manifest').toBeLessThanOrEqual(MANIFEST_BUDGET_BYTES)
+    const report: Record<string, number> = {}
+    for (const subjectKind of kinds) {
+      const { reads } = await measure(first.caller, counts, {
+        subjectKind,
+        systemId: srdSystemRecord.id
       })
-      expect(page.result.page.length).toBeGreaterThan(0)
-      const next = page.result.isDone
-        ? null
-        : await measure<AuthoredCataloguePage>(first.caller, list, {
-            ...scope,
-            paginationOpts: { cursor: page.result.continueCursor, numItems: 48 }
-          })
-      const overview = await measure(first.caller, summary, { subjectKind: kind })
-      report[kind] = {
-        pageBytes: page.reads.bytes,
-        ...(next ? { nextPageBytes: next.reads.bytes } : {}),
-        summaryBytes: overview.reads.bytes
-      }
+      report[subjectKind] = reads.bytes
+      expect(reads.bytes, `${subjectKind} counts`).toBeLessThanOrEqual(COUNTS_BUDGET_BYTES)
     }
-    console.info('catalogue read budget (bytes)', JSON.stringify(report))
-    for (const [kind, bytes] of Object.entries(report)) {
-      expect(bytes.pageBytes, `${kind} first page`).toBeLessThanOrEqual(LIST_PAGE_BUDGET_BYTES)
-      expect(bytes.nextPageBytes ?? 0, `${kind} next page`).toBeLessThanOrEqual(
-        LIST_PAGE_BUDGET_BYTES
-      )
-      expect(bytes.summaryBytes, `${kind} summary`).toBeLessThanOrEqual(SUMMARY_BUDGET_BYTES)
-    }
+    console.info(
+      'catalogue read budget (bytes)',
+      JSON.stringify({ manifest: manifest.reads.bytes, counts: report })
+    )
   }, 900_000)
 })

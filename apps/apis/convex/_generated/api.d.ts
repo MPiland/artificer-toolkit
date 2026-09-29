@@ -25864,167 +25864,6 @@ export declare const api: {
         },
         { activeCount: number; masterCount: number; ownedCount: number }
       >;
-      list: FunctionReference<
-        "query",
-        "public",
-        {
-          category?: string;
-          classId?: string;
-          level?: number;
-          magicSchoolId?: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-          sort?: "name" | "category" | "family" | "level" | "school";
-          source?: "MASTER" | "OWNED";
-          subjectKind:
-            | "BACKGROUND"
-            | "CLASS"
-            | "CREATURE"
-            | "EQUIPMENT"
-            | "FEAT"
-            | "RACE"
-            | "SPELL"
-            | "VEHICLE";
-          systemId?: string;
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            activeUpdatedAt: string;
-            castingTimeAmount?: number;
-            castingTimeUnit?: "ROUND" | "MINUTE" | "HOUR";
-            category?: string;
-            classIds?: Array<string>;
-            classLabels?: Array<string>;
-            description: string | null;
-            id: string;
-            label: string;
-            level?: number;
-            magicSchoolId?: string;
-            magicSchoolLabel?: string;
-            parentClassId?: string | null;
-            parentClassLabel?: string | null;
-            parentRaceId?: string | null;
-            parentRaceLabel?: string | null;
-            permissions: {
-              canCopy: boolean;
-              canDelete: boolean;
-              canEdit: boolean;
-              canView: boolean;
-            };
-            provenance: {
-              kind: "MASTER" | "OWNED";
-              ownerUserId: string | null;
-            };
-            publicId: string;
-            selectionMode?: "DIRECT" | "REQUIRES_SUBRACE";
-            status: "ACTIVE";
-            systemId: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
-        }
-      >;
-      search: FunctionReference<
-        "query",
-        "public",
-        {
-          category?: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-          query: string;
-          source: "MASTER" | "OWNED";
-          subjectKind:
-            | "BACKGROUND"
-            | "CLASS"
-            | "CREATURE"
-            | "EQUIPMENT"
-            | "FEAT"
-            | "RACE"
-            | "SPELL"
-            | "VEHICLE";
-          systemId?: string;
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            activeUpdatedAt: string;
-            castingTimeAmount?: number;
-            castingTimeUnit?: "ROUND" | "MINUTE" | "HOUR";
-            category?: string;
-            classIds?: Array<string>;
-            classLabels?: Array<string>;
-            description: string | null;
-            id: string;
-            label: string;
-            level?: number;
-            magicSchoolId?: string;
-            magicSchoolLabel?: string;
-            parentClassId?: string | null;
-            parentClassLabel?: string | null;
-            parentRaceId?: string | null;
-            parentRaceLabel?: string | null;
-            permissions: {
-              canCopy: boolean;
-              canDelete: boolean;
-              canEdit: boolean;
-              canView: boolean;
-            };
-            provenance: {
-              kind: "MASTER" | "OWNED";
-              ownerUserId: string | null;
-            };
-            publicId: string;
-            selectionMode?: "DIRECT" | "REQUIRES_SUBRACE";
-            status: "ACTIVE";
-            systemId: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
-        }
-      >;
-      summary: FunctionReference<
-        "query",
-        "public",
-        {
-          category?: string;
-          classId?: string;
-          level?: number;
-          magicSchoolId?: string;
-          source?: "MASTER" | "OWNED";
-          subjectKind:
-            | "BACKGROUND"
-            | "CLASS"
-            | "CREATURE"
-            | "EQUIPMENT"
-            | "FEAT"
-            | "RACE"
-            | "SPELL"
-            | "VEHICLE";
-        },
-        {
-          activeCount: number;
-          categories: Array<string>;
-          masterCount: number;
-          ownedCount: number;
-          spellFacets?: {
-            classes: Array<{ id: string; label: string }>;
-            levels: Array<{ id: number }>;
-            schools: Array<{ id: string; label: string }>;
-          };
-          totalCount: number;
-        }
-      >;
     };
     classPublicationActions: {
       publishDraft: FunctionReference<
@@ -41440,6 +41279,163 @@ export declare const api: {
       >;
     };
     manifest: {
+      catalogue: FunctionReference<
+        "query",
+        "public",
+        {},
+        {
+          sources: Array<{
+            contentSourceId: string;
+            head: {
+              builtRevision: number;
+              kinds: {
+                BACKGROUND?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                CLASS?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                CREATURE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                EQUIPMENT?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                FEAT?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                RACE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                SPELL?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+                VEHICLE?: {
+                  documents: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                };
+              };
+              revision: number;
+              scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+              scopeId: string;
+            } | null;
+            kind: "PLATFORM" | "USER";
+            systemId: string;
+          }>;
+          userId: string;
+        }
+      >;
       manifest: FunctionReference<
         "query",
         "public",
@@ -41461,6 +41457,11 @@ export declare const api: {
                     rootCount: number;
                     sha256: string;
                   };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
                 };
                 CLASS?: {
                   documents: {
@@ -41469,6 +41470,11 @@ export declare const api: {
                     sha256: string;
                   };
                   index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
                     byteLength: number;
                     rootCount: number;
                     sha256: string;
@@ -41485,6 +41491,11 @@ export declare const api: {
                     rootCount: number;
                     sha256: string;
                   };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
                 };
                 EQUIPMENT?: {
                   documents: {
@@ -41493,6 +41504,11 @@ export declare const api: {
                     sha256: string;
                   };
                   index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
                     byteLength: number;
                     rootCount: number;
                     sha256: string;
@@ -41509,6 +41525,11 @@ export declare const api: {
                     rootCount: number;
                     sha256: string;
                   };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
                 };
                 RACE?: {
                   documents: {
@@ -41517,6 +41538,11 @@ export declare const api: {
                     sha256: string;
                   };
                   index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
                     byteLength: number;
                     rootCount: number;
                     sha256: string;
@@ -41533,6 +41559,11 @@ export declare const api: {
                     rootCount: number;
                     sha256: string;
                   };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
                 };
                 VEHICLE?: {
                   documents: {
@@ -41541,6 +41572,11 @@ export declare const api: {
                     sha256: string;
                   };
                   index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
                     byteLength: number;
                     rootCount: number;
                     sha256: string;
@@ -41569,6 +41605,11 @@ export declare const api: {
                     rootCount: number;
                     sha256: string;
                   };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
                 };
                 CLASS?: {
                   documents: {
@@ -41577,6 +41618,11 @@ export declare const api: {
                     sha256: string;
                   };
                   index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
                     byteLength: number;
                     rootCount: number;
                     sha256: string;
@@ -41593,6 +41639,11 @@ export declare const api: {
                     rootCount: number;
                     sha256: string;
                   };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
                 };
                 EQUIPMENT?: {
                   documents: {
@@ -41601,6 +41652,11 @@ export declare const api: {
                     sha256: string;
                   };
                   index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
                     byteLength: number;
                     rootCount: number;
                     sha256: string;
@@ -41617,6 +41673,11 @@ export declare const api: {
                     rootCount: number;
                     sha256: string;
                   };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
                 };
                 RACE?: {
                   documents: {
@@ -41625,6 +41686,11 @@ export declare const api: {
                     sha256: string;
                   };
                   index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
                     byteLength: number;
                     rootCount: number;
                     sha256: string;
@@ -41641,6 +41707,11 @@ export declare const api: {
                     rootCount: number;
                     sha256: string;
                   };
+                  list: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
                 };
                 VEHICLE?: {
                   documents: {
@@ -41649,6 +41720,11 @@ export declare const api: {
                     sha256: string;
                   };
                   index: {
+                    byteLength: number;
+                    rootCount: number;
+                    sha256: string;
+                  };
+                  list: {
                     byteLength: number;
                     rootCount: number;
                     sha256: string;
@@ -59198,6 +59274,34 @@ export declare const internal: {
       >;
     };
     development: {
+      listOwnedFixtureSubjects: FunctionReference<
+        "query",
+        "internal",
+        {
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            numItems: number;
+          };
+          subjectKind:
+            | "BACKGROUND"
+            | "CLASS"
+            | "CREATURE"
+            | "EQUIPMENT"
+            | "FEAT"
+            | "RACE"
+            | "SPELL"
+            | "VEHICLE";
+          systemId: string;
+          userId: string;
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{ id: string; label: string }>;
+        }
+      >;
       removeEmptyFixtureSource: FunctionReference<
         "mutation",
         "internal",
@@ -59738,6 +59842,7 @@ export declare const internal: {
                 sha256: string;
               };
               index: { byteLength: number; rootCount: number; sha256: string };
+              list: { byteLength: number; rootCount: number; sha256: string };
             };
             CLASS?: {
               documents: {
@@ -59746,6 +59851,7 @@ export declare const internal: {
                 sha256: string;
               };
               index: { byteLength: number; rootCount: number; sha256: string };
+              list: { byteLength: number; rootCount: number; sha256: string };
             };
             CREATURE?: {
               documents: {
@@ -59754,6 +59860,7 @@ export declare const internal: {
                 sha256: string;
               };
               index: { byteLength: number; rootCount: number; sha256: string };
+              list: { byteLength: number; rootCount: number; sha256: string };
             };
             EQUIPMENT?: {
               documents: {
@@ -59762,6 +59869,7 @@ export declare const internal: {
                 sha256: string;
               };
               index: { byteLength: number; rootCount: number; sha256: string };
+              list: { byteLength: number; rootCount: number; sha256: string };
             };
             FEAT?: {
               documents: {
@@ -59770,6 +59878,7 @@ export declare const internal: {
                 sha256: string;
               };
               index: { byteLength: number; rootCount: number; sha256: string };
+              list: { byteLength: number; rootCount: number; sha256: string };
             };
             RACE?: {
               documents: {
@@ -59778,6 +59887,7 @@ export declare const internal: {
                 sha256: string;
               };
               index: { byteLength: number; rootCount: number; sha256: string };
+              list: { byteLength: number; rootCount: number; sha256: string };
             };
             SPELL?: {
               documents: {
@@ -59786,6 +59896,7 @@ export declare const internal: {
                 sha256: string;
               };
               index: { byteLength: number; rootCount: number; sha256: string };
+              list: { byteLength: number; rootCount: number; sha256: string };
             };
             VEHICLE?: {
               documents: {
@@ -59794,6 +59905,7 @@ export declare const internal: {
                 sha256: string;
               };
               index: { byteLength: number; rootCount: number; sha256: string };
+              list: { byteLength: number; rootCount: number; sha256: string };
             };
           };
           revisionBuiltFrom: number;

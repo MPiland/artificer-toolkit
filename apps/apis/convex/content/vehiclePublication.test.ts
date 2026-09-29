@@ -24,6 +24,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { stripPortableMetadata } from '@artificer-toolkit/shared/utils'
 import { api } from '../_generated/api'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
 const publish = makeFunctionReference<
@@ -97,14 +98,9 @@ describe('native Vehicle publication', () => {
         result: await first.caller.mutation(publish, publicationInput(draft))
       })
     }
-    const catalogueInput = {
-      subjectKind: 'VEHICLE' as const,
-      systemId: cart.systemId,
-      paginationOpts: { cursor: null, numItems: 48 }
-    }
-    const ownedCatalogue = await first.caller.query(api.content.catalogue.list, catalogueInput)
-    expect(ownedCatalogue.isDone).toBe(true)
-    expect(ownedCatalogue.page.map((item) => item.id).sort()).toEqual(
+    const systemId = cart.systemId
+    const ownedCatalogue = await readVisibleCatalogue(t, first.caller, 'VEHICLE', { systemId })
+    expect(ownedCatalogue.map((item) => item.id).sort()).toEqual(
       [
         ...srdVehicles.map((vehicle) => vehicle.id),
         ...copies.map(({ draft }) => draft.subjectId)
@@ -112,20 +108,12 @@ describe('native Vehicle publication', () => {
     )
     const masterIds = srdVehicles.map((vehicle) => vehicle.id).sort()
     expect(
-      (await second.caller.query(api.content.catalogue.list, catalogueInput)).page
+      (await readVisibleCatalogue(t, second.caller, 'VEHICLE', { systemId }))
         .map((item) => item.id)
         .sort()
     ).toEqual(masterIds)
     expect(
-      (await t.query(api.content.catalogue.list, catalogueInput)).page.map((item) => item.id).sort()
-    ).toEqual(masterIds)
-    expect(
-      (
-        await first.caller.query(api.content.catalogue.list, {
-          ...catalogueInput,
-          systemId: crypto.randomUUID()
-        })
-      ).page
+      await readVisibleCatalogue(t, first.caller, 'VEHICLE', { systemId: crypto.randomUUID() })
     ).toEqual([])
     const stored = await t.run(async (ctx) =>
       Promise.all(
