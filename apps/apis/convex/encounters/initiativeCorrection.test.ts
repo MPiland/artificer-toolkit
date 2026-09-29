@@ -283,7 +283,6 @@ describe('native initiative corrections', () => {
         state: 'PENDING',
         version: 0,
         expectedEncounterVersion: versionCursor,
-        pendingSnapshotJson: '{}',
         pendingSnapshotChecksum: '0'.repeat(64),
         completedAt: null,
         createdAt: run.createdAt,

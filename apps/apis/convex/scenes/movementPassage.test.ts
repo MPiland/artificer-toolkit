@@ -18,6 +18,7 @@ import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/en
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   SRD_REACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
@@ -361,21 +362,24 @@ describe('native Scene movement passage', () => {
     const choice = resumed.result.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_PASSAGE_CHOICE')
       throw new Error('Expected Passage after spatial pause.')
-    const issued = await value.base.t.run((ctx) =>
-      ctx.db
+    const issued = await value.base.t.run(async (ctx) => {
+      const occurrence = await ctx.db
         .query('encounterRuleOccurrences')
         .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))
         .unique()
-    )
-    if (!issued?.pendingSnapshotJson) throw new Error('Resumed Passage choice is unavailable.')
-    expect(JSON.parse(issued.pendingSnapshotJson).applicationContext.movement).toMatchObject({
-      root: {
-        originalPath: [
-          { x: 150, y: 50 },
-          { x: 700, y: 50 }
-        ]
-      },
-      contactPathDistance: 100
+      return occurrence && readPendingSnapshot(ctx, occurrence)
+    })
+    if (!issued) throw new Error('Resumed Passage choice is unavailable.')
+    expect(issued.applicationContext).toMatchObject({
+      movement: {
+        root: {
+          originalPath: [
+            { x: 150, y: 50 },
+            { x: 700, y: 50 }
+          ]
+        },
+        contactPathDistance: 100
+      }
     })
   }, 30_000)
 
@@ -933,17 +937,16 @@ describe('native Scene movement passage', () => {
     await exhaustFixtureReaction(value)
     const { choice } = await issuePassage(value)
     vi.spyOn(rollRandom, 'nextRollInt').mockReturnValueOnce(19).mockReturnValueOnce(0)
-    const issued = await value.base.t.run((ctx) =>
-      ctx.db
+    const issued = await value.base.t.run(async (ctx) => {
+      const occurrence = await ctx.db
         .query('encounterRuleOccurrences')
         .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))
         .unique()
-    )
-    if (!issued?.pendingSnapshotJson) throw new Error('Issued passage choice is unavailable.')
-    expect(
-      JSON.parse(issued.pendingSnapshotJson).applicationContext.movement.nextPassageStop
-    ).toMatchObject({
-      contact: { x: 450, y: 50 }
+      return occurrence && readPendingSnapshot(ctx, occurrence)
+    })
+    if (!issued) throw new Error('Issued passage choice is unavailable.')
+    expect(issued.applicationContext).toMatchObject({
+      movement: { nextPassageStop: { contact: { x: 450, y: 50 } } }
     })
     const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
     if (!option) throw new Error('Expected an Overrun passage option.')

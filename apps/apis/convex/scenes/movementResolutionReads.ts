@@ -11,10 +11,7 @@ import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-pe
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import {
-  readStoredPendingSnapshot,
-  storedPendingSnapshotChecksum
-} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 /** The published response's current-role result; never the private preparation. */
@@ -56,8 +53,7 @@ export async function readMovementResponseResult(
       )
   )
     throw new Error('Movement response receipt is inconsistent.')
-  if (storedPendingSnapshotChecksum(occurrence) !== occurrence.pendingSnapshotChecksum)
-    throw new Error('Movement response occurrence checksum is inconsistent.')
+
   return presentEncounterResultForMember(encounterReadTransaction(ctx), {
     campaign,
     membership,
@@ -69,7 +65,7 @@ export async function readMovementResponseResult(
           id: occurrence.id,
           version: occurrence.version,
           state: occurrence.state,
-          pendingSnapshot: readStoredPendingSnapshot(occurrence)
+          pendingSnapshot: await readPendingSnapshot(ctx, occurrence)
         },
         run.version,
         { controlledActorIds: new Set(readRunState(run).actorIds) }

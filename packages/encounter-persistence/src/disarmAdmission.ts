@@ -115,7 +115,8 @@ export async function readDisarmAdmission(
         q.eq('campaignId', run.campaignId).eq('commandId', occurrence.rootCommandId)
       )
       .unique()
-    const pending = occurrence.state === 'PENDING' ? readNativeDisarmPending(occurrence) : null
+    const pending =
+      occurrence.state === 'PENDING' ? await readNativeDisarmPending(ctx, occurrence) : null
     if (pending) root = pending.command
     else {
       if (rootReceipt?.commandType !== 'RESOLVE_ACTION')
@@ -220,7 +221,7 @@ export async function readDisarmAdmission(
     throw new Error('Stored Encounter occurrence state is invalid.')
   const occurrence = pendingOccurrences[0] ?? null
   if (occurrence && occurrence.rootCommandId !== root.commandId) rejectDomain('PENDING_DECISION')
-  const prior = occurrence ? readNativeDisarmPending(occurrence) : null
+  const prior = occurrence ? await readNativeDisarmPending(ctx, occurrence) : null
   const initiatorUserId = prior?.context.initiatorUserId ?? userId
   if (prior && prior.context.commandFingerprint !== fingerprint) rejectDomain('COMMAND_ID_REUSED')
   if (!response && prior) {

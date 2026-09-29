@@ -5,13 +5,11 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
-  serverRuleExecutionPendingSnapshotDtoSchema,
   type ServerAggregateChoicePendingSnapshotDto,
   type ServerKernelRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   completeNativeConcentrationResult,
@@ -21,6 +19,7 @@ import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encount
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import type { EncounterDocument } from './store.js'
 import { changedFields } from './documents.js'
+import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
 export async function persistNativeConcentrationResult(
@@ -46,8 +45,11 @@ export async function persistNativeConcentrationResult(
     state: 'COMPLETED',
     version: result.occurrenceVersion,
     expectedEncounterVersion: state.version,
-    pendingSnapshotJson: null,
-    pendingSnapshotChecksum: null,
+    pendingSnapshotChecksum: await writePendingSnapshot(
+      ctx,
+      { id: result.occurrenceId, encounterId: state.id },
+      null
+    ),
     completedAt: input.occurredAt,
     createdAt: input.occurrence?.createdAt ?? input.occurredAt,
     updatedAt: input.occurredAt
@@ -117,8 +119,11 @@ export async function persistNativeConcentrationPending(
       state: 'PENDING',
       version: 0,
       expectedEncounterVersion: input.state.version,
-      pendingSnapshotJson: JSON.stringify(snapshot),
-      pendingSnapshotChecksum: checksumCanonicalJson(snapshot),
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: snapshot.occurrenceId, encounterId: input.state.id },
+        snapshot
+      ),
       completedAt: null,
       createdAt: input.occurredAt,
       updatedAt: input.occurredAt
@@ -143,19 +148,14 @@ export async function insertNativeCleavingChoice(
     .take(2)
   if (pending.length) {
     const occurrence = pending[0]!
-    const parent = occurrence.pendingSnapshotJson
-      ? serverRuleExecutionPendingSnapshotDtoSchema.parse(
-          JSON.parse(occurrence.pendingSnapshotJson)
-        )
-      : null
+    const parent = await readPendingSnapshot(ctx, occurrence)
     if (
       pending.length !== 1 ||
       parent?.snapshotKind !== 'KERNEL_EVIDENCE' ||
       parent.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
       snapshot.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' ||
       parent.deferredCleaving ||
-      occurrence.expectedEncounterVersion !== state.version ||
-      checksumCanonicalJson(parent) !== occurrence.pendingSnapshotChecksum
+      occurrence.expectedEncounterVersion !== state.version
     )
       throw new Error('The Encounter already has a pending decision.')
     const deferred = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
@@ -163,8 +163,7 @@ export async function insertNativeCleavingChoice(
       deferredCleaving: snapshot.applicationContext
     })
     await ctx.db.patch(occurrence._id, {
-      pendingSnapshotJson: JSON.stringify(deferred),
-      pendingSnapshotChecksum: checksumCanonicalJson(deferred)
+      pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, deferred)
     })
     return
   }
@@ -178,8 +177,11 @@ export async function insertNativeCleavingChoice(
       state: 'PENDING',
       version: 0,
       expectedEncounterVersion: state.version,
-      pendingSnapshotJson: JSON.stringify(snapshot),
-      pendingSnapshotChecksum: checksumCanonicalJson(snapshot),
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: snapshot.occurrenceId, encounterId: state.id },
+        snapshot
+      ),
       completedAt: null,
       createdAt: now,
       updatedAt: now

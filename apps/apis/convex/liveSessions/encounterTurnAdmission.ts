@@ -7,6 +7,7 @@ import type {
   LiveSessionEncounterTurnCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readLiveScene } from '../scenes/liveDocuments'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
@@ -19,7 +20,6 @@ import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persiste
 import { readNativeTurnCommandPending } from '@artificer-toolkit/encounter-persistence/turnCommandPending'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
@@ -157,18 +157,14 @@ export async function readLiveEncounterTurnAdmission(
       occurrences.length !== 1 ||
       occurrences[0]?._id !== occurrence._id ||
       occurrence.state !== 'PENDING' ||
-      occurrence.pendingSnapshotJson === null ||
-      occurrence.pendingSnapshotChecksum === null ||
       occurrence.completedAt !== null ||
       row.version !== input.expectedVersion
     )
       throw new Error('Rule occurrence is unavailable.')
-    const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-      JSON.parse(occurrence.pendingSnapshotJson)
-    )
+    const snapshot = await readPendingSnapshot(ctx, occurrence)
+    if (!snapshot) throw new Error('Rule occurrence is unavailable.')
     const context = snapshot.applicationContext
     if (
-      checksumCanonicalJson(snapshot) !== occurrence.pendingSnapshotChecksum ||
       snapshot.occurrenceId !== occurrence.id ||
       (context.kind !== 'ENCOUNTER_INITIATIVE' &&
         context.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION' &&

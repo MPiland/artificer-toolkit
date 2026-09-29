@@ -19,6 +19,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { terminalMovementChangedAggregates } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
 import { checksumSpatialCurrentness } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementCurrentness'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
+import {
+  readPendingSnapshot,
+  writePendingSnapshot
+} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
@@ -230,9 +234,8 @@ async function projectCurrentOccurrence(
   if (!run || occurrence.campaignId !== input.campaign.id || run.campaignId !== input.campaign.id)
     throw new Error('Movement response Encounter scope is inconsistent.')
   const state = readRunState(run)
-  const pendingSnapshot = occurrence.pendingSnapshotJson
-    ? serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(occurrence.pendingSnapshotJson))
-    : null
+  const pendingSnapshot = await readPendingSnapshot(ctx, occurrence)
+
   return projectEncounterSpatialOccurrenceSummary(
     {
       id: occurrence.id,
@@ -360,7 +363,6 @@ export async function publishMovementResponse(
       (terminal &&
         (occurrence.state !== 'COMPLETED' ||
           occurrence.version !== metadata.occurrenceVersion ||
-          occurrence.pendingSnapshotJson !== null ||
           occurrence.pendingSnapshotChecksum !== null)) ||
       sceneCommand.inputChecksum !== save.inputChecksum ||
       sceneOccurrence?.occurrenceId !== occurrence.id ||
@@ -541,8 +543,7 @@ export async function publishMovementResponse(
     await ctx.db.patch(current.occurrence._id, {
       version: current.occurrence.version + 1,
       expectedEncounterVersion: version,
-      pendingSnapshotJson: JSON.stringify(snapshot),
-      pendingSnapshotChecksum: checksumCanonicalJson(snapshot),
+      pendingSnapshotChecksum: await writePendingSnapshot(ctx, current.occurrence, snapshot),
       updatedAt: preparation.occurredAt
     })
     if (advancedProjection)
@@ -629,8 +630,7 @@ export async function publishMovementResponse(
     state: 'COMPLETED',
     version: retained.occurrenceVersion,
     expectedEncounterVersion: version,
-    pendingSnapshotJson: null,
-    pendingSnapshotChecksum: null,
+    pendingSnapshotChecksum: await writePendingSnapshot(ctx, current.occurrence, null),
     completedAt: preparation.occurredAt,
     updatedAt: preparation.occurredAt
   })

@@ -8,6 +8,7 @@ import { readRunActors, readRunState } from './documents.js'
 import { replayEncounterCommandResult } from './replayReceipts.js'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readNativeConcentrationPending } from './concentrationPending.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
 import {
   readConcentrationCommitFailed,
   readNativeConcentrationParentDamage
@@ -128,7 +129,10 @@ export async function readNativeConcentrationResponseAdmission(
       occurrence
     }
   }
-  const pending = readNativeConcentrationPending(occurrence)
+  const pending = readNativeConcentrationPending(
+    occurrence,
+    await readPendingSnapshot(ctx, occurrence)
+  )
   const { context, snapshot } = pending
   if (!authorized(context.application.targetActorId))
     throw new Error('The concentration occurrence is unavailable.')

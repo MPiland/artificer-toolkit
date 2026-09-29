@@ -40,6 +40,7 @@ import {
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from '../../tests/fixtures/characters'
 import {
@@ -607,7 +608,8 @@ describe('native Encounter turn Recharge', () => {
     const pausedRoot = (await stored(base.t, base.run.id)).occurrences.find(
       (row) => row.state === 'PENDING'
     )
-    expect(JSON.parse(pausedRoot?.pendingSnapshotJson ?? 'null')).toMatchObject({
+    if (!pausedRoot) throw new Error('Expected the paused Recharge root.')
+    expect(await base.t.run((ctx) => readPendingSnapshot(ctx, pausedRoot))).toMatchObject({
       applicationContext: {
         root: {
           rootCommandId: advance.command.commandId,

@@ -6,7 +6,6 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
   concentrationCommandId,
@@ -35,6 +34,7 @@ import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
   insertActiveLiveAuthority,
@@ -432,10 +432,10 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
     if (next.kind === 'D20_EVIDENCE') {
       const staged = await records(value)
       const root = staged.occurrences.find((occurrence) => occurrence.id === next.occurrenceId)
-      if (!root?.pendingSnapshotJson) throw new Error('Expected retained E/H pending snapshot.')
-      const snapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
-        JSON.parse(root.pendingSnapshotJson)
-      )
+      if (!root) throw new Error('Expected retained E/H pending snapshot.')
+      const snapshot = await value.base.t.run((ctx) => readPendingSnapshot(ctx, root))
+      if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
+        throw new Error('Expected retained E/H pending snapshot.')
       const context = snapshot.applicationContext
       if (
         context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
@@ -665,10 +665,10 @@ it.each(['room', 'private'] as const)(
     const staged = await records(value)
     expect(staged.occurrences).toHaveLength(1)
     const root = staged.occurrences[0]
-    if (!root?.pendingSnapshotJson) throw new Error('Movement Concentration root is unavailable.')
-    const snapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
-      JSON.parse(root.pendingSnapshotJson)
-    )
+    if (!root) throw new Error('Movement Concentration root is unavailable.')
+    const snapshot = await value.base.t.run((ctx) => readPendingSnapshot(ctx, root))
+    if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
+      throw new Error('Movement Concentration root is unavailable.')
     const context = snapshot.applicationContext
     if (
       context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
@@ -811,7 +811,7 @@ it.each(['room', 'private'] as const)(
       after.occurrences.find((occurrence) => occurrence.id === childOccurrenceId)
     ).toMatchObject({
       state: 'COMPLETED',
-      pendingSnapshotJson: null,
+      pendingSnapshotChecksum: null,
       rootCommandId: concentrationCommandId(childOccurrenceId)
     })
     expect(after.receipts).toEqual(expect.arrayContaining(staged.receipts))

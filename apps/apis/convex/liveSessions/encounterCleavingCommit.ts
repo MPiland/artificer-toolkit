@@ -19,6 +19,7 @@ import {
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { internalMutation } from '../lib/mutations'
 import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
 import { insertNativeCleavingChoice } from '@artificer-toolkit/encounter-persistence/actionChildPersistence'
@@ -224,8 +225,7 @@ export const commit = internalMutation({
       state: 'COMPLETED',
       version: execution.occurrenceVersion,
       expectedEncounterVersion: nextState.version,
-      pendingSnapshotJson: null,
-      pendingSnapshotChecksum: null,
+      pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, null),
       completedAt: occurredAt,
       updatedAt: occurredAt
     })

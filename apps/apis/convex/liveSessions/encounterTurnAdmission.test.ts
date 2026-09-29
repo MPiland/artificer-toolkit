@@ -38,6 +38,7 @@ import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
@@ -663,9 +664,11 @@ it('commits a DO round-wrap pause once and resolves it through native initiative
   expect(after.pending[0]).toMatchObject({
     id: input.snapshot.occurrenceId,
     rootCommandId: command.commandId,
-    expectedEncounterVersion: command.expectedVersion,
-    pendingSnapshotJson: JSON.stringify(input.snapshot)
+    expectedEncounterVersion: command.expectedVersion
   })
+  expect(await base.t.run((ctx) => readPendingSnapshot(ctx, after.pending[0]!))).toEqual(
+    input.snapshot
+  )
   const consumed = input.revisions[0]!
   const advancedRevision = crypto.randomUUID()
   await base.t.run(async (ctx) => {

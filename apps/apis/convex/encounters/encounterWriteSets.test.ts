@@ -270,6 +270,10 @@ async function tiedStart(actors: number) {
 describe.each([11, 100])('Tied initiative write sets at %i actors', (actors) => {
   it('measures START and each tie order choice', { timeout: 1_200_000 }, async () => {
     const measured = await tiedStart(actors)
+  // Settling the occurrence deletes its snapshot parts.
+  expect(
+    await base.t.run((ctx) => ctx.db.query('encounterPendingSnapshotParts').collect())
+  ).toEqual([])
     console.log(JSON.stringify({ actors, tiedStart: measured }, null, 2))
     expect(measured.start.documents).toBeGreaterThan(0)
   })
@@ -286,6 +290,8 @@ describe.each([11, 100])('Encounter write sets at %i actors', (actors) => {
         commandId: crypto.randomUUID(),
         expectedVersion: await base.version(),
         actorId: base.enemy.id,
+    // Each order choice writes its snapshot delta, not the whole sealed snapshot (Amendment 12).
+    expect(measured.totalWritten).toBeLessThanOrEqual(2 * 1024 * 1024)
         currentHitPoints: 5
       })),
       RESOLVE_ACTION: await measure(base, () => base.bite(base.companion.id, base.enemy.id)),

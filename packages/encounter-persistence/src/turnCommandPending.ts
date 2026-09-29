@@ -2,13 +2,12 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterCommandInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { rejectDomain } from './domainRejections.js'
 import { readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -40,17 +39,13 @@ export async function readNativeTurnCommandPending(
       (input.type !== 'START' && input.type !== 'ADVANCE_TURN') ||
       rootCommandOccurrence.encounterId !== row.id ||
       rootCommandOccurrence.state !== 'PENDING' ||
-      rootCommandOccurrence.pendingSnapshotJson === null ||
-      rootCommandOccurrence.pendingSnapshotChecksum === null ||
       rootCommandOccurrence.expectedEncounterVersion !== row.version
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const pendingSnapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-      JSON.parse(rootCommandOccurrence.pendingSnapshotJson)
-    )
+    const pendingSnapshot = await readPendingSnapshot(ctx, rootCommandOccurrence)
+    if (!pendingSnapshot) rejectDomain('COMMAND_ID_REUSED')
     const pendingContext = pendingSnapshot.applicationContext
     if (
-      checksumCanonicalJson(pendingSnapshot) !== rootCommandOccurrence.pendingSnapshotChecksum ||
       (pendingContext.kind !== 'ENCOUNTER_INITIATIVE' &&
         pendingContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION' &&
         pendingContext.kind !== 'ENCOUNTER_TURN_RECHARGE' &&

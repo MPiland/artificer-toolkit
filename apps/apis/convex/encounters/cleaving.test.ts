@@ -18,7 +18,6 @@ import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/e
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { serverAggregateChoicePendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type {
   LiveSessionEncounterRulesInput,
   LiveSessionEncounterRulesResponse
@@ -63,6 +62,10 @@ import * as rollRandom from '../lib/rollRandom'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  readPendingSnapshot,
+  writePendingSnapshot
+} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from './encounterPorts'
 import {
@@ -815,11 +818,9 @@ describe('native Cleaving action settlement', () => {
       )
       const pending = after.occurrences.filter((occurrence) => occurrence.state === 'PENDING')
       expect(pending).toHaveLength(1)
-      expect(
-        serverAggregateChoicePendingSnapshotDtoSchema.parse(
-          JSON.parse(pending[0]!.pendingSnapshotJson!)
-        )
-      ).toEqual(planned.cleaving)
+      expect(await base.t.run((ctx) => readPendingSnapshot(ctx, pending[0]!))).toEqual(
+        planned.cleaving
+      )
       if (planned.cleaving?.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING') {
         throw new Error('Missing planned Cleaving choice.')
       }
@@ -1314,15 +1315,17 @@ describe('native Cleaving action settlement', () => {
       )!
       const before = await records(base)
       const pending = before.occurrences.find((occurrence) => occurrence.state === 'PENDING')!
-      const pin = JSON.parse(pending.pendingSnapshotJson!).applicationContext.sourceCurrentness
-      expect(pin.kind).toBe('CHARACTER')
+      const snapshot = await base.t.run((ctx) => readPendingSnapshot(ctx, pending))
       const sourceCharacter = await base.t.run((ctx) =>
         ctx.db
           .query('characters')
           .withIndex('by_publicId', (q) => q.eq('id', base.characterId!))
           .unique()
       )
-      expect(pin.streamVersion).toBe(sourceCharacter?.streamVersion)
+      expect(snapshot?.applicationContext).toMatchObject({
+        kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING',
+        sourceCurrentness: { kind: 'CHARACTER', streamVersion: sourceCharacter?.streamVersion }
+      })
       await expect(
         room(base, base.other, {
           ...response(base, ownerChoice),
@@ -1560,25 +1563,28 @@ describe('native Cleaving action settlement', () => {
       })
     }
     const occurrence = before.occurrences.find((occurrence) => occurrence.state === 'PENDING')!
+    const original = await base.t.run((ctx) => readPendingSnapshot(ctx, occurrence))
+    if (!original) throw new Error('Expected pending Cleaving choice.')
     for (const tamper of ['damage', 'policy'] as const) {
       await base.t.run(async (ctx) => {
-        const snapshot = JSON.parse(occurrence.pendingSnapshotJson!)
+        const snapshot = structuredClone(original)
+        const context = snapshot.applicationContext
+        if (context.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING')
+          throw new Error('Expected pending Cleaving choice.')
         if (tamper === 'damage') {
-          snapshot.applicationContext.damage.resolvedAmount += 1
-          snapshot.applicationContext.damage.remainingAmount += 1
-        } else snapshot.applicationContext.optionalCombat.definitionChecksum = 'f'.repeat(64)
+          context.damage.resolvedAmount += 1
+          context.damage.remainingAmount += 1
+        } else context.optionalCombat.definitionChecksum = 'f'.repeat(64)
         await ctx.db.patch(occurrence._id, {
-          pendingSnapshotJson: JSON.stringify(snapshot),
-          pendingSnapshotChecksum: checksumCanonicalJson(snapshot)
+          pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, snapshot)
         })
       })
       const tampered = await records(base)
       await expect(room(base, base.owner, input)).rejects.toThrow()
       expect(await records(base)).toEqual(tampered)
-      await base.t.run((ctx) =>
+      await base.t.run(async (ctx) =>
         ctx.db.patch(occurrence._id, {
-          pendingSnapshotJson: occurrence.pendingSnapshotJson,
-          pendingSnapshotChecksum: occurrence.pendingSnapshotChecksum
+          pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, original)
         })
       )
     }

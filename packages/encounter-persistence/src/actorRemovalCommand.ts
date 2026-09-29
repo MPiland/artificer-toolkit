@@ -25,6 +25,7 @@ import { cleanupRemovedActorEffects } from './actorRemovalEffects.js'
 import { removeActorInitiative } from './actorRemovalInitiative.js'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
+import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
@@ -303,14 +304,13 @@ async function removeEncounterActorCore(
   if (pending) {
     storedOccurrence.parse(pending)
     const snapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
-      JSON.parse(pending.pendingSnapshotJson!)
+      await readPendingSnapshot(ctx, pending)
     )
     const context = snapshot.applicationContext
     if (
       snapshot.occurrenceId !== pending.id ||
       pending.campaignId !== campaign.id ||
-      pending.expectedEncounterVersion !== row.version ||
-      checksumCanonicalJson(snapshot) !== pending.pendingSnapshotChecksum
+      pending.expectedEncounterVersion !== row.version
     )
       throw new Error('Pending Encounter occurrence changed before actor removal.')
     if (
@@ -390,8 +390,11 @@ async function removeEncounterActorCore(
       state: 'COMPLETED',
       version: occurrenceVersion,
       expectedEncounterVersion: version,
-      pendingSnapshotJson: null,
-      pendingSnapshotChecksum: null,
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: ruleOccurrenceId, encounterId: row.id },
+        null
+      ),
       completedAt: now,
       createdAt: pending?.createdAt ?? now,
       updatedAt: now

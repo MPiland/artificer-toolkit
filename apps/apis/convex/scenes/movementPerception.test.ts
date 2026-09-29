@@ -14,6 +14,10 @@ import {
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import {
+  readPendingSnapshot,
+  writePendingSnapshot
+} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { isScenePointExplored } from '@artificer-toolkit/shared/vtt'
 import type { SceneFogChunksPage } from '@artificer-toolkit/schema/api/sceneFog'
 import { api, internal } from '../_generated/api'
@@ -350,20 +354,18 @@ describe('room Scene movement perception staging', () => {
     expect(after.receipts).toHaveLength(before.receipts.length + 1)
     const occurrence = after.occurrences.find((row) => row.id === occurrenceId)!
     expect(
-      JSON.parse(occurrence.pendingSnapshotJson!).applicationContext.root.currentSceneVersion
-    ).toBe(1)
+      (await base.t.run((ctx) => readPendingSnapshot(ctx, occurrence)))?.applicationContext
+    ).toMatchObject({ root: { currentSceneVersion: 1 } })
     expect(after.entities.find((row) => row.entityId === tokens[1]!.id)?.value).toMatchObject({
       entity: { position: { x: 200, y: 50 } }
     })
     expect(await plan.publish()).toEqual({ ...result, replayed: true })
     expect(await records()).toEqual(after)
     const occurrenceRowId = occurrence._id
-    const pendingSnapshotJson = occurrence.pendingSnapshotJson
     await base.t.run((ctx) =>
       ctx.db.patch(occurrenceRowId, {
         state: 'COMPLETED',
         version: 1,
-        pendingSnapshotJson: null,
         pendingSnapshotChecksum: null,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -377,7 +379,6 @@ describe('room Scene movement perception staging', () => {
       ctx.db.patch(occurrenceRowId, {
         state: 'PENDING',
         version: 0,
-        pendingSnapshotJson,
         pendingSnapshotChecksum: '0'.repeat(64),
         completedAt: null,
         updatedAt: new Date().toISOString()
@@ -386,7 +387,7 @@ describe('room Scene movement perception staging', () => {
     await expect(plan.publish()).rejects.toThrow('replay evidence is inconsistent')
     await base.t.run((ctx) =>
       ctx.db.patch(occurrenceRowId, {
-        pendingSnapshotChecksum: checksumCanonicalJson(JSON.parse(pendingSnapshotJson!))
+        pendingSnapshotChecksum: occurrence.pendingSnapshotChecksum
       })
     )
     const receipt = after.receipts.find((row) => row.commandId === input.commandId)!
@@ -430,8 +431,11 @@ describe('room Scene movement perception staging', () => {
           state: 'PENDING',
           version: 0,
           expectedEncounterVersion: prepared.expectedEncounterVersion,
-          pendingSnapshotJson: JSON.stringify(snapshot),
-          pendingSnapshotChecksum: checksumCanonicalJson(snapshot),
+          pendingSnapshotChecksum: await writePendingSnapshot(
+            ctx,
+            { id: prepared.occurrenceId, encounterId: base.run.id },
+            snapshot
+          ),
           createdAt: now,
           updatedAt: now,
           completedAt: null
@@ -509,7 +513,7 @@ describe('room Scene movement perception staging', () => {
       })
     )
     await expect(base.other.caller.query(pendingReference, query)).rejects.toThrow(
-      'Stored Encounter occurrence state is invalid.'
+      'Pending snapshot does not match its checksum.'
     )
   }, 30000)
 

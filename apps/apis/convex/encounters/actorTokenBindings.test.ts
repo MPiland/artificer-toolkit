@@ -596,7 +596,6 @@ it('rejects anonymous, player, revoked, pending and completed fresh writes', asy
       state: 'PENDING',
       version: 0,
       expectedEncounterVersion: base.run.version,
-      pendingSnapshotJson: '{}',
       pendingSnapshotChecksum: '0'.repeat(64),
       completedAt: null,
       createdAt: base.run.createdAt,

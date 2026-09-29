@@ -111,7 +111,7 @@ describe('GM void command', () => {
       expect.objectContaining({
         id: pending.occurrenceId,
         state: 'VOIDED',
-        pendingSnapshotJson: null
+        pendingSnapshotChecksum: null
       })
     ])
     expect(after.commands.map((command) => command.commandType)).toEqual([

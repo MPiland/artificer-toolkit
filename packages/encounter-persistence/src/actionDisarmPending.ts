@@ -2,12 +2,15 @@ import { readEncounterActorControl } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
 import { projectNativeActionPending, readNativeActionPending } from './actionPending.js'
 import { withEncounterRollModeReasons } from './rollModeReasons.js'
-import type { EncounterDocument } from './store.js'
+import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
 /** Identifies the sealed participant, independently of the user who started the action. */
-export function readNativeDisarmPending(occurrence: EncounterDocument<'encounterRuleOccurrences'>) {
-  const pending = readNativeActionPending(occurrence)
+export async function readNativeDisarmPending(
+  ctx: EncounterReadContext,
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>
+) {
+  const pending = await readNativeActionPending(ctx, occurrence)
   const { snapshot, context, command } = pending
   const contest = context.contest
   if (
@@ -57,10 +60,10 @@ export async function projectNativeDisarmPendingForMember(
   membership: EncounterDocument<'campaignMemberships'>,
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
 ) {
-  const pending = readNativeDisarmPending(occurrence)
+  const pending = await readNativeDisarmPending(ctx, occurrence)
   const project = () =>
     withEncounterRollModeReasons(ctx, run, membership, (reasons) =>
-      projectNativeActionPending(occurrence, reasons)
+      projectNativeActionPending(occurrence, pending, reasons)
     )
   if (membership.role === 'OWNER') return project()
   const actor = (await readRunActors(ctx, readRunState(run))).find(

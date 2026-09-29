@@ -14,6 +14,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { changedFields, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
 import { internalMutation } from '../lib/mutations'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
@@ -174,8 +175,11 @@ export const commitPending = internalMutation({
       state: 'PENDING',
       version: occurrenceVersion,
       expectedEncounterVersion: state.version,
-      pendingSnapshotJson: JSON.stringify(snapshot),
-      pendingSnapshotChecksum: checksumCanonicalJson(snapshot),
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: snapshot.occurrenceId, encounterId: row.id },
+        snapshot
+      ),
       completedAt: null,
       createdAt: admission.pending?.occurrence.createdAt ?? updatedAt,
       updatedAt

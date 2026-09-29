@@ -1,11 +1,10 @@
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { turnPendingActorId } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readRunActor } from './documents.js'
 import { requireEncounterActorControl } from './actorController.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -30,11 +29,7 @@ export async function requireTurnResponseController(
 ) {
   const { campaign, membership, state, occurrence, receipt, command, fingerprint } = input
   if (membership.role === 'OWNER') return
-  const snapshot = occurrence.pendingSnapshotJson
-    ? serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(occurrence.pendingSnapshotJson))
-    : null
-  if (snapshot && checksumCanonicalJson(snapshot) !== occurrence.pendingSnapshotChecksum)
-    throw new Error('Rule occurrence is unavailable.')
+  const snapshot = await readPendingSnapshot(ctx, occurrence)
   const context = snapshot?.applicationContext
   const root =
     context?.kind === 'ENCOUNTER_INITIATIVE_DECLARATION' ||

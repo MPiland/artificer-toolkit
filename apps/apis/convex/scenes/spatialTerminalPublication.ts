@@ -273,7 +273,6 @@ export async function publishSpatialTerminal(
       state: 'COMPLETED',
       version: retained.occurrenceVersion,
       expectedEncounterVersion: version,
-      pendingSnapshotJson: null,
       pendingSnapshotChecksum: null,
       createdAt: preparation.occurredAt,
       updatedAt: preparation.occurredAt,

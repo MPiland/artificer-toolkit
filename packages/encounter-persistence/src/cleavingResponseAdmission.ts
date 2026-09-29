@@ -17,6 +17,7 @@ import {
 } from './actorController.js'
 import { verifyNativeCleavingParentChain } from './cleavingParent.js'
 import { readNativeCleavingPending } from './cleavingPending.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
 import { readRunActors, readRunState } from './documents.js'
 import { replayEncounterCommandResult } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -138,7 +139,7 @@ export async function readCleavingResponseAdmission(
       result: await presentEncounterResultForMember(ctx, { campaign, membership, result })
     }
   }
-  const pending = readNativeCleavingPending(occurrence)
+  const pending = readNativeCleavingPending(occurrence, await readPendingSnapshot(ctx, occurrence))
   if (
     !pending ||
     state.status !== 'ACTIVE' ||

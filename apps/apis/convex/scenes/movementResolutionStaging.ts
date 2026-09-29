@@ -11,7 +11,7 @@ import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireUnusedEvidenceCommandId } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
-import { readStoredPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { beginSceneGeometry } from './geometryStaging'
 import { parseGeometrySave, readMovementResolution } from './geometryDocuments'
 import { readMovementResponseAuthority } from './movementResolutionDocuments'
@@ -49,7 +49,7 @@ export async function beginMovementResolution(
         JSON.parse(receipt.commandMetadataJson)
       )
     : null
-  const snapshot = readStoredPendingSnapshot(occurrence)
+  const snapshot = await readPendingSnapshot(ctx, occurrence)
   const context = snapshot?.applicationContext
   const pending =
     snapshot && isEncounterMovementContext(context)
@@ -115,7 +115,7 @@ export async function beginMovementResolution(
     {
       commandJson: JSON.stringify(command),
       commandChecksum: checksumCanonicalJson(command),
-      pendingSnapshotJson: current.occurrence.pendingSnapshotJson!,
+      pendingSnapshotJson: JSON.stringify(current.snapshot),
       pendingSnapshotChecksum: current.occurrence.pendingSnapshotChecksum!
     },
     true,

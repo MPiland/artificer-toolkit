@@ -565,6 +565,19 @@ async function campaignRows(
       44,
       'encounterSourceProjectionFacts'
     ),
+    encounterPendingSnapshotParts: await children(
+      descendants.encounterIds,
+      (id) =>
+        rows(
+          ctx.db
+            .query('encounterPendingSnapshotParts')
+            .withIndex('by_encounterId', (q) => q.eq('encounterId', id)),
+          200,
+          'encounterPendingSnapshotParts'
+        ),
+      200,
+      'encounterPendingSnapshotParts'
+    ),
     encounterSceneBindings: await children(
       descendants.encounterIds,
       (id) =>

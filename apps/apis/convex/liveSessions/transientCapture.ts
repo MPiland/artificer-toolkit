@@ -5,10 +5,10 @@ import {
   type LiveSessionTransientCapture,
   type LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
 import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
@@ -75,14 +75,8 @@ async function readMovementDecisionPending(ctx: QueryCtx, encounterId: string) {
       q.eq('encounterId', encounterId).eq('state', 'PENDING')
     )
     .take(1)
-  return (
-    pending !== undefined &&
-    pending.pendingSnapshotJson !== null &&
-    isEncounterMovementContext(
-      serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(pending.pendingSnapshotJson))
-        .applicationContext
-    )
-  )
+  const snapshot = pending ? await readPendingSnapshot(ctx, pending) : null
+  return snapshot !== null && isEncounterMovementContext(snapshot.applicationContext)
 }
 
 export const capture = internalQuery({

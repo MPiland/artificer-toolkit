@@ -116,7 +116,7 @@ describe('room Disarm commands', () => {
     expect(pending.actors).toEqual(before.actors)
     expect(pending.character).toEqual(before.character)
     expect(pending.commands).toEqual(before.commands)
-    expect(JSON.parse(pending.occurrences[0]!.pendingSnapshotJson!)).toMatchObject({
+    expect(pending.pendingSnapshots[0]).toMatchObject({
       applicationContext: {
         initiatorUserId: base.owner.userId,
         contest: { initiatorControllerCharacterId: base.character.id }
@@ -170,7 +170,7 @@ describe('room Disarm commands', () => {
     expect(staged.character).toEqual(before.character)
     expect(staged.commands).toEqual(before.commands)
     expect(staged.occurrences).toHaveLength(1)
-    expect(JSON.parse(staged.occurrences[0]!.pendingSnapshotJson!)).toMatchObject({
+    expect(staged.pendingSnapshots[0]).toMatchObject({
       applicationContext: {
         initiatorUserId: base.owner.userId,
         contest: { rollEvidence: { initiator: { rawFaces: [20] }, defender: null } }
@@ -369,7 +369,7 @@ describe('room Disarm commands', () => {
       expect(pending.character).toEqual(before.character)
       expect(pending.commands).toEqual(before.commands)
       expect(pending.occurrences).toHaveLength(1)
-      expect(JSON.parse(pending.occurrences[0]!.pendingSnapshotJson!)).toMatchObject({
+      expect(pending.pendingSnapshots[0]).toMatchObject({
         applicationContext: {
           kind: 'ENCOUNTER_ACTION',
           initiatorUserId: base.owner.userId,
@@ -404,7 +404,7 @@ describe('room Disarm commands', () => {
       expect(staged.character).toEqual(before.character)
       expect(staged.commands).toEqual(before.commands)
       expect(staged.characterReceipts).toEqual(before.characterReceipts)
-      expect(JSON.parse(staged.occurrences[0]!.pendingSnapshotJson!)).toMatchObject({
+      expect(staged.pendingSnapshots[0]).toMatchObject({
         applicationContext: { initiatorUserId: base.owner.userId }
       })
       expect(staged.occurrences).toHaveLength(1)

@@ -24,7 +24,6 @@ import {
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import {
@@ -53,6 +52,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { readRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
@@ -519,12 +519,10 @@ it('commits one sealed Assisted pending root and replays before stale revisions'
       )
       .unique()
   )
-  if (!stored?.pendingSnapshotJson) throw new Error('Missing stored pending snapshot.')
-  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-    JSON.parse(stored.pendingSnapshotJson)
-  )
+  if (!stored) throw new Error('Missing stored pending occurrence.')
+  const snapshot = await base.t.run((ctx) => readPendingSnapshot(ctx, stored))
   if (
-    snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
+    snapshot?.snapshotKind !== 'KERNEL_EVIDENCE' ||
     pendingBody.snapshot.snapshotKind !== 'KERNEL_EVIDENCE'
   )
     throw new Error('Expected a sealed kernel pending snapshot.')

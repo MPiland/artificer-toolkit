@@ -3,7 +3,6 @@ import {
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterStoredRuleReceiptSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -17,6 +16,7 @@ import {
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { isNativeActionOccurrence } from './occurrenceOwner.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
 import { rejectDomain } from './domainRejections.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -42,12 +42,7 @@ export async function readNativeEncounterActionResponseAdmission(
       query.eq('campaignId', run.campaignId).eq('commandId', occurrence.rootCommandId)
     )
     .unique()
-  const snapshot =
-    occurrence.pendingSnapshotJson === null
-      ? null
-      : serverRuleExecutionPendingSnapshotDtoSchema.parse(
-          JSON.parse(occurrence.pendingSnapshotJson)
-        )
+  const snapshot = await readPendingSnapshot(ctx, occurrence)
   if (
     !isNativeActionOccurrence({
       context: snapshot?.applicationContext ?? null,
@@ -57,7 +52,8 @@ export async function readNativeEncounterActionResponseAdmission(
     return null
   if (occurrence.encounterId !== run.id || occurrence.campaignId !== run.campaignId)
     throw new Error('The action occurrence scope is invalid.')
-  const pending = occurrence.state === 'PENDING' ? readNativeActionPending(occurrence) : null
+  const pending =
+    occurrence.state === 'PENDING' ? await readNativeActionPending(ctx, occurrence) : null
   let parsed = pending?.command
   if (!parsed) {
     if (rootReceipt?.commandType !== 'RESOLVE_ACTION')

@@ -152,7 +152,6 @@ it('refreshes only the owning Character or Campaign play revision for Rule Effec
       state: 'PENDING',
       version: 0,
       expectedEncounterVersion: 0,
-      pendingSnapshotJson: '{}',
       pendingSnapshotChecksum: checksum,
       completedAt: null,
       createdAt: now,

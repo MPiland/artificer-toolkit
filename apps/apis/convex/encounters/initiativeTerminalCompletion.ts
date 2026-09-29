@@ -25,6 +25,7 @@ import type { CompletedTurnRechargePlanDto } from '@artificer-toolkit/schema/sha
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
+import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
@@ -195,8 +196,7 @@ export async function completeNativeInitiativeOccurrence(input: {
     state: 'COMPLETED',
     version: input.occurrenceVersion,
     expectedEncounterVersion: input.encounterVersion,
-    pendingSnapshotJson: null,
-    pendingSnapshotChecksum: null,
+    pendingSnapshotChecksum: await writePendingSnapshot(input.ctx, input.occurrence, null),
     completedAt: input.updatedAt,
     createdAt: input.occurrence.createdAt,
     updatedAt: input.updatedAt
@@ -212,7 +212,6 @@ export async function completeNativeInitiativeOccurrence(input: {
     state: completedOccurrence.state,
     version: completedOccurrence.version,
     expectedEncounterVersion: completedOccurrence.expectedEncounterVersion,
-    pendingSnapshotJson: completedOccurrence.pendingSnapshotJson,
     pendingSnapshotChecksum: completedOccurrence.pendingSnapshotChecksum,
     completedAt: completedOccurrence.completedAt,
     updatedAt: completedOccurrence.updatedAt

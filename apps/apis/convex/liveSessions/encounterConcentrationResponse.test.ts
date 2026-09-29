@@ -7,7 +7,7 @@ import type {
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   createPlatformRulesRuntime,
   deriveRulesContinuationKey
@@ -278,11 +278,13 @@ it.each([
       ).rejects.toThrow()
       expect(await concentrationRecords(fixture)).toEqual(staged)
       expect(plan.input.pendingConcentration).toBeNull()
-      const storedSnapshot = staged.pending[0]?.pendingSnapshotJson
-      if (!storedSnapshot) throw new Error('Stored concentration child snapshot is unavailable.')
-      const unexpectedNext = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
-        JSON.parse(storedSnapshot)
+      const storedOccurrence = staged.pending[0]
+      if (!storedOccurrence) throw new Error('Stored concentration child is unavailable.')
+      const unexpectedNext = await fixture.t.run((ctx) =>
+        readPendingSnapshot(ctx, storedOccurrence)
       )
+      if (unexpectedNext?.snapshotKind !== 'KERNEL_EVIDENCE')
+        throw new Error('Stored concentration child snapshot is unavailable.')
       await expect(
         callLiveSessionRoute(environment, token, 'encounterConcentrationCommit', {
           ...plan.input,

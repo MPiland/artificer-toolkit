@@ -45,6 +45,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import type { QueryCtx } from '../../convex/_generated/server'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { prepareNativeActionEconomy } from '../../convex/encounters/actionEconomy'
 import { prepareNativeEncounterActionMechanics } from '../../convex/encounters/actionMechanicsPreparation'
 import { readNativeActionSceneContext } from '../../convex/encounters/actionSceneContext'
@@ -337,36 +338,42 @@ export function disarmInRoom(
 }
 
 export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
-  return base.t.run(async (ctx) => ({
-    run: await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique(),
-    actors: await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
-    occurrences: await ctx.db
+  return base.t.run(async (ctx) => {
+    const occurrences = await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
-    receipts: await ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
-    commands: await ctx.db
-      .query('encounterRunCommands')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
-    character: await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-      .unique(),
-    characterReceipts: await ctx.db
-      .query('characterCommandReceipts')
-      .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
       .collect()
-  }))
+    return {
+      run: await ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+        .unique(),
+      actors: await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
+        .collect(),
+      occurrences,
+      pendingSnapshots: await Promise.all(
+        occurrences.map((occurrence) => readPendingSnapshot(ctx, occurrence))
+      ),
+      receipts: await ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
+        .collect(),
+      commands: await ctx.db
+        .query('encounterRunCommands')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
+        .collect(),
+      character: await ctx.db
+        .query('characters')
+        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
+        .unique(),
+      characterReceipts: await ctx.db
+        .query('characterCommandReceipts')
+        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
+        .collect()
+    }
+  })
 }
 
 /** The sealed Disarm contest current stored facts produce, as the room plans it; rolls and writes nothing. */

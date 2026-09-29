@@ -3,7 +3,7 @@ import { type ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/s
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
-import { readStoredPendingSnapshot } from './pendingSnapshots.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
 type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext']
@@ -100,7 +100,7 @@ export async function readNativeEncounterOccurrenceOwner(
     .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
     .unique()
   if (!occurrence) return 'OTHER'
-  const context = readStoredPendingSnapshot(occurrence)?.applicationContext ?? null
+  const context = (await readPendingSnapshot(ctx, occurrence))?.applicationContext ?? null
   const rootReceipt = await ctx.db
     .query('encounterRunCommands')
     .withIndex('by_campaignId_commandId', (q) =>

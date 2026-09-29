@@ -13,6 +13,7 @@ import {
   encounterActorTokenBindingSchema,
   encounterStoredRunCommandSchema,
   encounterStoredRuleOccurrenceSchema,
+  encounterStoredPendingSnapshotPartSchema,
   encounterStoredRuleReceiptSchema,
   encounterStoredEvidenceRollSchema,
   encounterStoredTurnMovementSchema,
@@ -33,7 +34,6 @@ export const encounterTables = {
     'by_encounterId_id',
     ['encounterId', 'id']
   ),
-  encounterSceneBindings: defineTable(zodToConvexFields(encounterSceneBindingSchema.shape))
   encounterActorProjectionFacts: defineTable(
     zodToConvexFields(encounterStoredActorProjectionFactsSchema.shape)
   )
@@ -42,6 +42,7 @@ export const encounterTables = {
   encounterSourceProjectionFacts: defineTable(
     zodToConvexFields(encounterStoredSourceProjectionFactsSchema.shape)
   ).index('by_encounterId_checksum', ['encounterId', 'checksum']),
+  encounterSceneBindings: defineTable(zodToConvexFields(encounterSceneBindingSchema.shape))
     .index('by_encounterId', ['encounterId'])
     .index('by_sceneId', ['sceneId']),
   encounterActorTokenBindings: defineTable(
@@ -73,6 +74,11 @@ export const encounterTables = {
     .index('by_publicId', ['id'])
     .index('by_campaignId_rootCommandId', ['campaignId', 'rootCommandId'])
     .index('by_encounterId_state', ['encounterId', 'state']),
+  encounterPendingSnapshotParts: defineTable(
+    zodToConvexFields(encounterStoredPendingSnapshotPartSchema.shape)
+  )
+    .index('by_occurrenceId_sequence', ['occurrenceId', 'sequence'])
+    .index('by_encounterId', ['encounterId']),
   encounterRuleReceipts: defineTable(zodToConvexFields(encounterStoredRuleReceiptSchema.shape))
     .index('by_campaignId_commandId', ['campaignId', 'commandId'])
     .index('by_encounterId_commandId', ['encounterId', 'commandId'])

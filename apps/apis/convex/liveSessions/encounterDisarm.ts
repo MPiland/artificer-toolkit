@@ -18,6 +18,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
@@ -96,8 +97,11 @@ export const commitPending = internalMutation({
       state: 'PENDING',
       version: occurrenceVersion,
       expectedEncounterVersion: state.version,
-      pendingSnapshotJson: JSON.stringify(snapshot),
-      pendingSnapshotChecksum: checksumCanonicalJson(snapshot),
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: snapshot.occurrenceId, encounterId: run.id },
+        snapshot
+      ),
       completedAt: null,
       createdAt: occurrence?.createdAt ?? updatedAt,
       updatedAt
@@ -107,7 +111,7 @@ export const commitPending = internalMutation({
     const stored = await ctx.db.get(id)
     if (!stored) throw new Error('The pending Disarm was not stored.')
     // The sealed contest must name its root and the participant it now waits on.
-    const { policy } = readNativeDisarmPending(stored)
+    const { policy } = await readNativeDisarmPending(ctx, stored)
     const result = await presentEncounterResultForMember(encounterReadTransaction(ctx), {
       campaign,
       membership,
@@ -258,8 +262,11 @@ export const commit = internalMutation({
       state: 'COMPLETED',
       version: occurrenceVersion,
       expectedEncounterVersion: nextState.version,
-      pendingSnapshotJson: null,
-      pendingSnapshotChecksum: null,
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: execution.occurrenceId, encounterId: run.id },
+        null
+      ),
       completedAt: occurredAt,
       createdAt: occurrence?.createdAt ?? occurredAt,
       updatedAt: occurredAt

@@ -12,10 +12,7 @@ import {
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import {
-  serverRuleExecutionPendingSnapshotDtoSchema,
-  type ServerRuleExecutionPendingSnapshotDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { type ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { rejectDomain } from './domainRejections.js'
 import { changedFields, readRunState } from './documents.js'
@@ -24,6 +21,7 @@ import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
+import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
@@ -264,11 +262,8 @@ async function planRuleOccurrenceVoid(
     occurrence.version !== input.expectedOccurrenceVersion
   )
     rejectDomain('VERSION_STALE')
-  if (occurrence.pendingSnapshotJson === null)
-    throw new Error('Stored Encounter occurrence state is invalid.')
-  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-    JSON.parse(occurrence.pendingSnapshotJson)
-  )
+  const snapshot = await readPendingSnapshot(ctx, occurrence)
+  if (!snapshot) throw new Error('Stored Encounter occurrence state is invalid.')
   const outcome = classifyRuleOccurrenceVoid(snapshot.applicationContext)
   if (outcome.kind === 'REFUSE') rejectDomain('DECISION_REQUIRES_ANSWER', outcome.message)
   if (outcome.kind === 'DECLINE')
@@ -305,8 +300,7 @@ export async function prepareRuleOccurrenceVoid(
     ...stored,
     state: 'VOIDED',
     version: occurrence.version + 1,
-    pendingSnapshotJson: null,
-    pendingSnapshotChecksum: null,
+    pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, null),
     completedAt: updatedAt,
     updatedAt
   })

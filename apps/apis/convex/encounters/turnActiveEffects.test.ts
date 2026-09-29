@@ -16,7 +16,6 @@ import type {
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
   liveSessionEncounterRulesInputSchema,
@@ -39,6 +38,7 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   seedTurnSaveEffect,
   turnActiveEffectFixture,
@@ -240,12 +240,9 @@ async function pendingEffect(
 ) {
   const snapshot = await stored(base)
   const occurrence = snapshot.occurrences.find((row) => row.state === 'PENDING')
-  if (!occurrence?.pendingSnapshotJson)
-    throw new Error('Expected a retained turn-effect continuation.')
-  const pending = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-    JSON.parse(occurrence.pendingSnapshotJson)
-  )
-  expect(pending.applicationContext).toMatchObject({
+  if (!occurrence) throw new Error('Expected a retained turn-effect continuation.')
+  const pending = await base.t.run((ctx) => readPendingSnapshot(ctx, occurrence))
+  expect(pending?.applicationContext).toMatchObject({
     kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS',
     currentCandidate: { activeEffectId: effectId, stage }
   })

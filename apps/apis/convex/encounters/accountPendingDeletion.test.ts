@@ -301,7 +301,6 @@ describe('trusted account cleanup during another actor pending turn effect', () 
       state: 'COMPLETED',
       version: pendingOccurrence.version + 1,
       expectedEncounterVersion: pending.projection.version + 1,
-      pendingSnapshotJson: null,
       pendingSnapshotChecksum: null
     })
     expect(after.occurrences.some((occurrence) => occurrence.state === 'PENDING')).toBe(false)

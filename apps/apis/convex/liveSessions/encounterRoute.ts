@@ -14,7 +14,7 @@ import {
   voidDeclineCommand
 } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { readPendingRunDecision } from '@artificer-toolkit/encounter-persistence/pendingReads'
-import { readStoredPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
@@ -47,10 +47,8 @@ export async function routeEncounterDecision(
     rejectDomain('NOT_ACTOR_CONTROLLER', "This decision isn't yours to answer.")
   const owner = await readNativeEncounterOccurrenceOwner(ctx, run, occurrenceId)
   if (command.type === 'VOID_RULE_OCCURRENCE') {
-    const voided =
-      membership.role === 'OWNER' && occurrence.pendingSnapshotJson !== null
-        ? classifyRuleOccurrenceVoid(readStoredPendingSnapshot(occurrence)!.applicationContext)
-        : null
+    const snapshot = membership.role === 'OWNER' ? await readPendingSnapshot(ctx, occurrence) : null
+    const voided = snapshot ? classifyRuleOccurrenceVoid(snapshot.applicationContext) : null
     // A GM void that declines a decision settles through the room like the GM's decline (D26);
     // Convex records every other void, refusing a player's.
     if (voided?.kind === 'DECLINE' && owner === 'MOVEMENT')

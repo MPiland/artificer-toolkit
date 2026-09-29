@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   createPlatformRulesRuntime,
   requireInstalledGameSystemRuleCapability
@@ -14,6 +13,7 @@ import type {
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { cleanupRemovedActorEffects } from '@artificer-toolkit/encounter-persistence/actorRemovalEffects'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -300,7 +300,8 @@ describe('native actor maintained-effect cleanup', () => {
       }
     })
     const now = new Date().toISOString()
-    const pendingId = await fixture.t.run((ctx) =>
+    const pendingOccurrence = { id: occurrenceId, encounterId: state.id }
+    const pendingId = await fixture.t.run(async (ctx) =>
       ctx.db.insert('encounterRuleOccurrences', {
         id: occurrenceId,
         campaignId: state.campaignId,
@@ -309,8 +310,7 @@ describe('native actor maintained-effect cleanup', () => {
         state: 'PENDING',
         version: 2,
         expectedEncounterVersion: state.version,
-        pendingSnapshotJson: JSON.stringify(snapshot),
-        pendingSnapshotChecksum: checksumCanonicalJson(snapshot),
+        pendingSnapshotChecksum: await writePendingSnapshot(ctx, pendingOccurrence, snapshot),
         completedAt: null,
         createdAt: now,
         updatedAt: now
@@ -340,20 +340,18 @@ describe('native actor maintained-effect cleanup', () => {
         }
       }
     }
-    await fixture.t.run((ctx) =>
+    await fixture.t.run(async (ctx) =>
       ctx.db.patch(pendingId, {
-        pendingSnapshotJson: JSON.stringify(mismatched),
-        pendingSnapshotChecksum: checksumCanonicalJson(mismatched)
+        pendingSnapshotChecksum: await writePendingSnapshot(ctx, pendingOccurrence, mismatched)
       })
     )
     await expect(executeInRoom(fixture.owner.caller, { command })).rejects.toThrow(
       LiveSessionRouteError
     )
     expect(await records(fixture)).toEqual(before)
-    await fixture.t.run((ctx) =>
+    await fixture.t.run(async (ctx) =>
       ctx.db.patch(pendingId, {
-        pendingSnapshotJson: JSON.stringify(snapshot),
-        pendingSnapshotChecksum: checksumCanonicalJson(snapshot)
+        pendingSnapshotChecksum: await writePendingSnapshot(ctx, pendingOccurrence, snapshot)
       })
     )
     const result = await executeInRoom(fixture.owner.caller, { command })
@@ -362,7 +360,6 @@ describe('native actor maintained-effect cleanup', () => {
       state: 'COMPLETED',
       version: 3,
       expectedEncounterVersion: state.version + 1,
-      pendingSnapshotJson: null,
       pendingSnapshotChecksum: null
     })
     expect((await records(fixture)).maintainedStates).toEqual([])

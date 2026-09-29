@@ -484,7 +484,6 @@ it.each(['root replay', 'pending occurrence'] as const)(
         version: 0,
         expectedEncounterVersion: value.input.expectedEncounterVersion,
         // Even unreadable pending evidence must block a different command's mechanics.
-        pendingSnapshotJson: pending ? '{}' : null,
         pendingSnapshotChecksum: pending ? checksumCanonicalJson({}) : null,
         completedAt: pending ? null : now,
         createdAt: now,

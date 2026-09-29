@@ -25,6 +25,10 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { movementPendingCharacterAggregateVersions } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
 import { checksumSpatialCurrentness } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementCurrentness'
+import {
+  readPendingSnapshot,
+  writePendingSnapshot
+} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
@@ -378,17 +382,11 @@ export async function publishSpatialPending<TSettlement>(
       (existing.version === 0 &&
         (existing.state !== 'PENDING' ||
           existing.expectedEncounterVersion !== expectedPublicationVersion ||
-          existing.pendingSnapshotChecksum !== checksumCanonicalJson(pendingSnapshot) ||
-          checksumCanonicalJson(JSON.parse(existing.pendingSnapshotJson ?? 'null')) !==
-            checksumCanonicalJson(pendingSnapshot)))
+          existing.pendingSnapshotChecksum !== checksumCanonicalJson(pendingSnapshot)))
     )
       throw new Error('Spatial pending replay evidence is inconsistent.')
-    const currentPendingSnapshot = existing.pendingSnapshotJson
-      ? serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(existing.pendingSnapshotJson))
-      : null
+    const currentPendingSnapshot = await readPendingSnapshot(ctx, existing)
     if (
-      (currentPendingSnapshot ? checksumCanonicalJson(currentPendingSnapshot) : null) !==
-        existing.pendingSnapshotChecksum ||
       (existing.state === 'PENDING' && !currentPendingSnapshot) ||
       (existing.state === 'COMPLETED' && currentPendingSnapshot !== null)
     )
@@ -513,8 +511,11 @@ export async function publishSpatialPending<TSettlement>(
       state: 'PENDING',
       version: 0,
       expectedEncounterVersion: publishedState.version,
-      pendingSnapshotJson: JSON.stringify(pendingSnapshot),
-      pendingSnapshotChecksum: checksumCanonicalJson(pendingSnapshot),
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: preparation.occurrenceId, encounterId: publishedState.id },
+        pendingSnapshot
+      ),
       completedAt: null,
       createdAt: preparation.occurredAt,
       updatedAt: preparation.occurredAt

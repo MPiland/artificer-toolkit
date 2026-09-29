@@ -237,7 +237,6 @@ async function seedRuleReceipt(base: Awaited<ReturnType<typeof setup>>, actorUse
       state: 'COMPLETED',
       version: 0,
       expectedEncounterVersion: 0,
-      pendingSnapshotJson: null,
       pendingSnapshotChecksum: null,
       completedAt: now,
       createdAt: now,

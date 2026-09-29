@@ -4,13 +4,14 @@ import {
   encounterSceneBindingSchema,
   encounterStoredDecisionSkipSchema,
   encounterStoredEvidenceRollSchema,
+  encounterStoredPendingSnapshotPartSchema,
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRuleReceiptSchema,
-  encounterStoredRunActorSchema,
   encounterStoredActorProjectionFactsSchema,
+  encounterStoredRunActorSchema,
   encounterStoredRunCommandSchema,
-  encounterStoredRunSchema,
   encounterStoredSourceProjectionFactsSchema,
+  encounterStoredRunSchema,
   encounterStoredTurnMovementSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import {
@@ -42,15 +43,16 @@ import {
 export const encounterStoreSchemas = {
   encounterRuns: encounterStoredRunSchema,
   encounterRunActors: encounterStoredRunActorSchema,
-  encounterSceneBindings: encounterSceneBindingSchema,
   encounterActorProjectionFacts: encounterStoredActorProjectionFactsSchema,
   encounterSourceProjectionFacts: encounterStoredSourceProjectionFactsSchema,
+  encounterSceneBindings: encounterSceneBindingSchema,
   encounterActorTokenBindings: encounterActorTokenBindingSchema,
   encounterInitiativeRounds: encounterInitiativeRoundDtoSchema,
   encounterInitiativeParticipants: encounterInitiativeParticipantDtoSchema,
   encounterInitiativeSides: encounterInitiativeSideDtoSchema,
   encounterRunCommands: encounterStoredRunCommandSchema,
   encounterRuleOccurrences: encounterStoredRuleOccurrenceSchema,
+  encounterPendingSnapshotParts: encounterStoredPendingSnapshotPartSchema,
   encounterRuleReceipts: encounterStoredRuleReceiptSchema,
   encounterEvidenceRolls: encounterStoredEvidenceRollSchema,
   encounterTurnMovements: encounterStoredTurnMovementSchema,
@@ -78,13 +80,13 @@ export const encounterStoreIndexes = {
     by_campaignId_createdAt_id: ['campaignId', 'createdAt', 'id']
   },
   encounterRunActors: { by_encounterId_id: ['encounterId', 'id'] },
-  encounterSceneBindings: { by_encounterId: ['encounterId'], by_sceneId: ['sceneId'] },
-  encounterActorTokenBindings: {
   encounterActorProjectionFacts: {
     by_encounterId_id: ['encounterId', 'id'],
     by_encounterId_sourceFactsChecksum: ['encounterId', 'sourceFactsChecksum']
   },
   encounterSourceProjectionFacts: { by_encounterId_checksum: ['encounterId', 'checksum'] },
+  encounterSceneBindings: { by_encounterId: ['encounterId'], by_sceneId: ['sceneId'] },
+  encounterActorTokenBindings: {
     by_encounterId_actorId: ['encounterId', 'actorId'],
     by_encounterId_tokenId: ['encounterId', 'tokenId'],
     by_sceneId_tokenId: ['sceneId', 'tokenId']
@@ -106,6 +108,10 @@ export const encounterStoreIndexes = {
     by_publicId: ['id'],
     by_campaignId_rootCommandId: ['campaignId', 'rootCommandId'],
     by_encounterId_state: ['encounterId', 'state']
+  },
+  encounterPendingSnapshotParts: {
+    by_occurrenceId_sequence: ['occurrenceId', 'sequence'],
+    by_encounterId: ['encounterId']
   },
   encounterRuleReceipts: {
     by_campaignId_commandId: ['campaignId', 'commandId'],

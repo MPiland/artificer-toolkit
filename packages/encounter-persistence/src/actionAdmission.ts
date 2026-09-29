@@ -177,7 +177,7 @@ export async function readNativeEncounterActionAdmission(
   if (pending.length === 1) {
     const occurrence = pending[0]!
     if (occurrence.rootCommandId !== input.commandId) rejectDomain('PENDING_DECISION')
-    const { context } = readNativeActionPending(occurrence)
+    const { context } = await readNativeActionPending(ctx, occurrence)
     if (context.commandFingerprint !== fingerprint || context.initiatorUserId !== initiatorUserId)
       rejectDomain('COMMAND_ID_REUSED')
     if (!resume)

@@ -215,7 +215,6 @@ export const commit = internalMutation({
           state: 'COMPLETED',
           version: occurrenceVersion,
           expectedEncounterVersion: nextState.version,
-          pendingSnapshotJson: null,
           pendingSnapshotChecksum: null,
           completedAt: input.occurredAt,
           createdAt: input.occurredAt,

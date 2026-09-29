@@ -75,7 +75,8 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         binding,
         actorBindings,
         projectionFacts,
-        sourceProjectionFacts
+        sourceProjectionFacts,
+        snapshotParts
       ] = await Promise.all([
         ctx.db
           .query('encounterRunActors')
@@ -124,7 +125,11 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         ctx.db
           .query('encounterSourceProjectionFacts')
           .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', run.id))
-          .take(12)
+          .take(12),
+        ctx.db
+          .query('encounterPendingSnapshotParts')
+          .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
+          .take(129)
       ])
       const scene = binding
         ? await ctx.db
@@ -146,7 +151,8 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         scene,
         actorBindings,
         projectionFacts,
-        sourceProjectionFacts
+        sourceProjectionFacts,
+        snapshotParts
       }
     })
   )
@@ -318,7 +324,8 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
       ...child.rounds,
       ...child.actors,
       ...child.projectionFacts,
-      ...child.sourceProjectionFacts
+      ...child.sourceProjectionFacts,
+      ...child.snapshotParts
     ])
       await ctx.db.delete(row._id)
     await ctx.db.delete(child.run._id)

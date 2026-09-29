@@ -11,10 +11,7 @@ import { requireIdentity } from '../lib/identity'
 import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import {
-  readStoredPendingSnapshot,
-  storedPendingSnapshotChecksum
-} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   assertGeometryReceiving,
   readGeometrySave,
@@ -95,17 +92,15 @@ export async function readMovementResponseAuthority(
     occurrence.encounterId !== state.id ||
     occurrence.state !== 'PENDING' ||
     occurrence.version !== command.expectedOccurrenceVersion ||
-    occurrence.expectedEncounterVersion !== state.version ||
-    !occurrence.pendingSnapshotJson ||
-    !occurrence.pendingSnapshotChecksum
+    occurrence.expectedEncounterVersion !== state.version
   )
     throw new Error('Movement response occurrence is stale.')
-  const snapshot = readStoredPendingSnapshot(occurrence)!
+  const snapshot = await readPendingSnapshot(ctx, occurrence)
+  if (!snapshot) throw new Error('Movement response occurrence is stale.')
   const { context, root } = readEncounterMovementPendingContext(snapshot)
   const kernelSnapshot = isServerKernelRuleExecutionPendingSnapshot(snapshot) ? snapshot : null
   if (
     (context.kind !== 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' && !kernelSnapshot) ||
-    storedPendingSnapshotChecksum(occurrence) !== occurrence.pendingSnapshotChecksum ||
     serverRuleExecutionPendingOccurrenceId(snapshot) !== occurrence.id ||
     root.encounterId !== state.id ||
     root.commandId !== occurrence.rootCommandId ||
@@ -186,7 +181,6 @@ export async function assertMovementResolutionCurrent(
     current.userId !== save.actorUserId ||
     current.occurrence.pendingSnapshotChecksum !==
       save.movementResolution!.pendingSnapshotChecksum ||
-    current.occurrence.pendingSnapshotJson !== save.movementResolution!.pendingSnapshotJson ||
     current.root.currentSceneVersion !== save.snapshotVersion ||
     save.sessionVision?.campaignId !== current.campaign.id
   )

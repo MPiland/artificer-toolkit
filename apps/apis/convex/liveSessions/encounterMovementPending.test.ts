@@ -17,6 +17,7 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { commitLiveMovement } from './encounterMovementCommit'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import {
@@ -202,10 +203,10 @@ it('publishes an Assisted spatial evidence pause without settling retained no-in
   const retained = after.occurrences.find(
     (entry) => entry.rootCommandId === value.rootInput.commandId
   )
-  if (!retained?.pendingSnapshotJson) throw new Error('Pending spatial evidence was not stored.')
+  if (!retained) throw new Error('Pending spatial evidence was not stored.')
   expect(
-    JSON.parse(retained.pendingSnapshotJson).applicationContext.completedSpatialExecutions
-  ).toEqual(context.completedSpatialExecutions)
+    (await value.base.t.run((ctx) => readPendingSnapshot(ctx, retained)))?.applicationContext
+  ).toHaveProperty('completedSpatialExecutions', context.completedSpatialExecutions)
   expect(await publish(value, input)).toEqual({ ...published, replayed: true })
   expect(await records(value)).toEqual(after)
   expect(publishedSave).not.toEqual(frozenSave)

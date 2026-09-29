@@ -2,7 +2,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -21,6 +20,7 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { loadMovementTargets } from '../encounters/movementTargets'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
@@ -179,11 +179,9 @@ it.each([
     expect(after.effects.map((effect) => effect.id)).toContain(seeded.independent.id)
     if (outcome === 'PENDING') {
       expect(after.pending).toHaveLength(1)
-      expect(
-        serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
-          JSON.parse(after.pending[0]!.pendingSnapshotJson!)
-        )
-      ).toEqual(concentration.pending)
+      expect(await fixture.t.run((ctx) => readPendingSnapshot(ctx, after.pending[0]!))).toEqual(
+        concentration.pending
+      )
     } else {
       const child = concentration.completed[0]!
       const receipt = after.receipts.find((entry) => entry.commandId === child.commandId)

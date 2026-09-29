@@ -41,9 +41,12 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import {
+  readPendingSnapshot,
+  writePendingSnapshot
+} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   liveSessionEncounterTurnPendingInputSchema,
   type LiveSessionEncounterTurnCommitInput
@@ -399,11 +402,12 @@ describe('native initiative declarations', () => {
     })
     await base.t.run(async (ctx) => {
       const occurrence = await ctx.db.query('encounterRuleOccurrences').unique()
-      if (!occurrence?.pendingSnapshotJson) throw new Error('Expected declaration occurrence.')
-      const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-        JSON.parse(occurrence.pendingSnapshotJson)
+      if (!occurrence) throw new Error('Expected declaration occurrence.')
+      const snapshot = await readPendingSnapshot(ctx, occurrence)
+      if (
+        snapshot?.snapshotKind !== 'AGGREGATE_CHOICE' ||
+        snapshot.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION'
       )
-      if (snapshot.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
         throw new Error('Expected declaration context.')
       const root = snapshot.applicationContext.root
       const stagedInitiativeRoundState = {
@@ -418,8 +422,7 @@ describe('native initiative declarations', () => {
         }
       }
       await ctx.db.patch(occurrence._id, {
-        pendingSnapshotJson: JSON.stringify(tampered),
-        pendingSnapshotChecksum: checksumCanonicalJson(tampered)
+        pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, tampered)
       })
     })
     await expect(
@@ -443,11 +446,9 @@ describe('native initiative declarations', () => {
     if (pending?.kind !== 'INITIATIVE_DECLARATION') throw new Error('Expected declaration.')
     await base.t.run(async (ctx) => {
       const occurrence = await ctx.db.query('encounterRuleOccurrences').unique()
-      if (!occurrence?.pendingSnapshotJson) throw new Error('Expected declaration occurrence.')
-      const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-        JSON.parse(occurrence.pendingSnapshotJson)
-      )
-      if (snapshot.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
+      if (!occurrence) throw new Error('Expected declaration occurrence.')
+      const snapshot = await readPendingSnapshot(ctx, occurrence)
+      if (snapshot?.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
         throw new Error('Expected declaration context.')
       const root = snapshot.applicationContext.root
       const tampered = serverRuleExecutionPendingSnapshotDtoSchema.parse({
@@ -464,8 +465,7 @@ describe('native initiative declarations', () => {
         }
       })
       await ctx.db.patch(occurrence._id, {
-        pendingSnapshotJson: JSON.stringify(tampered),
-        pendingSnapshotChecksum: checksumCanonicalJson(tampered)
+        pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, tampered)
       })
     })
     const before = await storedInitiative(base)
@@ -954,12 +954,9 @@ describe('native initiative declarations', () => {
           const retained = (await storedInitiative(base)).occurrences.find(
             (entry) => entry.encounterId === run.id
           )
-          if (!retained?.pendingSnapshotJson)
-            throw new Error('Expected retained private declaration response.')
-          const retainedSnapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-            JSON.parse(retained.pendingSnapshotJson)
-          )
-          if (retainedSnapshot.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
+          if (!retained) throw new Error('Expected retained private declaration response.')
+          const retainedSnapshot = await base.t.run((ctx) => readPendingSnapshot(ctx, retained))
+          if (retainedSnapshot?.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
             throw new Error('Expected retained initiative declaration root.')
           expect(retainedSnapshot.applicationContext.root.resolutionCommands.at(-1)).toMatchObject({
             kind: 'INITIATIVE_DECLARATION',

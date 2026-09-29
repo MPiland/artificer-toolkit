@@ -1,6 +1,10 @@
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { canAnswerNativeActionEvidence, projectNativeActionPending } from './actionPending.js'
+import {
+  canAnswerNativeActionEvidence,
+  projectNativeActionPending,
+  readNativeActionPending
+} from './actionPending.js'
 import { projectNativeDisarmPendingForMember } from './actionDisarmPending.js'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
@@ -11,7 +15,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectNativeCleavingPending } from './cleavingPending.js'
 import { projectNativeConcentrationPending } from './concentrationPending.js'
-import { readStoredPendingSnapshot, storedPendingSnapshotChecksum } from './pendingSnapshots.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
 import {
   readEncounterActorPrimaryController,
   readEncounterControlledActorIds
@@ -73,18 +77,10 @@ export async function readPendingRunDecision(
   if (occurrences.length > 1) throw new Error('Stored Encounter occurrence state is invalid.')
   const occurrence = occurrences[0]
   if (!occurrence) return null
-  if (
-    occurrence.campaignId !== campaign.id ||
-    occurrence.expectedEncounterVersion !== row.version ||
-    occurrence.pendingSnapshotJson === null ||
-    occurrence.pendingSnapshotChecksum === null
-  )
+  if (occurrence.campaignId !== campaign.id || occurrence.expectedEncounterVersion !== row.version)
     throw new Error('Stored Encounter occurrence state is invalid.')
-  const pendingSnapshot = readStoredPendingSnapshot(occurrence)!
-  if (
-    storedPendingSnapshotChecksum(occurrence) !== occurrence.pendingSnapshotChecksum ||
-    serverRuleExecutionPendingOccurrenceId(pendingSnapshot) !== occurrence.id
-  )
+  const pendingSnapshot = await readPendingSnapshot(ctx, occurrence)
+  if (!pendingSnapshot || serverRuleExecutionPendingOccurrenceId(pendingSnapshot) !== occurrence.id)
     throw new Error('Stored Encounter occurrence state is invalid.')
   const context = pendingSnapshot.applicationContext
   if (context.kind === 'ENCOUNTER_ACTION' && context.contest)
@@ -99,7 +95,7 @@ export async function readPendingRunDecision(
     const actor = actors.find((entry) => entry.id === context.application.targetActorId)
     return actor && controlledActorIds.has(actor.id)
       ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
-          projectNativeConcentrationPending(occurrence, reasons)
+          projectNativeConcentrationPending(occurrence, pendingSnapshot, reasons)
         )
       : null
   }
@@ -133,7 +129,7 @@ export async function readPendingRunDecision(
     )
   }
   if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING')
-    return projectNativeCleavingPending(occurrence, {
+    return projectNativeCleavingPending(occurrence, pendingSnapshot, {
       isOwner: membership.role === 'OWNER',
       controlledActorIds,
       visibleActorIds: new Set(actors.filter((actor) => actor.public).map((actor) => actor.id))
@@ -189,17 +185,14 @@ export async function readPendingRunDecision(
       throw new Error('Stored initiative declaration is invalid.')
     return controlledActorIds.has(pending.actorId) ? pending : null
   }
-  if (context.kind === 'ENCOUNTER_ACTION')
-    return (await canAnswerNativeActionEvidence(ctx, {
-      run: row,
-      campaign,
-      membership,
-      occurrence
-    }))
-      ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
-          projectNativeActionPending(occurrence, reasons)
-        )
-      : null
+  if (context.kind === 'ENCOUNTER_ACTION') {
+    if (!(await canAnswerNativeActionEvidence(ctx, { run: row, campaign, membership, occurrence })))
+      return null
+    const pending = await readNativeActionPending(ctx, occurrence)
+    return withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
+      projectNativeActionPending(occurrence, pending, reasons)
+    )
+  }
   if (
     context.kind === 'ENCOUNTER_TURN_RECHARGE' ||
     context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'

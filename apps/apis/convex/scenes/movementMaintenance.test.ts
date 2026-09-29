@@ -3,7 +3,6 @@ import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -17,6 +16,7 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -609,11 +609,11 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
         q.eq('encounterId', base.run.id).eq('state', 'PENDING')
       )
       .unique()
-    if (!occurrence?.pendingSnapshotJson)
+    if (!occurrence) throw new Error('Maintained movement pending snapshot is unavailable.')
+    const snapshot = await readPendingSnapshot(ctx, occurrence)
+    if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
       throw new Error('Maintained movement pending snapshot is unavailable.')
-    return serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
-      JSON.parse(occurrence.pendingSnapshotJson)
-    )
+    return snapshot
   })
   if (
     pendingSnapshot.applicationContext.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||

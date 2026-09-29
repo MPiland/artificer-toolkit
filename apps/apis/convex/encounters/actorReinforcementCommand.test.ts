@@ -129,7 +129,6 @@ describe('native actor reinforcement transaction', () => {
         state: 'PENDING',
         version: 0,
         expectedEncounterVersion: base.run.version,
-        pendingSnapshotJson: '{}',
         pendingSnapshotChecksum: 'a'.repeat(64),
         completedAt: null,
         createdAt: new Date().toISOString(),

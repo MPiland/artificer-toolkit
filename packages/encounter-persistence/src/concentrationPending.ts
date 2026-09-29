@@ -3,8 +3,7 @@ import {
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { concentrationRollTrigger } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import {
   concentrationCommandId,
@@ -12,14 +11,13 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import type { EncounterDocument } from './store.js'
 
+/** `snapshot` is the occurrence's `readPendingSnapshot`. */
 export function readNativeConcentrationPending(
-  occurrence: EncounterDocument<'encounterRuleOccurrences'>
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  snapshot: ServerRuleExecutionPendingSnapshotDto | null
 ) {
-  if (occurrence.state !== 'PENDING' || occurrence.pendingSnapshotJson === null)
+  if (occurrence.state !== 'PENDING' || snapshot === null)
     throw new Error('The concentration occurrence is unavailable.')
-  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-    JSON.parse(occurrence.pendingSnapshotJson)
-  )
   if (
     snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
     snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
@@ -30,7 +28,6 @@ export function readNativeConcentrationPending(
         snapshot.applicationContext.application
       ) ||
     occurrence.rootCommandId !== concentrationCommandId(occurrence.id) ||
-    checksumCanonicalJson(snapshot) !== occurrence.pendingSnapshotChecksum ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||
     snapshot.request.min !== 1 ||
     snapshot.request.max !== 20
@@ -49,9 +46,10 @@ export function readNativeConcentrationPending(
 
 export function projectNativeConcentrationPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  pendingSnapshot: ServerRuleExecutionPendingSnapshotDto,
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ) {
-  const { snapshot, context } = readNativeConcentrationPending(occurrence)
+  const { snapshot, context } = readNativeConcentrationPending(occurrence, pendingSnapshot)
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     kind: 'D20_EVIDENCE',
     occurrenceId: occurrence.id,

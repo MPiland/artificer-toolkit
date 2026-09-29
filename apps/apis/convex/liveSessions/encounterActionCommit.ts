@@ -24,6 +24,7 @@ import {
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { internalMutation } from '../lib/mutations'
 import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
@@ -317,8 +318,11 @@ export const commit = internalMutation({
       state: 'COMPLETED',
       version: occurrenceVersion,
       expectedEncounterVersion: nextState.version,
-      pendingSnapshotJson: null,
-      pendingSnapshotChecksum: null,
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: execution.occurrenceId, encounterId: state.id },
+        null
+      ),
       completedAt: input.occurredAt,
       createdAt: resume?.occurrence.createdAt ?? input.occurredAt,
       updatedAt: input.occurredAt

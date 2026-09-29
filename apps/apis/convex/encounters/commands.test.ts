@@ -1430,7 +1430,7 @@ describe('native Encounter Run commands', () => {
       state: 'COMPLETED',
       version: 2,
       expectedEncounterVersion: 1,
-      pendingSnapshotJson: null,
+      pendingSnapshotChecksum: null,
       completedAt: expect.any(String)
     })
     expect(JSON.parse(settledStored.receipt?.commandMetadataJson ?? '')).toMatchObject({
@@ -1678,7 +1678,7 @@ describe('native Encounter Run commands', () => {
       state: 'COMPLETED',
       version: 0,
       expectedEncounterVersion: 1,
-      pendingSnapshotJson: null,
+      pendingSnapshotChecksum: null,
       completedAt: expect.any(String)
     })
     expect(stored.receipt).toMatchObject({

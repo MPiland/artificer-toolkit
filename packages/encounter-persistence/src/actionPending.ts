@@ -2,7 +2,6 @@ import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterActorControl } from './actorController.js'
 import {
@@ -11,23 +10,24 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
-import type { EncounterDocument } from './store.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
+import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
 /** Reads the sealed action root without exposing executable facts to recipients. */
-export function readNativeActionPending(occurrence: EncounterDocument<'encounterRuleOccurrences'>) {
+export async function readNativeActionPending(
+  ctx: EncounterReadContext,
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>
+) {
   const { _id, _creationTime, ...stored } = occurrence
   encounterStoredRuleOccurrenceSchema.parse(stored)
-  if (occurrence.state !== 'PENDING' || occurrence.pendingSnapshotJson === null)
-    throw new Error('Stored Encounter action is not pending.')
-  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-    JSON.parse(occurrence.pendingSnapshotJson)
-  )
+  const snapshot =
+    occurrence.state === 'PENDING' ? await readPendingSnapshot(ctx, occurrence) : null
+  if (!snapshot) throw new Error('Stored Encounter action is not pending.')
   if (
     snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
     snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
-    snapshot.occurrenceId !== occurrence.id ||
-    checksumCanonicalJson(snapshot) !== occurrence.pendingSnapshotChecksum
+    snapshot.occurrenceId !== occurrence.id
   )
     throw new Error('Stored Encounter action pending snapshot mismatch.')
   const context = snapshot.applicationContext
@@ -64,16 +64,18 @@ export async function canAnswerNativeActionEvidence(
   }
 ): Promise<boolean> {
   if (input.membership.role === 'OWNER') return true
-  const { context } = readNativeActionPending(input.occurrence)
+  const { context } = await readNativeActionPending(ctx, input.occurrence)
   const actor = await readRunActor(ctx, readRunState(input.run), context.rollerActorId)
   return (await readEncounterActorControl(ctx, { ...input, actor })) !== null
 }
 
+export type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
+
 export function projectNativeActionPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  { snapshot, context }: Pick<NativeActionPending, 'snapshot' | 'context'>,
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): PendingEncounterRuleOccurrenceSummaryDto {
-  const { snapshot, context } = readNativeActionPending(occurrence)
   const common = {
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
@@ -136,7 +138,10 @@ export async function nativeActionPendingResult(
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
       outcome: null,
-      pending: projectNativeActionPending(occurrence)
+      pending: projectNativeActionPending(
+        occurrence,
+        await readNativeActionPending(ctx, occurrence)
+      )
     }
   })
 }

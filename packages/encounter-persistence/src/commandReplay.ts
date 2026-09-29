@@ -177,7 +177,6 @@ export async function readNativeEncounterCommandReplay(
         occurrence.rootCommandId !== input.commandId ||
         occurrence.state !== 'COMPLETED' ||
         occurrence.expectedEncounterVersion !== prior.version ||
-        occurrence.pendingSnapshotJson !== null ||
         occurrence.pendingSnapshotChecksum !== null ||
         occurrence.completedAt === null ||
         storedReceipt.campaignId !== campaign.id ||

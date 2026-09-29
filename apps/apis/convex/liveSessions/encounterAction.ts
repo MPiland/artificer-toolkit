@@ -3,6 +3,7 @@ import { liveSessionEncounterActionPendingInputSchema } from '@artificer-toolkit
 import { type EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { internalMutation } from '../lib/mutations'
 import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
@@ -97,8 +98,11 @@ export const commitPending = internalMutation({
       state: 'PENDING',
       version: resume ? resume.occurrence.version + 1 : 0,
       expectedEncounterVersion: state.version,
-      pendingSnapshotJson: JSON.stringify(snapshot),
-      pendingSnapshotChecksum: checksumCanonicalJson(snapshot),
+      pendingSnapshotChecksum: await writePendingSnapshot(
+        ctx,
+        { id: snapshot.occurrenceId, encounterId: run.id },
+        snapshot
+      ),
       completedAt: null,
       createdAt: resume?.occurrence.createdAt ?? updatedAt,
       updatedAt

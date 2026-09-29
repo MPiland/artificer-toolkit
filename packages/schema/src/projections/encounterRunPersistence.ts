@@ -284,7 +284,7 @@ export const encounterStoredRuleOccurrenceSchema = lazySchema(() =>
       state: z.enum(['PENDING', 'COMPLETED', 'VOIDED']),
       version: z.number().check(z.int()).check(z.nonnegative()),
       expectedEncounterVersion: z.number().check(z.int()).check(z.nonnegative()),
-      pendingSnapshotJson: z.nullable(z.string()),
+      /** The pending snapshot's checksum; its content is in `encounterPendingSnapshotParts`. */
       pendingSnapshotChecksum: z.nullable(projectionChecksumSchema),
       completedAt: z.nullable(z.iso.datetime()),
       createdAt: z.iso.datetime(),
@@ -294,16 +294,25 @@ export const encounterStoredRuleOccurrenceSchema = lazySchema(() =>
       z.superRefine((occurrence, context) => {
         if (
           occurrence.state !== 'PENDING'
-            ? occurrence.pendingSnapshotJson !== null ||
-              occurrence.pendingSnapshotChecksum !== null ||
-              occurrence.completedAt === null
-            : occurrence.pendingSnapshotJson === null ||
-              occurrence.pendingSnapshotChecksum === null ||
-              occurrence.completedAt !== null
+            ? occurrence.pendingSnapshotChecksum !== null || occurrence.completedAt === null
+            : occurrence.pendingSnapshotChecksum === null || occurrence.completedAt !== null
         )
           context.addIssue({ code: 'custom', message: 'Rule occurrence state is inconsistent.' })
       })
     )
+)
+
+/**
+ * One part of a pending occurrence's sealed snapshot: sequence 0 holds `{base}`, each later part a
+ * `{delta}` from the snapshot before it (`jsonDelta.ts` in `encounter-persistence`).
+ */
+export const encounterStoredPendingSnapshotPartSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: postgresUuidSchema,
+    occurrenceId: postgresUuidSchema,
+    sequence: z.number().check(z.int()).check(z.nonnegative()),
+    partJson: z.string()
+  })
 )
 
 export const encounterStoredRuleReceiptSchema = lazySchema(() =>
