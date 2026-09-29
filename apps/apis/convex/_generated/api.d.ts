@@ -54668,34 +54668,6 @@ export declare const internal: {
         },
         any
       >;
-      encounterRuleReceipts: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-      encounterRunCommands: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
       encounterRuns: FunctionReference<
         "mutation",
         "internal",
