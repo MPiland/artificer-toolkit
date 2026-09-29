@@ -59,7 +59,7 @@ export async function settleDisarm(
       character: active
         ? {
             id: active.id,
-            streamVersion: active.streamVersion,
+            streamVersion: active.play.streamVersion,
             document: readCharacterRecord(active) as CharacterAuthored
           }
         : null
@@ -75,7 +75,7 @@ export async function settleDisarm(
       if (priorReceipt) throw new Error('Disarm Character command already exists.')
       await writeCharacterRecord(ctx, {
         current: active,
-        fields: { streamVersion: active.streamVersion + 1, updatedAt: input.occurredAt },
+        fields: { streamVersion: active.play.streamVersion + 1, updatedAt: input.occurredAt },
         document: JSON.parse(JSON.stringify(characterAuthoredDtoSchema.parse(planned.character)))
       })
       const receiptId = crypto.randomUUID()

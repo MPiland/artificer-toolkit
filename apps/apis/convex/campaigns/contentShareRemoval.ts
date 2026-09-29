@@ -16,6 +16,7 @@ import type { Doc } from '../_generated/dataModel'
 import { retainCampaignEquipmentRules } from './acquiredEquipment'
 import { retainCharacterEquipmentRules } from '../characters/acquiredEquipment'
 import { readCharacterRecord } from '../characters/documents'
+import { readCharacterRow, type CharacterRow } from '../characters/stateDocuments'
 import {
   reconcileAssignedCharacterSourceLoss,
   type CharacterSourceLossResult
@@ -220,15 +221,12 @@ export async function removeCampaignSharesAndReconcile(input: {
     .take(members.length + 1)
   if (assignments.length > members.length)
     throw new Error('Stored Campaign Character assignment capacity exceeded.')
-  const characterRecords: Doc<'characters'>[] = []
+  const characterRecords: CharacterRow[] = []
   for (const assignment of assignments.sort((left, right) =>
     left.characterId.localeCompare(right.characterId)
   )) {
     const member = membersById.get(assignment.userId)
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', assignment.characterId))
-      .unique()
+    const record = await readCharacterRow(ctx, assignment.characterId)
     if (
       !member ||
       member.role !== 'PLAYER' ||

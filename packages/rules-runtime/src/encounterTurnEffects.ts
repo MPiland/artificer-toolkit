@@ -102,7 +102,7 @@ function pendingCandidate(input: {
         ? {
             kind: 'CHARACTER' as const,
             characterId: input.target.actor.sourceId,
-            streamVersion: input.target.characterFacts.active.streamVersion,
+            streamVersion: input.target.characterFacts.active.play.streamVersion,
             projectionChecksum: currentness.projectionChecksum,
             mechanicalContextChecksum: currentness.mechanicalContextChecksum
           }
@@ -555,7 +555,7 @@ function turnEffectMechanicsBatch(input: {
         : input.rootCommandId,
     occurredAt: input.occurredAt,
     applications: input.applications,
-    expectedCharacterStreamVersion: input.target.characterFacts?.active.streamVersion ?? null,
+    expectedCharacterStreamVersion: input.target.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: input.target.effectiveMaximumHitPoints,
     effectiveScalarValues: input.target.effectiveScalarValues,
     retainedConditionIds: input.retainedConditionIds,

@@ -379,7 +379,7 @@ function movementReactionSettlement<
           {
             characterId: prepared.prepared.target.sourceId,
             beforeStreamVersion:
-              prepared.prepared.targetFacts.characterFacts?.active.streamVersion ??
+              prepared.prepared.targetFacts.characterFacts?.active.play.streamVersion ??
               (() => {
                 throw new Error('Encounter Character reaction target is unavailable.')
               })(),

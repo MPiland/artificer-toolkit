@@ -681,75 +681,90 @@ async function readCharacters(
     [...current.map((row) => row.id), ...drafts.map((row) => row.characterId)],
     known.characterIds
   )
-  const [knownCharacters, payloads, routes, assignments, receipts, effects] = await Promise.all([
-    Promise.all(
-      characterIds.map((id) =>
-        bounded(
-          ctx.db.query('characters').withIndex('by_publicId', (q) => q.eq('id', id)),
-          1,
-          'characters by public ID'
+  const [knownCharacters, plays, payloads, routes, assignments, receipts, effects] =
+    await Promise.all([
+      Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db.query('characters').withIndex('by_publicId', (q) => q.eq('id', id)),
+            1,
+            'characters by public ID'
+          )
+        )
+      ),
+      Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db
+              .query('characterPlayStates')
+              .withIndex('by_characterId', (q) => q.eq('characterId', id)),
+            1,
+            'Character play states'
+          )
+        )
+      ),
+      Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db
+              .query('characterDraftPayloads')
+              .withIndex('by_characterId_id', (q) => q.eq('characterId', id)),
+            8,
+            'Character draft payloads'
+          )
+        )
+      ),
+      Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db
+              .query('authoredRouteIds')
+              .withIndex('by_subjectId', (q) => q.eq('subjectId', id)),
+            1,
+            'Character routes'
+          )
+        )
+      ),
+      Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db
+              .query('campaignCharacterAssignments')
+              .withIndex('by_characterId', (q) => q.eq('characterId', id)),
+            8,
+            'Character assignments'
+          )
+        )
+      ),
+      Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db
+              .query('characterCommandReceipts')
+              .withIndex('by_characterId_commandId', (q) => q.eq('characterId', id)),
+            32,
+            'Character receipts'
+          )
+        )
+      ),
+      Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db
+              .query('characterActiveRuleEffects')
+              .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', id)),
+            32,
+            'Character effects'
+          )
         )
       )
-    ),
-    Promise.all(
-      characterIds.map((id) =>
-        bounded(
-          ctx.db
-            .query('characterDraftPayloads')
-            .withIndex('by_characterId_id', (q) => q.eq('characterId', id)),
-          8,
-          'Character draft payloads'
-        )
-      )
-    ),
-    Promise.all(
-      characterIds.map((id) =>
-        bounded(
-          ctx.db.query('authoredRouteIds').withIndex('by_subjectId', (q) => q.eq('subjectId', id)),
-          1,
-          'Character routes'
-        )
-      )
-    ),
-    Promise.all(
-      characterIds.map((id) =>
-        bounded(
-          ctx.db
-            .query('campaignCharacterAssignments')
-            .withIndex('by_characterId', (q) => q.eq('characterId', id)),
-          8,
-          'Character assignments'
-        )
-      )
-    ),
-    Promise.all(
-      characterIds.map((id) =>
-        bounded(
-          ctx.db
-            .query('characterCommandReceipts')
-            .withIndex('by_characterId_commandId', (q) => q.eq('characterId', id)),
-          32,
-          'Character receipts'
-        )
-      )
-    ),
-    Promise.all(
-      characterIds.map((id) =>
-        bounded(
-          ctx.db
-            .query('characterActiveRuleEffects')
-            .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', id)),
-          32,
-          'Character effects'
-        )
-      )
-    )
-  ])
+    ])
   const characters = uniqueRows([...current, ...knownCharacters.flat()])
   if (characters.some((row) => row.userId !== userId))
     throw new Error('Known Character identity collides with another account.')
   return {
     characters,
+    characterPlayStates: plays.flat().sort((a, b) => a._id.localeCompare(b._id)),
     characterDrafts: drafts,
     characterDraftPayloads: payloads.flat().sort((a, b) => a._id.localeCompare(b._id)),
     userRollHistory: rolls,

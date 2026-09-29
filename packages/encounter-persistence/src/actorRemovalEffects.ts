@@ -2,7 +2,7 @@ import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-tool
 
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { EncounterDocument } from './store.js'
+import { readEncounterCharacterRow, type EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterWriteTransaction } from './ports.js'
 
 type MaintenanceCleanupResult = Pick<
@@ -82,12 +82,9 @@ export async function cleanupRemovedActorEffects(
       )
     )
   ].sort((left, right) => left.localeCompare(right))
-  const characterRows = new Map<string, EncounterDocument<'characters'>>()
+  const characterRows = new Map<string, EncounterCharacterRow>()
   for (const characterId of affectedCharacterIds) {
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterId))
-      .unique()
+    const row = await readEncounterCharacterRow(ctx, characterId)
     if (!row || row.status !== 'ACTIVE')
       throw new Error('Maintained-effect Character owner is unavailable.')
     const character = ctx.ports.readCharacterRecord(row)
@@ -143,12 +140,12 @@ export async function cleanupRemovedActorEffects(
     if (!character) throw new Error('Maintained-effect Character owner is unavailable.')
     await ctx.ports.writeCharacterRecord({
       current: character,
-      fields: { streamVersion: character.streamVersion + 1, updatedAt: input.occurredAt }
+      fields: { streamVersion: character.play.streamVersion + 1, updatedAt: input.occurredAt }
     })
     characterOwnerTransitions.push({
       characterId,
-      beforeStreamVersion: character.streamVersion,
-      afterStreamVersion: character.streamVersion + 1
+      beforeStreamVersion: character.play.streamVersion,
+      afterStreamVersion: character.play.streamVersion + 1
     })
   }
 

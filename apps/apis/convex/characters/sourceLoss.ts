@@ -25,6 +25,7 @@ import { readCharacterCampaign } from './context'
 import { readCharacterAuthoredChoiceKinds } from './sourceAccessLoss'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
 import { writeCharacterRecord } from './characterWrites'
+import type { CharacterRow } from './stateDocuments'
 
 export interface CharacterSourceLossResult {
   characterId: string
@@ -145,7 +146,7 @@ async function saveDraft(input: {
 /** Reconciles one owned Character inside its caller's atomic source-removal transaction. */
 export async function reconcileCharacterSourceLoss(input: {
   ctx: MutationCtx
-  record: Doc<'characters'>
+  record: CharacterRow
   targets: readonly CharacterSourceLossTarget[]
   /** Departure changes source/overlay authority even when no authored root was lost. */
   stateAfterContextChange?: CharacterAuthored['state']
@@ -204,7 +205,7 @@ export async function reconcileCharacterSourceLoss(input: {
     return {
       characterId: current.id,
       status: input.record.status,
-      streamVersion: input.record.streamVersion,
+      streamVersion: input.record.play.streamVersion,
       draftOnly: true,
       removedSources: canonicalTargets(draftLosses),
       campaign
@@ -275,16 +276,23 @@ export async function reconcileCharacterSourceLoss(input: {
   const committed = characterAuthoredDtoSchema.parse({ ...character, status })
   const encoded: unknown = JSON.parse(JSON.stringify(committed))
   const checksum = checksumRuleDocument(encoded)
-  const changed = checksum !== input.record.checksum
-  const updatedAt = changed ? nextTimestamp(input.record.updatedAt) : input.record.updatedAt
-  const streamVersion = input.record.streamVersion + (changed ? 1 : 0)
-  if (changed)
-    await writeCharacterRecord(input.ctx, {
-      current: input.record,
-      fields: { label: committed.label, status, streamVersion, updatedAt },
-      document: encoded,
-      ...(stats === undefined ? {} : { stats })
-    })
+  const changed = checksum !== checksumRuleDocument(JSON.parse(JSON.stringify(original)))
+  const streamVersion = input.record.play.streamVersion + (changed ? 1 : 0)
+  const written = changed
+    ? await writeCharacterRecord(input.ctx, {
+        current: input.record,
+        fields: {
+          label: committed.label,
+          status,
+          streamVersion,
+          updatedAt: nextTimestamp(input.record.updatedAt)
+        },
+        document: committed,
+        ...(stats === undefined ? {} : { stats })
+      })
+    : null
+  // The structure clock moves only when the structure does (a play-only change leaves it).
+  const updatedAt = written?.row.updatedAt ?? input.record.updatedAt
 
   let draftChanged = false
   if (draftRecord) {
@@ -365,7 +373,7 @@ export async function reconcileCreateOnlyCharacterDraftSourceLoss(input: {
 export async function reconcileAssignedCharacterSourceLoss(input: {
   ctx: MutationCtx
   campaign: Doc<'campaigns'>
-  record: Doc<'characters'>
+  record: CharacterRow
   targets: readonly CharacterSourceLossTarget[]
   stateAfterContextChange?: CharacterAuthored['state']
 }): Promise<CharacterSourceLossResult | null> {

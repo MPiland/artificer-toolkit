@@ -6,6 +6,8 @@ import {
   type CharacterBuilderCommitOutput
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { splitCharacterStatePlay } from '@artificer-toolkit/schema/projections/characterPlayState'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
@@ -66,15 +68,20 @@ export async function commitCharacter(
     state: await retainCharacterEquipmentRules(ctx, prepared.character, undefined, reads),
     status: 'ACTIVE'
   })
-  const encoded: unknown = JSON.parse(JSON.stringify(committed))
   const now = new Date(
     Math.max(Date.now(), activeRecord ? Date.parse(activeRecord.updatedAt) + 1 : 0)
   ).toISOString()
   const publicId = await ensureAuthoredRouteId(ctx, 'CHARACTER', committed.id, false, userId)
   if (publicId !== draftRecord.publicId)
     throw new Error('Stored Character route identity mismatch.')
-  const streamVersion = (activeRecord?.streamVersion ?? 0) + 1
-  await writeCharacterRecord(ctx, {
+  // The play stream advances only when the commit changes play state (a new Character, or hit dice
+  // reconciled to a class change), so a Builder save does not invalidate Sheet commands in flight.
+  const playChanged =
+    !current ||
+    checksumCanonicalJson(splitCharacterStatePlay(committed.state).play) !==
+      checksumCanonicalJson(splitCharacterStatePlay(current.state).play)
+  const streamVersion = (activeRecord?.play.streamVersion ?? 0) + (playChanged ? 1 : 0)
+  const written = await writeCharacterRecord(ctx, {
     current: activeRecord,
     fields: {
       id: committed.id,
@@ -86,17 +93,40 @@ export async function commitCharacter(
       createdAt: activeRecord?.createdAt ?? now,
       updatedAt: now
     },
-    document: encoded,
+    document: committed,
     // The stored stats evaluate the committed Character over the context commit just read.
     sourceContext: { characterId: committed.id, ownerUserId: userId, context: prepared.context }
   })
+  const { maximumHitPoints, walkingSpeed } = written.row.play
+  // A lower maximum takes current hit points down with it. Readers clamp anyway, but a stored value
+  // above the maximum would swallow the next damage or healing. Only the play record is rewritten.
+  const clampsHitPoints =
+    activeRecord !== null &&
+    maximumHitPoints < activeRecord.play.maximumHitPoints &&
+    committed.state.hitpoints.current > maximumHitPoints
+  const stored = clampsHitPoints
+    ? {
+        ...committed,
+        state: {
+          ...committed.state,
+          hitpoints: { ...committed.state.hitpoints, current: maximumHitPoints }
+        }
+      }
+    : committed
+  if (clampsHitPoints)
+    await writeCharacterRecord(ctx, {
+      current: written.row,
+      fields: { streamVersion: streamVersion + (playChanged ? 0 : 1), updatedAt: now },
+      document: stored,
+      stats: { maximumHitPoints, walkingSpeed }
+    })
   await deleteCharacterDraftPayload(ctx, draftRecord)
   await ctx.db.delete(draftRecord._id)
   // This mutation verified the owner and just wrote the row.
   await syncAccountUsage(ctx, 'personalCharacters', committed.id, userId)
   return characterBuilderCommitOutputSchema.parse({
-    character: encoded,
+    character: JSON.parse(JSON.stringify(stored)),
     publicId,
-    streamVersion
+    streamVersion: streamVersion + (clampsHitPoints && !playChanged ? 1 : 0)
   })
 }

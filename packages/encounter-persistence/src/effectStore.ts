@@ -32,6 +32,7 @@ import {
   sourceEncounterIdForDefinition
 } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { z } from 'zod'
+import { readEncounterCharacterPlay } from './characterPlay.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 const positiveIntegerSchema = z.number().int().positive()
@@ -144,11 +145,8 @@ export function readMaintainedState(
 }
 
 async function requireCharacter(ctx: EncounterReadContext, characterId: string) {
-  const character = await ctx.db
-    .query('characters')
-    .withIndex('by_publicId', (q) => q.eq('id', characterId))
-    .unique()
-  if (!character) throw new Error('Active rule-effect Character owner is unavailable.')
+  if (!(await readEncounterCharacterPlay(ctx, characterId)))
+    throw new Error('Active rule-effect Character owner is unavailable.')
 }
 
 async function requireEncounterActor(

@@ -13,6 +13,10 @@ import {
   CHARACTER_DRAFT_PAYLOAD_MAX_CHUNKS,
   characterStoredDraftPayloadSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
+import {
+  mergeCharacterStatePlay,
+  splitCharacterStatePlay
+} from '@artificer-toolkit/schema/projections/characterPlayState'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { decodeUtf8PayloadChunks, encodeUtf8PayloadChunks } from '../lib/jsonPayloadChunks'
@@ -301,7 +305,19 @@ export async function loadCharacterDraftCandidate(
     draftRecord: draft,
     current,
     draft: working,
-    character: { ...input.character, userId, status: 'DRAFT' as const }
+    character: {
+      ...input.character,
+      userId,
+      status: 'DRAFT' as const,
+      // The draft holds a play-state snapshot from when it opened; the Builder edits structure only,
+      // so the Character's live play state (ADR 0035 Amendment 12) replaces it.
+      state: current
+        ? mergeCharacterStatePlay(
+            splitCharacterStatePlay(input.character.state).structure,
+            splitCharacterStatePlay(current.state).play
+          )
+        : input.character.state
+    }
   }
 }
 

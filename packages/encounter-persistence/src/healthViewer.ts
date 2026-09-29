@@ -1,5 +1,6 @@
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterPlayerHealthViewer } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
+import { readEncounterCharacterPlay } from './characterPlay.js'
 import type { EncounterReadTransaction } from './ports.js'
 
 /** Each Character actor's player and "Show my health to the party" (ADR 0034 decision 5). */
@@ -15,25 +16,19 @@ export async function readEncounterHealthViewer(
       )
     )
   ]
-  const rows = await Promise.all(
-    characterIds.map((id) =>
-      ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', id))
-        .unique()
-    )
-  )
+  // Party visibility lives on the small play record, so this never loads a Character document.
+  const plays = await Promise.all(characterIds.map((id) => readEncounterCharacterPlay(ctx, id)))
   return {
     userId,
     characters: new Map(
-      rows.flatMap((row) =>
-        row
+      plays.flatMap((play) =>
+        play
           ? [
               [
-                row.id,
+                play.characterId,
                 {
-                  ownerUserId: row.userId,
-                  health: ctx.ports.readCharacterSheetState(row).partyVisibility.health
+                  ownerUserId: play.userId,
+                  health: ctx.ports.readCharacterPlay(play).partyVisibility.health
                 }
               ] as const
             ]

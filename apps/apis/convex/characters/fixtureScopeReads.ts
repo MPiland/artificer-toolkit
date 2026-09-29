@@ -29,10 +29,14 @@ export const assertRemoved = internalQuery({
       .unique()
     if (campaign) throw new Error('Exact fixture Campaign cleanup is incomplete.')
     for (const characterId of characterIds) {
-      const [character, draft, route, receipt, assignment] = await Promise.all([
+      const [character, play, draft, route, receipt, assignment] = await Promise.all([
         ctx.db
           .query('characters')
           .withIndex('by_publicId', (q) => q.eq('id', characterId))
+          .unique(),
+        ctx.db
+          .query('characterPlayStates')
+          .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
           .unique(),
         ctx.db
           .query('characterDrafts')
@@ -51,7 +55,7 @@ export const assertRemoved = internalQuery({
           .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
           .first()
       ])
-      if (character || draft || route || receipt || assignment)
+      if (character || play || draft || route || receipt || assignment)
         throw new Error('Exact fixture Character cleanup is incomplete.')
     }
     for (const userId of userIds) {

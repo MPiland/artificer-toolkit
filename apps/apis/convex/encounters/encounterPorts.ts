@@ -23,7 +23,7 @@ import { writeCharacterRecord } from '../characters/characterWrites'
 import { executeEncounterCharacterCommand } from '../characters/encounterCommands'
 import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterPlay, readCharacterRecord } from '../characters/stateDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
 import { readAutoRollDice } from '../lib/rollPreferences'
@@ -99,6 +99,7 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
       readEncounterSource(ctx, userId, systemId, id, kind),
     readCharacterRecord,
     readCharacterSheetState,
+    readCharacterPlay,
     readAssignedCharacter: (campaign, membership) =>
       readCampaignAssignedCharacter(ctx, campaign, membership),
     readAutoRollDice: (userId) => readAutoRollDice(ctx, userId),

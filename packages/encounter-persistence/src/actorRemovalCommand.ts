@@ -14,6 +14,7 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import type { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readEncounterCharacterRow } from './characterPlay.js'
 import { changedFields, deleteRunActor, readRunActors, readRunState } from './documents.js'
 import {
   encounterReplayReceipt,
@@ -127,10 +128,7 @@ export async function removeAccountCharacterActors(
       .sort((left, right) => left.id.localeCompare(right.id))) {
       const characterId = actor.sourceId
       if (!characterId) throw new Error('Stored Encounter Character source is unavailable.')
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', characterId))
-        .unique()
+      const character = await readEncounterCharacterRow(ctx, characterId)
       if (!character || character.userId !== userId)
         throw new Error('Stored Encounter Character source is unavailable.')
       ctx.ports.readCharacterRecord(character)
@@ -484,10 +482,7 @@ async function requireOwnedCharacterActor(
   const characterId = actor.sourceId
   if (actor.kind !== 'CHARACTER' || !characterId)
     throw new Error('Encounter actor is not a Character.')
-  const character = await ctx.db
-    .query('characters')
-    .withIndex('by_publicId', (q) => q.eq('id', characterId))
-    .unique()
+  const character = await readEncounterCharacterRow(ctx, characterId)
   if (!character || character.userId !== userId)
     throw new Error('Encounter Character is unavailable for account cleanup.')
   ctx.ports.readCharacterRecord(character)

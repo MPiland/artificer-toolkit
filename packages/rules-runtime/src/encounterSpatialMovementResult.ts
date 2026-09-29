@@ -111,7 +111,7 @@ export function projectSpatialMovementResult(input: {
       characterTransitions.push({
         characterId: target.actor.sourceId,
         targetActorId: settlement.targetActorId,
-        beforeStreamVersion: target.characterFacts.active.streamVersion,
+        beforeStreamVersion: target.characterFacts.active.play.streamVersion,
         afterStreamVersion: settlement.characterStreamVersion,
         before: first.targetTransition.before,
         after: settlement.targetTransition.after

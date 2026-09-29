@@ -348,7 +348,7 @@ export async function planNativeLiveDisarm(
         character: characterFacts
           ? {
               id: characterFacts.active.id,
-              streamVersion: characterFacts.active.streamVersion,
+              streamVersion: characterFacts.active.play.streamVersion,
               document: characterFacts.character
             }
           : null

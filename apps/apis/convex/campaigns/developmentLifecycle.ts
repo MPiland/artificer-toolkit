@@ -1109,6 +1109,19 @@ async function personalRows(ctx: Ctx, fixture: DevelopmentCampaignFixture) {
   return {
     userProfiles,
     characters,
+    characterPlayStates: await children(
+      characters.map((row) => row.id),
+      (id) =>
+        rows(
+          ctx.db
+            .query('characterPlayStates')
+            .withIndex('by_characterId', (q) => q.eq('characterId', id)),
+          1,
+          'characterPlayStates'
+        ),
+      32,
+      'characterPlayStates'
+    ),
     characterDrafts,
     characterDraftPayloads,
     characterDraftPayloadChunks,

@@ -338,7 +338,7 @@ export async function prepareTurnLegendaryActions<
             ? [
                 {
                   characterId: target.sourceId,
-                  beforeStreamVersion: targetCharacter.active.streamVersion,
+                  beforeStreamVersion: targetCharacter.active.play.streamVersion,
                   afterStreamVersion: plan.mechanics.characterStreamVersion
                 }
               ]

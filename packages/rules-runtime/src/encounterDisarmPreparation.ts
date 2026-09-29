@@ -427,12 +427,12 @@ export function prepareEncounterDisarmContest(input: {
         ? {
             kind: 'CHARACTER',
             characterId: defenderFacts.character.active.id,
-            streamVersion: defenderFacts.character.active.streamVersion,
+            streamVersion: defenderFacts.character.active.play.streamVersion,
             projectionChecksum: defenderFacts.currentness.projectionChecksum,
             mechanicalContextChecksum: defenderFacts.currentness.mechanicalContextChecksum,
             stateChecksum: checksumRuleDocument({
               itemId: heldItemId,
-              streamVersion: defenderFacts.character.active.streamVersion,
+              streamVersion: defenderFacts.character.active.play.streamVersion,
               equipped: defenderFacts.heldItemIds
             })
           }

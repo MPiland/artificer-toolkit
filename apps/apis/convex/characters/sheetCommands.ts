@@ -201,7 +201,7 @@ export async function executeCharacterSheetCommand(
     })
   }
 
-  if (input.command.expectedVersion !== initial.active.streamVersion)
+  if (input.command.expectedVersion !== initial.active.play.streamVersion)
     throw new Error('Character Sheet changed; refresh before applying this command.')
 
   const command = input.command
@@ -347,7 +347,11 @@ export async function executeCharacterSheetCommand(
     }
   }
   const occurredAt = new Date(
-    Math.max(Date.now(), Date.parse(initial.active.updatedAt) + 1)
+    Math.max(
+      Date.now(),
+      Date.parse(initial.active.updatedAt) + 1,
+      Date.parse(initial.active.play.updatedAt) + 1
+    )
   ).toISOString()
   const rest =
     command.type === 'COMPLETE_REST'
@@ -490,7 +494,7 @@ export async function executeCharacterSheetCommand(
   const sheetStateChanged =
     canonicalizeRuleDocument(JSON.parse(JSON.stringify(nextSheetState))) !==
     canonicalizeRuleDocument(initial.sheetState)
-  const streamVersion = initial.active.streamVersion + 1
+  const streamVersion = initial.active.play.streamVersion + 1
   // One rest spends its roll once, wherever the roll is stored.
   if (rest?.roll) await ctx.db.patch(rest.roll._id, { consumedAt: occurredAt })
 
@@ -516,7 +520,7 @@ export async function executeCharacterSheetCommand(
     writeCharacterRecord(ctx, {
       current: row,
       fields: { streamVersion, updatedAt: occurredAt },
-      document: JSON.parse(JSON.stringify(document)),
+      document,
       ...(sheetStateChanged ? { sheetState: nextSheetState } : {}),
       sourceContext: unchangedSources,
       evaluateAs: { userId, campaignId }

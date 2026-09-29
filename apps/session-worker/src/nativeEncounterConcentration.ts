@@ -27,7 +27,7 @@ import {
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   readNativeLiveMaintenanceOwners,
@@ -314,22 +314,7 @@ export async function planNativeLiveConcentration(input: {
         )
         const effects = actor ? projection.activeEffectsByActorId.get(actor.id) : prior?.effects
         if (!effects) throw new Error('Concentration effect owner is unavailable.')
-        const character = target?.characterFacts
-        let row = prior?.character ?? null
-        if (character) {
-          const active: typeof character.active &
-            Partial<NonNullable<NativeLiveMaintenanceOwner['character']>> = character.active
-          row = {
-            ...row,
-            ...active,
-            documentJson:
-              active.documentJson ??
-              row?.documentJson ??
-              canonicalizeRuleDocument(character.character),
-            sheetState: active.sheetState ?? row?.sheetState,
-            updatedAt: active.updatedAt ?? row?.updatedAt ?? input.occurredAt
-          }
-        }
+        const row = target?.characterFacts?.active ?? prior?.character ?? null
         if (owner.kind === 'CHARACTER' && (!row || row.id !== owner.characterId))
           throw new Error('Concentration Character owner is unavailable.')
         owners.push({ owner, effects: [...effects], character: row })
@@ -340,7 +325,7 @@ export async function planNativeLiveConcentration(input: {
             ? [
                 {
                   characterId: owner.character.id,
-                  beforeStreamVersion: owner.character.streamVersion
+                  beforeStreamVersion: owner.character.play.streamVersion
                 }
               ]
             : []

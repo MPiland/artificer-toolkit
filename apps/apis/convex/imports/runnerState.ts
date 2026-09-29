@@ -17,6 +17,7 @@ import type { Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { readCharacterRecord } from '../characters/documents'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { readSystem } from '../content/systemDocuments'
 import { parseImportJob, requireCurrentImportOwner } from './jobs'
 
@@ -185,10 +186,7 @@ export const loadPreflight = internalQuery({
 
     const activeCharacters: ImportRunnerPreflight['activeCharacters'] = []
     for (const characterId of args.characterIds) {
-      const active = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (query) => query.eq('id', characterId))
-        .unique()
+      const active = await readCharacterRow(ctx, characterId)
       if (!active || active.userId !== job.ownerUserId) continue
       const character = readCharacterRecord(active)
       activeCharacters.push({

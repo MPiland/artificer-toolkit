@@ -103,6 +103,7 @@ function assertImmediateCleanup(
     'providerSessions',
     'userProfiles',
     'characters',
+    'characterPlayStates',
     'characterDrafts',
     'characterDraftPayloads',
     'authoredRoots',

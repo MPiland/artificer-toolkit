@@ -15,6 +15,7 @@ import {
 } from '@artificer-toolkit/shared/campaign/textPolicy'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { readCharacterRecord, resolveCharacterId } from './characters/documents'
+import { readCharacterRow } from './characters/stateDocuments'
 import { loadCharacterSheet } from './characters/sheetPreparation'
 import { readCharacterCampaign } from './characters/context'
 import { requireCampaignCharacterAuthority } from './campaigns/characterState'
@@ -46,10 +47,7 @@ export async function evaluateCharacterRoll(
 ) {
   const id = await resolveCharacterId(ctx, input.characterId)
   if (!id) throw new Error('Character not found.')
-  const active = await ctx.db
-    .query('characters')
-    .withIndex('by_publicId', (q) => q.eq('id', id))
-    .unique()
+  const active = await readCharacterRow(ctx, id)
   if (!active) throw new Error('Character not found.')
   if (campaignId) await requireCampaignCharacterAuthority(ctx, campaignId, id, userId)
   else if (active.userId !== userId) throw new Error('Character not found.')

@@ -118,7 +118,7 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
         checksum: vocabulary.checksum
       },
       targetCharacter: {
-        streamVersion: character.active.streamVersion,
+        streamVersion: character.active.play.streamVersion,
         baseProjectionChecksum: target.characterCurrentness.projectionChecksum,
         campaignOverlayChecksum: checksumRuleDocument({
           base: target.characterCurrentness.projectionChecksum,

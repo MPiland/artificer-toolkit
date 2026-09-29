@@ -1,7 +1,7 @@
 import type { CampaignSummaryDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
 import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 
@@ -18,10 +18,7 @@ export async function readCampaignAssignedCharacter(
     .unique()
   if (!assignment) return null
   const [record, route, uniqueAssignment] = await Promise.all([
-    ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', assignment.characterId))
-      .unique(),
+    readCharacterRow(ctx, assignment.characterId),
     readVisibleAuthoredRouteId(ctx, { subjectId: assignment.characterId }),
     ctx.db
       .query('campaignCharacterAssignments')

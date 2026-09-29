@@ -3,7 +3,6 @@ import {
   liveSessionActionCaptureScopeSchema,
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
-import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterSheetStateSchema } from '../projections/characterSheetState.js'
 import { characterStoredRowSchema } from '../projections/characterPersistence.js'
 import { campaignCharacterStateSchema } from '../projections/campaignCharacterState.js'
@@ -65,11 +64,8 @@ export const liveSessionCharacterInputsResponseSchema = lazySchema(() =>
     kind: z.literal('INPUTS'),
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
-    character: characterAuthoredDtoSchema,
-    movementOwner: z.optional(characterStoredRowSchema),
-    updatedAt: z.iso.datetime(),
-    characterChecksum: projectionChecksumSchema,
-    streamVersion: z.number().check(z.int()).check(z.nonnegative()),
+    /** The Character's structure row with its play record; the reader joins them and verifies both checksums. */
+    owner: characterStoredRowSchema,
     sheetState: characterSheetStateSchema,
     system: systemAuthoredDtoSchema,
     campaign: z.strictObject({

@@ -17,6 +17,7 @@ import { query } from './lib/queries'
 import { mutation } from './lib/mutations'
 import { requireIdentity } from './lib/identity'
 import { readCharacterRecord } from './characters/documents'
+import { readCharacterRow } from './characters/stateDocuments'
 import { readCharacterCampaign } from './characters/context'
 import {
   evaluateCharacterRoll,
@@ -70,10 +71,7 @@ export const history = query({
         [
           ...new Set(records.flatMap((record) => (record.characterId ? [record.characterId] : [])))
         ].map(async (id) => {
-          const active = await ctx.db
-            .query('characters')
-            .withIndex('by_publicId', (q) => q.eq('id', id))
-            .unique()
+          const active = await readCharacterRow(ctx, id)
           // Caller-owned snapshots can come from an explicitly scoped GM roll too.
           const campaign = active
             ? await readCharacterCampaign(ctx, readCharacterRecord(active), active.userId)

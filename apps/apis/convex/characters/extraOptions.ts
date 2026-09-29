@@ -13,6 +13,7 @@ import {
   presentCampaignRichText
 } from '@artificer-toolkit/shared/campaign/textPolicy'
 import { readCharacterRecord, resolveCharacterId } from './documents'
+import { readCharacterRow } from './stateDocuments'
 
 export const list = query({
   args: zodToConvexFields(characterSheetExtraCatalogReadInputSchema.shape),
@@ -22,10 +23,7 @@ export const list = query({
     const input = characterSheetExtraCatalogReadInputSchema.parse(args)
     const id = await resolveCharacterId(ctx, input.id)
     if (!id) throw new Error('Character extras are unavailable for the current user.')
-    const active = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', id))
-      .unique()
+    const active = await readCharacterRow(ctx, id)
     if (!active || active.userId !== userId || active.status !== 'ACTIVE')
       throw new Error('Character extras are unavailable for the current user.')
     const character = readCharacterRecord(active)

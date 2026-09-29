@@ -122,18 +122,16 @@ export async function presentRun(
       characterId,
       characterProjectionState(
         {
-          state: {
-            ...character.state,
-            conditions: [
-              ...(character.state.conditions ?? []),
-              ...getVisibleCampaignConditions({
-                conditions: campaignState.conditions,
-                viewer: role === 'OWNER' ? 'CAMPAIGN_OWNER' : 'CHARACTER_OWNER'
-              })
-            ]
-          }
+          hitpoints: character.state.hitpoints,
+          conditions: [
+            ...(character.state.conditions ?? []),
+            ...getVisibleCampaignConditions({
+              conditions: campaignState.conditions,
+              viewer: role === 'OWNER' ? 'CAMPAIGN_OWNER' : 'CHARACTER_OWNER'
+            })
+          ]
         },
-        await readCharacterMaximumHitPoints(ctx, active),
+        await readCharacterMaximumHitPoints(ctx, active.play),
         system?.conditionTypes ?? []
       )
     )

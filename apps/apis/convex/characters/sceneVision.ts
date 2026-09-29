@@ -36,7 +36,7 @@ export const read = internalQuery({
     if (!loaded || loaded.active.id !== input.characterId)
       throw new Error('Character vision source is unavailable.')
     if (
-      loaded.active.streamVersion !== input.streamVersion ||
+      loaded.active.play.streamVersion !== input.streamVersion ||
       loaded.character.systemId !== input.systemId
     )
       throw new Error('Character vision source is stale.')

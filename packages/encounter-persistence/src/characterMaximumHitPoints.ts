@@ -6,17 +6,17 @@ import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
 /**
- * The maximum hit points the Sheet shows, read from a Character row: the stored maximum (before
+ * The maximum hit points the Sheet shows, read from a Character's play record: the stored maximum (before
  * active-effect reductions) less the Character's active hit point maximum reductions.
  */
 export async function readCharacterMaximumHitPoints(
   ctx: EncounterReadContext,
-  row: Pick<EncounterDocument<'characters'>, 'id' | 'maximumHitPoints'>
+  play: Pick<EncounterDocument<'characterPlayStates'>, 'characterId' | 'maximumHitPoints'>
 ) {
   return reduceHitPointMaximum(
-    row.maximumHitPoints,
+    play.maximumHitPoints,
     listHitPointMaximumReductions(
-      await listActiveRuleEffects(ctx, { kind: 'CHARACTER', characterId: row.id })
+      await listActiveRuleEffects(ctx, { kind: 'CHARACTER', characterId: play.characterId })
     )
   )
 }

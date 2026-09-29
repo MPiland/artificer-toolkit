@@ -13,6 +13,7 @@ import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
 import { readCharacterRecord, resolveCharacterId } from './documents'
+import { readCharacterRow } from './stateDocuments'
 
 /**
  * The caller's active Character: the Builder route's first payload beside `drafts.get`, and the
@@ -35,10 +36,7 @@ export async function readActiveCharacter(
   const { userId } = await requireIdentity(ctx)
   const id = await resolveCharacterId(ctx, input.id)
   if (!id) return null
-  const active = await ctx.db
-    .query('characters')
-    .withIndex('by_publicId', (q) => q.eq('id', id))
-    .unique()
+  const active = await readCharacterRow(ctx, id)
   if (!active || active.userId !== userId) return null
   const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
   if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== userId)

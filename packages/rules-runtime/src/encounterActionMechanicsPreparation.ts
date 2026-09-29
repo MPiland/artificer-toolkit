@@ -193,7 +193,7 @@ export async function prepareEncounterActionMechanics<
       ? (() => {
           if (
             !characterFacts ||
-            characterFacts.active.streamVersion !== source.characterStreamVersion ||
+            characterFacts.active.play.streamVersion !== source.characterStreamVersion ||
             characterFacts.character.systemId !== state.gameSystemId
           )
             throw new Error('The selected Character action source is stale.')

@@ -21,7 +21,7 @@ import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
 
 type EncounterActor = EncounterRunActorState
 type LoadedCharacterSheetFacts = {
-  active: { id: string; streamVersion: number }
+  active: { id: string; play: { streamVersion: number } }
   character: CharacterAuthored
   sheetState: CharacterSheetState
   campaignContext: { conditions: readonly { conditionTypeId: string }[] }
@@ -134,7 +134,7 @@ export function planEncounterMechanicsBatch(input: {
     loaded.character.systemId !== actor.systemId
   )
     throw new Error('Encounter Character source is unavailable.')
-  if (loaded.active.streamVersion !== batch.expectedCharacterStreamVersion)
+  if (loaded.active.play.streamVersion !== batch.expectedCharacterStreamVersion)
     throw new Error('Encounter Character changed after the outcome was planned.')
   const rawConditions = loaded.character.state.conditions ?? []
 
@@ -143,7 +143,7 @@ export function planEncounterMechanicsBatch(input: {
   if (resourceConsumption !== undefined) {
     if (
       resourceConsumption.characterId !== loaded.active.id ||
-      resourceConsumption.expectedStreamVersion !== loaded.active.streamVersion ||
+      resourceConsumption.expectedStreamVersion !== loaded.active.play.streamVersion ||
       !Number.isSafeInteger(resourceConsumption.cost) ||
       resourceConsumption.cost < 1 ||
       !Number.isSafeInteger(resourceConsumption.beforeUsed) ||
@@ -269,7 +269,7 @@ export function planEncounterMechanicsBatch(input: {
     updatedActor: actor,
     receiptApplications: folded.applications,
     targetTransition: transition(actor.id, folded.before, folded.after),
-    characterStreamVersion: shouldAdvance ? loaded.active.streamVersion + 1 : null,
+    characterStreamVersion: shouldAdvance ? loaded.active.play.streamVersion + 1 : null,
     itemUseStateTransition:
       stowItemId === undefined
         ? null
@@ -279,8 +279,8 @@ export function planEncounterMechanicsBatch(input: {
             itemInstanceId: stowItemId,
             fromState: 'EQUIPPED',
             toState: 'CARRIED',
-            beforeStreamVersion: loaded.active.streamVersion,
-            afterStreamVersion: loaded.active.streamVersion + 1,
+            beforeStreamVersion: loaded.active.play.streamVersion,
+            afterStreamVersion: loaded.active.play.streamVersion + 1,
             beforeStateChecksum: checksumRuleDocument(loaded.character.state.equipment),
             afterStateChecksum: checksumRuleDocument(equippedCharacter.state.equipment)
           },

@@ -71,8 +71,10 @@ export interface CharacterSplitState {
   play: CharacterPlayState
 }
 
-type CharacterStatePlay = Omit<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
-type CharacterSheetStatePlay = Pick<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
+/** The play fields that live in the Character `state`. */
+export type CharacterStatePlay = Omit<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
+/** The play fields that live in the Sheet state. */
+export type CharacterSheetStatePlay = Pick<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
 
 /** Divides a Character `state` into its structure and the play fields it carries. Pure. */
 export function splitCharacterStatePlay(state: CharacterState): {
@@ -109,16 +111,29 @@ export function splitCharacterStatePlay(state: CharacterState): {
 /** The inverse of `splitCharacterStatePlay`: the Character `state` from its structure and play. */
 export function mergeCharacterStatePlay(
   structure: CharacterStructureState,
-  play: CharacterPlayState
+  play: CharacterStatePlay
 ): CharacterState {
   const {
-    resourceUsage: _resourceUsage,
-    partyVisibility: _partyVisibility,
+    hitpoints,
+    inspiration,
+    resources,
+    spellSlots,
+    conditions,
+    exhaustion,
     equipped,
-    attuned,
-    ...statePlay
+    attuned
   } = play
-  return { ...structure, ...statePlay, equipment: { ...structure.equipment, equipped, attuned } }
+  // Named, not spread: a caller may hold the whole play record, whose Sheet fields are not state.
+  return {
+    ...structure,
+    hitpoints,
+    ...(inspiration === undefined ? {} : { inspiration }),
+    ...(resources === undefined ? {} : { resources }),
+    ...(spellSlots === undefined ? {} : { spellSlots }),
+    ...(conditions === undefined ? {} : { conditions }),
+    ...(exhaustion === undefined ? {} : { exhaustion }),
+    equipment: { ...structure.equipment, equipped, attuned }
+  }
 }
 
 /** Divides a Sheet state into its structure and its play fields. Pure. */
@@ -133,7 +148,7 @@ export function splitCharacterSheetStatePlay(sheetState: CharacterSheetState): {
 /** The inverse of `splitCharacterSheetStatePlay`: the Sheet state from its structure and play. */
 export function mergeCharacterSheetStatePlay(
   structure: CharacterSheetStructure,
-  play: CharacterPlayState
+  play: CharacterSheetStatePlay
 ): CharacterSheetState {
   return { ...structure, resourceUsage: play.resourceUsage, partyVisibility: play.partyVisibility }
 }

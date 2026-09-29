@@ -57,7 +57,7 @@ async function refreshCharacterMaximum(
   const { facts } = active
     ? await writeCharacterRecord(ctx, {
         current: active,
-        fields: { streamVersion: active.streamVersion, updatedAt: active.updatedAt },
+        fields: { streamVersion: active.play.streamVersion, updatedAt: active.updatedAt },
         sourceContext,
         evaluateAs: { userId: current.userId, campaignId: current.campaign.id }
       })

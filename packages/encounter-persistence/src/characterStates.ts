@@ -7,8 +7,9 @@ import {
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { clampCharacterCurrentHitPoints } from '@artificer-toolkit/shared/character'
-import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
 import { readCharacterMaximumHitPoints } from './characterMaximumHitPoints.js'
+import { readEncounterCharacterPlay } from './characterPlay.js'
 import { readRunActors, replaceRunActor } from './documents.js'
 import type { EncounterReadTransaction, EncounterWriteTransaction } from './ports.js'
 
@@ -17,11 +18,10 @@ import type { EncounterReadTransaction, EncounterWriteTransaction } from './port
  * Sheet conditions with their System labels.
  */
 export function characterProjectionState(
-  character: Pick<CharacterAuthored, 'state'>,
+  { hitpoints, conditions = [] }: Pick<CharacterPlayState, 'hitpoints' | 'conditions'>,
   maximumHitPoints: number,
   conditionTypes: SystemAuthoredDto['conditionTypes']
 ) {
-  const { hitpoints, conditions = [] } = character.state
   return {
     current: clampCharacterCurrentHitPoints(hitpoints.current, maximumHitPoints),
     temporary: Math.max(hitpoints.temp ?? 0, 0),
@@ -76,18 +76,15 @@ export async function readEncounterCharacterStates(
       })
       continue
     }
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterId))
-      .unique()
-    if (!record || record.userId !== assignment.userId || record.systemId !== state.gameSystemId)
+    const play = await readEncounterCharacterPlay(ctx, characterId)
+    if (!play || play.userId !== assignment.userId)
       throw new Error('Stored Encounter Character source is unavailable.')
     conditionTypes ??= (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes
     states.set(
       characterId,
       characterProjectionState(
-        ctx.ports.readCharacterRecord(record),
-        await readCharacterMaximumHitPoints(ctx, record),
+        ctx.ports.readCharacterPlay(play),
+        await readCharacterMaximumHitPoints(ctx, play),
         conditionTypes
       )
     )

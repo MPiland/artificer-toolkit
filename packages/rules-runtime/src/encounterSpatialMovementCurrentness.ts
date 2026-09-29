@@ -62,7 +62,7 @@ export function projectSpatialMovementCandidates(input: {
         !before.characterFacts ||
         !after.characterFacts ||
         candidate.target.characterId !== before.actor.sourceId ||
-        candidate.target.streamVersion !== before.characterFacts.active.streamVersion ||
+        candidate.target.streamVersion !== before.characterFacts.active.play.streamVersion ||
         candidate.target.projectionChecksum !== before.characterCurrentness.projectionChecksum ||
         candidate.target.mechanicalContextChecksum !==
           before.characterCurrentness.mechanicalContextChecksum
@@ -73,7 +73,7 @@ export function projectSpatialMovementCandidates(input: {
         target: {
           kind: 'CHARACTER' as const,
           characterId: after.actor.sourceId,
-          streamVersion: after.characterFacts.active.streamVersion,
+          streamVersion: after.characterFacts.active.play.streamVersion,
           ...after.characterCurrentness,
           targetStateChecksum
         }

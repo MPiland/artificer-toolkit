@@ -14,9 +14,11 @@ import type { EncounterOptionalCombatSnapshotDto } from '@artificer-toolkit/sche
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
+import type { CharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 /** A stored Character's document, as the Sheet reads it. */
@@ -62,8 +64,10 @@ export interface EncounterReadPorts {
     id: string,
     kind: 'CREATURE' | 'EQUIPMENT'
   ): Promise<EncounterAuthoredSource>
-  readCharacterRecord(row: EncounterDocument<'characters'>): EncounterCharacterDocument
-  readCharacterSheetState(row: EncounterDocument<'characters'>): CharacterSheetState
+  readCharacterRecord(row: EncounterCharacterRow): EncounterCharacterDocument
+  readCharacterSheetState(row: EncounterCharacterRow): CharacterSheetState
+  /** The play record's fields, verified against its checksum. */
+  readCharacterPlay(play: EncounterDocument<'characterPlayStates'>): CharacterPlayState
   readAssignedCharacter(
     campaign: EncounterDocument<'campaigns'>,
     membership: EncounterDocument<'campaignMemberships'>
@@ -117,9 +121,9 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
    * version and refreshes the Character's derived stats in the same transaction.
    */
   writeCharacterRecord(input: {
-    current: EncounterDocument<'characters'>
+    current: EncounterCharacterRow
     fields: { streamVersion: number; updatedAt: string }
-    document?: unknown
+    document?: EncounterCharacterDocument
     sheetState?: CharacterSheetState
     sourceContext?: CharacterSources
   }): Promise<void>

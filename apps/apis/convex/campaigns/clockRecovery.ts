@@ -38,7 +38,7 @@ export async function recoverClockBoundary({
   for (const assignment of assignments) {
     const current = await loadCharacterSheet(ctx, actorUserId, assignment.characterId, campaignId)
     if (!current) throw new Error('Assigned Character not found.')
-    let expectedVersion = current.active.streamVersion
+    let expectedVersion = current.active.play.streamVersion
     for (const resource of current.sheet.resources.items) {
       if (resource.used <= 0 || !resource.recoveries.some((entry) => entry.trigger === kind))
         continue

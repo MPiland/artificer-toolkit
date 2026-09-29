@@ -18,7 +18,7 @@ type DeclarationSheetFacts = Pick<
   Awaited<ReturnType<typeof prepareCharacterSheetFromContext>>,
   'prepared' | 'evaluationInput' | 'ruleEvaluation'
 > & {
-  active: { id: string; streamVersion: number; userId: string }
+  active: { id: string; userId: string }
   character: { systemId: string; userId: string }
 }
 

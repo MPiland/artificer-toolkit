@@ -1,6 +1,9 @@
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
+import {
+  encodeCharacterRecord,
+  type StoredCharacter
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { evaluateCharacterRules } from './character/characterRuleEvaluation.js'
 import type { prepareCharacterSheetFromContext } from './character/sheetPreparation.js'
 import type { EncounterMechanicsBatchPlan } from './encounterMechanicsBatchPlan.js'
@@ -11,11 +14,8 @@ import {
 } from './encounterMovementTargets.js'
 
 export type ProjectableCharacterFacts = CharacterMovementFacts & {
-  active: CharacterMovementFacts['active'] & {
-    documentJson?: string
-    sheetState?: { documentJson: string; checksum: string }
-    updatedAt?: string
-  }
+  /** The Character's stored row and play record, which a projected plan re-encodes. */
+  active: StoredCharacter
   character: CharacterAuthored
   prepared: Awaited<ReturnType<typeof prepareCharacterSheetFromContext>>['prepared']
   sheetState: CharacterSheetState
@@ -47,7 +47,6 @@ export function projectEncounterActionTarget<
   const streamVersion = input.plan?.characterStreamVersion
   if (!characterFacts || streamVersion === null || streamVersion === undefined)
     throw new Error('Projected movement Character state is unavailable.')
-  const encoded: unknown = JSON.parse(JSON.stringify(update.character))
   const sheetState = update.sheetState ?? characterFacts.sheetState
   const character = {
     ...characterFacts.prepared.character,
@@ -59,19 +58,11 @@ export function projectEncounterActionTarget<
     resourceUsage: sheetState.resourceUsage
   }
   const projectedFacts = Object.assign({}, characterFacts, {
-    active: Object.assign({}, characterFacts.active, {
-      documentJson: canonicalizeRuleDocument(encoded),
-      checksum: checksumRuleDocument(encoded),
+    active: encodeCharacterRecord(characterFacts.active, {
+      document: update.character,
+      ...(update.sheetState ? { sheetState: update.sheetState } : {}),
       streamVersion,
-      updatedAt: input.occurredAt,
-      ...(update.sheetState
-        ? {
-            sheetState: {
-              documentJson: canonicalizeRuleDocument(update.sheetState),
-              checksum: checksumRuleDocument(update.sheetState)
-            }
-          }
-        : {})
+      updatedAt: input.occurredAt
     }),
     character: update.character,
     prepared: Object.assign({}, characterFacts.prepared, {

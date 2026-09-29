@@ -5,7 +5,7 @@ import type {
 import type { concentrationCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
-import { readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { reconcileNativeMaintenanceOwners } from '../encounters/maintenanceOwnerPersistence'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
@@ -39,13 +39,10 @@ export async function applyLiveConcentrationCleanup(
   )) {
     if (!input.authorizedCharacterIds.has(characterId))
       throw new Error('Live Session concentration owner is outside the captured scope.')
-    const row = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterId))
-      .unique()
+    const row = await readCharacterRow(ctx, characterId)
     if (!row || row.status !== 'ACTIVE' || readCharacterRecord(row).systemId !== state.gameSystemId)
       throw new Error('Maintained-effect Character owner is unavailable.')
-    characterVersions.push({ characterId, beforeStreamVersion: row.streamVersion })
+    characterVersions.push({ characterId, beforeStreamVersion: row.play.streamVersion })
   }
   characterVersions.sort((left, right) => left.characterId.localeCompare(right.characterId))
   const cleanup = {
