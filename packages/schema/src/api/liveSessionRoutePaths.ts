@@ -3,6 +3,7 @@ export const LIVE_SESSION_ROUTE_PATHS = {
   capture: '/live-sessions/capture',
   hydrate: '/live-sessions/hydrate',
   roomAuthorization: '/live-sessions/room-authorization',
+  roomInputs: '/live-sessions/room-inputs',
   bootstrap: '/live-sessions/bootstrap',
   activate: '/live-sessions/activate',
   publish: '/live-sessions/publish',
