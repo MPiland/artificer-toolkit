@@ -594,7 +594,7 @@ describe('native Campaign authoritative rolls', () => {
     ).toBe(body)
   })
 
-  it('retains one mixed 500-entry TABLE window and rolls back header, payload and trimming together', async () => {
+  it('keeps a mixed TABLE history past 500 entries and rolls back header and payload together', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
     const { t, gm, request, readEntries } = await setup()
@@ -640,10 +640,10 @@ describe('native Campaign authoritative rolls', () => {
     expect(await readEntries()).toEqual(before)
     const newest = await gm.caller.mutation(execute, next)
     const retained = await readEntries()
-    expect(retained.headers).toHaveLength(500)
-    expect(retained.payloads).toHaveLength(500)
+    expect(retained.headers).toHaveLength(501)
+    expect(retained.payloads).toHaveLength(501)
     expect(retained.headers.map((entry) => entry.id)).toContain(newest.id)
-    expect(retained.headers.map((entry) => entry.id)).not.toContain(
+    expect(retained.headers.map((entry) => entry.id)).toContain(
       '00000000-0000-4000-8000-000000000000'
     )
     expect(retained.payloads.map((payload) => payload.entryId).sort()).toEqual(
