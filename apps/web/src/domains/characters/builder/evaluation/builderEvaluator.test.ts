@@ -13,7 +13,7 @@ import {
 import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
 import {
   buildContentSnapshotKind,
-  type ContentSnapshotIndexSource
+  type ContentSnapshotListSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -53,7 +53,12 @@ for (const kind of KINDS) {
     .filter((subject) => subject.subjectKind === kind)
     .map(
       (subject) =>
-        ({ subjectKind: kind, document: subject.document }) as unknown as ContentSnapshotIndexSource
+        ({
+          subjectKind: kind,
+          document: subject.document,
+          publicId: (subject.document as { id: string }).id,
+          magicSchoolLabel: 'School'
+        }) as unknown as ContentSnapshotListSource
     )
   const built = buildContentSnapshotKind(
     { format: 1, scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id, kind },
@@ -64,9 +69,14 @@ for (const kind of KINDS) {
     byteLength: part.byteLength,
     rootCount: part.rootCount
   })
-  kinds[kind] = { index: ref(built.index), documents: ref(built.documents) }
+  kinds[kind] = {
+    index: ref(built.index),
+    list: ref(built.list),
+    documents: ref(built.documents)
+  }
   objects.push(
     JSON.parse(built.index.json) as ContentSnapshotObject,
+    JSON.parse(built.list.json) as ContentSnapshotObject,
     JSON.parse(built.documents.json) as ContentSnapshotObject
   )
 }

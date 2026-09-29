@@ -22,7 +22,6 @@ export async function verifyNativeAuthoring(input: {
         verifyCopied: () => Promise<{ publicId: string; label: string }>
       }
   equipmentOptionLabel?: string
-  equipmentVariantLabels?: readonly string[]
   verifySaved: (label: string) => Promise<void>
   verifyPublished?: (label: string) => Promise<void>
   verifyExported?: (content: ArtificerPortableContentDto) => Promise<void>
@@ -77,8 +76,7 @@ export async function verifyNativeAuthoring(input: {
   }
   let nativeResolveObserved = false
   let nativeEquipmentObserved = false
-  let nativeCatalogueObserved = false
-  let nativeCatalogueSearchObserved = false
+  let nativeCatalogueManifestObserved = false
   let nativeExportObserved = false
   let anonymousSessionObserved = false
   let authenticatedSessionObserved = false
@@ -160,11 +158,8 @@ export async function verifyNativeAuthoring(input: {
         if (payload.toString().includes('content/equipmentOptions:list')) {
           nativeEquipmentObserved = true
         }
-        if (payload.toString().includes('content/catalogue:list')) {
-          nativeCatalogueObserved = true
-        }
-        if (payload.toString().includes('content/catalogue:search')) {
-          nativeCatalogueSearchObserved = true
+        if (payload.toString().includes('contentSnapshots/manifest:catalogue')) {
+          nativeCatalogueManifestObserved = true
         }
         if (payload.toString().includes('content/exports:get')) {
           nativeExportObserved = true
@@ -216,7 +211,7 @@ export async function verifyNativeAuthoring(input: {
         exact: true
       })
       await expect(sources).toBeEnabled({ timeout: 30000 })
-      await expect.poll(() => nativeCatalogueObserved).toBe(true)
+      await expect.poll(() => nativeCatalogueManifestObserved).toBe(true)
       await sources.fill(input.start.sourceLabel)
       await page.getByRole('option', { name: input.start.sourceLabel, exact: true }).click()
       await expect(page.getByRole('button', { name: 'Create copy', exact: true })).toBeEnabled()
@@ -467,20 +462,16 @@ export async function verifyNativeAuthoring(input: {
         const source = page.getByRole('combobox', { name: 'Source', exact: true })
         await expect(search).toBeVisible()
         await expect(source).toBeVisible()
-        nativeCatalogueSearchObserved = false
+        // The list reads the published snapshot files: the newly activated record appears once the
+        // catalogue manifest advances, and search and filters run locally.
         await search.fill(replacementLabel)
-        await expect.poll(() => nativeCatalogueSearchObserved, { timeout: 30000 }).toBe(true)
         await source.click()
         await page.getByRole('option', { name: 'Homebrew', exact: true }).click()
-        const homebrewResults = page.getByRole('region', { name: 'Homebrew search results' })
-        await expect(homebrewResults).toContainText(replacementLabel)
-        await expect(page.getByRole('region', { name: 'SRD search results' })).toHaveCount(0)
-        await expect(
-          homebrewResults.getByRole('button', { name: 'Previous Homebrew results', exact: true })
-        ).toBeDisabled()
-        await expect(
-          homebrewResults.getByRole('button', { name: 'Next Homebrew results', exact: true })
-        ).toBeDisabled()
+        const replacementRow = page.getByRole('row', {
+          name: `View ${replacementLabel}`,
+          exact: true
+        })
+        await expect(replacementRow).toBeVisible({ timeout: 30000 })
         await page.screenshot({
           path: `${input.evidenceDirectory}/${input.domain}-catalogue-homebrew-desktop.png`
         })
@@ -494,88 +485,10 @@ export async function verifyNativeAuthoring(input: {
         await page.setViewportSize({ width: 1280, height: 900 })
         await source.click()
         await page.getByRole('option', { name: 'SRD', exact: true }).click()
-        const srdResults = page.getByRole('region', { name: 'SRD search results' })
-        await expect(srdResults).toContainText(/\d+ loaded on this page · Relevance/)
-        await expect(srdResults).not.toContainText(replacementLabel)
-        await expect(page.getByRole('region', { name: 'Homebrew search results' })).toHaveCount(0)
-        if (input.domain === 'equipment') {
-          stage = 'paginate canonical Equipment search'
-          await page.getByRole('button', { name: 'Table view', exact: true }).click()
-          const category = page.getByRole('combobox', { name: 'Category', exact: true })
-          await category.click()
-          await page.getByRole('option', { name: 'Variant', exact: true }).click()
-          await search.fill('variant')
-          const next = srdResults.getByRole('button', { name: 'Next SRD results', exact: true })
-          const previous = srdResults.getByRole('button', {
-            name: 'Previous SRD results',
-            exact: true
-          })
-          const rows = srdResults.getByRole('row', { name: /^View / })
-          const pages: string[][] = []
-          const expectedLabels = input.equipmentVariantLabels
-          assert.ok(
-            expectedLabels && expectedLabels.length > 48,
-            'Canonical variants must span pages.'
-          )
-          for (let offset = 0; offset < expectedLabels.length; offset += 48) {
-            const count = Math.min(48, expectedLabels.length - offset)
-            await expect(rows).toHaveCount(count)
-            const labels = await rows.evaluateAll((elements) =>
-              elements.map((element) => element.getAttribute('aria-label') ?? '')
-            )
-            if (pages.length === 0) await expect(previous).toBeDisabled()
-            else await expect(previous).toBeEnabled()
-            pages.push(labels)
-            if (pages.length === 2) {
-              await previous.click()
-              await expect(rows.first()).toHaveAttribute('aria-label', pages[0]![0]!)
-              assert.deepEqual(
-                await rows.evaluateAll((elements) =>
-                  elements.map((element) => element.getAttribute('aria-label') ?? '')
-                ),
-                pages[0]
-              )
-              await next.click()
-              await expect(rows.first()).toHaveAttribute('aria-label', labels[0]!)
-              assert.deepEqual(
-                await rows.evaluateAll((elements) =>
-                  elements.map((element) => element.getAttribute('aria-label') ?? '')
-                ),
-                labels
-              )
-              await page.screenshot({
-                path: `${input.evidenceDirectory}/equipment-search-page-2.png`
-              })
-            }
-            if (offset + count < expectedLabels.length) {
-              await expect(next).toBeEnabled()
-              await next.click()
-              await expect(rows.first()).not.toHaveAttribute('aria-label', labels[0]!)
-            } else await expect(next).toBeDisabled()
-          }
-          // Distinct canonical UUIDs can share a label. Compare the complete multiset;
-          // the API catalogue proof separately verifies exact UUIDs across every page.
-          assert.deepEqual(
-            pages.flat().sort(),
-            expectedLabels.map((label) => `View ${label}`).sort()
-          )
-          await category.click()
-          await page.getByRole('option', { name: 'Weapon', exact: true }).click()
-          await search.fill('weap')
-          await expect(rows).toHaveCount(41)
-          await expect(previous).toBeDisabled()
-          await expect(next).toBeDisabled()
-          // Reset to the original owned result so deletion still exercises the same flow.
-          await category.click()
-          await page.getByRole('option', { name: 'Weapon', exact: true }).click()
-          await search.fill(replacementLabel)
-          console.log(
-            'Browser Equipment four-page search, back/forward replay and filter reset passed.'
-          )
-        }
+        await expect(replacementRow).toHaveCount(0)
         await source.click()
         await page.getByRole('option', { name: 'Homebrew', exact: true }).click()
-        await expect(homebrewResults).toContainText(replacementLabel)
+        await expect(replacementRow).toBeVisible()
         await page.getByRole('button', { name: 'Table view', exact: true }).click()
 
         stage = `edit retained ${domainLabel} draft`
@@ -713,8 +626,7 @@ export async function verifyNativeAuthoring(input: {
       ).slice(0, 4500),
       nativeResolveObserved,
       nativeEquipmentObserved,
-      nativeCatalogueObserved,
-      nativeCatalogueSearchObserved,
+      nativeCatalogueManifestObserved,
       legacyRequests,
       failedRequests: failedRequests.slice(-5),
       errors: errors.slice(-5)

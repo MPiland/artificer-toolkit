@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredCatalogueItem } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { toGuidedRaceParentOptions } from './guidedRaceParents'
 
 describe('toGuidedRaceParentOptions', () => {
@@ -16,11 +16,7 @@ describe('toGuidedRaceParentOptions', () => {
   })
 })
 
-function catalogueRace(
-  id: string,
-  label: string,
-  category: string
-): AuthoredCataloguePage['page'][number] {
+function catalogueRace(id: string, label: string, category: string): AuthoredCatalogueItem {
   return {
     id,
     publicId: label.toLowerCase(),
@@ -28,8 +24,6 @@ function catalogueRace(
     label,
     description: null,
     category,
-    activeUpdatedAt: '2026-09-05T00:00:00.000Z',
-    status: 'ACTIVE',
     provenance: { kind: 'MASTER', ownerUserId: null },
     permissions: { canView: true, canEdit: false, canCopy: true, canDelete: false }
   }

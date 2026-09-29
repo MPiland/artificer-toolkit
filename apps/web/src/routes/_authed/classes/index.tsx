@@ -1,12 +1,10 @@
 import { notifications } from '@mantine/notifications'
-import { api } from '@artificer-toolkit/apis/convex/api'
-import { convexQuery } from '@convex-dev/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
+import { useAuthoredCatalogue } from '#components/AuthoredList/useAuthoredCatalogue'
 import {
   buildClassListFilters,
   classListAttributeColumns,
@@ -14,34 +12,19 @@ import {
 } from '#app/data/classes/classListMapper'
 import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { getClass } from '#app/data/classes/queries'
-import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 
 const classDetailMeta = ['classes', 'currencies', 'equipment', 'languages', 'skills']
 export const Route = createFileRoute('/_authed/classes/')({
-  loader: async ({ context }): Promise<void> => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(
-        getAuthoredCatalogueList({
-          subjectKind: 'CLASS',
-          sort: 'family',
-          paginationOpts: { cursor: null, numItems: 48 }
-        })
-      ),
-      context.queryClient.ensureQueryData(
-        convexQuery(api.content.catalogue.summary, { subjectKind: 'CLASS' })
-      )
-    ])
-  },
   component: ClassesRoute
 })
 
 function ClassesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useNativeAuthoredCatalogWindow('CLASS')
+  const listing = useAuthoredCatalogue('CLASS')
   const operations = createAuthoredOperations('CLASS', useConvex())
   const deleteAction = useAuthoredDeleteAction({
     deleteActive: operations.deleteActive,
@@ -89,7 +72,7 @@ function ClassesRoute() {
         filters={buildClassListFilters(listing.summary?.categories ?? [])}
         attributeColumns={classListAttributeColumns}
         sortOptions={classListSortOptions}
-        catalog={listing.catalog}
+        updating={listing.updating}
         error={listing.error}
         loading={listing.loading}
         onCreate={() => navigate({ to: '/classes/new' })}

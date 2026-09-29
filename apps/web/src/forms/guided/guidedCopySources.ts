@@ -1,4 +1,4 @@
-import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredCatalogueItem } from '@artificer-toolkit/schema/api/authoredCatalogue'
 
 export type GuidedCopySource = {
   category?: string
@@ -10,9 +10,7 @@ export type GuidedCopySource = {
   source: 'Homebrew' | 'SRD'
 }
 
-export function toGuidedCopySources(
-  items: readonly AuthoredCataloguePage['page'][number][]
-): GuidedCopySource[] {
+export function toGuidedCopySources(items: readonly AuthoredCatalogueItem[]): GuidedCopySource[] {
   return items
     .filter((item) => item.permissions.canCopy)
     .map((item) => ({

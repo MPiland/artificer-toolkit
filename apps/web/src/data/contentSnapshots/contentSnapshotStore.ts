@@ -1,9 +1,10 @@
 import {
   CONTENT_SNAPSHOT_PATH_PREFIX,
+  contentSnapshotObjectKey,
   type ContentSnapshotKind,
-  type ContentSnapshotObject
+  type ContentSnapshotObject,
+  type ContentSnapshotPart
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { contentSnapshotObjectKey } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { ContentSnapshotLocation } from './manifestObjects'
 
 /** Cache Storage holding verified snapshot objects; cleared whole at sign-out (privateContent.ts). */
@@ -44,8 +45,12 @@ export function createContentSnapshotStore(options: {
   const fetchObject = options.fetch ?? ((url: string, init: RequestInit) => fetch(url, init))
   const cacheStorage =
     options.caches === undefined ? (typeof caches === 'undefined' ? null : caches) : options.caches
-  const cacheKey = (sha256: string) => `${options.contentOrigin}${CACHE_KEY_PATH}${sha256}`
-  const parsed = new Map<string, Promise<ContentSnapshotObject>>()
+  const cacheKey = (part: ContentSnapshotPart, sha256: string) =>
+    `${options.contentOrigin}${CACHE_KEY_PATH}${part}/${sha256}`
+  const parsed = new Map<
+    string,
+    { part: ContentSnapshotPart; object: Promise<ContentSnapshotObject> }
+  >()
 
   async function download({ header, ref, isPublic }: ContentSnapshotLocation) {
     const url = `${options.contentOrigin}${CONTENT_SNAPSHOT_PATH_PREFIX}${contentSnapshotObjectKey(header, ref.sha256)}`
@@ -69,14 +74,14 @@ export function createContentSnapshotStore(options: {
   async function verifiedRead(location: ContentSnapshotLocation): Promise<ContentSnapshotObject> {
     const { header, ref } = location
     const cache = cacheStorage ? await cacheStorage.open(CONTENT_SNAPSHOT_CACHE_NAME) : null
-    const cached = await cache?.match(cacheKey(ref.sha256))
+    const cached = await cache?.match(cacheKey(header.part, ref.sha256))
     let bytes = cached ? await cached.arrayBuffer() : null
     if (!bytes || (await sha256Hex(bytes)) !== ref.sha256) {
       bytes = await download(location)
       if ((await sha256Hex(bytes)) !== ref.sha256)
         throw new ContentSnapshotLoadError(header.kind, 'Content failed its integrity check.')
       await cache?.put(
-        cacheKey(ref.sha256),
+        cacheKey(header.part, ref.sha256),
         new Response(bytes, { headers: { 'content-type': 'application/json' } })
       )
     }
@@ -105,20 +110,29 @@ export function createContentSnapshotStore(options: {
     /** The parsed object, read once per hash for the store's lifetime. */
     read(location: ContentSnapshotLocation): Promise<ContentSnapshotObject> {
       const existing = parsed.get(location.ref.sha256)
-      if (existing) return existing
+      if (existing) return existing.object
       const reading = load(location)
-      parsed.set(location.ref.sha256, reading)
+      parsed.set(location.ref.sha256, { part: location.header.part, object: reading })
       reading.catch(() => parsed.delete(location.ref.sha256))
       return reading
     },
-    /** Drops every kept object whose hash the current manifest no longer names. */
-    async retain(sha256s: ReadonlySet<string>): Promise<void> {
-      for (const sha256 of parsed.keys()) if (!sha256s.has(sha256)) parsed.delete(sha256)
+    /**
+     * Drops every kept object of these parts whose hash the current manifest no longer names.
+     * Consumers read different parts (the Builder its index and documents, the lists their list
+     * parts), so one consumer never evicts another's objects.
+     */
+    async retain(
+      sha256s: ReadonlySet<string>,
+      parts: readonly ContentSnapshotPart[]
+    ): Promise<void> {
+      for (const [sha256, entry] of parsed)
+        if (parts.includes(entry.part) && !sha256s.has(sha256)) parsed.delete(sha256)
       const cache = cacheStorage ? await cacheStorage.open(CONTENT_SNAPSHOT_CACHE_NAME) : null
       if (!cache) return
       for (const request of await cache.keys()) {
-        const sha256 = new URL(request.url).pathname.slice(CACHE_KEY_PATH.length)
-        if (!sha256s.has(sha256)) await cache.delete(request)
+        const [part, sha256] = new URL(request.url).pathname.slice(CACHE_KEY_PATH.length).split('/')
+        if (parts.includes(part as ContentSnapshotPart) && !sha256s.has(sha256!))
+          await cache.delete(request)
       }
     }
   }

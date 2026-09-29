@@ -129,9 +129,12 @@ describe('content snapshot store', () => {
     })
     expect(fetch).toHaveBeenCalledTimes(2)
 
-    await second.retain(new Set([kept.location(true).ref.sha256]))
+    // Another consumer's parts are never evicted.
+    await second.retain(new Set(), ['list'])
+    expect(entries.size).toBe(2)
+    await second.retain(new Set([kept.location(true).ref.sha256]), ['index'])
     expect([...entries.keys()]).toEqual([
-      `${ORIGIN}/content-snapshot-sha256/${kept.location(true).ref.sha256}`
+      `${ORIGIN}/content-snapshot-sha256/index/${kept.location(true).ref.sha256}`
     ])
   })
 

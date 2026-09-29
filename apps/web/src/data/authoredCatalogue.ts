@@ -1,10 +1,5 @@
-import type {
-  AuthoredCataloguePage,
-  AuthoredCatalogueReadInput,
-  AuthoredCatalogueSearchInput
-} from '@artificer-toolkit/schema/api/authoredCatalogue'
-import { api } from '@artificer-toolkit/apis/convex/api'
-import { convexQuery } from '@convex-dev/react-query'
+import type { AuthoredCatalogueItem } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { ContentSnapshotKind } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { AuthoredListItem } from '#components/AuthoredList/AuthoredList.types'
 import { summarizeAuthoredDescription } from './authoredListMapper'
 import { formatClassCategory } from './classes/classListMapper'
@@ -15,7 +10,7 @@ import { formatRaceCategory } from './races/raceListMapper'
 import { mapSpellCatalogueItem } from './spells/spellListMapper'
 
 export const authoredCatalogueCategoryFormatters: Partial<
-  Record<AuthoredCatalogueReadInput['subjectKind'], (category: string | undefined) => string>
+  Record<ContentSnapshotKind, (category: string | undefined) => string>
 > = {
   CLASS: formatClassCategory,
   EQUIPMENT: formatEquipmentCategory,
@@ -24,17 +19,9 @@ export const authoredCatalogueCategoryFormatters: Partial<
   RACE: formatRaceCategory
 }
 
-export function getAuthoredCatalogueSearch(input: AuthoredCatalogueSearchInput | null) {
-  return { ...convexQuery(api.content.catalogue.search, input ?? 'skip'), gcTime: 0 }
-}
-
-export function getAuthoredCatalogueList(input: AuthoredCatalogueReadInput) {
-  return { ...convexQuery(api.content.catalogue.list, input), gcTime: 0 }
-}
-
 export function mapAuthoredCatalogueItems(
-  items: AuthoredCataloguePage['page'],
-  subjectKind: AuthoredCatalogueSearchInput['subjectKind']
+  items: AuthoredCatalogueItem[],
+  subjectKind: ContentSnapshotKind
 ): AuthoredListItem[] {
   if (subjectKind === 'SPELL') return items.map(mapSpellCatalogueItem)
   const formatCategory = authoredCatalogueCategoryFormatters[subjectKind]
@@ -53,6 +40,9 @@ export function mapAuthoredCatalogueItems(
       subjectKind === 'RACE' && (item.category === 'SUBRACE' || item.selectionMode === 'DIRECT')
         ? ['Playable']
         : undefined,
+    filterValues: { source: item.provenance.kind, category: item.category },
+    sortValues: { category: formatCategory?.(item.category), name: item.label },
+    searchText: item.parentClassLabel ?? item.parentRaceLabel ?? undefined,
     hierarchy: item.parentClassId
       ? { level: 1, parentId: item.parentClassId, parentLabel: item.parentClassLabel ?? undefined }
       : item.parentRaceId

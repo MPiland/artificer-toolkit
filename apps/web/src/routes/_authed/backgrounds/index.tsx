@@ -1,13 +1,10 @@
 import { notifications } from '@mantine/notifications'
-import { api } from '@artificer-toolkit/apis/convex/api'
-import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
-import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
+import { useAuthoredCatalogue } from '#components/AuthoredList/useAuthoredCatalogue'
 import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { getBackground } from '#app/data/backgrounds/queries'
@@ -22,21 +19,6 @@ import {
 } from '#app/data/backgrounds/backgroundListMapper'
 
 export const Route = createFileRoute('/_authed/backgrounds/')({
-  loader: async ({ context }): Promise<void> => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(
-        getAuthoredCatalogueList({
-          subjectKind: 'BACKGROUND',
-          paginationOpts: { cursor: null, numItems: 48 }
-        })
-      ),
-      context.queryClient.ensureQueryData(
-        convexQuery(api.content.catalogue.summary, {
-          subjectKind: 'BACKGROUND'
-        })
-      )
-    ])
-  },
   component: BackgroundsRoute
 })
 
@@ -44,7 +26,7 @@ function BackgroundsRoute() {
   const operations = createAuthoredOperations('BACKGROUND', useConvex())
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useNativeAuthoredCatalogWindow('BACKGROUND')
+  const listing = useAuthoredCatalogue('BACKGROUND')
   const duplicateMutation = useMutation({
     mutationFn: operations.duplicate,
     onSuccess: async (response) => {
@@ -92,7 +74,7 @@ function BackgroundsRoute() {
         filters={buildBackgroundListFilters()}
         attributeColumns={backgroundListAttributeColumns}
         sortOptions={backgroundListSortOptions}
-        catalog={listing.catalog}
+        updating={listing.updating}
         error={listing.error}
         loading={listing.loading}
         onCreate={() => navigate({ to: '/backgrounds/new' })}

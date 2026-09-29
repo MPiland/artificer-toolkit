@@ -1,19 +1,16 @@
 import { notifications } from '@mantine/notifications'
-import { api } from '@artificer-toolkit/apis/convex/api'
-import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
+import { useAuthoredCatalogue } from '#components/AuthoredList/useAuthoredCatalogue'
 import {
   buildCreatureListFilters,
   creatureListAttributeColumns,
   creatureListSortOptions
 } from '#app/data/creatures/creatureListMapper'
 import { getCreature } from '#app/data/creatures/queries'
-import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
 import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
@@ -28,26 +25,13 @@ const creatureDetailMeta = [
   'speeds'
 ]
 export const Route = createFileRoute('/_authed/creatures/')({
-  loader: async ({ context }): Promise<void> => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(
-        getAuthoredCatalogueList({
-          subjectKind: 'CREATURE',
-          paginationOpts: { cursor: null, numItems: 48 }
-        })
-      ),
-      context.queryClient.ensureQueryData(
-        convexQuery(api.content.catalogue.summary, { subjectKind: 'CREATURE' })
-      )
-    ])
-  },
   component: CreaturesRoute
 })
 
 function CreaturesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useNativeAuthoredCatalogWindow('CREATURE')
+  const listing = useAuthoredCatalogue('CREATURE')
   const operations = createAuthoredOperations('CREATURE', useConvex())
   const duplicateMutation = useMutation({
     mutationFn: operations.duplicate,
@@ -98,7 +82,7 @@ function CreaturesRoute() {
         filters={buildCreatureListFilters(listing.summary?.categories ?? [])}
         attributeColumns={creatureListAttributeColumns}
         sortOptions={creatureListSortOptions}
-        catalog={listing.catalog}
+        updating={listing.updating}
         error={listing.error}
         loading={listing.loading}
         onCreate={() => navigate({ to: '/creatures/new' })}

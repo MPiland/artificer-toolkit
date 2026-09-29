@@ -10,6 +10,11 @@ export function getContentSnapshotManifest(systemId: string, characterId: string
   return convexQuery(convexApi.contentSnapshots.manifest.manifest, { systemId, characterId })
 }
 
+/** The live snapshot heads the authored-content lists read (no Character, no Campaign). */
+export function getContentCatalogueManifest() {
+  return convexQuery(convexApi.contentSnapshots.manifest.catalogue, {})
+}
+
 /** A cached content token getter for private snapshot objects, dropped at sign-out. */
 export function useContentSnapshotToken() {
   const issueAccess = useAction(convexApi.contentSnapshots.access.issueAccess)

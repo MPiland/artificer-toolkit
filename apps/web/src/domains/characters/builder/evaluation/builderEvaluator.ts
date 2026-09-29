@@ -85,12 +85,12 @@ export function createBuilderEvaluator(options: {
     readers: Promise<ReturnType<typeof createLazySnapshotReaders>>
   } | null = null
   function readersFor(manifest: BuilderEvaluationRequest['manifest']) {
-    const locations = listContentSnapshotManifestObjects(manifest)
+    const locations = listContentSnapshotManifestObjects(manifest, ['index', 'documents'])
     const hashes = locations.map((location) => location.ref.sha256)
     const key = [...hashes].sort().join()
     if (current?.key === key) return current.readers
     // Eviction is housekeeping; a failure only leaves unused objects cached.
-    options.store.retain(new Set(hashes)).catch(() => undefined)
+    options.store.retain(new Set(hashes), ['index', 'documents']).catch(() => undefined)
     const readers = read(locations.filter((location) => location.header.part === 'index')).then(
       (objects) =>
         createLazySnapshotReaders(objects.filter(isIndexObject), (kinds) =>

@@ -2,13 +2,13 @@ import { Alert, Badge, Button, Group, Loader, Select, Stack, Text, Title } from 
 import { useMutation } from '@tanstack/react-query'
 import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type {
   CampaignContentShareDto,
   CampaignDetailDto
 } from '@artificer-toolkit/schema/api/campaignCore'
-import { usePaginatedQuery as useCandidatePaginatedQuery } from 'convex-helpers/react'
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
+import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import { campaignContentTypeOptions } from '../campaignContentSubmission'
 import * as sharedStyles from '../campaigns.css'
 import * as contentStyles from './campaignContent.css'
@@ -38,24 +38,19 @@ export function CampaignContent({
     { campaignId: campaign.id },
     { initialNumItems: 48 }
   )
-  const candidates = useCandidatePaginatedQuery(
-    convexApi.content.catalogue.list,
-    subjectKind && campaign.capabilities.shareOwnedContent
-      ? { subjectKind, source: 'OWNED', sort: 'name' }
-      : 'skip',
-    { initialNumItems: 48 }
-  )
+  // The kind only matters once chosen; until then the read is disabled.
+  const candidates = useContentCatalogue(subjectKind ?? 'CLASS', {
+    enabled: Boolean(subjectKind) && campaign.capabilities.shareOwnedContent,
+    source: 'OWNED'
+  })
+  const candidateItems = candidates.items ?? []
   const shareContent = useConvexMutation(convexApi.campaigns.contentShares.share)
   const unshareContent = useConvexMutation(convexApi.campaigns.contentShares.unshare)
-
-  useEffect(() => {
-    if (subjectKind && candidates.status === 'CanLoadMore') candidates.loadMore(48)
-  }, [candidates.loadMore, candidates.status, subjectKind])
 
   const share = useMutation({
     mutationFn: async () => {
       if (!subjectKind || !subjectId) throw new Error('Choose owned homebrew to share.')
-      const candidate = candidates.results.find((item) => item.id === subjectId)
+      const candidate = candidateItems.find((item) => item.id === subjectId)
       if (!candidate) throw new Error('That owned homebrew record is no longer available.')
       return shareContent({
         campaignId: campaign.id,
@@ -114,11 +109,11 @@ export function CampaignContent({
             />
             <Select
               classNames={{ input: sharedStyles.input }}
-              data={candidates.results.map((candidate) => ({
+              data={candidateItems.map((candidate) => ({
                 value: candidate.id,
                 label: candidate.label
               }))}
-              disabled={!subjectKind || candidates.status !== 'Exhausted'}
+              disabled={!subjectKind || candidates.isPending}
               label='Owned homebrew'
               searchable
               value={subjectId}

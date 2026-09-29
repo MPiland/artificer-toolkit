@@ -1,16 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredCatalogueItem } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { mapAuthoredCatalogueItems } from '../authoredCatalogue'
 import { buildRaceListFilters, raceListAttributeColumns } from './raceListMapper'
 
-const rows: AuthoredCataloguePage['page'] = [
+const rows: AuthoredCatalogueItem[] = [
   {
     id: 'race-1',
     publicId: 'race-1',
-    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
     label: 'Elf',
     description: 'A graceful lineage.',
-    status: 'ACTIVE',
     systemId: 'system-1',
     category: 'BASE',
     selectionMode: 'REQUIRES_SUBRACE',
@@ -20,10 +18,8 @@ const rows: AuthoredCataloguePage['page'] = [
   {
     id: 'race-2',
     publicId: 'race-2',
-    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
     label: 'Wood Elf',
     description: null,
-    status: 'ACTIVE',
     systemId: 'system-1',
     category: 'SUBRACE',
     parentRaceId: 'race-1',
@@ -34,10 +30,8 @@ const rows: AuthoredCataloguePage['page'] = [
   {
     id: 'race-3',
     publicId: 'race-3',
-    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
     label: 'Human',
     description: 'A versatile people.',
-    status: 'ACTIVE',
     systemId: 'system-1',
     category: 'BASE',
     selectionMode: 'DIRECT',

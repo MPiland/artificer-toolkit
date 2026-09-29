@@ -1,10 +1,6 @@
 import { Alert, Button, Group, Modal, NumberInput, Select, Stack, TextInput } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
-import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { useConvex } from 'convex/react'
 import { useState } from 'react'
-import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import * as sharedStyles from '../campaigns.css'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 
@@ -23,25 +19,12 @@ export function EncounterReinforcement({
   onClose: () => void
   onCommand: (command: Extract<EncounterCommandPayload, { type: 'REINFORCE' }>) => void
 }) {
-  const convex = useConvex()
   const [kind, setKind] = useState<'CREATURE' | 'CUSTOM'>('CREATURE')
   const [creatureId, setCreatureId] = useState<string | null>(null)
   const [label, setLabel] = useState('')
   const [hitPoints, setHitPoints] = useState(10)
   const [initiative, setInitiative] = useState<number | null>(null)
-  const creatures = useQuery({
-    enabled: opened && kind === 'CREATURE',
-    queryKey: queryKeys.content.creatures.list(),
-    queryFn: () =>
-      loadPagedAuthoredCatalogItems(
-        (input) => convex.query(convexApi.content.catalogue.list, input),
-        {
-          subjectKind: 'CREATURE',
-          sort: 'name',
-          paginationOpts: { cursor: null, numItems: 48 }
-        }
-      )
-  })
+  const creatures = useContentCatalogue('CREATURE', { enabled: opened && kind === 'CREATURE' })
   const validEnemy = kind === 'CREATURE' ? creatureId !== null : label.trim().length > 0
 
   return (
@@ -63,7 +46,7 @@ export function EncounterReinforcement({
           <>
             <Select
               classNames={{ input: sharedStyles.input }}
-              data={(creatures.data ?? []).map((creature) => ({
+              data={(creatures.items ?? []).map((creature) => ({
                 value: creature.id,
                 label: creature.label
               }))}
@@ -73,7 +56,7 @@ export function EncounterReinforcement({
               value={creatureId}
               onChange={setCreatureId}
             />
-            {creatures.error ? <Alert color='red'>Creatures couldn’t be loaded.</Alert> : null}
+            {creatures.isError ? <Alert color='red'>Creatures couldn’t be loaded.</Alert> : null}
           </>
         ) : (
           <>

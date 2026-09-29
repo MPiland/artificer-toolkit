@@ -1,13 +1,10 @@
 import { notifications } from '@mantine/notifications'
-import { api } from '@artificer-toolkit/apis/convex/api'
-import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
-import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
+import { useAuthoredCatalogue } from '#components/AuthoredList/useAuthoredCatalogue'
 import {
   featListAttributeColumns,
   featListSortOptions,
@@ -20,21 +17,6 @@ import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
 
 export const Route = createFileRoute('/_authed/feats/')({
-  loader: async ({ context }): Promise<void> => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(
-        getAuthoredCatalogueList({
-          subjectKind: 'FEAT',
-          paginationOpts: { cursor: null, numItems: 48 }
-        })
-      ),
-      context.queryClient.ensureQueryData(
-        convexQuery(api.content.catalogue.summary, {
-          subjectKind: 'FEAT'
-        })
-      )
-    ])
-  },
   component: FeatsRoute
 })
 
@@ -42,7 +24,7 @@ function FeatsRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const operations = createAuthoredOperations('FEAT', useConvex())
-  const listing = useNativeAuthoredCatalogWindow('FEAT')
+  const listing = useAuthoredCatalogue('FEAT')
   const duplicateMutation = useMutation({
     mutationFn: operations.duplicate,
     onSuccess: async (response) => {
@@ -92,7 +74,7 @@ function FeatsRoute() {
         filters={buildFeatListFilters()}
         attributeColumns={featListAttributeColumns}
         sortOptions={featListSortOptions}
-        catalog={listing.catalog}
+        updating={listing.updating}
         error={listing.error}
         loading={listing.loading}
         onCreate={() => navigate({ to: '/feats/new' })}
