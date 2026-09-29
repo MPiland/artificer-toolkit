@@ -168,6 +168,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@artificer-toolkit/session-worker@workspace:apps/session-worker"
   dependencies:
+    "@artificer-toolkit/encounter-persistence": "workspace:^"
     "@artificer-toolkit/rules-runtime": "workspace:^"
     "@artificer-toolkit/schema": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
