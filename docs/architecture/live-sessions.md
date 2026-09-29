@@ -846,14 +846,18 @@ sequenceDiagram
   Convex-->>Room: Current member, Session, recipient, Scene, and revision authority
   Room->>Convex: Bootstrap or verify the active authority epoch
   Convex-->>Room: Activation fingerprint, persisted sequence, and checksum
+  Room->>Convex: POST /live-sessions/room-authorization with the Worker secret and epoch
+  Convex-->>Room: Current revisions and any changed authorization sections
   Room-->>Browser: TRANSIENT_READY
 ```
 
 The browser authenticates once after the socket opens. There is no periodic authentication heartbeat;
-the admitted socket remains valid until its JWT expires, an explicit lifecycle invalidation arrives, or
-the socket closes. At expiry or after `AUTHENTICATION_REQUIRED`, the browser obtains current
-authentication and Convex recaptures product authority before transient readiness resumes.
-`LIVE_SESSION_WORKER_SECRET` independently authenticates the Worker HTTP caller.
+the admitted socket remains valid until its JWT expires (about 15 minutes), an explicit lifecycle
+invalidation arrives, the room's authorization cache no longer admits it, or the socket closes. At
+expiry or after `AUTHENTICATION_REQUIRED`, the browser obtains current authentication and Convex
+recaptures product authority before transient readiness resumes. Every admission, first or renewed,
+also renews the room's authorization cache (below) and is refused when that cache does not admit the
+captured member. `LIVE_SESSION_WORKER_SECRET` independently authenticates the Worker HTTP caller.
 
 Lifecycle producers invalidate rooms immediately. Campaign leave/removal evicts that membership
 generation. Account deletion, auth-account suspension/deactivation, and administrative auth-session
@@ -862,10 +866,81 @@ finishing a Campaign Session does not affect live play. Sign-out and password/se
 reconnect authenticates normally when the underlying auth session remains valid. Social profile
 suspension is separate and continues to preserve Campaign access.
 
-Room eviction and closure are fire-and-forget from their producing mutation. Current:
-`liveSessions/control.ts` delivers them with up to five attempts, rescheduling through the Convex
-scheduler after 1, 2, 4 and 8 seconds on network failure, 408, 429 or any 5xx. Other 4xx responses
-and missing configuration fail immediately. Presentation control is synchronous and does not retry.
+Room eviction, closure and input invalidation are fire-and-forget from their producing mutation.
+Current: `liveSessions/control.ts` reschedules through the Convex scheduler on network failure, 408,
+429 or any 5xx, after 1, 2, 4, 8 seconds and so on. An eviction keeps retrying, at most a minute
+apart, until the room acknowledges it or no room holds the Campaign's authority
+(`liveSessions/authority:held`), so a lost eviction is the only case the authorization lease covers
+(ADR 0035 Amendment 14). Closure and `INVALIDATE_INPUTS` stop after five attempts; the lease covers
+a lost invalidation. Other 4xx responses and missing configuration fail immediately. Presentation
+control is synchronous and does not retry.
+
+Current, deferred to S6: departure (`campaigns/membershipDeparture.ts`) and account deletion
+(`campaigns/accountDeparture.helper.ts`) still remove the member's assignment and Encounter actor
+control in Convex, then evict. Nothing holds a Run in the room yet, so the target rule that a held
+Run's departure only evicts and notifies, with the room applying the change, arrives with S6.
+
+## Room authorization cache (ADR 0035 S4)
+
+Current. The room caches the authorization inputs of its Campaign
+(`apps/session-worker/src/roomAuthorization.ts`, contract
+`packages/schema/src/api/liveSessionRoomAuthorization.ts`):
+
+| Section     | Contents                                                                                   | Changes with                         |
+| ----------- | ------------------------------------------------------------------------------------------ | ------------------------------------ |
+| Campaign    | Owner, ACTIVE members (role, membership epoch), Campaign Character assignments             | CAMPAIGN revision                    |
+| Characters  | Each assigned Character's owner and party visibility ("Party can view" and health display) | That Character's CHARACTER revision  |
+| Preferences | Each member's "Roll my dice automatically"                                                 | A digest of the members' preferences |
+| Play        | The presented Scene's bound Encounter: token bindings, actor control and health display    | PLAY revision                        |
+
+**Loading.** `liveSessions/roomAuthorization:read`, behind the Worker-secret route
+`/live-sessions/room-authorization`, is authorized by the room's `DO_ACTIVE` epoch, not a member's
+token. The room sends the revisions it holds (`known`). Convex always reads the revisions, which is
+small, and returns only the sections whose revision differs. Party visibility comes from the large
+`characters` document, so only a changed Character is re-read.
+
+**Lease.** The cache is trusted for `ROOM_LIMITS.authorizationLeaseMs` (240 s, 2N) from the start of
+the read that loaded it. Each socket's authentication, including its renewal at token expiry, reads
+the revisions and renews it. `RoomAuthorization.renew` is the hook for S3 checkpoint responses:
+matching revisions renew the lease, anything else marks the cache stale.
+
+**Invalidation.** `INVALIDATE_INPUTS { scopes }` marks the cache stale; nothing is trusted until the
+next read. The triggers in `apps/apis/convex/lib/mutations.ts` collect, per transaction:
+
+- CAMPAIGN: any CAMPAIGN revision bump (Campaign, memberships, assignments, content shares);
+- PLAY: `campaignPlaySettings` writes (also a PLAY revision source now). Encounter writes also bump
+  PLAY but are not pushed: the room's own forwarded Encounter commands and bindings change them, and
+  the room marks its Play section stale after each one;
+- CHARACTER: any CHARACTER revision bump, mapped to its Campaign through the assignment;
+- PREFERENCES: an auto-roll change, for each Campaign the user is an ACTIVE member of.
+
+When the mutation succeeds (`onSuccess` of the tracked mutation builders), one notice per Campaign is
+scheduled, only while that Campaign's authority is `DO_ACTIVE`. SYSTEM changes are pulled, never
+pushed. `withSceneVisionTracking` alone tracks revisions but sends no notices. A CAMPAIGN notice
+reloads at once, because membership can end sockets; other notices reload before their next use.
+
+**Use.**
+
+- A command, and `SYNCHRONIZE_SCENE`, first reloads a stale or expired cache (the command boundary).
+  A failed read refuses the command with `UNAVAILABLE`.
+- Every read closes each socket whose member left, changed role or started a new membership epoch
+  (`Campaign access ended.`), so a removed member's queued commands never run. A command whose
+  member the cache no longer admits is not run either.
+- Broadcasts are refused while the cache is stale or past its lease: a preview or ping is dropped
+  and one background read starts (one at a time; after a failure, none for `previewRetryMs`). Only
+  admitted members are recipients.
+- A player's bound-token drag preview takes its control from the Play section: GM-granted control
+  while the user is still a player, or the actor of their assigned Character. The Play section must be
+  current and bound to the cached Scene's Encounter.
+- A token drag checks that the Scene's vision was built from the Character revisions the cache holds;
+  otherwise the cache reloads and, if a Character really changed, the Scene's vision is rebuilt.
+
+**Accepted exposure.** Until the next read, a member whose removal notice was lost keeps receiving
+broadcasts and can run room-local Scene commands for at most one lease; Encounter commands are still
+checked by Convex per command until S6.
+
+**Not yet consumed.** Party visibility, health display and auto-roll preferences are held and
+reloaded, but nothing in the room reads them before the S6 fan-out and the S7 Sheet.
 
 ## Transient previews
 
@@ -907,17 +982,17 @@ fog, and other recipient-private state never enter a broader broadcast.
   - The Scene must be the room's cached Scene at the sample's version; any other sample is dropped.
     The cache is filled by `SYNCHRONIZE_SCENE`. When it is missing (for example after an
     eviction), the sample is dropped and one background rebuild starts.
-  - Origin and recipients are the room's current admissions. Membership loss reaches the room
-    through eviction, and an admission ends with its access token, as for committed Scene deltas.
-  - A player's bound-token control on an Encounter-bound Scene comes from a per-player lease of an
-    AUTHORITY capture (D25). Character vision comes from revisions last confirmed by Convex (D33).
-    Both are trusted for `previewLeaseMs` (30 s). From half the lease one background call renews
-    them. Past the full lease the sample is dropped, so previews fail closed. A changed Character
-    revision rebuilds the Scene cache with the new vision.
-  - Each background refresh (Scene rebuild, vision check, or one player's control) runs at most once
-    at a time and starts at most once per `previewRetryMs` (5 s).
-  - The worst case is therefore a drag preview that uses a revoked actor control or superseded
-    Character vision for up to one lease. The commit is still fully checked.
+  - Origin and recipients are the room's current admissions that its authorization cache still
+    admits. Membership loss reaches the room through eviction or `INVALIDATE_INPUTS`, and an
+    admission ends with its access token, as for committed Scene deltas.
+  - Membership, a player's bound-token control on an Encounter-bound Scene (D25) and the Character
+    revisions behind the cached vision (D33) all come from the
+    [room authorization cache](#room-authorization-cache-adr-0035-s4). While it is stale or past its
+    240 s lease the sample is dropped and one background read renews it, so previews fail closed. A
+    Character revision the Scene's vision was not built from rebuilds the Scene cache.
+  - A Scene rebuild runs at most once at a time and starts at most once per `previewRetryMs` (5 s).
+  - The worst case is a drag preview that uses a revoked actor control or superseded Character
+    vision whose notice was lost, for up to one lease. The commit is still fully checked.
 
 Every preview envelope carries `audience: 'TABLE' | 'GM'` (current). The room delivers a `GM`
 preview only to OWNER sockets. The tabletop sends GM previews (ping, ruler, drag ghost, fog draft)
@@ -1035,15 +1110,16 @@ signed-in client cannot turn one socket into unbounded Convex work:
   rejected with `UNAVAILABLE` and the socket stays open. Previews are not queued: each is handled
   within its message.
 - **Preview inputs:** a preview sample never calls Convex (see [Transient previews](#transient-previews)).
-  A player's bound-token control (AUTHORITY capture, D25) and the Character-vision revision check
-  (`/live-sessions/vision-revisions`, `liveSessions/transientCapture:visionRevisions`, D33) are
-  leased for 30 s and renewed in the background, at most one call per input per 15 s while previews
-  flow. Commits keep the full check.
+  Membership, bound-token control (D25) and Character-vision revisions (D33) come from the
+  [room authorization cache](#room-authorization-cache-adr-0035-s4): no Convex call per sample after
+  warm-up, one small revisions read per lease or notice while previews flow. Commits keep the full
+  check.
 - **Rules capture cache:** System-level rules captures are reused across Encounter commands for up to
   60 s, at most 512 entries and 16 MB (see "Room capture cache" above).
 - **Admission freshness:** an admission lasts only until the access token expires; renewing it
-  re-captures membership and role from Convex. Evictions close sockets through the retried control
-  route.
+  re-captures membership and role from Convex and renews the authorization cache. Evictions close
+  sockets through the retried control route, and every authorization read closes the sockets it no
+  longer admits.
 
 Rate-limit rejections throw `ConvexError` data matching `rateLimitedErrorDataSchema`
 (`packages/schema/src/api/rateLimits.ts`), which survives production error redaction. The web reads it
@@ -1097,7 +1173,7 @@ can point at a pruned geometry save, and superseded fog saves and chunks are not
 | Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                                       |
 | Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                                |
 | Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte protected bootstrap/publication/control secret shared only with the Worker       |
-| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction and closure control calls reach                                  |
+| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction, closure and invalidation control calls reach                     |
 | Worker              | `CONVEX_SITE_URL`                 | Matching Convex bootstrap/publication/control HTTP Actions origin                                 |
 | Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                             |
 | Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                               |
