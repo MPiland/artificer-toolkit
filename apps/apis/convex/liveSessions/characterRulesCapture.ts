@@ -180,21 +180,20 @@ async function admitCharacterCaptureScope(
   return { userId, campaign, admitted: Boolean(admitted), characters }
 }
 
-/** One Character capture under its admitted scope: the response its separate read returns. */
-async function readAdmittedCharacterCapture(
+/** The Campaign's assigned, ACTIVE Character in its System; every Character rules read starts here. */
+export async function readAssignedActiveCharacter(
   ctx: QueryCtx,
-  input: LiveSessionCharacterRulesInput,
-  { userId, campaign, admitted, characters }: CharacterCaptureScopeAdmission
-): Promise<LiveSessionCharacterRulesResponse> {
-  if (characters && !characters.sourceIds.has(input.characterId))
-    throw new Error(characters.refusal)
+  campaign: Doc<'campaigns'>,
+  characterId: string,
+  authorityUserId: string
+) {
   const { assignment } = await requireCampaignCharacterAuthority(
     ctx,
     campaign.id,
-    input.characterId,
-    admitted ? campaign.ownerUserId : userId
+    characterId,
+    authorityUserId
   )
-  const { active, draft } = await loadCharacterState(ctx, input.characterId)
+  const { active, draft } = await loadCharacterState(ctx, characterId)
   if (!active || active.userId !== assignment.userId)
     throw new Error('Stored Campaign Character assignment mismatch.')
   if (draft && draft.userId !== active.userId)
@@ -206,6 +205,47 @@ async function readAdmittedCharacterCapture(
   const route = await readVisibleAuthoredRouteId(ctx, { subjectId: active.id })
   if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== active.userId)
     throw new Error('Stored Character route identity mismatch.')
+  return active
+}
+
+/** An admitted Character's stored rules inputs; the room's Character read returns the same. */
+export async function readStoredCharacterInputs(
+  ctx: QueryCtx,
+  active: Doc<'characters'>,
+  campaign: Doc<'campaigns'>
+) {
+  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  return {
+    character: deriveOnce(active, readCharacterRecord),
+    updatedAt: active.updatedAt,
+    characterChecksum: active.checksum,
+    streamVersion: active.streamVersion,
+    sheetState: readCharacterSheetState(active),
+    campaign: {
+      id: campaign.id,
+      status: campaign.status,
+      contentMaturity: campaign.contentMaturity,
+      attunementSlotOverride: campaign.attunementSlotOverride,
+      state: (await readCampaignCharacterState(ctx, campaign.id, active.id)).state,
+      currencyOptions: await readCampaignCurrencyOptions(ctx, campaign)
+    }
+  }
+}
+
+/** One Character capture under its admitted scope: the response its separate read returns. */
+async function readAdmittedCharacterCapture(
+  ctx: QueryCtx,
+  input: LiveSessionCharacterRulesInput,
+  { userId, campaign, admitted, characters }: CharacterCaptureScopeAdmission
+): Promise<LiveSessionCharacterRulesResponse> {
+  if (characters && !characters.sourceIds.has(input.characterId))
+    throw new Error(characters.refusal)
+  const active = await readAssignedActiveCharacter(
+    ctx,
+    campaign,
+    input.characterId,
+    admitted ? campaign.ownerUserId : userId
+  )
   const scope = { input, userId }
   const revisions = await readLiveSessionRulesRevisions(ctx, {
     systemId: active.systemId,
@@ -216,21 +256,9 @@ async function readAdmittedCharacterCapture(
   if (input.request.kind === 'INPUTS') {
     const response = {
       kind: 'INPUTS' as const,
-      character: deriveOnce(active, readCharacterRecord),
+      ...(await readStoredCharacterInputs(ctx, active, campaign)),
       ...(input.movement ? { movementOwner: active } : {}),
-      updatedAt: active.updatedAt,
-      characterChecksum: active.checksum,
-      streamVersion: active.streamVersion,
-      sheetState: readCharacterSheetState(active),
-      system: await requireSystem(ctx, active.systemId),
-      campaign: {
-        id: campaign.id,
-        status: campaign.status,
-        contentMaturity: campaign.contentMaturity,
-        attunementSlotOverride: campaign.attunementSlotOverride,
-        state: (await readCampaignCharacterState(ctx, campaign.id, active.id)).state,
-        currencyOptions: await readCampaignCurrencyOptions(ctx, campaign)
-      }
+      system: await requireSystem(ctx, active.systemId)
     }
     return liveSessionCharacterRulesResponseSchema.parse({
       ...response,

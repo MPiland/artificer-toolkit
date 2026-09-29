@@ -33,7 +33,8 @@ import {
   presentHttp,
   publishHttp,
   releaseHttp,
-  roomAuthorizationHttp
+  roomAuthorizationHttp,
+  roomInputsHttp
 } from './liveSessions/stateHttp'
 
 const http = httpRouter()
@@ -46,6 +47,7 @@ const liveSessionHandlers = {
   capture: captureHttp,
   hydrate: hydrationHttp,
   roomAuthorization: roomAuthorizationHttp,
+  roomInputs: roomInputsHttp,
   bootstrap: bootstrapHttp,
   activate: activateHttp,
   publish: publishHttp,

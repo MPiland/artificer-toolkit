@@ -84,9 +84,7 @@ export const liveRoomInputsResponseSchema = lazySchema(() =>
         contentMaturity: z.enum(['STANDARD', 'MATURE']),
         attunementSlotOverride: z.nullable(nonNegativeInt),
         currencyOptions: z.array(characterSheetCurrencyOptionDtoSchema)
-      }),
-      /** The Campaign's single ACTIVE Run, if any. */
-      activeEncounterId: z.nullable(postgresUuidSchema)
+      })
     }),
     z.strictObject({
       kind: z.literal('RUN'),
@@ -113,6 +111,7 @@ export const liveRoomInputsResponseSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('DEFINITION'),
+      revisions: liveSessionRulesRevisionsSchema,
       definition: z.nullable(reusableDefinitionCurrentDtoSchema)
     }),
     z.strictObject({

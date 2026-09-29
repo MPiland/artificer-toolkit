@@ -4,6 +4,10 @@ import {
 } from '@artificer-toolkit/schema/api/domainRejections'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
+  liveRoomInputsInputSchema,
+  liveRoomInputsResponseSchema
+} from '@artificer-toolkit/schema/api/liveRoomInputs'
+import {
   liveSessionCharacterRulesInputSchema,
   liveSessionCharacterRulesResponseSchema
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
@@ -141,6 +145,7 @@ const liveSessionRoutes = {
     input: liveSessionRoomAuthorizationInputSchema,
     output: liveSessionRoomAuthorizationResponseSchema
   },
+  roomInputs: { input: liveRoomInputsInputSchema, output: liveRoomInputsResponseSchema },
   bootstrap: { input: liveSessionBootstrapInputSchema, output: liveSessionBootstrapResponseSchema },
   activate: { input: liveSessionActivationInputSchema, output: liveSessionAuthorityDtoSchema },
   publish: { input: liveSessionPublishInputSchema, output: liveSessionPublishResponseSchema },

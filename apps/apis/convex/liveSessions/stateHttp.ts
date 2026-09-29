@@ -24,6 +24,9 @@ const release = makeFunctionReference<'mutation', JsonObject, unknown>(
 const roomAuthorization = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/roomAuthorization:read'
 )
+const roomInputs = makeFunctionReference<'query', JsonObject, unknown>(
+  'liveSessions/roomInputs:read'
+)
 const characterRules = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/characterRulesCapture:capture'
 )
@@ -106,6 +109,11 @@ export const roomAuthorizationHttp = liveStateHttp(
   false,
   'Live Session authorization unavailable.',
   (ctx, input) => ctx.runQuery(roomAuthorization, input)
+)
+export const roomInputsHttp = liveStateHttp(
+  false,
+  'Live Session room inputs unavailable.',
+  (ctx, input) => ctx.runQuery(roomInputs, input)
 )
 export const characterRulesHttp = liveStateHttp(
   true,
