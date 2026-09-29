@@ -429,6 +429,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     * check the Workers Free request and CPU limits for SSR pages (the 10 ms CPU limit applies to plain Workers);
     * migrate the DNS and domain.
   * **Sequencing:** its own slice, after ADR 0035 S0.
+  * **Progress (2026-09-28):** the local steps are done ([ADR 0037](../adr/0037-web-app-on-cloudflare-workers.md); results in [the D65 record](../validation/phase-08-2/d65-cloudflare-web-hosting-2026-09-28.md#local-prototype-steps-13-2026-09-28)). The cloud steps wait for your approval; what you must do is in the [web Worker hosting runbook](../runbooks/web-worker-hosting.md), including choosing the staging and production web hostnames.
 - **D66** (2026-09-27) Relationships (edges) on the future Campaign node map do not count against the Q18 per-Campaign entries limit. Only entries (nodes) count.
   - **Why:** edges are a few bytes each, and connecting records is the whole value of the board. Counting them would penalize the behavior the feature exists for.
   - **Safety:** a hidden cap on edges per Campaign guards against abuse.

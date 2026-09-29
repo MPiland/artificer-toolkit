@@ -1,8 +1,9 @@
 # D65: moving the web app from Netlify to Cloudflare Workers, 2026-09-28
 
-**Status:** research for [D65](../../handoffs/phase-08-2-open-questions.md) ("Before moving"). No
-product source, cloud account or deployment was touched. It is not acceptance evidence, and the
-ledger is unchanged.
+**Status:** research for [D65](../../handoffs/phase-08-2-open-questions.md) ("Before moving"), then
+the local prototype (plan steps 1–3, [below](#local-prototype-steps-13-2026-09-28)) under
+[ADR 0037](../../adr/0037-web-app-on-cloudflare-workers.md). No cloud account or deployment was
+touched. It is not acceptance evidence, and the ledger is unchanged.
 
 **Recommendation: go with conditions.** TanStack Start is an officially supported Cloudflare target,
 and this app needs only a small, well-bounded set of code changes. The request budget fits Workers
@@ -275,6 +276,69 @@ release path.
 - Decide option A–D if the CPU gate fails, and whether to disable Better Auth's focus refetch.
 - Delete the Netlify site at retirement.
 
+## Local prototype (steps 1–3), 2026-09-28
+
+The code is on `codex/phase-08-2-convex-cutover` in commits "Build and serve the web app as a
+Cloudflare Worker (D65)" through "Fix signed-in SSR in workerd"; the decision is
+[ADR 0037](../../adr/0037-web-app-on-cloudflare-workers.md). No cloud account was used.
+
+**Method.** `@cloudflare/vite-plugin` 1.62.0 and Wrangler 4.143.0 (workerd 1.20260926). Two runs
+against the local Docker Convex backend (`phase82-local-linux`), with the local application env file
+injected by Yarn: a production-mode `vite build` served by `vite preview`, and `vite dev`. Both run
+the server in `workerd`. The build used a syntactically valid Sentry DSN on the reserved `.invalid`
+TLD, so Sentry initialises and its CSP entry appears but nothing is sent. A Node script drove each
+run over HTTP. A verified throwaway account was created through the invitation mutations with the
+local admin key generated in memory; no secret, cookie value or password was printed. Evidence is
+under the ignored `local-validation/d65-web-worker/` (`proof-*.json`, `netlify-era-csp.json`,
+`deploy-dry-run.log`).
+
+| Check                                    | Production build in `workerd`                                                                                                                                                                                             | `vite dev` in `workerd`                             |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Landing SSR (`/`)                        | 200 ×6; nonce in HTML matches CSP                                                                                                                                                                                         | 200 ×6; dev CSP (`'unsafe-eval'`, loopback origins) |
+| Hashed asset (`/assets/index-*.js`)      | 200, `public, max-age=31536000, immutable`, `nosniff`                                                                                                                                                                     | n/a (Vite serves source)                            |
+| Sign-up via `/api/auth` proxy            | 400 `EMAIL_PASSWORD_SIGN_UP_DISABLED` (local Convex has public sign-up off), `no-store`                                                                                                                                   | same                                                |
+| Sign-in                                  | 200, two `Set-Cookie` (`session_token`, `convex_jwt`) preserved                                                                                                                                                           | same                                                |
+| `/api/auth/get-session` with the cookies | 200, the account's session                                                                                                                                                                                                | same                                                |
+| Signed-in SSR (`/characters`)            | 200 ×5, renders the username                                                                                                                                                                                              | same                                                |
+| Route families, signed in                | `/home`, `/characters`, `/campaigns`, `/backgrounds`, `/classes`, `/creatures`, `/equipment`, `/feats`, `/races`, `/vehicles`, `/systems`, `/notifications`, `/settings/account`: 200; `/social`: 307 to `?view=discover` | same                                                |
+| Guest pages                              | `/sign-in`, `/sign-up`, `/reset-password`: 200                                                                                                                                                                            | same                                                |
+| Sign-out                                 | 200, four clearing `Set-Cookie`; session then `null`; `/characters` then 307 to `/sign-in`                                                                                                                                | same                                                |
+
+- **Not host-related:** `/spells` returns 500 in both runs because its Convex query exceeds Convex's
+  16 MiB read limit ("Too many bytes read in a single function execution"). `/library` has no index
+  route (404). Neither involves the web host.
+- **CSP identical to today's production (C1).** The pre-D65 `securityHeaders.ts`, evaluated with
+  `NODE_ENV=production` and the same inlined values, gives byte-identical `Content-Security-Policy`
+  (nonce normalised), `Permissions-Policy`, `Referrer-Policy`, `X-Content-Type-Options` and
+  `X-Frame-Options`; neither sends HSTS. The Worker no longer reads `NODE_ENV` for policy: in the
+  production bundle `isDevelopment()` compiles to `return false`.
+- **Found and fixed:** workerd rejects `fetch(..., { redirect: 'error' })`, so every signed-in SSR
+  request returned 500 until the session reads switched to `redirect: 'manual'` (a redirect still
+  fails closed). vanilla-extract's SSR `external` setting is rejected by the plugin; the runtime is
+  now bundled.
+- **`createRequire`:** none remains in the Worker output; the plugin bundles the CommonJS dependency.
+- **Sentry (C3, local part):** no `@sentry/node` or `@sentry/node-core` module is in any Worker chunk,
+  and `vite build` fails if one appears (the guard was checked by pointing it at `@sentry/core`, which
+  failed the build). `@sentry/cloudflare` initialises with a DSN in `workerd` without errors. Delivery
+  of a captured error is not proven.
+- **`CF-Connecting-IP` (C4, local part):** local `workerd` sets it from the socket, so auth works in
+  both runs; the proxy strips it before forwarding and fails closed without it (unit tests). Miniflare
+  sets the header only when the client did not send one, so spoofing can only be tested at the edge.
+- **Size:** `wrangler deploy --dry-run` reports 14,321 KiB (3,416 KiB gzip), under the 64 MiB
+  uncompressed limit; the compressed limit was removed on 2026-09-04.
+- **CPU:** Wrangler and Miniflare report no per-request CPU, so these are **local wall times, not
+  Workers CPU**, and include the round trips to local Convex. Production build: landing 62 ms cold,
+  18–35 ms warm; signed-in `/characters` 227 ms first, 95–187 ms after; signed-in list pages
+  91–674 ms. `vite dev` adds its optimizer (15 s first request). C2 stays a staging measurement.
+
+| Condition | Local status                                                                                                                                                                                                                                                     |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1        | **Proven locally:** auth flows except email links, every list route family, CSP identical, policy independent of `NODE_ENV`. Not covered: the verification link, password-reset OTP and email change (the local sink discards mail), and browser-driven journeys |
+| C2        | Not provable locally (no CPU accounting in Miniflare)                                                                                                                                                                                                            |
+| C3        | **Partly:** `@sentry/node` provably absent and init works; capture needs staging                                                                                                                                                                                 |
+| C4        | **Partly:** fail-closed path proven; non-spoofability needs the custom domain                                                                                                                                                                                    |
+| C5        | **Proven locally:** `_headers` served on assets; `workers_dev: false` and `preview_urls: false` in both environments of `wrangler.jsonc` and in the emitted production config                                                                                    |
+
 ## Conditions for "go"
 
 - **C1.** The local prototype (step 1) passes all auth flows and route families in `workerd`, with
@@ -311,8 +375,8 @@ release path.
 - Whether `CF-Connecting-IP` is overwritten when a client sends it (the docs do not say explicitly).
 - Whether a Worker invocation that reaches a Durable Object counts once or twice against the Free
   pools.
-- `node:module` `createRequire` behavior in the bundled Worker.
-- Multiple `Set-Cookie` preservation through the proxy in `workerd` (expected, untested).
+- ~~`node:module` `createRequire` behavior in the bundled Worker~~ (resolved below: none remains).
+- ~~Multiple `Set-Cookie` preservation through the proxy in `workerd`~~ (proven below).
 - The current production web hostname and its DNS records. The repo names only
   `tabletop[-staging].artificertoolkit.app` for the session Worker.
 - The Convex query-cache question above.
