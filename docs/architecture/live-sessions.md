@@ -987,18 +987,27 @@ acknowledged commands Convex never received.
 Character play state is one such record per Character id: the store does not know its shape (the
 Amendment 12 split changes it). `apps/session-worker/src/roomInputs.ts` fills them from Convex:
 
-- `liveSessions/roomInputs:read`, behind the Worker-secret route `/live-sessions/room-inputs`, is
-  authorized by the room's `DO_ACTIVE` epoch. Scopes: `RUN` (one Encounter's aggregate, paged 256
-  documents at a time, with the Run's `encounterVersion` so a read that spans a command is repeated),
-  `CHARACTER` (the stored inputs and the active Rule Effects), `CAMPAIGN_PLAY`, `DEFINITION` and
-  `SYSTEM` (the System, and its vocabulary, through the capture builders, Amendment 11). Every
-  answer carries the revisions it was read at.
-- `RoomInputs.hydrate` reads the Run, then the Campaign play scope, the System and each Character
-  actor's inputs in parallel, and replaces the store in one transaction. Character actors are found from
+- `liveSessions/roomInputs:read` answers one Convex query page; the Worker-secret route
+  `/live-sessions/room-inputs` is authorized by the room's `DO_ACTIVE` epoch and answers a whole
+  **batch**: it runs consecutive pages (`readRoomInputsBatch`, `packages/schema`) until it holds 2048
+  documents or 2 MiB, so one Worker call is one subrequest however many query pages it spans. A page
+  is at most 1024 documents, far below Convex's 16384-document and 8 MiB read limits. Scopes: `RUN`
+  (one Encounter's aggregate, with the Run's `encounterVersion`; a page read at another version is
+  left for the next call, so the Worker repeats a read that a command tore), `CHARACTERS` (up to 128
+  Character ids in one request, each read as a part: its stored inputs on the first part, then its
+  active Rule Effects), `CAMPAIGN_PLAY`, `DEFINITION` and `SYSTEM` (the System, and its vocabulary,
+  through the capture builders, Amendment 11). Every answer carries the revisions it was read at.
+- A Character the Campaign no longer has assigned reads as `UNASSIGNED` instead of failing the
+  request. Its Run actor already holds the Character's state (`frozenState`, written when the player
+  left; see `campaigns/characterDeparture.ts`), so `RoomInputs` loads no inputs for a frozen actor and
+  hydrate does not fail. An actor that is unassigned but not frozen is re-read once for the departure
+  race and otherwise fails closed.
+- `RoomInputs.hydrate` reads the Campaign play scope, the System, its vocabulary and the Run with its
+  Characters in parallel, and replaces the store in one transaction. Character actors are found from
   the actor documents' stored state, not from the play-state shape.
 - Demand reads (`character`, `play`, `system`, `definition`) return the held copy while its revisions
   are among those the caller observes, and otherwise read again. A Character reload replaces its Rule
-  Effects and its record in one log row.
+  Effects and its record in one log row; a Character that has since left the Campaign is refused.
 
 **Activation.** After the outbox flush, `NativeLiveSessionRoom` hydrates when the store's epoch is not
 the activation's `DO_ACTIVE` epoch. Within an epoch (hibernation, restart, eviction) the store is
@@ -1006,9 +1015,12 @@ rebuilt from its own SQLite by the constructor and no Convex read happens; a new
 (ADR 0035 Amendment 2). The bound Encounter comes from the authorization cache's Play section. A failed
 hydrate fails the activation, and the next admission retries.
 
-**Subrequests.** Every Convex call from the Worker is a subrequest (50 on Workers Free). An empty Run
-table is skipped by a probe on the Convex side, so a hydrate is about one request per non-empty Run
-table, one per Character page, plus three for the play scope and System.
+**Subrequests.** Every Convex call from the Worker is a subrequest (50 on Workers Free). A hydrate is
+one call for the play scope, two for the System and its vocabulary, one or more for the Run, and one
+or more for its Characters, all batched by size. A Run of 100 actors with 12 Characters takes five
+calls when it fits the 2 MiB batch (asserted at most ten in `apps/session-worker/src/roomInputs.test.ts`),
+and a further call per 2 MiB beyond it. The Durable Object's CPU limit is 30 s per request on Workers
+Free (ADR 0035 Amendment 9), not 10 ms.
 
 ## Transient previews
 
