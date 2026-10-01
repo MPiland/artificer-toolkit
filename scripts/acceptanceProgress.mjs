@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Reports Phase 8.2 acceptance progress from the JSON ledger and validates its structure.
+// Reports Phase 8.2 acceptance progress and work slices, and validates both files' structure.
 // Usage: node scripts/acceptanceProgress.mjs [--json]
+// The --json report is the progress dashboard's data.json.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
@@ -8,6 +9,9 @@ const ledgerPath = fileURLToPath(
   new URL('../docs/roadmap/08-2-convex-cutover-acceptance.json', import.meta.url)
 )
 const ledger = JSON.parse(readFileSync(ledgerPath, 'utf8'))
+const workPath = fileURLToPath(new URL('../docs/roadmap/08-2-work-slices.json', import.meta.url))
+const work = JSON.parse(readFileSync(workPath, 'utf8'))
+const openSliceStates = ['remaining', 'active', 'integrating', 'waiting']
 const statuses = ledger.statusVocabulary ?? []
 const accepted = 'ACCEPTED'
 
@@ -68,14 +72,53 @@ const validate = () => {
   return errors
 }
 
+const validateWork = (caseIds) => {
+  const errors = []
+  const states = work.stateVocabulary ?? []
+  const streamIds = new Set((work.streams ?? []).map((stream) => stream.id))
+  const slices = new Map()
+  for (const slice of work.slices ?? []) {
+    if (slices.has(slice.id)) errors.push(`Duplicate slice id ${slice.id}`)
+    slices.set(slice.id, slice)
+    if (!streamIds.has(slice.stream)) errors.push(`${slice.id} has unknown stream ${slice.stream}`)
+    if (!slice.id.startsWith(`${slice.stream}-`)) {
+      errors.push(`${slice.id} must be prefixed with its stream "${slice.stream}-"`)
+    }
+    if (!states.includes(slice.state)) errors.push(`${slice.id} has invalid state ${slice.state}`)
+    if (typeof slice.title !== 'string' || slice.title.trim().length === 0) {
+      errors.push(`${slice.id} has no title`)
+    }
+    for (const id of slice.cases ?? []) {
+      if (!caseIds.has(id)) errors.push(`${slice.id} references unknown case ${id}`)
+    }
+  }
+  if (new Set(work.queue).size !== work.queue.length) errors.push('Queue repeats a slice')
+  for (const id of work.queue ?? []) {
+    const slice = slices.get(id)
+    if (!slice) errors.push(`Queue references unknown slice ${id}`)
+    else if (!openSliceStates.includes(slice.state)) {
+      errors.push(`Queue slice ${id} is ${slice.state}, not open`)
+    }
+  }
+  if ([...slices.values()].filter((slice) => slice.state === 'active').length > 1) {
+    errors.push('More than one slice is active')
+  }
+  return errors
+}
+
 const countByStatus = (items) =>
   Object.fromEntries(
     statuses.map((status) => [status, items.filter((item) => item.status === status).length])
   )
 
 const errors = validate()
+if (errors.length === 0) {
+  errors.push(
+    ...validateWork(new Set(ledger.gates.flatMap((gate) => gate.cases.map((kase) => kase.id))))
+  )
+}
 if (errors.length > 0) {
-  console.error(`Invalid acceptance ledger (${ledgerPath}):`)
+  console.error(`Invalid acceptance ledger or work slices (${ledgerPath}, ${workPath}):`)
   for (const error of errors) console.error(`- ${error}`)
   process.exit(1)
 }
@@ -83,6 +126,7 @@ if (errors.length > 0) {
 const allCases = ledger.gates.flatMap((gate) => gate.cases)
 const allCriteria = allCases.flatMap((kase) => kase.criteria)
 const report = {
+  generatedAt: new Date().toISOString(),
   phase: ledger.phase,
   fixedTotal: ledger.fixedTotal,
   cases: countByStatus(allCases),
@@ -97,9 +141,12 @@ const report = {
       criteria: { total: gateCriteria.length, ...countByStatus(gateCriteria) },
       caseProgress: gate.cases.map((kase) => ({
         id: kase.id,
+        title: kase.title,
+        proofTier: kase.proofTier,
         status: kase.status,
         met: kase.criteria.filter((criterion) => criterion.status === accepted).length,
-        total: kase.criteria.length
+        total: kase.criteria.length,
+        criteria: kase.criteria.map(({ id, status, text }) => ({ id, status, text }))
       }))
     }
   }),
@@ -112,7 +159,14 @@ const report = {
       openCriteria: kase.criteria
         .filter((criterion) => criterion.status !== accepted)
         .map(({ id, status, text }) => ({ id, status, text }))
-    }))
+    })),
+  work: {
+    stateMeaning: work.stateMeaning,
+    streams: work.streams,
+    queue: work.queue,
+    slices: work.slices,
+    metrics: work.metrics
+  }
 }
 
 if (process.argv.includes('--json')) {
@@ -150,6 +204,20 @@ const lines = [
         .join('  ')
   ),
   '  (* case not accepted)',
+  '',
+  'Queue (scheduled open slices):',
+  ...work.queue.map((id) => {
+    const slice = work.slices.find((item) => item.id === id)
+    return `  ${slice.id} [${slice.state}] ${slice.title}`
+  }),
+  'Integrating slices (verified in REL-4):',
+  ...work.slices
+    .filter((slice) => slice.state === 'integrating')
+    .map((slice) => `  ${slice.id} ${slice.title}`),
+  'Unscheduled open slices:',
+  ...work.slices
+    .filter((slice) => ['remaining', 'waiting'].includes(slice.state) && !work.queue.includes(slice.id))
+    .map((slice) => `  ${slice.id} [${slice.state}] ${slice.title}`),
   '',
   `Open cases (${report.openCases.length}):`,
   ...report.openCases.flatMap((kase) => [
