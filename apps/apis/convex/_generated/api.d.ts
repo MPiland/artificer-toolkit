@@ -62229,7 +62229,6 @@ export declare const internal: {
             version: number;
             visionRevealMode?: "ON_DRAG" | "ON_DROP";
           } | null;
-          sceneMovementDecisionPending: boolean;
           sceneSnapshot?: {
             baseOrdinals: {
               barriers: Array<{

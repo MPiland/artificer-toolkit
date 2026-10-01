@@ -36,13 +36,19 @@ import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene, readRoomSceneHeader } from './roomSceneRead.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
 
+/** The Scene has no committed token move left to undo; retrying cannot succeed. */
+export class NoSceneMoveToUndoError extends Error {
+  constructor() {
+    super('There is no committed token move to undo.')
+  }
+}
+
 /** The caller admits the GM and commits these writes with the room journal in one transaction. */
 export async function publishRoomSceneUndo(input: {
   transaction: RoomTransaction
   userId: string
   scene: CampaignSceneStateDto
   request: SceneUndoExecuteInput
-  targetCommandId?: string
 }) {
   const { transaction, scene, userId } = input
   const request = sceneUndoExecuteInputSchema.parse({
@@ -76,8 +82,9 @@ export async function publishRoomSceneUndo(input: {
     const command = parseUndo(prior)
     if (command.inputChecksum !== checksum || command.actorUserId !== userId)
       throw new Error('Scene command ID was already used.')
+    const { restoredFogOwners: _restored, ...result } = command.result
     return {
-      result: sceneCommandResultDtoSchema.parse({ ...command.result, replayed: true }),
+      result: sceneCommandResultDtoSchema.parse({ ...result, replayed: true }),
       scene,
       header,
       fogChanged: false
@@ -99,24 +106,22 @@ export async function publishRoomSceneUndo(input: {
     if (matching.length > 1) throw new Error('Stored Scene undo command is inconsistent.')
     return matching[0] ?? null
   }
-  const targetCommandId =
-    input.targetCommandId ??
-    commands
-      .filter(
-        (command) => command.encoding === 'GEOMETRY' && command.input.type === 'MOVE_SCENE_TOKEN'
-      )
-      .map((command) => parseGeometryCommand(command, header.version))
-      .sort((a, b) => b.result.version - a.result.version)
-      .find((command) => {
-        if (command.result.delta === null && command.result.fogPatches.length === 0) return false
-        const undone = undoForMove(command.commandId)
-        if (undone) {
-          parseUndo(undone)
-          return false
-        }
-        return true
-      })?.commandId
-  if (!targetCommandId) throw new Error('There is no committed token move to undo.')
+  const targetCommandId = commands
+    .filter(
+      (command) => command.encoding === 'GEOMETRY' && command.input.type === 'MOVE_SCENE_TOKEN'
+    )
+    .map((command) => parseGeometryCommand(command, header.version))
+    .sort((a, b) => b.result.version - a.result.version)
+    .find((command) => {
+      if (command.result.delta === null && command.result.fogPatches.length === 0) return false
+      const undone = undoForMove(command.commandId)
+      if (undone) {
+        parseUndo(undone)
+        return false
+      }
+      return true
+    })?.commandId
+  if (!targetCommandId) throw new NoSceneMoveToUndoError()
   const callbacks: SceneUndoPublicationCallbacks = {
     readSceneCommand: async (sceneId, commandId) => {
       const value = readRoomSceneRow(transaction, 'sceneLiveCommands', [sceneId, commandId])
@@ -177,13 +182,13 @@ export async function publishRoomSceneUndo(input: {
       writeRoomSceneRow(transaction, 'sceneLiveCommands', value)
     }
   }
-  const result = await publishSceneUndo(
+  const { restoredFogOwners, ...result } = await publishSceneUndo(
     { header, live, userId, input: request, targetCommandId, fastOnly: false },
     callbacks
   )
-  const restoredOwners = new Set(result.restoredFogOwners)
+  const restoredOwners = new Set(restoredFogOwners)
   const fogLayers = scene.fogLayers.filter((layer) => !restoredOwners.has(layer.ownerUserId))
-  for (const owner of result.restoredFogOwners) {
+  for (const owner of restoredFogOwners) {
     const value = readRoomSceneRow(transaction, 'sceneFogLayers', [header.id, owner])
     if (!value) continue
     const layer = parseSceneFogLayer(value, result.version)

@@ -15,7 +15,7 @@ import { requireRaceParent } from './raceRelationships'
 import { backfillCatalogueFamily } from './catalogueFamilies'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { compileCurrentEquipment } from './equipmentRelationships'
-import { equipmentOptionFacts } from './equipmentOptionFacts'
+import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 
 function exactEquipmentOptionFacts(actual: unknown, expected: unknown) {
   if (canonicalizeRuleDocument(actual) !== canonicalizeRuleDocument(expected))

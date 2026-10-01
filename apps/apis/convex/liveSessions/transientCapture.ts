@@ -6,12 +6,10 @@ import {
   type LiveSessionTransientCapture,
   type LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
-import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
-import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
@@ -66,20 +64,6 @@ async function readBoundTokenControl(
     tokenId: binding.tokenId,
     controlled: controlled.has(binding.actorId)
   }))
-}
-
-/** Whether the Scene's bound Encounter waits on a movement decision (D26). */
-async function readMovementDecisionPending(ctx: QueryCtx, encounterId: string) {
-  const [pending] = await ctx.db
-    .query('encounterRuleOccurrences')
-    .withIndex('by_encounterId_state', (q) =>
-      q.eq('encounterId', encounterId).eq('state', 'PENDING')
-    )
-    .take(1)
-  const snapshot = pending
-    ? await readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, pending)
-    : null
-  return snapshot !== null && isEncounterMovementContext(snapshot.applicationContext)
 }
 
 export const capture = internalQuery({
@@ -144,9 +128,6 @@ export const capture = internalQuery({
         (recipient): recipient is LiveSessionTransientMember => recipient !== null
       ),
       sceneEncounterId: sceneBinding?.encounterId ?? null,
-      sceneMovementDecisionPending: sceneBinding
-        ? await readMovementDecisionPending(ctx, sceneBinding.encounterId)
-        : false,
       originBoundTokenControl:
         sceneBinding && membership.role === 'PLAYER'
           ? await readBoundTokenControl(ctx, { campaign, membership, sceneBinding })

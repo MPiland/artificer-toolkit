@@ -17,9 +17,11 @@ import {
   liveSessionTransientCaptureInputSchema,
   type LiveSessionTransientCapture
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 
 import { DurableCommandJournal } from '../src/durableCommandJournal.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
+import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const allowedOrigin = 'https://app.test'
@@ -86,6 +88,7 @@ function waitForClose(socket: WebSocket): Promise<CloseEvent> {
 async function room() {
   const campaignId = crypto.randomUUID()
   const authorityEpoch = crypto.randomUUID()
+  const systemId = crypto.randomUUID()
   const activationFingerprint = 'a'.repeat(64)
   const members = new Map<string, Member>()
   const routes: string[] = []
@@ -97,25 +100,26 @@ async function room() {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
       routes.push(pathname)
+      const current = [...members].map(([userId, member]) => ({ ...member, userId }))
       if (pathname === ROOM_AUTHORIZATION_PATH)
-        return Response.json(
-          roomAuthorizationResponse({
-            members: [...members].map(([userId, member]) => ({ ...member, userId }))
-          })
-        )
+        return Response.json(roomAuthorizationResponse({ members: current }))
+      // Activation hydrates the room store; no Scene is presented, so no Scene read follows.
+      if (pathname === ROOM_INPUTS_PATH) {
+        const { scope } = liveRoomInputsInputSchema.parse(await request.json())
+        return Response.json(roomInputsResponse(scope, { campaignId, systemId, members: current }))
+      }
       if (pathname === '/live-sessions/capture') {
         const body = liveSessionTransientCaptureInputSchema.parse(await request.json())
         const member = members.get(body.expectedUserId)
         if (!member) return new Response('membership changed', { status: 409 })
         return Response.json({
           campaignId,
-          systemId: crypto.randomUUID(),
+          systemId,
           observedCharacterRevisions: [],
           origin: { ...member, userId: body.expectedUserId },
           presentation: null,
           recipients: [],
           sceneEncounterId: null,
-          sceneMovementDecisionPending: false,
           originBoundTokenControl: [],
           sceneHeader: null,
           sceneSnapshot: null,

@@ -7,8 +7,10 @@ import {
   campaignSceneStateDtoSchema,
   sceneFogChunkDtoSchema,
   sceneFogLayerDtoSchema,
+  type CampaignSceneStateDto,
   type SceneCommandResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import type { SceneUndoExecuteInput } from '@artificer-toolkit/schema/api/sceneUndo'
 import {
   liveSessionCheckpointSceneKeys,
   type LiveSessionCheckpointSceneTable
@@ -16,7 +18,6 @@ import {
 import { sceneFogPatchInputSchema } from '@artificer-toolkit/schema/api/sceneFog'
 import {
   sceneStoredLiveStateSchema,
-  sceneStoredLiveEntitySchema,
   sceneStoredUndoCommandSchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import {
@@ -40,6 +41,7 @@ import { RoomEncounterStore, type RoomRecord } from './roomEncounterStore.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { ROOM_SCENE_DEFINITION_HEADER } from './roomSceneDefinition.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
+import { publishRoomSceneUndo } from './roomSceneUndo.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
 
@@ -226,11 +228,25 @@ function fixture(overrides = true) {
   } satisfies Omit<Input, 'transaction'>
   const commit = (value: Omit<Input, 'transaction'>) =>
     room.transact(async (transaction) => persistRoomSceneCommand({ ...value, transaction }))
-  return { room, input, read, commit, head, storage }
+  // The room commits undo through Scene history beside these native move and door rows.
+  const undo = (undoScene: CampaignSceneStateDto, command: SceneUndoExecuteInput['input']) =>
+    room.transact(async (transaction) => {
+      const { result } = await publishRoomSceneUndo({
+        transaction,
+        userId: input.actorUserId,
+        scene: undoScene,
+        request: { input: command, presentation: { expectedPresentationVersion: 4 } }
+      })
+      const state = sceneStoredLiveStateSchema.parse(
+        readRoomSceneRow(transaction, 'sceneLiveStates', [sceneId])
+      )
+      return { result, state }
+    })
+  return { room, input, read, commit, undo, head, storage }
 }
 
 describe('room Scene command persistence', () => {
-  it('commits native move, door and undo rows whose journal packs into a Scene checkpoint', async () => {
+  it('commits native move and door rows that pack with a Scene-history undo into one checkpoint', async () => {
     const base = fixture()
     const snapshot = base.room.checkpointSnapshot()
     const moved = await base.commit(base.input)
@@ -297,20 +313,16 @@ describe('room Scene command persistence', () => {
         undoneCommandId: uuid(10)
       }
     }
-    const undone = await base.commit({
-      ...base.input,
-      header: { ...base.input.header, version: 3 },
-      scene: applySceneDelta(movedScene, doorResult.delta!, doorResult.version),
-      command: {
+    const undone = await base.undo(
+      applySceneDelta(movedScene, doorResult.delta!, doorResult.version),
+      {
         type: 'UNDO_LAST_SCENE_MOVE',
         sceneId,
         commandId: uuid(14),
         expectedSceneVersion: 3
-      },
-      result: undoResult,
-      saveId: uuid(11)
-    })
-    expect(undone).toEqual({ ...base.head, version: 4 })
+      }
+    )
+    expect(undone).toEqual({ result: undoResult, state: { ...base.head, version: 4 } })
     const receipt = sceneStoredUndoCommandSchema.parse(
       base.read('sceneLiveCommands', [sceneId, uuid(14)])
     )
@@ -418,7 +430,7 @@ describe('room Scene command persistence', () => {
     }
     // Seed the move's paired, published fog evidence in the same real SQLite transaction.
     const moved = await base.room.transact(async (transaction) => {
-      const head = await persistRoomSceneCommand({ ...moveInput, transaction })
+      const head = persistRoomSceneCommand({ ...moveInput, transaction })
       const parentRow = readRoomSceneRow(transaction, 'sceneGeometrySaves', [moveInput.saveId])
       const commandRow = readRoomSceneRow(transaction, 'sceneLiveCommands', [sceneId, uuid(10)])
       if (!parentRow || !commandRow) throw new Error('Missing published move fixture.')
@@ -488,34 +500,15 @@ describe('room Scene command persistence', () => {
       )
       return head
     })
-    const undoInput: Omit<Input, 'transaction'> = {
-      ...moveInput,
-      header: { ...moveInput.header, version: 2 },
-      scene: {
-        ...applySceneDelta(moveInput.scene, moveInput.result.delta!, 2),
-        fogLayers: [
-          sceneFogLayerDtoSchema.parse({ ...originalInput.layer, chunks: [revealedChunk] })
-        ]
-      },
-      command: {
-        type: 'UNDO_LAST_SCENE_MOVE',
-        sceneId,
-        commandId: uuid(33),
-        expectedSceneVersion: 2
-      },
-      result: {
-        commandId: uuid(33),
-        sceneId,
-        version: 3,
-        replayed: false,
-        occurrence: null,
-        delta: {
-          kind: 'TOKEN_MOVE_UNDONE',
-          tokenId,
-          position: { x: 0, y: 0 },
-          undoneCommandId: uuid(10)
-        }
-      }
+    const undoScene = {
+      ...applySceneDelta(moveInput.scene, moveInput.result.delta!, 2),
+      fogLayers: [sceneFogLayerDtoSchema.parse({ ...originalInput.layer, chunks: [revealedChunk] })]
+    }
+    const undoCommand = {
+      type: 'UNDO_LAST_SCENE_MOVE' as const,
+      sceneId,
+      commandId: uuid(33),
+      expectedSceneVersion: 2
     }
     await base.room.transact(async (transaction) => {
       writeRoomSceneRow(transaction, 'sceneFogChunks', {
@@ -529,7 +522,7 @@ describe('room Scene command persistence', () => {
       records: base.room.records('SCENE_CHECKPOINT_ROW')
     }
     // Restored chunk validation runs after the undo stages its layer, token, head and receipt.
-    await expect(base.commit(undoInput)).rejects.toThrow('fog chunk is inconsistent')
+    await expect(base.undo(undoScene, undoCommand)).rejects.toThrow('fog chunk is inconsistent')
     const recovered = new RoomEncounterStore(base.storage)
     expect({
       sequence: recovered.sequence,
@@ -546,10 +539,14 @@ describe('room Scene command persistence', () => {
       writeRoomSceneRow(transaction, 'sceneFogChunks', originalStoredChunk)
     })
     const beforeUndo = base.room.sequence
-    const undone = await base.commit(undoInput)
+    const undone = await base.undo(undoScene, undoCommand)
     expect(base.room.sequence).toBe(beforeUndo + 1)
-    expect(undone).toEqual({ ...moved, version: 3 })
-    expect(undone).toMatchObject({ fogLayerCount: 1, nextFogOrdinal: 9 })
+    expect(undone.state).toEqual({ ...moved, version: 3 })
+    expect(undone.state).toMatchObject({ fogLayerCount: 1, nextFogOrdinal: 9 })
+    expect(undone.result).toMatchObject({
+      version: 3,
+      delta: { kind: 'TOKEN_MOVE_UNDONE', position: { x: 0, y: 0 }, undoneCommandId: uuid(10) }
+    })
     const restored = parseSceneFogLayer(base.read('sceneFogLayers', [sceneId, ownerUserId]), 3)
     expect(restored).toMatchObject({
       ownerUserId,
@@ -581,7 +578,9 @@ describe('room Scene command persistence', () => {
       version: 3,
       value: { entity: { position: { x: 0, y: 0 }, vision: null } }
     })
-    await expect(base.commit(undoInput)).rejects.toThrow()
+    // A retried undo replays its stored receipt without another write set.
+    const replay = await base.undo({ ...undoScene, version: 3 }, undoCommand)
+    expect(replay.result).toEqual({ ...undone.result, replayed: true })
     expect(base.room.sequence).toBe(beforeUndo + 1)
   })
 
@@ -652,43 +651,5 @@ describe('room Scene command persistence', () => {
       })
     ).rejects.toThrow('save ID')
     expect(base.room.sequence).toBe(1)
-  })
-
-  it('rejects an undo position or parent identity that does not match retained native evidence', async () => {
-    const base = fixture()
-    await base.commit(base.input)
-    const input: Omit<Input, 'transaction'> = {
-      ...base.input,
-      header: { ...base.input.header, version: 2 },
-      scene: applySceneDelta(base.input.scene, base.input.result.delta!, base.input.result.version),
-      command: {
-        type: 'UNDO_LAST_SCENE_MOVE',
-        sceneId,
-        commandId: uuid(20),
-        expectedSceneVersion: 2
-      },
-      result: {
-        commandId: uuid(20),
-        sceneId,
-        version: 3,
-        replayed: false,
-        occurrence: null,
-        delta: {
-          kind: 'TOKEN_MOVE_UNDONE',
-          tokenId,
-          position: { x: 1, y: 0 },
-          undoneCommandId: uuid(10)
-        }
-      }
-    }
-    await expect(base.commit(input)).rejects.toThrow('undo result is inconsistent')
-    await expect(base.commit({ ...input, saveId: uuid(50) })).rejects.toThrow(
-      'evidence is unavailable'
-    )
-    expect(base.room.sequence).toBe(1)
-    const token = sceneStoredLiveEntitySchema.parse(
-      base.read('sceneLiveEntities', [sceneId, 'tokens', tokenId])
-    )
-    expect(token.version).toBe(2)
   })
 })

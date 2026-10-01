@@ -46,7 +46,12 @@ import {
   liveRoomInputsInputSchema,
   type LiveRoomInputsResponse
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
-import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
+import {
+  ROOM_INPUTS_PATH,
+  rawSceneDefinitionInputs,
+  rawSceneInputs,
+  roomInputsResponse
+} from './roomInputsFixture.js'
 import {
   sceneStoredLiveCommandSchema,
   sceneStoredLiveEntitySchema,
@@ -73,12 +78,11 @@ import {
 import { encounterCommandInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
-import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
+import { insertPendingMovementDecision } from './pendingMovementFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const sockets: WebSocket[] = []
@@ -101,75 +105,6 @@ function checkpointResponse(
       updatedAt: now
     },
     authorization: roomAuthorizationResponse({ members })
-  }
-}
-
-function rawSceneInputs(capture: LiveSessionTransientCapture): LiveRoomInputsResponse {
-  const header = capture.sceneHeader
-  const scene = capture.sceneSnapshot?.scene
-  if (!header || !scene) throw new Error('Missing raw Scene fixture.')
-  if (scene.fogLayers.length) throw new Error('Raw fog fixtures require saved chunk evidence.')
-  const documents: Extract<LiveRoomInputsResponse, { kind: 'SCENE' }>['documents'] = []
-  if (scene.version > 0) {
-    const counts = {
-      annotations: scene.annotations.length,
-      barriers: scene.barriers.length,
-      darknessZones: scene.darknessZones.length,
-      lights: scene.lights.length,
-      measurements: scene.measurements.length,
-      tokens: scene.tokens.length
-    }
-    documents.push({
-      table: 'sceneLiveStates',
-      id: `scene:${scene.id}:head`,
-      creationTime: 0,
-      fields: {
-        sceneId: scene.id,
-        version: scene.version,
-        counts,
-        nextOrdinals: counts,
-        fogLayerCount: 0,
-        nextFogOrdinal: 0,
-        settings: {
-          ambientIllumination: { value: scene.ambientIllumination, version: 0 },
-          visionRevealMode: { value: scene.visionRevealMode, version: 0 },
-          fogMode: { value: scene.fogMode, version: 0 }
-        }
-      }
-    })
-    for (const collection of ['tokens', 'barriers'] as const) {
-      scene[collection].forEach((entity, ordinal) => {
-        const fields = {
-          sceneId: scene.id,
-          collection,
-          entityId: entity.id,
-          value: { collection, entity },
-          ordinal,
-          version: scene.version,
-          ...(collection === 'barriers' && 'kind' in entity && entity.kind === 'DOOR'
-            ? { doorState: scene.doorStates[entity.id] }
-            : {})
-        }
-        documents.push({
-          table: 'sceneLiveEntities',
-          id: `scene:${scene.id}:${entity.id}`,
-          creationTime: 0,
-          fields: { ...fields, checksum: checksumCanonicalJson(fields) }
-        })
-      })
-    }
-  }
-  return {
-    kind: 'SCENE',
-    source: {
-      sceneId: scene.id,
-      definitionSaveId: header.definitionSaveId,
-      definitionVersion: header.definitionVersion,
-      presentationVersion: capture.presentation?.version ?? 0
-    },
-    sceneVersion: scene.version,
-    documents,
-    continueCursor: null
   }
 }
 
@@ -390,7 +325,6 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
       ? [{ membershipEpoch: new Date().toISOString(), role: 'PLAYER', userId: playerId }]
       : [],
     sceneEncounterId: null,
-    sceneMovementDecisionPending: false,
     originBoundTokenControl: [],
     sceneHeader: scene
       ? {
@@ -431,6 +365,8 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
   const captureModes: Array<'AUTHORITY' | 'FULL' | undefined> = []
   const authorityLifecycleCalls: string[] = []
   let currentAuthorityEpoch = authorityEpoch
+  /** The last Checkpoint Convex persisted; a re-bootstrapped room must agree with it. */
+  let persisted = { sequence: 0, checksum: activationFingerprint }
   /** Convex's authorization state for the room; tests change it to model departures. */
   const authorization = {
     members: [
@@ -448,19 +384,32 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
         expect(request.headers.get('authorization')).toBeNull()
         const inputs = liveRoomInputsInputSchema.parse(await request.json())
         expect(inputs).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
+        if (inputs.scope.kind === 'SCENE' || inputs.scope.kind === 'SCENE_DEFINITION') {
+          const scene = capture.sceneSnapshot?.scene
+          if (!capture.sceneHeader || !scene) throw new Error('Missing raw Scene fixture.')
+          const sceneFixture = {
+            scene,
+            header: capture.sceneHeader,
+            presentationVersion: capture.presentation?.version ?? 0
+          }
+          return Response.json(
+            inputs.scope.kind === 'SCENE'
+              ? rawSceneInputs(sceneFixture)
+              : rawSceneDefinitionInputs(sceneFixture)
+          )
+        }
         return Response.json(
-          inputs.scope.kind === 'SCENE'
-            ? rawSceneInputs(capture)
-            : roomInputsResponse(inputs.scope, {
-                campaignId,
-                systemId: capture.systemId,
-                ownerUserId: userId,
-                members: authorization.members
-              })
+          roomInputsResponse(inputs.scope, {
+            campaignId,
+            systemId: capture.systemId,
+            ownerUserId: userId,
+            members: authorization.members
+          })
         )
       }
       if (pathname === '/live-sessions/checkpoint') {
         const body = liveSessionCheckpointInputSchema.parse(await request.json())
+        persisted = { sequence: body.sequence, checksum: body.checksum }
         return Response.json(checkpointResponse(body, authorization.members))
       }
       if (pathname === ROOM_AUTHORIZATION_PATH) {
@@ -503,8 +452,8 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
         currentAuthorityEpoch = body.authorityEpoch
         return Response.json({
           activationFingerprint,
-          persistedSequence: 0,
-          persistedStateChecksum: activationFingerprint
+          persistedSequence: persisted.sequence,
+          persistedStateChecksum: persisted.checksum
         })
       }
       if (pathname === '/live-sessions/activate') {
@@ -866,15 +815,6 @@ it.each([0, 600])(
         (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
       )[1]
     ).toEqual(asReplay(first))
-    const doorReceipt = await runInDurableObject(base.stub, (_instance, state) =>
-      state.storage.sql
-        .exec<{ undo_json: string | null }>(
-          'SELECT undo_json FROM durable_command_receipts WHERE command_id = ?',
-          commandId
-        )
-        .one()
-    )
-    expect(doorReceipt.undo_json).toBeNull()
 
     base.socket.send(
       JSON.stringify(doorCommand(value.scene, value.doorId, commandId, { state: 'LOCKED' }))
@@ -1371,288 +1311,251 @@ it('keeps the new presentation fence when an older authentication capture finish
   expect(publications).toHaveLength(1)
 })
 
-it.each([false, true])(
-  'commits standalone movement and undo with legacy receipt %s, replays, and rejects an uncontrolled player',
-  async (legacyUndo) => {
-    const value = movementScene(crypto.randomUUID())
-    const base = await fixture(value.scene)
-    if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
-    base.capture.presentation.version = 2
-    await synchronizeScene(base, value.scene)
-    const player = await connectPlayer(base)
-    base.messages.length = 0
-    player.messages.length = 0
+it('commits standalone movement and its Scene-history undo, replays, and rejects an uncontrolled player', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
+  base.capture.presentation.version = 2
+  await synchronizeScene(base, value.scene)
+  const player = await connectPlayer(base)
+  base.messages.length = 0
+  player.messages.length = 0
 
-    const rejectedCommandId = crypto.randomUUID()
-    player.socket.send(
-      JSON.stringify(
-        tokenMoveCommand(value.scene, value.tokenId, rejectedCommandId, { x: 20, y: 10 })
-      )
+  const rejectedCommandId = crypto.randomUUID()
+  player.socket.send(
+    JSON.stringify(
+      tokenMoveCommand(value.scene, value.tokenId, rejectedCommandId, { x: 20, y: 10 })
     )
-    await vi.waitFor(() =>
-      expect(player.messages).toContainEqual(
-        expect.objectContaining({
-          code: 'FORBIDDEN',
-          commandId: rejectedCommandId,
-          type: 'COMMAND_REJECTED'
-        })
-      )
+  )
+  await vi.waitFor(() =>
+    expect(player.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'FORBIDDEN',
+        commandId: rejectedCommandId,
+        type: 'COMMAND_REJECTED'
+      })
     )
-    player.messages.length = 0
+  )
+  player.messages.length = 0
 
-    const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
-    const heldEvidence: Array<{
-      authority: { published_sequence: number; sequence: number }
-      pendingWriteCount: number
-    }> = []
-    let publishFinished = 0
-    await runInDurableObject(base.stub, (_instance, state) => {
-      vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
-        const request = new Request(input, init)
-        expect(new URL(request.url).pathname).toBe('/live-sessions/checkpoint')
-        const body = liveSessionCheckpointInputSchema.parse(await request.json())
-        publications.push(body)
-        heldEvidence.push({
-          authority: state.storage.sql
-            .exec<{ published_sequence: number; sequence: number }>(
-              'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
-            )
-            .one(),
-          pendingWriteCount: state.storage.sql
-            .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
-            .one().count
-        })
-        await new Promise((resolve) => setTimeout(resolve, 250))
-        publishFinished += 1
-        return Response.json(checkpointResponse(body, base.authorization.members))
-      })
-    })
-
-    const movedPosition = { x: 20, y: 10 }
-    const moveCommandId = crypto.randomUUID()
-    const move = tokenMoveCommand(value.scene, value.tokenId, moveCommandId, movedPosition)
-    base.socket.send(JSON.stringify(move))
-    const moveCommitted = {
-      commandId: moveCommandId,
-      delta: {
-        scope: 'SCENE' as const,
-        result: {
-          commandId: moveCommandId,
-          delta: { kind: 'TOKEN_MOVED' as const, position: movedPosition, tokenId: value.tokenId },
-          occurrence: null,
-          replayed: false,
-          sceneId: value.scene.id,
-          version: 1
-        }
-      },
-      sequence: 1,
-      type: 'COMMAND_COMMITTED' as const
-    }
-    await vi.waitFor(() => {
-      expect(base.messages).toContainEqual(moveCommitted)
-      expect(player.messages).toContainEqual({
-        commandId: moveCommandId,
-        delta: { scope: 'SCENE_VERSION', sceneId: value.scene.id, version: 1 },
-        sequence: 1,
-        type: 'COMMAND_COMMITTED'
-      })
-    })
-    expect(publications).toHaveLength(0)
-    expect(await journalEvidence(base)).toMatchObject({
-      authority: { published_sequence: 0, sequence: 1 },
-      pendingWriteCount: 1
-    })
-    const moveAlarm = fireCheckpointAlarm(base.stub)
-    await vi.waitFor(() => expect(publications).toHaveLength(1))
-    expect(heldEvidence[0]).toEqual({
-      authority: { published_sequence: 0, sequence: 1 },
-      pendingWriteCount: 1
-    })
-    expect(publishFinished).toBe(0)
-
-    await moveAlarm
-    expect(publishFinished).toBe(1)
-    await vi.waitFor(async () => {
-      const state = await runInDurableObject(base.stub, (_instance, durableState) =>
-        durableState.storage.sql
+  const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const heldEvidence: Array<{
+    authority: { published_sequence: number; sequence: number }
+    pendingWriteCount: number
+  }> = []
+  let publishFinished = 0
+  await runInDurableObject(base.stub, (_instance, state) => {
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      expect(new URL(request.url).pathname).toBe('/live-sessions/checkpoint')
+      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      publications.push(body)
+      heldEvidence.push({
+        authority: state.storage.sql
           .exec<{ published_sequence: number; sequence: number }>(
             'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
           )
-          .one()
-      )
-      expect(state).toEqual({ published_sequence: 1, sequence: 1 })
+          .one(),
+        pendingWriteCount: state.storage.sql
+          .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
+          .one().count
+      })
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      publishFinished += 1
+      return Response.json(checkpointResponse(body, base.authorization.members))
     })
+  })
 
-    base.socket.send(JSON.stringify(move))
-    await vi.waitFor(() =>
-      expect(
-        base.messages.filter(
-          (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === moveCommandId
+  const movedPosition = { x: 20, y: 10 }
+  const moveCommandId = crypto.randomUUID()
+  const move = tokenMoveCommand(value.scene, value.tokenId, moveCommandId, movedPosition)
+  base.socket.send(JSON.stringify(move))
+  const moveCommitted = {
+    commandId: moveCommandId,
+    delta: {
+      scope: 'SCENE' as const,
+      result: {
+        commandId: moveCommandId,
+        delta: { kind: 'TOKEN_MOVED' as const, position: movedPosition, tokenId: value.tokenId },
+        occurrence: null,
+        replayed: false,
+        sceneId: value.scene.id,
+        version: 1
+      }
+    },
+    sequence: 1,
+    type: 'COMMAND_COMMITTED' as const
+  }
+  await vi.waitFor(() => {
+    expect(base.messages).toContainEqual(moveCommitted)
+    expect(player.messages).toContainEqual({
+      commandId: moveCommandId,
+      delta: { scope: 'SCENE_VERSION', sceneId: value.scene.id, version: 1 },
+      sequence: 1,
+      type: 'COMMAND_COMMITTED'
+    })
+  })
+  expect(publications).toHaveLength(0)
+  expect(await journalEvidence(base)).toMatchObject({
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1
+  })
+  const moveAlarm = fireCheckpointAlarm(base.stub)
+  await vi.waitFor(() => expect(publications).toHaveLength(1))
+  expect(heldEvidence[0]).toEqual({
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1
+  })
+  expect(publishFinished).toBe(0)
+
+  await moveAlarm
+  expect(publishFinished).toBe(1)
+  await vi.waitFor(async () => {
+    const state = await runInDurableObject(base.stub, (_instance, durableState) =>
+      durableState.storage.sql
+        .exec<{ published_sequence: number; sequence: number }>(
+          'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
         )
-      ).toHaveLength(2)
+        .one()
     )
+    expect(state).toEqual({ published_sequence: 1, sequence: 1 })
+  })
+
+  base.socket.send(JSON.stringify(move))
+  await vi.waitFor(() =>
     expect(
       base.messages.filter(
         (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === moveCommandId
-      )[1]
-    ).toEqual(asReplay(moveCommitted))
-    expect(publications).toHaveLength(1)
+      )
+    ).toHaveLength(2)
+  )
+  expect(
+    base.messages.filter(
+      (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === moveCommandId
+    )[1]
+  ).toEqual(asReplay(moveCommitted))
+  expect(publications).toHaveLength(1)
 
-    const compactUndo = {
-      id: value.scene.id,
-      version: value.scene.version,
-      tokens: [{ id: value.tokenId, position: value.scene.tokens[0]!.position }]
-    }
-    await runInDurableObject(base.stub, (_instance, state) => {
-      const stored = state.storage.sql
-        .exec<{ undo_json: string }>(
-          'SELECT undo_json FROM durable_command_receipts WHERE command_id = ?',
-          moveCommandId
-        )
-        .one()
-      expect(JSON.parse(stored.undo_json)).toEqual(compactUndo)
-      if (legacyUndo)
-        state.storage.sql.exec(
-          'UPDATE durable_command_receipts SET undo_json = ? WHERE command_id = ?',
-          JSON.stringify(value.scene),
-          moveCommandId
-        )
-    })
-    base.messages.length = 0
-    player.messages.length = 0
-    const undoCommandId = crypto.randomUUID()
-    const undo = undoMoveCommand(value.scene.id, undoCommandId, 1, 1)
-    base.socket.send(JSON.stringify(undo))
-    const undoCommitted = {
-      commandId: undoCommandId,
-      delta: {
-        scope: 'SCENE' as const,
-        result: {
-          commandId: undoCommandId,
-          delta: {
-            kind: 'TOKEN_MOVE_UNDONE' as const,
-            position: { x: 10, y: 10 },
-            tokenId: value.tokenId,
-            undoneCommandId: moveCommandId
-          },
-          occurrence: null,
-          replayed: false,
-          sceneId: value.scene.id,
-          version: 2
-        }
-      },
-      sequence: 2,
-      type: 'COMMAND_COMMITTED' as const
-    }
-    await vi.waitFor(() => {
-      expect(base.messages).toContainEqual(undoCommitted)
-      expect(player.messages).toContainEqual({
+  base.messages.length = 0
+  player.messages.length = 0
+  const undoCommandId = crypto.randomUUID()
+  const undo = undoMoveCommand(value.scene.id, undoCommandId, 1, 1)
+  base.socket.send(JSON.stringify(undo))
+  const undoCommitted = {
+    commandId: undoCommandId,
+    delta: {
+      scope: 'SCENE' as const,
+      result: {
         commandId: undoCommandId,
-        delta: { scope: 'SCENE_VERSION', sceneId: value.scene.id, version: 2 },
-        sequence: 2,
-        type: 'COMMAND_COMMITTED'
-      })
+        delta: {
+          kind: 'TOKEN_MOVE_UNDONE' as const,
+          position: { x: 10, y: 10 },
+          tokenId: value.tokenId,
+          undoneCommandId: moveCommandId
+        },
+        occurrence: null,
+        replayed: false,
+        sceneId: value.scene.id,
+        version: 2
+      }
+    },
+    sequence: 2,
+    type: 'COMMAND_COMMITTED' as const
+  }
+  await vi.waitFor(() => {
+    expect(base.messages).toContainEqual(undoCommitted)
+    expect(player.messages).toContainEqual({
+      commandId: undoCommandId,
+      delta: { scope: 'SCENE_VERSION', sceneId: value.scene.id, version: 2 },
+      sequence: 2,
+      type: 'COMMAND_COMMITTED'
     })
-    expect(publications).toHaveLength(1)
-    const undoAlarm = fireCheckpointAlarm(base.stub)
-    await vi.waitFor(() => expect(publications).toHaveLength(2))
-    expect(heldEvidence[1]).toEqual({
-      authority: { published_sequence: 1, sequence: 2 },
-      pendingWriteCount: 1
-    })
-    expect(publishFinished).toBe(1)
+  })
+  expect(publications).toHaveLength(1)
+  const undoAlarm = fireCheckpointAlarm(base.stub)
+  await vi.waitFor(() => expect(publications).toHaveLength(2))
+  expect(heldEvidence[1]).toEqual({
+    authority: { published_sequence: 1, sequence: 2 },
+    pendingWriteCount: 1
+  })
+  expect(publishFinished).toBe(1)
 
-    await undoAlarm
-    expect(publishFinished).toBe(2)
-    base.socket.send(JSON.stringify(undo))
-    await vi.waitFor(() =>
-      expect(
-        base.messages.filter(
-          (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === undoCommandId
-        )
-      ).toHaveLength(2)
-    )
+  await undoAlarm
+  expect(publishFinished).toBe(2)
+  base.socket.send(JSON.stringify(undo))
+  await vi.waitFor(() =>
     expect(
       base.messages.filter(
         (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === undoCommandId
-      )[1]
-    ).toEqual(asReplay(undoCommitted))
-    expect(publications).toHaveLength(2)
-    const undoCopies = await runInDurableObject(base.stub, (_instance, state) =>
+      )
+    ).toHaveLength(2)
+  )
+  expect(
+    base.messages.filter(
+      (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === undoCommandId
+    )[1]
+  ).toEqual(asReplay(undoCommitted))
+  expect(publications).toHaveLength(2)
+
+  const exhaustedUndoId = crypto.randomUUID()
+  base.socket.send(JSON.stringify(undoMoveCommand(value.scene.id, exhaustedUndoId, 2, 2)))
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'INVALID_COMMAND',
+        commandId: exhaustedUndoId,
+        type: 'COMMAND_REJECTED'
+      })
+    )
+  )
+  expect(publications).toHaveLength(2)
+
+  const movePublication = publications[0]!
+  const undoPublication = publications[1]!
+  expect(movePublication).toMatchObject({
+    campaignId: base.capture.campaignId,
+    epoch: base.authorityEpoch,
+    fromSequence: 0,
+    sequence: 1,
+    checksum: expect.any(String)
+  })
+  expect(checkpointReceipt(movePublication, moveCommandId)).toMatchObject({
+    actorUserId: base.userId,
+    input: move.command.command,
+    result: moveCommitted.delta.result
+  })
+  expect(undoPublication).toMatchObject({
+    campaignId: base.capture.campaignId,
+    epoch: base.authorityEpoch,
+    fromSequence: 1,
+    fromChecksum: movePublication.checksum,
+    sequence: 2
+  })
+  expect(checkpointReceipt(undoPublication, undoCommandId)).toMatchObject({
+    actorUserId: base.userId,
+    input: undo.command.command,
+    result: undoCommitted.delta.result
+  })
+
+  await vi.waitFor(async () => {
+    const current = await runInDurableObject(base.stub, (_instance, state) =>
       state.storage.sql
-        .exec<{ command_id: string; undo_json: string | null }>(
-          `SELECT command_id, undo_json FROM durable_command_receipts
-         WHERE command_id IN (?, ?) ORDER BY sequence`,
-          moveCommandId,
-          undoCommandId
-        )
-        .toArray()
-    )
-    expect(undoCopies).toHaveLength(2)
-    expect(undoCopies[0]?.command_id).toBe(moveCommandId)
-    expect(JSON.parse(undoCopies[0]!.undo_json!)).toEqual(legacyUndo ? value.scene : compactUndo)
-    expect(undoCopies[1]).toEqual({ command_id: undoCommandId, undo_json: null })
-
-    const exhaustedUndoId = crypto.randomUUID()
-    base.socket.send(JSON.stringify(undoMoveCommand(value.scene.id, exhaustedUndoId, 2, 2)))
-    await vi.waitFor(() =>
-      expect(base.messages).toContainEqual(
-        expect.objectContaining({
-          code: 'INVALID_COMMAND',
-          commandId: exhaustedUndoId,
-          type: 'COMMAND_REJECTED'
-        })
-      )
-    )
-    expect(publications).toHaveLength(2)
-
-    const movePublication = publications[0]!
-    const undoPublication = publications[1]!
-    expect(movePublication).toMatchObject({
-      campaignId: base.capture.campaignId,
-      epoch: base.authorityEpoch,
-      fromSequence: 0,
-      sequence: 1,
-      checksum: expect.any(String)
-    })
-    expect(checkpointReceipt(movePublication, moveCommandId)).toMatchObject({
-      actorUserId: base.userId,
-      input: move.command.command,
-      result: moveCommitted.delta.result
-    })
-    expect(undoPublication).toMatchObject({
-      campaignId: base.capture.campaignId,
-      epoch: base.authorityEpoch,
-      fromSequence: 1,
-      fromChecksum: movePublication.checksum,
-      sequence: 2
-    })
-    expect(checkpointReceipt(undoPublication, undoCommandId)).toMatchObject({
-      actorUserId: base.userId,
-      input: undo.command.command,
-      result: undoCommitted.delta.result
-    })
-
-    await vi.waitFor(async () => {
-      const current = await runInDurableObject(base.stub, (_instance, state) =>
-        state.storage.sql
-          .exec<{
-            published_sequence: number
-            sequence: number
-            state_checksum: string
-            state_json: string
-          }>(
-            `SELECT published_sequence, sequence, state_checksum, state_json
+        .exec<{
+          published_sequence: number
+          sequence: number
+          state_checksum: string
+          state_json: string
+        }>(
+          `SELECT published_sequence, sequence, state_checksum, state_json
            FROM durable_session_authority WHERE id = 1`
-          )
-          .one()
-      )
-      const restored = hydrateNativeLiveSessionState(current.state_json)
-      expect(current).toMatchObject({ published_sequence: 2, sequence: 2 })
-      expect(restored.scene?.tokens[0]?.position).toEqual({ x: 10, y: 10 })
-    })
-  }
-)
+        )
+        .one()
+    )
+    const restored = hydrateNativeLiveSessionState(current.state_json)
+    expect(current).toMatchObject({ published_sequence: 2, sequence: 2 })
+    expect(restored.scene?.tokens[0]?.position).toEqual({ x: 10, y: 10 })
+  })
+})
 type ExternalConvex = {
   calls: string[]
   commits: Array<ReturnType<typeof liveSessionSceneGeometryCommitInputSchema.parse>>
@@ -1661,7 +1564,6 @@ type ExternalConvex = {
   /** What the next commit does: answer, time out (no response) or refuse. */
   commit: 'COMMIT' | 'TIMEOUT' | 'REFUSE'
   resolve: 'COMMITTED' | 'ABANDONED'
-  stage?: (body: ReturnType<typeof liveSessionMovementStageInputSchema.parse>) => Response | null
 }
 
 /** A fake Convex for the room's Convex-first pipeline (D27); it records each private route call. */
@@ -1679,8 +1581,6 @@ async function installExternalConvex(base: Awaited<ReturnType<typeof fixture>>) 
       convex.calls.push('stage')
       const body = liveSessionMovementStageInputSchema.parse(await request.json())
       convex.stages.push(body)
-      const custom = convex.stage?.(body)
-      if (custom) return custom
       if (body.command.type !== 'MOVE_SCENE_TOKEN' && body.command.type !== 'SET_SCENE_DOOR_STATE')
         throw new Error('Unexpected external decision.')
       const saveId = crypto.randomUUID()
@@ -2280,7 +2180,9 @@ it('recovers a native Scene commit whose acknowledgement was lost and retries wi
       const staleId = crypto.randomUUID()
       await instance.webSocketMessage(
         socket,
-        JSON.stringify(tokenMoveCommand({ ...moved, version: 0 }, tokenId, staleId, { x: 30, y: 10 }))
+        JSON.stringify(
+          tokenMoveCommand({ ...moved, version: 0 }, tokenId, staleId, { x: 30, y: 10 })
+        )
       )
       expect(
         sent.mock.calls.map(([data]) =>
@@ -2792,163 +2694,6 @@ it('refuses a player bound-token move from current native actor control with a p
     records: []
   })
 })
-it('holds moves and door changes on a Scene waiting on a movement decision, and keeps the chain free (D26)', async () => {
-  const value = doorScene(crypto.randomUUID())
-  const token = movementScene(value.scene.campaignId).scene.tokens[0]!
-  const scene: CampaignSceneStateDto = { ...value.scene, fogMode: 'OFF', tokens: [token] }
-  const base = await fixture(scene)
-  base.capture.sceneEncounterId = crypto.randomUUID()
-  base.capture.sceneMovementDecisionPending = true
-  await synchronizeScene(base, scene)
-  const encounterId = crypto.randomUUID()
-  await routeEncounterRequests(base, async (pathname) =>
-    pathname === '/live-sessions/encounter-command'
-      ? Response.json(encounterResult(base.capture.campaignId, encounterId))
-      : undefined
-  )
-  base.messages.length = 0
-  const [doorId, moveId, roundId] = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
-  base.socket.send(JSON.stringify(doorCommand(scene, value.doorId, doorId)))
-  base.socket.send(JSON.stringify(tokenMoveCommand(scene, token.id, moveId, { x: 20, y: 10 })))
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'UPDATE_ACTOR',
-          encounterId,
-          commandId: roundId,
-          expectedVersion: 3,
-          actorId: '00000000-0000-4000-8000-000000000510',
-          characterCommand: {
-            type: 'SET_INSPIRATION',
-            commandId: '00000000-0000-4000-8000-000000000511',
-            expectedVersion: 0,
-            inspired: true
-          }
-        }
-      }
-    })
-  )
-  for (const commandId of [doorId, moveId])
-    await vi.waitFor(() =>
-      expect(base.messages).toContainEqual(
-        expect.objectContaining({
-          code: 'UNAVAILABLE',
-          commandId,
-          message: 'Waiting on a movement decision.',
-          type: 'COMMAND_REJECTED'
-        })
-      )
-    )
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({ commandId: roundId, type: 'COMMAND_COMMITTED' })
-    )
-  )
-})
-
-it('stages a GM void of a held movement decision without a route read (D26, D52)', async () => {
-  const value = movementScene(crypto.randomUUID())
-  const base = await fixture(value.scene)
-  const encounterId = crypto.randomUUID()
-  base.capture.sceneEncounterId = encounterId
-  base.capture.sceneMovementDecisionPending = true
-  await synchronizeScene(base, value.scene)
-  const convex = await installExternalConvex(base)
-  const routes: unknown[] = []
-  await routeEncounterRequests(base, async (pathname, request) => {
-    if (pathname !== '/live-sessions/encounter-route') return undefined
-    routes.push(await request.json())
-    return Response.json({ route: 'MOVEMENT', decline: null })
-  })
-  convex.stage = () =>
-    Response.json(
-      {
-        code: 'DOMAIN_REJECTED',
-        reason: 'DECISION_REQUIRES_ANSWER',
-        message: "Dice during a move can't be voided; answer it to continue."
-      },
-      { status: 422 }
-    )
-  const command = {
-    type: 'VOID_RULE_OCCURRENCE',
-    encounterId,
-    commandId: crypto.randomUUID(),
-    expectedVersion: 5,
-    occurrenceId: crypto.randomUUID(),
-    expectedOccurrenceVersion: 1
-  } as const
-  base.messages.length = 0
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: { scope: 'ENCOUNTER', command }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({
-        code: 'DOMAIN_REJECTED',
-        commandId: command.commandId,
-        reason: 'DECISION_REQUIRES_ANSWER'
-      })
-    )
-  )
-  // The room holds this Encounter's movement decision, so the stage routes it in the same call.
-  expect(routes).toEqual([])
-  expect(convex.stages).toEqual([expect.objectContaining({ command })])
-  expect(convex.calls).toEqual(['stage'])
-})
-
-it('plans a held decision on the planner its stage names when it is no longer a movement decision (D52)', async () => {
-  const value = movementScene(crypto.randomUUID())
-  const base = await fixture(value.scene)
-  const encounterId = crypto.randomUUID()
-  base.capture.sceneEncounterId = encounterId
-  base.capture.sceneMovementDecisionPending = true
-  await synchronizeScene(base, value.scene)
-  const convex = await installExternalConvex(base)
-  // The held occurrence was settled elsewhere: Convex routes the void to its own recording.
-  convex.stage = () => Response.json({ kind: 'ROUTED', route: { route: 'VOID', decline: null } })
-  const routed: string[] = []
-  await routeEncounterRequests(base, async (pathname) => {
-    if (pathname === '/live-sessions/encounter-route') routed.push(pathname)
-    if (pathname !== '/live-sessions/encounter-void-prepare') return undefined
-    routed.push(pathname)
-    return Response.json({
-      kind: 'COMPLETE',
-      result: encounterResult(base.capture.campaignId, encounterId)
-    })
-  })
-  const command = {
-    type: 'VOID_RULE_OCCURRENCE',
-    encounterId,
-    commandId: crypto.randomUUID(),
-    expectedVersion: 5,
-    occurrenceId: crypto.randomUUID(),
-    expectedOccurrenceVersion: 1
-  } as const
-  base.messages.length = 0
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: { scope: 'ENCOUNTER', command }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({ commandId: command.commandId, type: 'COMMAND_COMMITTED' })
-    )
-  )
-  expect(convex.calls).toEqual(['stage'])
-  expect(routed).toEqual(['/live-sessions/encounter-void-prepare'])
-})
-
 it('refuses a movement decision off the presented Scene without staging it (D42)', async () => {
   const value = movementScene(crypto.randomUUID())
   const base = await fixture(value.scene)
@@ -3916,10 +3661,22 @@ async function routeEncounterRequests(
 
 async function localEncounterFixture(
   features: FeatureDto[] = [],
-  options: { unboundSceneToken?: boolean; unboundEncounterScene?: boolean } = {}
+  options: {
+    unboundSceneToken?: boolean
+    unboundEncounterScene?: boolean
+    /** The Encounter waits on a spatial movement decision, which holds its Scene's moves and doors. */
+    pendingMovementDecision?: boolean
+  } = {}
 ) {
   const value = movementScene(crypto.randomUUID())
-  if (options.unboundSceneToken) value.scene.fogMode = 'OFF'
+  // The held Scene also refuses door changes, so it gets a door to change.
+  const door = options.pendingMovementDecision ? doorScene(value.scene.campaignId) : null
+  if (door) {
+    value.scene.barriers = door.scene.barriers
+    value.scene.doorStates = door.scene.doorStates
+  }
+  // Encounter control, not exploration, decides these previews; a fogged Scene hides unexplored tokens.
+  value.scene.fogMode = 'OFF'
   const base = await fixture(value.scene)
   const encounterId = crypto.randomUUID()
   const sideId = crypto.randomUUID()
@@ -4042,22 +3799,25 @@ async function localEncounterFixture(
       updatedAt: now
     },
     sides: [],
-    participants: actors.map((actor, turnOrderOrdinal) => ({
-      encounterId,
-      round: 1,
-      actorId: actor.id,
-      sideId,
-      status: 'READY',
-      initiativeScore: actor.initiative,
-      evaluation: { occurrenceId: null, resultChecksum: null },
-      tie: { occurrenceId: null, resultChecksum: null },
-      declaration: null,
-      declarationChecksum: null,
-      turnOrderOrdinal,
-      version: 0,
-      createdAt: now,
-      updatedAt: now
-    }))
+    // The contract stores participants by ascending actor identity; turn order is the ordinal.
+    participants: actors
+      .map((actor, turnOrderOrdinal) => ({
+        encounterId,
+        round: 1,
+        actorId: actor.id,
+        sideId,
+        status: 'READY',
+        initiativeScore: actor.initiative,
+        evaluation: { occurrenceId: null, resultChecksum: null },
+        tie: { occurrenceId: null, resultChecksum: null },
+        declaration: null,
+        declarationChecksum: null,
+        turnOrderOrdinal,
+        version: 0,
+        createdAt: now,
+        updatedAt: now
+      }))
+      .sort((left, right) => (left.actorId < right.actorId ? -1 : 1))
   })
   await native.store.insert('encounterInitiativeRounds', initiative.round)
   for (const participant of initiative.participants)
@@ -4082,6 +3842,20 @@ async function localEncounterFixture(
         createdAt: now
       })
     )
+  const pendingOccurrence = options.pendingMovementDecision
+    ? await insertPendingMovementDecision(native.store, {
+        campaignId: state.campaignId,
+        encounterId,
+        encounterVersion: state.version,
+        sceneId: value.scene.id,
+        sceneVersion: value.scene.version,
+        tokenId: value.tokenId,
+        userId: base.userId,
+        sourceActorId: actors[0]!.id,
+        gameSystemId: DND5E_SYSTEM_ID,
+        now
+      })
+    : null
   const runDocuments: Extract<LiveRoomInputsResponse, { kind: 'RUN' }>['documents'] = []
   for (const table of [
     'encounterRuns',
@@ -4091,50 +3865,13 @@ async function localEncounterFixture(
     'encounterInitiativeRounds',
     'encounterInitiativeParticipants',
     'encounterActorTokenBindings',
-    'encounterSceneBindings'
+    'encounterSceneBindings',
+    'encounterRuleOccurrences',
+    'encounterPendingSnapshotParts'
   ] as const) {
     for (const { _id, _creationTime, ...fields } of native.documents(table))
       runDocuments.push({ table, id: _id, creationTime: _creationTime, fields })
   }
-  const system = systemAuthoredDtoSchema.parse({
-    id: DND5E_SYSTEM_ID,
-    label: 'D&D 5e',
-    rulesetCode: 'DND5E',
-    rulesetVersion: '2014',
-    userId: base.userId,
-    alignments: [],
-    challengeRatings: [],
-    conditionTypes: [],
-    creatureTypes: [],
-    currencies: [],
-    damageTypes: [],
-    heritages: [],
-    languages: [],
-    lifestyles: [],
-    magicSchools: [],
-    passives: [],
-    rarities: [],
-    senses: [],
-    skills: [],
-    speeds: [],
-    terrains: []
-  })
-  const revisions = [
-    { scope: 'SYSTEM' as const, id: DND5E_SYSTEM_ID, revision: null },
-    { scope: 'CAMPAIGN' as const, id: base.capture.campaignId, revision: null },
-    { scope: 'PLAY' as const, id: base.capture.campaignId, revision: null }
-  ]
-  const vocabularyIdentity = {
-    snapshotId: crypto.randomUUID(),
-    systemId: system.id,
-    snapshotVersion: 1,
-    schemaVersion: 1,
-    document: system
-  }
-  const vocabulary = systemVocabularySnapshotSchema.parse({
-    ...vocabularyIdentity,
-    checksum: checksumCanonicalJson(vocabularyIdentity)
-  })
   await routeEncounterRequests(base, async (pathname, request) => {
     if (pathname === ROOM_AUTHORIZATION_PATH) {
       base.authorization.reads += 1
@@ -4175,13 +3912,20 @@ async function localEncounterFixture(
         continueCursor: null
       })
     }
-    if (scope.kind === 'SYSTEM')
-      return Response.json({ kind: 'SYSTEM', revisions, system, vocabulary })
     return undefined
   })
   await synchronizeScene(base, value.scene)
   const player = await connectPlayer(base)
-  return { base, player, state, actors, scene: value.scene, tokenId: value.tokenId }
+  return {
+    base,
+    player,
+    state,
+    actors,
+    scene: value.scene,
+    tokenId: value.tokenId,
+    doorId: door?.doorId ?? null,
+    pendingOccurrence
+  }
 }
 
 function localEncounterEvidence(storage: DurableObjectStorage) {
@@ -4680,7 +4424,12 @@ it('commits a warm native initiative roll privately and replays its exact eviden
         sent.mockRestore()
       }
     })
-    expect(replay).toEqual(committed)
+    // Reauthenticating after eviction flushes the outbox, so the reconstructed room has published.
+    expect(replay).toEqual(
+      reconstruct
+        ? { ...committed, writes: [], authority: { ...committed.authority, published_sequence: 1 } }
+        : committed
+    )
   }
 })
 
@@ -5224,7 +4973,6 @@ it('rolls back a local Encounter command when admission expires during an input 
   })
   authorization.revisions.system = crypto.randomUUID()
   let authorityReadStarted = false
-  let systemReads = 0
   let releaseRead = () => {}
   const heldRead = new Promise<void>((resolve) => {
     releaseRead = resolve
@@ -5240,7 +4988,6 @@ it('rolls back a local Encounter command when admission expires during an input 
       authorityReadStarted = true
       await heldRead
     }
-    if (scope.kind === 'SYSTEM') systemReads += 1
     return undefined
   })
   const evidence = (storage: DurableObjectStorage) => {
@@ -5262,7 +5009,9 @@ it('rolls back a local Encounter command when admission expires during an input 
       )
     if (!socket) throw new Error('Missing owner native socket.')
     const sent = vi.spyOn(socket, 'send')
-    const clock = vi.spyOn(Date, 'now')
+    // Past the authorization lease, within admission: the command reloads the changed System.
+    const leaseExpired = Date.now() + ROOM_LIMITS.authorizationLeaseMs + 1
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(leaseExpired)
     const commandId = crypto.randomUUID()
     const handling = instance.webSocketMessage(
       socket,
@@ -5294,7 +5043,6 @@ it('rolls back a local Encounter command when admission expires during an input 
         expect.objectContaining({ type: 'COMMAND_REJECTED', commandId })
       )
       expect(messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
-      expect(systemReads).toBeGreaterThan(0)
       expect(evidence(context.storage)).toEqual(before)
       return before
     } finally {
@@ -5431,7 +5179,91 @@ it('refuses a warm native undo without an action and preserves state and receipt
   })
 })
 
-it('keeps a local token-control revocation after eviction reloads older Convex grants', async () => {
+it('holds moves, door changes and undo on a Scene waiting on a movement decision without a write (D26)', async () => {
+  const { base, scene, tokenId, doorId } = await localEncounterFixture([], {
+    pendingMovementDecision: true
+  })
+  if (!doorId) throw new Error('Missing held Scene door.')
+  const before = await runInDurableObject(base.stub, (_instance, context) =>
+    localEncounterEvidence(context.storage)
+  )
+  const [doorCommandId, moveId, undoId] = [
+    crypto.randomUUID(),
+    crypto.randomUUID(),
+    crypto.randomUUID()
+  ]
+  base.messages.length = 0
+  base.socket.send(JSON.stringify(doorCommand(scene, doorId, doorCommandId)))
+  base.socket.send(JSON.stringify(tokenMoveCommand(scene, tokenId, moveId, { x: 20, y: 10 })))
+  base.socket.send(JSON.stringify(undoMoveCommand(scene.id, undoId, scene.version, 0)))
+  for (const commandId of [doorCommandId, moveId, undoId])
+    await vi.waitFor(() =>
+      expect(base.messages).toContainEqual(
+        expect.objectContaining({
+          code: 'UNAVAILABLE',
+          commandId,
+          message: 'Waiting on a movement decision.',
+          type: 'COMMAND_REJECTED'
+        })
+      )
+    )
+  expect(base.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+  await runInDurableObject(base.stub, (_instance, context) => {
+    expect(localEncounterEvidence(context.storage)).toEqual(before)
+  })
+})
+
+it('refuses a GM void of a held movement decision natively without a write (D26, D52)', async () => {
+  const { base, state, pendingOccurrence } = await localEncounterFixture([], {
+    pendingMovementDecision: true
+  })
+  if (!pendingOccurrence) throw new Error('Missing held movement decision.')
+  const before = await runInDurableObject(base.stub, (_instance, context) =>
+    localEncounterEvidence(context.storage)
+  )
+  const commandId = crypto.randomUUID()
+  vi.mocked(globalThis.fetch).mockClear()
+  base.messages.length = 0
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'VOID_RULE_OCCURRENCE',
+          encounterId: state.id,
+          commandId,
+          expectedVersion: state.version,
+          occurrenceId: pendingOccurrence.id,
+          expectedOccurrenceVersion: pendingOccurrence.version
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'DOMAIN_REJECTED',
+        commandId,
+        message: "Dice during a move can't be voided; answer it to continue.",
+        reason: 'DECISION_REQUIRES_ANSWER',
+        type: 'COMMAND_REJECTED'
+      })
+    )
+  )
+  expect(globalThis.fetch).not.toHaveBeenCalled()
+  await runInDurableObject(base.stub, (_instance, context) => {
+    expect(localEncounterEvidence(context.storage)).toEqual(before)
+    expect(
+      new RoomEncounterStore(context.storage)
+        .documents('encounterRuleOccurrences')
+        .map(({ id, state: occurrenceState }) => [id, occurrenceState])
+    ).toEqual([[pendingOccurrence.id, 'PENDING']])
+  })
+})
+
+it('publishes a local token-control revocation before an evicted room reloads Convex grants', async () => {
   const { base, player, state, actors, scene, tokenId } = await localEncounterFixture()
   const commandId = crypto.randomUUID()
   const preview = (sequence: number) =>
@@ -5515,6 +5347,38 @@ it('keeps a local token-control revocation after eviction reloads older Convex g
     }
   })
   const authorizationReads = base.authorization.reads
+  // Convex serves the older grant until the room publishes the revocation.
+  let revocationPublished = false
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === '/live-sessions/checkpoint') {
+      revocationPublished ||=
+        liveSessionCheckpointInputSchema.parse(await request.json()).sequence >= 1
+      return undefined
+    }
+    if (pathname !== ROOM_AUTHORIZATION_PATH) return undefined
+    base.authorization.reads += 1
+    return Response.json(
+      roomAuthorizationResponse({
+        members: base.authorization.members,
+        play: {
+          encounter: {
+            encounterId: state.id,
+            sceneId: scene.id,
+            healthDisplayDefault: state.healthDisplayDefault,
+            actors: actors.map(({ id, kind, sourceId, controllerUserIds, healthDisplay }) => ({
+              id,
+              kind,
+              sourceId,
+              controllerUserIds:
+                revocationPublished && id === actors[0]!.id ? [] : controllerUserIds,
+              healthDisplay
+            })),
+            tokens: [{ actorId: actors[0]!.id, tokenId }]
+          }
+        }
+      })
+    )
+  })
   await evictDurableObject(base.stub)
   base.messages.length = 0
   player.messages.length = 0
@@ -5523,8 +5387,8 @@ it('keeps a local token-control revocation after eviction reloads older Convex g
   await vi.waitFor(() =>
     expect(player.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
   )
-  // The fixture still returns its original actor grant on every Convex authorization reload.
-  expect(actors[0]!.controllerUserIds).toEqual([base.playerId])
+  // Reauthentication published the revocation before the room reloaded Convex's grants.
+  expect(revocationPublished).toBe(true)
   expect(base.authorization.reads).toBeGreaterThan(authorizationReads)
   await runInDurableObject(base.stub, async (instance, context) => {
     const socketFor = (userId: string) =>
@@ -5558,7 +5422,9 @@ it('keeps a local token-control revocation after eviction reloads older Convex g
         )
       ).toBe(true)
       expect(globalThis.fetch).not.toHaveBeenCalled()
-      expect(localEncounterEvidence(context.storage)).toEqual(committed)
+      const published = localEncounterEvidence(context.storage)
+      expect(published.actors).toEqual(committed.actors)
+      expect(published.authority).toEqual({ ...committed.authority, published_sequence: 1 })
     } finally {
       ownerSent.mockRestore()
       playerSent.mockRestore()
@@ -6711,9 +6577,7 @@ function planDoorChange(input: {
     },
     scene: input.scene,
     encounterId: null,
-    movementDecisionPending: false,
-    actor: { role: input.role, userId: crypto.randomUUID() },
-    latestUnmatchedMove: () => null
+    actor: { role: input.role, userId: crypto.randomUUID() }
   })
 }
 
@@ -6788,20 +6652,17 @@ it('plans live token movement with vision and kept fog only while fog is OFF', (
       },
       scene: { ...scene, fogMode },
       encounterId: null,
-      movementDecisionPending: false,
-      actor: { role: 'OWNER', userId: crypto.randomUUID() },
-      latestUnmatchedMove: () => null
+      actor: { role: 'OWNER', userId: crypto.randomUUID() }
     })
   expect(plan('OFF')).toMatchObject({ kind: 'ACCEPTED' })
   expect(plan('SHARED_PARTY')).toMatchObject({ kind: 'EXTERNAL' })
 })
 
-it('commits bound moves and moves on a bound Scene to Convex first, and holds a Scene with a pending movement decision (D26)', () => {
+it('plans bound moves and moves on a bound Scene through room geometry', () => {
   const { scene, tokenId } = movementScene(crypto.randomUUID())
   const plan = (input: {
     expectedEncounterVersion: number | null
     encounterId: string | null
-    movementDecisionPending: boolean
     role: 'OWNER' | 'PLAYER'
   }) =>
     planLiveSceneCommand({
@@ -6821,39 +6682,19 @@ it('commits bound moves and moves on a bound Scene to Convex first, and holds a 
       },
       scene: { ...scene, fogMode: 'OFF' },
       encounterId: input.encounterId,
-      movementDecisionPending: input.movementDecisionPending,
-      actor: { role: input.role, userId: crypto.randomUUID() },
-      latestUnmatchedMove: () => null
+      actor: { role: input.role, userId: crypto.randomUUID() }
     })
   const encounterId = crypto.randomUUID()
-  // A bound token follows its actor's controllers, which Convex checks, never the token's list.
-  expect(
-    plan({
-      expectedEncounterVersion: 3,
-      encounterId,
-      movementDecisionPending: false,
-      role: 'PLAYER'
-    })
-  ).toEqual({ kind: 'EXTERNAL' })
-  expect(
-    plan({
-      expectedEncounterVersion: null,
-      encounterId,
-      movementDecisionPending: false,
-      role: 'OWNER'
-    })
-  ).toEqual({ kind: 'EXTERNAL' })
-  expect(
-    plan({
-      expectedEncounterVersion: null,
-      encounterId,
-      movementDecisionPending: false,
-      role: 'PLAYER'
-    })
-  ).toMatchObject({ code: 'FORBIDDEN' })
-  expect(
-    plan({ expectedEncounterVersion: 3, encounterId, movementDecisionPending: true, role: 'OWNER' })
-  ).toMatchObject({ code: 'UNAVAILABLE', message: 'Waiting on a movement decision.' })
+  // A bound token follows its actor's controllers, which room geometry checks, never the token's list.
+  expect(plan({ expectedEncounterVersion: 3, encounterId, role: 'PLAYER' })).toEqual({
+    kind: 'EXTERNAL'
+  })
+  expect(plan({ expectedEncounterVersion: null, encounterId, role: 'OWNER' })).toEqual({
+    kind: 'EXTERNAL'
+  })
+  expect(plan({ expectedEncounterVersion: null, encounterId, role: 'PLAYER' })).toMatchObject({
+    code: 'FORBIDDEN'
+  })
 })
 
 it('fans out every non-hidden token and door to a player in a fog-OFF Scene', async () => {

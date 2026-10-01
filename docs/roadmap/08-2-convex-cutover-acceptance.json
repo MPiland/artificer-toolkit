@@ -2719,7 +2719,11 @@
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "browser suite movement-browser-29",
                 ".codex/validation/phase82-ultra-continuation-20260911/v07-standalone-movement-01/completion.md",
-                "missing: room-committed bound and standalone movement reaching Convex by checkpoint (ADR 0035 plan S3, S6)"
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits standalone movement and its Scene-history undo, replays, and rejects an uncontrolled player (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › plans bound moves and moves on a bound Scene through room geometry (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits each fog owner with native geometry before acknowledgement and resynchronizes the table (D52) (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › recovers a native Scene commit whose acknowledgement was lost and retries without a duplicate write (D27) (A35-S6b: a native geometry save checkpoints once; the room store logs each record's net change)",
+                "missing: the Convex movement stage and fast-only undo removed (A35-S6c), then the browser movement journeys re-proved on the final source (R08, V15)"
               ]
             },
             {
@@ -3626,7 +3630,12 @@
                 "apps/apis/convex/liveSessions/encounterActorCap.test.ts › starts and advances a turn in a Run at the actor cap through the room",
                 "structure: every Encounter command enters through the room (encounters/commands:execute is internal); the room plans actions, basic actions, turns, Legendary windows, Concentration, Cleaving, Disarm and movement and draws every dice command's dice (D41); liveSessions/encounterCommand:execute records only CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES (GM tools with no dice) with a throwing random source; S4-e (8b7459d6d, D43/D44) deleted scenes/spatialPreparation, encounters/spatialMovement, movementConcentration and the Convex movement perception/reaction code, and Convex no longer re-runs movement rules at commit; the only Convex random source left is lib/rollRandom.ts, used by free-form personal and Campaign rolls (rolls.ts, campaigns/rolls.ts) and Character Sheet rolls (rollDocuments.ts, R06.3)",
                 "impl: apps/apis/convex/scenes/geometryStaging.ts (beginSceneGeometry: SCENE_NOT_PRESENTED without a live room), apps/apis/convex/scenes/geometryDocuments.ts (assertStandaloneMovement refuses an unbound claim for a token bound in an ACTIVE Run), apps/apis/convex/liveSessions/encounterCommand.ts, packages/schema/src/api/liveSessionEncounterCommand.ts (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES), apps/session-worker/src/nativeRoomEncounterCommand.ts",
-                "missing: the room SQLite commit before acknowledgement and the fenced, idempotent checkpoint (ADR 0035 plan S3, S6)"
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits an unbound token move on an Encounter-bound Scene in SQLite before acknowledgement (D27) (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › rolls back native bound-Scene geometry and journal writes when SQLite receipt insertion fails (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › recovers a native Scene commit whose acknowledgement was lost and retries without a duplicate write (D27) (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › retries the exact pending checkpoint after eviction before an idle room releases its authority",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › publishes a local token-control revocation before an evicted room reloads Convex grants (A35-S6b)",
+                "missing: the remaining Convex-first Scene and movement code removed (A35-S6c), and room-owned rule evaluation re-proved on the final source (R08)"
               ]
             },
             {
@@ -3638,14 +3647,14 @@
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › runs a bound move, its answer and a GM skip through the room pipeline, advancing the sequence each time (D26, D27)",
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit then fails",
                 "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (replaces the pre-D52 private staging refusal test: bad secret, identity or epoch and a non-controller are refused with nothing staged; the native-path parity test was deleted with that path in S4-e, D43)",
-                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a move on an Encounter-bound Scene Convex-first with the authority advance (D27)",
-                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › keeps the record of a commit that timed out, and the next command settles it",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › completes or abandons a record left by a restart when the next member admits (D27)",
-                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › holds moves and door changes on a Scene waiting on a movement decision, and keeps the chain free (D26)",
-                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits bound moves and moves on a bound Scene to Convex first, and holds a Scene with a pending movement decision (D26)",
-                "apps/session-worker/test/nativeDurableCommandJournal.test.ts › journals a Convex-first commit write-ahead and completes it with no outbox row (D27)",
-                "impl: apps/session-worker/src/nativeExternalSceneCommit.ts, apps/session-worker/src/durableCommandJournal.ts, apps/session-worker/src/nativeLiveSessionRoom.ts, apps/apis/convex/liveSessions/externalCommit.ts, apps/apis/convex/liveSessions/encounterMovementCommit.ts, apps/apis/convex/liveSessions/stateHttp.ts",
-                "missing: bound moves, fog, movement decisions and binding committed as room commands (ADR 0035 plan S6)"
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › plans bound moves and moves on a bound Scene through room geometry (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › binds an Encounter to the presented Scene in SQLite before acknowledgement, GM only (D47) (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › rolls back native Encounter binding and controls when late SQLite receipt insertion fails (A35-S6b)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › holds moves, door changes and undo on a Scene waiting on a movement decision without a write (D26) (A35-S6b: the hold reads the PENDING occurrence from room SQLite)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a GM void of a held movement decision natively without a write (D26, D52) (A35-S6b)",
+                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts, apps/session-worker/src/roomSceneBinding.ts, apps/session-worker/src/roomSceneGeometryCommand.ts, apps/session-worker/src/roomSceneUndo.ts, packages/encounter-persistence/src/occurrenceOwner.ts (readMovementDecisionPending)",
+                "missing: the Convex external-commit stage, encounterMovement.stage and fast-only undo deleted (A35-S6c)"
               ]
             },
             {
@@ -3656,7 +3665,9 @@
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/liveSessions/state.test.ts › keeps Character Sheet commands in Convex while Scene authority is active and draining",
                 "impl: apps/apis/convex/characters/sheetCommands.ts",
-                "missing: held Characters' play commands running in the room and direct Convex play writes refused while held (ADR 0035 plan S7)"
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › plays a Character Sheet command through the room with the real Character rules path (A35-S6b)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › refuses a Sheet command from a player who does not own the Character (A35-S6b)",
+                "missing: the held-Character Convex write refusal (A35-S6a) and room Sheet push (A35-S7a) proved together on the final source after the A35-S6c switch (REL-4)"
               ]
             },
             {

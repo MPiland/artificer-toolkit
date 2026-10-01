@@ -28,27 +28,29 @@ import {
 import { applySceneGeometryDelta } from '@artificer-toolkit/shared/vtt'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomTransaction } from './roomEncounterStore.js'
-import { liveSessionSceneCommandInputSchema } from './nativeRoomSceneCommand.js'
+import { liveSessionSceneGeometryCommandInputSchema } from './nativeRoomSceneCommand.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
-import { publishRoomSceneUndo } from './roomSceneUndo.js'
 
-/** Stages native checkpoint records for an approved fast plan; the caller owns the outer commit. */
-export async function persistRoomSceneCommand(args: {
+/**
+ * Stages native checkpoint records for an approved standalone move or door plan; the caller owns
+ * the outer commit. Undo commits through `publishRoomSceneUndo`.
+ */
+export function persistRoomSceneCommand(args: {
   transaction: RoomTransaction
   header: SceneLiveStateHeader
   /** Current native entities before Character vision composition. */
   scene: CampaignSceneStateDto
   baseOrdinals: SceneBaseOrdinals
-  command: ReturnType<typeof liveSessionSceneCommandInputSchema.parse>
+  command: ReturnType<typeof liveSessionSceneGeometryCommandInputSchema.parse>
   actorUserId: string
   result: SceneCommandResultDto
   presentationVersion: number
-  /** A fresh save for MOVE/DOOR; the retained target's parent save for UNDO. */
+  /** The fresh geometry save this command publishes. */
   saveId: string
   now: number
 }) {
   const { transaction, header, scene } = args
-  const supplied = liveSessionSceneCommandInputSchema.parse(args.command)
+  const supplied = liveSessionSceneGeometryCommandInputSchema.parse(args.command)
   const result = sceneCommandResultDtoSchema.parse(args.result)
   const sourceRecord = transaction.record('SCENE_CHECKPOINT_SOURCE', header.id)
   if (!sourceRecord) throw new Error('Room Scene source is unavailable.')
@@ -81,30 +83,6 @@ export async function persistRoomSceneCommand(args: {
     throw new Error('Room Scene command result is inconsistent.')
   if (readRoomSceneRow(transaction, 'sceneLiveCommands', [header.id, result.commandId]))
     throw new Error('Scene command ID was already used.')
-  if (supplied.type === 'UNDO_LAST_SCENE_MOVE') {
-    if (result.delta?.kind !== 'TOKEN_MOVE_UNDONE')
-      throw new Error('Room Scene undo result is inconsistent.')
-    const parentRow = readRoomSceneRow(transaction, 'sceneGeometrySaves', [args.saveId])
-    if (!parentRow) throw new Error('Stored Scene undo evidence is unavailable.')
-    const parent = parseGeometrySave(parentRow)
-    if (parent.sceneId !== header.id || parent.commandId !== result.delta.undoneCommandId)
-      throw new Error('Stored Scene undo evidence is unavailable.')
-    const undo = await publishRoomSceneUndo({
-      transaction,
-      scene,
-      userId: args.actorUserId,
-      request: {
-        input: supplied,
-        presentation: { expectedPresentationVersion: args.presentationVersion }
-      },
-      targetCommandId: result.delta.undoneCommandId
-    })
-    if (checksumCanonicalJson(undo.result) !== checksumCanonicalJson(result))
-      throw new Error('Room Scene undo result is inconsistent.')
-    return sceneStoredLiveStateSchema.parse(
-      readRoomSceneRow(transaction, 'sceneLiveStates', [header.id])
-    )
-  }
   const state = advanceLiveState(header, live)
   const input = normalizeGeometryInput(supplied)
   if (input.type !== 'MOVE_SCENE_TOKEN' && input.type !== 'SET_SCENE_DOOR_STATE')

@@ -422,8 +422,8 @@ export class RoomEncounterStore {
     this.#assertClosed()
     this.#open = true
     this.#memory.transaction.begin()
-    const staged = new Map<string, RoomRecord | null>()
-    const recordWrites: RecordWrite[] = []
+    // Each record logs only its net change: a checkpoint sees a row set twice in one command once.
+    const staged = new Map<string, RecordWrite>()
     const transaction: RoomTransaction = {
       restoreDocument: ({ table, id, creationTime, fields }) => {
         if (!isTable(table)) throw new Error(`Unknown room table ${table}.`)
@@ -431,13 +431,18 @@ export class RoomEncounterStore {
       },
       record: (kind, key) => {
         const id = recordId(kind, key)
-        const record = staged.has(id) ? staged.get(id) : this.#records.get(id)
+        const write = staged.get(id)
+        const record = write
+          ? write.op === 'RECORD_SET'
+            ? write.record
+            : null
+          : this.#records.get(id)
         return record ? { ...record } : null
       },
       records: (kind) => {
         const records = new Map(this.#records)
-        for (const [id, record] of staged) {
-          if (record) records.set(id, record)
+        for (const [id, write] of staged) {
+          if (write.op === 'RECORD_SET') records.set(id, write.record)
           else records.delete(id)
         }
         return [...records.values()]
@@ -445,21 +450,21 @@ export class RoomEncounterStore {
           .map((record) => ({ ...record }))
       },
       setRecord: (record) => {
-        staged.set(recordId(record.kind, record.key), { ...record })
-        recordWrites.push({ op: 'RECORD_SET', record: { ...record } })
+        staged.set(recordId(record.kind, record.key), { op: 'RECORD_SET', record: { ...record } })
       },
       deleteRecord: (kind, key) => {
-        staged.set(recordId(kind, key), null)
-        recordWrites.push({ op: 'RECORD_DELETE', kind, key })
+        const id = recordId(kind, key)
+        if (this.#records.has(id)) staged.set(id, { op: 'RECORD_DELETE', kind, key })
+        else staged.delete(id)
       }
     }
     try {
       const result = await work(transaction)
-      const writes: RoomWrite[] = [...this.#memory.transaction.writes(), ...recordWrites]
+      const writes: RoomWrite[] = [...this.#memory.transaction.writes(), ...staged.values()]
       if (writes.length > 0 || commitDurable) this.#logWrites(writes, commitDurable)
       this.#memory.transaction.commit()
-      for (const [id, record] of staged)
-        if (record) this.#records.set(id, record)
+      for (const [id, write] of staged)
+        if (write.op === 'RECORD_SET') this.#records.set(id, write.record)
         else this.#records.delete(id)
       if (writes.length > 0) this.#onCommitted?.()
       return result

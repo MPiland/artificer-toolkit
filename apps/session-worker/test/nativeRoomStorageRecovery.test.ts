@@ -70,8 +70,7 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
           nextStateChecksum: entry.chainChecksum,
           nextStateJson: sceneJson,
           outboxPayloadJson: JSON.stringify({ sequence: entry.sequence }),
-          receiptJson: JSON.stringify({ accepted: true }),
-          undoJson: JSON.stringify({ padding: 'u'.repeat(300_000) })
+          receiptJson: JSON.stringify({ accepted: true })
         })
         return undefined
       }

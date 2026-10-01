@@ -139,47 +139,92 @@ const capturedPage = {
   ]
 }
 
-const character = characterDocumentSchema.parse(capturedPage.inputs.character)
 const sheetState = characterSheetStateSchema.parse(capturedPage.inputs.sheetState)
 const updatedAt = capturedPage.inputs.updatedAt
-const play = splitCharacterPlayState({ state: character.state, sheetState }).play
-const owner = characterStoredRowSchema.parse(
-  encodeCharacterRecord(
-    {
-      _id: 'fixture:character',
-      _creationTime: Date.parse(updatedAt),
-      id: character.id,
-      userId: character.userId,
-      systemId: character.systemId,
-      label: character.label,
-      status: 'ACTIVE',
-      createdAt: updatedAt,
-      updatedAt,
-      documentJson: JSON.stringify(character),
-      checksum: checksumRuleDocument(character),
-      play: {
-        _id: 'fixture:character-play',
+const capturedRevisions = capturedPage.revisions
+
+/**
+ * The assigned Character's first room-input part, including its complete private owner capture.
+ * The capture can be re-keyed to another Character, owner and Campaign, and given the content
+ * manifest and revisions of the room that serves it; the defaults are the capture itself.
+ */
+export function characterPageFixtureFor({
+  characterId = capturedPage.characterId,
+  userId = capturedPage.inputs.character.userId,
+  campaignId = capturedPage.inputs.campaign.id,
+  contentSnapshots = {
+    ...capturedPage.contentSnapshots,
+    campaign: { ...capturedPage.contentSnapshots.campaign, id: campaignId }
+  },
+  revisions = capturedRevisions.map((revision) => ({
+    ...revision,
+    id:
+      revision.scope === 'CHARACTER'
+        ? characterId
+        : revision.scope === 'SYSTEM'
+          ? revision.id
+          : campaignId
+  }))
+}: {
+  characterId?: string
+  userId?: string
+  campaignId?: string
+  contentSnapshots?: unknown
+  revisions?: unknown
+} = {}): unknown {
+  const character = characterDocumentSchema.parse({
+    ...capturedPage.inputs.character,
+    id: characterId,
+    userId
+  })
+  const play = splitCharacterPlayState({ state: character.state, sheetState }).play
+  const owner = characterStoredRowSchema.parse(
+    encodeCharacterRecord(
+      {
+        _id: 'fixture:character',
         _creationTime: Date.parse(updatedAt),
-        characterId: character.id,
+        id: character.id,
         userId: character.userId,
+        systemId: character.systemId,
+        label: character.label,
+        status: 'ACTIVE',
+        createdAt: updatedAt,
+        updatedAt,
+        documentJson: JSON.stringify(character),
+        checksum: checksumRuleDocument(character),
+        play: {
+          _id: 'fixture:character-play',
+          _creationTime: Date.parse(updatedAt),
+          characterId: character.id,
+          userId: character.userId,
+          streamVersion: capturedPage.inputs.streamVersion,
+          maximumHitPoints: 11,
+          walkingSpeed: 30,
+          state: play,
+          checksum: checksumRuleDocument(play),
+          updatedAt
+        }
+      },
+      {
+        document: character,
+        sheetState,
         streamVersion: capturedPage.inputs.streamVersion,
-        maximumHitPoints: 11,
-        walkingSpeed: 30,
-        state: play,
-        checksum: checksumRuleDocument(play),
         updatedAt
       }
-    },
-    { document: character, sheetState, streamVersion: capturedPage.inputs.streamVersion, updatedAt }
+    )
   )
-)
-
-/** The assigned Character's first room-input part, including its complete private owner capture. */
-export const characterPageFixture: unknown = {
-  status: capturedPage.status,
-  characterId: capturedPage.characterId,
-  documents: capturedPage.documents,
-  contentSnapshots: capturedPage.contentSnapshots,
-  inputs: { owner, campaign: capturedPage.inputs.campaign, sheetState },
-  revisions: capturedPage.revisions
+  return {
+    status: capturedPage.status,
+    characterId,
+    documents: capturedPage.documents,
+    contentSnapshots,
+    inputs: {
+      owner,
+      campaign: { ...capturedPage.inputs.campaign, id: campaignId },
+      sheetState
+    },
+    revisions
+  }
 }
+
+export const characterPageFixture: unknown = characterPageFixtureFor()

@@ -342,7 +342,8 @@ export async function readRoomEncounterPlayAuthorization(
     throw new Error('Room Encounter token Scene mismatch.')
   return liveSessionRoomPlayAuthorizationSchema.parse({
     encounter: {
-      ...bound,
+      encounterId: bound.encounterId,
+      sceneId: bound.sceneId,
       healthDisplayDefault: state.healthDisplayDefault,
       actors: actors.map(({ id, kind, sourceId, controllerUserIds, healthDisplay }) => ({
         id,

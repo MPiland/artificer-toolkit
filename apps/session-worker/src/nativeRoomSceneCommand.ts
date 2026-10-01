@@ -1,7 +1,4 @@
-import {
-  liveSessionWebSocketServerMessageDtoSchema,
-  type LiveSessionCommandRejectionCodeDto
-} from '@artificer-toolkit/schema/api/liveSessions'
+import type { LiveSessionCommandRejectionCodeDto } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   sceneDoorStateCommandInputDtoSchema,
   sceneTokenMovementCommandInputDtoSchema,
@@ -13,13 +10,10 @@ import {
   isSceneEntityVisibleToViewer,
   sceneDerivesExploration,
   sceneDoorChangeFailure,
-  sceneTokenMovementFailure,
-  VTT_SCENE_LIMITS
+  sceneTokenMovementFailure
 } from '@artificer-toolkit/shared/vtt'
 import type { LiveSessionTransientCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { z } from 'zod'
-
-import type { DurableCommandJournal } from './durableCommandJournal.js'
 
 /**
  * Whether a member may drag-preview a token: the GM always; a player never for hidden tokens; an
@@ -46,20 +40,11 @@ export const liveSessionSceneCommandInputSchema = z.union([
   sceneUndoLastMoveCommandInputDtoSchema
 ])
 
-// Older receipts contain the entire Scene; the same fields recover their token positions.
-const sceneMovementUndoSchema = z.object({
-  id: z.uuid(),
-  version: z.number().int().nonnegative(),
-  tokens: z
-    .array(
-      z.object({
-        id: z.uuid(),
-        position: z.strictObject({ x: z.number().finite(), y: z.number().finite() })
-      })
-    )
-    .min(1)
-    .max(VTT_SCENE_LIMITS.tokens)
-})
+/** The Scene commands the planner decides; the room commits `UNDO_LAST_SCENE_MOVE` through Scene history. */
+export const liveSessionSceneGeometryCommandInputSchema = z.union([
+  sceneDoorStateCommandInputDtoSchema,
+  sceneTokenMovementCommandInputDtoSchema
+])
 
 type LiveSceneCommand = z.infer<typeof liveSessionSceneCommandInputSchema>
 
@@ -103,22 +88,16 @@ function reject(
 }
 
 /**
- * Decides the Scene delta for one synchronized live command, or that it commits to Convex first.
- * Pure apart from reading the latest undoable move; journal writes, broadcast and publication stay
- * with the room.
+ * Decides the Scene delta for one synchronized token move or door change, or that it requires
+ * geometry planning. Pure; journal writes, broadcast and publication stay with the room.
  */
 export function planLiveSceneCommand(input: {
-  command: LiveSceneCommand
+  command: z.infer<typeof liveSessionSceneGeometryCommandInputSchema>
   scene: CampaignSceneStateDto
   encounterId: string | null
-  /** A pending movement decision holds token moves and door changes on its Scene (D26). */
-  movementDecisionPending: boolean
   actor: { role: 'OWNER' | 'PLAYER'; userId: string }
-  latestUnmatchedMove: () => ReturnType<DurableCommandJournal['latestUnmatchedSceneTokenMove']>
 }): SceneCommandPlan {
   const { command, scene, actor } = input
-  if (input.movementDecisionPending)
-    return reject('UNAVAILABLE', 'Waiting on a movement decision.', true)
   const external = isExternalSceneCommand(command, scene, input.encounterId)
   if (command.type === 'SET_SCENE_DOOR_STATE') {
     const door = scene.barriers.find(
@@ -145,61 +124,18 @@ export function planLiveSceneCommand(input: {
       delta: { barrierId: command.barrierId, kind: 'DOOR_STATE_SET', state: command.state }
     }
   }
-  if (command.type === 'MOVE_SCENE_TOKEN') {
-    // A bound token follows its actor's controllers, which Convex checks; the room never applies
-    // the Scene token's own list to it.
-    const token = scene.tokens.find((candidate) => candidate.id === command.tokenId)
-    if (
-      command.expectedEncounterVersion === null &&
-      actor.role !== 'OWNER' &&
-      (!token || !token.controlledByUserIds.includes(actor.userId))
-    )
-      return reject('FORBIDDEN', 'The current user does not control this Scene token.', false)
-    const position = command.path.at(-1)!
-    const failure = sceneTokenMovementFailure(scene, command.tokenId, position, command.path)
-    if (failure) return reject('INVALID_COMMAND', failure, true)
-    if (external) return { kind: 'EXTERNAL' }
-    return { kind: 'ACCEPTED', delta: { kind: 'TOKEN_MOVED', position, tokenId: command.tokenId } }
-  }
-  if (actor.role !== 'OWNER')
-    return reject('FORBIDDEN', 'Only the Campaign owner may undo Scene movement.', false)
-  const targetReceipt = input.latestUnmatchedMove()
-  if (!targetReceipt?.undoJson)
-    return reject('INVALID_COMMAND', 'There is no committed token move to undo.', true)
-  const target = liveSessionWebSocketServerMessageDtoSchema.parse(
-    JSON.parse(targetReceipt.receiptJson)
-  )
-  const targetResult =
-    target.type === 'COMMAND_COMMITTED' && target.delta?.scope === 'SCENE'
-      ? target.delta.result
-      : null
-  const beforeMove = sceneMovementUndoSchema.parse(JSON.parse(targetReceipt.undoJson))
+  // A bound token follows its actor's controllers, which Convex checks; the room never applies
+  // the Scene token's own list to it.
+  const token = scene.tokens.find((candidate) => candidate.id === command.tokenId)
   if (
-    !targetResult ||
-    targetResult.delta?.kind !== 'TOKEN_MOVED' ||
-    targetResult.commandId !== targetReceipt.commandId ||
-    targetResult.sceneId !== scene.id ||
-    beforeMove.id !== scene.id ||
-    beforeMove.version + 1 !== targetResult.version
+    command.expectedEncounterVersion === null &&
+    actor.role !== 'OWNER' &&
+    (!token || !token.controlledByUserIds.includes(actor.userId))
   )
-    throw new Error('Stored live Session token movement receipt is inconsistent.')
-  const moveDelta = targetResult.delta
-  const priorToken = beforeMove.tokens.find((candidate) => candidate.id === moveDelta.tokenId)
-  const currentToken = scene.tokens.find((candidate) => candidate.id === moveDelta.tokenId)
-  if (
-    !priorToken ||
-    !currentToken ||
-    currentToken.position.x !== moveDelta.position.x ||
-    currentToken.position.y !== moveDelta.position.y
-  )
-    return reject('INVALID_COMMAND', 'The latest token move can no longer be safely undone.', true)
-  return {
-    kind: 'ACCEPTED',
-    delta: {
-      kind: 'TOKEN_MOVE_UNDONE',
-      position: priorToken.position,
-      tokenId: currentToken.id,
-      undoneCommandId: targetReceipt.commandId
-    }
-  }
+    return reject('FORBIDDEN', 'The current user does not control this Scene token.', false)
+  const position = command.path.at(-1)!
+  const failure = sceneTokenMovementFailure(scene, command.tokenId, position, command.path)
+  if (failure) return reject('INVALID_COMMAND', failure, true)
+  if (external) return { kind: 'EXTERNAL' }
+  return { kind: 'ACCEPTED', delta: { kind: 'TOKEN_MOVED', position, tokenId: command.tokenId } }
 }

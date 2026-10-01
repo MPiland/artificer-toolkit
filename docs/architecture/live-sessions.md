@@ -365,11 +365,11 @@ actor's controllers (`requireBoundTokenMoveControl`, refusing `NOT_ACTOR_CONTROL
 publication checks again. A room door save is readable by its player actor, and publication applies
 the same lock rule to a player's door change as the tabletop.
 
-The D26 hold: the capture carries `sceneMovementDecisionPending` (the bound Encounter's pending
-occurrence is a movement context), and the room updates it after its own movement commits. While it
-is set the room refuses token moves, door changes and undo on that Scene with `UNAVAILABLE`
-"Waiting on a movement decision."; chat, Sheets, other Scenes and every Encounter command continue.
-A forwarded Encounter command rereads the flag with one authority capture while it is set. The GM's
+The D26 hold: before planning a Scene command the room reads its own loaded Run
+(`readMovementDecisionPending` in `encounter-persistence/occurrenceOwner`): whether the bound
+Encounter's pending occurrence is a movement context. While it is, the room refuses token moves,
+`UNDO_LAST_SCENE_MOVE` and door changes on that Scene with `UNAVAILABLE` "Waiting on a movement
+decision."; chat, Sheets, other Scenes and every Encounter command continue. The GM's
 decision drawer offers "Skip decision" on a movement reaction or passage choice: a void routed
 `MOVEMENT` that declines it (the movement continues). Bound-token movement and its decisions happen
 only in the room, on its presented Scene (D42, D43; D29's native staging path is gone): the room
@@ -415,7 +415,7 @@ through `sceneBindings:get`. Without a live room the native mutation still binds
 prepared, bound Encounter (the only unbinding) still refuses while the room owns the Scene.
 
 **Turn movement (CURRENT, D37-D38, V07.5).** The room, which holds the whole Scene
-(`prepareExternalSceneCommit`), measures each published segment of a bound move with
+(`prepareStagedSceneCommit`), measures each published segment of a bound move with
 `measureScenePathMovementCost` (terrain included) and sends it as the finish input's `movementCost`. `publishSceneGeometry` requires it for a voluntary bound move and adds it, in feet,
 to an `encounterTurnMovements` row keyed by Run, round, the turn's current actor and the moving actor
 (`encounters/turnMovement.ts`); forced movement and teleports add nothing. The row is outside the Run
@@ -483,12 +483,10 @@ below); a decision answer or GM void asks the private `encounter-route` query
 (`liveSessions/encounterRoute:route`), which names the planner for the current pending occurrence —
 `ACTION`, `TURN`, `CONCENTRATION`, `CLEAVING`, `DISARM`, `MOVEMENT` or `VOID` — through the one shared
 classifier, `encounters/occurrenceOwner.ts`, and refuses an occurrence no planner owns. A PLAYER may
-classify only an occurrence that `encounters/pendingReads` already shows them. While the room holds a
-movement decision for the Encounter bound to its synchronized presented Scene (the D26 hold), it
-skips this query and sends the decision straight to the movement stage (`stageHeldMovement`, D52),
-which routes it with the same classification in the same transaction and returns `ROUTED` with the
-planner when another planner owns it, so a held decision's answer takes two round trips (stage and
-commit). Only the GM tools in
+classify only an occurrence that `encounters/pendingReads` already shows them. The room first
+classifies from its own loaded Run (`readRoomEncounterResponseRoute`): a movement decision the room
+owns goes straight to its movement commit and a native-owned void or answer to its native planner,
+with no route query. Only the GM tools in
 `CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` (`packages/schema/src/api/liveSessionEncounterCommand.ts`)
 go to Convex as they are (D41): no dice, and no derived mechanics beyond the deterministic actor
 recalculation every Convex commit runs anyway. The private `encounter-command` route
@@ -1362,7 +1360,7 @@ reuse the shared canonical current-entity algorithm over that base and the nativ
 these inputs survive SQLite recovery and do not require a backend read for each command.
 
 [The native Scene writer](../../apps/session-worker/src/roomSceneCommandPersistence.ts) stages
-standalone `MOVE_SCENE_TOKEN`, `SET_SCENE_DOOR_STATE` and `UNDO_LAST_SCENE_MOVE` records inside
+standalone `MOVE_SCENE_TOKEN` and `SET_SCENE_DOOR_STATE` records inside
 `RoomEncounterStore.transact`. Its write set and `DurableCommandJournal.commitInTransaction` head,
 display state and replay receipt share one SQLite transaction before acknowledgement. Raw state and
 display state remain separate so composed Character vision is never persisted as a native override.
@@ -1375,13 +1373,13 @@ vision and the journal receipt in one `RoomEncounterStore` transaction before ac
 The helper selects the latest unmatched persisted geometry move or published movement result,
 retains canonical parent/token/fog/version guards, and restores or deletes complete previous fog
 layers. Restored chunks use shared `parseSceneReferencedFogChunk` integrity validation. After commit,
-raw/composed caches and recipient fog sync use the restored state. The asynchronous fast Scene writer
-delegates undo to this same helper while preserving supplied parent save/command/checksum guards.
-Native storage-row helpers now live in [roomSceneRecords](../../apps/session-worker/src/roomSceneRecords.ts)
+raw/composed caches and recipient fog sync use the restored state. This helper is the room's only
+Scene undo: the fast-only undo copies the journal once kept (`undo_json` and its `undo:` chunks) are
+dropped on the journal's next construction. Native storage-row helpers now live in [roomSceneRecords](../../apps/session-worker/src/roomSceneRecords.ts)
 to avoid module cycles. Undo selection scans O(N) retained Scene history rows, with sorting and
 unmatched-move lookup; the existing `ponytail` comment defers a keyed index until frozen workload
-measurements require it. Neither V15 nor Q16 is proven. Old fast-only undo journal fields/planner,
-external recovery and comparators remain for retirement. Scene receipt
+measurements require it. Neither V15 nor Q16 is proven. External recovery and comparators remain for
+retirement. Scene receipt
 payload packing, S5 parity, complete S6/S7 authority, chat, budgets and the final-source local lifecycle
 remain open; this source integration accepts no additional ledger case.
 

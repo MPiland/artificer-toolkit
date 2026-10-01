@@ -28,6 +28,7 @@ import {
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readCharacterCommandReplay } from '@artificer-toolkit/encounter-persistence/characterSheetReceipts'
+import { readMovementDecisionPending } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import {
@@ -86,11 +87,7 @@ import {
   type LiveEncounterActor
 } from './nativeRoomEncounterCommand.js'
 import { LiveCaptureCache, type LiveCaptureReads } from './nativeCaptureCache.js'
-import {
-  stageExternalSceneCommand,
-  type ExternalSceneCommand,
-  type ExternalSceneContext
-} from './nativeExternalSceneCommit.js'
+import type { ExternalSceneCommand, ExternalSceneContext } from './nativeExternalSceneCommit.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
@@ -102,7 +99,7 @@ import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
 import { readRoomSceneHeader } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
 import { executeRoomSceneBinding } from './roomSceneBinding.js'
-import { publishRoomSceneUndo } from './roomSceneUndo.js'
+import { NoSceneMoveToUndoError, publishRoomSceneUndo } from './roomSceneUndo.js'
 import { executeRoomCharacterSheetCommand } from './roomCharacterSheetCommands.js'
 import { CampaignChatCommandError, executeRoomCampaignChatCommand } from './roomChatCommands.js'
 import {
@@ -163,7 +160,7 @@ interface Admission {
 
 /**
  * The room's shared Scene: every entity (never filtered for one member), each token's and
- * barrier's definition ordinal, the bound Encounter and whether it waits on a movement decision.
+ * barrier's definition ordinal and the bound Encounter.
  */
 interface TransientCache {
   baseOrdinals: SceneBaseOrdinals
@@ -171,8 +168,6 @@ interface TransientCache {
   visionEncounterIds: string[]
   encounterId: string | null
   key: string
-  /** A pending movement decision holds moves and door changes on this Scene (D26). */
-  movementDecisionPending: boolean
   scene: CampaignSceneStateDto | null
   /** Authored token vision only; derived Character vision is never persisted as an override. */
   uncomposedScene: CampaignSceneStateDto | null
@@ -250,7 +245,6 @@ function cacheKey(capture: LiveSessionTransientCapture): string {
     origin: capture.origin,
     presentation: capture.presentation,
     sceneEncounterId: capture.sceneEncounterId,
-    sceneMovementDecisionPending: capture.sceneMovementDecisionPending,
     originBoundTokenControl: capture.originBoundTokenControl,
     sceneHeader: capture.sceneHeader,
     systemId: capture.systemId,
@@ -268,7 +262,6 @@ function authorityFingerprint(capture: LiveSessionTransientCapture): unknown {
       left.userId.localeCompare(right.userId)
     ),
     sceneEncounterId: capture.sceneEncounterId,
-    sceneMovementDecisionPending: capture.sceneMovementDecisionPending,
     sceneHeader: capture.sceneHeader,
     systemId: capture.systemId,
     visionFreshness: capture.visionFreshness
@@ -776,7 +769,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         else
           this.#cache = {
             ...this.#cache,
-            movementDecisionPending: capture.sceneMovementDecisionPending,
             presentation: { expectedPresentationVersion: capture.presentation.version }
           }
       }
@@ -1235,6 +1227,21 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       )
       return
     }
+    // A pending movement decision holds token moves, undo and door changes on its Scene (D26).
+    if (
+      synchronized.encounterId !== null &&
+      (await readMovementDecisionPending({ db: this.#roomStore.store }, synchronized.encounterId))
+    ) {
+      this.#rejectCommand(
+        socket,
+        commandId,
+        'UNAVAILABLE',
+        'Waiting on a movement decision.',
+        current.sequence,
+        correction()
+      )
+      return
+    }
 
     if (command.type === 'UNDO_LAST_SCENE_MOVE') {
       if (admission.role !== 'OWNER') {
@@ -1249,7 +1256,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       try {
         await this.#commitRoomUndo(socket, admission, value, command, fingerprint)
       } catch (error) {
-        this.#rejectExternal(socket, commandId, error, correction())
+        if (error instanceof NoSceneMoveToUndoError)
+          this.#rejectCommand(socket, commandId, 'INVALID_COMMAND', error.message)
+        else this.#rejectExternal(socket, commandId, error, correction())
       }
       return
     }
@@ -1257,8 +1266,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       actor: admission,
       command,
       encounterId: synchronized.encounterId,
-      latestUnmatchedMove: () => this.#journal.latestUnmatchedSceneTokenMove(scene.id),
-      movementDecisionPending: synchronized.movementDecisionPending,
       scene
     })
     if (plan.kind === 'REJECTED') {
@@ -1273,8 +1280,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     if (plan.kind === 'EXTERNAL') {
-      if (command.type !== 'MOVE_SCENE_TOKEN' && command.type !== 'SET_SCENE_DOOR_STATE')
-        throw new Error('Only token moves and door changes require geometry planning.')
       try {
         await this.#commitRoomGeometry(
           socket,
@@ -1370,18 +1375,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           fingerprint,
           nextStateChecksum: entry.chainChecksum,
           nextStateJson: next.stateJson,
-          receiptJson: JSON.stringify(committed),
-          ...(command.type === 'MOVE_SCENE_TOKEN'
-            ? {
-                undoJson: JSON.stringify({
-                  id: scene.id,
-                  version: scene.version,
-                  tokens: scene.tokens
-                    .filter((token) => token.id === command.tokenId)
-                    .map(({ id, position }) => ({ id, position }))
-                })
-              }
-            : {})
+          receiptJson: JSON.stringify(committed)
         })
         if (result.kind !== 'COMMITTED')
           throw new Error('Room command unexpectedly replayed inside its write-set transaction.')
@@ -1558,7 +1552,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     let result: EncounterCommandResultDto
-    let movementCommitted = false
     try {
       result = await executeLiveEncounterCommand({
         environment: this.env,
@@ -1568,34 +1561,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         runtime: await this.#liveRulesRuntime(),
         random: secureRandomInt,
         captureCache: this.#captureCache,
-        stageHeldMovement: async (decision, captures) => {
-          const context = this.#externalSceneContext()
-          // Only a decision on the presented Scene's Encounter while it holds a movement decision.
-          if (
-            !context?.movementDecisionPending ||
-            context.encounterId !== decision.encounterId.toLowerCase()
-          )
-            return null
-          return stageExternalSceneCommand({
-            environment: this.env,
-            accessToken: admission.accessToken,
-            actor: liveActor(admission, value),
-            command: decision,
-            context,
-            captures
-          })
-        },
-        movement: async (decision, captures) => {
-          movementCommitted = true
-          return this.#commitMovementDecision(
-            socket,
-            admission,
-            value,
-            decision,
-            fingerprint,
-            captures
-          )
-        }
+        movement: (decision, captures) =>
+          this.#commitMovementDecision(socket, admission, value, decision, fingerprint, captures)
       })
     } catch (error) {
       // Expected domain rejections carry a user-safe message; everything else stays generic.
@@ -1619,9 +1586,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // The command may have changed actor control, which Convex does not push to the room.
     this.#authorization.invalidatePlay()
     this.#aggregateNeedsReload = true
-    // Only the room's own movement commits settle a held Scene's decision without a new read.
-    if (!movementCommitted && command.type !== 'ROLL_RULE_EVIDENCE')
-      await this.#refreshMovementHold(socket, admission, value).catch(() => undefined)
     // A member removed while the command ran must not receive its result.
     if (this.#liveAdmission(socket)?.generation !== admission.generation) return
     send(socket, {
@@ -2401,7 +2365,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           captures: captures ?? this.#captureCache.reads(),
           random: secureRandomInt
         })
-        const scene = sceneCommandResultDtoSchema.parse(result.scene)
+        // The fog patches are written by their owners; the acknowledged DTO carries none.
+        const scene = sceneCommandResultDtoSchema.parse({
+          commandId: result.scene.commandId,
+          delta: result.scene.delta,
+          occurrence: result.scene.occurrence,
+          replayed: result.scene.replayed,
+          sceneId: result.scene.sceneId,
+          version: result.scene.version
+        })
         receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
           commandId: command.commandId,
           delta: result.encounter
@@ -2486,8 +2458,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       scene: committed.nextScene,
       uncomposedScene: committed.uncomposedScene,
       characterRevisions: committed.characterRevisions,
-      sceneHeader: committed.header,
-      movementDecisionPending: committed.scene.occurrence?.status === 'PENDING'
+      sceneHeader: committed.header
     }
     this.#broadcastSceneCommitted(
       { commandId: command.commandId, sequence },
@@ -2503,21 +2474,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /**
-   * The room's synchronized presented Scene that geometry commands plan against, with its bound
-   * Encounter and movement hold (D26); null until the Scene is synchronized.
+   * The room's synchronized presented Scene that geometry commands plan against; null until the
+   * Scene is synchronized.
    */
-  #externalSceneContext():
-    | (ExternalSceneContext & Pick<TransientCache, 'encounterId' | 'movementDecisionPending'>)
-    | null {
+  #externalSceneContext(): ExternalSceneContext | null {
     const synchronized = this.#cache?.synchronized ? this.#cache : null
     if (!synchronized?.scene || !synchronized.presentation) return null
     return {
       scene: synchronized.scene,
       baseOrdinals: synchronized.baseOrdinals,
       characterRevisions: synchronized.characterRevisions,
-      presentation: synchronized.presentation,
-      encounterId: synchronized.encounterId,
-      movementDecisionPending: synchronized.movementDecisionPending
+      presentation: synchronized.presentation
     }
   }
 
@@ -2730,26 +2697,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       !!cached?.scene &&
       isExternalSceneCommand(parsed.data, cached.scene, cached.encounterId)
     )
-  }
-
-  /**
-   * An Encounter command the room forwarded may have closed a held movement decision (the Run
-   * completed or its mover left), so the hold is reread from Convex.
-   */
-  async #refreshMovementHold(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment
-  ): Promise<void> {
-    const cached = this.#cache
-    if (!cached?.movementDecisionPending) return
-    const capture = await this.#capture(value, admission, [{ admission, socket }], 'AUTHORITY', [])
-    if (
-      this.#cache === cached &&
-      capture.sceneHeader?.id === cached.scene?.id &&
-      capture.sceneEncounterId === cached.encounterId
-    )
-      this.#cache = { ...cached, movementDecisionPending: capture.sceneMovementDecisionPending }
   }
 
   /**
@@ -3341,7 +3288,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       visionEncounterIds,
       encounterId: finalCapture.sceneEncounterId,
       key: cacheKey(finalCapture),
-      movementDecisionPending: finalCapture.sceneMovementDecisionPending,
       scene,
       uncomposedScene,
       sceneHeader: finalCapture.sceneHeader,

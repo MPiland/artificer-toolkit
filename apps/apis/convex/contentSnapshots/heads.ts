@@ -28,7 +28,7 @@ import {
 } from '../content/documents'
 import { compileCurrentEquipment } from '../content/equipmentRelationships'
 import { requireSystem } from '../content/systemDocuments'
-import { equipmentOptionFacts } from '../content/equipmentOptionFacts'
+import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import { contentStream } from '../content/streams'
 import { isImportRowVisible } from '../imports/visibility'

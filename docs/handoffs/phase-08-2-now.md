@@ -2,7 +2,7 @@
 
 > The resume point for a fresh session. Read this first, then only the sections it links. Keep it under about 60 lines; rewrite it at every slice boundary.
 >
-> Updated: 2026-10-01 (after A35-S3b).
+> Updated: 2026-10-01 (after A35-S6b).
 
 ## Where we are
 
@@ -19,27 +19,48 @@
 
 ## Last slice (done)
 
-**A35-S3b Recovery, clock and DAILY cleanup.** State: integrating. Gate13 clean (builds, local codegen, typechecks, web). The focused Convex tests (clock, deletion, both development lifecycles) pass 34/34. The web CampaignClock tests and oxlint also pass.
+**A35-S6b Retire the remaining Scene paths; author the movement and Sheet input fixtures.** State: integrating. Gate17 is clean (builds, local codegen, typechecks, web). The full session-worker suite passes 200/200 (12 files). It includes the room tests, the new `nativeCharacterSheet.test.ts` and the D26 hold tests.
 
-- **Bug fixed.** Clock recovery wrote Sheets through Convex, so a boundary crossed during live combat threw on held Characters and rolled the command back.
-- **Combat pauses the clock** (user decision; see [decisions](phase-08-2-decisions.md) and [persistence](../architecture/persistence.md)). An `encounterRuns` trigger calls `syncCampaignClockWithCombat` (`campaigns/clockCombat.ts`). It pauses a running clock when a Run turns ACTIVE. When the last Run ends, it resumes only a clock it paused itself (`pausedForCombat`). Any GM start or pause clears the flag.
-- **GM prompts for fighters.** A boundary the GM moves past during combat recovers non-fighters as before. Each fighter gets a row in `campaignClockRecoveryPrompts` instead. The GM sees a "Dawn passed during combat · review charges" button by the clock and picks charges per Character. The refresh is sent through the room when the Character is held. Lifecycle cleanup covers the new table.
+- **Retired in the room:**
+  - The fast-only undo copies (`undo_json`, dropped by migration). Undo now reads native Scene history, and an exhausted undo answers INVALID_COMMAND.
+  - The Convex movement-hold capture (`sceneMovementDecisionPending`). The D26 hold reads the PENDING occurrence from room SQLite (`readMovementDecisionPending`) before any move, door change or undo.
+  - The held-movement Convex stage.
+- **Bugs fixed:**
+  - `RoomEncounterStore.transact` logged every set. A native geometry save (RECEIVING then PUBLISHED in one command) broke the append-only checkpoint, so reauthentication failed. It now logs each record's net change.
+  - Strict parses failed on undo `restoredFogOwners` and geometry `fogPatches`.
+  - The play-authorization `...bound` field leaked.
+  - `oldestUnpublishedCommandTime` threw in a fresh room.
+- **Fixtures:**
+  - `characterSheetInputsFixture.ts` and `pendingMovementFixture.ts` (real persisted schemas).
+  - Shared native Scene inputs in `roomInputsFixture.ts`.
+  - `nativeRoomAdmission` and `nativeTransientFanout` had been red since the unvalidated WIP batch: activation reads native Scene inputs, which neither fixture served. Both now serve them.
 
-Follow-ups for the test cycle (REL-4):
+Follow-ups:
 
-- The prompt test uses one Character before and after combat, because the fixture has one player. Add a mixed fighter/non-fighter case, plus web tests for the prompt card and modal (none were run in a browser).
-- `recoveryPrompts` collects without a bound (in practice limited by roster × boundaries). Its DTO parse throws on a Character label longer than 100 characters. Each card opens its own live connection while the modal is open.
-- The system pause and resume write no command receipt and send no room notification.
-- Existing local clock rows lack `pausedForCombat`. Reseed if a read fails.
-- Carried: A35-S8b query/notice tests and 5 s outside-room polling (measure in A35-S9). Room suite red before A35-S8a (`nativeLiveSessionRoom.test.ts`, fix first). Older items: see this file at `983ce5488`.
+- **For A35-S6c:**
+  - Convex `encounterMovement.stage` has no worker caller.
+  - `fastOnly` in `sceneUndoPublication` remains for Convex.
+  - The preview Scene cache (`#refreshSceneCache` → `hydrateNativeTransientScene`) still reads ENTITIES, fog and vision pages from the Convex hydrate route after a flush. Activation already reads native Scene inputs. Move the cache to room-store reads and delete the hydrate route (cuts Convex reads per cache rebuild).
+- The D26 hold fails open if the bound Run is missing.
+- **Two old D26/D52 tests were not restored.** The ROUTED stage handoff no longer exists. Room-local Encounter tool commands now refuse while any occurrence is PENDING (`recordEncounterToolCommand`).
+- The pending-movement fixture's checksums are placeholders, so it cannot resume a decision.
+- `nativeCharacterSheet.test.ts` duplicates the room harness; a shared `roomHarness.ts` is possible.
+- `apps/apis/convex/_generated/api.d.ts` was regenerated.
+- **Carried from A35-S3b (REL-4):**
+  - Add a mixed fighter/non-fighter clock-prompt case, plus web prompt tests.
+  - `recoveryPrompts` collects without a bound.
+  - The system pause and resume write no receipt.
+  - Old clock rows lack `pausedForCombat` (reseed).
+  - A35-S8b notice tests and 5 s polling.
+  - Older items: see this file at `7a8c45f59`.
 
 ## Current slice
 
-**A35-S6b Retire the remaining Scene paths; author the movement and Sheet input fixtures** (R06, V07). See the [source-first handoff](phase-08-2-claude-source-first.md#remaining-implementation-and-sequence), item 3, second part. Keep the original pending/terminal order, source pins, replay, fog-only Scene advancement and recipient privacy.
+**A35-S7b Account deletion removes held actors** (F12, [D74](phase-08-2-decisions.md)). Deleting an account must remove that user's actors from Runs the room holds, through the room's departure reconcile, not a direct Convex write.
 
 ## Next slices
 
-The registry `queue` holds the order: A35-S7b held-actor removal on account deletion, A35-S3c packed Scene history, A35-S5 parity, A35-S6c the switch (approved for Opus), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
+The registry `queue` holds the order: A35-S3c packed Scene history, A35-S5 parity, A35-S6c the switch (approved for Opus), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
 
 **Not scheduled (needs your call):** CP-S6i rule-roll chat cards, A35-S8c room-planned evidence rolls, A36-S10 room content from snapshots, A36-F1, RUL-9, TST-0/4/5/6, PLT-5 (D75 web hosting), PLT-6.
 

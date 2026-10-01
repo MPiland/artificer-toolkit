@@ -37,7 +37,6 @@ function fixture() {
       nextStateJson: JSON.stringify({ hitPoints: 10 - sequence }),
       outboxPayloadJson: JSON.stringify({ sequence }),
       receiptJson: JSON.stringify({ accepted: true, sequence }),
-      undoJson: JSON.stringify({ hitPoints: 11 - sequence }),
       ...overrides
     })
   return { activate, actorId, authorityEpoch, commit, stub }
@@ -51,6 +50,15 @@ function expectJournalError(code: DurableCommandJournalError['code']) {
 function largeUnicodeJson(label: string): string {
   return JSON.stringify({ label, scene: `a${'🧙'.repeat(550_000)}` })
 }
+
+it('has no checkpoint deadline before the authority is activated', async () => {
+  const test = fixture()
+  await runInDurableObject(test.stub, (_instance, state) => {
+    const journal = new DurableCommandJournal(state.storage)
+    expect(journal.readCurrent()).toBeNull()
+    expect(journal.oldestUnpublishedCommandTime()).toBeNull()
+  })
+})
 
 it('keeps the oldest unpublished receipt time through partial checkpoints and eviction', async () => {
   const test = fixture()
@@ -134,7 +142,7 @@ it('timestamps a completed external receipt without giving published commands a 
   })
 })
 
-it('migrates receipt timestamps once and retains the recovered deadline', async () => {
+it('migrates receipt timestamps once, drops retired undo copies, and retains the recovered deadline', async () => {
   const test = fixture()
   const createdAt = 1_800_000_000_000
   await runInDurableObject(test.stub, (_instance, state) => {
@@ -155,15 +163,26 @@ it('migrates receipt timestamps once and retains the recovered deadline', async 
           undo_json TEXT
         );
         INSERT INTO durable_command_receipts
-          SELECT command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json
+          SELECT command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, '{}'
           FROM receipts_before_timestamp;
         DROP TABLE receipts_before_timestamp;
+        INSERT INTO durable_command_json_chunks VALUES ('undo:command-1', 0, 1, '{}');
       `)
     })
     const clock = vi.spyOn(Date, 'now').mockReturnValue(createdAt)
     try {
       const migrated = new DurableCommandJournal(state.storage)
       expect(migrated.oldestUnpublishedCommandTime()).toBe(createdAt)
+      expect(
+        state.storage.sql
+          .exec<{ count: number }>(
+            `SELECT (SELECT COUNT(*) FROM pragma_table_info('durable_command_receipts')
+                       WHERE name = 'undo_json')
+               + (SELECT COUNT(*) FROM durable_command_json_chunks
+                    WHERE document_key LIKE 'undo:%') AS count`
+          )
+          .one().count
+      ).toBe(0)
       expect(
         migrated.lookupCommand({
           actorId: test.actorId,
@@ -216,8 +235,7 @@ it('commits without an outbox and rolls back an omitted-outbox commit with its o
       fingerprint: 'checkpoint-fingerprint-1',
       nextStateChecksum: 'a'.repeat(64),
       nextStateJson: JSON.stringify({ hitPoints: 9 }),
-      receiptJson: JSON.stringify({ accepted: true, sequence: 1 }),
-      undoJson: JSON.stringify({ hitPoints: 10 })
+      receiptJson: JSON.stringify({ accepted: true, sequence: 1 })
     }
     expect(() =>
       state.storage.transactionSync(() => {
@@ -439,9 +457,8 @@ it('rejects a checkpoint prefix crossing an unsettled external commit and accept
     )
     state.storage.sql.exec(
       `INSERT INTO durable_command_receipts (
-         command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json,
-         created_at
-       ) VALUES (?, ?, ?, 1, ?, ?, NULL, ?)`,
+         command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, created_at
+       ) VALUES (?, ?, ?, 1, ?, ?, ?)`,
       'checkpoint-after-external',
       test.actorId,
       'checkpoint-after-external',
@@ -626,11 +643,10 @@ it('reads and acknowledges legacy inline receipts and outbox rows above the new 
   })
 })
 
-it('rehydrates Unicode state and undo JSON larger than one SQLite row through replay and drain', async () => {
+it('rehydrates Unicode state JSON larger than one SQLite row through replay and drain', async () => {
   const test = fixture()
   const beforeJson = largeUnicodeJson('before')
   const afterJson = largeUnicodeJson('after')
-  const sceneId = crypto.randomUUID()
   expect(new TextEncoder().encode(beforeJson).byteLength).toBeGreaterThan(
     MAX_DURABLE_COMMAND_JSON_BYTES
   )
@@ -649,25 +665,10 @@ it('rehydrates Unicode state and undo JSON larger than one SQLite row through re
         )
         .one().state_json
     ).toBe('')
-    const committed = test.commit(journal, 1, {
-      nextStateJson: afterJson,
-      receiptJson: JSON.stringify({
-        delta: { scope: 'SCENE', result: { delta: { kind: 'TOKEN_MOVED' }, sceneId } }
-      }),
-      undoJson: beforeJson
-    })
+    const committed = test.commit(journal, 1, { nextStateJson: afterJson })
     if (committed.kind !== 'COMMITTED') throw new Error('Expected a fresh command commit.')
     expect(committed.state.stateJson).toBe(afterJson)
-    expect(committed.receipt.undoJson).toBe(beforeJson)
     expect(test.commit(journal, 1)).toEqual({ kind: 'REPLAY', receipt: committed.receipt })
-    expect(
-      state.storage.sql
-        .exec<{ undo_json: string }>(
-          'SELECT undo_json FROM durable_command_receipts WHERE command_id = ?',
-          'command-1'
-        )
-        .one().undo_json
-    ).toBe('')
   })
   await evictDurableObject(test.stub)
   await runInDurableObject(test.stub, (_instance, state) => {
@@ -682,8 +683,7 @@ it('rehydrates Unicode state and undo JSON larger than one SQLite row through re
         commandId: 'command-1',
         fingerprint: 'fingerprint-1'
       })
-    ).toMatchObject({ kind: 'REPLAY', receipt: { undoJson: beforeJson } })
-    expect(journal.latestUnmatchedSceneTokenMove(sceneId)?.undoJson).toBe(beforeJson)
+    ).toMatchObject({ kind: 'REPLAY', receipt: { commandId: 'command-1' } })
     expect(
       journal.beginDrain({
         authorityEpoch: test.authorityEpoch,
@@ -727,8 +727,7 @@ it('keeps unchanged chunked state untouched while changed state rewrites and rec
     `)
     const first = test.commit(journal, 1, {
       nextStateJson: beforeJson,
-      outboxPayloadJson: undefined,
-      undoJson: undefined
+      outboxPayloadJson: undefined
     })
     if (first.kind !== 'COMMITTED') throw new Error('Expected a fresh command commit.')
     expect(first.state).toMatchObject({
@@ -739,8 +738,7 @@ it('keeps unchanged chunked state untouched while changed state rewrites and rec
     expect(() =>
       test.commit(journal, 2, {
         nextStateJson: afterJson,
-        outboxPayloadJson: undefined,
-        undoJson: undefined
+        outboxPayloadJson: undefined
       })
     ).toThrow('forced chunk deletion failure')
     expect(journal.readCurrent()).toEqual(first.state)
@@ -756,8 +754,7 @@ it('keeps unchanged chunked state untouched while changed state rewrites and rec
     )
     const second = test.commit(journal, 2, {
       nextStateJson: afterJson,
-      outboxPayloadJson: undefined,
-      undoJson: undefined
+      outboxPayloadJson: undefined
     })
     if (second.kind !== 'COMMITTED') throw new Error('Expected a fresh command commit.')
     expect(second.state.stateJson).toBe(afterJson)
@@ -857,10 +854,7 @@ it('rolls back state, receipt, and outbox together when the transaction fails', 
       END;
     `)
     expect(() =>
-      test.commit(journal, 1, {
-        nextStateJson: largeUnicodeJson('replacement'),
-        undoJson: largeUnicodeJson('undo')
-      })
+      test.commit(journal, 1, { nextStateJson: largeUnicodeJson('replacement') })
     ).toThrow()
     expect(journal.readCurrent()).toEqual(initial)
     expect(
@@ -994,13 +988,11 @@ it('fails closed on oversized receipts and outbox JSON, JWTs, and unbounded batc
     test.activate(journal)
     const nearRowLimitJson = JSON.stringify('界'.repeat(666_665))
     const acceptedReceiptJson = JSON.stringify('x'.repeat(MAX_DURABLE_COMMAND_JSON_BYTES - 2))
-    const maxInlineUndoJson = JSON.stringify('界'.repeat(256 * 1024 - 2))
     expect(new TextEncoder().encode(nearRowLimitJson).byteLength).toBeGreaterThan(1_990_000)
     expect(new TextEncoder().encode(nearRowLimitJson).byteLength).toBeLessThan(2_000_000)
     expect(new TextEncoder().encode(acceptedReceiptJson).byteLength).toBe(
       MAX_DURABLE_COMMAND_JSON_BYTES
     )
-    expect(maxInlineUndoJson.length).toBe(256 * 1024)
     expect(() =>
       test.commit(journal, 1, {
         receiptJson: nearRowLimitJson
@@ -1012,21 +1004,9 @@ it('fails closed on oversized receipts and outbox JSON, JWTs, and unbounded batc
       })
     ).toThrowError(expectJournalError('INVALID_INPUT'))
     expect(journal.readCurrent()?.sequence).toBe(0)
-    const accepted = test.commit(journal, 1, {
-      receiptJson: acceptedReceiptJson,
-      undoJson: maxInlineUndoJson
-    })
+    const accepted = test.commit(journal, 1, { receiptJson: acceptedReceiptJson })
     if (accepted.kind !== 'COMMITTED') throw new Error('Expected a bounded command commit.')
     expect(accepted.receipt.receiptJson).toBe(acceptedReceiptJson)
-    expect(accepted.receipt.undoJson).toBe(maxInlineUndoJson)
-    expect(
-      state.storage.sql
-        .exec<{ undo_json: string }>(
-          'SELECT undo_json FROM durable_command_receipts WHERE command_id = ?',
-          'command-1'
-        )
-        .one().undo_json
-    ).toBe(maxInlineUndoJson)
     expect(() => journal.listPending(MAX_DURABLE_OUTBOX_BATCH_COUNT + 1)).toThrowError(
       expectJournalError('INVALID_INPUT')
     )

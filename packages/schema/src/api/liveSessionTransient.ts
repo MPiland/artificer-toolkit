@@ -51,8 +51,6 @@ export const liveSessionTransientCaptureSchema = lazySchema(() =>
     sceneHeader: z.nullable(sceneLiveStateHeaderSchema),
     /** The Encounter bound to the presented Scene, if any. */
     sceneEncounterId: z.nullable(uuidSchema),
-    /** Whether that Encounter waits on a movement decision planned against this Scene (D26). */
-    sceneMovementDecisionPending: z.boolean(),
     /**
      * For a player origin on an Encounter-bound Scene: each Encounter-bound token and whether the
      * origin controls its bound actor. Bound tokens follow actor control, never the Scene token's

@@ -83,7 +83,6 @@ it('captures current authenticated admission, presentation, active recipient epo
       expect.objectContaining({ role: 'PLAYER', userId: base.other.userId })
     ]),
     sceneEncounterId: null,
-    sceneMovementDecisionPending: false,
     sceneHeader: { id: sceneId, version: 0 },
     sceneSnapshot: {
       scene: expect.objectContaining({ id: sceneId, version: 0 }),
@@ -104,10 +103,7 @@ it('captures current authenticated admission, presentation, active recipient epo
   )
   await expect(
     base.owner.caller.query(capture, { ...input, mode: 'AUTHORITY' })
-  ).resolves.toMatchObject({
-    sceneEncounterId: encounterId,
-    sceneMovementDecisionPending: false
-  })
+  ).resolves.toMatchObject({ sceneEncounterId: encounterId })
 }, 30_000)
 
 it('fills the shared room Scene cache with every entity even from a player capture (S-0)', async () => {

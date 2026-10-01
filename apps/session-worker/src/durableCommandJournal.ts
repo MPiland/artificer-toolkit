@@ -37,7 +37,6 @@ export interface DurableCommandReceipt extends LiveSessionRoomCommandDurability 
   receiptJson: string
   sequence: number
   stateChecksum: string
-  undoJson: string | null
 }
 
 export interface DurableCommandOutboxEntry {
@@ -116,7 +115,6 @@ interface ReceiptRow extends Record<string, SqlStorageValue> {
   receipt_json: string
   sequence: number
   state_checksum: string
-  undo_json: string | null
 }
 
 interface OutboxRow extends Record<string, SqlStorageValue> {
@@ -287,7 +285,7 @@ function stateFromRow(
   }
 }
 
-function receiptFromRow(row: ReceiptRow, storage: DurableObjectStorage): DurableCommandReceipt {
+function receiptFromRow(row: ReceiptRow): DurableCommandReceipt {
   if (row.checkpoint_before_ack !== 0 && row.checkpoint_before_ack !== 1)
     fail('CORRUPT_JOURNAL', 'The durable command receipt has an invalid acknowledgement fence.')
   assertIdentifier('stored actor ID', row.actor_id)
@@ -296,9 +294,6 @@ function receiptFromRow(row: ReceiptRow, storage: DurableObjectStorage): Durable
   assertSequence('stored receipt sequence', row.sequence)
   assertChecksum('stored receipt state checksum', row.state_checksum)
   assertJson('stored receipt', row.receipt_json, MAX_LEGACY_DURABLE_COMMAND_JSON_BYTES)
-  const undoJson =
-    row.undo_json === null ? null : readStoredJson(storage, `undo:${row.command_id}`, row.undo_json)
-  if (undoJson !== null) assertJsonContents('stored undo', undoJson)
   return {
     actorId: row.actor_id,
     checkpointBeforeAcknowledgement: row.checkpoint_before_ack === 1,
@@ -306,8 +301,7 @@ function receiptFromRow(row: ReceiptRow, storage: DurableObjectStorage): Durable
     fingerprint: row.fingerprint,
     receiptJson: row.receipt_json,
     sequence: row.sequence,
-    stateChecksum: row.state_checksum,
-    undoJson
+    stateChecksum: row.state_checksum
   }
 }
 
@@ -334,7 +328,6 @@ export class DurableCommandJournal {
         sequence INTEGER NOT NULL UNIQUE CHECK (sequence > 0),
         state_checksum TEXT NOT NULL,
         receipt_json TEXT NOT NULL,
-        undo_json TEXT,
         created_at INTEGER NOT NULL,
         checkpoint_before_ack INTEGER NOT NULL DEFAULT 0 CHECK (checkpoint_before_ack IN (0, 1))
       );
@@ -379,6 +372,12 @@ export class DurableCommandJournal {
         storage.sql.exec(
           'ALTER TABLE durable_command_receipts ADD COLUMN checkpoint_before_ack INTEGER NOT NULL DEFAULT 0'
         )
+      })
+    // Scene undo now reads native Scene history; the retired fast-only undo copies are dropped.
+    if (receiptColumns.some((column) => column.name === 'undo_json'))
+      storage.transactionSync(() => {
+        storage.sql.exec("DELETE FROM durable_command_json_chunks WHERE document_key LIKE 'undo:%'")
+        storage.sql.exec('ALTER TABLE durable_command_receipts DROP COLUMN undo_json')
       })
     // Before D47 the record named only its Scene save; an unsettled one keeps that as its subject.
     const legacy = storage.sql
@@ -499,35 +498,7 @@ export class DurableCommandJournal {
     if (!row) return { kind: 'MISSING' }
     if (row.actor_id !== input.actorId || row.fingerprint !== input.fingerprint)
       return { kind: 'MISMATCHED_REUSE' }
-    return { kind: 'REPLAY', receipt: receiptFromRow(row, this.storage) }
-  }
-
-  latestUnmatchedSceneTokenMove(sceneId: string): DurableCommandReceipt | null {
-    assertIdentifier('Scene ID', sceneId)
-    const row = this.storage.sql
-      .exec<ReceiptRow>(
-        `SELECT moved.command_id, moved.actor_id, moved.fingerprint, moved.sequence,
-                moved.state_checksum, moved.receipt_json, moved.undo_json, moved.checkpoint_before_ack
-         FROM durable_command_receipts AS moved
-         WHERE json_extract(moved.receipt_json, '$.delta.scope') = 'SCENE'
-           AND json_extract(moved.receipt_json, '$.delta.result.sceneId') = ?
-           AND json_extract(moved.receipt_json, '$.delta.result.delta.kind') = 'TOKEN_MOVED'
-           AND moved.undo_json IS NOT NULL
-           AND NOT EXISTS (
-             SELECT 1
-             FROM durable_command_receipts AS undone
-             WHERE json_extract(undone.receipt_json, '$.delta.result.delta.kind') = 'TOKEN_MOVE_UNDONE'
-               AND json_extract(
-                 undone.receipt_json,
-                 '$.delta.result.delta.undoneCommandId'
-               ) = moved.command_id
-           )
-         ORDER BY moved.sequence DESC
-         LIMIT 1`,
-        sceneId
-      )
-      .toArray()[0]
-    return row ? receiptFromRow(row, this.storage) : null
+    return { kind: 'REPLAY', receipt: receiptFromRow(row) }
   }
 
   commit(input: {
@@ -543,7 +514,6 @@ export class DurableCommandJournal {
     /** Omit when RoomEncounterStore supplies the checkpoint publication write set. */
     outboxPayloadJson?: string
     receiptJson: string
-    undoJson?: string
   }): DurableCommandCommitResult {
     return this.storage.transactionSync(() => this.commitInTransaction(input))
   }
@@ -565,14 +535,13 @@ export class DurableCommandJournal {
     if (existing) {
       if (existing.actor_id !== input.actorId || existing.fingerprint !== input.fingerprint)
         fail('COMMAND_ID_REUSE', 'The command ID was reused with different command input.')
-      return { kind: 'REPLAY', receipt: receiptFromRow(existing, this.storage) }
+      return { kind: 'REPLAY', receipt: receiptFromRow(existing) }
     }
 
     assertChecksum('next state checksum', input.nextStateChecksum)
     assertJsonContents('next state', input.nextStateJson)
     assertJson('command receipt', input.receiptJson)
     if (input.outboxPayloadJson !== undefined) assertJson('outbox payload', input.outboxPayloadJson)
-    if (input.undoJson !== undefined) assertJsonContents('command undo', input.undoJson)
     const checkpointBeforeAcknowledgement =
       input.checkpointBeforeAcknowledgement === undefined
         ? false
@@ -601,10 +570,6 @@ export class DurableCommandJournal {
       input.nextStateJson === current.stateJson
         ? authorityRow.state_json
         : writeStoredJson(this.storage, 'state', input.nextStateJson)
-    const storedUndoJson =
-      input.undoJson === undefined
-        ? null
-        : writeStoredJson(this.storage, `undo:${input.commandId}`, input.undoJson)
 
     this.storage.sql.exec(
       `UPDATE durable_session_authority
@@ -616,16 +581,15 @@ export class DurableCommandJournal {
     )
     this.storage.sql.exec(
       `INSERT INTO durable_command_receipts (
-          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json,
+          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json,
           created_at, checkpoint_before_ack
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       input.commandId,
       input.actorId,
       input.fingerprint,
       sequence,
       input.nextStateChecksum,
       input.receiptJson,
-      storedUndoJson,
       Date.now(),
       checkpointBeforeAcknowledgement ? 1 : 0
     )
@@ -641,7 +605,7 @@ export class DurableCommandJournal {
     if (!receipt) fail('CORRUPT_JOURNAL', 'The committed command receipt is missing.')
     return {
       kind: 'COMMITTED',
-      receipt: receiptFromRow(receipt, this.storage),
+      receipt: receiptFromRow(receipt),
       state: this.#requiredState()
     }
   }
@@ -746,9 +710,8 @@ export class DurableCommandJournal {
       )
       this.storage.sql.exec(
         `INSERT INTO durable_command_receipts (
-          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json,
-          created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)`,
+          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         record.commandId,
         record.actorId,
         record.fingerprint,
@@ -760,7 +723,7 @@ export class DurableCommandJournal {
       this.#deleteExternal()
       const receipt = this.#receiptRow(record.commandId)
       if (!receipt) fail('CORRUPT_JOURNAL', 'The committed command receipt is missing.')
-      return { receipt: receiptFromRow(receipt, this.storage), state: this.#requiredState() }
+      return { receipt: receiptFromRow(receipt), state: this.#requiredState() }
     })
   }
 
@@ -773,9 +736,10 @@ export class DurableCommandJournal {
     })
   }
 
-  /** The unchanged start of the oldest unpublished command's checkpoint deadline. */
+  /** The unchanged start of the oldest unpublished command's checkpoint deadline; none before activation. */
   oldestUnpublishedCommandTime(): number | null {
-    const current = this.#requiredState()
+    const current = this.readCurrent()
+    if (!current) return null
     const createdAt = this.storage.sql
       .exec<{ created_at: number | null }>(
         'SELECT MIN(created_at) AS created_at FROM durable_command_receipts WHERE sequence > ?',
@@ -1026,7 +990,7 @@ export class DurableCommandJournal {
     return this.storage.sql
       .exec<ReceiptRow>(
         `SELECT command_id, actor_id, fingerprint, sequence,
-                state_checksum, receipt_json, undo_json, checkpoint_before_ack
+                state_checksum, receipt_json, checkpoint_before_ack
          FROM durable_command_receipts
          WHERE command_id = ?`,
         commandId

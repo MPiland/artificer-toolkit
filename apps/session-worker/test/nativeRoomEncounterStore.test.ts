@@ -46,7 +46,7 @@ function durableCommandRows(storage: DurableObjectStorage) {
       .toArray(),
     receipts: storage.sql
       .exec(
-        `SELECT command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json
+        `SELECT command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json
        FROM durable_command_receipts ORDER BY sequence`
       )
       .toArray(),

@@ -3,9 +3,10 @@ import {
   type AuthoredEquipmentOptionFacts
 } from '@artificer-toolkit/schema/api/authoredOptions'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
-import { toCharacterBuilderEquipmentCatalogRecord } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
 import type { ResolvedEquipment } from '@artificer-toolkit/shared/subjects/compilers'
+import { toCharacterBuilderEquipmentCatalogRecord } from './builderCatalog.js'
 
+/** The persisted option facts of an Equipment root; its Builder projection needs the resolved root. */
 export function equipmentOptionFacts(
   document: EquipmentAuthoredDto,
   checksum: string,

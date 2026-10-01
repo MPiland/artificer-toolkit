@@ -34,7 +34,13 @@ import {
 
 import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
-import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
+import {
+  ROOM_INPUTS_PATH,
+  rawSceneDefinitionInputs,
+  rawSceneInputs,
+  roomInputsResponse,
+  type RoomSceneFixture
+} from './roomInputsFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const campaignId = '00000000-0000-4000-8000-000000000101'
@@ -148,10 +154,28 @@ function captureFor(
     presentation: { campaignId, sceneId, version: 1 },
     recipients: [...recipients],
     sceneEncounterId: null,
-    sceneMovementDecisionPending: false,
     originBoundTokenControl: [],
     sceneHeader: header(),
     visionFreshness: { campaign: null, play: null, system: null }
+  }
+}
+
+/** The presented Scene at version 1, without entities or fog. */
+function emptyScene(): RoomSceneFixture['scene'] {
+  return {
+    ambientIllumination: 'DIM',
+    annotations: [],
+    barriers: [],
+    darknessZones: [],
+    doorStates: {},
+    fogLayers: [],
+    fogMode: 'PER_PLAYER',
+    id: sceneId,
+    lights: [],
+    measurements: [],
+    tokens: [],
+    version: 1,
+    visionRevealMode: 'ON_DRAG'
   }
 }
 
@@ -174,6 +198,11 @@ function installFetch(
   authorization: RoomAuthorizationState = {}
 ) {
   let captures = 0
+  const sceneFixture: RoomSceneFixture = {
+    header: header(fogLayers.length),
+    presentationVersion: 1,
+    scene: { ...emptyScene(), fogLayers: [...fogLayers], tokens: [entity] }
+  }
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = new Request(input, init)
     const pathname = new URL(request.url).pathname
@@ -183,6 +212,9 @@ function installFetch(
     if (pathname === ROOM_INPUTS_PATH) {
       const inputs = liveRoomInputsInputSchema.parse(await request.json())
       expect(inputs).toMatchObject({ campaignId, epoch: authorityEpoch })
+      if (inputs.scope.kind === 'SCENE') return Response.json(rawSceneInputs(sceneFixture))
+      if (inputs.scope.kind === 'SCENE_DEFINITION')
+        return Response.json(rawSceneDefinitionInputs(sceneFixture))
       return Response.json(
         roomInputsResponse(inputs.scope, {
           campaignId,
@@ -1086,6 +1118,11 @@ async function characterVisionRoom() {
     /** Set to make the authorization read fail. */
     authorizationUnavailable: false
   }
+  const sceneFixture: RoomSceneFixture = {
+    header: header(),
+    presentationVersion: 1,
+    scene: { ...emptyScene(), tokens: [{ ...token, vision: null }] }
+  }
   const stub = newRoom()
   await runInDurableObject(stub, () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -1094,6 +1131,9 @@ async function characterVisionRoom() {
       if (pathname === ROOM_INPUTS_PATH) {
         const inputs = liveRoomInputsInputSchema.parse(await request.json())
         expect(inputs).toMatchObject({ campaignId, epoch: authorityEpoch })
+        if (inputs.scope.kind === 'SCENE') return Response.json(rawSceneInputs(sceneFixture))
+        if (inputs.scope.kind === 'SCENE_DEFINITION')
+          return Response.json(rawSceneDefinitionInputs(sceneFixture))
         return Response.json(
           roomInputsResponse(inputs.scope, {
             campaignId,

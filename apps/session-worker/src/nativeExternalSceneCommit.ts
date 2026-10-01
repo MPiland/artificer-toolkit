@@ -86,37 +86,11 @@ export type PreparedExternalSceneCommit = {
 )
 
 /**
- * Stages a Convex-first command in one private call (D52): Convex routes a decision, begins and
- * observes the save with the room's Scene vision, and reads a bound move's capture bundle.
- */
-export function stageExternalSceneCommand(input: {
-  environment: NativeLiveSessionEnvironment
-  accessToken: string
-  actor: LiveEncounterActor
-  command: ExternalSceneCommand
-  context: ExternalSceneContext
-  /** The command's capture view; the same view must later take the stage's bundle. */
-  captures?: LiveCaptureReads
-}): Promise<LiveSessionMovementStage> {
-  const { command, context } = input
-  const decision =
-    command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE'
-  return callLiveSessionRoute(input.environment, input.accessToken, 'encounterMovementStage', {
-    ...input.actor,
-    command,
-    ...(decision ? {} : { presentation: context.presentation }),
-    characterRevisions: context.characterRevisions,
-    tokenOrdinals: context.baseOrdinals.tokens,
-    maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS,
-    cachedSystem: input.captures?.systemStamp() ?? null
-  })
-}
-
-/**
- * Plans a Convex-first command up to its commit from its stage (`staged` when the room already
- * staged a held decision): any Encounter rules run in the DO on the stage's capture bundle, each fog
- * owner's complete layer is derived, and the published Scene is predicted. The commit freezes the
- * plan and stages the fog in its own transaction; nothing here changes gameplay or authority.
+ * Plans a Convex-first command up to its commit from its Convex stage (D52): Convex routes a
+ * decision, begins and observes the save with the room's Scene vision, and reads a bound move's
+ * capture bundle; any Encounter rules run in the DO on that bundle, each fog owner's complete layer
+ * is derived, and the published Scene is predicted. The commit freezes the plan and stages the fog
+ * in its own transaction; nothing here changes gameplay or authority.
  */
 export async function prepareExternalSceneCommit(input: {
   environment: NativeLiveSessionEnvironment
@@ -127,12 +101,26 @@ export async function prepareExternalSceneCommit(input: {
   runtime: RulesRuntimeService
   random(maximum: number): number
   captures?: LiveCaptureReads
-  staged?: LiveSessionMovementStage
 }): Promise<PreparedExternalSceneCommit> {
-  const { actor } = input
+  const { actor, command, context } = input
   // Without the room's cache, one view both stages and takes the bundle.
   const captures = input.captures ?? new LiveCaptureCache().reads()
-  const stage = input.staged ?? (await stageExternalSceneCommand({ ...input, captures }))
+  const decision =
+    command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE'
+  const stage = await callLiveSessionRoute(
+    input.environment,
+    input.accessToken,
+    'encounterMovementStage',
+    {
+      ...actor,
+      command,
+      ...(decision ? {} : { presentation: context.presentation }),
+      characterRevisions: context.characterRevisions,
+      tokenOrdinals: context.baseOrdinals.tokens,
+      maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS,
+      cachedSystem: captures.systemStamp()
+    }
+  )
   // Convex holds a published command the room has no receipt for (its ID was already used), or
   // the decision is no longer a movement decision.
   if (stage.kind !== 'STAGED') throw new LiveSessionRouteError(409)

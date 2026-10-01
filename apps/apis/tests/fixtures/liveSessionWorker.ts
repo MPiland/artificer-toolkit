@@ -4,7 +4,6 @@ import type {
   LiveSessionExternalAuthority,
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   preparedMovementCost,
@@ -58,7 +57,6 @@ import { commitLiveMovement } from '../../convex/liveSessions/encounterMovementC
 import {
   commitExternalSceneCommit,
   prepareExternalSceneCommit,
-  stageExternalSceneCommand,
   type ExternalSceneContext,
   type ExternalSceneCommand
 } from '../../../session-worker/src/nativeExternalSceneCommit'
@@ -126,7 +124,7 @@ async function roomSceneContext(
   room: { environment: ReturnType<typeof workerEnvironment>; accessToken: string },
   actor: Omit<LiveEncounterActor, 'authorityEpoch'>,
   encounterId: string
-): Promise<(ExternalSceneContext & { movementDecisionPending: boolean }) | null> {
+): Promise<ExternalSceneContext | null> {
   const capture = await callLiveSessionRoute(room.environment, room.accessToken, 'capture', {
     campaignId: actor.campaignId,
     expectedUserId: actor.expectedUserId,
@@ -142,8 +140,7 @@ async function roomSceneContext(
     scene: hydrated.scene,
     baseOrdinals: hydrated.baseOrdinals,
     characterRevisions: hydrated.characterRevisions,
-    presentation: { expectedPresentationVersion: capture.presentation.version },
-    movementDecisionPending: capture.sceneMovementDecisionPending
+    presentation: { expectedPresentationVersion: capture.presentation.version }
   }
 }
 
@@ -162,7 +159,6 @@ async function stageRoomMovement(input: {
   command: ExternalSceneCommand
   random: (maximum: number) => number
   captures?: LiveCaptureReads
-  staged?: LiveSessionMovementStage
 }) {
   const { caller, room, actor } = input
   const context = await roomSceneContext(room, actor, input.encounterId)
@@ -173,8 +169,7 @@ async function stageRoomMovement(input: {
     command: input.command,
     context,
     random: input.random,
-    captures: input.captures,
-    staged: input.staged
+    captures: input.captures
   })
   if (prepared.kind !== 'MOVEMENT') throw new Error('Expected an Encounter movement commit.')
   return {
@@ -193,8 +188,7 @@ async function stageRoomMovement(input: {
 /**
  * Sends one Encounter command through the room's dispatcher (`executeLiveEncounterCommand`) as a
  * member. The Campaign needs an active live authority at `actor.authorityEpoch`. A movement decision
- * commits with the presented Scene (`stageRoomMovement`); like the room, a decision on the presented
- * Scene's Encounter while it holds a movement decision is staged first, which also routes it (D52).
+ * commits with the presented Scene (`stageRoomMovement`).
  */
 export function executeRoomEncounterCommand(input: {
   caller: Pick<MemberCaller, 'fetch' | 'run'>
@@ -209,13 +203,7 @@ export function executeRoomEncounterCommand(input: {
       actor: input.actor,
       command: input.command,
       random,
-      stageHeldMovement: async (command) => {
-        const context = await roomSceneContext(room, input.actor, command.encounterId)
-        return context?.movementDecisionPending
-          ? stageExternalSceneCommand({ ...room, actor: input.actor, command, context })
-          : null
-      },
-      movement: async (command, captures, held) => {
+      movement: async (command, captures) => {
         const staged = await stageRoomMovement({
           caller: input.caller,
           room,
@@ -223,8 +211,7 @@ export function executeRoomEncounterCommand(input: {
           encounterId: command.encounterId,
           command,
           random,
-          captures,
-          staged: held
+          captures
         })
         const { encounter } = await staged.commit()
         if (!encounter) throw new Error('A movement decision commit returned no Encounter result.')

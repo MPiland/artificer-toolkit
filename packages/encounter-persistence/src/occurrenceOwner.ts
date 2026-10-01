@@ -46,6 +46,18 @@ export function isEncounterMovementContext(
   )
 }
 
+/** Whether the Encounter waits on a movement decision, which holds its Scene's moves and doors (D26). */
+export async function readMovementDecisionPending(ctx: EncounterReadContext, encounterId: string) {
+  const [pending] = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_encounterId_state', (q) =>
+      q.eq('encounterId', encounterId).eq('state', 'PENDING')
+    )
+    .take(1)
+  const snapshot = pending ? await readPendingSnapshot(ctx, pending) : null
+  return snapshot !== null && isEncounterMovementContext(snapshot.applicationContext)
+}
+
 /** Structural facts only, so the precedence stays one pure decision. */
 export type NativeEncounterOccurrenceFacts = {
   occurrence: Pick<EncounterDocument<'encounterRuleOccurrences'>, 'id' | 'rootCommandId'>

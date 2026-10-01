@@ -11,7 +11,7 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { canReadAuthoredRoot, readAuthoredVersion, readPublishedDocument } from './documents'
 import { compilePublicationDocument } from './publicationDocument'
-import { equipmentOptionFacts } from './equipmentOptionFacts'
+import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { isImportRowVisible } from '../imports/visibility'
 import { requireEquipmentParents } from './relationshipReads'
 

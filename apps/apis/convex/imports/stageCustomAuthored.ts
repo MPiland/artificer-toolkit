@@ -42,7 +42,7 @@ import {
   assertEquipmentRelationshipsIndexed,
   compileCurrentEquipment
 } from '../content/equipmentRelationships'
-import { equipmentOptionFacts } from '../content/equipmentOptionFacts'
+import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { ensureDraftImageSlot, promoteDraftImageSlot } from '../content/imageSlots'
 import {
   assertActivePublicationNameAvailable,
