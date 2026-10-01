@@ -316,7 +316,6 @@ async function readFixtureScene(
 /** Rewind only the freshly authored local fixture, before any room can claim it. */
 export const capture = untrackedInternalMutation({
   args: zodToConvexFields(developmentCheckpointSceneInputSchema.shape),
-  returns: zodToConvex(liveSessionCheckpointSceneSchema),
   handler: async (ctx, args): Promise<LiveSessionCheckpointScene> => {
     const input = developmentCheckpointSceneInputSchema.parse(args)
     const { header, presentation, rows, normalized } = await readFixtureScene(ctx, input, true)

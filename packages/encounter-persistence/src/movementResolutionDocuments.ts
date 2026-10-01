@@ -3,10 +3,15 @@ import type { SceneStoredGeometrySave } from '@artificer-toolkit/schema/projecti
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { isServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import {
+  serverRuleExecutionPendingOccurrenceId,
+  type ServerRuleExecutionPendingSnapshotDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
-import type { EncounterReadTransaction } from './ports.js'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { CampaignAuthority, EncounterReadTransaction } from './ports.js'
+import type { EncounterDocument } from './store.js'
 import type { SceneLiveStateHeader } from '@artificer-toolkit/schema/api/sceneLiveState'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -22,6 +27,26 @@ export type Geometry = {
   actorIdByTokenId: ReadonlyMap<string, string>
 }
 
+type MovementRuleResolutionCommand = ReturnType<
+  (typeof movementRuleResolutionCommandDtoSchema)['parse']
+>
+
+export type MovementResponseAuthority = CampaignAuthority & {
+  userId: string
+  run: EncounterDocument<'encounterRuns'>
+  state: EncounterRunState
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>
+  snapshot: ServerRuleExecutionPendingSnapshotDto
+  context: ReturnType<typeof readEncounterMovementPendingContext>['context']
+  root: ReturnType<typeof readEncounterMovementPendingContext>['root']
+}
+
+export type CurrentMovementResolution = MovementResponseAuthority & {
+  command: ResolveRuleOccurrenceInputDto
+  appRoll: Awaited<ReturnType<typeof readEncounterSettledAppRoll>>
+  answer: ReturnType<typeof withEncounterAppRoll>
+}
+
 export async function readResponse(
   ctx: EncounterReadTransaction,
   saveId: string,
@@ -29,7 +54,13 @@ export async function readResponse(
   readGeometrySave: (
     saveId: string
   ) => Promise<{ save: SceneStoredGeometrySave; header: SceneLiveStateHeader; userId: string }>
-) {
+): Promise<{
+  save: SceneStoredGeometrySave
+  current: CurrentMovementResolution
+  root: CurrentMovementResolution['root']
+  token: SceneToken
+  responseCommand: MovementRuleResolutionCommand
+}> {
   const { save, header, userId } = await readGeometrySave(saveId)
   assertGeometryReceiving(save, header.version, userId)
   const current = await assertMovementResolutionCurrent(ctx, save)
@@ -65,7 +96,7 @@ export async function readResponse(
 export async function readMovementResponseAuthority(
   ctx: EncounterReadTransaction,
   command: ResolveRuleOccurrenceInputDto
-) {
+): Promise<MovementResponseAuthority> {
   const { userId } = await ctx.ports.requireIdentity()
   const run = await ctx.db
     .query('encounterRuns')
@@ -177,7 +208,7 @@ export async function readMovementResponseAuthority(
 export async function assertMovementResolutionCurrent(
   ctx: EncounterReadTransaction,
   save: SceneStoredGeometrySave
-) {
+): Promise<CurrentMovementResolution> {
   const resolution = readMovementResolution(save)
   if (!resolution) throw new Error('Movement response evidence is unavailable.')
   const current = await readMovementResponseAuthority(ctx, resolution.command)

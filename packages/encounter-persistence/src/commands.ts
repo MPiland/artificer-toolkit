@@ -47,9 +47,25 @@ import { presentEncounterResultForMember } from './resultPresentation.js'
 import { rollEncounterRuleEvidence } from './evidenceRolls.js'
 import type { EncounterPersistenceTransaction, EncounterWriteTransaction } from './ports.js'
 
-type RoomEncounterToolCommand = Exclude<
+type RoomEncounterToolCommand = Extract<
   RoomLocalEncounterCommand,
-  { type: 'REORDER' | 'REMOVE_ACTOR' | 'REINFORCE' | 'REVERT_LAST_ACTION' }
+  {
+    type:
+      | 'UPSERT_REMINDER'
+      | 'REMOVE_REMINDER'
+      | 'UPDATE_ACTOR'
+      | 'REPLACE_CREATURE_EQUIPMENT'
+      | 'PREVIOUS_TURN'
+      | 'SET_CURRENT_ACTOR'
+      | 'SET_ROUND'
+      | 'SET_INITIATIVE'
+      | 'ROLL_ACTOR_INITIATIVE'
+      | 'ROLL_ENEMY_ACTION'
+      | 'ADJUST_FEATURE_RESOURCE'
+      | 'COMPLETE'
+      | 'REPLACE_OPTIONAL_COMBAT_RULES'
+      | 'SET_HEALTH_DISPLAY_DEFAULT'
+  }
 >
 type EncounterToolCommand =
   | RoomEncounterToolCommand

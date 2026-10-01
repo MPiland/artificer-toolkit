@@ -777,7 +777,7 @@ reads 0 Convex documents beyond the manifest (`catalogueReadBudget.test.ts`).
   Campaign and Character option readers.
 - **Deviation from the ADR.** A Spell entry carries its School label, denormalized at build time from
   the System vocabulary, where the ADR has the reader join it. The build already reads the System,
-  and no `SYSTEM` head exists yet ([D67](../handoffs/phase-08-2-open-questions.md#decisions-to-review));
+  and no `SYSTEM` head exists yet ([D67](../handoffs/phase-08-2-decisions.md#decisions-to-review));
   remove the denormalization when that scope lands. A School rename therefore appears after the next
   build of each source.
 - **Rebuilding every scope.** `contentSnapshots/migrations:rebuild` marks every source and every

@@ -9,7 +9,10 @@ import { characterRulePolicyInputSchema } from '@artificer-toolkit/schema/api/ch
 import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { characterStoredRowSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
+import {
+  characterStoredHeadSchema,
+  characterStoredRowSchema
+} from '@artificer-toolkit/schema/projections/characterPersistence'
 import {
   readCharacterRecord,
   readCharacterSheetState,
@@ -272,7 +275,9 @@ it('atomically resolves a failed native Concentration save, retains the private 
     features: {},
     spells: {},
     system: {
-      abilities: [{ id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID, code: 'CONSTITUTION' }],
+      abilities: [
+        { id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID, code: 'CONSTITUTION', label: 'Constitution' }
+      ],
       skills: [],
       speeds: []
     }
@@ -283,7 +288,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     totalLevel: 1,
     classes: [],
     abilities: { CONSTITUTION: 13 },
-    hitpoints: [{ classId: uuid(0x110a), classLevel: 1, level: 1, value: 10 }],
+    hitpoints: [{ classId: uuid(0x110a), classLevel: 1, value: 10 }],
     features: [],
     equipmentItems: []
   }
@@ -333,7 +338,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     ...head
   } = owner
   const { _id: playId, _creationTime: playCreationTime, ...playFields } = owner.play
-  await ctx.db.insert('characters', head)
+  await ctx.db.insert('characters', characterStoredHeadSchema.parse(head))
   await ctx.db.insert('characterPlayStates', playFields)
   await ctx.db.insert('encounterRuns', {
     id: state.id,

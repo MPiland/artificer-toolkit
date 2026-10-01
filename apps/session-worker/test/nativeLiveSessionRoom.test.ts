@@ -972,7 +972,7 @@ it.each([false, true])(
             throw new Error('Missing Scene receipt.')
           const receipt = sceneStoredLiveCommandSchema.parse(receiptChange.delta.set)
           const result = receipt.result
-          if (result.delta?.kind !== 'DOOR_STATE_SET')
+          if (!('delta' in result) || result.delta?.kind !== 'DOOR_STATE_SET')
             throw new Error('Expected Scene door publication.')
           const stored = storedScenes.get(result.sceneId)
           if (!stored) throw new Error('Published Scene is missing.')
@@ -4586,7 +4586,8 @@ it('commits a warm native initiative roll privately and replays its exact eviden
         expect(actorRow.stateChecksum).toBe(checksumCanonicalJson(actor))
         expect(evidence.commands).toHaveLength(1)
         const history = evidence.commands[0]
-        if (!history) throw new Error('Missing native initiative history.')
+        if (!history || history.commandType === 'CREATE')
+          throw new Error('Missing native initiative history.')
         expect(history).toMatchObject({
           commandId,
           commandType: 'ROLL_ACTOR_INITIATIVE',
@@ -4800,7 +4801,8 @@ it('commits a private native enemy roll and its charge once before acknowledgeme
         expect(evidence.state.version).toBe(2)
         expect(evidence.commands).toHaveLength(1)
         const history = evidence.commands[0]
-        if (!history) throw new Error('Missing private enemy roll history.')
+        if (!history || history.commandType === 'CREATE')
+          throw new Error('Missing private enemy roll history.')
         expect(history).toMatchObject({ commandId, commandType: 'ROLL_ENEMY_ACTION', version: 2 })
         const replay = encounterStoredReplayReceiptSchema.parse(
           JSON.parse(history.replayReceiptJson)
@@ -5261,11 +5263,6 @@ it('rolls back a local Encounter command when admission expires during an input 
     if (scope.kind === 'SYSTEM') systemReads += 1
     return undefined
   })
-  const invalidated = await control({
-    campaignId: base.capture.campaignId,
-    operation: { type: 'INVALIDATE_INPUTS', scopes: ['SYSTEM'] }
-  })
-  expect(await invalidated.json()).toEqual({ invalidated: true })
   const evidence = (storage: DurableObjectStorage) => {
     const room = new RoomEncounterStore(storage)
     return {

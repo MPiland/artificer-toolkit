@@ -66,7 +66,7 @@
 
 [Persistence](../architecture/persistence.md#content-snapshot-heads-and-objects-adr-0036-s2--local-implementation) describes the protocol. Where S2 differs from the design summary above:
 
-- **Scopes.** Every content source, the SRD's PLATFORM source included, is a `SOURCE` scope, because Campaign rules catalogues select PLATFORM sources. Authored DTO bodies carry no source id; format 2 pins retain the actual content-source identity, including in Campaign shares. No `SYSTEM` head is built; its future format is outside this completion ([D67](phase-08-2-open-questions.md#decisions-to-review)).
+- **Scopes.** Every content source, the SRD's PLATFORM source included, is a `SOURCE` scope, because Campaign rules catalogues select PLATFORM sources. Authored DTO bodies carry no source id; format 2 pins retain the actual content-source identity, including in Campaign shares. No `SYSTEM` head is built; its future format is outside this completion ([D67](phase-08-2-decisions.md#decisions-to-review)).
 - **No new share index.** Marking finds a root's Campaigns through the existing `campaignContentShares.by_subjectKind_subjectId_campaignId` index; a `by_subjectId` index would duplicate it.
 - **Not marked:** Systems, vocabulary and rules catalogues (no built scope contains them), and version payload chunks (their version is marked).
 - **Full rebuild.** Each build rereads every kind of its scope. Unchanged kinds keep their keys and upload nothing; incremental rebuild from the previous `documents` object is not implemented.

@@ -21751,6 +21751,21 @@ export declare const api: {
             slice: "NOTES";
           }
       >;
+      liveAuthority: FunctionReference<
+        "query",
+        "public",
+        { campaignId?: string; id: string },
+        null | {
+          campaignId: string;
+          characterId: string;
+          checkpointSequence: number;
+          checkpointStreamVersion: number;
+          checkpointedAt: string | null;
+          encounterIds: Array<string>;
+          epoch: string;
+          phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
+        }
+      >;
     };
   };
   content: {
@@ -49802,6 +49817,48 @@ export declare const internal: {
       { doc: any; model: string },
       any
     >;
+    onUpdate: FunctionReference<
+      "mutation",
+      "internal",
+      {
+        model: "user";
+        newDoc: {
+          _creationTime: number;
+          _id: string;
+          banExpires?: null | number;
+          banReason?: null | string;
+          banned?: null | boolean;
+          createdAt: number;
+          displayUsername?: null | string;
+          email: string;
+          emailVerified: boolean;
+          image?: null | string;
+          name: string;
+          role?: null | string;
+          updatedAt: number;
+          userId?: null | string;
+          username?: null | string;
+        };
+        oldDoc: {
+          _creationTime: number;
+          _id: string;
+          banExpires?: null | number;
+          banReason?: null | string;
+          banned?: null | boolean;
+          createdAt: number;
+          displayUsername?: null | string;
+          email: string;
+          emailVerified: boolean;
+          image?: null | string;
+          name: string;
+          role?: null | string;
+          updatedAt: number;
+          userId?: null | string;
+          username?: null | string;
+        };
+      },
+      any
+    >;
   };
   authAdmin: {
     setRole: FunctionReference<
@@ -60680,6 +60737,7 @@ export declare const internal: {
           activationExpiresAt?: number;
           activationFingerprint: string;
           campaignId: string;
+          checkpointedAt?: string;
           createdAt: string;
           epoch: string;
           finalSequence?: number;
@@ -60711,6 +60769,7 @@ export declare const internal: {
           activationExpiresAt?: number;
           activationFingerprint: string;
           campaignId: string;
+          checkpointedAt?: string;
           createdAt: string;
           epoch: string;
           finalSequence?: number;
@@ -60737,6 +60796,7 @@ export declare const internal: {
           activationExpiresAt?: number;
           activationFingerprint: string;
           campaignId: string;
+          checkpointedAt?: string;
           createdAt: string;
           epoch: string;
           finalSequence?: number;
@@ -60768,6 +60828,7 @@ export declare const internal: {
           activationExpiresAt?: number;
           activationFingerprint: string;
           campaignId: string;
+          checkpointedAt?: string;
           createdAt: string;
           epoch: string;
           finalSequence?: number;
@@ -60791,6 +60852,33 @@ export declare const internal: {
         "internal",
         { campaignId: string },
         boolean
+      >;
+      recoverStorage: FunctionReference<
+        "mutation",
+        "internal",
+        { campaignId: string; epoch: string },
+        {
+          activationExpiresAt?: number;
+          activationFingerprint: string;
+          campaignId: string;
+          checkpointedAt?: string;
+          createdAt: string;
+          epoch: string;
+          finalSequence?: number;
+          finalStateChecksum?: string;
+          lastCheckpoint?: {
+            checkpointId: string;
+            checksum: string;
+            fromChecksum: string;
+            fromSequence: number;
+            payloadChecksum: string;
+            sequence: number;
+          };
+          persistedSequence: number;
+          persistedStateChecksum: string;
+          phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
+          updatedAt: string;
+        }
       >;
       release: FunctionReference<
         "mutation",
@@ -60834,6 +60922,7 @@ export declare const internal: {
             activationExpiresAt?: number;
             activationFingerprint: string;
             campaignId: string;
+            checkpointedAt?: string;
             createdAt: string;
             epoch: string;
             finalSequence?: number;
@@ -60886,7 +60975,11 @@ export declare const internal: {
                 tokens: Array<{ actorId: string; tokenId: string }>;
               } | null;
             };
-            preferences?: Array<{ autoRollDice: boolean; userId: string }>;
+            preferences?: Array<{
+              autoRollDice: boolean;
+              userId: string;
+              username: string | null;
+            }>;
             revisions: {
               campaign: string | null;
               characters: Array<{
@@ -60895,6 +60988,7 @@ export declare const internal: {
               }>;
               play: string | null;
               preferences: string;
+              system: string | null;
             };
           };
           status: "COMMITTED" | "REPLAYED";
@@ -60923,6 +61017,7 @@ export declare const internal: {
             activationExpiresAt?: number;
             activationFingerprint: string;
             campaignId: string;
+            checkpointedAt?: string;
             createdAt: string;
             epoch: string;
             finalSequence?: number;
@@ -60975,7 +61070,11 @@ export declare const internal: {
                 tokens: Array<{ actorId: string; tokenId: string }>;
               } | null;
             };
-            preferences?: Array<{ autoRollDice: boolean; userId: string }>;
+            preferences?: Array<{
+              autoRollDice: boolean;
+              userId: string;
+              username: string | null;
+            }>;
             revisions: {
               campaign: string | null;
               characters: Array<{
@@ -60984,6 +61083,7 @@ export declare const internal: {
               }>;
               play: string | null;
               preferences: string;
+              system: string | null;
             };
           };
           status: "COMMITTED" | "REPLAYED";
@@ -61077,6 +61177,7 @@ export declare const internal: {
             activationExpiresAt?: number;
             activationFingerprint: string;
             campaignId: string;
+            checkpointedAt?: string;
             createdAt: string;
             epoch: string;
             finalSequence?: number;
@@ -61119,6 +61220,51 @@ export declare const internal: {
       >;
       prepare: FunctionReference<"mutation", "internal", any, any>;
       rollback: FunctionReference<"mutation", "internal", any, null>;
+    };
+    developmentCheckpointScenes: {
+      capture: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          sceneId: string;
+          scope: {
+            campaignId: string;
+            characterId: string;
+            encounterId: string;
+            ownerUserId: string;
+            playerUserId: string;
+          };
+        },
+        any
+      >;
+      inspect: FunctionReference<
+        "query",
+        "internal",
+        {
+          sceneId: string;
+          scope: {
+            campaignId: string;
+            characterId: string;
+            encounterId: string;
+            ownerUserId: string;
+            playerUserId: string;
+          };
+        },
+        {
+          counts: {
+            sceneFogChunks: number;
+            sceneFogLayers: number;
+            sceneFogSaves: number;
+            sceneGeometrySaves: number;
+            sceneLiveCommands: number;
+            sceneLiveEntities: number;
+            sceneLiveStates: number;
+          };
+          digest: string;
+          presentationVersion: number;
+          version: number;
+        }
+      >;
     };
     encounterAction: {
       commitPending: FunctionReference<"mutation", "internal", any, any>;
@@ -61188,6 +61334,7 @@ export declare const internal: {
             characters: Array<{ characterId: string; revision: string | null }>;
             play: string | null;
             preferences: string;
+            system: string | null;
           } | null;
         },
         {
@@ -61224,12 +61371,17 @@ export declare const internal: {
               tokens: Array<{ actorId: string; tokenId: string }>;
             } | null;
           };
-          preferences?: Array<{ autoRollDice: boolean; userId: string }>;
+          preferences?: Array<{
+            autoRollDice: boolean;
+            userId: string;
+            username: string | null;
+          }>;
           revisions: {
             campaign: string | null;
             characters: Array<{ characterId: string; revision: string | null }>;
             play: string | null;
             preferences: string;
+            system: string | null;
           };
         }
       >;
@@ -61248,8 +61400,43 @@ export declare const internal: {
                   paginationCursor: string | null;
                   position: number;
                 } | null;
+                kind: "AUTHORITY";
+              }
+            | {
+                cursor: {
+                  paginationCursor: string | null;
+                  position: number;
+                } | null;
+                kind: "CHAT_METADATA";
+              }
+            | {
+                cursor: {
+                  paginationCursor: string | null;
+                  position: number;
+                } | null;
                 encounterId: string;
                 kind: "RUN";
+              }
+            | {
+                cursor: {
+                  fogSave: {
+                    id: string;
+                    isLast: boolean;
+                    nextCursor: string | null;
+                  } | null;
+                  paginationCursor: string | null;
+                  position: number;
+                } | null;
+                kind: "SCENE";
+                sceneId: string;
+              }
+            | {
+                cursor: {
+                  paginationCursor: string | null;
+                  position: number;
+                } | null;
+                kind: "SCENE_DEFINITION";
+                sceneId: string;
               }
             | {
                 characterIds: Array<string>;
@@ -61259,7 +61446,13 @@ export declare const internal: {
                 } | null;
                 kind: "CHARACTERS";
               }
-            | { definitionId: string; kind: "DEFINITION" }
+            | {
+                cursor: {
+                  paginationCursor: string | null;
+                  position: number;
+                } | null;
+                kind: "DEFINITIONS";
+              }
             | { kind: "SYSTEM"; part: "SYSTEM" | "VOCABULARY" };
         },
         any
@@ -61279,6 +61472,7 @@ export declare const internal: {
           activationExpiresAt?: number;
           activationFingerprint: string;
           campaignId: string;
+          checkpointedAt?: string;
           createdAt: string;
           epoch: string;
           finalSequence?: number;
@@ -61306,6 +61500,7 @@ export declare const internal: {
             activationExpiresAt?: number;
             activationFingerprint: string;
             campaignId: string;
+            checkpointedAt?: string;
             createdAt: string;
             epoch: string;
             finalSequence?: number;

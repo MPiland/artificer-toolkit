@@ -1,4 +1,5 @@
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { v } from 'convex/values'
 import { authoredSourceKindsByTable } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
 import type { AuthoredCurrentSourceIdentity } from '@artificer-toolkit/schema/api/authoredPublication'

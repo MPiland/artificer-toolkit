@@ -19,7 +19,10 @@ import {
   type SceneCommandInputDto,
   type SceneCommandResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { sceneStoredUndoCommandSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import {
+  sceneStoredLiveCommandSchema,
+  sceneStoredUndoCommandSchema
+} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { action, type MutationCtx } from '../_generated/server'
 import type { Id } from '../_generated/dataModel'
@@ -255,7 +258,7 @@ async function finishUndo(
             q.eq('sceneId', sceneId).eq('commandId', commandId)
           )
           .unique()
-        return row ? stored(row) : null
+        return row ? sceneStoredLiveCommandSchema.parse(stored(row)) : null
       },
       readUndoForMove: async (sceneId, commandId) => {
         const row = await ctx.db
@@ -264,7 +267,7 @@ async function finishUndo(
             q.eq('sceneId', sceneId).eq('undoneCommandId', commandId)
           )
           .unique()
-        return row ? stored(row) : null
+        return row ? sceneStoredLiveCommandSchema.parse(stored(row)) : null
       },
       readGeometrySave: async (sceneId, commandId) => {
         const row = await ctx.db

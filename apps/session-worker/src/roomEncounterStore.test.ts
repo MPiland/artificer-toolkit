@@ -11,7 +11,8 @@ import { MAX_ROOM_INPUT_RESPONSE_DOCUMENTS } from '@artificer-toolkit/schema/api
 import {
   RoomEncounterStore,
   RoomStoreCorruptError,
-  RoomWriteSetTooLargeError
+  RoomWriteSetTooLargeError,
+  type RoomDocument
 } from './roomEncounterStore.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { aggregate, command, encounterId, playState, uuid } from './testing/roomAggregateFixture.js'
@@ -61,7 +62,13 @@ describe('room Encounter store', () => {
   it('upserts restored native identities and recovers new and refreshed inputs from SQLite', async () => {
     const { room, storage, database } = hydrated(2)
     const snapshot = room.checkpointSnapshot()
-    const original = room.documents('encounterRuns')[0]!
+    const { _id, _creationTime, ...runFields } = room.documents('encounterRuns')[0]!
+    const original: RoomDocument = {
+      table: 'encounterRuns',
+      id: _id,
+      creationTime: _creationTime,
+      fields: runFields
+    }
     const fetched = { ...original, fields: { ...original.fields, version: 8 } }
     const movement = {
       table: 'encounterTurnMovements' as const,
@@ -95,8 +102,13 @@ describe('room Encounter store', () => {
     recovered = new RoomEncounterStore(storage)
     expect(recovered.corruption).toBeNull()
     expect(state(recovered)).toEqual(expected)
-    expect(recovered.documents('encounterRuns')).toEqual([refreshed])
-    expect(recovered.documents('encounterTurnMovements')).toEqual([movement])
+    const native = ({ id, creationTime, fields }: RoomDocument) => ({
+      ...fields,
+      _id: id,
+      _creationTime: creationTime
+    })
+    expect(recovered.documents('encounterRuns')).toEqual([native(refreshed)])
+    expect(recovered.documents('encounterTurnMovements')).toEqual([native(movement)])
     const entries = recovered.committedWriteSets({
       epoch: snapshot.epoch,
       fromSequence: snapshot.sequence,

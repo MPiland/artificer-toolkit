@@ -21,7 +21,10 @@ import {
   normalizeGeometryInput,
   normalizeSceneGeometryEntity
 } from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
-import { parseGeometrySave } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
+import {
+  parseGeometryCommand,
+  parseGeometrySave
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { applySceneGeometryDelta } from '@artificer-toolkit/shared/vtt'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomTransaction } from './roomEncounterStore.js'

@@ -69,8 +69,9 @@ export const characterSheetLivePlayCommandSchema = lazySchema(() =>
     characterSheetCommandInputDtoSchema,
     z.transform((command, context) => {
       if (!isCharacterSheetLivePlayCommand(command)) {
-        context.addIssue({
+        context.issues.push({
           code: 'custom',
+          input: command,
           message: 'This command is not a live play-state command.'
         })
         return z.NEVER

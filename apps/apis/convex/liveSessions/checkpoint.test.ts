@@ -491,7 +491,8 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
       },
       payload
     )
-  const chatHeader = headerFor(chatPayload)
+  const chatNonce = crypto.randomUUID()
+  const chatHeader = headerFor(chatPayload, chatNonce)
   const rollHeader = headerFor(rollPayload)
   const create = (
     table: LiveSessionCheckpointTable,
@@ -586,7 +587,7 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
   const nextRun = await runChange(base)
   const newPayload = { ...chatPayload, entryId: crypto.randomUUID() }
   const newHeader = headerFor(newPayload)
-  const nonceCollisionHeader = headerFor(newPayload, chatHeader.clientNonce)
+  const nonceCollisionHeader = headerFor(newPayload, chatNonce)
   const foreignNewConversationId = crypto.randomUUID()
   const danglingConversationId = crypto.randomUUID()
   const secondPayload = { ...chatPayload, entryId: crypto.randomUUID() }

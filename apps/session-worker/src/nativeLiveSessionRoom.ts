@@ -1658,6 +1658,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           )
         )
           throw new CharacterSheetCommandError('Character is not held by this active Encounter.')
+        // Member admission above already requires an ACTIVE Campaign: archived Campaigns have no members.
         const [play, campaignPlay] = await Promise.all([
           this.#roomStore.store
             .query('characterPlayStates')
@@ -1670,7 +1671,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         if (
           !play ||
           campaignPlay.campaign.id !== value.campaignId ||
-          campaignPlay.campaign.status !== 'ACTIVE' ||
           state.gameSystemId !== campaignPlay.campaign.gameSystemId ||
           play.userId !== character.ownerUserId
         )

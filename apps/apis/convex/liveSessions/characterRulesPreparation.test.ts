@@ -132,7 +132,8 @@ it('prepares capture-equivalent facts from verified v2 snapshots and warmed SQLi
   )
   const { storage, database } = createNodeSqliteRoomStorage()
   try {
-    const room = new RoomInputs(new RoomEncounterStore(storage), read, load)
+    const store = new RoomEncounterStore(storage)
+    const room = new RoomInputs(store, read, load)
     await room.hydrate({ epoch, encounterId: fixture.run.id })
     const scope = {
       campaignId: fixture.campaign.id,
@@ -174,13 +175,14 @@ it('prepares capture-equivalent facts from verified v2 snapshots and warmed SQLi
     vi.stubGlobal('fetch', captureHttp)
     await expect(
       prepareRoomLiveCharacterSheet(
+        store,
         room,
         { ...scope, authorityEpoch: crypto.randomUUID() },
         captured.revisions
       )
     ).rejects.toThrow(/epoch/i)
     for (let repetition = 0; repetition < 3; repetition++) {
-      const actual = await prepareRoomLiveCharacterSheet(room, scope, captured.revisions)
+      const actual = await prepareRoomLiveCharacterSheet(store, room, scope, captured.revisions)
       expect(actual.prepared.character).toEqual(expected.prepared.character)
       expect(actual.prepared.resolution).toEqual(expected.prepared.resolution)
       expect(actual.ruleEvaluation).toEqual(expected.ruleEvaluation)

@@ -114,7 +114,7 @@ function listSource<Kind extends ContentSnapshotKind>(
     publicId: `${kind.toLowerCase()}-${document.id}`,
     publicationVersion: publicationVersions(kind, [document])[0]!,
     magicSchoolLabel: 'School'
-  } as Extract<ContentSnapshotListSource, { subjectKind: Kind }>
+  } as unknown as Extract<ContentSnapshotListSource, { subjectKind: Kind }>
 }
 
 function header<Kind extends ContentSnapshotKind, Part extends ContentSnapshotPart>(

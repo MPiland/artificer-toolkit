@@ -165,10 +165,10 @@ export async function executeCharacterSheetCommand(
     assertCampaignGmSheetCommandAllowed(input.command)
   }
   if (
-    isCharacterSheetLivePlayCommand(input.command) ||
-    input.command.type === 'COMPLETE_REST' ||
     (input.command.type === 'SET_HIT_POINTS' &&
-      (input.command.current !== undefined || input.command.temp !== undefined))
+      (input.command.current !== undefined || input.command.temp !== undefined)) ||
+    isCharacterSheetLivePlayCommand(input.command) ||
+    input.command.type === 'COMPLETE_REST'
   )
     await assertConvexOwnsCharacterPlay(ctx, initial.active.id)
 

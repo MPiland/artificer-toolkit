@@ -236,7 +236,7 @@ export const encounterStoreIndexes = {
     by_campaignId_authorUserId_clientNonce: ['campaignId', 'authorUserId', 'clientNonce'],
     by_campaignId_authorUserId_createdAt: ['campaignId', 'authorUserId', 'createdAt']
   },
-  campaignConversationEntryPayloads: { by_entryId: ['entryId'], by_rollId: ['roll.id'] }
+  campaignConversationEntryPayloads: { by_entryId: ['entryId'] }
 } as const satisfies {
   [Table in keyof EncounterStoreDocuments]: Record<
     string,

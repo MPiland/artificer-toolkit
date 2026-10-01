@@ -3,7 +3,6 @@ import {
   type BindEncounterToPresentedSceneInputDto,
   type BindEncounterToPresentedSceneResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
 import type { SceneLiveStateHeader } from '@artificer-toolkit/schema/api/sceneLiveState'
 import { encounterSceneBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -22,7 +21,7 @@ export async function bindEncounterToPresentedScene(
   callbacks: {
     readPresentation(
       campaignId: string
-    ): Promise<Pick<LiveSessionScenePublicationDto['presentation'], 'sceneId' | 'version'> | null>
+    ): Promise<{ sceneId: string | null; version: number } | null>
     readScene(sceneId: string): Promise<Pick<SceneLiveStateHeader, 'id' | 'campaignId'> | null>
     assertOutsideRoom?(campaignId: string, sceneId: string): Promise<void>
   }

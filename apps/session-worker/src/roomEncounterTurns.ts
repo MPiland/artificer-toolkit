@@ -15,7 +15,7 @@ import type {
   EncounterRunState,
   EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import type { LiveCaptureReads } from './nativeCaptureCache.js'

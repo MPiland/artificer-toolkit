@@ -5,9 +5,15 @@ import {
 import { sceneStoredGeometryCommandSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sliceMovementPath } from '@artificer-toolkit/rules-runtime/encounterMovementPath'
-import { resolveRuleOccurrenceInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import {
+  resolveRuleOccurrenceInputDtoSchema,
+  type ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import {
+  serverRuleExecutionPendingOccurrenceId,
+  type ServerRuleExecutionPendingSnapshotDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import {
   sceneSpatialPreparationSchema,
@@ -55,8 +61,15 @@ export function assertGeometryReceiving(
     throw new Error('Scene changed before geometry publication.')
 }
 
+export type MovementResolution = {
+  command: ResolveRuleOccurrenceInputDto
+  snapshot: ServerRuleExecutionPendingSnapshotDto
+  context: ReturnType<typeof readEncounterMovementPendingContext>['context']
+  root: ReturnType<typeof readEncounterMovementPendingContext>['root']
+}
+
 /** Private response evidence is bound to the exact Scene segment; it never becomes client input. */
-export function readMovementResolution(save: SceneStoredGeometrySave) {
+export function readMovementResolution(save: SceneStoredGeometrySave): MovementResolution | null {
   return deriveOnce(save, parseMovementResolution, movementResolutionIdentity)
 }
 
@@ -86,7 +99,7 @@ const movementResolutionIdentity = (save: SceneStoredGeometrySave) =>
 const spatialPreparationIdentity = (save: SceneStoredGeometrySave) =>
   saveIdentity(save, preparationUnread)
 
-function parseMovementResolution(save: SceneStoredGeometrySave) {
+function parseMovementResolution(save: SceneStoredGeometrySave): MovementResolution | null {
   const retained = save.movementResolution
   if (!retained) return null
   const command = resolveRuleOccurrenceInputDtoSchema.parse(JSON.parse(retained.commandJson))

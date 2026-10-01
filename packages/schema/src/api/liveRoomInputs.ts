@@ -47,7 +47,7 @@ const roomInputsCursorSchema = lazySchema(() =>
 export const liveRoomSceneInputsCursorSchema = lazySchema(() =>
   z.nullable(
     z.strictObject({
-      position: z.number().check(z.int()).check(z.nonnegative()).check(z.max(6)),
+      position: z.number().check(z.int()).check(z.nonnegative()).check(z.lte(6)),
       paginationCursor: z.nullable(z.string().check(z.maxLength(8192))),
       fogSave: z.nullable(
         z.strictObject({

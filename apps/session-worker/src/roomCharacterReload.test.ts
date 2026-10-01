@@ -18,11 +18,11 @@ import {
   characterStoredPlayStateSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { characterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectStorage'
-import { parentClassAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { reconcileCharacterHitDice } from '@artificer-toolkit/rules-runtime/character/builderHitPoints'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
@@ -103,7 +103,7 @@ it.each([
     const campaignId = initial.inputs.campaign.id
     const epoch = uuid(0x903)
     const classId = readCharacterRecord(owner).intent.classes[0]!.classId
-    const authoredClass = parentClassAuthoredDtoSchema.parse({
+    const authoredClass: ClassAuthored = {
       id: classId,
       systemId: owner.systemId,
       userId: owner.userId,
@@ -113,7 +113,7 @@ it.each([
       startingGold: { multiplier: 1, currencyId: uuid(0x904), dieConfig: '1d4' },
       startingEquipment: { id: uuid(0x905), sets: [] },
       multiclass: { id: uuid(0x906), requirementGroups: { groups: [] } }
-    })
+    }
     const system = systemAuthoredDtoSchema.parse({
       id: owner.systemId,
       userId: owner.userId,

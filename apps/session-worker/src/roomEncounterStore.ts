@@ -101,7 +101,7 @@ const EMPTY_CHAIN = sha256Hex('room-store:empty')
 /** JSON with every non-ASCII character escaped, so a string's length is its byte length. */
 function asciiJson(value: unknown) {
   return JSON.stringify(value).replace(
-    /[\u007f-ÃƒÂ¯Ã‚Â¿Ã‚Â¿]/g,
+    /[\u007f-\uffff]/g,
     (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`
   )
 }

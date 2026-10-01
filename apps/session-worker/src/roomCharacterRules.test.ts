@@ -217,6 +217,7 @@ it('reconciles native play atomically, recovers after eviction and preserves the
     ...page,
     inputs: { ...page.inputs, owner }
   })
+  if (part.status !== 'ASSIGNED') throw new Error('Missing Character fixture.')
   const system = systemAuthoredDtoSchema.parse({
     id: owner.systemId,
     label: 'Reconciliation fixture',

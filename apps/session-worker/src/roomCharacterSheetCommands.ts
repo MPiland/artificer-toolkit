@@ -205,8 +205,10 @@ export async function executeRoomCharacterSheetCommand(input: {
   const sheetStateChanged =
     canonicalizeRuleDocument(JSON.parse(JSON.stringify(nextSheetState))) !==
     canonicalizeRuleDocument(initial.sheetState)
+  const current = await ctx.ports.readCharacterRow(characterId)
+  if (!current) throw new Error('Room Character head is missing.')
   await ctx.ports.writeCharacterRecord({
-    current: initial.active,
+    current,
     fields: { streamVersion: initial.active.play.streamVersion + 1, updatedAt: occurredAt },
     document: updated,
     ...(sheetStateChanged ? { sheetState: nextSheetState } : {})

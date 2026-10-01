@@ -1054,7 +1054,7 @@ export class RoomInputs {
         const cursorKey = canonicalizeJson(cursor)
         if (cursors.has(cursorKey)) throw new Error('Scene input continuation repeated.')
         cursors.add(cursorKey)
-        const page = expectKind(
+        const page: ResponseOf<'SCENE'> = expectKind(
           liveRoomInputsResponseSchema.parse(await read({ kind: 'SCENE', sceneId, cursor })),
           'SCENE'
         )

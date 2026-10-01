@@ -303,13 +303,13 @@ export function buildRoomCheckpointRecords({
         continue
       }
       const fields =
-        write.op === 'REPLACE'
-          ? write.fields
-          : Object.fromEntries(
+        write.op === 'PATCH'
+          ? Object.fromEntries(
               Object.entries({ ...document.fields, ...write.fields }).filter(
                 ([field]) => !write.remove.includes(field)
               )
             )
+          : write.fields
       const validated = validateFields(document.table, fields)
       const next = checkpointRecord(document.table, validated)
       if (previous && next) {
