@@ -121,6 +121,9 @@ A Character's stored maximum HP (display only; rules are live) updates on the Ch
 ### Fog-off Scenes skip unused fog layers
 A fog-off Scene that keeps its fog layers still uses full hydration, and players download layers they don't use. Skip or defer them while fog is off.
 
+### World time tints the Scene
+The Campaign clock knows dawn and dusk, but Scenes look the same at noon and midnight. Foundry lets world time drive Scene darkness. Candidate: a per-Scene opt-in that maps clock time to a lighting tone (day, dusk/dawn, night), applied client-side from the clock the page already reads, so it adds no room or Convex traffic. Raised by the user on 2026-10-01 during Phase 8.2.
+
 ## Other future enhancements (parked)
 
 ### Adventure Module Packages

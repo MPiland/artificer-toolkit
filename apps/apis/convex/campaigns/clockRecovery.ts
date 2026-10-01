@@ -11,7 +11,11 @@ import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey
 } from '@artificer-toolkit/shared/character'
-import { campaignStoredClockRecoverySchema } from '@artificer-toolkit/schema/projections/campaignClockPersistence'
+import {
+  campaignStoredClockRecoveryPromptSchema,
+  campaignStoredClockRecoverySchema
+} from '@artificer-toolkit/schema/projections/campaignClockPersistence'
+import { readFightingCharacters } from '../liveSessions/characterHolds'
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
 import { encodeCampaignEvent } from '@artificer-toolkit/schema/api/campaignEventTransport'
 
@@ -35,7 +39,47 @@ export async function recoverClockBoundary({
     .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
     .collect()
   assignments.sort((left, right) => left.characterId.localeCompare(right.characterId))
+  // The live room owns a fighting Character's play state, so the GM decides its refresh later.
+  const fighting = new Set(
+    (
+      await readFightingCharacters(
+        ctx,
+        campaignId,
+        await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_campaignId_status', (q) =>
+            q.eq('campaignId', campaignId).eq('status', 'ACTIVE')
+          )
+          .collect()
+      )
+    ).map((entry) => entry.characterId)
+  )
   for (const assignment of assignments) {
+    if (fighting.has(assignment.characterId)) {
+      const prompted = await ctx.db
+        .query('campaignClockRecoveryPrompts')
+        .withIndex('by_campaignId_boundary_character_kind', (q) =>
+          q
+            .eq('campaignId', campaignId)
+            .eq('boundaryAbsoluteMinute', absolute)
+            .eq('characterId', assignment.characterId)
+            .eq('boundaryKind', kind)
+        )
+        .unique()
+      if (!prompted)
+        await ctx.db.insert(
+          'campaignClockRecoveryPrompts',
+          campaignStoredClockRecoveryPromptSchema.parse({
+            id: crypto.randomUUID(),
+            campaignId,
+            characterId: assignment.characterId,
+            boundaryAbsoluteMinute: absolute,
+            boundaryKind: kind,
+            createdAt: occurredAt
+          })
+        )
+      continue
+    }
     const current = await loadCharacterSheet(ctx, actorUserId, assignment.characterId, campaignId)
     if (!current) throw new Error('Assigned Character not found.')
     let expectedVersion = current.active.play.streamVersion

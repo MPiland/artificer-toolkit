@@ -9,6 +9,7 @@ import {
 } from '../_generated/server'
 import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
 import { memoizeMutationReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
+import { syncCampaignClockWithCombat } from '../campaigns/clockCombat'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 import { markContentSnapshotScope, type ContentSnapshotScopeRef } from '../contentSnapshots/marking'
 import { scheduleLiveSessionInputInvalidation } from '../liveSessions/controlScheduling'
@@ -356,6 +357,12 @@ triggers.register('userProfiles', async (ctx, change) => {
 registerScope('encounterRuns', (ctx, document) => {
   triggerState(ctx.innerDb).runCampaignIds.set(document.id, document.campaignId)
   return playScope(document.campaignId)
+})
+// Combat pauses the Campaign clock, whichever path (command, room checkpoint, deletion) changes a Run.
+triggers.register('encounterRuns', async (ctx, change) => {
+  if ((change.oldDoc?.status === 'ACTIVE') === (change.newDoc?.status === 'ACTIVE')) return
+  const run = change.newDoc ?? change.oldDoc
+  if (run) await syncCampaignClockWithCombat(ctx.innerDb, run.campaignId)
 })
 registerScope('encounterRunActors', (ctx, document) =>
   playScopeForEncounter(ctx, document.encounterId)

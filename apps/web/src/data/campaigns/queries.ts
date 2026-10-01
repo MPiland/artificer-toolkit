@@ -62,6 +62,11 @@ export function getCampaignClock(campaignId: string) {
   return convexQuery(convexApi.campaigns.clock.get, { campaignId })
 }
 
+/** Campaign GM only: Characters whose recovery boundary passed while combat held the clock. */
+export function getCampaignClockRecoveryPrompts(campaignId: string) {
+  return convexQuery(convexApi.campaigns.clock.recoveryPrompts, { campaignId })
+}
+
 /** Non-null while the live room holds authority; other pages then show its last checkpoint. */
 export function getCampaignLiveAuthority(campaignId: string | undefined) {
   return {

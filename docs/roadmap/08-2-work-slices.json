@@ -61,7 +61,6 @@
     }
   ],
   "queue": [
-    "A35-S3b",
     "A35-S6b",
     "A35-S7b",
     "A35-S3c",
@@ -80,12 +79,12 @@
     { "id": "A35-S1c", "stream": "A35", "state": "done", "title": "Character play state split into a small record: a Sheet HP change writes 1.1 KB (was 8.2 KB)", "cases": ["P04", "V15"], "refs": ["Amendment 12"] },
     { "id": "A35-S2", "stream": "A35", "state": "done", "title": "Room store: one row per command, crash-safe rehydrate, batched hydrate (≤10 calls)", "cases": ["R06"], "refs": [] },
     { "id": "A35-S3a", "stream": "A35", "state": "integrating", "title": "Fenced delta checkpoints replace per-command publish", "cases": ["V05", "V07", "R06"], "refs": [] },
-    { "id": "A35-S3b", "stream": "A35", "state": "active", "title": "Recovery, clock and DAILY cleanup", "cases": ["P15"], "refs": [] },
+    { "id": "A35-S3b", "stream": "A35", "state": "integrating", "title": "Recovery, clock and DAILY cleanup", "cases": ["P15"], "refs": [] },
     { "id": "A35-S3c", "stream": "A35", "state": "remaining", "title": "Packed Scene history and checkpoint integration", "cases": ["V05", "V07"], "refs": ["D70"] },
     { "id": "A35-S4", "stream": "A35", "state": "done", "title": "Room authorization cache: 240 s lease, invalidation notices, eviction retries", "cases": ["V05", "V12"], "refs": [] },
     { "id": "A35-S5", "stream": "A35", "state": "remaining", "title": "Shadow parity against Convex", "cases": ["R06"], "refs": [] },
     { "id": "A35-S6a", "stream": "A35", "state": "integrating", "title": "Room commands for geometry, doors, binding and undo; content inputs; Character holds (Codex source-first batch)", "cases": ["R06", "V03", "V07", "V14"], "refs": [] },
-    { "id": "A35-S6b", "stream": "A35", "state": "remaining", "title": "Retire the remaining Scene paths; author the movement and Sheet input fixtures", "cases": ["R06", "V07"], "refs": [] },
+    { "id": "A35-S6b", "stream": "A35", "state": "active", "title": "Retire the remaining Scene paths; author the movement and Sheet input fixtures", "cases": ["R06", "V07"], "refs": [] },
     { "id": "A35-S6c", "stream": "A35", "state": "remaining", "title": "The switch: room-authoritative Runs; delete the per-command Convex path", "cases": ["R06", "V08", "V13", "V14"], "refs": [] },
     { "id": "A35-S7a", "stream": "A35", "state": "integrating", "title": "Sheet plays through the room while held: room push and departure reconcile", "cases": ["R06", "V14", "P04", "P08", "P15"], "refs": ["D73", "D74"] },
     { "id": "A35-S7b", "stream": "A35", "state": "remaining", "title": "Account deletion removes held actors", "cases": ["F12"], "refs": ["D74"] },

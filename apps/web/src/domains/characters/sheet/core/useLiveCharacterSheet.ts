@@ -28,7 +28,7 @@ export function useLiveCharacterSheet(characterId: string, campaignId: string | 
     async (command: CharacterSheetLivePlayCommand) => {
       if (!encounterId) throw new Error('Live play does not hold this Character.')
       if (!sheet) throw new Error('Live play is still connecting.')
-      await sendCharacterSheetCommand({ characterId, encounterId, command })
+      return sendCharacterSheetCommand({ characterId, encounterId, command })
     },
     [characterId, encounterId, sendCharacterSheetCommand, sheet]
   )

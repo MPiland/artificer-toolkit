@@ -8,6 +8,8 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type {
   CampaignClockDto,
+  CampaignClockRecoveryPromptDto,
+  DismissCampaignClockRecoveryPromptInput,
   InitializeCampaignClockInput,
   CampaignSessionDto,
   FinishCampaignSessionInput,
@@ -24,9 +26,12 @@ import type {
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
+import { withSceneVisionTracking } from '../lib/mutations'
 import * as eventTransport from '@artificer-toolkit/schema/api/campaignEventTransport'
 import * as builderContext from '../characters/builderContext'
 
@@ -550,5 +555,222 @@ describe('native Campaign clock', () => {
     expect(
       await base.t.run((ctx) => ctx.db.query('campaignClockRecoveries').collect())
     ).toHaveLength(2)
+  })
+})
+
+const recoveryPrompts = makeFunctionReference<
+  'query',
+  { campaignId: string },
+  CampaignClockRecoveryPromptDto[]
+>('campaigns/clock:recoveryPrompts')
+const dismissRecoveryPrompt = makeFunctionReference<
+  'mutation',
+  DismissCampaignClockRecoveryPromptInput,
+  null
+>('campaigns/clock:dismissRecoveryPrompt')
+
+type CharacterRunFixture = Awaited<ReturnType<typeof setupCharacterRun>>
+
+// Raw `t.run` writes skip the change tracking that pauses the clock, so Run writes go through it.
+function activateRun({ t, run }: Pick<CharacterRunFixture, 't' | 'run'>) {
+  return t.run((ctx) => activateFixtureRun(withSceneVisionTracking(ctx), run.id))
+}
+
+function setRunStatus(
+  { t, run }: Pick<CharacterRunFixture, 't' | 'run'>,
+  status: 'ACTIVE' | 'COMPLETED'
+) {
+  return t.run(async (ctx) => {
+    const tracked = withSceneVisionTracking(ctx)
+    const row = await tracked.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', run.id))
+      .unique()
+    if (!row) throw new Error('Missing fixture Run.')
+    await tracked.db.patch(row._id, { status })
+  })
+}
+
+function openSegments({ t, campaign }: Pick<CharacterRunFixture, 't' | 'campaign'>) {
+  return t.run((ctx) =>
+    ctx.db
+      .query('campaignClockSegments')
+      .withIndex('by_campaignId_stoppedAt', (q) =>
+        q.eq('campaignId', campaign.id).eq('stoppedAt', null)
+      )
+      .collect()
+  )
+}
+
+describe('native Campaign clock and combat', () => {
+  it('pauses a running clock for combat, resumes only that pause, and yields to GM commands', async () => {
+    const base = await setupCharacterRun()
+    const { owner, campaign } = base
+    const initial = await owner.caller.mutation(initialize, {
+      ...command(campaign.id, 0),
+      day: 1,
+      minuteOfDay: 600,
+      dawnMinute: 360,
+      duskMinute: 1080
+    })
+    const started = await owner.caller.mutation(start, command(campaign.id, initial.version))
+    expect(started).toMatchObject({ running: true, pausedForCombat: false })
+    await activateRun(base)
+    const pausedByCombat = await owner.caller.query(get, { campaignId: campaign.id })
+    expect(pausedByCombat).toMatchObject({
+      running: false,
+      runningSince: null,
+      pausedForCombat: true,
+      version: started.version + 1
+    })
+    expect(await openSegments(base)).toHaveLength(0)
+
+    await setRunStatus(base, 'COMPLETED')
+    const resumed = await owner.caller.query(get, { campaignId: campaign.id })
+    expect(resumed).toMatchObject({
+      running: true,
+      pausedForCombat: false,
+      version: started.version + 2
+    })
+    expect(await openSegments(base)).toHaveLength(1)
+
+    const pausedByGm = await owner.caller.mutation(pause, command(campaign.id, started.version + 2))
+    expect(pausedByGm).toMatchObject({ running: false, pausedForCombat: false })
+    await setRunStatus(base, 'ACTIVE')
+    await setRunStatus(base, 'COMPLETED')
+    await expect(owner.caller.query(get, { campaignId: campaign.id })).resolves.toMatchObject({
+      running: false,
+      pausedForCombat: false,
+      version: pausedByGm.version
+    })
+
+    await owner.caller.mutation(start, command(campaign.id, pausedByGm.version))
+    await setRunStatus(base, 'ACTIVE')
+    const pausedAgain = await owner.caller.query(get, { campaignId: campaign.id })
+    expect(pausedAgain).toMatchObject({ running: false, pausedForCombat: true })
+    const startedInCombat = await owner.caller.mutation(
+      start,
+      command(campaign.id, pausedAgain!.version)
+    )
+    expect(startedInCombat).toMatchObject({ running: true, pausedForCombat: false })
+    await setRunStatus(base, 'COMPLETED')
+    await expect(owner.caller.query(get, { campaignId: campaign.id })).resolves.toMatchObject({
+      running: true,
+      version: startedInCombat.version
+    })
+    expect(await openSegments(base)).toHaveLength(1)
+  })
+
+  it('leaves fighting Characters to a GM prompt at a boundary and recovers them once combat ends', async () => {
+    const base = await setupCharacterRun({
+      resources: {
+        id: crypto.randomUUID(),
+        label: 'Dawn charge',
+        order: 0,
+        availableAtLevel: 1,
+        charges: {
+          id: crypto.randomUUID(),
+          resetKind: 'DAWN',
+          limitKind: 'FIXED_AMOUNT',
+          scalingKind: 'NONE',
+          amount: 1
+        }
+      }
+    })
+    const { t, owner, player, campaign, character } = base
+    const sheet = await player.caller.query(api.characters.sheet.get, { id: character.id })
+    const resource = sheet!.resources.items.find((entry) => entry.label === 'Dawn charge')!
+    await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'USE_RESOURCE',
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.characterStreamVersion,
+        resourceGrantId: resource.id,
+        amount: 1
+      }
+    })
+    const resourceUsed = async () =>
+      (await player.caller.query(api.characters.sheet.get, { id: character.id }))!.resources.items.find(
+        (entry) => entry.id === resource.id
+      )!.used
+    const readRows = () =>
+      t.run(async (ctx) => ({
+        prompts: await ctx.db.query('campaignClockRecoveryPrompts').collect(),
+        recoveries: await ctx.db.query('campaignClockRecoveries').collect()
+      }))
+    await activateRun(base)
+    const initial = await owner.caller.mutation(initialize, {
+      ...command(campaign.id, 0),
+      day: 1,
+      minuteOfDay: 359,
+      dawnMinute: 360,
+      duskMinute: 1080
+    })
+    const crossed = await owner.caller.mutation(advance, {
+      ...command(campaign.id, initial.version),
+      minutes: 2
+    })
+    expect(crossed).toMatchObject({ day: 1, minuteOfDay: 361 })
+    expect(await readRows()).toEqual({
+      prompts: [
+        expect.objectContaining({
+          campaignId: campaign.id,
+          characterId: character.id,
+          boundaryAbsoluteMinute: 360,
+          boundaryKind: 'DAWN'
+        })
+      ],
+      recoveries: []
+    })
+    expect(await resourceUsed()).toBe(1)
+
+    await owner.caller.mutation(internal.campaigns.clockRecovery.recover, {
+      campaignId: campaign.id,
+      actorUserId: owner.userId,
+      absolute: 360,
+      kind: 'DAWN',
+      occurredAt: new Date().toISOString()
+    })
+    expect((await readRows()).prompts).toHaveLength(1)
+
+    const prompts = await owner.caller.query(recoveryPrompts, { campaignId: campaign.id })
+    expect(prompts).toEqual([
+      expect.objectContaining({
+        characterId: character.id,
+        characterName: 'Aria',
+        boundaryAbsoluteMinute: 360,
+        boundaryKind: 'DAWN'
+      })
+    ])
+    await expect(
+      player.caller.query(recoveryPrompts, { campaignId: campaign.id })
+    ).rejects.toThrow('Campaign not found')
+    await expect(
+      player.caller.mutation(dismissRecoveryPrompt, {
+        campaignId: campaign.id,
+        promptId: prompts[0]!.id
+      })
+    ).rejects.toThrow('Campaign not found')
+    await owner.caller.mutation(dismissRecoveryPrompt, {
+      campaignId: campaign.id,
+      promptId: prompts[0]!.id
+    })
+    expect((await readRows()).prompts).toEqual([])
+    await expect(owner.caller.query(recoveryPrompts, { campaignId: campaign.id })).resolves.toEqual(
+      []
+    )
+
+    await setRunStatus(base, 'COMPLETED')
+    await owner.caller.mutation(advance, {
+      ...command(campaign.id, crossed.version),
+      minutes: 1440
+    })
+    const afterCombat = await readRows()
+    expect(afterCombat.prompts).toEqual([])
+    expect(afterCombat.recoveries).toEqual([
+      expect.objectContaining({ characterId: character.id, boundaryAbsoluteMinute: 1800 })
+    ])
+    expect(await resourceUsed()).toBe(0)
   })
 })

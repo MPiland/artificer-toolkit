@@ -1743,6 +1743,22 @@ assembles the current Character snapshot, runs full Builder reconciliation and e
 validates current policy facts and output. The registry is rebuilt when finalization loads newly
 materialized Equipment sources; it is never persisted or shared between requests.
 Member reads derive elapsed time without writes; only an active owner reconciles from the web.
+
+**Combat and the clock (user decision, 2026-10-01; source, unvalidated).** The clock stays a
+GM-owned Convex record outside the live room. Combat pauses it: an `encounterRuns` trigger in
+`lib/mutations.ts` fires when a Campaign's set of ACTIVE Runs changes, whether through a direct
+Convex command, a room checkpoint or deletion. It pauses a running clock and sets `pausedForCombat`;
+once no Run is ACTIVE it resumes only a clock that combat paused. An explicit GM start or pause
+clears the flag. The system pause and resume write no command receipt, and they leave the
+recovery watermark alone; the next clock command processes any boundary passed before the pause.
+When a clock command crosses DAWN, DUSK or DAILY during combat, Characters outside the fight
+recover as before. Characters in it (unfrozen Character actors of an ACTIVE Run, whose play the
+room may hold) are not recovered automatically. One `campaignClockRecoveryPrompts` row per Campaign,
+boundary and Character asks the GM which charges recovering at that boundary to refresh. The
+refresh goes through the normal Sheet command path, through the room while the Character is held.
+Dismissing the prompt deletes the row. Prompt rows go when the Character leaves the Campaign
+and when the Campaign is deleted.
+
 Native Clock/Session web bindings and transactional tests are implemented. P15 managed concurrency,
 replay, privacy and once-only recovery proof is accepted. The frozen workload performance gate and
 complete same-source release proof remain V15 and R08–R10.

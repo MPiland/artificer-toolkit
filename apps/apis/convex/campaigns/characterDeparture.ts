@@ -69,6 +69,12 @@ export async function removeCampaignCharacterAssignment(input: {
         )
   await ctx.db.delete(assignment._id)
   if (overlay) await ctx.db.delete(overlay._id)
+  for await (const prompt of ctx.db
+    .query('campaignClockRecoveryPrompts')
+    .withIndex('by_campaignId_characterId', (q) =>
+      q.eq('campaignId', campaign.id).eq('characterId', character.id)
+    ))
+    await ctx.db.delete(prompt._id)
   const targets = await readCharacterSourceAccessLoss(ctx, character)
   if (draft)
     targets.push(

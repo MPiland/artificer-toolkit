@@ -7305,6 +7305,7 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;
@@ -7328,12 +7329,19 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;
           updatedAt: string;
           version: number;
         }
+      >;
+      dismissRecoveryPrompt: FunctionReference<
+        "mutation",
+        "public",
+        { campaignId: string; promptId: string },
+        null
       >;
       get: FunctionReference<
         "query",
@@ -7345,6 +7353,7 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;
@@ -7370,6 +7379,7 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;
@@ -7387,6 +7397,7 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;
@@ -7404,12 +7415,27 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;
           updatedAt: string;
           version: number;
         }
+      >;
+      recoveryPrompts: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string },
+        Array<{
+          boundaryAbsoluteMinute: number;
+          boundaryKind: "DAWN" | "DUSK" | "DAILY";
+          campaignId: string;
+          characterId: string;
+          characterName: string;
+          createdAt: string;
+          id: string;
+        }>
       >;
       reset: FunctionReference<
         "mutation",
@@ -7428,6 +7454,7 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;
@@ -7451,6 +7478,7 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;
@@ -7468,6 +7496,7 @@ export declare const api: {
           day: number;
           duskMinute: number;
           minuteOfDay: number;
+          pausedForCombat: boolean;
           processedBoundaryAbsoluteMinute: number;
           running: boolean;
           runningSince: string | null;

@@ -21,7 +21,10 @@ import {
   type CharacterSheetLivePlayCommand
 } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
-import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type {
+  CharacterRestPreviewRequestDto,
+  CharacterSheetCommandResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetCommands'
 import {
   projectOptimisticCharacterSheetSlice,
   projectOptimisticCharacterSheetPanel
@@ -76,7 +79,10 @@ export function useCharacterSheetCommandMutation(
   live?: {
     /** The Convex play version the Sheet's other commands are checked against. */
     checkpointVersion: number
-    sendPlayCommand: (command: CharacterSheetLivePlayCommand) => Promise<void>
+    /** Resolves with the room's committed play version, which the next command must expect. */
+    sendPlayCommand: (
+      command: CharacterSheetLivePlayCommand
+    ) => Promise<CharacterSheetCommandResponseDto>
   } | null
 ) {
   const execute = useConvexMutation(

@@ -2,7 +2,7 @@
 
 > The resume point for a fresh session. Read this first, then only the sections it links. Keep it under about 60 lines; rewrite it at every slice boundary.
 >
-> Updated: 2026-10-01.
+> Updated: 2026-10-01 (after A35-S3b).
 
 ## Where we are
 
@@ -19,24 +19,27 @@
 
 ## Last slice (done)
 
-**A35-S8b Pages outside the room show checkpoint freshness.** State: integrating. Gate10 clean (builds, local codegen, typechecks, web); lint and lazy-schema checks clean on touched files.
+**A35-S3b Recovery, clock and DAILY cleanup.** State: integrating. Gate13 clean (builds, local codegen, typechecks, web). The focused Convex tests (clock, deletion, both development lifecycles) pass 34/34. The web CampaignClock tests and oxlint also pass.
 
-- The chat-only `campaigns.chat.liveAuthority` became the Campaign-level `campaigns.queries.liveAuthority` (any member): live epoch plus nullable `checkpointedAt` (`campaignLiveAuthorityDtoSchema` in `liveSessionState.ts`). Chat routing uses it unchanged.
-- `CampaignLiveCheckpointNotice` in the session workspace tells GM and players outside the room when the Encounter details were last checkpointed, or that none has been yet.
+- **Bug fixed.** Clock recovery wrote Sheets through Convex, so a boundary crossed during live combat threw on held Characters and rolled the command back.
+- **Combat pauses the clock** (user decision; see [decisions](phase-08-2-decisions.md) and [persistence](../architecture/persistence.md)). An `encounterRuns` trigger calls `syncCampaignClockWithCombat` (`campaigns/clockCombat.ts`). It pauses a running clock when a Run turns ACTIVE. When the last Run ends, it resumes only a clock it paused itself (`pausedForCombat`). Any GM start or pause clears the flag.
+- **GM prompts for fighters.** A boundary the GM moves past during combat recovers non-fighters as before. Each fighter gets a row in `campaignClockRecoveryPrompts` instead. The GM sees a "Dawn passed during combat · review charges" button by the clock and picks charges per Character. The refresh is sent through the room when the Character is held. Lifecycle cleanup covers the new table.
 
 Follow-ups for the test cycle (REL-4):
 
-- No tests yet for the query (member access, null before first checkpoint) or the notice.
-- Outside-room Encounter reads still poll Convex every 5 s (`data/encounters/queries.ts`); under live authority they only change at checkpoints. Measure in A35-S9 and key them to `checkpointedAt` if the budget needs it.
-- Carried from A35-S8a: the room test suite was red before that slice (`nativeLiveSessionRoom.test.ts`, 76 of 89, authority-fixture failure; fix first), no `RoomAccountBuckets`/chat-command tests, pre-epoch nonce refused rather than replayed. Older items: see this file at `28457d7b8`.
+- The prompt test uses one Character before and after combat, because the fixture has one player. Add a mixed fighter/non-fighter case, plus web tests for the prompt card and modal (none were run in a browser).
+- `recoveryPrompts` collects without a bound (in practice limited by roster × boundaries). Its DTO parse throws on a Character label longer than 100 characters. Each card opens its own live connection while the modal is open.
+- The system pause and resume write no command receipt and send no room notification.
+- Existing local clock rows lack `pausedForCombat`. Reseed if a read fails.
+- Carried: A35-S8b query/notice tests and 5 s outside-room polling (measure in A35-S9). Room suite red before A35-S8a (`nativeLiveSessionRoom.test.ts`, fix first). Older items: see this file at `983ce5488`.
 
 ## Current slice
 
-**A35-S3b Recovery, clock and DAILY cleanup.** See the [source-first handoff](phase-08-2-claude-source-first.md#remaining-implementation-and-sequence), item 3. Narrow HP/Common reads stay incomplete; the checksum-dependent note writer stays frozen.
+**A35-S6b Retire the remaining Scene paths; author the movement and Sheet input fixtures** (R06, V07). See the [source-first handoff](phase-08-2-claude-source-first.md#remaining-implementation-and-sequence), item 3, second part. Keep the original pending/terminal order, source pins, replay, fog-only Scene advancement and recipient privacy.
 
 ## Next slices
 
-The registry `queue` holds the order: A35-S6b Scene retirement and fixtures, A35-S7b held-actor removal on account deletion, A35-S3c packed Scene history, A35-S5 parity, A35-S6c the switch (approved for Opus), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
+The registry `queue` holds the order: A35-S7b held-actor removal on account deletion, A35-S3c packed Scene history, A35-S5 parity, A35-S6c the switch (approved for Opus), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
 
 **Not scheduled (needs your call):** CP-S6i rule-roll chat cards, A35-S8c room-planned evidence rolls, A36-S10 room content from snapshots, A36-F1, RUL-9, TST-0/4/5/6, PLT-5 (D75 web hosting), PLT-6.
 

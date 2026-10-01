@@ -260,8 +260,28 @@ export const campaignClockDtoSchema = lazySchema(() =>
     dawnMinute: z.number().check(z.int()).check(z.gte(0)).check(z.lte(1439)),
     duskMinute: z.number().check(z.int()).check(z.gte(0)).check(z.lte(1439)),
     processedBoundaryAbsoluteMinute: z.number().check(z.int()),
+    /** True while combat paused a running clock; only that pause is lifted when combat ends. */
+    pausedForCombat: z.boolean(),
     version: versionSchema,
     updatedAt: timestampSchema
+  })
+)
+/** A Character in the fight at a clock boundary, left for the GM to refresh by hand. */
+export const campaignClockRecoveryPromptDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    campaignId: uuidSchema,
+    characterId: uuidSchema,
+    characterName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100)),
+    boundaryAbsoluteMinute: z.number().check(z.int()).check(z.nonnegative()),
+    boundaryKind: z.enum(['DAWN', 'DUSK', 'DAILY']),
+    createdAt: timestampSchema
+  })
+)
+export const dismissCampaignClockRecoveryPromptInputSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    promptId: uuidSchema
   })
 )
 export const initializeCampaignClockInputSchema = lazySchema(() =>
@@ -464,6 +484,10 @@ export type SetCampaignSessionAttendanceInput = z.input<
   typeof setCampaignSessionAttendanceInputSchema
 >
 export type CampaignClockDto = z.infer<typeof campaignClockDtoSchema>
+export type CampaignClockRecoveryPromptDto = z.infer<typeof campaignClockRecoveryPromptDtoSchema>
+export type DismissCampaignClockRecoveryPromptInput = z.input<
+  typeof dismissCampaignClockRecoveryPromptInputSchema
+>
 export type InitializeCampaignClockInput = z.input<typeof initializeCampaignClockInputSchema>
 export type ConfigureCampaignClockInput = z.input<typeof configureCampaignClockInputSchema>
 export type StartCampaignClockInput = z.input<typeof startCampaignClockInputSchema>

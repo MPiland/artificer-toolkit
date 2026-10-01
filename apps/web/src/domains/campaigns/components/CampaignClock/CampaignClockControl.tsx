@@ -7,6 +7,7 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useMutation as useConvexMutation } from 'convex/react'
 import { getCampaignClock } from '#app/data/campaigns/queries'
 import { CampaignClockEditor } from './CampaignClockEditor'
+import { CampaignClockRecoveryPrompts } from './CampaignClockRecoveryPrompts'
 import { clockDisplayTime, formatTime } from './campaignClockTime'
 import * as styles from './CampaignClock.css'
 
@@ -65,8 +66,16 @@ export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto
                   : 'Not set'}
           </Text>
           {clock.data ? (
-            <Badge color={clock.data.running ? 'green' : 'gray'} size='xs' variant='light'>
-              {clock.data.running ? 'Running' : 'Paused'}
+            <Badge
+              color={clock.data.running ? 'green' : clock.data.pausedForCombat ? 'yellow' : 'gray'}
+              size='xs'
+              variant='light'
+            >
+              {clock.data.running
+                ? 'Running'
+                : clock.data.pausedForCombat
+                  ? 'Paused for combat'
+                  : 'Paused'}
             </Badge>
           ) : null}
         </Group>
@@ -75,6 +84,7 @@ export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto
             Dawn {formatTime(clock.data.dawnMinute)} · Dusk {formatTime(clock.data.duskMinute)}
           </Text>
         ) : null}
+        {editable ? <CampaignClockRecoveryPrompts campaignId={campaign.id} /> : null}
       </div>
       {toggle.error || reconcileError ? (
         <Text c='red' role='alert' size='xs'>

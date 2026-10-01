@@ -66,6 +66,7 @@ export const removeFixtureState = internalMutation({
       clocks,
       commands,
       recoveries,
+      recoveryPrompts,
       events,
       runs,
       overlays
@@ -97,6 +98,10 @@ export const removeFixtureState = internalMutation({
       ctx.db
         .query('campaignClockRecoveries')
         .withIndex('by_campaignId_boundary', (q) => q.eq('campaignId', campaign.id))
+        .take(limits.recoveries + 1),
+      ctx.db
+        .query('campaignClockRecoveryPrompts')
+        .withIndex('by_campaignId_boundary_character_kind', (q) => q.eq('campaignId', campaign.id))
         .take(limits.recoveries + 1),
       ctx.db
         .query('campaignEvents')
@@ -226,7 +231,9 @@ export const removeFixtureState = internalMutation({
       'Fixture command result mismatch.'
     )
     check(
-      recoveries.length <= limits.recoveries && events.length <= limits.events,
+      recoveries.length <= limits.recoveries &&
+        recoveryPrompts.length <= limits.recoveries &&
+        events.length <= limits.events,
       'Fixture audit bounds exceeded.'
     )
     const byId = new Map(events.map((e) => [e.id, e]))
@@ -298,6 +305,7 @@ export const removeFixtureState = internalMutation({
     for (const row of attendance) await ctx.db.delete(row._id)
     for (const row of segments) await ctx.db.delete(row._id)
     for (const row of recoveries) await ctx.db.delete(row._id)
+    for (const row of recoveryPrompts) await ctx.db.delete(row._id)
     for (const row of events) await ctx.db.delete(row._id)
     for (const row of commands) await ctx.db.delete(row._id)
     for (const row of sessions) await ctx.db.delete(row._id)

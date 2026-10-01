@@ -1,8 +1,11 @@
+import { v } from 'convex/values'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   advanceCampaignClockInputSchema,
   campaignClockDtoSchema,
+  campaignClockRecoveryPromptDtoSchema,
   configureCampaignClockInputSchema,
+  dismissCampaignClockRecoveryPromptInputSchema,
   initializeCampaignClockInputSchema,
   pauseCampaignClockInputSchema,
   reconcileCampaignClockInputSchema,
@@ -17,7 +20,8 @@ import {
   type ResetCampaignClockInput,
   type RewindCampaignClockInput,
   type StartCampaignClockInput,
-  type CampaignClockDto
+  type CampaignClockDto,
+  type CampaignClockRecoveryPromptDto
 } from '@artificer-toolkit/schema/api/campaignSessions'
 import { campaignIdInputSchema } from '@artificer-toolkit/schema/api/campaignCore'
 import * as zMini from 'zod/mini'
@@ -34,6 +38,7 @@ import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
+import { closeOpenClockSegment, openClockSegment } from './clockSegments'
 import { internal } from '../_generated/api'
 
 type ClockInput =
@@ -70,6 +75,7 @@ function toClockDto(clock: CampaignClockDto): CampaignClockDto {
     dawnMinute: clock.dawnMinute,
     duskMinute: clock.duskMinute,
     processedBoundaryAbsoluteMinute: clock.processedBoundaryAbsoluteMinute,
+    pausedForCombat: clock.pausedForCombat,
     version: clock.version,
     updatedAt: clock.updatedAt
   })
@@ -113,25 +119,13 @@ async function rotateSegment(
   at: string
 ) {
   if (!clock.running) return
-  const open = await ctx.db
-    .query('campaignClockSegments')
-    .withIndex('by_campaignId_stoppedAt', (q) =>
-      q.eq('campaignId', clock.campaignId).eq('stoppedAt', null)
-    )
-    .unique()
-  if (!open) throw new Error('Running Campaign clock has no open segment.')
-  await ctx.db.patch(open._id, {
-    stoppedAt: at,
-    endAbsoluteMinute: toAbsoluteMinute(clock.day, clock.minuteOfDay)
-  })
-  await ctx.db.insert('campaignClockSegments', {
-    id: crypto.randomUUID(),
-    campaignId: clock.campaignId,
-    startedAt: at,
-    stoppedAt: null,
-    startAbsoluteMinute: targetAbsoluteMinute,
-    endAbsoluteMinute: null
-  })
+  await closeOpenClockSegment(
+    ctx.db,
+    clock.campaignId,
+    toAbsoluteMinute(clock.day, clock.minuteOfDay),
+    at
+  )
+  await openClockSegment(ctx.db, clock.campaignId, targetAbsoluteMinute, at)
 }
 
 async function advanceDerivedClock(
@@ -231,6 +225,70 @@ export const get = query({
   }
 })
 
+export const recoveryPrompts = query({
+  args: zodToConvexFields(campaignIdInputSchema.shape),
+  returns: zodToConvex(zMini.array(campaignClockRecoveryPromptDtoSchema)),
+  handler: async (ctx, args) => {
+    const { campaignId } = campaignIdInputSchema.parse(args)
+    const { userId } = await requireIdentity(ctx)
+    const { campaign, membership } = await requireCampaignAuthority(ctx, campaignId, userId)
+    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    const assignedCharacterIds = new Set(
+      (
+        await ctx.db
+          .query('campaignCharacterAssignments')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+          .collect()
+      ).map((assignment) => assignment.characterId)
+    )
+    const prompts: CampaignClockRecoveryPromptDto[] = []
+    for await (const prompt of ctx.db
+      .query('campaignClockRecoveryPrompts')
+      .withIndex('by_campaignId_boundary_character_kind', (q) => q.eq('campaignId', campaign.id))) {
+      if (!assignedCharacterIds.has(prompt.characterId)) continue
+      const character = await ctx.db
+        .query('characters')
+        .withIndex('by_publicId', (q) => q.eq('id', prompt.characterId))
+        .unique()
+      if (!character) continue
+      prompts.push(
+        campaignClockRecoveryPromptDtoSchema.parse({
+          id: prompt.id,
+          campaignId: prompt.campaignId,
+          characterId: prompt.characterId,
+          characterName: character.label,
+          boundaryAbsoluteMinute: prompt.boundaryAbsoluteMinute,
+          boundaryKind: prompt.boundaryKind,
+          createdAt: prompt.createdAt
+        })
+      )
+    }
+    return prompts.sort(
+      (left, right) =>
+        left.boundaryAbsoluteMinute - right.boundaryAbsoluteMinute ||
+        left.characterName.localeCompare(right.characterName)
+    )
+  }
+})
+
+export const dismissRecoveryPrompt = mutation({
+  args: zodToConvexFields(dismissCampaignClockRecoveryPromptInputSchema.shape),
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const input = dismissCampaignClockRecoveryPromptInputSchema.parse(args)
+    const { userId } = await requireIdentity(ctx)
+    const campaign = await requireClockOwner(ctx, input.campaignId, userId)
+    const prompt = await ctx.db
+      .query('campaignClockRecoveryPrompts')
+      .withIndex('by_campaignId_id', (q) =>
+        q.eq('campaignId', campaign.id).eq('id', input.promptId)
+      )
+      .unique()
+    if (prompt) await ctx.db.delete(prompt._id)
+    return null
+  }
+})
+
 export const initialize = mutation({
   args: zodToConvexFields(initializeCampaignClockInputSchema.shape),
   returns: zodToConvex(campaignClockDtoSchema),
@@ -248,6 +306,7 @@ export const initialize = mutation({
         dawnMinute: input.dawnMinute,
         duskMinute: input.duskMinute,
         processedBoundaryAbsoluteMinute: toAbsoluteMinute(input.day, input.minuteOfDay),
+        pausedForCombat: false,
         version: 0,
         updatedAt: at
       }
@@ -290,15 +349,13 @@ export const start = mutation({
     return runClockCommand(ctx, userId, input, 'START_CLOCK', async (existing, at) => {
       if (!existing) throw new Error('Campaign clock is not initialized.')
       if (existing.running) throw new Error('Campaign clock is already running.')
-      await ctx.db.insert('campaignClockSegments', {
-        id: crypto.randomUUID(),
-        campaignId: existing.campaignId,
-        startedAt: at,
-        stoppedAt: null,
-        startAbsoluteMinute: toAbsoluteMinute(existing.day, existing.minuteOfDay),
-        endAbsoluteMinute: null
-      })
-      return { ...existing, running: true, runningSince: at }
+      await openClockSegment(
+        ctx.db,
+        existing.campaignId,
+        toAbsoluteMinute(existing.day, existing.minuteOfDay),
+        at
+      )
+      return { ...existing, running: true, runningSince: at, pausedForCombat: false }
     })
   }
 })
@@ -311,22 +368,12 @@ export const pause = mutation({
     const { userId } = await requireIdentity(ctx)
     return runClockCommand(ctx, userId, input, 'PAUSE_CLOCK', async (existing, at) => {
       if (!existing) throw new Error('Campaign clock is not initialized.')
-      if (!existing.running) return existing
+      if (!existing.running) return { ...existing, pausedForCombat: false }
       const derived = deriveClock(existing, at).clock
       const target = toAbsoluteMinute(derived.day, derived.minuteOfDay)
-      const open = await ctx.db
-        .query('campaignClockSegments')
-        .withIndex('by_campaignId_stoppedAt', (q) =>
-          q.eq('campaignId', existing.campaignId).eq('stoppedAt', null)
-        )
-        .unique()
-      if (!open) throw new Error('Running Campaign clock has no open segment.')
-      await ctx.db.patch(open._id, {
-        stoppedAt: at,
-        endAbsoluteMinute: target
-      })
+      await closeOpenClockSegment(ctx.db, existing.campaignId, target, at)
       const advanced = await advanceDerivedClock(ctx, derived, target, userId, at)
-      return { ...advanced, running: false, runningSince: null }
+      return { ...advanced, running: false, runningSince: null, pausedForCombat: false }
     })
   }
 })

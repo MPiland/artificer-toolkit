@@ -550,6 +550,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+- **Combat and the Campaign clock (2026-10-01, A35-S3b).** The clock is the GM's own control and stays in Convex, outside the live room.
+  - Combat pauses a running clock automatically. When the last ACTIVE Run ends, it resumes only if combat paused it.
+  - If the GM moves time past dawn, dusk or midnight during combat, Characters outside the fight recover as before. For Characters in the fight, the GM gets a prompt that names the condition and lists their matching charges, and decides which to refresh. Nothing in the fight recovers automatically.
+  - Rejected: the room applying recovery itself, which would make the room clock-aware for an edge case (ten rounds is one minute), and refusing to cross a boundary during combat.
+  - Scene lighting from world time (as in Foundry) is a post-launch enhancement.
 - **Q19 (2026-09-28).** Match Roll20 to keep hosting costs down for launch.
   - There are no live cursors shared on hover.
   - A long-press **ping** replaces the press-and-drag streaming pointer. A ping is one message per press, so it costs almost nothing.

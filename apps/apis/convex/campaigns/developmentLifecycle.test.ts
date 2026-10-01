@@ -288,6 +288,7 @@ describe('reserved native Campaign lifecycle proof', () => {
       campaignConversationEntryPayloads: [],
       campaignCurrencyDenominations: [],
       campaignClockRecoveries: [],
+      campaignClockRecoveryPrompts: [],
       encounterRuleReceipts: []
     })
     expect(state.descendants.encounterIds).toEqual([])

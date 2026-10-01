@@ -1,7 +1,28 @@
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { liveCharacterHoldSchema } from '@artificer-toolkit/schema/projections/liveCharacterHold'
+import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+
+/** The unfrozen Characters of the given Runs that are ACTIVE, with the Run each one fights in. */
+export async function readFightingCharacters(
+  ctx: MutationCtx,
+  campaignId: string,
+  runs: ReadonlyArray<Doc<'encounterRuns'> | null>
+) {
+  const fighting: Array<{ characterId: string; encounterId: string }> = []
+  const context = { db: createConvexEncounterStoreReader(ctx) }
+  for (const row of runs) {
+    if (!row) continue
+    const state = readRunState(row)
+    if (state.campaignId !== campaignId) throw new Error('Character hold Run scope mismatch.')
+    if (state.status !== 'ACTIVE') continue
+    for (const actor of await readRunActors(context, state))
+      if (actor.kind === 'CHARACTER' && !actor.frozenState)
+        fighting.push({ characterId: actor.sourceId, encounterId: state.id })
+  }
+  return fighting
+}
 
 /** Activation covers current active Runs; checkpoints reconcile only the Runs they changed. */
 export async function reconcileCharacterHolds(
@@ -30,22 +51,9 @@ export async function reconcileCharacterHolds(
         )
         .collect()
   const expected = new Map<string, ReturnType<typeof liveCharacterHoldSchema.parse>>()
-  const context = { db: createConvexEncounterStoreReader(ctx) }
-  for (const row of runs) {
-    if (!row) continue
-    const state = readRunState(row)
-    if (state.campaignId !== campaignId) throw new Error('Character hold Run scope mismatch.')
-    if (state.status !== 'ACTIVE') continue
-    for (const actor of await readRunActors(context, state)) {
-      if (actor.kind !== 'CHARACTER' || actor.frozenState) continue
-      const hold = liveCharacterHoldSchema.parse({
-        characterId: actor.sourceId,
-        campaignId,
-        encounterId: state.id,
-        epoch
-      })
-      expected.set(`${hold.encounterId}:${hold.characterId}`, hold)
-    }
+  for (const { characterId, encounterId } of await readFightingCharacters(ctx, campaignId, runs)) {
+    const hold = liveCharacterHoldSchema.parse({ characterId, campaignId, encounterId, epoch })
+    expected.set(`${hold.encounterId}:${hold.characterId}`, hold)
   }
   for (const hold of prior) {
     if (encounterIds && !encounterIds.has(hold.encounterId)) continue

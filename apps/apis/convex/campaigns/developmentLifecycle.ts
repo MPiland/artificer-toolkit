@@ -422,6 +422,13 @@ async function campaignRows(
       200,
       'campaignClockRecoveries'
     ),
+    campaignClockRecoveryPrompts: await rows(
+      ctx.db
+        .query('campaignClockRecoveryPrompts')
+        .withIndex('by_campaignId_boundary_character_kind', (q) => q.eq('campaignId', campaignId)),
+      200,
+      'campaignClockRecoveryPrompts'
+    ),
     campaignNotebookSections: await rows(
       ctx.db
         .query('campaignNotebookSections')

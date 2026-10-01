@@ -24,3 +24,15 @@ export const campaignStoredClockRecoverySchema = lazySchema(() =>
     createdAt: timestampSchema
   })
 )
+
+/** A boundary the clock left unrecovered for a Character in combat, until the GM decides. */
+export const campaignStoredClockRecoveryPromptSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    campaignId: uuidSchema,
+    characterId: uuidSchema,
+    boundaryAbsoluteMinute: z.number().check(z.int()),
+    boundaryKind: z.enum(['DAWN', 'DUSK', 'DAILY']),
+    createdAt: timestampSchema
+  })
+)

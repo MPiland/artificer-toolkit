@@ -42,6 +42,7 @@ import {
   campaignStoredSessionNoteSchema
 } from '@artificer-toolkit/schema/projections/campaignSessionPersistence'
 import {
+  campaignStoredClockRecoveryPromptSchema,
   campaignStoredClockRecoverySchema,
   campaignStoredClockSegmentSchema
 } from '@artificer-toolkit/schema/projections/campaignClockPersistence'
@@ -220,6 +221,17 @@ export const campaignTables = {
       'resourceKey'
     ])
     .index('by_campaignId_boundary', ['campaignId', 'boundaryAbsoluteMinute']),
+  campaignClockRecoveryPrompts: defineTable(
+    zodToConvexFields(campaignStoredClockRecoveryPromptSchema.shape)
+  )
+    .index('by_campaignId_boundary_character_kind', [
+      'campaignId',
+      'boundaryAbsoluteMinute',
+      'characterId',
+      'boundaryKind'
+    ])
+    .index('by_campaignId_characterId', ['campaignId', 'characterId'])
+    .index('by_campaignId_id', ['campaignId', 'id']),
   campaignSessionNotes: defineTable(zodToConvexFields(campaignStoredSessionNoteSchema.shape))
     .index('by_campaignId_sessionId_id', ['campaignId', 'sessionId', 'id'])
     .index('by_campaignId_sessionId_sortOrder_id', ['campaignId', 'sessionId', 'sortOrder', 'id'])

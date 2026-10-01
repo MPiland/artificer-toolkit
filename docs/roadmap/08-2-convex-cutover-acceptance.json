@@ -2185,6 +2185,8 @@
               "status": "IN_PROGRESS",
               "proof": [
                 "apps/apis/convex/campaigns/developmentSessionControl.test.ts › runs Session, Clock and GM control contention, replay and authority through public commands (Clock advance race with one winner, exact replay, once-only DAILY recovery, watermark held through rewind and reset)",
+                "apps/apis/convex/campaigns/clock.test.ts › pauses a running clock for combat, resumes only that pause, and yields to GM commands (2026-10-01 combat decision, A35-S3b)",
+                "apps/apis/convex/campaigns/clock.test.ts › leaves fighting Characters to a GM prompt at a boundary and recovers them once combat ends (A35-S3b)",
                 "missing: managed recovery within limits needs a managed run; .codex/validation/phase82-p15-performance/verification.md is historical"
               ]
             },

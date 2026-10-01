@@ -17,6 +17,7 @@ describe('Campaign clock corrections', () => {
       dawnMinute: 360,
       duskMinute: 1080,
       processedBoundaryAbsoluteMinute: 2879,
+      pausedForCombat: false,
       version: 4,
       updatedAt: '2026-09-09T12:00:00.000Z'
     }
