@@ -1088,26 +1088,35 @@ export class RoomInputs {
   }
 
   /**
-   * The Run with its Characters. A Character that left the Campaign after the Run was read is
-   * unassigned here but frozen in the Run as it now stands, so the Run is read again; one that
-   * stays unassigned while its actor is not frozen is a broken Run.
+   * The Run with its assigned Characters. Convex writes no actors of a Run the room holds (D74), so
+   * an actor whose Character left the Campaign or was deleted is still unfrozen here; the room's
+   * departure reconcile freezes or removes it after the hydrating command commits.
    */
   async #readRunWithCharacters(
     read: (scope: LiveRoomInputsScope) => Promise<LiveRoomInputsResponse>,
     encounterId: string
   ) {
-    for (let attempt = 0; attempt < RUN_READ_ATTEMPTS; attempt++) {
-      const run = await this.#readRun(read, encounterId)
-      const characterIds = characterIdsOf(run)
-      const loaded = characterIds.length
-        ? await this.#readCharacters(read, characterIds)
-        : { characters: [], unassigned: [] }
-      if (!loaded.unassigned.length) return { run, characters: loaded.characters }
-    }
-    throw new Error('A Character actor is unassigned but not frozen.')
+    const run = await this.#readRun(read, encounterId)
+    const characterIds = characterIdsOf(run)
+    const { characters } = characterIds.length
+      ? await this.#readCharacters(read, characterIds)
+      : { characters: [] }
+    return { run, characters }
   }
 
-  /** Reads the Characters together; the unassigned ones are reported rather than failing the read. */
+  /**
+   * The Characters among `characterIds` that no longer exist, read fresh. The departure reconcile
+   * removes their actors as account deletion does, instead of freezing them (D74).
+   */
+  async deletedCharacterIds(characterIds: readonly string[]) {
+    const { deleted } = await this.#readCharacters(
+      (scope) => this.#read(this.#requireEpoch(), scope),
+      characterIds
+    )
+    return new Set(deleted)
+  }
+
+  /** Reads the Characters together; unassigned and deleted ones are reported rather than failing. */
   async #readCharacters(
     read: (scope: LiveRoomInputsScope) => Promise<LiveRoomInputsResponse>,
     characterIds: readonly string[]
@@ -1119,9 +1128,14 @@ export class RoomInputs {
     }))
     const assigned = new Map<string, { part: AssignedPart; documents: RoomDocument[] }>()
     const unassigned = new Set<string>()
+    const deleted = new Set<string>()
     for (const part of pages.flatMap((page) => page.parts)) {
       if (part.status === 'UNASSIGNED') {
         unassigned.add(part.characterId)
+        continue
+      }
+      if (part.status === 'DELETED') {
+        deleted.add(part.characterId)
         continue
       }
       const held = assigned.get(part.characterId)
@@ -1136,8 +1150,8 @@ export class RoomInputs {
         })
       }
     }
-    if (characterIds.some((id) => !assigned.has(id) && !unassigned.has(id)))
+    if (characterIds.some((id) => !assigned.has(id) && !unassigned.has(id) && !deleted.has(id)))
       throw new Error('A Character was not read.')
-    return { characters: [...assigned.values()], unassigned: [...unassigned] }
+    return { characters: [...assigned.values()], deleted: [...deleted] }
   }
 }

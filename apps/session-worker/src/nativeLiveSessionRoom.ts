@@ -107,7 +107,7 @@ import {
   RoomRateLimitedError,
   type AccountBucketKind
 } from './roomRateLimits.js'
-import { hasRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
+import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { RoomCharacterSheetFeed } from './roomCharacterSheetFeed.js'
 import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
 import {
@@ -2782,14 +2782,24 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     })
   }
 
-  /** One journaled transaction, only when an open Run names a departure. */
+  /**
+   * One journaled transaction, only when an open Run names a departure. Convex reads whether an
+   * unassigned Character still exists only then; a deleted one's actor is removed, which Convex
+   * must ingest before the receipt, so the room checkpoints first (D74).
+   */
   async #reconcileActorDepartures(
     current: NonNullable<ReturnType<DurableCommandJournal['readCurrent']>>
   ): Promise<void> {
     const authorization = this.#authorization.current(current.authorityEpoch)
     if (!authorization) return
     if (this.#aggregateNeedsReload) await this.#flushOutbox()
-    if (!(await hasRoomActorDepartures(this.#roomStore, authorization))) return
+    const departures = await readRoomActorDepartures(this.#roomStore, authorization)
+    if (!departures) return
+    const campaignId = this.#roomCampaignId()
+    if (!campaignId) throw new Error('Live Session Campaign is unavailable.')
+    const deletedCharacterIds = departures.unassignedCharacterIds.length
+      ? await this.#roomInputs.deletedCharacterIds(departures.unassignedCharacterIds)
+      : new Set<string>()
     const commandId = crypto.randomUUID()
     const sequence = current.sequence + 1
     const receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
@@ -2803,12 +2813,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       sequence: current.sequence,
       checksum: current.stateChecksum
     })
+    const checkpointBeforeAcknowledgement = deletedCharacterIds.size > 0
     await this.#roomStore.transact(
-      () =>
+      (transaction) =>
         reconcileRoomActorDepartures({
           store: this.#roomStore,
+          transaction,
           inputs: this.#roomInputs,
-          authorization
+          authorization,
+          campaignId,
+          epoch: current.authorityEpoch,
+          deletedCharacterIds
         }),
       (entry) => {
         if (this.#authorization.current(current.authorityEpoch) !== authorization)
@@ -2821,18 +2836,28 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           commandId,
           fingerprint: checksumCanonicalJson({
             type: 'RECONCILE_ACTOR_DEPARTURES',
-            revisions: authorization.revisions
+            revisions: authorization.revisions,
+            deletedCharacterIds: [...deletedCharacterIds].sort()
           }),
           expectedSequence: current.sequence,
           expectedStateChecksum: current.stateChecksum,
           nextStateChecksum: entry.chainChecksum,
           nextStateJson: current.stateJson,
-          receiptJson: JSON.stringify(receipt)
+          receiptJson: JSON.stringify(receipt),
+          checkpointBeforeAcknowledgement
         })
         if (committed.kind !== 'COMMITTED')
           throw new Error('Room actor reconcile unexpectedly replayed inside its transaction.')
       }
     )
+    if (checkpointBeforeAcknowledgement) {
+      await this.#checkpointThrough(current.authorityEpoch, sequence)
+      // A removed actor drops its token binding and controls, which a `delta: null` receipt does
+      // not carry: cached play and Scene go, and members resume from the committed state.
+      this.#bumpCacheGeneration()
+      for (const socket of this.ctx.getWebSockets()) this.#challenge(socket)
+      return
+    }
     for (const recipient of this.ctx.getWebSockets()) {
       const member = this.#liveAdmission(recipient)
       if (member && admitsRoomMember(authorization, member)) send(recipient, receipt)

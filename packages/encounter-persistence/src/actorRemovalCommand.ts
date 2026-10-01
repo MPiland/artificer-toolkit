@@ -142,13 +142,15 @@ export async function removeAccountCharacterActors(
 }
 
 /**
- * Trusted cleanup when Convex regains a Campaign's open Runs at room release: removes the actors
- * of Characters that no longer exist, as account cleanup does for a deleting account.
+ * Trusted cleanup of a Campaign's open Runs: removes the actors of Characters that no longer exist,
+ * as account cleanup does for a deleting account. Convex runs it at room release and the room on its
+ * departure reconcile (D74); each owner says which Characters are gone.
  */
 export async function removeMissingCharacterActors(
   ctx: EncounterCharacterWriteTransaction,
   campaign: Campaign,
-  userId: string
+  userId: string,
+  isMissing: (characterId: string) => Promise<boolean>
 ) {
   const targets: Array<{ encounterId: string; actorId: string }> = []
   const rows = await ctx.db
@@ -161,7 +163,7 @@ export async function removeMissingCharacterActors(
     for (const actor of (await readRunActors(ctx, readRunState(row))).sort((left, right) =>
       left.id.localeCompare(right.id)
     ))
-      if (actor.kind === 'CHARACTER' && !(await ctx.ports.readCharacterRow(actor.sourceId)))
+      if (actor.kind === 'CHARACTER' && (await isMissing(actor.sourceId)))
         targets.push({ encounterId: row.id, actorId: actor.id })
   await removeTargetedActors(ctx, campaign, userId, targets, 'MISSING_CHARACTER')
 }

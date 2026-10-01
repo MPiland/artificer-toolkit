@@ -453,7 +453,8 @@ async function readRunPage(
 /**
  * One page of the request's Characters: the next page of the Character at the cursor's position. A
  * Character the Campaign no longer has assigned reads as UNASSIGNED (its Run actor holds its frozen
- * state); every other unreadable state fails, so a broken Character never hides behind a departure.
+ * state), or as DELETED once it no longer exists; every other unreadable state fails, so a broken
+ * Character never hides behind a departure.
  */
 async function readCharactersPage(
   ctx: QueryCtx,
@@ -472,12 +473,17 @@ async function readCharactersPage(
     position + 1 < scope.characterIds.length
       ? { position: position + 1, paginationCursor: null }
       : null
-  if (assignment?.campaignId !== campaign.id)
+  if (assignment?.campaignId !== campaign.id) {
+    const exists = await ctx.db
+      .query('characters')
+      .withIndex('by_publicId', (q) => q.eq('id', characterId))
+      .unique()
     return {
       kind: 'CHARACTERS',
-      parts: [{ status: 'UNASSIGNED', characterId: requested }],
+      parts: [{ status: exists ? 'UNASSIGNED' : 'DELETED', characterId: requested }],
       continueCursor: next
     }
+  }
   // The Campaign owner reads for the room, as the Encounter captures do for a command scope.
   const active = await readAssignedActiveCharacter(ctx, campaign, characterId, campaign.ownerUserId)
   const paginationCursor = scope.cursor?.paginationCursor ?? null

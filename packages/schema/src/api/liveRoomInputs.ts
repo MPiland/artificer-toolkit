@@ -142,12 +142,14 @@ const pagedDocuments = lazySchema(() =>
 
 /**
  * One Character's part of a CHARACTERS response. A Character the Campaign no longer has assigned
- * reads as UNASSIGNED rather than failing the read: its Run actor holds its frozen state. A
- * Character with many documents arrives in several parts, the inputs and revisions on the first.
+ * reads as UNASSIGNED rather than failing the read: its Run actor holds its frozen state. One that
+ * no longer exists reads as DELETED, so the room removes its actors as account deletion does (D74).
+ * A Character with many documents arrives in several parts, the inputs and revisions on the first.
  */
 export const liveRoomCharacterPartSchema = lazySchema(() =>
   z.discriminatedUnion('status', [
     z.strictObject({ status: z.literal('UNASSIGNED'), characterId: postgresUuidSchema }),
+    z.strictObject({ status: z.literal('DELETED'), characterId: postgresUuidSchema }),
     z.strictObject({
       status: z.literal('ASSIGNED'),
       characterId: postgresUuidSchema,

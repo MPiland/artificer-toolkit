@@ -544,7 +544,10 @@
                 "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and preserves finished Encounter history: %s",
                 "impl: apps/apis/convex/campaigns/authorLabels.ts (readCampaignAuthorLabels, shared by chat, rolls, Session notes and attachments), apps/apis/convex/campaigns/sessionNotes.ts, apps/apis/convex/campaigns/attachments.ts, apps/apis/convex/lib/authTriggers.helper.ts",
                 "reworded, user-approved 2026-09-27 (ADR 0035): the entries above still prove the clause for Runs Convex owns; a Run held by the room is not covered",
-                "missing: account deletion while the room holds the Run, with its history reaching Convex by checkpoint (ADR 0035 plan S4, S6)"
+                "apps/apis/convex/liveSessions/roomInputs.test.ts › reads as DELETED once the Character no longer exists",
+                "apps/session-worker/src/roomInputs.test.ts › hydrates a Run whose Character left or was deleted, leaving its actor to the reconcile",
+                "impl (A35-S7b, D74): apps/session-worker/src/roomActorReconcile.ts (removes deleted Characters' actors with the shared removeMissingCharacterActors), apps/session-worker/src/nativeLiveSessionRoom.ts (#reconcileActorDepartures checkpoints before its receipt), apps/apis/convex/liveSessions/roomInputs.ts (CHARACTERS answers DELETED)",
+                "missing: an integrated room test where account deletion while the room holds the Run removes the actor through the reconcile and its history reaches Convex by checkpoint (REL-4)"
               ]
             },
             {
@@ -557,7 +560,9 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › evicts only the exact departed membership epoch through private room control",
                 "impl: apps/apis/convex/campaigns/accountDeparture.helper.ts, apps/apis/convex/liveSessions/controlScheduling.ts",
                 "reworded, user-approved 2026-09-27 (ADR 0035): the entries above still prove eviction from the live table; a Run held by the room is not covered",
-                "missing: deletion during a held Run evicts and notifies only, closing the socket and refusing queued commands (ADR 0035 plan S4)"
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › closes a removed member at the next command boundary, refusing broadcasts and their queued command",
+                "impl (A35-S7b, D74): the room's departure reconcile removes the deleted account's actors from held Runs; Convex writes none (apps/apis/convex/campaigns/accountDeparture.helper.ts)",
+                "missing: an integrated room test of account deletion during a held Run: eviction, socket close, refused queued commands and actor removal together (REL-4)"
               ]
             },
             {

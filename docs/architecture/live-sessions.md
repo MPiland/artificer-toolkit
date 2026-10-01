@@ -1019,19 +1019,28 @@ coalesced post-commit task (`#queuePostCommit`), triggered after every committed
 every authorization reload (so a cold activation too) and every Sheet subscribe, so a Run hydrated
 later is corrected too. It reconciles first, then pushes the held Sheets. It runs in one
 `RoomEncounterStore` transaction with a journal entry (receipt `delta: null`) only when an open
-Run names a departure: it freezes unfrozen Character actors whose assignment is gone and unlists
-controllers who are no longer members, using the shared
-[reconcileRunActorDepartures](../../packages/encounter-persistence/src/actorDepartures.ts). A failed
-step is logged and the next trigger retries it. A Run the room never hydrated this epoch is covered
-at authority release: `release` calls `reconcileOpenRunsAtRelease` in the same transaction, using
+Run names a departure. Account deletion is told apart without a new signal (A35-S7b): when an
+unfrozen Character actor's assignment is gone, the room reads those Characters once through the
+CHARACTERS input scope, where a Character that no longer exists reads as `DELETED` rather than
+`UNASSIGNED`. The transaction then removes the deleted Characters' actors with the shared
+`removeMissingCharacterActors` (as the Campaign owner, as Convex's release does), freezes the other
+unfrozen Character actors whose assignment is gone and unlists controllers who are no longer
+members, using the shared
+[reconcileRunActorDepartures](../../packages/encounter-persistence/src/actorDepartures.ts). A
+removal checkpoints before the receipt, like a room `REMOVE_ACTOR`, then drops the cached play and
+Scene and challenges every socket so members resume from the committed state. A failed step is
+logged and the next trigger retries it. Hydrating a Run reads only its assigned Characters' inputs:
+an actor whose Character left or was deleted stays unfrozen until this reconcile, which runs right
+after the hydrating command commits. A Run the room never hydrated this epoch is covered at
+authority release: `release` calls `reconcileOpenRunsAtRelease` in the same transaction, using
 current membership and assignment as truth (removes actors of deleted Characters, freezes
 unassigned Character actors, unlists departed controllers). Checkpoint ingestion rejects an open
 Run's actor row that names a departed controller or an unassigned unfrozen Character, and a change
 whose `previousChecksum` no longer matches the Convex row (fail closed).
 
-Known gap: the room cannot tell account deletion from departure and adds no new signal, so while it
-holds the Run, a deleted account's Character actor is only frozen, not removed. Release removes it.
-Until then the frozen actor remains visible in the Encounter.
+Known gap: a Character actor already frozen (its player left the Campaign earlier) whose account is
+deleted later is removed only at release, because a frozen actor names no departure for the room to
+reconcile. Until then the frozen actor remains visible in the Encounter.
 
 **Equipment reconciliation (implemented source, unverified).** Canonical Character source-loss
 reconciliation already removes vanished inventory IDs from equipped/attuned lists. Held structural

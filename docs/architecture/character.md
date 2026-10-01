@@ -70,8 +70,9 @@ cover retained/removed IDs with mocked preparation; full integration remains unv
 adds raw STANDARD-to-MATURE replay/current-stream and checksum/fingerprint refusal coverage without execution.
 `SET_HIT_POINTS.maxOverride`, rests, notes, structure and customization commands are outside this lane.
 
-Frontend Sheet commands still use Convex; live routing, projection subscriptions and
-membership/controller/account-deletion hold integration are unfinished. Campaign deletion includes
+Frontend Sheet commands still use Convex; live routing and projection subscriptions are unfinished.
+Membership, controller and account-deletion departures reconcile in the room (D74 in
+[live sessions](live-sessions.md), current source, unverified). Campaign deletion includes
 hold rows, but native lifecycle cleanup needs proof. The new schema needs the guarded local
 reset/seed/codegen lifecycle. No generated check or integrated execution gate has run; S7/S8 remain open.
 

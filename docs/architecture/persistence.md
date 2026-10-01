@@ -82,9 +82,9 @@ do not carry a Sheet projection; only the initiating member receives private his
 admitted member advances the same sequence with `delta: null`; pending Sheet commands settle only
 on their own CHARACTER_SHEET delta. Socket replay revalidates checksummed ACTIVE Run/unfrozen actor
 and current Campaign/System/play ownership. Room party visibility is restored from an unpublished
-suffix before current authorization is used. Frontend live routing/projection subscriptions and
-membership/controller/account-deletion integration remain open; Campaign deletion now includes hold
-rows. The hold schema requires local reset/seed/codegen and lifecycle/replay/rollback/privacy proof.
+suffix before current authorization is used. Frontend live routing/projection subscriptions remain
+open; membership, controller and account-deletion departures reconcile in the room
+([D74](live-sessions.md), current source, unverified); Campaign deletion now includes hold rows. The hold schema requires local reset/seed/codegen and lifecycle/replay/rollback/privacy proof.
 No generated or integrated runtime gate has run on this source.
 
 The focused `sheetSlices.liveAuthority` routing read uses head, holds and typed play only, exposes
@@ -499,7 +499,9 @@ and its cleanup, rollback, privacy and account-settings proofs.
 Account deletion also removes the account's Character actors from ongoing Encounters, retaining
 past turns, rolls and shared Campaign/Session history. The trusted server lifecycle uses the existing
 actor-removal initiative, binding, maintained-effect and receipt pipeline. Audit attribution remains
-the actual deleting app user; it does not impersonate the Campaign owner. Existing actor-removal
+the actual deleting app user; it does not impersonate the Campaign owner. The exception is a Run a
+live room holds (D74): the room's departure reconcile and Convex's release remove the actor after the
+profile is gone, so their removal receipts name the Campaign owner. Existing actor-removal
 snapshot/checksum/version checks remain in force. Trusted cleanup completes valid pending decisions
 invalidated by owner deletion; ordinary public actor removal keeps its existing pending-decision rules. Completed Run history
 is retained. Ordinary public OWNER commands and archived read-only restrictions remain unchanged.

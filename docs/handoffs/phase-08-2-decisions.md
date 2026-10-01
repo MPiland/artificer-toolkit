@@ -498,8 +498,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - A Run the room never hydrated this epoch is reconciled at authority release in the same Convex
     transaction, from current membership and assignment: remove actors of deleted Characters,
     freeze unassigned Character actors, unlist departed controllers.
-  - Known gap: account deletion while the room holds the Run only freezes the actor (no new signal
-    is added); release removes it.
+  - Account deletion (A35-S7b): the room tells it apart without a new signal. Its CHARACTERS input
+    read answers `DELETED` for a Character that no longer exists, and the reconcile removes that
+    actor (with a checkpoint before the receipt) instead of freezing it. Remaining gap: an actor
+    frozen earlier whose account is deleted later is removed only at release.
   - As a backstop, checkpoint ingestion rejects actor rows that still name departed controllers or
     unassigned Characters.
   - No new control operation; Convex membership remains the single source of truth.

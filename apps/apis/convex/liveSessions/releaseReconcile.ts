@@ -32,7 +32,12 @@ export async function reconcileOpenRunsAtRelease(ctx: MutationCtx, campaignId: s
   const memberIds = new Set(memberships.map((member) => member.userId))
   const assigned = new Set(assignments.map((assignment) => assignment.characterId))
   const transaction = encounterWriteTransaction(ctx)
-  await removeMissingCharacterActors(transaction, campaign, campaign.ownerUserId)
+  await removeMissingCharacterActors(
+    transaction,
+    campaign,
+    campaign.ownerUserId,
+    async (characterId) => !(await transaction.ports.readCharacterRow(characterId))
+  )
   for (const status of ['PREPARED', 'ACTIVE'] as const)
     for (const run of await ctx.db
       .query('encounterRuns')

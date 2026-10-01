@@ -2,7 +2,7 @@
 
 > The resume point for a fresh session. Read this first, then only the sections it links. Keep it under about 60 lines; rewrite it at every slice boundary.
 >
-> Updated: 2026-10-01 (after A35-S6b).
+> Updated: 2026-10-01 (after A35-S7b).
 
 ## Where we are
 
@@ -19,48 +19,28 @@
 
 ## Last slice (done)
 
-**A35-S6b Retire the remaining Scene paths; author the movement and Sheet input fixtures.** State: integrating. Gate17 is clean (builds, local codegen, typechecks, web). The full session-worker suite passes 200/200 (12 files). It includes the room tests, the new `nativeCharacterSheet.test.ts` and the D26 hold tests.
+**A35-S7b Account deletion removes held actors** (F12, [D74](phase-08-2-decisions.md)). State: integrating. Gate18 is clean (builds, local codegen, typechecks, web). Affected tests: Convex `liveSessions/roomInputs.test.ts` 36/36; Worker `src/roomInputs.test.ts` and `src/roomCharacterReload.test.ts` 72/74 (the 2 failures predate this slice; see below).
 
-- **Retired in the room:**
-  - The fast-only undo copies (`undo_json`, dropped by migration). Undo now reads native Scene history, and an exhausted undo answers INVALID_COMMAND.
-  - The Convex movement-hold capture (`sceneMovementDecisionPending`). The D26 hold reads the PENDING occurrence from room SQLite (`readMovementDecisionPending`) before any move, door change or undo.
-  - The held-movement Convex stage.
-- **Bugs fixed:**
-  - `RoomEncounterStore.transact` logged every set. A native geometry save (RECEIVING then PUBLISHED in one command) broke the append-only checkpoint, so reauthentication failed. It now logs each record's net change.
-  - Strict parses failed on undo `restoredFogOwners` and geometry `fogPatches`.
-  - The play-authorization `...bound` field leaked.
-  - `oldestUnpublishedCommandTime` threw in a fresh room.
-- **Fixtures:**
-  - `characterSheetInputsFixture.ts` and `pendingMovementFixture.ts` (real persisted schemas).
-  - Shared native Scene inputs in `roomInputsFixture.ts`.
-  - `nativeRoomAdmission` and `nativeTransientFanout` had been red since the unvalidated WIP batch: activation reads native Scene inputs, which neither fixture served. Both now serve them.
+- **Contract:** the CHARACTERS room input answers `DELETED` (new part) for a Character that no longer exists, `UNASSIGNED` otherwise (`liveRoomInputs.ts`, Convex `readCharactersPage`).
+- **Room reconcile** (`roomActorReconcile.ts`, `#reconcileActorDepartures`): when an unfrozen Character actor's assignment is gone, the room asks Convex once which of those Characters are deleted. It removes their actors with the shared `removeMissingCharacterActors` (now given an `isMissing` predicate; Convex release passes its own) as the Campaign owner, then freezes the rest. A removal checkpoints before the receipt, drops cached play and Scene, and challenges every socket so members resume.
+- **Hydrate fix:** a Run first opened mid-epoch with a departed or deleted Character used to throw "unassigned but not frozen" (Convex no longer freezes held Runs under D74). It now hydrates the assigned Characters and leaves the rest to the reconcile.
+- **Docs:** live-sessions D74 section, the D74 decision bullet, persistence and character status lines, F12.3/F12.4 ledger entries.
 
 Follow-ups:
 
-- **For A35-S6c:**
-  - Convex `encounterMovement.stage` has no worker caller.
-  - `fastOnly` in `sceneUndoPublication` remains for Convex.
-  - The preview Scene cache (`#refreshSceneCache` → `hydrateNativeTransientScene`) still reads ENTITIES, fog and vision pages from the Convex hydrate route after a flush. Activation already reads native Scene inputs. Move the cache to room-store reads and delete the hydrate route (cuts Convex reads per cache rebuild).
-- The D26 hold fails open if the bound Run is missing.
-- **Two old D26/D52 tests were not restored.** The ROUTED stage handoff no longer exists. Room-local Encounter tool commands now refuse while any occurrence is PENDING (`recordEncounterToolCommand`).
-- The pending-movement fixture's checksums are placeholders, so it cannot resume a decision.
-- `nativeCharacterSheet.test.ts` duplicates the room harness; a shared `roomHarness.ts` is possible.
-- `apps/apis/convex/_generated/api.d.ts` was regenerated.
-- **Carried from A35-S3b (REL-4):**
-  - Add a mixed fighter/non-fighter clock-prompt case, plus web prompt tests.
-  - `recoveryPrompts` collects without a bound.
-  - The system pause and resume write no receipt.
-  - Old clock rows lack `pausedForCombat` (reseed).
-  - A35-S8b notice tests and 5 s polling.
-  - Older items: see this file at `7a8c45f59`.
+- **Remaining gap:** an actor frozen earlier whose account is deleted later is removed only at release.
+- **Not covered by tests yet (REL-4):** an integrated room test of deletion during a held Run (reconcile removal, checkpoint, socket challenge). The S7a reconcile itself has no room test either.
+- The S7a freeze receipt is still `delta: null` with no resync, so clients see a frozen actor only after a resume.
+- **Stale Worker unit tests (REL-4):** `src/roomInputs.test.ts` "commits a parent play mutation and stale Character refresh as one journal entry" and "replaces a Character’s effects and record in one room command, once" expect a refresh to replace active effects. The code keeps room-owned effects on a Builder refresh (`roomInputs.ts`, "Active effects are room-owned while held"). They fail on HEAD too; the `src/` unit tests were not part of the S6b suite run.
+- **Carried from A35-S6b and A35-S3b:** see this file at `2a96c51f8` (S6c Convex movement stage and preview Scene cache, D26 fail-open, pending-movement fixture checksums, room harness duplication, clock-prompt and recovery items).
 
 ## Current slice
 
-**A35-S7b Account deletion removes held actors** (F12, [D74](phase-08-2-decisions.md)). Deleting an account must remove that user's actors from Runs the room holds, through the room's departure reconcile, not a direct Convex write.
+**A35-S3c Packed Scene history and checkpoint integration** (V05, V07, [D70](phase-08-2-decisions.md)). Scene receipts still use their native payload format; pack them per D70 (packed history with indexed receipt headers) and carry them through room checkpoints, as `docs/architecture/live-sessions.md` ("history packing remains required before S6") and `docs/architecture/persistence.md` ("Packed history per checkpoint (S3) is not done yet") record.
 
 ## Next slices
 
-The registry `queue` holds the order: A35-S3c packed Scene history, A35-S5 parity, A35-S6c the switch (approved for Opus), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
+The registry `queue` holds the order: A35-S5 parity, A35-S6c the switch (approved for Opus), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
 
 **Not scheduled (needs your call):** CP-S6i rule-roll chat cards, A35-S8c room-planned evidence rolls, A36-S10 room content from snapshots, A36-F1, RUL-9, TST-0/4/5/6, PLT-5 (D75 web hosting), PLT-6.
 

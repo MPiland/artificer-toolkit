@@ -1454,6 +1454,23 @@ describe('live room inputs (ADR 0035 S2)', () => {
         })
       )
     })
+
+    it('reads as DELETED once the Character no longer exists', async () => {
+      const base = await departed()
+      await base.t.run(async (ctx) => {
+        const row = await ctx.db
+          .query('characters')
+          .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
+          .unique()
+        if (!row) throw new Error('Expected the departed Character.')
+        await ctx.db.delete(row._id)
+      })
+      expect(await base.t.query(read, base.characters())).toEqual({
+        kind: 'CHARACTERS',
+        parts: [{ status: 'DELETED', characterId: base.character.id }],
+        continueCursor: null
+      })
+    })
   })
 
   it('serves the Campaign play scope, the System and its vocabulary', async () => {

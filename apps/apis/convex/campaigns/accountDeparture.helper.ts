@@ -43,8 +43,8 @@ export async function removeAccountCampaignMemberships(ctx: MutationCtx, userId:
     if (!root) throw new Error('Stored Campaign membership has no Campaign.')
     const { campaign } = await requireCampaignAuthority(ctx, root.id, root.ownerUserId)
 
-    // A Campaign with live authority has its room own every open Run; the room freezes the
-    // departed Character's actor and release removes it (D74).
+    // A Campaign with live authority has its room own every open Run; the room's departure
+    // reconcile removes a deleted Character's actor, and release covers the rest (D74).
     if (!(await readLiveCampaignAuthority(ctx, campaign.id)))
       await removeAccountCharacterActors(encounterWriteTransaction(ctx), campaign.id, userId)
 

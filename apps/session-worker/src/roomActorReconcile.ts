@@ -1,16 +1,19 @@
 import { reconcileRunActorDepartures } from '@artificer-toolkit/encounter-persistence/actorDepartures'
+import { removeMissingCharacterActors } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { EncounterProjectionTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
-import type { RoomEncounterStore } from './roomEncounterStore.js'
+import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
+import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 import type { RoomInputs } from './roomInputs.js'
 
 /**
  * D74: Convex writes no actors of a Run its room holds, so the room applies the departure edits
- * itself when its authorization reloads. These are Convex's own bodies (`characterDeparture`,
- * `actorControllerRemoval`): freeze a Character actor whose assignment is gone, and unlist
- * controllers who are no longer members. An archived Campaign has no members and reconciles nothing.
+ * itself when its authorization reloads. These are Convex's own bodies (`actorRemovalCommand`,
+ * `characterDeparture`, `actorControllerRemoval`): remove a deleted Character's actor, freeze one
+ * whose assignment is gone, and unlist controllers who are no longer members. An archived Campaign
+ * has no members and reconciles nothing.
  */
 async function* openRuns(store: RoomEncounterStore) {
   for (const run of store.documents('encounterRuns')) {
@@ -30,32 +33,61 @@ function departures(authorization: LiveSessionRoomAuthorization) {
   }
 }
 
-/** Whether any open Run names a departed controller or an unfrozen, unassigned Character. */
-export async function hasRoomActorDepartures(
+/**
+ * The departures the open Runs name: the unfrozen Character actors whose assignment is gone, or
+ * `null` when no open Run names a departed controller or such a Character.
+ */
+export async function readRoomActorDepartures(
   store: RoomEncounterStore,
   authorization: LiveSessionRoomAuthorization
-): Promise<boolean> {
+): Promise<{ unassignedCharacterIds: string[] } | null> {
   const { archived, isDeparted, isUnassigned } = departures(authorization)
-  if (archived) return false
+  if (archived) return null
+  const unassigned = new Set<string>()
+  let departed = false
   for await (const state of openRuns(store))
-    for (const actor of await readRunActors({ db: store.store }, state))
-      if (
-        actor.controllerUserIds.some(isDeparted) ||
-        (actor.kind === 'CHARACTER' && !actor.frozenState && isUnassigned(actor.sourceId))
-      )
-        return true
-  return false
+    for (const actor of await readRunActors({ db: store.store }, state)) {
+      if (actor.kind === 'CHARACTER' && !actor.frozenState && isUnassigned(actor.sourceId))
+        unassigned.add(actor.sourceId)
+      departed ||= actor.controllerUserIds.some(isDeparted)
+    }
+  return departed || unassigned.size ? { unassignedCharacterIds: [...unassigned] } : null
 }
 
-/** Runs inside the caller's room transaction; the caller journals it. */
+/**
+ * Runs inside the caller's room transaction; the caller journals it. Actors of Characters that no
+ * longer exist go first, as account deletion removes them in Convex; the rest freeze.
+ */
 export async function reconcileRoomActorDepartures(input: {
   store: RoomEncounterStore
+  transaction: RoomTransaction
   inputs: RoomInputs
   authorization: LiveSessionRoomAuthorization
+  campaignId: string
+  epoch: string
+  deletedCharacterIds: ReadonlySet<string>
 }): Promise<void> {
-  const { store, inputs, authorization } = input
+  const { store, transaction, inputs, authorization, campaignId, epoch, deletedCharacterIds } =
+    input
   const { archived, isDeparted, isUnassigned } = departures(authorization)
   if (archived) return
+  if (deletedCharacterIds.size) {
+    const { ownerUserId } = authorization.campaign
+    const context = await roomEncounterWriteTransaction({
+      store,
+      transaction,
+      inputs,
+      authorization,
+      campaignId,
+      epoch,
+      userId: ownerUserId,
+      observed: inputs.revisions(campaignId, authorization.revisions)
+    })
+    const { campaign } = await context.ports.requireCampaignAuthority(campaignId, ownerUserId)
+    await removeMissingCharacterActors(context, campaign, ownerUserId, async (characterId) =>
+      deletedCharacterIds.has(characterId)
+    )
+  }
   const ctx: EncounterProjectionTransaction & { db: RoomEncounterStore['store'] } = {
     db: store.store,
     ports: { readCharacterPlay, requireSystem: async () => inputs.systemSnapshot() }

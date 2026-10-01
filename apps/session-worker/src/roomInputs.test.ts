@@ -48,6 +48,7 @@ const CAMPAIGN = uuid(2)
 const ENCOUNTER = uuid(1)
 const FIRST_CHARACTER = uuid(0x201)
 const SECOND_CHARACTER = uuid(0x202)
+const THIRD_CHARACTER = uuid(0x203)
 const SCENE = uuid(0x500)
 const FOG_SAVE = uuid(0x503)
 const sceneSource = {
@@ -471,6 +472,7 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
     onCharacterPage: (_characterId: string) => {},
     label: 1,
     unassigned: new Set<string>(),
+    deleted: new Set<string>(),
     characters: new Map<string, LiveRoomInputsDocument[]>([
       [FIRST_CHARACTER, [effect(FIRST_CHARACTER, 1), effect(FIRST_CHARACTER, 2)]],
       [SECOND_CHARACTER, []]
@@ -571,10 +573,12 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
           position + 1 < scope.characterIds.length
             ? { position: position + 1, paginationCursor: null }
             : null
-        if (state.unassigned.has(characterId))
+        if (state.unassigned.has(characterId) || state.deleted.has(characterId))
           return {
             kind: 'CHARACTERS',
-            parts: [{ status: 'UNASSIGNED', characterId }],
+            parts: [
+              { status: state.deleted.has(characterId) ? 'DELETED' : 'UNASSIGNED', characterId }
+            ],
             continueCursor: nextCharacter
           }
         const effects = state.characters.get(characterId) ?? []
@@ -676,24 +680,6 @@ const count = (
   kind: LiveRoomInputsScope['kind']
 ) => kinds(reads).filter((read) => read === kind).length
 
-/** Marks the actor of `sourceId` frozen in the Run, as the Campaign departure does. */
-function freezeActor(run: LiveRoomInputsDocument[], sourceId: string) {
-  const index = run.findIndex(
-    (row) =>
-      row.table === 'encounterRunActors' &&
-      typeof row.fields.stateJson === 'string' &&
-      row.fields.stateJson.includes(sourceId)
-  )
-  const row = run[index]
-  if (!row || typeof row.fields.stateJson !== 'string') throw new Error('The actor is missing.')
-  run[index] = {
-    ...row,
-    fields: {
-      ...row.fields,
-      stateJson: JSON.stringify({ ...JSON.parse(row.fields.stateJson), frozenState })
-    }
-  }
-}
 
 describe('room inputs (ADR 0035 S2)', () => {
   describe('raw Scene hydration', () => {
@@ -1381,16 +1367,14 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(frozen).toHaveLength(1)
     })
 
-    it('reads the Run again when the Character left between the Run and its Characters', async () => {
-      const convex = open([FIRST_CHARACTER, SECOND_CHARACTER, null])
-      convex.state.onCharacterPage = (characterId) => {
-        if (characterId !== SECOND_CHARACTER || convex.state.unassigned.has(characterId)) return
-        convex.state.unassigned.add(characterId)
-        freezeActor(convex.state.run, characterId)
-      }
+    it('hydrates a Run whose Character left or was deleted, leaving its actor to the reconcile', async () => {
+      const convex = open([FIRST_CHARACTER, SECOND_CHARACTER, THIRD_CHARACTER])
+      convex.state.unassigned.add(SECOND_CHARACTER)
+      convex.state.deleted.add(THIRD_CHARACTER)
       await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
 
-      expect(count(convex.reads, 'RUN')).toBe(2)
+      // Convex writes no actors of a held Run (D74), so both stay unfrozen until the reconcile.
+      expect(count(convex.reads, 'RUN')).toBe(1)
       expect(convex.store.records('ROOM_INPUT').map((record) => record.key)).toEqual([
         'AUTHORITY',
         'CAMPAIGN_PLAY',
@@ -1399,21 +1383,15 @@ describe('room inputs (ADR 0035 S2)', () => {
         'SYSTEM:SYSTEM',
         'SYSTEM:VOCABULARY'
       ])
-      const actors = convex.store
-        .documents('encounterRunActors')
-        .map((row) => JSON.parse(row.stateJson) as { sourceId: string; frozenState?: unknown })
-      expect(actors.find((actor) => actor.sourceId === SECOND_CHARACTER)?.frozenState).toEqual(
-        frozenState
-      )
-    })
-
-    it('fails closed when a Character is unassigned but its actor is not frozen', async () => {
-      const convex = open([FIRST_CHARACTER, SECOND_CHARACTER])
-      convex.state.unassigned.add(SECOND_CHARACTER)
-      await expect(convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })).rejects.toThrow(
-        'unassigned but not frozen'
-      )
-      expect(convex.store.epoch).toBeNull()
+      expect(
+        convex.store
+          .documents('encounterRunActors')
+          .map((row) => JSON.parse(row.stateJson) as { frozenState: unknown })
+          .every((actor) => actor.frozenState === null)
+      ).toBe(true)
+      expect(
+        await convex.inputs.deletedCharacterIds([SECOND_CHARACTER, THIRD_CHARACTER])
+      ).toEqual(new Set([THIRD_CHARACTER]))
     })
 
     it('refuses a demand read of a Character that left the Campaign', async () => {
