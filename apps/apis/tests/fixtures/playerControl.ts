@@ -43,7 +43,7 @@ const TRIGGER = {
   SAVE: 'SAVING_THROW'
 } as const
 
-function companionCreature(bite: PlayerControlBite) {
+export function companionCreature(bite: PlayerControlBite) {
   const dexterityId = srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')?.id
   if (!dexterityId) throw new Error('Missing Dexterity ability fixture.')
   return {

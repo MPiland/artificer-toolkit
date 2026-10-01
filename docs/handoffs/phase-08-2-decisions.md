@@ -532,6 +532,19 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     rate-limiting rule on navigations and `/api/auth/*`, fail closed when the daily pool runs out,
     and an alert at 60%. Verify the free plan's rule allowances and that edge-blocked requests do
     not count against the Workers pool before configuring.
+- **D77 (2026-10-01): A35-S5 becomes a differential test; A35-S3c follows A35-S6c. Decided by
+  Claude; the user delegated slice order on 2026-10-01.**
+  - **S5:** the room already commits nearly every Encounter and Scene command natively, so the
+    planned live shadow (Convex authoritative, room comparing) no longer matches source. S5 is a
+    convex-test suite that drives one command sequence through the room-native path and the
+    protected Convex comparators from the same hydrated state, comparing results, logical
+    Encounter documents and Character play after every command. It is deleted with the comparators
+    in S6c.
+  - **S3c after S6c:** packing `sceneLiveCommands` before S6c would rewrite about five Convex Scene
+    writers, ten readers and forty test files that S6c deletes. Nothing in S6c depends on Scene
+    packing. Afterwards S3c packs only the checkpoint writer, room hydration, retention and Campaign
+    deletion, in Scene-scoped ledgers so the 30-day Scene retention never rewrites shared Encounter
+    ledgers.
 
 - **D71 (2026-09-30): bounded deferred purge of retired private receipt payloads.
   Decision maker: Codex. User approval: 2026-09-30.** Codex recommended this change after native

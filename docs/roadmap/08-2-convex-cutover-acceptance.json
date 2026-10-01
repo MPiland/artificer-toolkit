@@ -3640,6 +3640,7 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › recovers a native Scene commit whose acknowledgement was lost and retries without a duplicate write (D27) (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › retries the exact pending checkpoint after eviction before an idle room releases its authority",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › publishes a local token-control revocation before an evicted room reloads Convex grants (A35-S6b)",
+                "apps/apis/convex/liveSessions/roomConvexParity.test.ts › 9 scenarios (GM tools, START with Assisted initiative evidence, turns, RESOLVE_ACTION fixed/ATTACK/SAVE, basic actions, private enemy rolls, prompted d20 resolve and void, REVERT, REORDER, REINFORCE, REMOVE_ACTOR, COMPLETE, Disarm, refusals): room-native and Convex-first commits yield identical results, Encounter documents and play state from the same start (A35-S5, D77; deleted with the comparators in A35-S6c; Concentration, Cleaving, creature equipment and Scene commands not covered)",
                 "missing: the remaining Convex-first Scene and movement code removed (A35-S6c), and room-owned rule evaluation re-proved on the final source (R08)"
               ]
             },

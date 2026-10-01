@@ -1348,7 +1348,8 @@ The room checkpoint builder folds the reserved opaque `SCENE_CHECKPOINT_SOURCE` 
 `SCENE_CHECKPOINT_ROW` records beside rules writes. Source pins remain immutable within a checkpoint;
 rows carry native persistence metadata rather than the display Scene's composed Character vision.
 Pending movement may append evidence without advancing the Scene version. Scene receipts retain
-their existing native payload format in this slice; their history packing remains required before S6.
+their existing native payload format; their history packing (A35-S3c) follows S6c, which deletes the
+per-command Convex Scene writers ([D77](../handoffs/phase-08-2-decisions.md)).
 
 [The raw Scene pager](../../apps/apis/convex/liveSessions/roomSceneInputs.ts) and
 [RoomInputs](../../apps/session-worker/src/roomInputs.ts) now hydrate all seven native families:
