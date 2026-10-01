@@ -12,6 +12,7 @@ import { readCharacterMaximumHitPoints } from './characterMaximumHitPoints.js'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { readRunActors, replaceRunActor } from './documents.js'
 import type { EncounterPersistenceTransaction, EncounterProjectionTransaction } from './ports.js'
+import type { EncounterDocument, EncounterWriteContext } from './store.js'
 
 /**
  * Projects a Character's hit points over its effective maximum, as the Sheet shows them, and its
@@ -80,16 +81,22 @@ export async function readEncounterCharacterStates(
     if (!play || play.userId !== assignment.userId)
       throw new Error('Stored Encounter Character source is unavailable.')
     conditionTypes ??= (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes
-    states.set(
-      characterId,
-      characterProjectionState(
-        ctx.ports.readCharacterPlay(play),
-        await readCharacterMaximumHitPoints(ctx, play),
-        conditionTypes
-      )
-    )
+    states.set(characterId, await readCharacterPlayProjection(ctx, play, conditionTypes))
   }
   return states
+}
+
+/** A Character's current projected values, read from its play record alone. */
+export async function readCharacterPlayProjection(
+  ctx: EncounterProjectionTransaction,
+  play: EncounterDocument<'characterPlayStates'>,
+  conditionTypes: SystemAuthoredDto['conditionTypes']
+) {
+  return characterProjectionState(
+    ctx.ports.readCharacterPlay(play),
+    await readCharacterMaximumHitPoints(ctx, play),
+    conditionTypes
+  )
 }
 
 /**
@@ -109,18 +116,30 @@ export async function freezeEncounterCharacterStates(
       : []
   )
   const current = await readEncounterCharacterStates(ctx, state, targets)
-  for (const actor of targets) {
-    const values = current.get(actor.sourceId)!
-    const frozen = encounterRunActorStateSchema.parse({
-      ...actor,
-      frozenState: {
-        currentHitPoints: values.current,
-        maxHitPoints: values.maximum,
-        tempHitPoints: values.temporary,
-        conditions: values.conditions
-      }
-    })
-    if (checksumCanonicalJson(frozen) !== checksumCanonicalJson(actor))
-      await replaceRunActor(ctx, actor, frozen)
+  for (const actor of targets)
+    await freezeEncounterCharacterActor(ctx, actor, current.get(actor.sourceId)!)
+}
+
+/** Writes the Character actor's frozen values; an actor already holding them is left untouched. */
+export async function freezeEncounterCharacterActor(
+  ctx: EncounterWriteContext,
+  actor: EncounterRunCharacterActorState,
+  values: {
+    current: number
+    temporary: number
+    maximum: number
+    conditions: unknown
   }
+): Promise<void> {
+  const frozen = encounterRunActorStateSchema.parse({
+    ...actor,
+    frozenState: {
+      currentHitPoints: values.current,
+      maxHitPoints: values.maximum,
+      tempHitPoints: values.temporary,
+      conditions: values.conditions
+    }
+  })
+  if (checksumCanonicalJson(frozen) !== checksumCanonicalJson(actor))
+    await replaceRunActor(ctx, actor, frozen)
 }

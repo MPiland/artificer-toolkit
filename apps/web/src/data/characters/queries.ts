@@ -92,6 +92,17 @@ export function getCharacterSheetSlice<Slice extends CharacterSheetSlice>(
   }
 }
 
+/** Non-null while a live Run holds the Character's play for its owner or the Campaign GM. */
+export function getCharacterSheetLiveAuthority(id: string, campaignId: string | null | undefined) {
+  return {
+    ...convexQuery(
+      convexApi.characters.sheetSlices.liveAuthority,
+      campaignId ? { id, campaignId } : 'skip'
+    ),
+    gcTime: 0
+  }
+}
+
 export function getCharacterSheetEquipmentOptions(
   id: string | undefined,
   campaignId?: string | null

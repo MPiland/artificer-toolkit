@@ -472,6 +472,37 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Outside live play:** the existing account-global Convex buckets in
     `apps/apis/convex/lib/rateLimits.ts` remain.
   - [Codex proposal](../../local-validation/live-rate-scope-proposal.md).
+- **D73 (2026-10-01): the room pushes the held Sheet. Proposed by Claude; approved by the user
+  on 2026-10-01.**
+  - When `sheetSlices.liveAuthority` is non-null, the Sheet page opens the room socket and
+    subscribes to its Character. Only the Character's owner or the Campaign GM may subscribe.
+  - After every commit that changes that Character's play stream version (Sheet or Encounter
+    commands), the room recomputes the viewer-projected Sheet with the same rules-runtime
+    projector Convex uses and pushes it unsequenced. The web derives slices from that push with
+    `projectCharacterSheetSlice` and takes `expectedVersion` from its stream version.
+  - Notes, drafts, rests and structural edits stay on Convex.
+  - Party readers keep the checkpoint view.
+  - Alternatives rejected: sending only the play record leaves values derived from equipment,
+    attunement and conditions wrong; notify-then-read adds a round trip for the same computation.
+- **D74 (2026-10-01): the room reconciles held actors after commits and authorization reloads,
+  and Convex reconciles open Runs at release. Proposed by Claude; approved by the user on
+  2026-10-01. Current source, unverified.**
+  - While a Campaign has live authority, Character departure, controller removal and account
+    departure change only Convex membership and assignment for every open Run (PREPARED or
+    ACTIVE). Convex skips its Run actor writes and sends the existing `EVICT_USER` /
+    `INVALIDATE_INPUTS`.
+  - The room freezes or unlists held actors whose assignment or controller is gone, natively in one
+    SQLite transaction. It runs from the post-commit task (after every committed transaction and
+    authorization reload, before the Sheet push), so a Run hydrated later is corrected too. A failed
+    reconcile is logged and retried by the next trigger.
+  - A Run the room never hydrated this epoch is reconciled at authority release in the same Convex
+    transaction, from current membership and assignment: remove actors of deleted Characters,
+    freeze unassigned Character actors, unlist departed controllers.
+  - Known gap: account deletion while the room holds the Run only freezes the actor (no new signal
+    is added); release removes it.
+  - As a backstop, checkpoint ingestion rejects actor rows that still name departed controllers or
+    unassigned Characters.
+  - No new control operation; Convex membership remains the single source of truth.
 
 - **D71 (2026-09-30): bounded deferred purge of retired private receipt payloads.
   Decision maker: Codex. User approval: 2026-09-30.** Codex recommended this change after native

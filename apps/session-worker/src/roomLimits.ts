@@ -43,7 +43,13 @@ const BUDGETS: Record<MessageClass | 'PING', { capacity: number; refillPerSecond
 
 export function messageClass(message: LiveSessionWebSocketClientMessageDto | null): MessageClass {
   if (!message) return 'INVALID'
-  if (message.type === 'RESUME' || message.type === 'SYNCHRONIZE_SCENE') return 'SYNC'
+  if (
+    message.type === 'RESUME' ||
+    message.type === 'SYNCHRONIZE_SCENE' ||
+    message.type === 'SUBSCRIBE_CHARACTER_SHEET' ||
+    message.type === 'UNSUBSCRIBE_CHARACTER_SHEET'
+  )
+    return 'SYNC'
   return message.type
 }
 

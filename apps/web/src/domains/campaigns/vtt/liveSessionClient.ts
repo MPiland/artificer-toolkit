@@ -29,12 +29,19 @@ export interface LiveSessionConnection {
   sendCommand: (command: LiveSessionCommandDto) => boolean
   submitCommand: (command: LiveSessionCommandDto) => Promise<LiveSessionCommandCommit>
   sendTransient: (envelope: SceneTransientEnvelopeDto) => boolean
+  /** Follows one held Character Sheet (resent on every reconnect); null stops following. */
+  subscribeCharacterSheet: (characterId: string | null) => void
   synchronizeScene: (sceneId: string, version: number, expectedPresentationVersion: number) => void
 }
 
 export type LiveSessionCommandCommit = Extract<
   LiveSessionWebSocketServerMessageDto,
   { type: 'COMMAND_COMMITTED' }
+>
+
+export type LiveSessionCharacterSheetPush = Extract<
+  LiveSessionWebSocketServerMessageDto,
+  { type: 'CHARACTER_SHEET' }
 >
 
 export interface LiveSessionDurableState {
@@ -63,7 +70,16 @@ export class LiveSessionCommandRejectedError extends Error {
 
 type LiveSessionClientMessage = Extract<
   LiveSessionWebSocketClientMessageDto,
-  { type: 'AUTHENTICATE' | 'COMMAND' | 'RESUME' | 'SYNCHRONIZE_SCENE' | 'TRANSIENT' }
+  {
+    type:
+      | 'AUTHENTICATE'
+      | 'COMMAND'
+      | 'RESUME'
+      | 'SUBSCRIBE_CHARACTER_SHEET'
+      | 'SYNCHRONIZE_SCENE'
+      | 'TRANSIENT'
+      | 'UNSUBSCRIBE_CHARACTER_SHEET'
+  }
 >
 type SceneSynchronizationMessage = Extract<LiveSessionClientMessage, { type: 'SYNCHRONIZE_SCENE' }>
 
@@ -72,6 +88,7 @@ interface LiveSessionConnectionOptions {
   getAccessToken: () => Promise<string>
   getTicket: () => Promise<LiveSessionTicketDto>
   onError: (error: Error) => void
+  onCharacterSheet?: (push: LiveSessionCharacterSheetPush) => void
   onCommandRejected?: (rejection: LiveSessionCommandRejection) => void
   onDurableState?: (state: LiveSessionDurableState) => void
   onStatus: (status: LiveSessionConnectionStatus) => void
@@ -167,6 +184,7 @@ export function createLiveSessionConnection(
     }
   >()
   let requestedScene: SceneSynchronizationMessage | null = null
+  let requestedSheetCharacterId: string | null = null
   let synchronizedScene: SceneSynchronizationMessage | null = null
   const previewSentAt = new Map<string, number>()
 
@@ -181,6 +199,11 @@ export function createLiveSessionConnection(
 
   const requestResume = () => {
     if (sequence !== null) send({ lastAppliedSequence: sequence, type: 'RESUME' })
+  }
+
+  const requestSheet = () => {
+    if (ready && requestedSheetCharacterId !== null)
+      send({ characterId: requestedSheetCharacterId, type: 'SUBSCRIBE_CHARACTER_SHEET' })
   }
 
   const synchronizeRequestedScene = () => {
@@ -283,6 +306,7 @@ export function createLiveSessionConnection(
           attempt = 0
           ready = true
           synchronizeRequestedScene()
+          requestSheet()
           requestResume()
           options.onStatus('CONNECTED')
         } else if (message.type === 'AUTHENTICATION_REQUIRED') {
@@ -295,6 +319,9 @@ export function createLiveSessionConnection(
           sendAuthentication()
         } else if (message.type === 'TRANSIENT') {
           options.onTransient(message.message)
+        } else if (message.type === 'CHARACTER_SHEET') {
+          if (message.characterId.toLowerCase() === requestedSheetCharacterId?.toLowerCase())
+            options.onCharacterSheet?.(message)
         } else if (message.type === 'STATE_SYNC') {
           sequence = message.sequence
           recipientState = message.state
@@ -468,6 +495,12 @@ export function createLiveSessionConnection(
         return false
       previewSentAt.set(key, now)
       return true
+    },
+    subscribeCharacterSheet(characterId) {
+      if (characterId === requestedSheetCharacterId) return
+      requestedSheetCharacterId = characterId
+      if (characterId === null) send({ type: 'UNSUBSCRIBE_CHARACTER_SHEET' })
+      else requestSheet()
     },
     synchronizeScene(sceneId, version, expectedPresentationVersion) {
       requestedScene = {

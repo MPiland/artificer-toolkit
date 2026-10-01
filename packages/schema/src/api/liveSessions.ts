@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { domainRejectionReasonDtoSchema } from './domainRejections.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
+import { characterSheetResponseDtoSchema } from './characterSheetData.js'
 import {
   sceneBarrierDtoSchema,
   sceneFogLayerDtoSchema,
@@ -162,7 +163,13 @@ export const liveSessionWebSocketClientMessageDtoSchema = lazySchema(() =>
     z.strictObject({
       lastAppliedSequence: liveSessionSequenceDtoSchema,
       type: z.literal('RESUME')
-    })
+    }),
+    // One Character Sheet per socket; a new subscription replaces the previous one.
+    z.strictObject({
+      characterId: uuidSchema,
+      type: z.literal('SUBSCRIBE_CHARACTER_SHEET')
+    }),
+    z.strictObject({ type: z.literal('UNSUBSCRIBE_CHARACTER_SHEET') })
   ])
 )
 
@@ -182,6 +189,13 @@ export const liveSessionWebSocketServerMessageDtoSchema = lazySchema(() =>
       sequence: liveSessionSequenceDtoSchema,
       state: liveSessionRecipientStateDtoSchema,
       type: z.literal('STATE_SYNC')
+    }),
+    // Unsequenced: the viewer-projected held Sheet at its current play stream version (D73).
+    z.strictObject({
+      characterId: uuidSchema,
+      sheet: characterSheetResponseDtoSchema,
+      streamVersion: versionSchema,
+      type: z.literal('CHARACTER_SHEET')
     }),
     z.strictObject({
       commandId: uuidSchema,

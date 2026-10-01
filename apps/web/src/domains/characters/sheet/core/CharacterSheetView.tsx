@@ -27,6 +27,7 @@ import { CharacterSheetOverviewStatusStrip } from '../status/CharacterSheetOverv
 import { CharacterSheetOverviewVitals } from '../vitals/CharacterSheetOverviewVitals'
 import * as coreStyles from './sheetShell.css'
 import { CharacterSheetPanelContent } from './CharacterSheetPanelContent'
+import { useLiveCharacterSheet } from './useLiveCharacterSheet'
 import {
   CHARACTER_SHEET_DESKTOP_TABS,
   CHARACTER_SHEET_MOBILE_PAGES,
@@ -48,7 +49,7 @@ export function CharacterSheetView({
   hasDraft,
   initialTab = 'overview',
   rollerName = 'You',
-  sheet
+  sheet: committedSheet
 }: {
   characterPublicId: string
   commandPending?: boolean
@@ -59,6 +60,11 @@ export function CharacterSheetView({
   rollerName?: string
   sheet: CharacterSheetCommonDto
 }) {
+  const live = useLiveCharacterSheet(
+    committedSheet.meta.characterId,
+    committedSheet.meta.campaignId
+  )
+  const sheet = live?.common ?? committedSheet
   const isMobile = useMediaQuery('(max-width: 760px)')
   const mounted = useMounted()
   const [activeTab, setActiveTab] = useState<CharacterSheetTabId>(
@@ -74,7 +80,11 @@ export function CharacterSheetView({
   const inspectorTriggerRef = useRef<HTMLElement | null>(null)
   const commandMutation = useCharacterSheetCommandMutation(
     sheet.meta.characterId,
-    sheet.meta.campaignId
+    sheet.meta.campaignId,
+    live && {
+      checkpointVersion: committedSheet.meta.streamVersion,
+      sendPlayCommand: live.sendPlayCommand
+    }
   )
   const rollController = useCharacterSheetRollController(
     sheet.meta.characterId,
@@ -82,7 +92,7 @@ export function CharacterSheetView({
       ? { id: sheet.meta.campaignId, isGm: sheet.meta.viewer === 'CAMPAIGN_OWNER' }
       : undefined
   )
-  const pending = commandPending ?? commandMutation.isPending
+  const pending = (commandPending ?? commandMutation.isPending) || Boolean(live?.pending)
   const campaignInventory =
     sheet.meta.campaignId && currentUserId ? (
       <CharacterSheetPartyInventory
@@ -335,6 +345,7 @@ export function CharacterSheetView({
                       tab.id === visibleActiveTab ? (
                         <CharacterSheetPanelContent
                           campaignInventory={campaignInventory}
+                          liveSheet={live?.sheet ?? undefined}
                           openPanel={openInspector}
                           pending={pending}
                           sheet={sheet}
@@ -351,6 +362,7 @@ export function CharacterSheetView({
                 <div className={coreStyles.mobileAuxiliaryPanel} data-mobile-visible='true'>
                   <CharacterSheetPanelContent
                     campaignInventory={campaignInventory}
+                    liveSheet={live?.sheet ?? undefined}
                     mobile
                     openPanel={openInspector}
                     pending={pending}
@@ -381,6 +393,7 @@ export function CharacterSheetView({
           characterId={sheet.meta.characterId}
           commandError={commandMutation.error?.message}
           expectedVersion={sheet.meta.streamVersion}
+          liveSheet={live?.sheet ?? undefined}
           pending={pending}
           submitCommand={submitCommand}
           target={inspectorTarget}

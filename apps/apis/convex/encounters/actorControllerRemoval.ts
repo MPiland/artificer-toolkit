@@ -1,41 +1,32 @@
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import {
-  readRunActors,
-  readRunState,
-  replaceRunActor
-} from '@artificer-toolkit/encounter-persistence/documents'
-import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
+import { removeRunActorControllers } from '@artificer-toolkit/encounter-persistence/actorControllers'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { encounterWriteTransaction } from './encounterPorts'
+import { isRoomHeldRun } from '../liveSessions/authorityGuard'
 
 /**
  * A departing member stops controlling every actor of the Campaign's open Runs, so rejoining later
- * grants nothing back. Completed Runs are read-only history and keep their lists. The Run version is
- * unchanged: the edit replaces no receipt, and the PLAY revision these writes advance fences any
- * Session-room plan prepared before it.
+ * grants nothing back. Completed Runs are read-only history and keep their lists. While the
+ * Campaign's room holds an ACTIVE Run it owns the Run actors and reconciles them itself when it
+ * reloads authorization (D74), so Convex writes none.
  */
 export async function removeEncounterActorController(
   ctx: MutationCtx,
   campaign: Doc<'campaigns'>,
   userId: string
 ): Promise<void> {
-  for (const status of ['PREPARED', 'ACTIVE'] as const) {
-    const runs = await ctx.db
+  for (const status of ['PREPARED', 'ACTIVE'] as const)
+    for (const run of await ctx.db
       .query('encounterRuns')
       .withIndex('by_campaignId_status', (q) =>
         q.eq('campaignId', campaign.id).eq('status', status)
       )
-      .collect()
-    for (const run of runs)
-      for (const actor of await readRunActors(encounterReadTransaction(ctx), readRunState(run)))
-        if (actor.controllerUserIds.includes(userId))
-          await replaceRunActor(
-            encounterWriteTransaction(ctx),
-            actor,
-            encounterRunActorStateSchema.parse({
-              ...actor,
-              controllerUserIds: actor.controllerUserIds.filter((id) => id !== userId)
-            })
-          )
-  }
+      .collect())
+      if (!(await isRoomHeldRun(ctx, run)))
+        await removeRunActorControllers(
+          encounterWriteTransaction(ctx),
+          readRunState(run),
+          (id) => id === userId
+        )
 }

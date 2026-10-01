@@ -778,7 +778,7 @@ these parent reads. These local implementation changes still require real backen
 flowchart LR
   Browser["Browser tabletop"] <-->|Scene commands + transient previews| Room["NativeLiveSessionRoom<br/>Session Durable Object"]
   Sheet["Character Sheet"] -->|transitional frontend command routing| Api["apps/apis/convex"]
-  Sheet -.->|held play frontend wiring pending| Room
+  Sheet -->|held play commands + pushed Sheet (unverified source)| Room
   Room --> Sqlite[("SQLite native Scene / Run / Character play<br/>write-set journal + replay receipts")]
   Room -->|protected bootstrap, checkpoints, drain, release| Api["apps/apis/convex"]
   Browser -->|ordinary queries, mutations, actions| Api
@@ -973,10 +973,45 @@ checkpoints reconcile them and final acknowledged release removes that epoch's h
 play/preferences/rest writes reject a held Character. Outside structure writes preserve the entire
 checkpoint play row, clock and stats; Builder commit returns actual persisted play/version. A changed
 Builder clock triggers room reconciliation against the prior native maximum, clamping current HP
-only when the newly evaluated Character-only maximum decreases. Frontend Sheet live routing/views,
-membership/controller/account-deletion integration and lifecycle cleanup proof remain unfinished;
-Campaign deletion includes hold rows. The new hold schema needs guarded local reset/seed/codegen.
+only when the newly evaluated Character-only maximum decreases. Campaign deletion includes hold rows. The new hold schema needs guarded local reset/seed/codegen.
 No generated check or integrated execution gate has run, and S7/S8 acceptance is unchanged.
+
+**The room pushes the held Sheet (D73, current source, unverified).** A client sends
+`SUBSCRIBE_CHARACTER_SHEET { characterId }` (one per socket; `UNSUBSCRIBE_CHARACTER_SHEET` ends it).
+[RoomCharacterSheetFeed](../../apps/session-worker/src/roomCharacterSheetFeed.ts) admits it only for
+the Character's owner or the Campaign GM while the Character is an unfrozen actor of an ACTIVE Run,
+pushes the viewer-projected Sheet at once and, after every committed `RoomEncounterStore`
+transaction (`onCommitted`), pushes once per viewer kind for each subscribed Character whose play
+`streamVersion` changed. The unsequenced `CHARACTER_SHEET { characterId, streamVersion, sheet }`
+message uses the projection `roomCharacterSheetProjection` shares with the command path. Every push
+re-admits, so a lost assignment, hold or membership silently drops the subscription; closing or
+evicting a socket drops it too. The web Sheet takes `expectedVersion` from the pushed
+`streamVersion`; party readers are unchanged.
+
+**Departures reconcile in the room (D74, current source, unverified).** Under live authority the
+room owns every open Run of the Campaign (PREPARED or ACTIVE; `isRoomHeldRun`), whether or not it
+has hydrated that Run this epoch. For such a Run, `removeCampaignCharacterAssignment`,
+`removeEncounterActorController` and account deletion write no Run actors. Convex still sends
+`EVICT_USER` and, through the tracked-mutation wrapper, `INVALIDATE_INPUTS` for the changed
+CAMPAIGN rows. The room runs
+[reconcileRoomActorDepartures](../../apps/session-worker/src/roomActorReconcile.ts) from one
+coalesced post-commit task (`#queuePostCommit`), triggered after every committed room transaction,
+every authorization reload (so a cold activation too) and every Sheet subscribe, so a Run hydrated
+later is corrected too. It reconciles first, then pushes the held Sheets. It runs in one
+`RoomEncounterStore` transaction with a journal entry (receipt `delta: null`) only when an open
+Run names a departure: it freezes unfrozen Character actors whose assignment is gone and unlists
+controllers who are no longer members, using the shared
+[reconcileRunActorDepartures](../../packages/encounter-persistence/src/actorDepartures.ts). A failed
+step is logged and the next trigger retries it. A Run the room never hydrated this epoch is covered
+at authority release: `release` calls `reconcileOpenRunsAtRelease` in the same transaction, using
+current membership and assignment as truth (removes actors of deleted Characters, freezes
+unassigned Character actors, unlists departed controllers). Checkpoint ingestion rejects an open
+Run's actor row that names a departed controller or an unassigned unfrozen Character, and a change
+whose `previousChecksum` no longer matches the Convex row (fail closed).
+
+Known gap: the room cannot tell account deletion from departure and adds no new signal, so while it
+holds the Run, a deleted account's Character actor is only frozen, not removed. Release removes it.
+Until then the frozen actor remains visible in the Encounter.
 
 **Equipment reconciliation (implemented source, unverified).** Canonical Character source-loss
 reconciliation already removes vanished inventory IDs from equipped/attuned lists. Held structural
@@ -1557,8 +1592,10 @@ React owns accessible controls and inspectors; PixiJS owns frame-rate Scene rend
 or present current Campaign Scenes. Players receive play controls and recipient-private projections.
 Connection-local camera, zoom, selected tool, and previews stay local or transient. While room
 authority is active, supported Door and standalone token move/undo commands use the Session DO.
-The Sheet uses ordinary Convex mutations and subscriptions without a second socket or projection
-merge. Scene publications and all other durable product state converge in Convex.
+The Sheet uses ordinary Convex mutations and subscriptions, except for a Character a room holds (D73,
+current source, unverified): the Sheet opens the room through `useCampaignLiveSession`, sends play
+commands as `CHARACTER_SHEET` envelopes and derives its play slices from the pushed Sheet. Notes,
+rests, maximum overrides and structural commands stay on Convex. Scene publications and all other durable product state converge in Convex.
 
 An open tabletop subscribes to the authorized presentation and recipient header for Scene identity and
 version with `includeSnapshot:false`, and renders the room's recipient Scene. The header request

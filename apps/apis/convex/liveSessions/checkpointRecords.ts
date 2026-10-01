@@ -131,6 +131,16 @@ export async function applyCheckpointRecords(
     .withIndex('by_campaignId', (q) => q.eq('campaignId', frame.campaignId))
     .collect()
   const assigned = new Map(assignments.map((row) => [row.characterId, row]))
+  const activeMembers = new Set(
+    (
+      await ctx.db
+        .query('campaignMemberships')
+        .withIndex('by_campaignId_status', (q) =>
+          q.eq('campaignId', frame.campaignId).eq('status', 'ACTIVE')
+        )
+        .collect()
+    ).map((row) => row.userId)
+  )
   const checkedEncounters = new Set<string>()
   const checkedCharacters = new Map<string, string>()
   const requireEncounter = async (id: string) => {
@@ -376,6 +386,19 @@ export async function applyCheckpointRecords(
           checksumCanonicalJson(state) !== actor.stateChecksum
         )
           throw new Error('Checkpoint actor state checksum or identity does not match.')
+        const run = await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', state.encounterId))
+          .unique()
+        // The room reconciles departures itself (D74); an open Run never names a departed
+        // controller or an unfrozen Character the Campaign no longer assigns.
+        if (
+          run &&
+          run.status !== 'COMPLETED' &&
+          ((state.kind === 'CHARACTER' && !state.frozenState && !assigned.has(state.sourceId)) ||
+            state.controllerUserIds.some((id) => !activeMembers.has(id)))
+        )
+          throw new Error('Checkpoint actor names a departed controller or unassigned Character.')
         break
       }
       case 'encounterActorProjectionFacts': {

@@ -13,6 +13,7 @@ import { readCampaignCharacterState } from './characterState'
 import { returnDepartingCharacterCurrency } from './currencyDeparture'
 import { freezeEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { isRoomHeldRun } from '../liveSessions/authorityGuard'
 import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
 /** Caller authorizes the lifecycle operation before changing membership or Campaign authority. */
@@ -51,7 +52,8 @@ export async function removeCampaignCharacterAssignment(input: {
     reason: input.reason,
     state: character.state
   })
-  // The Campaign's open Runs stop reading the Character and keep its last projected health.
+  // The Campaign's open Runs stop reading the Character and keep its last projected health;
+  // the room reconciles the Runs it holds itself (D74).
   for (const status of ['PREPARED', 'ACTIVE'] as const)
     for (const run of await ctx.db
       .query('encounterRuns')
@@ -59,11 +61,12 @@ export async function removeCampaignCharacterAssignment(input: {
         q.eq('campaignId', campaign.id).eq('status', status)
       )
       .collect())
-      await freezeEncounterCharacterStates(
-        encounterWriteTransaction(ctx),
-        readRunState(run),
-        character.id
-      )
+      if (!(await isRoomHeldRun(ctx, run)))
+        await freezeEncounterCharacterStates(
+          encounterWriteTransaction(ctx),
+          readRunState(run),
+          character.id
+        )
   await ctx.db.delete(assignment._id)
   if (overlay) await ctx.db.delete(overlay._id)
   const targets = await readCharacterSourceAccessLoss(ctx, character)
@@ -82,7 +85,10 @@ export async function removeCampaignCharacterAssignment(input: {
   if (!departed) throw new Error('Departing Character is unavailable.')
   await writeCharacterRecord(ctx, {
     current: departed,
-    fields: { streamVersion: departed.play.streamVersion, updatedAt: departed.updatedAt }
+    fields: {
+      streamVersion: departed.play.streamVersion,
+      updatedAt: departed.updatedAt
+    }
   })
   if (result)
     await ctx.db.insert(

@@ -1,4 +1,5 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
+import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type {
   EncounterCommandInputDto,
   EncounterCommandResultDto
@@ -16,6 +17,7 @@ import { LOCAL_SESSION_WORKER_URL } from '#app/lib/sessionWorkerOrigin'
 import {
   createLiveSessionConnection,
   resolveLiveSessionWebSocketUrl,
+  type LiveSessionCharacterSheetPush,
   type LiveSessionCommandCommit,
   type LiveSessionCommandRejection,
   type LiveSessionConnection,
@@ -24,16 +26,20 @@ import {
 
 export function useCampaignLiveSession({
   campaignId,
+  characterSheetId = null,
   enabled,
   onTransient
 }: {
   campaignId: string
+  /** The held Character whose viewer-projected Sheet the room pushes (D73). */
+  characterSheetId?: string | null
   enabled: boolean
   onTransient?: (message: { envelope: SceneTransientEnvelopeDto; userId: string }) => void
 }) {
   const connection = useRef<LiveSessionConnection | null>(null)
   const onTransientRef = useRef(onTransient)
   const convex = useConvex()
+  const [characterSheet, setCharacterSheet] = useState<LiveSessionCharacterSheetPush | null>(null)
   const [commandReady, setCommandReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recipientState, setRecipientState] = useState<LiveSessionRecipientStateDto | null>(null)
@@ -44,6 +50,7 @@ export function useCampaignLiveSession({
 
   useEffect(() => {
     if (!enabled) {
+      setCharacterSheet(null)
       setCommandReady(false)
       setRecipientState(null)
       setRejection(null)
@@ -69,6 +76,7 @@ export function useCampaignLiveSession({
       },
       getTicket: () => convex.action(api.liveSessions.tickets.issue, { campaignId }),
       onError: (nextError) => setError(errorMessage(nextError)),
+      onCharacterSheet: setCharacterSheet,
       onCommandRejected: setRejection,
       onDurableState: (state) => {
         setCommandReady(state.commandReady)
@@ -85,6 +93,11 @@ export function useCampaignLiveSession({
       liveConnection.close()
     }
   }, [campaignId, convex, enabled])
+
+  useEffect(() => {
+    connection.current?.subscribeCharacterSheet(enabled ? characterSheetId : null)
+    return () => setCharacterSheet(null)
+  }, [campaignId, characterSheetId, enabled])
 
   const sendCommand = useCallback(
     (command: LiveSessionCommandDto): Promise<LiveSessionCommandCommit> => {
@@ -105,6 +118,17 @@ export function useCampaignLiveSession({
     },
     [sendCommand]
   )
+  const sendCharacterSheetCommand = useCallback(
+    async (
+      input: Omit<Extract<LiveSessionCommandDto, { scope: 'CHARACTER_SHEET' }>, 'scope'>
+    ): Promise<CharacterSheetCommandResponseDto> => {
+      const commit = await sendCommand({ ...input, scope: 'CHARACTER_SHEET' })
+      if (commit.delta?.scope !== 'CHARACTER_SHEET')
+        throw new Error('Live play acknowledged the Sheet command without a result.')
+      return commit.delta.result
+    },
+    [sendCommand]
+  )
   const sendTransient = useCallback((envelope: SceneTransientEnvelopeDto) => {
     return connection.current?.sendTransient(envelope) ?? false
   }, [])
@@ -116,10 +140,12 @@ export function useCampaignLiveSession({
   )
 
   return {
+    characterSheet,
     commandReady,
     error,
     recipientState,
     rejection,
+    sendCharacterSheetCommand,
     sendCommand,
     sendEncounterCommand,
     sendTransient,

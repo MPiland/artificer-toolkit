@@ -104,6 +104,8 @@ import { composeRoomSceneVision } from './roomSceneVision.js'
 import { executeRoomSceneBinding } from './roomSceneBinding.js'
 import { publishRoomSceneUndo } from './roomSceneUndo.js'
 import { executeRoomCharacterSheetCommand } from './roomCharacterSheetCommands.js'
+import { hasRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
+import { RoomCharacterSheetFeed } from './roomCharacterSheetFeed.js'
 import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
 import {
   executeRoomEncounterCommand,
@@ -272,6 +274,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   /** Scene commands use this write-set boundary; the Encounter command cutover is still pending. */
   readonly #roomStore: RoomEncounterStore
   readonly #roomInputs: RoomInputs
+  /** Held Character Sheets pushed to their owner and the GM (D73). */
+  readonly #sheetFeed: RoomCharacterSheetFeed
+  #postCommitQueued = false
   readonly #checkpoints: RoomCheckpoints
   #aggregateNeedsReload = false
   readonly #admissions = new Map<WebSocket, Admission>()
@@ -316,7 +321,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   constructor(ctx: DurableObjectState, env: SessionWorkerEnvironment) {
     super(ctx, env)
     this.#journal = new DurableCommandJournal(ctx.storage)
-    this.#roomStore = new RoomEncounterStore(ctx.storage)
+    this.#roomStore = new RoomEncounterStore(ctx.storage, () => this.#queuePostCommit())
     this.#checkpoints = new RoomCheckpoints(
       this.#roomStore,
       ctx.storage,
@@ -342,6 +347,19 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return loadRoomContentSnapshots(this.env, manifest, campaignId)
       }
     )
+    this.#sheetFeed = new RoomCharacterSheetFeed({
+      store: this.#roomStore,
+      inputs: this.#roomInputs,
+      authorize: (scope) => this.#authorizationBoundary(scope),
+      admission: (socket) => this.#liveAdmission(socket),
+      scope: (socket) => {
+        const value = attachment(socket)
+        return value && this.#journal.readCurrent()?.authorityEpoch === value.authorityEpoch
+          ? { authorityEpoch: value.authorityEpoch, campaignId: value.campaignId }
+          : null
+      },
+      send
+    })
     ctx.blockConcurrencyWhile(async () => {
       ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS native_room_identity (
@@ -486,6 +504,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (parsed.data.type === 'RESUME') {
       this.#sendStateSync(socket, admission)
+      return
+    }
+    if (parsed.data.type === 'UNSUBSCRIBE_CHARACTER_SHEET') {
+      this.#sheetFeed.drop(socket)
+      return
+    }
+    if (parsed.data.type === 'SUBSCRIBE_CHARACTER_SHEET') {
+      // The push admits the socket: an unauthorized or unheld subscription is dropped there.
+      this.#sheetFeed.subscribe(socket, parsed.data.characterId)
+      this.#queuePostCommit()
       return
     }
     if (parsed.data.type === 'COMMAND') {
@@ -2590,11 +2618,101 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (member && !admitsRoomMember(authorization, member))
         this.#closeSocket(socket, 'Campaign access ended.')
     }
+    this.#queuePostCommit()
     return authorization
   }
 
+  /**
+   * After every committed room transaction and each authorization reload: reconciles the departures
+   * Convex leaves to the room for the Runs it holds (D74), so a Run hydrated later is corrected
+   * before any checkpoint carries it, then pushes the subscribed Sheets whose play stream version
+   * changed (D73). It queues behind the running command, so the command's own receipt reaches its
+   * sender first. A failed step is logged and retried by the next trigger; the chain stays alive.
+   */
+  #queuePostCommit(): void {
+    if (this.#postCommitQueued) return
+    this.#postCommitQueued = true
+    this.#commandChain = this.#commandChain.then(async () => {
+      this.#postCommitQueued = false
+      const current = this.#journal.readCurrent()
+      if (!current || current.status !== 'ACTIVE') return
+      try {
+        await this.#reconcileActorDepartures(current)
+      } catch (error) {
+        console.error('Live Session actor reconcile failed.', error)
+      }
+      try {
+        if (this.#sheetFeed.size === 0) return
+        if (this.#aggregateNeedsReload) await this.#flushOutbox()
+        await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
+        await this.#sheetFeed.push()
+      } catch (error) {
+        console.error('Live Session Sheet push failed.', error)
+      }
+    })
+  }
+
+  /** One journaled transaction, only when an open Run names a departure. */
+  async #reconcileActorDepartures(
+    current: NonNullable<ReturnType<DurableCommandJournal['readCurrent']>>
+  ): Promise<void> {
+    const authorization = this.#authorization.current(current.authorityEpoch)
+    if (!authorization) return
+    if (this.#aggregateNeedsReload) await this.#flushOutbox()
+    if (!(await hasRoomActorDepartures(this.#roomStore, authorization))) return
+    const commandId = crypto.randomUUID()
+    const sequence = current.sequence + 1
+    const receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
+      type: 'COMMAND_COMMITTED',
+      commandId,
+      delta: null,
+      sequence
+    })
+    this.#roomStore.assertAuthorityHead({
+      epoch: current.authorityEpoch,
+      sequence: current.sequence,
+      checksum: current.stateChecksum
+    })
+    await this.#roomStore.transact(
+      () =>
+        reconcileRoomActorDepartures({
+          store: this.#roomStore,
+          inputs: this.#roomInputs,
+          authorization
+        }),
+      (entry) => {
+        if (this.#authorization.current(current.authorityEpoch) !== authorization)
+          throw new Error('Room actor reconcile authorization changed before commit.')
+        if (entry.sequence !== sequence)
+          throw new Error('Room actor reconcile sequence does not match its authority.')
+        const committed = this.#journal.commitInTransaction({
+          actorId: current.authorityEpoch,
+          authorityEpoch: current.authorityEpoch,
+          commandId,
+          fingerprint: checksumCanonicalJson({
+            type: 'RECONCILE_ACTOR_DEPARTURES',
+            revisions: authorization.revisions
+          }),
+          expectedSequence: current.sequence,
+          expectedStateChecksum: current.stateChecksum,
+          nextStateChecksum: entry.chainChecksum,
+          nextStateJson: current.stateJson,
+          receiptJson: JSON.stringify(receipt)
+        })
+        if (committed.kind !== 'COMMITTED')
+          throw new Error('Room actor reconcile unexpectedly replayed inside its transaction.')
+      }
+    )
+    for (const recipient of this.ctx.getWebSockets()) {
+      const member = this.#liveAdmission(recipient)
+      if (member && admitsRoomMember(authorization, member)) send(recipient, receipt)
+    }
+  }
+
   /** The cache a command or broadcast may use: current, or reloaded first by one read. */
-  async #authorizationBoundary(value: SocketAttachment): Promise<LiveSessionRoomAuthorization> {
+  async #authorizationBoundary(
+    value: Pick<SocketAttachment, 'authorityEpoch'>
+  ): Promise<LiveSessionRoomAuthorization> {
     return this.#authorization.current(value.authorityEpoch) ?? this.#refreshAuthorization()
   }
 
@@ -3275,6 +3393,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#generations.set(socket, generation)
     this.#admissions.delete(socket)
     this.#authenticating.delete(socket)
+    this.#sheetFeed.drop(socket)
     return generation
   }
 

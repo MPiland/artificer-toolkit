@@ -1,6 +1,7 @@
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { removeAccountCharacterActors } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
+import { readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
 import { requireCampaignAuthority } from './authority'
 import { removeCampaignCharacterAssignment } from './characterDeparture'
 import { removeEncounterActorController } from '../encounters/actorControllerRemoval'
@@ -42,7 +43,10 @@ export async function removeAccountCampaignMemberships(ctx: MutationCtx, userId:
     if (!root) throw new Error('Stored Campaign membership has no Campaign.')
     const { campaign } = await requireCampaignAuthority(ctx, root.id, root.ownerUserId)
 
-    await removeAccountCharacterActors(encounterWriteTransaction(ctx), campaign.id, userId)
+    // A Campaign with live authority has its room own every open Run; the room freezes the
+    // departed Character's actor and release removes it (D74).
+    if (!(await readLiveCampaignAuthority(ctx, campaign.id)))
+      await removeAccountCharacterActors(encounterWriteTransaction(ctx), campaign.id, userId)
 
     const freshRoot = await ctx.db
       .query('campaigns')

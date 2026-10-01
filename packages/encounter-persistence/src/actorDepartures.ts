@@ -1,0 +1,38 @@
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { removeRunActorControllers } from './actorControllers.js'
+import { freezeEncounterCharacterActor, readCharacterPlayProjection } from './characterStates.js'
+import { readRunActors } from './documents.js'
+import type { EncounterProjectionTransaction } from './ports.js'
+import type { EncounterWriteContext } from './store.js'
+
+/**
+ * One open Run's departures against current Campaign truth: an unfrozen Character actor whose
+ * assignment is gone freezes at its current play values, and controllers who are no longer members
+ * are unlisted. Convex applies it at room release and the room on authorization reload, so both
+ * owners of a Run end in the same state.
+ */
+export async function reconcileRunActorDepartures(
+  ctx: EncounterProjectionTransaction & EncounterWriteContext,
+  state: EncounterRunState,
+  departures: {
+    isDeparted: (userId: string) => boolean
+    isUnassigned: (characterId: string) => boolean
+  }
+): Promise<void> {
+  for (const actor of await readRunActors(ctx, state)) {
+    if (actor.kind !== 'CHARACTER' || actor.frozenState || !departures.isUnassigned(actor.sourceId))
+      continue
+    const play = await ctx.db
+      .query('characterPlayStates')
+      .withIndex('by_characterId', (q) => q.eq('characterId', actor.sourceId))
+      .unique()
+    if (!play) throw new Error('Character play record is missing.')
+    const { conditionTypes } = await ctx.ports.requireSystem(state.gameSystemId)
+    await freezeEncounterCharacterActor(
+      ctx,
+      actor,
+      await readCharacterPlayProjection(ctx, play, conditionTypes)
+    )
+  }
+  await removeRunActorControllers(ctx, state, departures.isDeparted)
+}

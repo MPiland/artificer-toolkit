@@ -1,0 +1,180 @@
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
+import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
+import { projectRoomCharacterSheetForViewer } from './roomCharacterSheetProjection.js'
+import type { RoomEncounterStore } from './roomEncounterStore.js'
+import type { RoomInputs } from './roomInputs.js'
+import { admitsRoomMember } from './roomAuthorization.js'
+
+interface FeedMember {
+  membershipEpoch: string
+  role: 'OWNER' | 'PLAYER'
+  userId: string
+}
+
+interface FeedScope {
+  authorityEpoch: string
+  campaignId: string
+}
+
+interface Subscription {
+  characterId: string
+  /** The play stream version last pushed to this socket; null until the first push. */
+  pushedVersion: number | null
+}
+
+/**
+ * The held Character Sheets pushed to their owner's and the Campaign GM's sockets (D73). A socket
+ * holds at most one subscription; every push re-admits it against the current authorization and
+ * the active Run, so a lost assignment or hold silently ends the subscription.
+ */
+export class RoomCharacterSheetFeed {
+  readonly #subscriptions = new Map<WebSocket, Subscription>()
+
+  constructor(
+    private readonly dependencies: {
+      store: RoomEncounterStore
+      inputs: RoomInputs
+      authorize: (scope: FeedScope) => Promise<LiveSessionRoomAuthorization>
+      admission: (socket: WebSocket) => FeedMember | null
+      scope: (socket: WebSocket) => FeedScope | null
+      send: (socket: WebSocket, message: LiveSessionWebSocketServerMessageDto) => void
+    }
+  ) {}
+
+  get size(): number {
+    return this.#subscriptions.size
+  }
+
+  subscribe(socket: WebSocket, characterId: string): void {
+    this.#subscriptions.set(socket, { characterId: characterId.toLowerCase(), pushedVersion: null })
+  }
+
+  drop(socket: WebSocket): void {
+    this.#subscriptions.delete(socket)
+  }
+
+  /** Pushes every subscribed Sheet whose play stream version changed since its last push. */
+  async push(): Promise<void> {
+    const { store, inputs } = this.dependencies
+    const stale = new Map<
+      string,
+      {
+        authorization: LiveSessionRoomAuthorization
+        characterId: string
+        member: FeedMember
+        scope: FeedScope
+        sockets: WebSocket[]
+      }
+    >()
+    for (const [socket, subscription] of this.#subscriptions) {
+      const member = this.dependencies.admission(socket)
+      const scope = this.dependencies.scope(socket)
+      const admitted =
+        member && scope ? await this.#admit(scope, member, subscription.characterId) : null
+      if (!member || !scope || !admitted) {
+        this.#subscriptions.delete(socket)
+        continue
+      }
+      const play = await store.store
+        .query('characterPlayStates')
+        .withIndex('by_characterId', (query) => query.eq('characterId', subscription.characterId))
+        .unique()
+      if (!play) {
+        this.#subscriptions.delete(socket)
+        continue
+      }
+      if (play.streamVersion === subscription.pushedVersion) continue
+      // The viewer kind decides the redactions, so one projection serves each kind.
+      const key = `${subscription.characterId}:${admitted.viewer}`
+      const group = stale.get(key) ?? {
+        authorization: admitted.authorization,
+        characterId: subscription.characterId,
+        member,
+        scope,
+        sockets: []
+      }
+      group.sockets.push(socket)
+      stale.set(key, group)
+    }
+    for (const { authorization, characterId, member, scope, sockets } of stale.values()) {
+      // No transaction: preparation is read-only for product state (reconciliation writes need one), so a push never writes outside a journaled transaction; the next command's transaction reconciles and a later push shows it.
+      const facts = await prepareRoomLiveCharacterSheet(
+        store,
+        inputs,
+        {
+          campaignId: scope.campaignId,
+          authorityEpoch: scope.authorityEpoch,
+          characterId,
+          expectedUserId: member.userId,
+          expectedRole: member.role
+        },
+        inputs.revisions(scope.campaignId, authorization.revisions)
+      )
+      const sheet = projectRoomCharacterSheetForViewer(
+        facts,
+        await listActiveRuleEffects(
+          { db: store.store },
+          { kind: 'CHARACTER', characterId },
+          { ownerVerified: true }
+        )
+      )
+      const streamVersion = facts.active.play.streamVersion
+      for (const socket of sockets) {
+        const subscription = this.#subscriptions.get(socket)
+        // The socket may have left or resubscribed while the Sheet was prepared.
+        if (subscription?.characterId !== characterId) continue
+        subscription.pushedVersion = streamVersion
+        this.dependencies.send(socket, {
+          type: 'CHARACTER_SHEET',
+          characterId,
+          sheet,
+          streamVersion
+        })
+      }
+    }
+  }
+
+  /** Only the Character's owner or the Campaign GM, while an active Run holds the Character. */
+  async #admit(scope: FeedScope, member: FeedMember, characterId: string) {
+    const authorization = await this.dependencies.authorize(scope)
+    if (!admitsRoomMember(authorization, member)) return null
+    const assigned = authorization.campaign.assignments.find(
+      (entry) => entry.characterId === characterId
+    )
+    const character = authorization.characters.find((entry) => entry.characterId === characterId)
+    if (
+      !assigned ||
+      !character ||
+      assigned.userId !== character.ownerUserId ||
+      (member.role !== 'OWNER' && assigned.userId !== member.userId) ||
+      !(await this.#heldByActiveRun(scope.campaignId, characterId))
+    )
+      return null
+    return {
+      authorization,
+      viewer: character.ownerUserId === member.userId ? 'CHARACTER_OWNER' : 'CAMPAIGN_OWNER'
+    } as const
+  }
+
+  async #heldByActiveRun(campaignId: string, characterId: string): Promise<boolean> {
+    const { store } = this.dependencies
+    for (const run of store.documents('encounterRuns')) {
+      const state = readRunState(run)
+      if (state.status !== 'ACTIVE' || state.campaignId !== campaignId) continue
+      const actors = await readRunActors({ db: store.store }, state)
+      if (
+        actors.some(
+          (actor) =>
+            actor.kind === 'CHARACTER' &&
+            actor.sourceId === characterId &&
+            actor.frozenState === null
+        )
+      )
+        return true
+    }
+    return false
+  }
+}

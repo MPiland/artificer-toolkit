@@ -1,6 +1,8 @@
 import { Alert, Loader } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
 import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { getCharacterSheetSlice } from '#app/data/characters/queries'
 import { CharacterSheetActions } from '../actions/CharacterSheetActions'
@@ -17,6 +19,7 @@ import type {
 
 export function CharacterSheetFeaturePanel({
   campaignInventory,
+  liveSheet,
   openPanel,
   pending,
   meta,
@@ -24,6 +27,8 @@ export function CharacterSheetFeaturePanel({
   tab
 }: {
   campaignInventory?: ReactNode
+  /** The room's pushed Sheet while a live Run holds the Character; it replaces every non-notes slice. */
+  liveSheet?: CharacterSheetResponseDto
   openPanel?: OpenSheetPanel
   pending: boolean
   meta: CharacterSheetCommonDto['meta']
@@ -44,33 +49,37 @@ export function CharacterSheetFeaturePanel({
               : 'FEATURES'
   const query = useQuery({
     ...getCharacterSheetSlice(meta.characterId, slice, meta.campaignId),
-    select: undefined
+    select: undefined,
+    enabled: !liveSheet || slice === 'NOTES'
   })
+  const data =
+    liveSheet && slice !== 'NOTES' ? projectCharacterSheetSlice(liveSheet, slice) : query.data
   if (query.error) return <Alert color='red'>{query.error.message}</Alert>
-  if (query.isPending) return <Loader aria-label='Loading character collection' />
-  if (!query.data) return <Alert color='yellow'>Character collection unavailable.</Alert>
-  const current = query.data.data.meta.streamVersion === meta.streamVersion
+  if (!data && query.isPending) return <Loader aria-label='Loading character collection' />
+  if (!data) return <Alert color='yellow'>Character collection unavailable.</Alert>
+  // Notes stay on Convex, whose version the room's push does not track.
+  const current = liveSheet !== undefined || data.data.meta.streamVersion === meta.streamVersion
   const props = { hideTitle: true, openPanel, pending: pending || !current, submitCommand }
-  switch (query.data.slice) {
+  switch (data.slice) {
     case 'ACTIONS':
-      return <CharacterSheetActions {...props} sheet={query.data.data} />
+      return <CharacterSheetActions {...props} sheet={data.data} />
     case 'SPELLS':
-      return <CharacterSheetSpells {...props} sheet={query.data.data} />
+      return <CharacterSheetSpells {...props} sheet={data.data} />
     case 'EXTRAS':
-      return <CharacterSheetExtras {...props} sheet={query.data.data} />
+      return <CharacterSheetExtras {...props} sheet={data.data} />
     case 'INVENTORY':
       return (
         <CharacterSheetInventory
           {...props}
           editable={meta.capabilities.manageInventory}
           partyInventory={campaignInventory}
-          sheet={query.data.data}
+          sheet={data.data}
         />
       )
     case 'NOTES':
-      return <CharacterSheetNotes {...props} sheet={query.data.data} />
+      return <CharacterSheetNotes {...props} sheet={data.data} />
     case 'FEATURES':
-      return <CharacterSheetReference {...props} mode='features' sheet={query.data.data} />
+      return <CharacterSheetReference {...props} mode='features' sheet={data.data} />
     case 'COMMON':
       return null
   }

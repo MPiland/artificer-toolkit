@@ -35,6 +35,16 @@ export async function readCharacterLiveHold(ctx: QueryCtx, characterId: string) 
   return null
 }
 
+/** Under live authority the room owns every open Run (PREPARED or ACTIVE): Convex fences them. */
+export async function isRoomHeldRun(
+  ctx: QueryCtx,
+  run: Pick<Doc<'encounterRuns'>, 'campaignId' | 'status'>
+) {
+  return (
+    run.status !== 'COMPLETED' && (await readLiveCampaignAuthority(ctx, run.campaignId)) !== null
+  )
+}
+
 export async function assertConvexOwnsCharacterPlay(ctx: QueryCtx, characterId: string) {
   if (await readCharacterLiveHold(ctx, characterId))
     throw new Error('This Character is held by its live table; use the room for play commands.')

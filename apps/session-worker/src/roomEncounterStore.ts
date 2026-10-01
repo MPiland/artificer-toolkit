@@ -154,6 +154,7 @@ export class RoomEncounterStore {
   readonly store: EncounterStore
 
   readonly #storage: RoomStorage
+  readonly #onCommitted: (() => void) | undefined
   #memory: Memory = createMemoryEncounterStore({ idPrefix: 'room' })
   #records = new Map<string, RoomRecord>()
   #epoch: string | null = null
@@ -167,8 +168,13 @@ export class RoomEncounterStore {
   #rowsRead = 0
   #rowsWritten = 0
 
-  constructor(storage: RoomStorage) {
+  constructor(
+    storage: RoomStorage,
+    /** Runs after every transaction that wrote, once its state is the committed state. */
+    onCommitted?: () => void
+  ) {
     this.#storage = storage
+    this.#onCommitted = onCommitted
     const mutations = new Set(['insert', 'patch', 'replace', 'delete'])
     this.store = new Proxy({} as EncounterStore, {
       get: (_target, property) => {
@@ -455,6 +461,7 @@ export class RoomEncounterStore {
       for (const [id, record] of staged)
         if (record) this.#records.set(id, record)
         else this.#records.delete(id)
+      if (writes.length > 0) this.#onCommitted?.()
       return result
     } catch (error) {
       this.#memory.transaction.abort()

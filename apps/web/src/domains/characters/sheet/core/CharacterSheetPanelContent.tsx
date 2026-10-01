@@ -1,3 +1,4 @@
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { CharacterSheetFeaturePanel } from './CharacterSheetFeaturePanel'
 import type { ReactNode } from 'react'
@@ -16,6 +17,7 @@ import type {
 
 export function CharacterSheetPanelContent({
   campaignInventory,
+  liveSheet,
   mobile,
   openPanel,
   pending,
@@ -24,6 +26,7 @@ export function CharacterSheetPanelContent({
   tab
 }: {
   campaignInventory?: ReactNode
+  liveSheet?: CharacterSheetResponseDto
   mobile?: boolean
   openPanel?: OpenSheetPanel
   pending: boolean
@@ -58,6 +61,7 @@ export function CharacterSheetPanelContent({
       return (
         <CharacterSheetFeaturePanel
           campaignInventory={campaignInventory}
+          liveSheet={liveSheet}
           openPanel={openPanel}
           pending={pending}
           meta={sheet.meta}

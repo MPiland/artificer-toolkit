@@ -34,7 +34,7 @@ import type {
 
 type RemoveActorCommand = Extract<EncounterExecuteInput['command'], { type: 'REMOVE_ACTOR' }>
 type Campaign = EncounterDocument<'campaigns'>
-type RemovalMode = 'PUBLIC' | 'ACCOUNT_CLEANUP'
+type RemovalMode = 'PUBLIC' | 'ACCOUNT_CLEANUP' | 'MISSING_CHARACTER'
 
 const storedOccurrence = encounterStoredRuleOccurrenceSchema.clone({
   ...encounterStoredRuleOccurrenceSchema._zod.def,
@@ -138,6 +138,41 @@ export async function removeAccountCharacterActors(
     }
   }
 
+  await removeTargetedActors(ctx, campaign, userId, targets, 'ACCOUNT_CLEANUP')
+}
+
+/**
+ * Trusted cleanup when Convex regains a Campaign's open Runs at room release: removes the actors
+ * of Characters that no longer exist, as account cleanup does for a deleting account.
+ */
+export async function removeMissingCharacterActors(
+  ctx: EncounterCharacterWriteTransaction,
+  campaign: Campaign,
+  userId: string
+) {
+  const targets: Array<{ encounterId: string; actorId: string }> = []
+  const rows = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_campaignId_status', (q) => q.eq('campaignId', campaign.id))
+    .collect()
+  for (const row of rows
+    .filter((candidate) => candidate.status !== 'COMPLETED')
+    .sort((left, right) => left.id.localeCompare(right.id)))
+    for (const actor of (await readRunActors(ctx, readRunState(row))).sort((left, right) =>
+      left.id.localeCompare(right.id)
+    ))
+      if (actor.kind === 'CHARACTER' && !(await ctx.ports.readCharacterRow(actor.sourceId)))
+        targets.push({ encounterId: row.id, actorId: actor.id })
+  await removeTargetedActors(ctx, campaign, userId, targets, 'MISSING_CHARACTER')
+}
+
+async function removeTargetedActors(
+  ctx: EncounterCharacterWriteTransaction,
+  campaign: Campaign,
+  userId: string,
+  targets: Array<{ encounterId: string; actorId: string }>,
+  mode: RemovalMode
+) {
   for (const target of targets) {
     const row = await ctx.db
       .query('encounterRuns')
@@ -155,7 +190,7 @@ export async function removeAccountCharacterActors(
       },
       userId,
       campaign,
-      'ACCOUNT_CLEANUP'
+      mode
     )
   }
 }

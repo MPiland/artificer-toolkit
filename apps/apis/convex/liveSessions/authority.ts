@@ -19,6 +19,7 @@ import { internalMutation } from '../lib/mutations'
 import { internalQuery } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
+import { reconcileOpenRunsAtRelease } from './releaseReconcile'
 import { reconcileCharacterHolds, releaseCharacterHolds } from './characterHolds'
 import {
   isExpiredActivatingAuthority,
@@ -460,6 +461,7 @@ export const release = internalMutation({
       throw new Error('Live Session final publication is incomplete.')
     await releaseCharacterHolds(ctx, authority.campaignId, authority.epoch)
     await ctx.db.delete(authority._id)
+    await reconcileOpenRunsAtRelease(ctx, authority.campaignId)
     return null
   }
 })

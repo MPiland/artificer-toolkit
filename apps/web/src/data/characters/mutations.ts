@@ -16,6 +16,10 @@ import {
   type CharacterDraftDiscardInput,
   type CharacterDraftSaveInput
 } from '@artificer-toolkit/schema/api/characterDrafts'
+import {
+  isCharacterSheetLivePlayCommand,
+  type CharacterSheetLivePlayCommand
+} from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import {
@@ -65,7 +69,16 @@ export function useCommitCharacterBuilderMutation() {
   })
 }
 
-export function useCharacterSheetCommandMutation(characterId: string, campaignId?: string | null) {
+export function useCharacterSheetCommandMutation(
+  characterId: string,
+  campaignId?: string | null,
+  /** While a live Run holds the Character, its play commands go to the room (D73). */
+  live?: {
+    /** The Convex play version the Sheet's other commands are checked against. */
+    checkpointVersion: number
+    sendPlayCommand: (command: CharacterSheetLivePlayCommand) => Promise<void>
+  } | null
+) {
   const execute = useConvexMutation(
     convexApi.characters.sheetCommands.execute
   ).withOptimisticUpdate((localStore, { id, command }) => {
@@ -127,10 +140,17 @@ export function useCharacterSheetCommandMutation(characterId: string, campaignId
     mutationKey: campaignId
       ? ['campaigns', campaignId, 'sheet', 'command', characterId]
       : ['characters', 'sheet', 'command', characterId],
-    mutationFn: (command: CharacterSheetCommandInputDto) =>
-      campaignId
-        ? executeCampaign({ campaignId, characterId, command })
-        : execute({ id: characterId, command })
+    mutationFn: async (command: CharacterSheetCommandInputDto) => {
+      if (!campaignId) return execute({ id: characterId, command })
+      if (!live) return executeCampaign({ campaignId, characterId, command })
+      if (isCharacterSheetLivePlayCommand(command)) return live.sendPlayCommand(command)
+      // Everything else stays on Convex, whose checkpointed version the room's push does not track.
+      return executeCampaign({
+        campaignId,
+        characterId,
+        command: { ...command, expectedVersion: live.checkpointVersion }
+      })
+    }
   })
 }
 

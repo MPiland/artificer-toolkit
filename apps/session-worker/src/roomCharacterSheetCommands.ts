@@ -22,12 +22,11 @@ import {
   getSheetCommandResourceUsageUpdate
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
 import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
-import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
-import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
+import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 
 /** Character play and its Sheet receipt join the caller's atomic room command commit. */
@@ -133,19 +132,7 @@ export async function executeRoomCharacterSheetCommand(input: {
     { kind: 'CHARACTER', characterId },
     { ownerVerified: true }
   )
-  const { sheet } = projectCharacterSheetBundle({
-    character: initial.prepared.character,
-    resolution: initial.prepared.resolution,
-    streamVersion: initial.active.play.streamVersion,
-    adjustments: initial.adjustments,
-    additionalConditions: getVisibleCampaignConditions(initial.campaignContext),
-    additionalCurrencyOptions: initial.campaignContext.currencyOptions,
-    creaturesById: initial.prepared.context.creaturesById,
-    vehiclesById: initial.prepared.context.vehiclesById,
-    spellCustomizations: initial.sheetState.spellCustomizations,
-    ruleEvaluation: initial.ruleEvaluation,
-    activeEffects
-  })
+  const sheet = projectRoomCharacterSheet(initial, activeEffects)
 
   const replay = await readCharacterCommandReplay(
     {

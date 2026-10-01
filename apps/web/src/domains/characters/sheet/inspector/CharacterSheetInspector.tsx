@@ -7,6 +7,7 @@ import {
   getCharacterSheetSlice,
   getCharacterSheetPanel
 } from '#app/data/characters/queries'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as sheetOverlayStyles from '../shared/sheetOverlay.css'
@@ -20,6 +21,7 @@ export function CharacterSheetInspector({
   equipmentItems,
   commandError,
   expectedVersion,
+  liveSheet,
   pending,
   target,
   submitCommand,
@@ -31,6 +33,8 @@ export function CharacterSheetInspector({
   equipmentItems?: CharacterSheet['inventory']['items']
   commandError?: string
   expectedVersion: number
+  /** The room's pushed Sheet while a live Run holds the Character. */
+  liveSheet?: CharacterSheetResponseDto
   pending: boolean
   target: CharacterSheetPanelTargetDto
   submitCommand: SubmitSheetCommand
@@ -44,7 +48,11 @@ export function CharacterSheetInspector({
     panelQuery.data?.editable === true &&
     panelQuery.data.allowedCommands.includes('UPDATE_EXTRA')
   const inventoryQuery = useQuery(
-    getCharacterSheetSlice(requiresEquipment ? characterId : undefined, 'INVENTORY', campaignId)
+    getCharacterSheetSlice(
+      requiresEquipment && !liveSheet ? characterId : undefined,
+      'INVENTORY',
+      campaignId
+    )
   )
   const preparationOptionsQuery = useQuery(
     getCharacterPreparationOptions(target.kind === 'SPELLS' ? characterId : undefined, campaignId)
@@ -94,11 +102,18 @@ export function CharacterSheetInspector({
       ) : panelQuery.data ? (
         <CharacterSheetInspectorContent
           expectedVersion={expectedVersion}
-          equipmentItems={equipmentItems ?? inventoryQuery.data?.inventory.items ?? []}
+          equipmentItems={
+            equipmentItems ??
+            liveSheet?.inventory.items ??
+            inventoryQuery.data?.inventory.items ??
+            []
+          }
           panel={panelQuery.data}
           pending={
             pending ||
-            (requiresEquipment && inventoryQuery.data?.meta.streamVersion !== expectedVersion)
+            (requiresEquipment &&
+              !liveSheet &&
+              inventoryQuery.data?.meta.streamVersion !== expectedVersion)
           }
           preparationOptions={preparationOptionsQuery.data ?? undefined}
           preparationOptionsError={preparationOptionsQuery.error?.message}
