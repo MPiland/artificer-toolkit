@@ -91,7 +91,8 @@ The focused `sheetSlices.liveAuthority` routing read uses head, holds and typed 
 metadata to the owner/GM and returns null for party readers. Optional authority `checkpointedAt`
 records only actual acknowledged delta-checkpoint or retained per-command publication; exact retry
 and drain leave it unchanged. Activation/new recovery omits it, and routing metadata returns null
-before the epoch's first acknowledgement. Web freshness UI remains open. Direct
+before the epoch's first acknowledgement. Pages outside the room show it through the Campaign-level
+`campaigns/queries.liveAuthority` query. Direct
 `encounters/commands.execute` now fences every command type while live authority
 exists. Separate epoch-fenced `liveSessions` endpoints retain transitional Worker commits; this does
 not retire those paths or establish lifecycle acceptance.

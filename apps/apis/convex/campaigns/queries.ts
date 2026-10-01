@@ -1,4 +1,5 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
+import { v } from 'convex/values'
 import {
   campaignContentUsageDtoSchema,
   campaignDetailDtoSchema,
@@ -11,7 +12,12 @@ import {
   campaignLookupInputSchema,
   type CampaignListPage
 } from '@artificer-toolkit/schema/api/campaignList'
+import {
+  campaignLiveAuthorityDtoSchema,
+  type CampaignLiveAuthorityDto
+} from '@artificer-toolkit/schema/api/liveSessionState'
 import { query } from '../lib/queries'
+import { readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
 import { requireIdentity } from '../lib/identity'
 import { readCampaignContentUsage } from './contentUsage'
 import {
@@ -53,6 +59,25 @@ export const contentUsage = query({
     if (membership.role !== 'OWNER')
       throw new Error('Only the Campaign owner can view Campaign usage.')
     return readCampaignContentUsage(ctx.db, campaign)
+  }
+})
+
+/** Any member: routes chat and rolls to the room, and dates the last checkpoint other pages show. */
+export const liveAuthority = query({
+  args: zodToConvexFields(campaignLookupInputSchema.shape),
+  returns: v.union(v.null(), zodToConvex(campaignLiveAuthorityDtoSchema)),
+  handler: async (ctx, args): Promise<CampaignLiveAuthorityDto | null> => {
+    const { userId } = await requireIdentity(ctx)
+    const { id } = campaignLookupInputSchema.parse(args)
+    const { campaign } = await requireCampaignAuthority(ctx, id, userId)
+    const authority = await readLiveCampaignAuthority(ctx, campaign.id)
+    return authority
+      ? campaignLiveAuthorityDtoSchema.parse({
+          campaignId: campaign.id,
+          epoch: authority.epoch,
+          checkpointedAt: authority.checkpointedAt ?? null
+        })
+      : null
   }
 })
 

@@ -66,6 +66,21 @@ export const liveSessionDrainReleaseInputSchema = lazySchema(() =>
   })
 )
 
+/**
+ * Present while the Campaign's live room holds authority: chat and rolls go to the room, and pages
+ * outside it read the last checkpoint. `checkpointedAt` is null until the epoch's first acknowledged
+ * checkpoint.
+ */
+export const campaignLiveAuthorityDtoSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: postgresUuidSchema,
+    epoch: postgresUuidSchema,
+    checkpointedAt: z.nullable(z.iso.datetime({ offset: true }))
+  })
+)
+
+export type CampaignLiveAuthorityDto = z.infer<typeof campaignLiveAuthorityDtoSchema>
+
 export const liveSessionAuthorityDtoSchema = lazySchema(() =>
   z.strictObject({
     campaignId: postgresUuidSchema,

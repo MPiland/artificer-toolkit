@@ -7,7 +7,7 @@ import type {
 import { useQuery } from '@tanstack/react-query'
 import { useMutation as useConvexMutation } from 'convex/react'
 import { useCallback, useState } from 'react'
-import { getCampaignChatLiveAuthority } from '#app/data/campaigns/queries'
+import { getCampaignLiveAuthority } from '#app/data/campaigns/queries'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
 
 /** Room-pushed entries kept per hook; Convex history carries everything older. */
@@ -19,7 +19,7 @@ const PUSHED_ENTRY_LIMIT = 200
  * mutations. The command ID is the entry's client nonce, so a retry replays the original entry.
  */
 export function useCampaignChatRoom(campaignId: string | undefined) {
-  const authority = useQuery(getCampaignChatLiveAuthority(campaignId))
+  const authority = useQuery(getCampaignLiveAuthority(campaignId))
   const holdsAuthority = Boolean(authority.data)
   const [pushed, setPushed] = useState<CampaignChatEntryDto[]>([])
   const live = useCampaignLiveSession({

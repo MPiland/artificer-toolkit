@@ -62,12 +62,12 @@ export function getCampaignClock(campaignId: string) {
   return convexQuery(convexApi.campaigns.clock.get, { campaignId })
 }
 
-/** Non-null while the live room owns chat and rolls for this Campaign. */
-export function getCampaignChatLiveAuthority(campaignId: string | undefined) {
+/** Non-null while the live room holds authority; other pages then show its last checkpoint. */
+export function getCampaignLiveAuthority(campaignId: string | undefined) {
   return {
     ...convexQuery(
-      convexApi.campaigns.chat.liveAuthority,
-      campaignId ? { campaignId } : 'skip'
+      convexApi.campaigns.queries.liveAuthority,
+      campaignId ? { id: campaignId } : 'skip'
     ),
     gcTime: 0
   }

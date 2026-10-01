@@ -74,7 +74,8 @@ types under live authority; epoch-fenced transitional `liveSessions` endpoints r
 Encounter/Sheet receipts advance browser room sequence without Scene deltas. Optional authority
 `checkpointedAt` changes only on actual acknowledged publication, survives exact retry/drain and is
 absent on activation/new recovery; routing metadata returns null before the first acknowledgement.
-Web freshness presentation remains open, with no execution proof for this source provenance.
+The web session workspace shows that checkpoint time through `campaigns/queries.liveAuthority`; no
+execution proof exists yet for this source provenance.
 
 `conversationPersistence` shares conversation lookup, opening, current access and paired entry writes.
 `campaignMemberships` preserves bounded active-roster validation; `rulesChatPersistence` posts rules

@@ -36,14 +36,3 @@ export const campaignChatLiveCommandSchema = lazySchema(() =>
 )
 
 export type CampaignChatLiveCommand = z.infer<typeof campaignChatLiveCommandSchema>
-
-export const campaignChatLiveAuthorityReadInputSchema = lazySchema(() =>
-  z.strictObject({ campaignId: uuidSchema })
-)
-
-/** Present while the Campaign's live room holds authority, so chat and rolls go to the room. */
-export const campaignChatLiveAuthorityDtoSchema = lazySchema(() =>
-  z.strictObject({ campaignId: uuidSchema, epoch: uuidSchema })
-)
-
-export type CampaignChatLiveAuthorityDto = z.infer<typeof campaignChatLiveAuthorityDtoSchema>

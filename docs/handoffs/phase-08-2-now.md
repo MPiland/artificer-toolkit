@@ -18,25 +18,24 @@
 
 ## Last slice (done)
 
-**A35-S8a Chat and rolls through the room (D69, D72, D76).** State: integrating. Gate9 clean (builds, local codegen, typechecks, web) and lint clean on touched files. Summary in [live-sessions.md](../architecture/live-sessions.md).
+**A35-S8b Pages outside the room show checkpoint freshness.** State: integrating. Gate10 clean (builds, local codegen, typechecks, web); lint and lazy-schema checks clean on touched files.
 
-- While the room holds authority, chat, public and TABLE rolls are `CAMPAIGN_CHAT` room commands (`roomChatCommands.ts`), committed through the journal with the D72 bucket charge (`roomRateLimits.ts`) and fanned out at once. Convex `chat.send` and `rolls.execute` are fenced while the room holds authority.
-- Scene commands are admitted on Scene state (D76); `STALE_SEQUENCE` is gone.
+- The chat-only `campaigns.chat.liveAuthority` became the Campaign-level `campaigns.queries.liveAuthority` (any member): live epoch plus nullable `checkpointedAt` (`campaignLiveAuthorityDtoSchema` in `liveSessionState.ts`). Chat routing uses it unchanged.
+- `CampaignLiveCheckpointNotice` in the session workspace tells GM and players outside the room when the Encounter details were last checkpointed, or that none has been yet.
 
 Follow-ups for the test cycle (REL-4):
 
-- **Room test suite is red before this slice:** `nativeLiveSessionRoom.test.ts` fails 76 of 89 at `9a3540915` too, almost all in the fixture with "The durable Session authority is not active". Fix first in REL-4.
-- No dedicated tests yet for `RoomAccountBuckets` or the chat command (nonce replay, rollback not charged, GM vs player allowance).
-- A nonce already used before this epoch (no journal receipt) is refused as "already sent" rather than returning the original entry.
-- Carried from A35-S7a: interim deletion exposure, Sheet pushes lagging reconciliation, the checkpoint-race retry, and the earlier compile-repair items (see git history of this file at `b88b7f800`).
+- No tests yet for the query (member access, null before first checkpoint) or the notice.
+- Outside-room Encounter reads still poll Convex every 5 s (`data/encounters/queries.ts`); under live authority they only change at checkpoints. Measure in A35-S9 and key them to `checkpointedAt` if the budget needs it.
+- Carried from A35-S8a: the room test suite was red before that slice (`nativeLiveSessionRoom.test.ts`, 76 of 89, authority-fixture failure; fix first), no `RoomAccountBuckets`/chat-command tests, pre-epoch nonce refused rather than replayed. Older items: see this file at `28457d7b8`.
 
 ## Current slice
 
-**A35-S8b Pages outside the room show checkpoint freshness (nullable `checkpointedAt`).** See the [source-first handoff](phase-08-2-claude-source-first.md#remaining-implementation-and-sequence), item 3.
+**A35-S3b Recovery, clock and DAILY cleanup.** See the [source-first handoff](phase-08-2-claude-source-first.md#remaining-implementation-and-sequence), item 3. Narrow HP/Common reads stay incomplete; the checksum-dependent note writer stays frozen.
 
 ## Next slices
 
-The registry `queue` holds the order: A35-S3b recovery and cleanup, A35-S6b Scene retirement and fixtures, A35-S7b held-actor removal on account deletion, A35-S3c packed Scene history, A35-S5 parity, A35-S6c the switch (approved for Opus), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
+The registry `queue` holds the order: A35-S6b Scene retirement and fixtures, A35-S7b held-actor removal on account deletion, A35-S3c packed Scene history, A35-S5 parity, A35-S6c the switch (approved for Opus), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
 
 **Not scheduled (needs your call):** CP-S6i rule-roll chat cards, A35-S8c room-planned evidence rolls, A36-S10 room content from snapshots, A36-F1, RUL-9, TST-0/4/5/6, PLT-5 (D75 web hosting), PLT-6.
 

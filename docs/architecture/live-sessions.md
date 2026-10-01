@@ -1052,8 +1052,10 @@ party readers receive null. It loads no mechanics or owned collections. Returned
 held Run IDs, checkpoint sequence/time and acknowledged play stream support the pending frontend
 router. Optional authority `checkpointedAt` is set only by an actual acknowledged delta checkpoint
 or retained per-command publication, and exact retry/drain preserve it. Activation/new recovery has
-no timestamp; the routing DTO returns null before the epoch's first acknowledgement. Precise
-freshness provenance is authored in source; web freshness presentation remains open. Native Encounter/Sheet receipts now advance the browser's room
+no timestamp; the routing DTO returns null before the epoch's first acknowledgement. The Campaign-level
+[campaigns/queries.liveAuthority](../../apps/apis/convex/campaigns/queries.ts) query returns any member the live epoch and nullable `checkpointedAt`;
+chat routing uses it, and the session workspace outside the room shows when the Encounter details
+it reads were last checkpointed (or that none has been yet). Native Encounter/Sheet receipts now advance the browser's room
 sequence without changing Scene state, and legacy same-sequence acknowledgements only settle retry.
 
 Shared movement source now includes `liveMovementAdmission`, `spatialSceneGeometry`,

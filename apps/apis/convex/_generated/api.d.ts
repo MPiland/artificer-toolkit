@@ -7128,12 +7128,6 @@ export declare const api: {
           unreadCount: number;
         }
       >;
-      liveAuthority: FunctionReference<
-        "query",
-        "public",
-        { campaignId: string },
-        null | { campaignId: string; epoch: string }
-      >;
       send: FunctionReference<
         "mutation",
         "public",
@@ -9200,6 +9194,16 @@ export declare const api: {
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
           splitCursor?: string | null;
+        }
+      >;
+      liveAuthority: FunctionReference<
+        "query",
+        "public",
+        { id: string },
+        null | {
+          campaignId: string;
+          checkpointedAt: string | null;
+          epoch: string;
         }
       >;
       settings: FunctionReference<
