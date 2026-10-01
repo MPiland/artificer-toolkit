@@ -1827,8 +1827,12 @@ Campaign indexes, without reading historical message/roll bodies. Epoch hydratio
 scope, public identities, conversation references and author nonce uniqueness before replacing the
 SQLite snapshot. Shared conversation opening and rules-chat persistence now serve both hosts.
 Checkpoints carry typed conversation/member/header/payload deltas together; paired metadata,
-retained history and Campaign scope remain publication invariants. General live chat, TABLE roll
-ports, recipient fan-out and their complete lifecycle remain unfinished.
+retained history and Campaign scope remain publication invariants. Current source (unvalidated S8a):
+general chat, public and TABLE rolls execute in the room while it holds authority and write the
+paired header and payload through the shared `buildConversationEntryRecords` /
+`insertConversationEntry` into the room store, so each checkpoint carries both
+([live-sessions](live-sessions.md#supported-live-command-flow)); the shared builders also serve the
+Convex path. Edit, unsend, GM reveal and recovery lifecycle remain unfinished.
 
 `chat:list` reads one page through `by_conversationId_createdAt_id`, newest first by timestamp then
 UUID. The cursor is the previous page's last entry UUID: the page takes entries tied with the

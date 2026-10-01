@@ -503,6 +503,33 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - As a backstop, checkpoint ingestion rejects actor rows that still name departed controllers or
     unassigned Characters.
   - No new control operation; Convex membership remains the single source of truth.
+- **D76 (2026-10-01): Scene commands are admitted on Scene state, not the room sequence. Decided by
+  the user on 2026-10-01 (A35-S8a).** All room commands, chat included, commit through one durable
+  journal sequence. Scene commands no longer fail with `STALE_SEQUENCE` when an unrelated Sheet,
+  Encounter or chat commit advanced that sequence; the Scene version check (`STALE_STATE`) and the
+  planners' authoritative reads guard them. `expectedSessionSequence` stays in the command
+  fingerprint. A separate chat sequence was rejected because recovery and checkpoints would track a
+  second ordering. Evidence rolls are charged against the D72 bucket at room admission but stay
+  Convex-recorded until A35-S8c.
+- **D75 (2026-10-01): web app on Cloudflare Workers Free with skeleton SSR for signed-in pages
+  (resolves Q20). Decided by the user on 2026-10-01.**
+  - **Hosting:** move the web app from Netlify to a separate Cloudflare Worker, as the
+    [D65 record](../validation/phase-08-2/d65-cloudflare-web-hosting-2026-09-28.md) plans.
+  - **Signed-in pages render a skeleton on the server.** `_authed` route loaders stop prefetching
+    Convex data on the server; the server renders the layout and skeleton, and the browser fills it
+    from the Convex subscriptions it opens anyway. This removes the duplicated queries and keeps
+    signed-in SSR near the anonymous pages' 2–8 ms CPU. Public and marketing pages keep full SSR.
+    Loading states use Mantine's `Skeleton` from `@mantine/core` directly, as `AuthoredListPage` and
+    `CharacterSheetInspector` already do; no custom skeleton component or wrapper.
+    Staging measures the result, including cold-isolate first requests; Workers Paid ($5/month)
+    stays the fallback after revenue.
+  - **Better Auth focus refetch off** (`sessionOptions.refetchOnWindowFocus: false`). It only
+    refreshed the browser's cached session for the UI; the session is still checked on load and
+    navigation, and Convex authorizes every call by JWT.
+  - **Request pool protection:** Bot Fight Mode, WAF custom rules that block scanner paths, one
+    rate-limiting rule on navigations and `/api/auth/*`, fail closed when the daily pool runs out,
+    and an alert at 60%. Verify the free plan's rule allowances and that edge-blocked requests do
+    not count against the Workers pool before configuring.
 
 - **D71 (2026-09-30): bounded deferred purge of retired private receipt payloads.
   Decision maker: Codex. User approval: 2026-09-30.** Codex recommended this change after native

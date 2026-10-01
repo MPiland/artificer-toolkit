@@ -12,6 +12,7 @@ import {
   type LiveSessionWebSocketServerMessageDto,
   type LiveSessionWebSocketClientMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/domainRejections'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
@@ -88,6 +89,7 @@ interface LiveSessionConnectionOptions {
   getAccessToken: () => Promise<string>
   getTicket: () => Promise<LiveSessionTicketDto>
   onError: (error: Error) => void
+  onCampaignChatEntry?: (entry: CampaignChatEntryDto) => void
   onCharacterSheet?: (push: LiveSessionCharacterSheetPush) => void
   onCommandRejected?: (rejection: LiveSessionCommandRejection) => void
   onDurableState?: (state: LiveSessionDurableState) => void
@@ -125,7 +127,8 @@ function applyRecipientDelta(
     delta === null ||
     delta.scope === 'ENCOUNTER_BINDING' ||
     delta.scope === 'ENCOUNTER' ||
-    delta.scope === 'CHARACTER_SHEET'
+    delta.scope === 'CHARACTER_SHEET' ||
+    delta.scope === 'CAMPAIGN_CHAT'
   )
     return state
   if (delta.scope === 'SCENE_VERSION') {
@@ -347,10 +350,13 @@ export function createLiveSessionConnection(
           // Geometry notifications and private-history-free fanout advance the shared sequence,
           // but the command's own result must arrive before its submitting surface settles.
           const settle = () => {
+            if (message.delta?.scope === 'CAMPAIGN_CHAT')
+              options.onCampaignChatEntry?.(message.delta.entry)
             const pending = pendingCommands.get(message.commandId)
             if (
               (pending?.command.scope === 'ENCOUNTER' ||
-                pending?.command.scope === 'CHARACTER_SHEET') &&
+                pending?.command.scope === 'CHARACTER_SHEET' ||
+                pending?.command.scope === 'CAMPAIGN_CHAT') &&
               message.delta?.scope !== pending.command.scope
             )
               return

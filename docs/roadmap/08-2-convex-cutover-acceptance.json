@@ -2084,8 +2084,7 @@
           "id": "P14",
           "title": "Campaign collaboration",
           "proofTier": "LOCAL_E2E",
-          "status": "ACCEPTED",
-          "acceptedAt": "2026-09-10",
+          "status": "IN_PROGRESS",
           "evidence": [
             ".codex/validation/phase82-chat/local-progress.md",
             ".codex/validation/phase82-notebooks/local-progress.md",
@@ -2125,6 +2124,12 @@
               "text": "Private GM isolation, TABLE roll convergence and unread reconciliation pass with exact cleanup.",
               "status": "ACCEPTED",
               "proof": [".codex/validation/phase82-p14-complete/verification.md"]
+            },
+            {
+              "id": "P14.5",
+              "text": "During live play, chat and TABLE and to-GM rolls go through the room: immediate fan-out to recipients only, exact nonce retries replay uncharged, per-account room limits (D72: players 30/min, the GM 60/min in their own room, Scene writes 240/min) refuse excess, the Convex path is fenced, and entries persist with the next checkpoint (D69, D76).",
+              "status": "IN_PROGRESS",
+              "proof": null
             }
           ]
         },

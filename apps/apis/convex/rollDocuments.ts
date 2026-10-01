@@ -1,11 +1,10 @@
 import {
-  rollRecordDtoSchema,
   type ExecuteRollInputDto,
   type GmCampaignRollDto,
   type RollHistoryEntryDto,
   type RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
-import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
+import { createRollRecord } from '@artificer-toolkit/rules-runtime/character/rollRecord'
 import { nextRollInt } from './lib/rollRandom'
 import { resolveCharacterSheetRoll } from '@artificer-toolkit/rules-runtime/character/sheetRoll'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
@@ -72,22 +71,12 @@ export async function evaluateCharacterRoll(
         rollMode: input.rollMode ?? 'NORMAL',
         source: { kind: 'MANUAL' as const, label: 'Manual roll' }
       }
-  const record = rollRecordDtoSchema.parse({
-    id: crypto.randomUUID(),
+  const record = createRollRecord({
     characterId: character.id,
-    characterLabel: character.label,
-    source: resolved.source,
-    ruleset: {
-      systemId: system.id,
-      code: system.rulesetCode,
-      version: system.rulesetVersion
-    },
-    ...evaluateRollExpression(
-      parseRollExpression(resolved.expression),
-      { nextInt: nextRollInt },
-      resolved.rollMode
-    ),
-    createdAt: new Date().toISOString()
+    label: character.label,
+    system: { id: system.id, rulesetCode: system.rulesetCode, rulesetVersion: system.rulesetVersion },
+    resolved,
+    nextInt: nextRollInt
   })
   return { record, maturity }
 }

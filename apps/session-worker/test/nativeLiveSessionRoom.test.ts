@@ -2280,7 +2280,7 @@ it('recovers a native Scene commit whose acknowledgement was lost and retries wi
       const staleId = crypto.randomUUID()
       await instance.webSocketMessage(
         socket,
-        JSON.stringify(tokenMoveCommand(moved, tokenId, staleId, { x: 30, y: 10 }))
+        JSON.stringify(tokenMoveCommand({ ...moved, version: 0 }, tokenId, staleId, { x: 30, y: 10 }))
       )
       expect(
         sent.mock.calls.map(([data]) =>
@@ -2290,7 +2290,7 @@ it('recovers a native Scene commit whose acknowledgement was lost and retries wi
         expect.objectContaining({
           type: 'COMMAND_REJECTED',
           commandId: staleId,
-          code: 'STALE_SEQUENCE',
+          code: 'STALE_STATE',
           correction: expect.objectContaining({
             scope: 'SCENE',
             state: expect.objectContaining({ version: 1 })
@@ -3097,31 +3097,11 @@ it('completes or abandons a record left by a restart when the next member admits
   }
 })
 
-it('returns projected corrections for stale Session and Scene versions', async () => {
+it('returns a projected correction for a stale Scene version', async () => {
   const value = doorScene(crypto.randomUUID())
   const base = await fixture(value.scene)
   await synchronizeScene(base, value.scene)
   base.messages.length = 0
-
-  const staleSessionId = crypto.randomUUID()
-  base.socket.send(
-    JSON.stringify(
-      doorCommand(value.scene, value.doorId, staleSessionId, { expectedSessionSequence: 1 })
-    )
-  )
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({
-        code: 'STALE_SEQUENCE',
-        commandId: staleSessionId,
-        correction: expect.objectContaining({
-          scope: 'SCENE',
-          state: expect.objectContaining({ version: 0 })
-        }),
-        type: 'COMMAND_REJECTED'
-      })
-    )
-  )
 
   const staleSceneId = crypto.randomUUID()
   base.socket.send(

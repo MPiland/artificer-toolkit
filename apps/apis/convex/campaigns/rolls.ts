@@ -13,11 +13,8 @@ import {
   type RollHistoryEntryDto,
   type RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
-import {
-  campaignStoredEntryIdentitySchema,
-  campaignStoredEntryPayloadSchema
-} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
-import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
+import { buildConversationEntryRecords } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
+import { createRollRecord } from '@artificer-toolkit/rules-runtime/character/rollRecord'
 
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
@@ -41,6 +38,7 @@ import {
   readCampaignAccessTime
 } from './conversationDocuments'
 import { consumeUserRateLimit } from '../lib/rateLimits'
+import { assertConvexOwnsCampaignChat } from '../liveSessions/authorityGuard'
 
 async function evaluateOwnerRoll(
   ctx: QueryCtx,
@@ -58,18 +56,12 @@ async function evaluateOwnerRoll(
   if (!assignment) throw new Error('Assign at least one Character before making a Campaign roll.')
   await requireCampaignCharacterAuthority(ctx, campaign.id, assignment.characterId, userId)
   const system = await requireSystem(ctx, campaign.gameSystemId)
-  return rollRecordDtoSchema.parse({
-    id: crypto.randomUUID(),
+  return createRollRecord({
     characterId: null,
-    characterLabel: username,
-    source: roll.source,
-    ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
-    ...evaluateRollExpression(
-      parseRollExpression(roll.expression),
-      { nextInt: nextRollInt },
-      roll.rollMode ?? 'NORMAL'
-    ),
-    createdAt: new Date().toISOString()
+    label: username,
+    system: { id: system.id, rulesetCode: system.rulesetCode, rulesetVersion: system.rulesetVersion },
+    resolved: { expression: roll.expression, rollMode: roll.rollMode ?? 'NORMAL', source: roll.source },
+    nextInt: nextRollInt
   })
 }
 
@@ -129,27 +121,14 @@ async function insertRollEntry(
   const { authority, access, roll } = entry
   const now = await readCampaignAccessTime(ctx, authority.campaign)
   await consumeUserRateLimit(ctx, 'campaignConversation', entry.userId)
-  const header = campaignStoredEntryIdentitySchema.parse({
-    id: crypto.randomUUID(),
+  const { identity: header, payload } = buildConversationEntryRecords({
     campaignId: authority.campaign.id,
     conversationId: access.conversation.id,
     authorUserId: entry.userId,
     clientNonce: entry.clientNonce,
-    createdAt: new Date(now).toISOString()
-  })
-  const payload = campaignStoredEntryPayloadSchema.parse({
-    entryId: header.id,
-    kind: 'ROLL',
-    mode: null,
-    body: null,
-    roll,
-    revealedByGm: entry.revealedByGm,
-    authorUsername: entry.username,
-    characterId: roll.characterId,
-    characterLabel: roll.characterId === null ? null : roll.characterLabel,
-    editedAt: null,
-    unsentAt: null,
-    consumedAt: null
+    createdAt: new Date(now).toISOString(),
+    username: entry.username,
+    content: { kind: 'ROLL', roll, revealedByGm: entry.revealedByGm }
   })
   await insertConversationEntry(ctx, header, payload)
   return presentChatEntry(
@@ -173,6 +152,7 @@ export const execute = mutation({
     const input = executeCampaignRollInputSchema.parse(args)
     const authority = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (authority.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    await assertConvexOwnsCampaignChat(ctx, authority.campaign.id)
     if (input.roll.characterId !== null) {
       await requireCampaignCharacterAuthority(
         ctx,

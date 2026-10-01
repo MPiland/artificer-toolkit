@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { useDiscardRollMutation, useExecuteRollMutation } from '#app/data/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
+import { useCampaignChatRoom } from '#domains/campaigns/vtt/useCampaignChatRoom'
 import type {
   CharacterSheetRollController,
   CharacterSheetRollDestination,
@@ -27,7 +28,7 @@ export function useCharacterSheetRollController(
 ): CharacterSheetRollController {
   const campaignId = campaign?.id
   const isGm = campaign?.isGm ?? false
-  const executeCampaignRoll = useConvexMutation(convexApi.campaigns.rolls.execute)
+  const { executeRoll: executeCampaignRoll } = useCampaignChatRoom(campaignId)
   const executeGmPrivateRoll = useConvexMutation(convexApi.campaigns.rolls.executePrivate)
   const executeCampaignPrivateRoll = useConvexMutation(
     convexApi.campaigns.characterSheet.executeRoll

@@ -308,8 +308,10 @@ any move or door change that derives fog exploration (`sceneDerivesExploration` 
 moves use native local checkpoint records. Movement decision answers and a GM's movement void reach the same path
 from `executeLiveEncounterCommand` (route `MOVEMENT`). Inside the command chain the room:
 
-1. checks its journal for a replay, then the session sequence and Scene version (a decision answer
-   skips the session sequence, D28: its Scene version pin already fences it);
+1. checks its journal for a replay, then its D72 Scene allowance and the Scene version (the client's
+   session sequence no longer rejects a command: every input the room-side planner reads comes from
+   room state or is checked authoritatively, so the Scene version fences the Scene and the
+   sequence stays in the command fingerprint for replay only);
 2. flushes pending checkpoints and settles any unsettled record (below);
 3. stages the command in one private call, `encounter-movement-stage`
    (`liveSessions/encounterMovement:stage`, D52): in one transaction Convex routes a decision
@@ -966,6 +968,26 @@ receipt identity and command fingerprint, requires the journal/private event IDs
 presents using current maturity and native stream. Reading the raw receipt preserves the original
 history for current privacy presentation instead of reusing already redacted journal text. This
 correction is source-only and unvalidated.
+
+**Chat and rolls through the room (current source, unvalidated S8a, D69/D72).** While the Campaign's
+live authority exists, general chat, public rolls and TABLE rolls are `CAMPAIGN_CHAT` room commands
+([campaignChatLiveCommands](../../packages/schema/src/api/campaignChatLiveCommands.ts)); the command
+ID is the entry's client nonce. [executeRoomCampaignChatCommand](../../apps/session-worker/src/roomChatCommands.ts)
+validates the author through the room's read ports, resolves Character rolls from held room inputs,
+and writes the paired header and payload with the shared
+[conversation writers](../../packages/encounter-persistence/src/conversationEntryRecords.ts), so
+the next checkpoint carries both. The entry fans out at once to its conversation's members (other
+members receive the same room sequence with `delta: null`); an exact retry replays the journal
+receipt. Per-account D72 token buckets live in room SQLite
+([roomRateLimits](../../apps/session-worker/src/roomRateLimits.ts), allowances in `roomLimits.ts`):
+chat and every roll share one bucket (players 30/min burst 30, the GM 60/60) and Scene writes use
+240/min burst 80. A charge commits inside the command's durable transaction, so exact retries and
+rolled-back commands are never charged, reconnects share the bucket, and rows are keyed by epoch.
+Eviction removes the account's rows and room release clears them. Evidence rolls stay Convex-recorded
+and spend the same bucket after they succeed. Convex fences `campaigns/chat:send` and
+`campaigns/rolls:execute` while authority exists, and the web routes both through the room
+(`useCampaignChatRoom`), merging pushed entries into Convex history. Edit, unsend and GM reveal
+remain Convex-only.
 
 [liveCharacterHolds](../../packages/schema/src/projections/liveCharacterHold.ts) fences each
 Character/active Run pair by Campaign/epoch. Claim/recovery establishes holds, changed Run/actor
@@ -1629,11 +1651,10 @@ write, so a rejection rolls back the whole transaction. Account deletion resets 
 | Social                 | Fixed UTC-aligned hour/day windows | Applications, invitations, reports and blocks ([policy](persistence.md#native-social-rate-limits--local-implementation))                                  |
 
 The `sceneWrite` burst admits two maximum fog saves (begin, 32 appends, publish) back to back.
-The room rate-scope proposal remains unapproved: exact account-global counters across Campaign
-rooms conflict with zero warm Convex calls. The proposal keeps the same allowances per account
-within each room (chat/roll 30/min, burst 30; Scene 240/min, burst 80). It has not changed the
-current counters or dispatch. General native chat/public/TABLE/evidence-roll routing remains pending
-that decision; see the [Claude handoff](../handoffs/phase-08-2-claude-source-first.md#unapproved-proposals).
+While a Campaign's live room holds authority the allowances apply per account within that room
+instead (D72; chat and rolls 30/min, burst 30, the GM 60/60; Scene 240/min, burst 80), as described
+under the chat paragraph in [Supported live-command flow](#supported-live-command-flow); these
+Convex buckets apply outside live play.
 The activation reservation cap, publication role check and control retry are described under
 [Ticket and authentication flow](#ticket-and-authentication-flow) and
 [Supported live-command flow](#supported-live-command-flow).

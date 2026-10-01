@@ -27,6 +27,22 @@ export const ROOM_LIMITS = {
   captureCacheTtlMs: 60_000
 } as const
 
+/**
+ * Per-account token buckets inside each room (D72), shared across the account's sockets and kept
+ * in room SQLite. TABLE covers chat and every roll the account makes; SCENE covers Scene writes.
+ * The GM of their own room gets the larger TABLE allowance.
+ */
+export const ACCOUNT_BUCKETS = {
+  TABLE: {
+    PLAYER: { capacity: 30, refillPerMinute: 30 },
+    OWNER: { capacity: 60, refillPerMinute: 60 }
+  },
+  SCENE: {
+    PLAYER: { capacity: 80, refillPerMinute: 240 },
+    OWNER: { capacity: 80, refillPerMinute: 240 }
+  }
+} as const
+
 type MessageClass = 'AUTHENTICATE' | 'COMMAND' | 'INVALID' | 'SYNC' | 'TRANSIENT'
 
 // Clients send previews only during a gesture, each stream at most 10 Hz, and re-authenticate only

@@ -45,6 +45,12 @@ export async function isRoomHeldRun(
   )
 }
 
+/** Chat and Campaign rolls are room commands while the Campaign's live table holds authority. */
+export async function assertConvexOwnsCampaignChat(ctx: QueryCtx, campaignId: string) {
+  if (await readLiveCampaignAuthority(ctx, campaignId))
+    throw new Error('The live table owns chat and rolls; use the room to send them.')
+}
+
 export async function assertConvexOwnsCharacterPlay(ctx: QueryCtx, characterId: string) {
   if (await readCharacterLiveHold(ctx, characterId))
     throw new Error('This Character is held by its live table; use the room for play commands.')

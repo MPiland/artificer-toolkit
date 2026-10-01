@@ -61,7 +61,6 @@
     }
   ],
   "queue": [
-    "A35-S8a",
     "A35-S8b",
     "A35-S3b",
     "A35-S6b",
@@ -91,8 +90,9 @@
     { "id": "A35-S6c", "stream": "A35", "state": "remaining", "title": "The switch: room-authoritative Runs; delete the per-command Convex path", "cases": ["R06", "V08", "V13", "V14"], "refs": [] },
     { "id": "A35-S7a", "stream": "A35", "state": "integrating", "title": "Sheet plays through the room while held: room push and departure reconcile", "cases": ["R06", "V14", "P04", "P08", "P15"], "refs": ["D73", "D74"] },
     { "id": "A35-S7b", "stream": "A35", "state": "remaining", "title": "Account deletion removes held actors", "cases": ["F12"], "refs": ["D74"] },
-    { "id": "A35-S8a", "stream": "A35", "state": "active", "title": "Chat and rolls through the room, with per-room limits (players 30/min, GM 60/min)", "cases": ["P06", "P14", "V11"], "refs": ["D69", "D72"] },
-    { "id": "A35-S8b", "stream": "A35", "state": "remaining", "title": "Pages outside the room show checkpoint freshness (nullable checkpointedAt)", "cases": ["R01"], "refs": [] },
+    { "id": "A35-S8a", "stream": "A35", "state": "integrating", "title": "Chat and rolls through the room, with per-room limits (players 30/min, GM 60/min)", "cases": ["P06", "P14", "V11"], "refs": ["D69", "D72", "D76"] },
+    { "id": "A35-S8b", "stream": "A35", "state": "active", "title": "Pages outside the room show checkpoint freshness (nullable checkpointedAt)", "cases": ["R01"], "refs": [] },
+    { "id": "A35-S8c", "stream": "A35", "state": "remaining", "title": "Evidence rolls planned in the room, with no warm Convex calls (today they are charged by the room but recorded by Convex)", "cases": [], "refs": ["D41", "D72"] },
     { "id": "A35-S9", "stream": "A35", "state": "remaining", "title": "Budgets in gates, shadow harness deleted, architecture docs rewritten", "cases": ["V15", "R07"], "refs": [] },
 
     { "id": "A36-S1", "stream": "A36", "state": "done", "title": "Content snapshot format", "cases": [], "refs": [] },
@@ -150,7 +150,7 @@
     { "id": "PLT-2", "stream": "PLT", "state": "done", "title": "New tiers and per-Campaign limits enforced", "cases": ["P19"], "refs": ["Q18"] },
     { "id": "PLT-3", "stream": "PLT", "state": "done", "title": "Tier follow-ups: clear copy-limit message; Entries/Scenes usage in Campaign Settings", "cases": ["P19"], "refs": ["Q18"] },
     { "id": "PLT-4", "stream": "PLT", "state": "done", "title": "Roll20-style ping: long press or P, fog-aware, no live cursors", "cases": ["V06"], "refs": ["Q19"] },
-    { "id": "PLT-5", "stream": "PLT", "state": "waiting", "title": "Web app on Cloudflare Workers: local migration merged and validated; staging deploy awaits approval", "cases": ["R05", "R09"], "refs": ["D65", "Q20"] },
+    { "id": "PLT-5", "stream": "PLT", "state": "remaining", "title": "Web app on Cloudflare Workers: skeleton SSR for signed-in pages (Mantine Skeleton), focus refetch off, edge bot filtering; staging deploy needs approval", "cases": ["R05", "R09"], "refs": ["D65", "D75"] },
     { "id": "PLT-6", "stream": "PLT", "state": "remaining", "title": "Crowdfunding plan: audience first, Founders' Beta, bounded rewards, React Flow prototypes", "cases": [], "refs": [] },
 
     { "id": "TST-0", "stream": "TST", "state": "remaining", "title": "Test speed: convex-test 0.0.60 upgrade, per-file timings, parallelism trial", "cases": [], "refs": [] },

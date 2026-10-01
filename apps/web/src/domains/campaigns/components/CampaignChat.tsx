@@ -12,10 +12,12 @@ import { getCampaignConversations } from '#app/data/campaigns/queries'
 import { useCampaignChatHistory } from '#app/data/campaigns/useCampaignChatHistory'
 import { getRollHistory } from '#app/data/rolls'
 import { errorMessage } from '#app/lib/errorMessage'
+import { useCampaignChatRoom } from '../vtt/useCampaignChatRoom'
 import { CampaignChatHistory } from './CampaignChatHistory'
 import { CampaignChatNavigation } from './CampaignChatNavigation'
 import * as chatStyles from './CampaignChat.css'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
+import { mergeRoomChatEntries } from './campaignChat.utils'
 
 export function CampaignChat({
   campaign,
@@ -24,7 +26,7 @@ export function CampaignChat({
   campaign: CampaignDetailDto
   currentUserId: string
 }) {
-  const sendEntry = useConvexMutation(convexApi.campaigns.chat.send)
+  const { pushedEntries, sendChat } = useCampaignChatRoom(campaign.id)
   const editEntry = useConvexMutation(convexApi.campaigns.chat.edit)
   const unsendEntry = useConvexMutation(convexApi.campaigns.chat.unsend)
   const markConversationRead = useConvexMutation(convexApi.campaigns.conversations.markRead)
@@ -67,7 +69,12 @@ export function CampaignChat({
       !showRolls &&
       (room !== 'DIRECT' || Boolean(directUserId))
   )
-  const entries = history.entries
+  const conversationId = conversations.data?.find(
+    (conversation) =>
+      conversation.kind === room &&
+      (room !== 'DIRECT' || (directUserId && conversation.participantUserIds.includes(directUserId)))
+  )?.id
+  const entries = mergeRoomChatEntries(history.entries, pushedEntries, conversationId)
   const directMembers = campaign.memberships
     .filter((member) => member.userId !== currentUserId)
     .map((member) => ({
@@ -132,7 +139,7 @@ export function CampaignChat({
 
   const send = useMutation({
     mutationFn: () =>
-      sendEntry({
+      sendChat({
         campaignId: campaign.id,
         room,
         directUserId: room === 'DIRECT' ? directUserId : undefined,

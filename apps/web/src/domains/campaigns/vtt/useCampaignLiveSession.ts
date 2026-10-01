@@ -1,4 +1,5 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
+import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type {
   EncounterCommandInputDto,
@@ -28,16 +29,20 @@ export function useCampaignLiveSession({
   campaignId,
   characterSheetId = null,
   enabled,
+  onCampaignChatEntry,
   onTransient
 }: {
   campaignId: string
   /** The held Character whose viewer-projected Sheet the room pushes (D73). */
   characterSheetId?: string | null
   enabled: boolean
+  /** An entry the room pushed to this member's conversations; deduplicate by entry id. */
+  onCampaignChatEntry?: (entry: CampaignChatEntryDto) => void
   onTransient?: (message: { envelope: SceneTransientEnvelopeDto; userId: string }) => void
 }) {
   const connection = useRef<LiveSessionConnection | null>(null)
   const onTransientRef = useRef(onTransient)
+  const onCampaignChatEntryRef = useRef(onCampaignChatEntry)
   const convex = useConvex()
   const [characterSheet, setCharacterSheet] = useState<LiveSessionCharacterSheetPush | null>(null)
   const [commandReady, setCommandReady] = useState(false)
@@ -47,6 +52,7 @@ export function useCampaignLiveSession({
   const [sequence, setSequence] = useState<number | null>(null)
   const [status, setStatus] = useState<LiveSessionConnectionStatus>('DISCONNECTED')
   onTransientRef.current = onTransient
+  onCampaignChatEntryRef.current = onCampaignChatEntry
 
   useEffect(() => {
     if (!enabled) {
@@ -76,6 +82,7 @@ export function useCampaignLiveSession({
       },
       getTicket: () => convex.action(api.liveSessions.tickets.issue, { campaignId }),
       onError: (nextError) => setError(errorMessage(nextError)),
+      onCampaignChatEntry: (entry) => onCampaignChatEntryRef.current?.(entry),
       onCharacterSheet: setCharacterSheet,
       onCommandRejected: setRejection,
       onDurableState: (state) => {

@@ -3,6 +3,8 @@ import { encounterCommandResultDtoSchema } from './encounterData.js'
 import { encounterCommandInputDtoSchema } from './encounters.js'
 import { characterSheetLivePlayCommandSchema } from './characterSheetLiveCommands.js'
 import { characterSheetCommandResponseDtoSchema } from './characterSheetCommands.js'
+import { campaignChatEntryDtoSchema } from './campaignCommunication.js'
+import { campaignChatLiveCommandSchema } from './campaignChatLiveCommands.js'
 import {
   bindEncounterToPresentedSceneInputDtoSchema,
   bindEncounterToPresentedSceneResultDtoSchema,
@@ -21,6 +23,7 @@ export const liveSessionSequenceDtoSchema = lazySchema(() =>
  * locally; other Encounter commands still use the transitional Convex commit. Bound token moves stay Scene-scoped here:
  * the room recognizes the binding and runs the Encounter movement rules for them. The GM binds an
  * Encounter to the presented Scene through the room's native SQLite transaction (D47).
+ * Campaign chat and rolls execute in the room while it holds authority (D69).
  * Held Character play commands identify their active Run; rests and structural edits stay outside this lane.
  */
 export const liveSessionCommandDtoSchema = lazySchema(() =>
@@ -36,7 +39,8 @@ export const liveSessionCommandDtoSchema = lazySchema(() =>
     z.strictObject({
       scope: z.literal('ENCOUNTER_BINDING'),
       command: bindEncounterToPresentedSceneInputDtoSchema
-    })
+    }),
+    z.strictObject({ scope: z.literal('CAMPAIGN_CHAT'), command: campaignChatLiveCommandSchema })
   ])
 )
 
@@ -61,6 +65,8 @@ export const liveSessionRecipientDeltaDtoSchema = lazySchema(() =>
       scope: z.literal('ENCOUNTER_BINDING'),
       result: bindEncounterToPresentedSceneResultDtoSchema
     }),
+    // Sent to the conversation's members: the entry as that member reads it.
+    z.strictObject({ scope: z.literal('CAMPAIGN_CHAT'), entry: campaignChatEntryDtoSchema }),
     z.strictObject({
       scope: z.literal('SCENE_VERSION'),
       sceneId: uuidSchema,
@@ -82,8 +88,8 @@ export const liveSessionCommandRejectionCodeDtoSchema = lazySchema(() =>
     'DOMAIN_REJECTED',
     'FORBIDDEN',
     'INVALID_COMMAND',
+    'RATE_LIMITED',
     'SESSION_CLOSED',
-    'STALE_SEQUENCE',
     'STALE_STATE',
     'UNAVAILABLE'
   ])

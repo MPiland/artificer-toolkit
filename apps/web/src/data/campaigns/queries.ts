@@ -61,3 +61,14 @@ export function getCampaignSession(campaignId: string, sessionNumber: number) {
 export function getCampaignClock(campaignId: string) {
   return convexQuery(convexApi.campaigns.clock.get, { campaignId })
 }
+
+/** Non-null while the live room owns chat and rolls for this Campaign. */
+export function getCampaignChatLiveAuthority(campaignId: string | undefined) {
+  return {
+    ...convexQuery(
+      convexApi.campaigns.chat.liveAuthority,
+      campaignId ? { campaignId } : 'skip'
+    ),
+    gcTime: 0
+  }
+}

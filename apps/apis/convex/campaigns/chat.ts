@@ -1,4 +1,5 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
+import { v } from 'convex/values'
 import {
   campaignChatEntryDtoSchema,
   campaignChatPageDtoSchema,
@@ -12,9 +13,11 @@ import {
   type SendCampaignChatEntryInput
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 import {
-  campaignStoredEntryIdentitySchema,
-  campaignStoredEntryPayloadSchema
-} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+  campaignChatLiveAuthorityDtoSchema,
+  campaignChatLiveAuthorityReadInputSchema,
+  type CampaignChatLiveAuthorityDto
+} from '@artificer-toolkit/schema/api/campaignChatLiveCommands'
+import { buildConversationEntryRecords } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
@@ -34,12 +37,34 @@ import {
   readCampaignAccessTime
 } from './conversationDocuments'
 import { consumeUserRateLimit } from '../lib/rateLimits'
+import {
+  assertConvexOwnsCampaignChat,
+  readLiveCampaignAuthority
+} from '../liveSessions/authorityGuard'
 
 export const list = query({
   args: zodToConvexFields(listCampaignChatEntriesInputSchema.shape),
   returns: zodToConvex(campaignChatPageDtoSchema),
   handler: async (ctx, args): Promise<CampaignChatPageDto> =>
     readCampaignChatPage(ctx, (await requireIdentity(ctx)).userId, args)
+})
+
+/** Non-null while the live room owns chat and rolls; members then send them through the room. */
+export const liveAuthority = query({
+  args: zodToConvexFields(campaignChatLiveAuthorityReadInputSchema.shape),
+  returns: v.union(v.null(), zodToConvex(campaignChatLiveAuthorityDtoSchema)),
+  handler: async (ctx, args): Promise<CampaignChatLiveAuthorityDto | null> => {
+    const { userId } = await requireIdentity(ctx)
+    const { campaignId } = campaignChatLiveAuthorityReadInputSchema.parse(args)
+    const { campaign } = await requireCampaignAuthority(ctx, campaignId, userId)
+    const authority = await readLiveCampaignAuthority(ctx, campaign.id)
+    return authority
+      ? campaignChatLiveAuthorityDtoSchema.parse({
+          campaignId: campaign.id,
+          epoch: authority.epoch
+        })
+      : null
+  }
 })
 
 export async function readCampaignChatPage(
@@ -121,6 +146,7 @@ export const send = mutation({
     const { userId } = actor.identity
     const input = sendCampaignChatEntryInputSchema.parse(args)
     const authority = await requireCampaignAuthority(ctx, input.campaignId, userId)
+    await assertConvexOwnsCampaignChat(ctx, authority.campaign.id)
     return postCampaignChatEntry(ctx, authority, actor.username, input)
   }
 })
@@ -176,27 +202,14 @@ export async function postCampaignChatEntry(
   )
     throw new Error('Assigned Character is unavailable.')
   requireCampaignAuthorUsername(username)
-  const header = campaignStoredEntryIdentitySchema.parse({
-    id: crypto.randomUUID(),
+  const { identity: header, payload } = buildConversationEntryRecords({
     campaignId: authority.campaign.id,
     conversationId: conversation.id,
     authorUserId: userId,
     clientNonce,
-    createdAt: new Date(now).toISOString()
-  })
-  const payload = campaignStoredEntryPayloadSchema.parse({
-    entryId: header.id,
-    kind: 'CHAT',
-    mode: input.mode,
-    body: input.body,
-    roll: null,
-    revealedByGm: false,
-    authorUsername: username,
-    characterId: character?.id ?? null,
-    characterLabel: character?.label ?? null,
-    editedAt: null,
-    unsentAt: null,
-    consumedAt: null
+    createdAt: new Date(now).toISOString(),
+    username,
+    content: { kind: 'CHAT', mode: input.mode, body: input.body, character }
   })
   await insertConversationEntry(ctx, header, payload)
   return presentChatEntry(ctx, header, payload, conversation, authority.campaign.contentMaturity)

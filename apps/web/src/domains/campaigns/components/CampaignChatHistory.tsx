@@ -40,7 +40,7 @@ export function CampaignChatHistory({
   encounterEntries:
     | Pick<EncounterTimelineDto['entries'][number], 'id' | 'visibility' | 'roll' | 'createdAt'>[]
     | undefined
-  entries: CampaignChatEntryDto[]
+  entries: readonly CampaignChatEntryDto[]
   hasNextPage: boolean
   isEncounterTimelineError: boolean
   isEncounterTimelinePending: boolean

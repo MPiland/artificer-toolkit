@@ -7128,6 +7128,12 @@ export declare const api: {
           unreadCount: number;
         }
       >;
+      liveAuthority: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string },
+        null | { campaignId: string; epoch: string }
+      >;
       send: FunctionReference<
         "mutation",
         "public",

@@ -20,11 +20,12 @@ import {
   noRollDestinationOptions
 } from '#domains/characters/sheet/dice/dice.utils'
 import { CharacterSheetRollContext } from '#domains/characters/sheet/dice/rollContext'
+import { useCampaignChatRoom } from '../vtt/useCampaignChatRoom'
 import * as liveStyles from './campaignLive.css'
 
 export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
   const executePrivateRoll = useConvexMutation(convexApi.campaigns.rolls.executePrivate)
-  const executeTableRoll = useConvexMutation(convexApi.campaigns.rolls.execute)
+  const { executeRoll: executeTableRoll } = useCampaignChatRoom(campaignId)
   const discard = useDiscardRollMutation()
   const [preferences] = useDicePresentationPreferences()
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
