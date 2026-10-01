@@ -9,6 +9,11 @@
 - **Branch:** `codex/phase-08-2-convex-cutover`. Codex's source-first batch is WIP commit `cce41580d`. The user's `.agents/` deletions are intentional; leave them unstaged.
 - **Acceptance:** 51/75 cases and 190/276 criteria (`node scripts/acceptanceProgress.mjs`).
 - **Dashboard:** https://claude.ai/artifact/Qcho6LKSBVJtVg2PKv36jv. Its data lives in the scratchpad `dashboard/data.json`; update it with a small script, without reading the page back.
+- **One slice per session:** finish the current slice, then at the boundary:
+  - commit;
+  - rewrite this file (move the finished slice to "Last slice" and promote the next one);
+  - update the dashboard data by script;
+  - tell the user it's a good point to `/clear` and give the resume line: "Continue Phase 8.2 from docs/handoffs/phase-08-2-now.md."
 - **Working rhythm:** code first, with a compile gate after each slice (`local-validation/codex-batch/gate.ps1 -Name <gateN>`). The full test suites and end-to-end runs come once all known code is written.
 
 ## Last slice (done)
