@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, vi } from 'vitest'
@@ -146,9 +147,14 @@ describe('GM void command', () => {
     if (!save || save.kind !== 'D20_EVIDENCE') throw new Error('Expected a Concentration save.')
     const records = () =>
       fixture.t.run(async (ctx) => ({
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         runs: await ctx.db.query('encounterRuns').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect()
+        commands: await ctx.db
+          .query('encounterRunCommands')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
       }))
     const before = await records()
 
@@ -201,6 +207,7 @@ describe('GM void command', () => {
           .query('encounterRunCommands')
           .withIndex('by_encounterId', (query) => query.eq('encounterId', value.base.run.id))
           .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
       )
     const before = await commands()
 
@@ -221,6 +228,8 @@ describe('GM void command', () => {
       'VERSION_STALE'
     )
     const stored = await value.base.t.run(async (ctx) => ({
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       occurrence: await ctx.db
         .query('encounterRuleOccurrences')
         .withIndex('by_publicId', (query) => query.eq('id', choice.occurrenceId))
@@ -229,6 +238,7 @@ describe('GM void command', () => {
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (query) => query.eq('encounterId', value.base.run.id))
         .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     }))
     expect(stored.occurrence?.state).toBe('COMPLETED')
     expect(stored.commands.map((command) => command.commandType).slice(-1)).toEqual([

@@ -1,5 +1,6 @@
+import { paginateReceiptHeaders } from '../lib/receiptPagination'
 import { zodToConvexFields } from 'convex-helpers/server/zod4'
-import type { PaginationResult } from 'convex/server'
+import type { OrderedQuery, PaginationResult } from 'convex/server'
 import type { EncounterTableName } from '@artificer-toolkit/encounter-persistence/store'
 import {
   liveRoomInputsInputSchema,
@@ -10,16 +11,65 @@ import {
   type LiveRoomInputsScope
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { MAX_ROOM_INPUT_PAGE_DOCUMENTS } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
-import type { Doc } from '../_generated/dataModel'
+import type { DataModel, Doc } from '../_generated/dataModel'
+import type { ReceiptHeaderTable } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
-import { readDefinitionRoot } from '../content/definitionStore'
 import { requireSystem } from '../content/systemDocuments'
 import { readSystemVocabularySnapshot } from '../content/systemVocabulary'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readAssignedActiveCharacter, readStoredCharacterInputs } from './characterRulesCapture'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
+import { readCharacterSources, readCampaignCharacterSources } from '../characters/sourceReads'
+import { readContentSnapshotManifest } from '../contentSnapshots/manifest'
+import type { ContentSnapshotHead } from '@artificer-toolkit/schema/api/contentSnapshots'
+import { livePublicationCampaignScope, type CampaignInternalScope } from '../campaigns/authority'
+import { readRoomSceneDefinitionPage, readRoomSceneInputsPage } from './roomSceneInputs'
+import { readRoomDefinitionsPage } from './roomDefinitionInputs'
+
+/** A missing head is empty only when its authoritative scope has no content records. */
+async function readRoomContentManifest(
+  ctx: QueryCtx,
+  systemId: string,
+  access: Awaited<ReturnType<typeof readCharacterSources>>
+) {
+  const manifest = await readContentSnapshotManifest(ctx, systemId, access)
+  const emptyHead = (scope: 'SOURCE' | 'CAMPAIGN', scopeId: string): ContentSnapshotHead => ({
+    scope,
+    scopeId,
+    revision: 0,
+    builtRevision: 0,
+    kinds: {}
+  })
+  const sources = await Promise.all(
+    manifest.sources.map(async (source) => {
+      if (source.head) return source
+      const root = await ctx.db
+        .query('authoredRoots')
+        .withIndex('by_contentSourceId_subjectKind_ownerUserId', (q) =>
+          q.eq('contentSourceId', source.contentSourceId)
+        )
+        .first()
+      if (root) throw new Error('Room content snapshot has not been built.')
+      return { ...source, head: emptyHead('SOURCE', source.contentSourceId) }
+    })
+  )
+  const campaign = manifest.campaign
+  if (!campaign) throw new Error('Room content manifest requires a Campaign.')
+  if (!campaign.head) {
+    const share = await ctx.db
+      .query('campaignContentShares')
+      .withIndex('by_campaignId_subjectKind_subjectId', (q) => q.eq('campaignId', campaign.id))
+      .first()
+    if (share) throw new Error('Room content snapshot has not been built.')
+  }
+  return {
+    ...manifest,
+    sources,
+    campaign: { ...campaign, head: campaign.head ?? emptyHead('CAMPAIGN', campaign.id) }
+  }
+}
 
 type StoredRow = Record<string, unknown> & { _id: string; _creationTime: number }
 type PageOptions = {
@@ -36,21 +86,34 @@ type RunTableQuery = (
   paginate(options: PageOptions): Promise<PaginationResult<StoredRow>>
 }
 
+/** Receipt pages retain native cursors and admit at most 4 MiB of distinct ledger payloads. */
+function receiptRunTableQuery<Table extends ReceiptHeaderTable>(
+  ctx: QueryCtx,
+  table: Table,
+  query: OrderedQuery<DataModel[Table]>
+): ReturnType<RunTableQuery> {
+  return {
+    first: () => query.first(),
+    paginate: (options) => paginateReceiptHeaders(ctx, table, query, options)
+  }
+}
+
 /**
- * One page stays far below Convex's 8 MiB / 16384-document read limits and the 16 MiB return limit.
+ * Native rows and distinct receipt payloads are bounded before hydration, leaving room for authority.
  * The route joins consecutive pages into one response (`readRoomInputsBatch`), since each Worker
  * call is a subrequest and Workers Free allows 50 per invocation.
  */
 const PAGE: Omit<PageOptions, 'cursor'> = {
   numItems: MAX_ROOM_INPUT_PAGE_DOCUMENTS,
-  maximumRowsRead: MAX_ROOM_INPUT_PAGE_DOCUMENTS,
+  // Let numItems stop a full page before the read ceiling marks it incomplete.
+  maximumRowsRead: MAX_ROOM_INPUT_PAGE_DOCUMENTS + 1,
   maximumBytesRead: 4 * 1024 * 1024
 }
 
 /**
- * The Run aggregate's tables in the fixed order the room reads them. A page reads one table (Convex
- * permits one `paginate` per function); empty tables are skipped by a `first` probe so they cost
- * no round trip. The Run document itself rides the first page.
+ * The Run aggregate's tables in the fixed order the room reads them. A page reads one table;
+ * empty tables are skipped by a `first` probe so they cost no round trip.
+ * The Run document itself rides the first page.
  */
 const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTableQuery }> = [
   {
@@ -112,9 +175,13 @@ const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTableQuer
   {
     table: 'encounterRunCommands',
     query: (ctx, encounterId) =>
-      ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
+      receiptRunTableQuery(
+        ctx,
+        'encounterRunCommands',
+        ctx.db
+          .query('encounterRunCommands')
+          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
+      )
   },
   {
     table: 'encounterRuleOccurrences',
@@ -133,16 +200,24 @@ const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTableQuer
   {
     table: 'encounterRuleReceipts',
     query: (ctx, encounterId) =>
-      ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
+      receiptRunTableQuery(
+        ctx,
+        'encounterRuleReceipts',
+        ctx.db
+          .query('encounterRuleReceipts')
+          .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
+      )
   },
   {
     table: 'encounterEvidenceRolls',
     query: (ctx, encounterId) =>
-      ctx.db
-        .query('encounterEvidenceRolls')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+      receiptRunTableQuery(
+        ctx,
+        'encounterEvidenceRolls',
+        ctx.db
+          .query('encounterEvidenceRolls')
+          .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+      )
   },
   {
     table: 'encounterTurnMovements',
@@ -189,10 +264,138 @@ function toDocument(table: EncounterTableName, { _id, _creationTime, ...fields }
   return { table, id: _id, creationTime: _creationTime, fields }
 }
 
-/** Refuses a page that cannot advance, so a caller's loop always terminates. */
-function assertAdvances(page: PaginationResult<unknown>, cursor: string | null) {
-  if (page.pageStatus === 'SplitRequired' || (!page.isDone && page.continueCursor === cursor))
+const CHAT_METADATA_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTableQuery }> = [
+  {
+    table: 'campaignConversations',
+    query: (ctx, campaignId) =>
+      ctx.db
+        .query('campaignConversations')
+        .withIndex('by_campaignId_kind', (q) => q.eq('campaignId', campaignId))
+  },
+  {
+    table: 'campaignConversationMembers',
+    query: (ctx, campaignId) =>
+      ctx.db
+        .query('campaignConversationMembers')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+  },
+  {
+    table: 'campaignConversationEntries',
+    query: (ctx, campaignId) =>
+      ctx.db
+        .query('campaignConversationEntries')
+        .withIndex('by_campaignId_authorUserId_clientNonce', (q) => q.eq('campaignId', campaignId))
+  }
+]
+
+/** Only access and nonce metadata hydrate; historical text and roll payloads stay in Convex. */
+async function readChatMetadataPage(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  scope: Extract<LiveRoomInputsScope, { kind: 'CHAT_METADATA' }>
+): Promise<LiveRoomInputsResponse> {
+  const paginationCursor = scope.cursor?.paginationCursor ?? null
+  let position = scope.cursor?.position ?? 0
+  if (position >= CHAT_METADATA_TABLES.length) throw new Error('Room input cursor is invalid.')
+  if (paginationCursor === null)
+    while (
+      position < CHAT_METADATA_TABLES.length &&
+      !(await CHAT_METADATA_TABLES[position]!.query(ctx, campaign.id).first())
+    )
+      position += 1
+  const entry = CHAT_METADATA_TABLES[position]
+  if (!entry) return { kind: 'CHAT_METADATA', documents: [], continueCursor: null }
+  const page = await entry.query(ctx, campaign.id).paginate({ ...PAGE, cursor: paginationCursor })
+  if (!page.isDone && page.continueCursor === paginationCursor)
     throw new Error('Room input page cannot advance.')
+  return {
+    kind: 'CHAT_METADATA',
+    documents: page.page.map((row) => toDocument(entry.table, row)),
+    continueCursor: !page.isDone
+      ? { position, paginationCursor: page.continueCursor }
+      : position + 1 < CHAT_METADATA_TABLES.length
+        ? { position: position + 1, paginationCursor: null }
+        : null
+  }
+}
+
+/** Refuses a page that cannot advance, so a caller's loop always terminates. */
+function assertAdvances(
+  page: PaginationResult<unknown>,
+  cursor: string | null,
+  receiptPage = false
+) {
+  // Stateless receipt reads use an unfiltered index and no end cursor. convex-test marks a
+  // complete one-row scan SplitRequired; native Convex stops at numItems before that limit.
+  if (
+    (page.pageStatus === 'SplitRequired' && !(receiptPage && page.page.length === 1)) ||
+    (!page.isDone && page.continueCursor === cursor)
+  )
+    throw new Error('Room input page cannot advance.')
+}
+
+async function readAuthorityPage(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  scope: Extract<LiveRoomInputsScope, { kind: 'AUTHORITY' }>
+): Promise<LiveRoomInputsResponse> {
+  const position = scope.cursor?.position ?? 0
+  const paginationCursor = scope.cursor?.paginationCursor ?? null
+  if (position > 2 || (position === 0 && paginationCursor !== null))
+    throw new Error('Room input cursor is invalid.')
+  const revisions = (
+    await readLiveSessionRulesRevisions(ctx, {
+      systemId: campaign.gameSystemId,
+      campaignId: campaign.id
+    })
+  ).filter((revision) => revision.scope !== 'PLAY')
+  if (position === 0)
+    return {
+      kind: 'AUTHORITY',
+      revisions,
+      accountUserIds: [],
+      documents: [toDocument('campaigns', campaign)],
+      continueCursor: { position: 1, paginationCursor: null }
+    }
+  const table = position === 1 ? 'campaignMemberships' : 'campaignCharacterAssignments'
+  const page =
+    position === 1
+      ? await ctx.db
+          .query('campaignMemberships')
+          .withIndex('by_campaignId_status', (q) => q.eq('campaignId', campaign.id))
+          .paginate({ ...PAGE, cursor: paginationCursor })
+      : await ctx.db
+          .query('campaignCharacterAssignments')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+          .paginate({ ...PAGE, cursor: paginationCursor })
+  // A byte-limited SplitRequired page is usable when its native continuation advances.
+  if (!page.isDone && page.continueCursor === paginationCursor)
+    throw new Error('Room input page cannot advance.')
+  const accountUserIds =
+    position === 1
+      ? (
+          await Promise.all(
+            page.page.map(async (member) => {
+              const profile = await ctx.db
+                .query('userProfiles')
+                .withIndex('by_userId', (q) => q.eq('userId', member.userId))
+                .unique()
+              return profile ? member.userId : null
+            })
+          )
+        ).filter((userId) => userId !== null)
+      : []
+  return {
+    kind: 'AUTHORITY',
+    revisions,
+    accountUserIds,
+    documents: page.page.map((row) => toDocument(table, row)),
+    continueCursor: !page.isDone
+      ? { position, paginationCursor: page.continueCursor }
+      : position === 1
+        ? { position: 2, paginationCursor: null }
+        : null
+  }
 }
 
 async function readRunPage(
@@ -227,7 +430,13 @@ async function readRunPage(
       continueCursor: null
     }
   const page = await entry.query(ctx, run.id).paginate({ ...PAGE, cursor: paginationCursor })
-  assertAdvances(page, paginationCursor)
+  assertAdvances(
+    page,
+    paginationCursor,
+    ['encounterRunCommands', 'encounterRuleReceipts', 'encounterEvidenceRolls'].includes(
+      entry.table
+    )
+  )
   const continueCursor: LiveRoomInputsCursor = !page.isDone
     ? { position: tableIndex, paginationCursor: page.continueCursor }
     : tableIndex + 1 < RUN_TABLES.length
@@ -288,6 +497,14 @@ async function readCharactersPage(
     // A continuation always carries a pagination cursor, so a null one starts the Character.
     inputs:
       paginationCursor === null ? await readStoredCharacterInputs(ctx, active, campaign) : null,
+    contentSnapshots:
+      paginationCursor === null
+        ? await readRoomContentManifest(
+            ctx,
+            active.systemId,
+            await readCharacterSources(ctx, active, active.userId)
+          )
+        : null,
     documents: page.page.map((row) => toDocument('characterActiveRuleEffects', row))
   }
   return {
@@ -300,9 +517,14 @@ async function readCharactersPage(
 async function readRoomInputs(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
-  scope: LiveRoomInputsScope
+  scope: LiveRoomInputsScope,
+  authorityScope: CampaignInternalScope
 ): Promise<LiveRoomInputsResponse> {
   switch (scope.kind) {
+    case 'CHAT_METADATA':
+      return readChatMetadataPage(ctx, campaign, scope)
+    case 'AUTHORITY':
+      return readAuthorityPage(ctx, campaign, scope)
     case 'CAMPAIGN_PLAY':
       return {
         kind: 'CAMPAIGN_PLAY',
@@ -310,6 +532,11 @@ async function readRoomInputs(
           systemId: campaign.gameSystemId,
           campaignId: campaign.id
         }),
+        contentSnapshots: await readRoomContentManifest(
+          ctx,
+          campaign.gameSystemId,
+          await readCampaignCharacterSources(ctx, campaign, campaign.ownerUserId)
+        ),
         campaign: {
           id: campaign.id,
           gameSystemId: campaign.gameSystemId,
@@ -321,26 +548,14 @@ async function readRoomInputs(
       }
     case 'RUN':
       return readRunPage(ctx, campaign, scope)
+    case 'SCENE':
+      return readRoomSceneInputsPage(ctx, campaign, scope, authorityScope)
+    case 'SCENE_DEFINITION':
+      return readRoomSceneDefinitionPage(ctx, campaign, scope, authorityScope)
     case 'CHARACTERS':
       return readCharactersPage(ctx, campaign, scope)
-    case 'DEFINITION': {
-      // Encounter rules resolve the Campaign's definitions as its owner, for players too.
-      const root = await readDefinitionRoot(
-        ctx,
-        scope.definitionId.toLowerCase(),
-        campaign.ownerUserId
-      )
-      if (root && root.gameSystemId !== campaign.gameSystemId)
-        throw new Error('Reusable definition System mismatch.')
-      return {
-        kind: 'DEFINITION',
-        revisions: await readLiveSessionRulesRevisions(ctx, {
-          systemId: campaign.gameSystemId,
-          campaignId: campaign.id
-        }),
-        definition: root?.current ?? null
-      }
-    }
+    case 'DEFINITIONS':
+      return readRoomDefinitionsPage(ctx, campaign, scope)
     case 'SYSTEM': {
       const system = await requireSystem(ctx, campaign.gameSystemId)
       return {
@@ -368,13 +583,15 @@ export const read = internalQuery({
   args: zodToConvexFields(liveRoomInputsInputSchema.shape),
   handler: async (ctx, args): Promise<LiveRoomInputsResponse> => {
     const input = liveRoomInputsInputSchema.parse(args)
-    await requireActiveCampaignLiveAuthority(ctx, input)
+    const authority = await requireActiveCampaignLiveAuthority(ctx, input)
     const campaign = await ctx.db
       .query('campaigns')
       .withIndex('by_publicId', (q) => q.eq('id', input.campaignId.toLowerCase()))
       .unique()
     if (!campaign) throw new Error('Campaign not found.')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    return liveRoomInputsResponseSchema.parse(await readRoomInputs(ctx, campaign, input.scope))
+    return liveRoomInputsResponseSchema.parse(
+      await readRoomInputs(ctx, campaign, input.scope, livePublicationCampaignScope(authority))
+    )
   }
 })

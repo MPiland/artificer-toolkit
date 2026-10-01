@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 // @vitest-environment node
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -281,7 +282,7 @@ it.each([
       const storedOccurrence = staged.pending[0]
       if (!storedOccurrence) throw new Error('Stored concentration child is unavailable.')
       const unexpectedNext = await fixture.t.run((ctx) =>
-        readPendingSnapshot(ctx, storedOccurrence)
+        readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, storedOccurrence)
       )
       if (unexpectedNext?.snapshotKind !== 'KERNEL_EVIDENCE')
         throw new Error('Stored concentration child snapshot is unavailable.')

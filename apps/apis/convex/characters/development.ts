@@ -4,6 +4,7 @@ import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { releaseAsset } from '../media/assets'
 import { readCharacterPlayRow } from './stateDocuments'
+import { deleteReceiptHeaders } from '../lib/receiptLedgers'
 
 // This is not personal Character/account deletion. It only retires isolated test data.
 export const removePersonalFixtureCharacter = internalMutation({
@@ -66,7 +67,10 @@ export const removePersonalFixtureCharacter = internalMutation({
       receipts.some((receipt) => receipt.actorId !== userId)
     )
       throw new Error('Fixture private-history bounds or ownership mismatch.')
-    for (const receipt of receipts) await ctx.db.delete(receipt._id)
+    await deleteReceiptHeaders(
+      ctx,
+      receipts.map((header) => ({ table: 'characterCommandReceipts', header }))
+    )
     for (const roll of rolls) if (roll.characterId === characterId) await ctx.db.delete(roll._id)
     if (character?.portraitAssetId) {
       const portraitAssetId = character.portraitAssetId

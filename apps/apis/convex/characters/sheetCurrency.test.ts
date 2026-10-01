@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -46,10 +47,14 @@ async function fixture() {
   const readState = () =>
     base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, character.id),
-      receipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-        .collect()
+      receipts: await readReceiptHeaders(
+        ctx,
+        'characterCommandReceipts',
+        await ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+          .collect()
+      )
     }))
   return { ...base, character, sheet, readState }
 }
@@ -73,7 +78,11 @@ describe('native Character Sheet currency and containers', () => {
         quantity: 1
       }
     })
-    const bag = added.sheet.inventory.containers![0]!
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    const bag = addedSheet.inventory.containers![0]!
     const credit: CharacterSheetExecuteInput = {
       id: character.id,
       command: {
@@ -87,7 +96,11 @@ describe('native Character Sheet currency and containers', () => {
       }
     }
     const credited = await owner.caller.mutation(execute, credit)
-    expect(credited.sheet.inventory.currencies).toContainEqual(
+    expect(credited).not.toHaveProperty('sheet')
+    const creditedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: credited.characterId
+    }))!
+    expect(creditedSheet.inventory.currencies).toContainEqual(
       expect.objectContaining({
         currencyId,
         kind: 'RULESET',
@@ -118,7 +131,11 @@ describe('native Character Sheet currency and containers', () => {
     expect(await readState()).toEqual(beforeMove)
     vi.restoreAllMocks()
     const moved = await owner.caller.mutation(execute, move)
-    expect(moved.sheet.inventory.currencies).toEqual(
+    expect(moved).not.toHaveProperty('sheet')
+    const movedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: moved.characterId
+    }))!
+    expect(movedSheet.inventory.currencies).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           currencyId,
@@ -131,8 +148,12 @@ describe('native Character Sheet currency and containers', () => {
     )
     const afterMove = await readState()
     const replay = await owner.caller.mutation(execute, credit)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.historyEntry).toEqual(credited.historyEntry)
-    expect(replay.sheet).toEqual(moved.sheet)
+    expect(replaySheet).toEqual(movedSheet)
     expect(await readState()).toEqual(afterMove)
     await owner.caller.mutation(execute, {
       ...move,
@@ -156,8 +177,12 @@ describe('native Character Sheet currency and containers', () => {
         itemId: bag.id
       }
     })
-    expect(removed.sheet.inventory.containers).toEqual([])
-    expect(removed.sheet.inventory.currencies).toContainEqual(
+    expect(removed).not.toHaveProperty('sheet')
+    const removedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: removed.characterId
+    }))!
+    expect(removedSheet.inventory.containers).toEqual([])
+    expect(removedSheet.inventory.currencies).toContainEqual(
       expect.objectContaining({ currencyId, amount: loose + 10 })
     )
     const stored = readCharacterRecord((await readState()).character!)
@@ -177,7 +202,11 @@ describe('native Character Sheet currency and containers', () => {
         quantity: 1
       }
     })
-    const bag = added.sheet.inventory.containers![0]!
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    const bag = addedSheet.inventory.containers![0]!
     const item = sheet.inventory.items[0]!
     const beforeInvalid = await readState()
     for (const command of [
@@ -280,7 +309,11 @@ describe('native Character Sheet currency and containers', () => {
         amount: -initial.amount - 1
       }
     })
-    expect(debited.sheet.inventory.currencies).toContainEqual(
+    expect(debited).not.toHaveProperty('sheet')
+    const debitedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: debited.characterId
+    }))!
+    expect(debitedSheet.inventory.currencies).toContainEqual(
       expect.objectContaining({ currencyId, amount: 0 })
     )
     const stored = readCharacterRecord((await readState()).character!)

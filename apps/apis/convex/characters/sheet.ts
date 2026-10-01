@@ -18,6 +18,10 @@ export const get = query({
     const { userId } = await requireIdentity(ctx)
     const { id: lookupId } = characterSheetReadInputSchema.parse(args)
     const loaded = await loadCharacterSheet(ctx, userId, lookupId)
-    return loaded ? projectCharacterSheetForViewer(loaded.sheet, loaded.campaignContext) : null
+    return loaded
+      ? characterSheetResponseDtoSchema.parse(
+          projectCharacterSheetForViewer(loaded.sheet, loaded.campaignContext)
+        )
+      : null
   }
 })

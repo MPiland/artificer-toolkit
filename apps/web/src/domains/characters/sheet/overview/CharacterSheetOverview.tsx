@@ -1,3 +1,4 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Text } from '@mantine/core'
 import { ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
@@ -12,14 +13,14 @@ import {
   CharacterSheetSkillsPanel
 } from './CharacterSheetOverviewProficiencies'
 import { formatProficiencySummaryLabel } from './characterSheetOverview.utils'
-import type { CharacterSheet, OpenSheetPanel } from '../core/CharacterSheet.types'
+import type { OpenSheetPanel } from '../core/CharacterSheet.types'
 
 export function CharacterSheetSensesPanel({
   sheet,
   openPanel,
   headingId = 'character-sheet-senses'
 }: {
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
   headingId?: string
 }) {
@@ -102,7 +103,7 @@ export function CharacterSheetDefensesPanel({
   openPanel,
   headingId = 'character-sheet-defenses'
 }: {
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
   headingId?: string
 }) {
@@ -141,7 +142,7 @@ export function CharacterSheetProficiencySummary({
   openPanel,
   headingId = 'character-sheet-proficiency-summary'
 }: {
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
   headingId?: string
 }) {
@@ -199,7 +200,7 @@ export function CharacterSheetOverviewFacts({
   showDefenses = true
 }: {
   openPanel?: OpenSheetPanel
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   showDefenses?: boolean
 }) {
   return (
@@ -237,7 +238,7 @@ export function CharacterSheetOverview({
   tabletSkillsOnly = false
 }: {
   openPanel?: OpenSheetPanel
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   showDefenses?: boolean
   tabletSkillsOnly?: boolean
 }) {

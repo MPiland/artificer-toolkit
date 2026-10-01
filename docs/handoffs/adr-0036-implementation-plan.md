@@ -2,7 +2,7 @@
 
 > Status: approved direction; S1 and S2 implemented locally (2026-09-27), S3 to S9 (2026-09-28), S11 (2026-09-29). This plan implements [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md). It was built from a read-only mapping of `codex/phase-08-2-convex-cutover` at `c8d409352`.
 
-## What the code does today
+## What the code did before the cutover (historical)
 
 - **Server resolution.** `resolvePayload` (`apps/apis/convex/characters/builder.ts`) calls `loadCharacterBuilderContext` (`builderContext.ts`) in `'selectors'` scope. That reads:
   - the System and the Character's sources;
@@ -17,7 +17,7 @@
   - The HS256 ticket pattern: `liveSessions/tickets.ts` signs, and `session-worker/src/ticket.ts` verifies.
   - Media uses `@convex-dev/r2` presigned GET URLs (ADR 0012/0028).
 
-## Design summary
+## Original design summary (historical; current slices below)
 
 - **Snapshot scopes:** `system/{systemId}`, `source/{contentSourceId}` and `campaign/{campaignId}` (the shares that pass `readCampaignSharedPublication`).
 - **Kinds:** RACE, CLASS, BACKGROUND, EQUIPMENT, FEAT, SPELL, CREATURE and VEHICLE. Features live inside their roots.
@@ -50,8 +50,8 @@
 ## Snapshot format (S1, current)
 
 - **Contracts:** `packages/schema/src/api/contentSnapshots.ts`. The build, key and index projection live in `packages/rules-runtime/src/contentSnapshots.ts`, so Convex and the Worker can both import them.
-- **Object:** the header fields `{format: 1, scope, scopeId, kind, part}` plus `roots`, ordered by root id. The part schema validates the object when it is built. The SHA-256 covers the canonical JSON (`canonicalizeJson`), header included.
-- **Key:** `v1/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`, with the scope and kind in lowercase (for example `v1/system/<id>/race/index/<sha>.json`).
+- **Object:** the header fields `{format: 2, scope, scopeId, kind, part}` plus `roots`, ordered by root id. `documents` also requires an aligned `versions` array carrying original source identities, numeric versions and stored parent metadata. Validation binds pins to documents, kind, System and SOURCE scope. Original storage checksums survive DTO normalization; object hashes are not source pins.
+- **Key:** `v2/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`, with the scope and kind in lowercase (for example `v2/source/<id>/race/index/<sha>.json`). Format 1 is retired; reset and rebuild local development snapshots before integration proof.
 - **Index entries** hold each root's own picker facts, taken from today's catalogue records:
   - **RACE:** category, parent, description, selection mode, size, speed references, and Ability Score Increase facts from the root's own features;
   - **CLASS:** category, parent, description, subclass level, hit points, multiclass requirement groups and proficiencies;
@@ -66,7 +66,7 @@
 
 [Persistence](../architecture/persistence.md#content-snapshot-heads-and-objects-adr-0036-s2--local-implementation) describes the protocol. Where S2 differs from the design summary above:
 
-- **Scopes.** Every content source, the SRD's PLATFORM source included, is a `SOURCE` scope, because Campaign rules catalogues select PLATFORM sources and snapshot documents carry no source id. A `SYSTEM` scope will hold only System-level data with its own object format, added when a reader needs it ([D67](phase-08-2-open-questions.md#decisions-to-review)); no `SYSTEM` head is built yet.
+- **Scopes.** Every content source, the SRD's PLATFORM source included, is a `SOURCE` scope, because Campaign rules catalogues select PLATFORM sources. Authored DTO bodies carry no source id; format 2 pins retain the actual content-source identity, including in Campaign shares. No `SYSTEM` head is built; its future format is outside this completion ([D67](phase-08-2-open-questions.md#decisions-to-review)).
 - **No new share index.** Marking finds a root's Campaigns through the existing `campaignContentShares.by_subjectKind_subjectId_campaignId` index; a `by_subjectId` index would duplicate it.
 - **Not marked:** Systems, vocabulary and rules catalogues (no built scope contains them), and version payload chunks (their version is marked).
 - **Full rebuild.** Each build rereads every kind of its scope. Unchanged kinds keep their keys and upload nothing; incremental rebuild from the previous `documents` object is not implemented.
@@ -184,6 +184,10 @@ Implemented locally (2026-09-29). Contract and behavior are in [persistence.md](
 | Whole build                                   | About 1.2–1.5 MB. 50 builds a month ≈ 75 MB                          | —                                                               |
 
 ## Slices
+
+S10 foundation is implemented locally: per-owner/GM authorized manifests, verified R2 index/document
+loads before SQLite hydration, affected-scope reloads and hibernation reuse without a Convex read.
+Native rules planning still uses capture adapters; S10 integration and final-source proof remain open.
 
 | Slice | Content                                                                                                                                          | Tests first                                                                                                                                                                                               |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

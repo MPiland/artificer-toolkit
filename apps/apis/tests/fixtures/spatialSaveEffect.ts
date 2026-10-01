@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
@@ -103,10 +104,12 @@ export async function seedSpatialSaveEffect(
       })
     })
     if (!prepared) throw new Error('Frozen graph compilation unavailable')
-    const scope = await createSpatialRuleEffectStore(ctx).scope({
-      encounterId: base.base.run.id,
-      sceneId: base.sceneId
-    })
+    const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(
+      {
+        encounterId: base.base.run.id,
+        sceneId: base.sceneId
+      }
+    )
     if (!scope) throw new Error('Fixture binding missing')
     return scope.create({
       id: crypto.randomUUID(),

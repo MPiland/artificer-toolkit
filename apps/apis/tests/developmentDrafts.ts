@@ -112,10 +112,13 @@ const proveInvitationRedemptionRace =
   !process.argv.includes('--v15-preview-browser')
 assert.equal(process.env.CONVEX_DEPLOY_KEY, undefined, 'Use the selected development CLI identity.')
 if (
+  process.argv.includes('--checkpoint') ||
+  process.argv.includes('--checkpoint-staging') ||
+  process.argv.includes('--checkpoint-scenes') ||
   process.argv.includes('--encounter-disarm') ||
   process.argv.includes('--encounter-disarm-browser')
 ) {
-  assert.equal(mode, 'local', 'Disarm receipt proof requires the verified isolated local backend.')
+  assert.equal(mode, 'local', 'Receipt proof requires the verified isolated local backend.')
   assert.equal(process.env.CONVEX_SELF_HOSTED_URL, deploymentUrl.origin)
   assert.ok(process.env.CONVEX_SELF_HOSTED_ADMIN_KEY, 'Local fixture CLI credentials are required.')
 }
@@ -1088,6 +1091,33 @@ try {
     false
   )
   if (
+    process.argv.includes('--checkpoint') ||
+    process.argv.includes('--checkpoint-staging') ||
+    process.argv.includes('--checkpoint-scenes')
+  ) {
+    const owner = await createAuthor()
+    const player = await createAuthor()
+    if (process.argv.includes('--checkpoint-scenes')) sceneOwners.add(owner.identity.userId)
+    const characterId = crypto.randomUUID()
+    characterFixtures.push({ userId: player.identity.userId, characterId })
+    for (const subjectKind of ['EQUIPMENT', 'BACKGROUND', 'CLASS', 'RACE'] as const) {
+      publicationAuthors.push({
+        client: player.client,
+        userId: player.identity.userId,
+        systemId: srdSystemRecord.id,
+        subjectKind
+      })
+      browserDraftAuthors.push({ client: player.client, subjectKind })
+    }
+    const { verifyDevelopmentCheckpoint } = await import('./developmentCheckpoint')
+    await verifyDevelopmentCheckpoint({
+      owner,
+      player,
+      characterId,
+      staged: process.argv.includes('--checkpoint-staging'),
+      scenes: process.argv.includes('--checkpoint-scenes')
+    })
+  } else if (
     process.argv.includes('--scene-authoring-browser') ||
     process.argv.includes('--scene-live-browser') ||
     process.argv.includes('--vtt-map-retention')
@@ -1217,6 +1247,60 @@ try {
         staleUpdate: 'PASS'
       })
     )
+  } else if (process.argv.includes('--receipt-ledgers')) {
+    assert.equal(mode, 'local', 'Receipt ledger proof requires the verified local backend.')
+    assert.equal(process.env.CONVEX_SELF_HOSTED_URL, deploymentUrl.origin)
+    assert.ok(
+      process.env.CONVEX_SELF_HOSTED_ADMIN_KEY,
+      'Local fixture CLI credentials are required.'
+    )
+    const author = await createAuthor()
+    const characterId = crypto.randomUUID()
+    characterFixtures.push({ userId: author.identity.userId, characterId })
+    await author.client.mutation(api.characters.drafts.create, {
+      id: characterId,
+      systemId: srdSystemRecord.id
+    })
+    const { verifyDevelopmentReceiptLedgers } = await import('./developmentReceiptLedgers')
+    const authUser = record(
+      await cli('adapter:findOne', {
+        model: 'user',
+        where: [{ field: 'email', value: author.email }],
+        select: ['_id']
+      })
+    )
+    assert.equal(typeof authUser._id, 'string')
+    let proof: Awaited<ReturnType<typeof verifyDevelopmentReceiptLedgers>>
+    try {
+      proof = await verifyDevelopmentReceiptLedgers({
+        cli,
+        userId: author.identity.userId,
+        characterId,
+        authUserId: String(authUser._id)
+      })
+    } finally {
+      const { developmentReceiptLedgerRetirementInspectionSchema } =
+        await import('@artificer-toolkit/schema/api/developmentReceiptLedger')
+      const retired = developmentReceiptLedgerRetirementInspectionSchema.parse(
+        await cli(
+          'characters/developmentReceiptRetirement:inspect',
+          { userId: author.identity.userId, characterId, authUserId: String(authUser._id) },
+          false
+        )
+      )
+      if (!retired.characterExists && !retired.profileExists) {
+        const index = characterFixtures.findIndex((fixture) => fixture.characterId === characterId)
+        if (index >= 0) characterFixtures.splice(index, 1)
+      }
+    }
+    await assert.rejects(
+      author.client.query(api.characters.history.list, {
+        id: characterId,
+        paginationOpts: { numItems: 1, cursor: null }
+      }),
+      /Authenticated user profile is missing/
+    )
+    console.log(JSON.stringify({ receiptLedgers: proof }))
   } else if (process.argv.includes('--character-concurrency')) {
     const owner = await createAuthor()
     const foreign = await createAuthor()

@@ -223,6 +223,7 @@ it('uses a compact captured Scene without entity or fog hydration requests', asy
   })
 
   expect(result.scene).toEqual(sceneSnapshot)
+  expect(result.uncomposedScene).toEqual(sceneSnapshot)
   expect(result.baseOrdinals).toEqual(baseOrdinals)
   expect(fetchMock).not.toHaveBeenCalled()
 })
@@ -454,6 +455,10 @@ it('composes vision for two bound Characters while retaining explicit token visi
   )
 
   expect(result.scene?.tokens.map((candidate) => candidate.vision?.dimRange)).toEqual([30, 30])
+  expect(result.uncomposedScene?.tokens.map((candidate) => candidate.vision?.dimRange)).toEqual([
+    undefined,
+    undefined
+  ])
   expect(result.characterRevisions).toEqual([
     { characterId: characterOneId, revision: null },
     { characterId: characterTwoId, revision: null }

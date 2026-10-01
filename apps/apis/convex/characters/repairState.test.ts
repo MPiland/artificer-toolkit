@@ -1,32 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import {
-  encodeCharacterRecord,
-  type CharacterDocument
-} from '@artificer-toolkit/schema/projections/characterStoredState'
+import type { CharacterDocument } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { reconcileCharacterAuthoredSourceLoss } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { api } from '../_generated/api'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import type { MutationCtx } from '../_generated/server'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { readCharacterRecord, type CharacterRow } from './stateDocuments'
 
 /** Stores `document` as the Character's repair state: status DRAFT, clocks and stream untouched. */
 async function storeRepairState(ctx: MutationCtx, row: CharacterRow, document: CharacterDocument) {
-  const stored = encodeCharacterRecord(row, {
-    document,
-    streamVersion: row.play.streamVersion,
-    updatedAt: row.updatedAt
-  })
-  await ctx.db.patch(row._id, {
-    status: 'DRAFT',
-    documentJson: stored.documentJson,
-    checksum: stored.checksum
-  })
-  await ctx.db.patch(row.play._id, {
-    playJson: stored.play.playJson,
-    checksum: stored.play.checksum,
-    updatedAt: stored.play.updatedAt
-  })
+  await writeCharacterRecord(ctx, row, { document, status: 'DRAFT' })
 }
 
 describe('native canonical Character repair state', () => {
@@ -186,13 +170,18 @@ describe('native canonical Character repair state', () => {
     expect(fixed.character.status).toBe('ACTIVE')
   })
 
-  it('rejects a canonical status that disagrees with the checksummed document', async () => {
+  it('rejects a canonical Character with a corrupt typed build checksum', async () => {
     const { t, owner, character, readState } = await readySheetFixture()
     const stored = await readState()
     if (!stored.character) throw new Error('Missing canonical Character.')
-    await t.run((ctx) => ctx.db.patch(stored.character!._id, { status: 'DRAFT' }))
+    await t.run(async (ctx) => {
+      const build = await ctx.db.query('characterBuildStates')
+        .withIndex('by_characterId', (q) => q.eq('characterId', character.id)).unique()
+      if (!build) throw new Error('Missing Character build fixture.')
+      await ctx.db.patch(build._id, { checksum: '0'.repeat(64) })
+    })
     await expect(
       owner.caller.query(api.characters.builder.activeCharacter, { id: character.id })
-    ).rejects.toThrow('identity mismatch')
+    ).rejects.toThrow('build integrity mismatch')
   })
 })

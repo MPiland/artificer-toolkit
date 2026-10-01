@@ -62,10 +62,10 @@ export function createE2ECharacterCleanup(): {
       assert.equal(identity.userId, userId, 'Cleanup session must belong to the fixture account.')
 
       const characters = await readFixtureCharacters(client)
-      const matches = [...characters.values()].filter(
-        (character) => character.label === target.label
+      const matches = [...characters.values()].filter((character) =>
+        target.publicId ? character.publicId === target.publicId : character.label === target.label
       )
-      assert.ok(matches.length <= 1, 'Exact E2E Character label is ambiguous.')
+      assert.ok(matches.length <= 1, 'Exact E2E Character identity is ambiguous.')
       const [found] = matches
       if (!found) {
         await assertCharacterAbsent(client, target)
@@ -75,8 +75,6 @@ export function createE2ECharacterCleanup(): {
         )
         return
       }
-      if (target.publicId) assert.equal(found.publicId, target.publicId)
-
       await developmentCli(
         'characters/development:removePersonalFixtureCharacter',
         { userId, characterId: found.id },
@@ -158,7 +156,9 @@ async function assertCharacterAbsent(
   const characters = await readFixtureCharacters(client)
   assert.ok(
     ![...characters.values()].some(
-      (character) => character.label === target.label || character.publicId === target.publicId
+      (character) =>
+        (target.publicId ? character.publicId === target.publicId : false) ||
+        character.label === target.label
     ),
     'Tracked Character remains after native cleanup.'
   )

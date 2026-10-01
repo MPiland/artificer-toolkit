@@ -1,9 +1,9 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Text } from '@mantine/core'
 import { Brain, Dumbbell, Eye, Footprints, HeartPulse, Smile } from 'lucide-react'
 import clsx from 'clsx'
 import * as overviewStyles from './overview.css'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
-import type { CharacterSheet } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { getAbilityShortLabel } from './characterSheetOverview.utils'
 import { CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
@@ -31,7 +31,7 @@ export function CharacterSheetOverviewAbilities({
   abilities,
   openPanel
 }: {
-  abilities: CharacterSheet['overview']['abilities']
+  abilities: CharacterSheetCommonDto['overview']['abilities']
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
   return (

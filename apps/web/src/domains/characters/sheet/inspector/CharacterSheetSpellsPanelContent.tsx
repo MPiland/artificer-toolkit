@@ -1,5 +1,9 @@
-import { Accordion, Badge, Button, Text } from '@mantine/core'
+import { Accordion, Text } from '@mantine/core'
+import type { ComponentProps } from 'react'
 import clsx from 'clsx'
+import { useCharacterPreparationCatalogue } from '#app/data/contentSnapshots/useCharacterPreparationCatalogue'
+import { CharacterSheetPreparationPicker } from './CharacterSheetPreparationPicker'
+import { CharacterSheetManageSpellRow } from './CharacterSheetManageSpellRow'
 
 import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import type {
@@ -33,53 +37,133 @@ export function CharacterSheetSpellsPanelContent({
 }) {
   const canUseSlot = panel.editable && panel.allowedCommands.includes('USE_SPELL_SLOT')
   const canRestoreSlot = panel.editable && panel.allowedCommands.includes('RESTORE_SPELL_SLOT')
-  const preparationOptionsCurrent =
-    !preparationOptions || preparationOptions.streamVersion === expectedVersion
+  const catalogue = useCharacterPreparationCatalogue(preparationOptions)
   const sources = panel.groups.flatMap((group) => group.sources)
-  const preparationOptionsByLevel = new Map<
-    number,
-    Array<
-      CharacterPreparationOptionsResponseDto['classes'][number]['options'][number] & {
-        classId: string
-        sourceLabel: string
-      }
-    >
-  >()
-  for (const source of preparationOptions?.classes ?? []) {
-    for (const option of source.options) {
-      const existingPreparationSource = sources.some(
-        (candidate) =>
-          candidate.spellId === option.spellId &&
-          candidate.preparationClassId === source.classId &&
-          candidate.canPrepare
-      )
-      if (existingPreparationSource) continue
-      const options = preparationOptionsByLevel.get(option.level) ?? []
-      options.push({ ...option, classId: source.classId, sourceLabel: source.label })
-      preparationOptionsByLevel.set(option.level, options)
+  const metadata = new Map(catalogue.spells?.map((spell) => [spell.spellId, spell]))
+  const catalogueSpellIds = new Set(metadata.keys())
+  const heldPreparationKeys = new Set<string>()
+  for (const group of panel.groups) {
+    for (const source of group.sources) {
+      if (!source.prepared && !source.known && (source.canPrepare || source.canManageKnown))
+        continue
+      if (source.preparationClassId)
+        heldPreparationKeys.add(`${source.preparationClassId}:${source.spellId}`)
+      metadata.set(source.spellId, {
+        spellId: source.spellId,
+        label: source.label,
+        level: group.level
+      })
     }
   }
-  const spellLevels = [
-    ...new Set([...panel.groups.map((group) => group.level), ...preparationOptionsByLevel.keys()])
-  ].sort((left, right) => left - right)
-
+  const metadataComplete =
+    preparationOptions?.classes.every((source) =>
+      source.eligibleSpellIds.every(
+        (spellId) =>
+          catalogueSpellIds.has(spellId) || heldPreparationKeys.has(`${source.classId}:${spellId}`)
+      )
+    ) ?? false
+  const preparationOptionsCurrent = Boolean(
+    preparationOptions &&
+    preparationOptions.characterId === panel.characterId &&
+    preparationOptions.streamVersion === expectedVersion &&
+    !preparationOptionsPending &&
+    !preparationOptionsError &&
+    !catalogue.isPending &&
+    !catalogue.isError &&
+    !catalogue.updating &&
+    metadataComplete
+  )
+  const sourceRows = new Map(
+    panel.groups.flatMap((group) =>
+      group.sources.map(
+        (source) =>
+          [
+            source,
+            {
+              spellId: source.spellId,
+              label: source.label,
+              level: group.level,
+              rowId: `${source.source.sourceKind}:${source.source.sourceInstanceId}:${source.spellId}`,
+              classId: source.preparationClassId,
+              sourceLabel: source.sourceLabel,
+              prepared: source.prepared,
+              eligibleForPreparation:
+                preparationOptions?.classes.some(
+                  (candidate) =>
+                    candidate.classId === source.preparationClassId &&
+                    candidate.eligibleSpellIds.includes(source.spellId)
+                ) ?? false,
+              source
+            }
+          ] as const
+      )
+    )
+  )
+  const heldGroups = panel.groups
+    .map((group) => ({
+      ...group,
+      sources: group.sources.filter(
+        (source) =>
+          source.prepared || source.known || (!source.canPrepare && !source.canManageKnown)
+      )
+    }))
+    .filter((group) => group.sources.length)
+  const preparationRows: Array<ComponentProps<typeof CharacterSheetManageSpellRow>['spell']> = [
+    ...[...sourceRows.values()].filter(
+      (row) =>
+        !row.source.prepared &&
+        !row.source.known &&
+        (row.source.canPrepare || row.source.canManageKnown)
+    ),
+    ...(preparationOptions?.classes ?? []).flatMap((source) =>
+      source.eligibleSpellIds.flatMap((spellId) => {
+        const option = metadata.get(spellId)
+        const existingSource = sources.some(
+          (candidate) =>
+            candidate.spellId === spellId &&
+            candidate.preparationClassId === source.classId &&
+            candidate.canPrepare
+        )
+        return option && !existingSource
+          ? [
+              {
+                ...option,
+                rowId: `preparation:${source.classId}:${spellId}`,
+                classId: source.classId,
+                sourceLabel: source.label,
+                prepared: source.preparedSpellIds.includes(spellId),
+                eligibleForPreparation: true
+              }
+            ]
+          : []
+      })
+    )
+  ]
+  preparationRows.sort(
+    (left, right) =>
+      left.level - right.level ||
+      left.label.localeCompare(right.label) ||
+      left.spellId.localeCompare(right.spellId) ||
+      left.rowId.localeCompare(right.rowId)
+  )
+  const spellLevels = heldGroups.map((group) => group.level).sort((left, right) => left - right)
+  const pickerRevision = `${panel.characterId}:${catalogue.revision}:${JSON.stringify(preparationOptions?.classes.map((source) => [source.classId, source.eligibleSpellIds]))}`
   async function setPrepared(classId: string, spellId: string, prepared: boolean) {
-    if (!preparationOptionsCurrent) return false
-    const options = preparationOptions?.classes.find(
-      (source) => source.classId === classId
-    )?.options
-    const spellIds = options
-      ? options
-          .filter((candidate) => (candidate.spellId === spellId ? prepared : candidate.prepared))
-          .map((candidate) => candidate.spellId)
-      : sources
-          .filter(
-            (candidate) =>
-              candidate.preparationClassId === classId &&
-              (candidate.spellId !== spellId ? candidate.prepared : prepared)
-          )
-          .map((candidate) => candidate.spellId)
-
+    if (
+      !preparationOptionsCurrent ||
+      pending ||
+      !panel.editable ||
+      !panel.allowedCommands.includes('SET_PREPARED_SPELLS')
+    )
+      return false
+    const source = preparationOptions?.classes.find((candidate) => candidate.classId === classId)
+    if (!source || !source.eligibleSpellIds.includes(spellId)) return false
+    const spellIds = [
+      ...new Set([
+        ...source.preparedSpellIds.filter((candidate) => candidate !== spellId),
+        ...(prepared ? [spellId] : [])
+      ])
+    ]
     return await submitCommand({
       type: 'SET_PREPARED_SPELLS',
       expectedVersion,
@@ -87,7 +171,6 @@ export function CharacterSheetSpellsPanelContent({
       spellIds
     })
   }
-
   async function setKnown(
     source: SpellsPanel['groups'][number]['sources'][number],
     known: boolean
@@ -119,6 +202,20 @@ export function CharacterSheetSpellsPanelContent({
 
   return (
     <div className={inspectorShellStyles.inspector}>
+      {preparationRows.length ? (
+        <CharacterSheetPreparationPicker
+          key={pickerRevision}
+          rows={preparationRows}
+          disabled={pending || !panel.editable}
+          preparationDisabled={
+            !preparationOptionsCurrent || !panel.allowedCommands.includes('SET_PREPARED_SPELLS')
+          }
+          canManageKnown={panel.allowedCommands.includes('SET_KNOWN_SPELLS')}
+          onPreparedChange={setPrepared}
+          onKnownChange={setKnown}
+          onTargetChange={onTargetChange}
+        />
+      ) : null}
       <section className={inspectorShellStyles.disclosureSection}>
         <Accordion
           multiple
@@ -193,8 +290,7 @@ export function CharacterSheetSpellsPanelContent({
           </Accordion.Item>
 
           {spellLevels.map((level) => {
-            const group = panel.groups.find((candidate) => candidate.level === level)
-            const options = preparationOptionsByLevel.get(level) ?? []
+            const group = heldGroups.find((candidate) => candidate.level === level)
             return (
               <Accordion.Item
                 className={inspectorShellStyles.disclosureItem}
@@ -215,87 +311,18 @@ export function CharacterSheetSpellsPanelContent({
                         key={`${source.source.sourceKind}:${source.source.sourceInstanceId}:${source.spellId}`}
                         role='group'
                       >
-                        <button
-                          className={inspectorEditorStyles.entryLink}
-                          type='button'
-                          onClick={() => onTargetChange(source.target)}
-                        >
-                          <Text fw={700}>{source.label}</Text>
-                          <Text className={inspectorShellStyles.muted}>{source.sourceLabel}</Text>
-                        </button>
-                        <div className={inspectorEditorStyles.actions}>
-                          {source.state !== 'DEFAULT' ? (
-                            <Badge color='cyan' variant='light'>
-                              Modified
-                            </Badge>
-                          ) : null}
-                          {source.canPrepare && source.preparationClassId ? (
-                            <Button
-                              disabled={
-                                pending ||
-                                !preparationOptionsCurrent ||
-                                (source.canManageKnown && !source.known) ||
-                                !panel.editable ||
-                                !panel.allowedCommands.includes('SET_PREPARED_SPELLS')
-                              }
-                              size='xs'
-                              variant={source.prepared ? 'default' : 'filled'}
-                              onClick={() =>
-                                void setPrepared(
-                                  source.preparationClassId!,
-                                  source.spellId,
-                                  !source.prepared
-                                )
-                              }
-                            >
-                              {source.prepared ? 'Unprepare' : 'Prepare'}
-                            </Button>
-                          ) : null}
-                          {source.canManageKnown && source.knownClassId ? (
-                            <Button
-                              disabled={
-                                pending ||
-                                !panel.editable ||
-                                !panel.allowedCommands.includes('SET_KNOWN_SPELLS')
-                              }
-                              size='xs'
-                              variant={source.known ? 'default' : 'filled'}
-                              onClick={() => void setKnown(source, !source.known)}
-                            >
-                              {source.known ? 'Forget' : 'Learn'}
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                    {options.map((option) => (
-                      <div
-                        aria-label={option.label}
-                        className={inspectorEditorStyles.entry}
-                        key={`preparation:${option.classId}:${option.spellId}`}
-                        role='group'
-                      >
-                        <div>
-                          <Text fw={700}>{option.label}</Text>
-                          <Text className={inspectorShellStyles.muted}>{option.sourceLabel}</Text>
-                        </div>
-                        <div className={inspectorEditorStyles.actions}>
-                          <Button
-                            disabled={
-                              pending ||
-                              !preparationOptionsCurrent ||
-                              !panel.editable ||
-                              !panel.allowedCommands.includes('SET_PREPARED_SPELLS')
-                            }
-                            size='xs'
-                            variant={option.prepared ? 'default' : 'filled'}
-                            onClick={() =>
-                              void setPrepared(option.classId, option.spellId, !option.prepared)
-                            }
-                          >
-                            {option.prepared ? 'Unprepare' : 'Prepare'}
-                          </Button>
-                        </div>
+                        <CharacterSheetManageSpellRow
+                          spell={sourceRows.get(source)!}
+                          disabled={pending || !panel.editable}
+                          preparationDisabled={
+                            !preparationOptionsCurrent ||
+                            !panel.allowedCommands.includes('SET_PREPARED_SPELLS')
+                          }
+                          canManageKnown={panel.allowedCommands.includes('SET_KNOWN_SPELLS')}
+                          onPreparedChange={setPrepared}
+                          onKnownChange={setKnown}
+                          onTargetChange={onTargetChange}
+                        />
                       </div>
                     ))}
                   </div>
@@ -303,17 +330,30 @@ export function CharacterSheetSpellsPanelContent({
               </Accordion.Item>
             )
           })}
-          {preparationOptionsPending ? (
+          {preparationOptionsPending || catalogue.isPending ? (
             <Text className={inspectorShellStyles.muted} role='status'>
               Loading preparation options…
             </Text>
           ) : null}
-          {preparationOptionsError ? (
+          {preparationOptionsError || catalogue.isError ? (
             <Text c='red' role='alert'>
               Preparation options are unavailable. {preparationOptionsError}
             </Text>
           ) : null}
-          {!spellLevels.length && !preparationOptionsPending ? (
+          {catalogue.updating ? (
+            <Text className={inspectorShellStyles.muted} role='status'>
+              Spell content is updating. Preparation will be available when it finishes.
+            </Text>
+          ) : null}
+          {preparationOptions && !catalogue.isPending && !catalogue.isError && !metadataComplete ? (
+            <Text c='red' role='alert'>
+              Preparation options are incomplete. Please reload spell content.
+            </Text>
+          ) : null}
+          {!spellLevels.length &&
+          !preparationRows.length &&
+          !preparationOptionsPending &&
+          !catalogue.isPending ? (
             <Accordion.Item className={inspectorShellStyles.disclosureItem} value='spells:empty'>
               <Accordion.Control>
                 <Text fw={700}>Spells</Text>

@@ -20,7 +20,6 @@ import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/c
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api } from '../_generated/api'
 import { editCharacterRecord, writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
@@ -161,7 +160,13 @@ describe('native Campaign Character assignments', () => {
     if (!record || !route) throw new Error('Character binding fixture is unavailable.')
     const { _id: recordId, _creationTime: _recordTime, ...recordDocument } = record
     const { _id: routeId, _creationTime: _routeTime, ...routeDocument } = route
-    const character: Record<string, unknown> = JSON.parse(record.documentJson)
+    const [build, play] = await base.t.run((ctx) => Promise.all([
+      ctx.db.query('characterBuildStates').withIndex('by_characterId', (q) => q.eq('characterId', base.character.id)).unique(),
+      ctx.db.query('characterPlayStates').withIndex('by_characterId', (q) => q.eq('characterId', base.character.id)).unique()
+    ]))
+    if (!build || !play) throw new Error('Character operational binding fixture is unavailable.')
+    const { _id: buildId, _creationTime: _buildTime, ...buildDocument } = build
+    const { _id: playId, _creationTime: _playTime, ...playDocument } = play
     const snapshot = () =>
       base.t.run(async (ctx) => ({
         campaigns: await ctx.db.query('campaigns').collect(),
@@ -174,6 +179,7 @@ describe('native Campaign Character assignments', () => {
         balances: await ctx.db.query('campaignPartyCurrencies').collect(),
         events: await ctx.db.query('campaignEvents').collect(),
         characters: await ctx.db.query('characters').collect(),
+        builds: await ctx.db.query('characterBuildStates').collect(),
         plays: await ctx.db.query('characterPlayStates').collect(),
         drafts: await ctx.db.query('characterDrafts').collect(),
         routes: await ctx.db.query('authoredRouteIds').collect()
@@ -192,35 +198,16 @@ describe('native Campaign Character assignments', () => {
         apply: () => base.t.run((ctx) => ctx.db.patch(recordId, { systemId: crypto.randomUUID() }))
       },
       {
-        label: 'wrong document checksum',
-        apply: () =>
-          base.t.run((ctx) =>
-            ctx.db.patch(recordId, {
-              documentJson: JSON.stringify({ ...character, label: 'Corrupt checksum' })
-            })
-          )
+        label: 'wrong build checksum',
+        apply: () => base.t.run((ctx) => ctx.db.patch(buildId, { checksum: '0'.repeat(64) }))
       },
       {
-        label: 'mismatched document owner',
-        apply: () =>
-          base.t.run((ctx) => {
-            const document = { ...character, userId: base.other.userId }
-            return ctx.db.patch(recordId, {
-              documentJson: JSON.stringify(document),
-              checksum: checksumRuleDocument(document)
-            })
-          })
+        label: 'mismatched play owner',
+        apply: () => base.t.run((ctx) => ctx.db.patch(playId, { userId: base.other.userId }))
       },
       {
-        label: 'mismatched document System',
-        apply: () =>
-          base.t.run((ctx) => {
-            const document = { ...character, systemId: crypto.randomUUID() }
-            return ctx.db.patch(recordId, {
-              documentJson: JSON.stringify(document),
-              checksum: checksumRuleDocument(document)
-            })
-          })
+        label: 'changed build value without checksum',
+        apply: () => base.t.run((ctx) => ctx.db.patch(buildId, { description: 'Corrupt build' }))
       }
     ]
     for (const stage of ['new binding', 'idempotent binding']) {
@@ -245,6 +232,8 @@ describe('native Campaign Character assignments', () => {
         }
         await base.t.run(async (ctx) => {
           await ctx.db.replace(recordId, recordDocument)
+          await ctx.db.replace(buildId, buildDocument)
+          await ctx.db.replace(playId, playDocument)
           await ctx.db.replace(routeId, routeDocument)
         })
       }

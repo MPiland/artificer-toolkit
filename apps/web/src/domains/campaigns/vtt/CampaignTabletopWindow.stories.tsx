@@ -305,7 +305,7 @@ function renderWindow(
     queryFn: async () => campaign
   })
   // This Scene fixture has no Character Sheet action data.
-  queryClient.setQueryDefaults(['convexQuery', 'characters/sheet:get'], {
+  queryClient.setQueryDefaults(['convexQuery', 'characters/sheetSlices:get'], {
     queryFn: async () => null
   })
   queryClient.setQueryData(getCampaignDetail(tabletopCampaignId).queryKey, campaign)

@@ -6,6 +6,7 @@ import {
   readRunState,
   replaceRunActor
 } from '@artificer-toolkit/encounter-persistence/documents'
+import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 
 /**
  * A departing member stops controlling every actor of the Campaign's open Runs, so rejoining later
@@ -26,10 +27,10 @@ export async function removeEncounterActorController(
       )
       .collect()
     for (const run of runs)
-      for (const actor of await readRunActors(ctx, readRunState(run)))
+      for (const actor of await readRunActors(encounterReadTransaction(ctx), readRunState(run)))
         if (actor.controllerUserIds.includes(userId))
           await replaceRunActor(
-            ctx,
+            encounterWriteTransaction(ctx),
             actor,
             encounterRunActorStateSchema.parse({
               ...actor,

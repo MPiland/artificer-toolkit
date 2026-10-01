@@ -10,6 +10,7 @@ import type {
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
+import type { LiveSessionMovementCaptureScope } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
 import type {
@@ -128,14 +129,57 @@ export async function prepareExternalSceneCommit(input: {
   captures?: LiveCaptureReads
   staged?: LiveSessionMovementStage
 }): Promise<PreparedExternalSceneCommit> {
-  const { environment, accessToken, actor, command, context } = input
-  const { scene } = context
+  const { actor } = input
   // Without the room's cache, one view both stages and takes the bundle.
   const captures = input.captures ?? new LiveCaptureCache().reads()
   const stage = input.staged ?? (await stageExternalSceneCommand({ ...input, captures }))
   // Convex holds a published command the room has no receipt for (its ID was already used), or
   // the decision is no longer a movement decision.
   if (stage.kind !== 'STAGED') throw new LiveSessionRouteError(409)
+  if (stage.capture) {
+    const staged = stage.begun.input
+    if (
+      staged.type !== 'MOVE_SCENE_TOKEN' ||
+      staged.expectedEncounterVersion === null ||
+      !stage.begun.encounterId
+    )
+      throw new LiveSessionRouteError(409)
+    bundleCaptures(
+      liveSessionEncounterRulesInputSchema.parse({
+        ...actor,
+        encounterId: stage.begun.encounterId,
+        expectedVersion: staged.expectedEncounterVersion,
+        movement: stage.capture.movement,
+        request: { kind: 'MOVEMENT_INPUTS' }
+      }),
+      stage.capture.bundle,
+      captures
+    )
+  }
+  return prepareStagedSceneCommit({
+    ...input,
+    staged: stage,
+    movement: stage.capture?.movement ?? null,
+    captures
+  })
+}
+
+/** The same movement and exploration planner consumes either host's admitted save and real captures. */
+export async function prepareStagedSceneCommit(input: {
+  environment: NativeLiveSessionEnvironment
+  accessToken: string
+  actor: LiveEncounterActor
+  command: ExternalSceneCommand
+  context: ExternalSceneContext
+  runtime: RulesRuntimeService
+  random(maximum: number): number
+  captures: LiveCaptureReads
+  staged: Pick<Extract<LiveSessionMovementStage, { kind: 'STAGED' }>, 'begun' | 'saveId'>
+  movement: LiveSessionMovementCaptureScope | null
+}): Promise<PreparedExternalSceneCommit> {
+  const { environment, accessToken, actor, command, context, captures } = input
+  const { scene } = context
+  const stage = input.staged
   const { begun, saveId } = stage
   if (begun.header.id !== scene.id || begun.header.version !== scene.version)
     throw new LiveSessionRouteError(409)
@@ -153,29 +197,21 @@ export async function prepareExternalSceneCommit(input: {
     planned: Awaited<ReturnType<typeof prepareNativeLiveMovement>>
   } | null = null
   if (staged.type === 'MOVE_SCENE_TOKEN' && staged.expectedEncounterVersion !== null) {
-    const capture = stage.capture
+    const capture = input.movement
     if (
       !begun.encounterId ||
       !capture ||
-      capture.movement.encounterId !== begun.encounterId ||
-      capture.movement.saveId !== saveId ||
-      capture.movement.baseTokenOrdinal !== baseOrdinal
+      capture.encounterId !== begun.encounterId ||
+      capture.saveId !== saveId ||
+      capture.baseTokenOrdinal !== baseOrdinal
     )
       throw new LiveSessionRouteError(409)
     const scope = {
       ...actor,
       encounterId: begun.encounterId,
       expectedVersion: staged.expectedEncounterVersion,
-      movement: capture.movement
+      movement: capture
     }
-    bundleCaptures(
-      liveSessionEncounterRulesInputSchema.parse({
-        ...scope,
-        request: { kind: 'MOVEMENT_INPUTS' }
-      }),
-      capture.bundle,
-      captures
-    )
     // A decision continues its issued occurrence; a new move opens one.
     const decision =
       command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE'

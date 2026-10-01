@@ -12,6 +12,16 @@ import {
   liveSessionCharacterRulesResponseSchema
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
 import {
+  liveSessionCheckpointInputSchema,
+  liveSessionCheckpointResponseSchema
+} from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import {
+  liveSessionCheckpointStageInputSchema,
+  liveSessionCheckpointPartInputSchema,
+  liveSessionCheckpointCommitInputSchema,
+  liveSessionCheckpointStageResponseSchema
+} from '@artificer-toolkit/schema/api/liveSessionCheckpointStaging'
+import {
   liveSessionEncounterActionCommitInputSchema,
   liveSessionEncounterActionPendingInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
@@ -63,6 +73,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import {
   liveSessionActivationInputSchema,
+  liveSessionStorageRecoveryInputSchema,
   liveSessionAuthorityDtoSchema,
   liveSessionBootstrapInputSchema,
   liveSessionBootstrapResponseSchema,
@@ -133,6 +144,22 @@ type Parser<T> = { parse(value: unknown): T }
 
 /** Every private Convex route the Worker calls, with the contracts both sides validate. */
 const liveSessionRoutes = {
+  checkpointStage: {
+    input: liveSessionCheckpointStageInputSchema,
+    output: liveSessionCheckpointStageResponseSchema
+  },
+  checkpointPart: {
+    input: liveSessionCheckpointPartInputSchema,
+    output: liveSessionCheckpointStageResponseSchema
+  },
+  checkpointCommit: {
+    input: liveSessionCheckpointCommitInputSchema,
+    output: liveSessionCheckpointResponseSchema
+  },
+  checkpoint: {
+    input: liveSessionCheckpointInputSchema,
+    output: liveSessionCheckpointResponseSchema
+  },
   capture: {
     input: liveSessionTransientCaptureInputSchema,
     output: liveSessionTransientCaptureSchema
@@ -148,6 +175,10 @@ const liveSessionRoutes = {
   roomInputs: { input: liveRoomInputsInputSchema, output: liveRoomInputsResponseSchema },
   bootstrap: { input: liveSessionBootstrapInputSchema, output: liveSessionBootstrapResponseSchema },
   activate: { input: liveSessionActivationInputSchema, output: liveSessionAuthorityDtoSchema },
+  recoverStorage: {
+    input: liveSessionStorageRecoveryInputSchema,
+    output: liveSessionAuthorityDtoSchema
+  },
   publish: { input: liveSessionPublishInputSchema, output: liveSessionPublishResponseSchema },
   present: {
     input: liveSessionPresentationCommitInputSchema,

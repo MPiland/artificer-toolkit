@@ -21,6 +21,8 @@ import type {
 
 import type { CharacterSheetResponseDto as ReducerSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import { characterZeroHitPointsConditionId } from '../characterZeroHitPoints.js'
+import { CharacterSheetCommandError } from './sheetCommandError.js'
+import { applyCharacterNoteCommand } from './sheetNotes.js'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 export type SheetSpellSlot = ReducerSheetResponseDto['spells']['slots'][number]
@@ -65,12 +67,8 @@ type CharacterSheetStateCommand = CharacterSheetCommandInputDto extends infer Co
     : never
   : never
 
-export class CharacterSheetCommandError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'CharacterSheetCommandError'
-  }
-}
+export { CharacterSheetCommandError } from './sheetCommandError.js'
+export { getNoteGroups } from './sheetNotes.js'
 
 export function formatModifier(value: number): string {
   return value >= 0 ? `+${value}` : String(value)
@@ -103,32 +101,7 @@ export function parseSlotLevel(slotKey: string): number | null {
   return level ? Number(level) : null
 }
 
-const DEFAULT_NOTE_GROUPS = [
-  { id: 'session-notes', label: 'Session Notes', sortOrder: 0, kind: 'SESSION' as const },
-  { id: 'loot', label: 'Loot', sortOrder: 1, kind: 'LOOT' as const },
-  { id: 'characters', label: 'Characters', sortOrder: 2, kind: 'CHARACTERS' as const },
-  { id: 'places', label: 'Places', sortOrder: 3, kind: 'PLACES' as const }
-]
-
 const MAX_NON_STACKABLE_COPIES_PER_COMMAND = 100
-
-export function getNoteGroups(character: CharacterAuthored) {
-  const persistedGroups = character.state.noteGroups ?? []
-  const builtInByKind = new Map(
-    persistedGroups
-      .filter(
-        (group) =>
-          group.kind !== 'CUSTOM' && !DEFAULT_NOTE_GROUPS.some((builtIn) => builtIn.id === group.id)
-      )
-      .map((group) => [group.kind, group])
-  )
-
-  return DEFAULT_NOTE_GROUPS.map((group) => builtInByKind.get(group.kind) ?? group)
-    .concat(persistedGroups.filter((group) => group.kind === 'CUSTOM'))
-    .sort(
-      (left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label)
-    )
-}
 
 export function clearEmptyStateArrays(character: CharacterAuthored): CharacterAuthored {
   return {
@@ -292,10 +265,6 @@ export function nextApprovedSpellCastSlotUsage(
     .filter(([, used]) => used > 0)
     .map(([key, used]) => ({ slotKey: key, used }))
   return entries.length ? entries : undefined
-}
-
-function setOptionalText(value: string | null | undefined): string | undefined {
-  return value == null || value.trim().length === 0 ? undefined : value
 }
 
 type CharacterCurrencyGroup = CharacterAuthored['state']['currency'][number]
@@ -506,9 +475,17 @@ export function applyCharacterSheetCommand(
     }
   } = {}
 ): CharacterAuthored {
+  switch (command.type) {
+    case 'CREATE_NOTE':
+    case 'UPDATE_NOTE':
+    case 'DELETE_NOTE':
+    case 'CREATE_NOTE_GROUP':
+    case 'UPDATE_NOTE_GROUP':
+    case 'DELETE_NOTE_GROUP':
+      return clearEmptyStateArrays(applyCharacterNoteCommand(character, command, context))
+  }
   const next = structuredClone(character)
   const createId = context.createId ?? (() => crypto.randomUUID())
-  const now = context.now ?? (() => new Date().toISOString())
 
   const ensureContainer = (containerId: string | undefined, movingItemId?: string) => {
     if (!containerId) return
@@ -541,43 +518,6 @@ export function applyCharacterSheetCommand(
     if (assignedToCreature || assignedToVehicle) {
       throw new CharacterSheetCommandError('Unassign this item before removing it from inventory.')
     }
-  }
-
-  const ensureNoteGroup = (groupId: string) => {
-    const persistedGroup = next.state.noteGroups?.find((candidate) => candidate.id === groupId)
-    if (
-      persistedGroup &&
-      !DEFAULT_NOTE_GROUPS.some((builtIn) => builtIn.id === persistedGroup.id)
-    ) {
-      return persistedGroup
-    }
-
-    const builtIn = DEFAULT_NOTE_GROUPS.find((candidate) => candidate.id === groupId)
-    if (!builtIn) throw new CharacterSheetCommandError(`Note group "${groupId}" was not found.`)
-
-    const existingBuiltIn = next.state.noteGroups?.find(
-      (candidate) =>
-        candidate.kind === builtIn.kind &&
-        !DEFAULT_NOTE_GROUPS.some((definition) => definition.id === candidate.id)
-    )
-    if (existingBuiltIn) return existingBuiltIn
-
-    const materialized = { ...builtIn, id: createId() }
-    const replacedPseudoIds = new Set(
-      (next.state.noteGroups ?? [])
-        .filter((candidate) => candidate.kind === builtIn.kind)
-        .map((candidate) => candidate.id)
-    )
-    next.state.noteGroups = [
-      ...(next.state.noteGroups ?? []).filter((candidate) => candidate.kind !== builtIn.kind),
-      materialized
-    ]
-    if (replacedPseudoIds.size > 0) {
-      next.state.notes = next.state.notes?.map((note) =>
-        replacedPseudoIds.has(note.groupId) ? { ...note, groupId: materialized.id } : note
-      )
-    }
-    return materialized
   }
 
   switch (command.type) {
@@ -1281,87 +1221,6 @@ export function applyCharacterSheetCommand(
         amount: nextDestinationAmount,
         createId
       })
-      return clearEmptyStateArrays(next)
-    }
-
-    case 'CREATE_NOTE': {
-      const group = ensureNoteGroup(command.groupId)
-      const timestamp = now()
-      next.state.notes = [
-        ...(next.state.notes ?? []),
-        {
-          id: createId(),
-          title: command.title.trim(),
-          body: setOptionalText(command.body),
-          groupId: group.id,
-          pinned: command.pinned || undefined,
-          createdAt: timestamp,
-          updatedAt: timestamp
-        }
-      ]
-      return clearEmptyStateArrays(next)
-    }
-
-    case 'UPDATE_NOTE': {
-      const existing = next.state.notes?.find((note) => note.id === command.noteId)
-      if (!existing) throw new CharacterSheetCommandError('Note was not found.')
-      const group = ensureNoteGroup(command.groupId ?? existing.groupId)
-      next.state.notes = next.state.notes?.map((note) =>
-        note.id === command.noteId
-          ? {
-              ...note,
-              title: command.title?.trim() ?? note.title,
-              body: command.body === null ? undefined : (command.body ?? note.body),
-              groupId: group.id,
-              pinned: command.pinned ?? note.pinned,
-              updatedAt: now()
-            }
-          : note
-      )
-      return clearEmptyStateArrays(next)
-    }
-
-    case 'DELETE_NOTE':
-      if (!next.state.notes?.some((note) => note.id === command.noteId))
-        throw new CharacterSheetCommandError('Note was not found.')
-      next.state.notes = next.state.notes.filter((note) => note.id !== command.noteId)
-      return clearEmptyStateArrays(next)
-
-    case 'CREATE_NOTE_GROUP':
-      next.state.noteGroups = [
-        ...(next.state.noteGroups ?? []),
-        {
-          id: createId(),
-          label: command.label.trim(),
-          sortOrder: Math.max(-1, ...getNoteGroups(next).map((group) => group.sortOrder)) + 1,
-          kind: 'CUSTOM'
-        }
-      ]
-      return clearEmptyStateArrays(next)
-
-    case 'UPDATE_NOTE_GROUP': {
-      const group = ensureNoteGroup(command.groupId)
-      const updated = {
-        ...group,
-        label: command.label?.trim() ?? group.label,
-        sortOrder: command.sortOrder ?? group.sortOrder
-      }
-      next.state.noteGroups = [
-        ...(next.state.noteGroups ?? []).filter((candidate) => candidate.id !== group.id),
-        updated
-      ]
-      return clearEmptyStateArrays(next)
-    }
-
-    case 'DELETE_NOTE_GROUP': {
-      const group = ensureNoteGroup(command.groupId)
-      if (group.kind !== 'CUSTOM')
-        throw new CharacterSheetCommandError('Built-in note groups cannot be deleted.')
-      if (next.state.notes?.some((note) => note.groupId === group.id))
-        throw new CharacterSheetCommandError('Move or delete the notes in this group first.')
-      next.state.noteGroups = next.state.noteGroups?.filter(
-        (candidate) => candidate.id !== group.id
-      )
       return clearEmptyStateArrays(next)
     }
 

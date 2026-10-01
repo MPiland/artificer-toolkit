@@ -1,11 +1,8 @@
+import type { CharacterSheetSpellsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button, Text, TextInput } from '@mantine/core'
 import { IconAdjustments, IconSearch } from '@tabler/icons-react'
 import { useEffect, useMemo, useState } from 'react'
-import type {
-  CharacterSheet,
-  OpenSheetPanel,
-  SubmitSheetCommand
-} from '../core/CharacterSheet.types'
+import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
 import * as actionSummaryStyles from '../actions/actionSummary.css'
@@ -30,7 +27,7 @@ export function CharacterSheetSpells({
   hideTitle?: boolean
   openPanel?: OpenSheetPanel
   pending: boolean
-  sheet: CharacterSheet
+  sheet: CharacterSheetSpellsDto
   submitCommand: SubmitSheetCommand
 }) {
   const version = sheet.meta.streamVersion

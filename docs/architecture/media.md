@@ -88,7 +88,7 @@ built by Convex ([persistence](persistence.md#content-snapshot-heads-and-objects
 and served by the session Worker, the one exception to ADR 0028's "no Worker proxy" rule.
 
 - **Route.** `GET /content/{key}` (`apps/session-worker/src/contentSnapshots.ts`), where `{key}` is a
-  canonical object key, `v1/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`. The Worker reads the
+  canonical object key, `v2/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`. The Worker reads the
   `CONTENT_SNAPSHOTS` R2 binding and serves the stored gzip body unchanged with
   `Content-Encoding: gzip`.
 - **Public or private.** The build writes R2 custom metadata `access: public` on PLATFORM source

@@ -2,35 +2,31 @@ import {
   liveSessionRecipientStateDtoSchema,
   type LiveSessionRecipientStateDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import { campaignSceneStateDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  liveRoomSceneStateSchema,
+  liveRoomStoredSceneStateSchema,
+  type LiveRoomSceneState
+} from '@artificer-toolkit/schema/api/liveRoomState'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
-import { z } from 'zod'
-
-const nativeLiveSessionStateSchema = z.strictObject({
-  scene: z.nullable(campaignSceneStateDtoSchema)
-})
-
-export type NativeLiveSessionState = z.infer<typeof nativeLiveSessionStateSchema>
+export type NativeLiveSessionState = LiveRoomSceneState
 
 export function createNativeLiveSessionState(scene: NativeLiveSessionState['scene'] = null): {
   state: NativeLiveSessionState
   stateChecksum: string
   stateJson: string
 } {
-  const state = nativeLiveSessionStateSchema.parse({ scene })
-  const stateJson = canonicalizeJson(state)
-  return { state, stateChecksum: checksumCanonicalJson(state), stateJson }
+  const state = liveRoomSceneStateSchema.parse({ scene })
+  const stateChecksum = checksumCanonicalJson(state)
+  const stateJson = canonicalizeJson({ state, contentChecksum: stateChecksum })
+  return { state, stateChecksum, stateJson }
 }
 
-export function hydrateNativeLiveSessionState(
-  stateJson: string,
-  stateChecksum: string
-): NativeLiveSessionState {
-  const encoded: unknown = JSON.parse(stateJson)
-  if (checksumCanonicalJson(encoded) !== stateChecksum)
+export function hydrateNativeLiveSessionState(stateJson: string): NativeLiveSessionState {
+  const encoded = liveRoomStoredSceneStateSchema.parse(JSON.parse(stateJson))
+  if (checksumCanonicalJson(encoded.state) !== encoded.contentChecksum)
     throw new Error('Live Session state checksum mismatch.')
-  return z.object({ scene: z.nullable(campaignSceneStateDtoSchema).default(null) }).parse(encoded)
+  return encoded.state
 }
 
 export function projectNativeLiveSessionState(

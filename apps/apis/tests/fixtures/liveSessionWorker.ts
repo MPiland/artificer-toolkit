@@ -31,10 +31,11 @@ import {
 } from 'convex/server'
 import { executeEncounterCommand, type DevelopmentClient } from '../developmentClient'
 import { api } from '../../convex/_generated/api'
+import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
 import type { MutationCtx, QueryCtx } from '../../convex/_generated/server'
 import * as rollRandom from '../../convex/lib/rollRandom'
 import type schema from '../../convex/schema'
-import { parseGeometrySave } from '../../convex/scenes/geometryDocuments'
+import { parseGeometrySave } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { persistSpatialPreparation } from '../../convex/scenes/spatialPreparationPersistence'
 import {
   callLiveSessionRoute,
@@ -349,7 +350,11 @@ export async function replayInRoom(
       .withIndex('by_publicId', (q) => q.eq('id', command.encounterId.toLowerCase()))
       .unique()
     if (!run) throw new Error('Encounter is unavailable.')
-    return readNativeEncounterOccurrenceOwner(ctx, run, command.occurrenceId.toLowerCase())
+    return readNativeEncounterOccurrenceOwner(
+      { db: createConvexEncounterStoreReader(ctx) },
+      run,
+      command.occurrenceId.toLowerCase()
+    )
   })
   // A movement decision commits with the room's Scene, which refuses its retry as stale.
   if (owner === 'MOVEMENT') throw new Error('A settled movement decision has no replay.')

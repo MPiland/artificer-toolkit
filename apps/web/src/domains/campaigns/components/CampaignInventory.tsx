@@ -110,12 +110,18 @@ export function CampaignInventory({
       : 'skip',
     { initialNumItems: 48 }
   )
-  const characterSheet = useQuery(
-    convexApi.campaigns.characterSheet.get,
+  const characterSlice = useQuery(
+    convexApi.characters.sheetSlices.get,
     sourceOwner.kind === 'CHARACTER'
-      ? { campaignId: campaign.id, characterId: sourceOwner.characterId }
+      ? { campaignId: campaign.id, id: sourceOwner.characterId, slice: 'INVENTORY' }
       : 'skip'
   )
+  const characterSheet =
+    characterSlice?.slice === 'INVENTORY'
+      ? characterSlice.data
+      : characterSlice === null
+        ? null
+        : undefined
   const ownerVersion = useQuery(convexApi.campaigns.inventoryOwners.version, {
     input: { campaignId: campaign.id, owner: sourceOwner }
   })

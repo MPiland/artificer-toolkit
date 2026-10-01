@@ -1,3 +1,4 @@
+import { deleteReceiptHeaders } from '../lib/receiptLedgers'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import type { Validator } from 'convex/values'
@@ -42,7 +43,7 @@ import { requireSystem } from '../content/systemDocuments'
 import { characterProjectionState } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { insertRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 import { removeEncounterRunChildren } from './campaignDeletion'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
@@ -231,9 +232,9 @@ export async function createEncounterRun(
       updatedAt: now
     })
   )
-  for (const actor of actors) await insertRunActor(ctx, actor)
+  for (const actor of actors) await insertRunActor(encounterWriteTransaction(ctx), actor)
   await insertRunCommand(
-    ctx,
+    encounterWriteTransaction(ctx),
     encounterStoredRunCommandSchema.parse({
       campaignId: campaign.id,
       encounterId,
@@ -320,7 +321,17 @@ export const deletePrepared = mutation({
     if (binding) await assertConvexOwnsSceneLiveState(ctx, campaign.id, binding.sceneId)
     let removed = false
     while (!removed) removed = await removeEncounterRunChildren(ctx, run.id)
-    for (const row of [...commands, ...receipts, ...occurrences]) await ctx.db.delete(row._id)
+    await deleteReceiptHeaders(ctx, [
+      ...commands.map((header) => ({
+        table: 'encounterRunCommands' as const,
+        header
+      })),
+      ...receipts.map((header) => ({
+        table: 'encounterRuleReceipts' as const,
+        header
+      }))
+    ])
+    for (const row of occurrences) await ctx.db.delete(row._id)
     await ctx.db.delete(run._id)
     const result = deletePreparedEncounterResultDtoSchema.parse({
       campaignId: campaign.id,

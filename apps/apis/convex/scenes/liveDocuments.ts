@@ -6,10 +6,8 @@ import {
   sceneStoredInitialStateSchema,
   sceneStoredDefinitionSaveSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
-import {
-  sceneStoredLiveStateSchema,
-  sceneStoredLiveEntitySchema
-} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import { sceneStoredLiveStateSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import type { Doc } from '../_generated/dataModel'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { QueryCtx } from '../_generated/server'
@@ -21,42 +19,8 @@ function stored<T extends { _id: unknown; _creationTime: unknown }>(row: T) {
   return value
 }
 
-export function advanceLiveState(
-  header: SceneLiveStateHeader,
-  live: ReturnType<typeof sceneStoredLiveStateSchema.parse> | null
-) {
-  return sceneStoredLiveStateSchema.parse({
-    sceneId: header.id,
-    version: header.version + 1,
-    fogLayerCount: live?.fogLayerCount ?? 0,
-    nextFogOrdinal: live?.nextFogOrdinal ?? 0,
-    counts: header.currentCounts,
-    nextOrdinals: live?.nextOrdinals ?? { ...header.counts, measurements: 0 },
-    settings: live?.settings ?? {
-      ambientIllumination: { value: header.ambientIllumination, version: 0 },
-      visionRevealMode: { value: header.visionRevealMode, version: 0 },
-      fogMode: { value: header.fogMode, version: 0 }
-    }
-  })
-}
-
 export function parseLiveEntity(row: Doc<'sceneLiveEntities'>, version: number) {
-  const value = sceneStoredLiveEntitySchema.parse(stored(row))
-  const { checksum, ...content } = value
-  const isDoor = value.value?.collection === 'barriers' && value.value.entity.kind === 'DOOR'
-  const hasDoorState = value.doorState !== undefined && value.doorState !== null
-  if (
-    checksumCanonicalJson(content) !== checksum ||
-    value.version > version ||
-    (value.value === null) !== (value.ordinal === null) ||
-    isDoor !== hasDoorState ||
-    ((value.collection === 'tokens' || value.collection === 'barriers') &&
-      value.entityId !== value.entityId.toLowerCase()) ||
-    (value.value !== null &&
-      (value.value.entity.id !== value.entityId || value.value.collection !== value.collection))
-  )
-    throw new Error('Stored live Scene entity is inconsistent.')
-  return value
+  return parseSceneLiveEntity(stored(row), version)
 }
 export async function readLiveScene(ctx: QueryCtx, sceneId: string, scope: 'OWNER' | 'MEMBER') {
   const { userId } = await requireIdentity(ctx)

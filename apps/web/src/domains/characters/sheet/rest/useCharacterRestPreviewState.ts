@@ -1,10 +1,11 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { useRef, useState } from 'react'
 import type {
   CharacterRestPreviewRequestDto,
   CharacterRestPreviewResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { useCharacterRestPreviewMutation } from '#app/data/characters/mutations'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { useCharacterSheetRoll } from '../dice/rollContext'
 
 export function useCharacterRestPreviewState({
@@ -19,7 +20,7 @@ export function useCharacterRestPreviewState({
   onOpen: () => void
   pending: boolean
   restKind: CharacterRestPreviewRequestDto['restKind']
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   submitCommand: SubmitSheetCommand
 }) {
   const previewMutation = useCharacterRestPreviewMutation(

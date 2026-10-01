@@ -2,17 +2,23 @@ import type { z } from 'zod'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import {
   characterStoredPlayStateSchema,
-  characterStoredRecordSchema
+  characterStoredRecordSchema,
+  characterStoredHeadSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
+import {
+  characterPlayStateSchema,
+  splitCharacterPlayState
+} from '@artificer-toolkit/schema/projections/characterPlayState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
+import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterSheetState } from './sheetStateDocuments'
+import { writeCharacterOperationalStructure } from './operationalWrites'
 import {
   readCharacterRecord,
   type CharacterDocument,
@@ -23,17 +29,15 @@ type CharacterStoredRecord = z.infer<typeof characterStoredRecordSchema>
 type CharacterRecordStats = ReturnType<typeof resolveCharacterRecordStats>
 type CharacterRecordFields = Omit<
   CharacterStoredRecord,
-  'documentJson' | 'checksum' | 'sheetState' | 'updatedAt'
+  'documentJson' | 'checksum' | 'sheetState' | 'sheetStateChecksum' | 'updatedAt'
 >
 
 /** JSON without `undefined` members, as the canonical stored form has none. */
 const encode = (value: unknown): unknown => JSON.parse(JSON.stringify(value))
 
 /**
- * The single writer of a Character. It splits the document and Sheet state the caller supplies into
- * the Builder-owned structure (the `characters` row) and the play record (`characterPlayStates`,
- * ADR 0035 Amendment 12), and replaces only the one that changed: a play write never rewrites the
- * large structure. The play record takes the caller's stream version; the structure row's
+ * The single writer of a Character. It splits complete inputs into typed operational records and
+ * replaces only changed rows in the caller's transaction. The play record takes the caller's stream version; the head's
  * `updatedAt`, the Builder's concurrency clock, advances only when the structure changes. It then
  * evaluates the written Character and stores its effective maximum hit points (before active-effect
  * reductions) and walking speed in the play record in the same transaction. A caller that already
@@ -63,13 +67,7 @@ export async function writeCharacterRecord(
 }> {
   const { current } = input
   const { streamVersion, updatedAt, ...structureFields } = input.fields
-  // Native writes drop the cutover-only catalogue field that old records may still carry.
-  const {
-    _id: _rowId,
-    primaryRulesCatalogueId: _retiredCatalogue,
-    play: _currentPlay,
-    ...fields
-  } = current ?? { _id: null, primaryRulesCatalogueId: undefined, play: null }
+  const { _id: _rowId, play: _currentPlay, ...fields } = current ?? { _id: null, play: null }
   // A row read from the database also carries its system creation time.
   const { _creationTime: _created, ...stored } = { _creationTime: undefined, ...fields }
   const {
@@ -104,7 +102,7 @@ export async function writeCharacterRecord(
       : undefined
   const encodedSheetStructure: unknown =
     input.sheetState && split ? encode(split.structure.sheetState) : undefined
-  const record = characterStoredRecordSchema.parse({
+  const parsedRecord = characterStoredRecordSchema.parse({
     ...stored,
     ...structureFields,
     ...(encodedDocument === undefined
@@ -124,8 +122,19 @@ export async function writeCharacterRecord(
     // The structure clock moves only with the structure, below.
     updatedAt: current?.updatedAt ?? updatedAt
   })
+  const record = {
+    ...parsedRecord,
+    sheetStateChecksum:
+      parsedRecord.sheetState?.checksum ??
+      checksumRuleDocument({
+        adjustments: [],
+        movementDisplayPreference: { mode: 'AUTO' },
+        spellCustomizations: []
+      })
+  }
   const structureChanged =
     !current || checksumCanonicalJson(stored) !== checksumCanonicalJson(record)
+  const held = current ? await readCharacterLiveHold(ctx, current.id) : null
   const nextRecord = structureChanged ? { ...record, updatedAt } : record
   const encodedPlay: unknown = split ? encode(split.play) : undefined
   const playRecord = characterStoredPlayStateSchema.parse({
@@ -135,27 +144,38 @@ export async function writeCharacterRecord(
     maximumHitPoints: input.stats?.maximumHitPoints ?? current?.play.maximumHitPoints ?? 0,
     walkingSpeed: input.stats?.walkingSpeed ?? current?.play.walkingSpeed ?? 0,
     ...(encodedPlay === undefined
-      ? { playJson: current!.play.playJson, checksum: current!.play.checksum }
+      ? { state: current!.play.state, checksum: current!.play.checksum }
       : {
-          playJson: canonicalizeRuleDocument(encodedPlay),
+          state: characterPlayStateSchema.parse(encodedPlay),
           checksum: checksumRuleDocument(encodedPlay)
         }),
     updatedAt: current?.play.updatedAt ?? updatedAt
   })
   const playChanged =
     !current || checksumCanonicalJson(storedPlay) !== checksumCanonicalJson(playRecord)
-  const nextPlayRecord = playChanged ? { ...playRecord, updatedAt } : playRecord
+  if (held && current && !structureChanged && playRecord.checksum !== current.play.checksum)
+    throw new Error('This Character is held by its live table; use the room for play commands.')
+  // Outside structural edits invalidate the Builder inputs. The room reconciles them at its next
+  // command boundary; its acknowledged checkpoint base and play fields stay intact meanwhile.
+  const nextPlayRecord = held
+    ? characterStoredPlayStateSchema.parse(storedPlay)
+    : playChanged
+      ? { ...playRecord, updatedAt }
+      : playRecord
+  const { documentJson: _documentJson, sheetState: _sheetState, ...headFields } = nextRecord
+  const head = characterStoredHeadSchema.parse(headFields)
   // A refresh after a Campaign-owned change rewrites nothing unless a stored value moves.
-  if (current && structureChanged) await ctx.db.replace(current._id, nextRecord)
-  const rowId = current ? current._id : await ctx.db.insert('characters', nextRecord)
-  if (current && playChanged) await ctx.db.replace(current.play._id, nextPlayRecord)
+  if (structureChanged) await writeCharacterOperationalStructure(ctx, current, nextRecord)
+  if (current && structureChanged) await ctx.db.replace(current._id, head)
+  const rowId = current ? current._id : await ctx.db.insert('characters', head)
+  if (current && playChanged && !held) await ctx.db.replace(current.play._id, nextPlayRecord)
   const playId = current
     ? current.play._id
     : await ctx.db.insert('characterPlayStates', nextPlayRecord)
   // A DRAFT Character needs Builder repair and has no readable Sheet; it keeps its last stats.
   if (record.status !== 'ACTIVE' || input.stats !== undefined)
     return {
-      row: { ...(await ctx.db.get(rowId))!, play: (await ctx.db.get(playId))! },
+      row: { ...(await ctx.db.get(rowId))!, ...nextRecord, play: (await ctx.db.get(playId))! },
       facts: null
     }
   const reader = input.evaluateAs ?? { userId: record.userId }
@@ -173,8 +193,9 @@ export async function writeCharacterRecord(
   if (!facts) throw new Error('Written Character is unavailable for evaluation.')
   const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
   if (
-    stats.maximumHitPoints === nextPlayRecord.maximumHitPoints &&
-    stats.walkingSpeed === nextPlayRecord.walkingSpeed
+    held ||
+    (stats.maximumHitPoints === nextPlayRecord.maximumHitPoints &&
+      stats.walkingSpeed === nextPlayRecord.walkingSpeed)
   )
     return { row: facts.active, facts }
   await ctx.db.patch(playId, stats)

@@ -57,7 +57,6 @@ import {
   formatCodeLabel,
   formatModifier,
   getHitPointAdjustment,
-  getNoteGroups,
   getSpellSlotKey,
   parseSlotLevel,
   type SheetSpell,
@@ -65,6 +64,7 @@ import {
   type SheetSpellSource
 } from './sheetCommandReducer.js'
 import type { CharacterSheetProjectedMechanic } from './characterSheetMechanic.js'
+import { projectCharacterSheetNotes } from './sheetNotes.js'
 import type {
   CharacterRuleProficiency,
   CharacterRuleSense,
@@ -1325,10 +1325,6 @@ export function projectCharacterSheetBundle(
       }
     })
   )
-  const noteGroups = getNoteGroups(character)
-  const noteItems: NonNullable<CharacterSheetResponseDto['notes']['items']> = (
-    character.state.notes ?? []
-  ).map((note) => ({ ...note, pinned: note.pinned ?? false }))
   const sheetSpells: CharacterSheetResponseDto['spells']['spells'] = resolution.catalog.spells
     .filter((spell) => displayedSpellIds.has(spell.id))
     .map((spell) => {
@@ -1590,35 +1586,7 @@ export function projectCharacterSheetBundle(
       })),
       currencyOptions
     },
-    notes: {
-      alignment: character.profile.alignmentId,
-      lifestyle: character.profile.lifestyleId,
-      faith: character.profile.faith,
-      gender: character.profile.gender,
-      age: character.profile.age,
-      appearance:
-        [
-          character.profile.height,
-          character.profile.weight,
-          character.profile.eyes,
-          character.profile.hair,
-          character.profile.skin,
-          character.profile.physicalCharacteristics
-        ]
-          .filter(Boolean)
-          .join(', ') || undefined,
-      personalityTraits: character.profile.personalityTraits,
-      ideals: character.profile.ideals,
-      bonds: character.profile.bonds,
-      flaws: character.profile.flaws,
-      organizations: character.profile.organizations,
-      allies: character.profile.allies,
-      enemies: character.profile.enemies,
-      backstory: character.profile.backstory,
-      notes: character.profile.notes,
-      groups: noteGroups,
-      items: noteItems
-    }
+    notes: projectCharacterSheetNotes(character)
   } satisfies CharacterSheetResponseDto
 
   return { sheet, ruleProjection }

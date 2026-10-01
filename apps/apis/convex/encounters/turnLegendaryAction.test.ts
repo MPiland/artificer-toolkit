@@ -1,3 +1,5 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -101,6 +103,8 @@ const saveSettings = makeFunctionReference<
 
 async function stored(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: string) {
   return t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', encounterId))
@@ -120,12 +124,18 @@ async function stored(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: 
     occurrences: (await ctx.db.query('encounterRuleOccurrences').collect()).filter(
       (row) => row.encounterId === encounterId
     ),
-    receipts: (await ctx.db.query('encounterRuleReceipts').collect()).filter(
-      (row) => row.encounterId === encounterId
-    ),
-    commands: (await ctx.db.query('encounterRunCommands').collect()).filter(
-      (row) => row.encounterId === encounterId
-    )
+    receipts: (
+      await ctx.db
+        .query('encounterRuleReceipts')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
+    ).filter((row) => row.encounterId === encounterId),
+    commands: (
+      await ctx.db
+        .query('encounterRunCommands')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
+    ).filter((row) => row.encounterId === encounterId)
   }))
 }
 
@@ -167,7 +177,7 @@ async function seedUsedAllowances(base: Awaited<ReturnType<typeof setup>>) {
           ...actor,
           resources: withEncounterRuleUsageUsed(actor, definitionId, 1)
         })
-      await writeRunActor(ctx, actorRow._id, actor)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, actorRow._id, actor)
     }
   })
 }
@@ -1003,14 +1013,14 @@ describe('native Encounter turn Legendary Actions', () => {
       const actor = encounterRunActorStateSchema.parse(JSON.parse(original.stateJson))
       const snapshot = actor.snapshot as { payload: { features: unknown[] } }
       snapshot.payload.features = []
-      await writeRunActor(ctx, original._id, actor)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, original._id, actor)
     })
     const changedSource = await stored(base.t, base.run.id)
     await expect(executeInRoom(base.owner.caller, remaining)).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(changedSource)
     await base.t.run((ctx) =>
       writeRunActor(
-        ctx,
+        { db: createConvexEncounterStore(ctx) },
         original._id,
         encounterRunActorStateSchema.parse(JSON.parse(original.stateJson))
       )
@@ -1585,6 +1595,7 @@ describe('private DO turn Legendary Action response', () => {
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
         .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     )
     // The decline completed the turn, whose root receipt records it, then the void was recorded.
     expect(commands.map((command) => command.commandType).slice(-2)).toEqual([

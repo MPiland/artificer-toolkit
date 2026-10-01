@@ -1,5 +1,7 @@
 import {
+  liveSessionCommandDtoSchema,
   liveSessionWebSocketClientMessageDtoSchema,
+  liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionCommandDto,
   type LiveSessionTransientBroadcastDto
 } from '@artificer-toolkit/schema/api/liveSessions'
@@ -325,7 +327,7 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
-  it('acknowledges an Encounter commit without advancing the room sequence', async () => {
+  it('advances contiguous native Encounter receipts, settles same-sequence replay, and resumes gaps', async () => {
     const durableStates: unknown[] = []
     const errors: Error[] = []
     const connection = createLiveSessionConnection({
@@ -364,16 +366,149 @@ describe('live-session browser connection', () => {
       projection: tabletopGmEncounter,
       roll: null
     }
-    // The room reports its current sequence, which may run ahead of this client.
-    socket.receive({
-      commandId,
-      delta: { result, scope: 'ENCOUNTER' },
-      sequence: 6,
-      type: 'COMMAND_COMMITTED'
-    })
+    socket.receive(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        commandId,
+        delta: { result, scope: 'ENCOUNTER' },
+        sequence: 5,
+        type: 'COMMAND_COMMITTED'
+      })
+    )
     await expect(committed).resolves.toMatchObject({ delta: { result, scope: 'ENCOUNTER' } })
     expect(errors).toEqual([])
-    expect(durableStates.at(-1)).toMatchObject({ commandReady: true, sequence: 4 })
+    expect(durableStates.at(-1)).toMatchObject({
+      commandReady: true,
+      sequence: 5,
+      recipientState: { ...recipientState, recipientRole: 'OWNER', scene: sceneState }
+    })
+    const nextCommand = {
+      ...encounterCommand,
+      command: { ...encounterCommand.command, commandId: '00000000-0000-4000-8000-000000000008' }
+    }
+    const replayed = connection.submitCommand(nextCommand)
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(socket.sent.at(-1)!))
+    ).toEqual({ command: nextCommand, expectedSessionSequence: 5, type: 'COMMAND' })
+    socket.receive(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        commandId: nextCommand.command.commandId,
+        delta: { result, scope: 'ENCOUNTER' },
+        sequence: 5,
+        type: 'COMMAND_COMMITTED'
+      })
+    )
+    await expect(replayed).resolves.toMatchObject({
+      delta: { result, scope: 'ENCOUNTER' },
+      sequence: 5
+    })
+    expect(durableStates.at(-1)).toMatchObject({
+      commandReady: true,
+      sequence: 5,
+      recipientState: { ...recipientState, recipientRole: 'OWNER', scene: sceneState }
+    })
+    socket.receive(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        commandId: '00000000-0000-4000-8000-000000000009',
+        delta: { result, scope: 'ENCOUNTER' },
+        sequence: 7,
+        type: 'COMMAND_COMMITTED'
+      })
+    )
+    expect(errors.at(-1)?.message).toBe('Live play received commands out of order.')
+    expect(durableStates.at(-1)).toMatchObject({ commandReady: false, sequence: 5 })
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(socket.sent.at(-1)!))
+    ).toEqual({ lastAppliedSequence: 5, type: 'RESUME' })
+    connection.close()
+  })
+
+  it('advances a private-history-free Sheet acknowledgement and waits for its own same-sequence receipt', async () => {
+    const durableStates: unknown[] = []
+    const errors: Error[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onDurableState: (state) => durableStates.push(state),
+      onError: (error) => errors.push(error),
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+    const state = { ...recipientState, recipientRole: 'OWNER', scene: sceneState }
+    socket.receive({ authorityEpoch, sequence: 4, state, type: 'STATE_SYNC' })
+    const characterId = '00000000-0000-4000-8000-000000000015'
+    const sheetCommand = liveSessionCommandDtoSchema.parse({
+      scope: 'CHARACTER_SHEET',
+      characterId,
+      encounterId: tabletopGmEncounter.id,
+      command: { type: 'SET_INSPIRATION', commandId, expectedVersion: 8, inspired: true }
+    })
+    let settled = false
+    const committed = connection.submitCommand(sheetCommand)
+    void committed.then(() => {
+      settled = true
+    })
+    socket.receive(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        commandId,
+        delta: null,
+        sequence: 5,
+        type: 'COMMAND_COMMITTED'
+      })
+    )
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    expect(durableStates.at(-1)).toMatchObject({
+      commandReady: true,
+      recipientState: state,
+      sequence: 5
+    })
+    // A different surface's result cannot settle the pending private Sheet command.
+    socket.receive(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        commandId,
+        delta: {
+          scope: 'ENCOUNTER',
+          result: { occurrence: null, projection: tabletopGmEncounter, roll: null }
+        },
+        sequence: 5,
+        type: 'COMMAND_COMMITTED'
+      })
+    )
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    const result = {
+      characterId,
+      streamVersion: 9,
+      historyEntry: {
+        eventId: '00000000-0000-4000-8000-000000000016',
+        occurredAt: '2026-08-15T12:00:00.000Z',
+        actorId: userId,
+        eventType: 'SET_INSPIRATION',
+        summary: 'Gained inspiration.'
+      }
+    }
+    const receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
+      commandId,
+      delta: { scope: 'CHARACTER_SHEET', result },
+      sequence: 5,
+      type: 'COMMAND_COMMITTED'
+    })
+    socket.receive(receipt)
+    await expect(committed).resolves.toEqual(receipt)
+    expect(settled).toBe(true)
+    expect(errors).toEqual([])
+    expect(durableStates.at(-1)).toMatchObject({
+      commandReady: true,
+      recipientState: state,
+      sequence: 5
+    })
     connection.close()
   })
 

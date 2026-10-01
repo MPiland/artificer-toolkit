@@ -1,3 +1,5 @@
+import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import { api } from '../_generated/api'
@@ -56,9 +58,14 @@ async function manualFixture() {
 }
 async function capture(base: Awaited<ReturnType<typeof setupCharacterRun>>) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
-    commands: await ctx.db.query('encounterRunCommands').collect(),
+    commands: await ctx.db
+      .query('encounterRunCommands')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     sides: await ctx.db.query('encounterInitiativeSides').collect()
@@ -265,9 +272,10 @@ describe('native actor reinforcement transaction', () => {
           query.eq('campaignId', base.campaign.id).eq('commandId', command.commandId)
         )
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
       if (!receipt || receipt.commandType !== 'REINFORCE')
         throw new Error('Missing reinforcement receipt.')
-      await ctx.db.patch(receipt._id, {
+      await replaceReceiptRecord(ctx, 'encounterRunCommands', receipt._id, {
         reinforcedActorStateChecksum: 'b'.repeat(64)
       })
     })

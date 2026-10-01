@@ -29,6 +29,7 @@ import { readCharacterRow } from '../characters/stateDocuments'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSceneVisionRevision } from './visionFreshness'
 import { readSessionVisionScope } from './sessionVisionDocuments'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 
 const readCharacterVision = makeFunctionReference<
   'query',
@@ -131,7 +132,7 @@ export const bindings = internalQuery({
     for (const tokenBinding of result.page) {
       if (tokenBinding.sceneId !== scope.header.id)
         throw new Error('Scene vision actor token binding is inconsistent.')
-      const actor = await readRunActor(ctx, state, tokenBinding.actorId)
+      const actor = await readRunActor(encounterReadTransaction(ctx), state, tokenBinding.actorId)
       if (actor.kind !== 'CHARACTER') continue
       const characterId = actor.sourceId
       if (!characterId) throw new Error('Scene vision Character actor source is unavailable.')
@@ -173,7 +174,7 @@ export const character = internalQuery({
     const input = sceneSessionCharacterVisionInputSchema.parse(args)
     const scope = await readSessionVisionScope(ctx, input)
     const { run, state } = await readSessionVisionRun(ctx, scope, input)
-    const actor = await readRunActor(ctx, state, input.actorId)
+    const actor = await readRunActor(encounterReadTransaction(ctx), state, input.actorId)
     if (actor.kind !== 'CHARACTER' || actor.sourceId !== input.characterId)
       throw new Error('Scene vision actor does not reference this Character.')
     const tokenBinding = await ctx.db

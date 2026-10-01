@@ -1,3 +1,5 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
@@ -227,6 +229,8 @@ function bridge(base: Awaited<ReturnType<typeof setup>>) {
 
 async function storedTurnState(base: Awaited<ReturnType<typeof setup>>) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
@@ -252,11 +256,13 @@ async function storedTurnState(base: Awaited<ReturnType<typeof setup>>) {
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-      .take(16),
+      .take(16)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .take(16)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
 }
 
@@ -666,9 +672,11 @@ it('commits a DO round-wrap pause once and resolves it through native initiative
     rootCommandId: command.commandId,
     expectedEncounterVersion: command.expectedVersion
   })
-  expect(await base.t.run((ctx) => readPendingSnapshot(ctx, after.pending[0]!))).toEqual(
-    input.snapshot
-  )
+  expect(
+    await base.t.run((ctx) =>
+      readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, after.pending[0]!)
+    )
+  ).toEqual(input.snapshot)
   const consumed = input.revisions[0]!
   const advancedRevision = crypto.randomUUID()
   await base.t.run(async (ctx) => {

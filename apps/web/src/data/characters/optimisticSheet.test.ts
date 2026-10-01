@@ -1,4 +1,11 @@
+import type {
+  CharacterSheetSlice,
+  CharacterSheetSliceDtoMap
+} from '@artificer-toolkit/schema/api/characterSheetSlices'
+import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
+import { characterSheetSliceResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { characterSheetFixture } from '#domains/characters/sheet/fixtures/characterSheet.fixtures'
 import {
   itemPanelFixture,
@@ -6,16 +13,60 @@ import {
   spellsPanelFixture
 } from '#domains/characters/sheet/inspector/inspector.fixtures'
 import {
-  projectOptimisticCharacterSheet,
+  projectOptimisticCharacterSheetSlice,
   projectOptimisticCharacterSheetPanel
 } from './optimisticSheet'
 
+function projectSlice<Slice extends CharacterSheetSlice>(
+  sheet: CharacterSheetResponseDto,
+  slice: Slice,
+  command: CharacterSheetCommandInputDto
+): CharacterSheetSliceDtoMap[Slice] {
+  return projectOptimisticCharacterSheetSlice(projectCharacterSheetSlice(sheet, slice), command)
+    .data as CharacterSheetSliceDtoMap[Slice]
+}
 const commandBase = {
   commandId: '00000000-0000-4000-8000-000000000999',
   expectedVersion: characterSheetFixture.meta.streamVersion
 }
 
 describe('optimistic Character Sheet projections', () => {
+  it('projects focused cached collections without adding unrelated Sheet fields', () => {
+    const command = { ...commandBase, type: 'SET_INSPIRATION' as const, inspired: true }
+    const response = projectOptimisticCharacterSheetSlice(
+      projectCharacterSheetSlice(characterSheetFixture, 'COMMON'),
+      command
+    )
+    expect(response).toMatchObject({ slice: 'COMMON', data: { overview: { inspiration: true } } })
+    expect('inventory' in response.data).toBe(false)
+    characterSheetSliceResponseDtoSchema.parse(response)
+    for (const slice of ['ACTIONS', 'SPELLS', 'INVENTORY', 'FEATURES'] as const) {
+      const projected = projectOptimisticCharacterSheetSlice(
+        projectCharacterSheetSlice(characterSheetFixture, slice),
+        {
+          ...commandBase,
+          type: 'USE_RESOURCE',
+          resourceGrantId: characterSheetFixture.resources.items[0]!.id
+        }
+      )
+      characterSheetSliceResponseDtoSchema.parse(projected)
+      expect('identity' in projected.data).toBe(false)
+      expect('overview' in projected.data).toBe(false)
+    }
+  })
+
+  it('leaves an older slice untouched when a command was issued against newer common facts', () => {
+    const response = projectCharacterSheetSlice(characterSheetFixture, 'INVENTORY')
+    expect(
+      projectOptimisticCharacterSheetSlice(response, {
+        ...commandBase,
+        expectedVersion: commandBase.expectedVersion + 1,
+        type: 'REMOVE_INVENTORY_ITEM',
+        itemId: characterSheetFixture.inventory.items[0]!.id
+      })
+    ).toBe(response)
+  })
+
   it('projects spell-source customization into the Sheet and open spell panel', () => {
     const command = {
       ...commandBase,
@@ -26,7 +77,7 @@ describe('optimistic Character Sheet projections', () => {
       displayAsAttack: true
     }
 
-    const sheet = projectOptimisticCharacterSheet(characterSheetFixture, command)
+    const sheet = projectSlice(characterSheetFixture, 'SPELLS', command)
     const panel = projectOptimisticCharacterSheetPanel(spellPanelFixture, command)
     const source = sheet.spells.spells.find((spell) => spell.id === spellPanelFixture.spellId)
       ?.sources?.[0]
@@ -56,7 +107,7 @@ describe('optimistic Character Sheet projections', () => {
       spellIds: panelSources.slice(0, 2).map((source) => source.spellId)
     }
 
-    const sheet = projectOptimisticCharacterSheet(characterSheetFixture, command)
+    const sheet = projectSlice(characterSheetFixture, 'SPELLS', command)
     const panel = projectOptimisticCharacterSheetPanel(spellsPanelFixture, command)
 
     expect(sheet.spells.spells.find((spell) => spell.id === command.spellIds[0])?.prepared).toBe(
@@ -97,7 +148,7 @@ describe('optimistic Character Sheet projections', () => {
       ]
     }
 
-    const sheet = projectOptimisticCharacterSheet(characterSheetFixture, command)
+    const sheet = projectSlice(characterSheetFixture, 'SPELLS', command)
     const projectedPanel = projectOptimisticCharacterSheetPanel(panel, command)
     const spell = sheet.spells.spells[0]!
 
@@ -117,7 +168,7 @@ describe('optimistic Character Sheet projections', () => {
     }
     const initialResource = characterSheetFixture.resources.items[1]
 
-    const sheet = projectOptimisticCharacterSheet(characterSheetFixture, command)
+    const sheet = projectSlice(characterSheetFixture, 'ACTIONS', command)
     const resource = sheet.resources.items[1]
 
     expect(resource).toMatchObject({
@@ -137,7 +188,7 @@ describe('optimistic Character Sheet projections', () => {
     source.resourceGrantId = 'raw-resource-grant'
     source.resourceOwner = resource.owner
 
-    const projected = projectOptimisticCharacterSheet(sheet, {
+    const projected = projectSlice(sheet, 'ACTIONS', {
       ...commandBase,
       type: 'CAST_SPELL',
       spellId: spell.id,
@@ -148,13 +199,20 @@ describe('optimistic Character Sheet projections', () => {
       used: resource.used + 1,
       remaining: resource.remaining - 1
     })
-    expect(projected.spells.slots).toEqual(sheet.spells.slots)
+    expect(
+      projectSlice(sheet, 'SPELLS', {
+        ...commandBase,
+        type: 'CAST_SPELL',
+        spellId: spell.id,
+        sourceId: source.id
+      }).spells.slots
+    ).toEqual(sheet.spells.slots)
   })
 
   it('projects resource recovery and HP changes without duplicating engine rules', () => {
     const resource = characterSheetFixture.resources.items[1]
     const itemResource = itemPanelFixture.resources[0]!
-    const recovered = projectOptimisticCharacterSheet(characterSheetFixture, {
+    const recovered = projectSlice(characterSheetFixture, 'FEATURES', {
       ...commandBase,
       type: 'RECOVER_SHEET_RESOURCE',
       owner: resource.owner,
@@ -179,7 +237,7 @@ describe('optimistic Character Sheet projections', () => {
       ]
     })
 
-    const damaged = projectOptimisticCharacterSheet(characterSheetFixture, {
+    const damaged = projectSlice(characterSheetFixture, 'COMMON', {
       ...commandBase,
       type: 'ADJUST_HIT_POINTS',
       mode: 'DAMAGE',
@@ -190,7 +248,7 @@ describe('optimistic Character Sheet projections', () => {
       tempHitPoints: 0
     })
 
-    const healed = projectOptimisticCharacterSheet(characterSheetFixture, {
+    const healed = projectSlice(characterSheetFixture, 'COMMON', {
       ...commandBase,
       type: 'ADJUST_HIT_POINTS',
       mode: 'HEAL',
@@ -198,7 +256,7 @@ describe('optimistic Character Sheet projections', () => {
     })
     expect(healed.overview.currentHitPoints).toBe(characterSheetFixture.overview.maxHitPoints)
 
-    const set = projectOptimisticCharacterSheet(characterSheetFixture, {
+    const set = projectSlice(characterSheetFixture, 'COMMON', {
       ...commandBase,
       type: 'SET_HIT_POINTS',
       current: 4,
@@ -230,7 +288,7 @@ describe('optimistic Character Sheet projections', () => {
 
   it('projects condition changes and preserves exhaustion notes on level-only updates', () => {
     const condition = characterSheetFixture.reference.conditionOptions[0]
-    const conditioned = projectOptimisticCharacterSheet(characterSheetFixture, {
+    const conditioned = projectSlice(characterSheetFixture, 'COMMON', {
       ...commandBase,
       type: 'ADD_CONDITION',
       conditionTypeId: condition.id,
@@ -242,7 +300,7 @@ describe('optimistic Character Sheet projections', () => {
       notes: 'Until the next save.'
     })
 
-    const exhausted = projectOptimisticCharacterSheet(characterSheetFixture, {
+    const exhausted = projectSlice(characterSheetFixture, 'COMMON', {
       ...commandBase,
       type: 'SET_EXHAUSTION',
       level: 2
@@ -264,11 +322,10 @@ describe('optimistic Character Sheet projections', () => {
       sourceNote: 'Empowered Evocation'
     }
 
-    expect(projectOptimisticCharacterSheet(characterSheetFixture, command)).toBe(
-      characterSheetFixture
-    )
+    const common = projectCharacterSheetSlice(characterSheetFixture, 'COMMON')
+    expect(projectOptimisticCharacterSheetSlice(common, command).data).toBe(common.data)
     expect(
-      projectOptimisticCharacterSheet(characterSheetFixture, {
+      projectOptimisticCharacterSheetSlice(common, {
         ...commandBase,
         type: 'COMPLETE_REST',
         restKind: 'LONG',
@@ -278,8 +335,8 @@ describe('optimistic Character Sheet projections', () => {
         healingMode: 'AUTOMATIC',
         manualHealingAccepted: false,
         selectedCompanionInstanceIds: []
-      })
-    ).toBe(characterSheetFixture)
+      }).data
+    ).toBe(common.data)
     expect(projectOptimisticCharacterSheetPanel(spellPanelFixture, command)).toMatchObject({
       state: 'ADJUSTED',
       customizationOptions: [

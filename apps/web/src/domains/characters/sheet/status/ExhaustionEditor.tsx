@@ -1,8 +1,9 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Accordion, Button, Text, TextInput } from '@mantine/core'
 import { Minus, Plus } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { sheetFieldClassNames } from '../shared/characterSheetFieldStyles'
 import * as rowStyles from '../shared/rows.css'
 import * as statusEditorStyles from './statusEditor.css'
@@ -13,7 +14,7 @@ export function ExhaustionEditor({
   submitCommand
 }: {
   pending: boolean
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   submitCommand: SubmitSheetCommand
 }) {
   const [detailsOpen, setDetailsOpen] = useState(true)

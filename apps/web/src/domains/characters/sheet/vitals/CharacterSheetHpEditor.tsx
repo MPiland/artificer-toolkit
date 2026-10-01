@@ -1,6 +1,7 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button, NumberInput, Text } from '@mantine/core'
 import { useRef, useState } from 'react'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { formatSigned, toNumber } from '../core/characterSheet.utils'
 import * as overviewStyles from '../overview/overview.css'
 import { sheetFieldClassNames } from '../shared/characterSheetFieldStyles'
@@ -13,7 +14,7 @@ export function CharacterSheetHpEditor({
   version
 }: {
   pending: boolean
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   submitCommand: SubmitSheetCommand
   version: number
 }) {

@@ -1,6 +1,6 @@
-import type { CharacterSheet } from '../core/CharacterSheet.types'
+import type { CharacterSheetSpellsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 
-export type SheetSpell = CharacterSheet['spells']['spells'][number]
+export type SheetSpell = CharacterSheetSpellsDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 
 export const CHARACTER_SHEET_SPELL_ACTION_FILTERS = [
@@ -64,7 +64,10 @@ export function formatSpellAttributes(spell: SheetSpell): string | null {
   return spell.attributes.map(formatEnumLabel).join(', ')
 }
 
-export function getPreparedSpellIdsForClass(sheet: CharacterSheet, classId: string): string[] {
+export function getPreparedSpellIdsForClass(
+  sheet: CharacterSheetSpellsDto,
+  classId: string
+): string[] {
   const preparationSource = sheet.spells.preparationSources?.find(
     (source) => source.classId === classId
   )

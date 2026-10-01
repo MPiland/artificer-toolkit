@@ -169,7 +169,7 @@ it('does not create a concentration child when finalized applied damage is zero'
       updatedAt: characterRow.updatedAt
     })
     await ctx.db.patch(characterRow.play._id, {
-      playJson: encoded.play.playJson,
+      state: encoded.play.state,
       checksum: encoded.play.checksum
     })
   })

@@ -17,6 +17,7 @@ import {
   planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
+import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -49,7 +50,14 @@ it.each(['ROOT', 'RESPONSE'] as const)(
         actors: await ctx.db.query('encounterRunActors').collect(),
         commands: await ctx.db.query('encounterRunCommands').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+        receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
+        receipts: await readReceiptHeaders(
+          ctx,
+          'encounterRuleReceipts',
+          await ctx.db.query('encounterRuleReceipts').collect()
+        ),
         scenes: await ctx.db.query('campaignScenes').collect(),
         liveStates: await ctx.db.query('sceneLiveStates').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect(),
@@ -145,14 +153,15 @@ it('replays player movement with the original private projection before and afte
   const move = await planMovementInRoom(value.player.caller, rootInput)
   const initial = await move.publish()
   expect(initial.occurrence).toMatchObject({ status: 'PENDING', pending: null })
-  const receipt = await value.owner.caller.run((ctx) =>
-    ctx.db
+  const receipt = await value.owner.caller.run(async (ctx) => {
+    const header = await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', value.base.run.id).eq('commandId', rootInput.commandId)
       )
       .unique()
-  )
+    return header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
+  })
   if (!receipt) throw new Error('Expected retained owner movement receipt.')
   const retained = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
   if (retained.status !== 'ENCOUNTER_OCCURRENCE_PENDING')
@@ -183,7 +192,14 @@ it('replays player movement with the original private projection before and afte
       actors: await ctx.db.query('encounterRunActors').collect(),
       commands: await ctx.db.query('encounterRunCommands').collect(),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+      receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
+      receipts: await readReceiptHeaders(
+        ctx,
+        'encounterRuleReceipts',
+        await ctx.db.query('encounterRuleReceipts').collect()
+      ),
       scenes: await ctx.db.query('campaignScenes').collect(),
       liveStates: await ctx.db.query('sceneLiveStates').collect(),
       entities: await ctx.db.query('sceneLiveEntities').collect(),

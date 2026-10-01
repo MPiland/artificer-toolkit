@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
-import { CharacterSheetView } from '../core/CharacterSheetView'
+import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
 import { characterSheetStoryMeta } from '../fixtures/characterSheetStory.fixture'
 
 const meta = {

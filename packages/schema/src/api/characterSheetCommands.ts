@@ -10,7 +10,6 @@ import {
 } from './characterSheet.js'
 import { characterSheetResponseDtoSchema } from './characterSheetData.js'
 import { characterHistoryEntryDtoSchema } from './characterHistory.js'
-import { characterSheetPanelDtoSchema } from './characterSheetPanel.js'
 
 export {
   characterHistoryEntryDtoSchema,
@@ -134,13 +133,18 @@ export const characterRestPreviewResponseDtoSchema = lazySchema(() =>
 )
 
 export const characterSheetCommandResponseDtoSchema = lazySchema(() =>
-  z.object({
+  z.strictObject({
     characterId: stringSchema,
     streamVersion: integerSchema,
-    sheet: characterSheetResponseDtoSchema,
-    panels: z.optional(z.array(characterSheetPanelDtoSchema)),
     historyEntry: z.optional(characterHistoryEntryDtoSchema),
     result: z.optional(characterSheetCommandResultDtoSchema)
+  })
+)
+
+/** Transitional transaction-local result for Encounter orchestration; never a public response. */
+export const characterSheetCommandExecutionDtoSchema = lazySchema(() =>
+  z.extend(characterSheetCommandResponseDtoSchema, {
+    sheet: characterSheetResponseDtoSchema
   })
 )
 
@@ -155,4 +159,7 @@ export type CharacterRestPreviewInput = z.infer<typeof characterRestPreviewInput
 export type CharacterRestPreviewResponseDto = z.infer<typeof characterRestPreviewResponseDtoSchema>
 export type CharacterSheetCommandResponseDto = z.infer<
   typeof characterSheetCommandResponseDtoSchema
+>
+export type CharacterSheetCommandExecutionDto = z.infer<
+  typeof characterSheetCommandExecutionDtoSchema
 >

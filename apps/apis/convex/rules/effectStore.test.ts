@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -198,7 +199,7 @@ describe('native active Rule Effect store', () => {
     const secondId = effectId(21)
     const actorId = effectId(22)
     const values = await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       const first = await store.create({
         id: firstId.toUpperCase(),
         owner: { kind: 'CHARACTER', characterId: character.id.toUpperCase() },
@@ -236,7 +237,11 @@ describe('native active Rule Effect store', () => {
     expect(values.actor).toMatchObject({ id: actorId, owner: actorOwner, createdOrdinal: 1 })
     expect(values.character.map((effect) => effect.id)).toEqual([firstId, secondId])
     await expect(
-      t.run((ctx) => createActiveRuleEffectStore(ctx).list(secondCharacterOwner))
+      t.run((ctx) =>
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list(
+          secondCharacterOwner
+        )
+      )
     ).rejects.toThrow('Character owner is unavailable')
     expect(values.otherActor).toEqual([])
     expect(values.missing).toBeNull()
@@ -253,7 +258,7 @@ describe('native active Rule Effect store', () => {
     const characterDefinition = ownerDefinition(character.id)
     const actorDefinition = encounterDefinition(run.id, customActor.id)
     const values = await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       const characterFirstInput = {
         id: effectId(220),
         owner: characterOwner,
@@ -330,7 +335,7 @@ describe('native active Rule Effect store', () => {
     const characterDefinition = ownerDefinition(character.id)
     const id = effectId(30)
     await t.run(async (ctx) => {
-      await createActiveRuleEffectStore(ctx).create({
+      await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
         id,
         owner: characterOwner,
         definition: characterDefinition,
@@ -338,7 +343,7 @@ describe('native active Rule Effect store', () => {
       })
     })
     const updated = await t.run((ctx) =>
-      createActiveRuleEffectStore(ctx).updateLifecycleCas({
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).updateLifecycleCas({
         id,
         owner: characterOwner,
         expectedVersion: 1,
@@ -348,7 +353,7 @@ describe('native active Rule Effect store', () => {
     expect(updated).toMatchObject({ version: 2, lifecycle: ownerLifecycle })
     await expect(
       t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).updateLifecycleCas({
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).updateLifecycleCas({
           id,
           owner: characterOwner,
           expectedVersion: 1,
@@ -358,7 +363,7 @@ describe('native active Rule Effect store', () => {
     ).rejects.toThrow()
     await expect(
       t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).deleteCas({
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).deleteCas({
           id,
           owner: characterOwner,
           expectedVersion: 1
@@ -366,14 +371,19 @@ describe('native active Rule Effect store', () => {
       )
     ).rejects.toThrow()
     expect(
-      await t.run((ctx) => createActiveRuleEffectStore(ctx).findById(characterOwner, id))
+      await t.run((ctx) =>
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).findById(
+          characterOwner,
+          id
+        )
+      )
     ).toMatchObject({
       version: 2,
       lifecycle: ownerLifecycle
     })
     await expect(
       t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).updateLifecycleCas({
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).updateLifecycleCas({
           id,
           owner: characterOwner,
           expectedVersion: 2,
@@ -390,7 +400,7 @@ describe('native active Rule Effect store', () => {
     const id = effectId(40)
     const stateId = effectId(41)
     await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       await store.create({
         id,
         owner: characterOwner,
@@ -416,11 +426,18 @@ describe('native active Rule Effect store', () => {
       await ctx.db.patch(state._id, { descriptorChecksum: '0'.repeat(64) })
     })
     await expect(
-      t.run((ctx) => createActiveRuleEffectStore(ctx).findById(characterOwner, id))
+      t.run((ctx) =>
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).findById(
+          characterOwner,
+          id
+        )
+      )
     ).rejects.toThrow()
     await expect(
       t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).findMaintainedStateById({
+        createActiveRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).findMaintainedStateById({
           encounterId: run.id,
           stateId
         })
@@ -443,7 +460,7 @@ describe('native active Rule Effect store', () => {
     const actorEffectId = effectId(52)
     const characterEffectId = effectId(53)
     await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       const state = await store.createMaintainedState({
         id: actorStateId,
         encounterId: run.id,
@@ -503,7 +520,9 @@ describe('native active Rule Effect store', () => {
     })
     await expect(
       t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).deleteMaintainedStateCas({
+        createActiveRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).deleteMaintainedStateCas({
           id: characterStateId,
           encounterId: run.id,
           ownerActorId: customActor.id,
@@ -513,7 +532,10 @@ describe('native active Rule Effect store', () => {
     ).rejects.toThrow()
     expect(
       await t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).findById(characterOwner, characterEffectId)
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).findById(
+          characterOwner,
+          characterEffectId
+        )
       )
     ).not.toBeNull()
   })
@@ -528,7 +550,7 @@ describe('native active Rule Effect store', () => {
     }
     const definition = encounterDefinition(run.id, customActor.id)
     await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       const stateIds = [effectId(70), effectId(71)] as const
       for (const [index, stateId] of stateIds.entries()) {
         await store.createMaintainedState({
@@ -578,7 +600,7 @@ describe('native active Rule Effect store', () => {
     const owner: ActiveRuleEffectOwner = { kind: 'CHARACTER', characterId: character.id }
     const definition = ownerDefinition(character.id)
     await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       for (let index = 0; index < MAX_ACTIVE_RULE_EFFECTS_PER_OWNER; index++) {
         await store.create({
           id: effectId(300 + index),
@@ -631,7 +653,7 @@ describe('native active Rule Effect store', () => {
     const id = effectId(60)
     await expect(
       t.run(async (ctx) => {
-        await createActiveRuleEffectStore(ctx).create({
+        await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
           id,
           owner: characterOwner,
           definition: characterDefinition,
@@ -640,6 +662,10 @@ describe('native active Rule Effect store', () => {
         throw new Error('Injected transaction abort')
       })
     ).rejects.toThrow('Injected transaction abort')
-    expect(await t.run((ctx) => createActiveRuleEffectStore(ctx).list(characterOwner))).toEqual([])
+    expect(
+      await t.run((ctx) =>
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list(characterOwner)
+      )
+    ).toEqual([])
   })
 })

@@ -11,8 +11,30 @@ import { retainedFeed } from '../notifications/feed'
 import { prepareSocialAccountDeletion } from '../social/accountCleanup'
 import { syncAccountUsage } from './accountUsage'
 import { resetAccountRateLimits } from './rateLimits'
+import { scheduleLiveSessionInputInvalidation } from '../liveSessions/controlScheduling'
 
 type AuthUser = { _id: string }
+
+/** Username changes invalidate leased author labels in each active Campaign. */
+export async function onAuthUserUpdate(ctx: MutationCtx, user: AuthUser): Promise<void> {
+  const profile = await ctx.db
+    .query('userProfiles')
+    .withIndex('by_authUserId', (q) => q.eq('authUserId', user._id))
+    .unique()
+  if (!profile) return
+  for await (const membership of ctx.db
+    .query('campaignMemberships')
+    .withIndex('by_userId_status_joinedAt', (q) =>
+      q.eq('userId', profile.userId).eq('status', 'ACTIVE')
+    )) {
+    const authority = await ctx.db
+      .query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', membership.campaignId))
+      .unique()
+    if (authority?.phase === 'DO_ACTIVE')
+      await scheduleLiveSessionInputInvalidation(ctx, membership.campaignId, ['PREFERENCES'])
+  }
+}
 
 export async function onAuthUserCreate(ctx: MutationCtx, user: AuthUser): Promise<void> {
   const existingProfile = await ctx.db

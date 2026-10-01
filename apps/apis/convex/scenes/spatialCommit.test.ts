@@ -20,6 +20,9 @@ import {
   nextExternalAuthority
 } from '../../tests/fixtures/liveSessionWorker'
 import type { LiveSessionMovementCommitInput } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 const timeline = makeFunctionReference<
   'query',
@@ -86,11 +89,17 @@ async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixtu
     if (!row) throw new Error('Fixture Run missing')
     const state = readRunState(row)
     const projection = await readEncounterGmProjection(encounterReadTransaction(ctx), state)
-    const scope = await createSpatialRuleEffectStore(ctx).scope({
-      encounterId: state.id,
-      sceneId: value.base.sceneId
-    })
-    const actor = await readRunActor(ctx, state, value.base.run.actors[0]!.id)
+    const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(
+      {
+        encounterId: state.id,
+        sceneId: value.base.sceneId
+      }
+    )
+    const actor = await readRunActor(
+      encounterReadTransaction(ctx),
+      state,
+      value.base.run.actors[0]!.id
+    )
     if (actor.kind === 'CHARACTER') throw new Error('Expected a custom spatial actor.')
     return {
       save,
@@ -102,7 +111,14 @@ async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixtu
         .query('encounterRuleOccurrences')
         .withIndex('by_encounterId_state', (q) => q.eq('encounterId', state.id))
         .collect(),
-      receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+      receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
+      receipts: await readReceiptHeaders(
+        ctx,
+        'encounterRuleReceipts',
+        await ctx.db.query('encounterRuleReceipts').collect()
+      ),
       commands: await ctx.db
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
@@ -372,7 +388,9 @@ it('rejects a tampered terminal receipt replay without new writes', async () => 
       )
       .unique()
     if (!receipt) throw new Error('Terminal receipt missing')
-    await ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) })
+    await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
+      resultChecksum: '0'.repeat(64)
+    })
   })
   const before = await current(value)
 
@@ -385,16 +403,17 @@ it('rejects a terminal replay whose stored command omits its occurrence summary'
   const value = await planSpatialTerminalFixture()
   await finish(value)
   await value.base.owner.caller.run(async (ctx) => {
-    const command = await ctx.db
+    const header = await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_campaignId_commandId', (q) =>
         q.eq('campaignId', value.base.campaign.id).eq('commandId', value.input.commandId)
       )
       .unique()
+    const command = header ? await readReceiptHeader(ctx, 'encounterRunCommands', header) : null
     if (!command || command.commandType !== 'MOVE_SCENE_TOKEN')
       throw new Error('Terminal command missing')
     const tampered = { ...readEncounterReplayReceipt(command), occurrence: null }
-    await ctx.db.patch(command._id, {
+    await replaceReceiptRecord(ctx, 'encounterRunCommands', command._id, {
       replayReceiptJson: JSON.stringify(tampered),
       replayReceiptChecksum: checksumCanonicalJson(tampered)
     })
@@ -409,10 +428,12 @@ it('rejects a terminal replay whose stored command omits its occurrence summary'
 it('rejects changed effect currentness before applying retained outcomes', async () => {
   const value = await planSpatialTerminalFixture()
   await value.base.owner.caller.run(async (ctx) => {
-    const scope = await createSpatialRuleEffectStore(ctx).scope({
-      encounterId: value.base.run.id,
-      sceneId: value.base.sceneId
-    })
+    const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(
+      {
+        encounterId: value.base.run.id,
+        sceneId: value.base.sceneId
+      }
+    )
     await scope!.updateCurrentStateCas({
       id: value.effect.id,
       expectedVersion: value.effect.version,

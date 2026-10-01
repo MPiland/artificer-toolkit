@@ -1,17 +1,36 @@
 # ADR 0035: The room is authoritative for live Encounters; Convex is the record
 
-- **Status:** decision (approved 2026-09-27; implementation not started)
+- **Status:** decision (approved 2026-09-27; groundwork implemented locally; authority switch and final proof pending)
 - **Date:** 2026-09-27
+- **Revised:** 2026-09-30
 - **Scope:** who owns live Encounter state and combat play state while a table is live, how commands are authorized and made durable, how Convex receives the result, how views outside the room see it, and the free-tier cost budget for live play
 - **Update when:** live Encounter authority, checkpointing, the room's durability, outside-the-room reads or edits, or the live-play cost budget changes
 - **Supersedes:**
   - The per-command Convex path for Encounter commands in [ADR 0029](0029-convex-backend-cutover.md) ("Convex independently revalidates each ordered publication", and the live rules clarification's capture and validated commit boundary).
   - The D27 Convex-first external commits, the D52 capture-then-commit chain and D64 as they apply to Encounter commands.
-  - Everything else in 0029, 0033 and 0034 stays in force, including rules and dice running in the room (D41).
+  - Other decisions in 0029, 0033 and 0034 stay in force except the authority and drain amendments
+    listed below. Rules and dice still run in the room (D41).
+
+## Implementation status — 2026-09-30
+
+S0 measurements, S1 persistence extraction, S1b Encounter record changes, S1c Character play-state
+separation, S2 SQLite hydrate/rehydrate and S4 authorization caching are implemented locally.
+Current source commits Scene move/door/undo, binding, the shared room-local Encounter command list
+and nineteen held Character Sheet play commands to SQLite before acknowledgement. Epoch-fenced
+Character holds protect the Convex play base across outside Builder changes. Direct Convex Encounter
+commands are fenced for every command type while live authority exists; separately fenced Worker
+endpoints retain transitional commits. Focused Sheet routing metadata records actual acknowledgement
+time separately from lifecycle time. Frontend held Sheet routing and subscriptions remain open.
+Fenced delta checkpoints, Builder reload reconciliation and corruption recovery into a fresh epoch
+are integrated in source with execution evidence pending. S3 completion and S5–S9 (shadow parity,
+complete authority switch, held Sheet actions, outside views/chat, budgets and cleanup) remain.
+See [the implementation plan](../handoffs/adr-0035-implementation-plan.md)
+for slice evidence and [the acceptance contract](../roadmap/08-2-convex-cutover-acceptance.md) for final proof.
 
 ## Context
 
 Phase 8.2 moved rules execution into the Session Durable Object ("the room"), but Convex stayed the per-command authority. For every combat command the room:
+
 1. captured its inputs from Convex (about 250 KB of reads);
 2. evaluated them;
 3. had Convex re-read and verify them in a fenced commit (400–800 KB);
@@ -32,20 +51,23 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
    - the combat play state of every actor in it: hit points, temporary hit points, maximum hit point reductions, conditions and active effects, resources and spell slots, concentration, death saves and action economy.
 
    Every connected client reads that state from the room, over the socket it already holds.
-2. **Commands never call Convex.**
+
+2. **Steady-state commands never call Convex.** Lifecycle commands wait for a synchronous checkpoint;
+   the first command after an invalidation reloads stale inputs (Amendment 1).
    - An Encounter command is authorized against the room's cached membership, role and control data (ADR 0034).
    - It is evaluated by the existing rules runtime against in-memory state.
    - State, receipt and replay evidence are committed to the room's SQLite storage in one transaction before the room acknowledges.
    - The result is broadcast to each recipient through the existing privacy projection: hidden actors, GM-only rolls and redactions (D62, Q14).
    - Receipts keep commands idempotent on retry.
 3. **Checkpoints to Convex.**
-   - **When:** the room writes a checkpoint at each round boundary, on Run pause, complete or delete, before an idle release or drain, and otherwise at most every 30 seconds while state has changed.
+   - **When:** the room writes a checkpoint at each round boundary and lifecycle event, before an idle release or drain, and no later than 120 seconds after the first unsent change (Amendments 1, 4 and 13).
    - **Fencing:** a checkpoint is one idempotent Convex mutation carrying the room's authority epoch and sequence. Convex accepts only a newer sequence under the current authority, so the existing authority fencing is reused.
    - **Contents:** the checkpoint writes the Run, the actors, Character play state, timeline entries and receipts that Convex's own features need, such as history, the Sheet outside play and audits.
 4. **Durability.**
    - A Durable Object's SQLite commit survives crashes and restarts, so an acknowledged command is never lost.
-   - A restarted room rehydrates from its own storage, not from Convex.
-   - Only if that storage were lost would the room fall back to the last checkpoint, bounding the loss to about 30 seconds or one round. That case is treated as an incident, not a design path.
+   - Within an authority epoch, a restarted room rehydrates from its own storage.
+   - Across epochs it hydrates from Convex's acknowledged final checkpoint. Lost or corrupt storage
+     within an epoch forces a new epoch and client resynchronization; it cannot silently continue the old epoch (Amendment 2).
 5. **Loading inputs.**
    - When the room hydrates, or a Run starts, it loads everything once: the compiled rules inputs for each Character and Creature, the Scene and the Run.
    - System and published content come from their version-stamped snapshots (Q15 option a).
@@ -69,16 +91,20 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
 ## Consequences
 
 **Benefits:**
-- Combat commands need no Convex round trips, so latency is bounded by room CPU (tens of milliseconds), not two HTTP calls.
-- Convex reads for live play drop from about 1 MB per command to a checkpoint every 30 seconds or round.
+
+- Steady-state combat commands need no Convex round trips, so latency is bounded by room CPU (tens of milliseconds), not two HTTP calls.
+- Convex reads for live play drop from about 1 MB per command to checkpoint and input-reload traffic,
+  with checkpoints at most 120 seconds after the first unsent change, plus round/lifecycle boundaries.
 - Subscriber re-runs during play disappear.
 - The capture bundle, fenced commit, write-ahead journal and resolve route for Encounter commands are deleted, along with their per-command checksum verification (D52, D64 and much of D27).
 
 **Costs and risks:**
+
 - Two copies exist during play. Convex's copy lags by up to one checkpoint, so every reader must know which copy it reads.
 - The room's cache of authorization data must be invalidated correctly. Security tests cover revocation during live play.
 - Room rehydration, checkpoint idempotency and replay need their own tests.
-- Acceptance cases that assume per-command Convex commits (R06, V05, V08, V09, V15 and the fenced-commit cases) must be reworded, with the user's approval recorded, before this lands.
+- The acceptance rewordings were approved on 2026-09-27 and recorded in the
+  [acceptance contract](../roadmap/08-2-convex-cutover-acceptance.md). Reopened cases still need final-source proof.
 - This is a large change late in Phase 8.2. Work already done on capture and commit is partly retired.
 
 **Unchanged:** rules and dice run in the room (D41); privacy projection; player control and GM override (ADR 0034); Campaign-owned play and the implicit live table (ADR 0033).
@@ -92,7 +118,10 @@ Accepted after the code mapping in [the implementation plan](../handoffs/adr-003
    - Within an authority epoch, the room rehydrates from its own storage.
    - Across epochs, for example after an idle release, it starts from Convex's acknowledged final checkpoint. That is the normal path, not an incident.
    - If storage is lost within an epoch, the room forces a new epoch and resynchronizes clients.
-3. **Character play state is explicit.** A `CharacterPlayState` contract names exactly the play-state fields held today in `characters.documentJson.state`, `sheetState.resourceUsage`, `campaignCharacterStates` and `characterActiveRuleEffects`.
+3. **Character play state is explicit.** The `CharacterPlayState` contract now separates play fields
+   into typed `characterPlayStates.state`, with effective maximum HP and walking speed on the same small
+   row. Campaign adjustments and effects remain in `campaignCharacterStates` and
+   `characterActiveRuleEffects`. See [Character play state](../architecture/character.md#character-play-state-adr-0035-amendment-12--local-implementation).
    - While a Character is held by a live Run (`liveCharacterHolds`), Convex refuses writes to those fields.
    - Checkpoints merge only those fields and bump `streamVersion` once per checkpoint.
    - Rests are refused while the Character is held.
@@ -100,25 +129,26 @@ Accepted after the code mapping in [the implementation plan](../handoffs/adr-003
    - Checkpoints carry only the records that changed (deltas), never whole documents.
    - N is a tunable constant sized by the Q16 budget (Convex I/O counts checkpoint bytes). The room's SQLite already makes acknowledged commands durable, so N only bounds how stale pages outside the room are.
 5. **Revocation has a bound.**
-   - The room holds authorization under a lease of about 60 s, renewed by each checkpoint response and token renewal.
+   - The room holds authorization under a 240 s lease, renewed by each checkpoint response and token renewal (Amendment 14).
    - A lost `INVALIDATE_INPUTS` or eviction notification is therefore corrected within the lease.
    - Membership departure and account deletion only evict and notify while a Run is held. The room applies the change, and checkpoints filter controller lists.
 6. **The Scene lane is included.**
    - Bound moves, fog changes, movement decisions and Encounter binding become room commands.
    - Scene publications fold into checkpoints, replacing per-command `state:publish` and the Convex-first external commit path (D27 and D52).
    - Transient preview samples must not write a SQLite row per sample, because the free plan's rows-written limit is 100,000 a day.
-7. **Replay.** A same-sequence checkpoint retry returns `REPLAYED`. Command replay across epochs is served by a replay index loaded from Convex receipts at hydrate.
-8. **The broadcast fan-out is new work.** Other members see pending decisions, timeline entries and roll cards through the room with the privacy projection, not through Convex subscriptions. Chat roll cards go live through the room and are persisted to Convex chat by checkpoint with stable IDs.
+7. **Replay.** A same-sequence checkpoint retry returns `REPLAYED`. Command replay across epochs is served by a replay index loaded from Convex receipts at hydrate. D68 clarifies that a retry is byte-identical while the Run is at that command's version; after later commands it returns the receipt plus the current projection, without a second effect or reroll.
+8. **The broadcast fan-out is new work.** Other members see pending decisions, timeline entries and roll cards through the room with the privacy projection, not through Convex subscriptions. D69 extends this to all live chat: messages and roll cards fan out through the room and persist to Convex by checkpoint with stable IDs. Chat outside live play keeps its bounded Convex path. See [D68 and D69](../handoffs/phase-08-2-open-questions.md).
 9. **Decision 9 budgets include Cloudflare.** They cover Durable Object requests, duration, rows written and CPU per command, alongside Convex I/O. Checked 2026-09-27: Durable Objects on Workers Free get 30 s of CPU per request (the 10 ms Workers Free limit does not apply); 100,000 requests a day; 13,000 GB-s a day; 5M rows read and 100,000 rows written a day; 5 GB stored.
 10. **Also superseded:**
     - ADR 0034 §4's "the Sheet is the single writer of play state" while a Character is held;
     - ADR 0029's Character authority amendment and per-publication Scene re-check for live Runs;
     - ADR 0033's per-command outbox drain, which becomes a final checkpoint.
-11. **Until content snapshots (Q15 option a) land,** System content is loaded through the existing capture builders at hydrate.
+11. **Until room snapshot consumption (ADR 0036 S10) lands,** System content is loaded through the existing capture builders at hydrate. Browser snapshots are already implemented locally.
 
 ## Amendments from the S0 measurements (2026-09-27)
 
 Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
+
 - **Room CPU:** 16–26 ms warm and 125–176 ms cold per 11-actor action; 84–144 ms warm at 100 actors.
 - **Durable Object cost:** about 570 requests and 2,300–3,800 rows written per session, well inside Workers Free.
 - **Convex I/O:** fits only with smaller record shapes.
@@ -127,7 +157,9 @@ Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
     - The Run document stops embedding the full projection (`projectionJson`). Projections are built per viewer, from per-actor records, by the room while it is live and on read outside play.
     - `encounterRunCommands` stops storing each command's GM projection (`resultJson`). A receipt stores only what replay and history need.
     - Character play state lives in small, hot per-Character documents, separate from the large Character document.
-    - Command history reaches Convex packed as one ledger document per checkpoint, not one row per command.
+    - Command history payloads reach Convex packed once per checkpoint. Small indexed receipt
+      headers remain per command and point into the checksummed ledger; they preserve replay,
+      duplicate-command checks, public UUIDs and timeline pagination without repeating history payloads.
     - Tied-initiative and other occurrence updates write only the changed occurrence fields.
 13. **Checkpoint interval N = 120 s,** plus every round boundary and lifecycle event. This is provisional until S9 measures usage outside live play. It fits Q16's budget only with Amendment 12.
 14. **Authorization lease: 240 s (2N),** renewed by checkpoint responses and each socket's 15-minute re-authentication. This replaces "about 60 s".
@@ -139,8 +171,83 @@ Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
       Q19 (2026-09-28) replaced the pointer stream with a single `PING` message per long press or
       `P` key, at most one per 500 ms per socket; there are no live cursors (see live-sessions.md).
     - A preview sample never calls Convex. Authority and vision revisions come from the room's cache.
-    - Today's path alone would exceed the Workers Free request and row limits and use most of Convex's monthly function calls.
+    - The former per-sample path would exceed the Workers Free request and row limits and use most of Convex's monthly function calls.
 16. **The room must hibernate between messages.** No long-lived timers or outbound sockets, because they bill wall-clock duration. Alarms schedule checkpoints.
+
+## D70: Packed history with indexed receipt headers — 2026-09-29
+
+**Decision maker: Codex. User approval: 2026-09-29.** Codex chose and recommended this interpretation
+of Amendment 12; the user approved retaining indexed receipt headers while packing history payloads.
+
+Store immutable command history, rule receipts and replay evidence in checksummed checkpoint ledgers.
+Retain small per-command operational headers containing the identity, ownership, fingerprint, version
+and visibility fields required by existing indexes, plus a pointer to the ledger entry. Readers verify
+the referenced payload and its identity before replay or presentation. The headers carry no duplicate
+history body or full result. Existing privacy, concurrency, complete pagination and D68 replay behavior
+remain required. Oversized ledger payloads use the checkpoint's bounded parts and atomic publication.
+
+Existing command-ID collision checks and UUID-cursor timeline reads use indexed records. Removing
+those records would require a separate lookup and pagination redesign; scanning Campaign history
+would increase reads and weaken the free-tier budget. Small indexed headers preserve those behaviors
+using Convex's existing indexes. Their I/O and storage remain part of Q16's measured workload.
+
+Cleanup preserves the existing ownership rules. Campaign deletion removes Encounter history while
+retaining personal Character receipts; account or Character deletion removes private Character
+receipts while retaining shared Encounter history. Selective cleanup within a ledger tombstones only
+the selected entries, preserves surviving pointer indexes and updates its checksum atomically. Its scope records
+creation provenance; current Character ownership authorizes personal history after Campaign deletion.
+Delete the ledger and parts only when no live headers remain. D71 below changes physical purge of
+retired private Character payloads to bounded deferred steps.
+
+**Implementation status:** native ledger schema, writers, reader adapters and cleanup are integrated
+into source. The integrated storage/cleanup suite passed 54 checks; dependency builds, Convex
+TypeScript, local codegen/deploy and native maximum-size/pagination/rollback/private-retirement
+proofs passed. See the [2026-09-30 validation record](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+Checkpoint publication, the complete local lifecycle and Q16 remain pending. This implementation
+has not advanced acceptance; the ledger remains 51/75.
+
+**Approved clarification — Character ledger partitioning, 2026-09-30. Decision maker: Codex;
+user approval: 2026-09-30.** Pack each Character's private `characterCommandReceipts` separately
+from shared Encounter receipts. Five mixed 4 MiB ledgers could make account deletion read 20 MiB of
+unrelated shared history and exceed Convex's transaction read ceiling. Preserve atomic
+account/Character state and reference cleanup and shared Encounter history; D71 below governs
+physical private payload purge. Character-scoped ledgers may carry
+`checkpointId` and epoch; shared Campaign/Encounter ledgers must not contain private Character
+command payloads. Measure any additional ledger metadata against Q16; no budget pass is implied.
+Stable tombstones and complete ledger verification remain required for selective cleanup within the
+approved scopes. Mixed private/shared packing is not the current target.
+
+**Implementation choice — bounded history paging, Codex, 2026-09-30.** Character history uses a
+Schema-owned chronological application cursor and indexed seeks, with one complete ledger entry
+hydrated per page. Native reactive pagination can inherit an end cursor and ignore requested row
+and byte limits, so a one-row request alone cannot bound body reads. This prelaunch API has no
+active browser consumer; it excludes native `endCursor`/`id` and requires restarting from null for
+insertions before an already-consumed key. Stateless room hydration retains native cursors and
+complete page metadata, checks the distinct-ledger byte budget before body reads, and refuses an
+oversized window without truncation. Existing Encounter UUID timeline paging is unchanged.
+
+## D71: Bounded deferred private payload purge — 2026-09-30
+
+**Decision maker: Codex. User approval: 2026-09-30.** Codex recommended atomically removing
+account/Character state and private receipt headers, then physically purging unreachable private
+ledger payloads in bounded steps through the existing deferred-cleanup lifecycle. The user approved
+that recommendation. This amends D70's physical-payload cleanup boundary.
+
+Native evidence showed that three private 4 MiB ledgers made the real account-deletion hook exceed
+its execution limit. Fixture deletion exceeded the 16 MiB transaction read limit. The failures
+rolled back; separate private packing alone cannot bound deletion over a lifetime of history.
+
+The state/reference deletion transaction also records durable purge intent. Deferred purge verifies
+the Character ownership scope and that no live receipt header references the ledger, then removes
+payload storage in bounded, retryable transactions. Removed account/Character history is immediately
+unavailable to product readers. Shared Encounter history is retained. No retention cap is introduced.
+Payload validation remains required for publication, reads and selective cleanup of retained history.
+
+**Status:** source integrated; focused local native deletion, rollback, retry and privacy proofs
+passed with three 4 MiB ledgers. See the
+[2026-09-30 validation record](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+Final integration and the complete local lifecycle remain pending. This decision does not advance
+Phase 8.2 acceptance or establish a Q16 budget pass.
 
 ## Also decided with this ADR
 

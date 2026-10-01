@@ -1,5 +1,5 @@
 import { z, lazySchema } from '../zod.js'
-import { validateCharacterHitDiceRollEvidence } from '@artificer-toolkit/shared/character'
+import { validateCharacterHitDiceRollEvidence } from '@artificer-toolkit/shared/character/sheetRest'
 import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 

@@ -1,5 +1,6 @@
 import { ConvexError } from 'convex/values'
 import type { AuthoredCurrentSourceIdentity } from '@artificer-toolkit/schema/api/authoredPublication'
+import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import type { CharacterBuilderCommitErrorData } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
@@ -15,7 +16,7 @@ import { contentStream } from '../content/streams'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority, type CampaignInternalScope } from '../campaigns/authority'
-import { readCampaignSharedPublication } from '../campaigns/contentAccess'
+import { readCampaignSharedRoot, readCampaignSharedPublication } from '../campaigns/contentAccess'
 import { isImportRowVisible } from '../imports/visibility'
 /** History and source reads share current assignment authority without requiring source hydration. */
 export async function readCharacterCampaign(
@@ -58,24 +59,33 @@ export async function readCharacterSources(
   const campaign = await readCharacterCampaign(ctx, character, userId, authorityScope)
   const { systemId } = character
   if (campaign) {
-    const [{ sources: platform }, owned] = await Promise.all([
-      requireRulesCatalogueBinding(ctx, {
-        systemId,
-        primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
-        additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
-      }),
-      ctx.db
-        .query('contentSources')
-        .withIndex('by_gameSystemId_kind_ownerUserId', (q) =>
-          q.eq('gameSystemId', systemId).eq('kind', 'USER').eq('ownerUserId', userId)
-        )
-        .take(101)
-    ])
-    if (platform.length + owned.length > 100)
-      throw new Error('System content source limit exceeded.')
-    return { campaign, sources: [...platform, ...owned] }
+    return readCampaignCharacterSources(ctx, campaign, userId)
   }
   return readSystemCharacterSources(ctx, systemId, userId)
+}
+
+/** The caller must already hold Campaign authority for the derived Character owner or GM. */
+export async function readCampaignCharacterSources(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  userId: string
+) {
+  const systemId = campaign.gameSystemId
+  const [{ sources: platform }, owned] = await Promise.all([
+    requireRulesCatalogueBinding(ctx, {
+      systemId,
+      primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
+      additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
+    }),
+    ctx.db
+      .query('contentSources')
+      .withIndex('by_gameSystemId_kind_ownerUserId', (q) =>
+        q.eq('gameSystemId', systemId).eq('kind', 'USER').eq('ownerUserId', userId)
+      )
+      .take(101)
+  ])
+  if (platform.length + owned.length > 100) throw new Error('System content source limit exceeded.')
+  return { campaign, sources: [...platform, ...owned] }
 }
 
 /** The sources of a Character outside any Campaign: every System catalogue plus own Homebrew. */
@@ -203,12 +213,29 @@ export async function readCharacterSourceRoots(
     const foundIds = new Set(found.map((root) => root.id))
     for (const share of shares) {
       if (foundIds.has(share.subjectId)) continue
-      if (!(await readCampaignSharedPublication(ctx, access.campaign, kind, share.subjectId)))
-        continue
-      const root = await ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))
-        .unique()
+      let root: Doc<'authoredRoots'> | null
+      if (kind === 'SPELL') {
+        // Spells have no parent relation. Publication seals status with this same checksum.
+        root = await readCampaignSharedRoot(ctx, access.campaign, kind, share.subjectId)
+        if (!root) continue
+        const metadata = root.catalogue && authoredCatalogueMetadataSchema.parse(root.catalogue)
+        if (
+          !metadata?.spell ||
+          metadata.spell.selectionVersion !== 1 ||
+          metadata.spell.publishedActive === undefined ||
+          metadata.checksum !== root.checksum ||
+          metadata.nameKey !== root.label.toLowerCase()
+        )
+          throw new Error('Character Spell selector facts are missing or stale.')
+        if (!metadata.spell.publishedActive) continue
+      } else {
+        if (!(await readCampaignSharedPublication(ctx, access.campaign, kind, share.subjectId)))
+          continue
+        root = await ctx.db
+          .query('authoredRoots')
+          .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))
+          .unique()
+      }
       if (!root) throw new Error('Stored Campaign content root is missing.')
       if (!(await isImportRowVisible(ctx, root.importJobId))) continue
       found.push(root)

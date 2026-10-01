@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { expect, it } from 'vitest'
 import {
@@ -256,6 +257,8 @@ async function recurringFixture(kind: 'HEAL' | 'SAVE_DAMAGE', rolls: FixtureRoll
 
 async function stored(base: Awaited<ReturnType<typeof recurringFixture>>) {
   return base.base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     effects: await ctx.db
       .query('encounterActiveRuleEffects')
       .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
@@ -266,6 +269,7 @@ async function stored(base: Awaited<ReturnType<typeof recurringFixture>>) {
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .take(10)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
 }
 

@@ -1,3 +1,4 @@
+import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { describe, expect, it, vi } from 'vitest'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -274,6 +275,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
             query.eq('characterId', fixture.character.id)
           )
           .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
       ])
       return { character, actor, receipts }
     })
@@ -308,6 +310,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
             query.eq('characterId', fixture.character.id)
           )
           .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
       ])
       return { character, actor, receipts }
     })
@@ -489,6 +492,9 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
           q.eq('characterId', fixture.character.id).eq('commandId', input.commandId)
         )
         .unique()
+        .then((header) =>
+          header ? readReceiptHeader(ctx, 'characterCommandReceipts', header) : null
+        )
     )
     expect(JSON.parse(receipt!.historyJson).summary).toBe('Rule outcomes applied: 0 results')
   })
@@ -504,7 +510,11 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
         adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 2 }
       }
     })
-    const effectiveMaximumHitPoints = adjusted.sheet.overview.maxHitPoints
+    expect(adjusted).not.toHaveProperty('sheet')
+    const adjustedSheet = (await fixture.player.caller.query(api.characters.sheet.get, {
+      id: adjusted.characterId
+    }))!
+    const effectiveMaximumHitPoints = adjustedSheet.overview.maxHitPoints
     expect(effectiveMaximumHitPoints).toBe(fixture.actor.maxHitPoints + 2)
     const characterRow = await fixture.t.run((ctx) => readCharacterRow(ctx, fixture.character.id))
     expect(characterRow?.play.maximumHitPoints).toBe(effectiveMaximumHitPoints)

@@ -8,6 +8,15 @@ import type {
   EncounterTableName
 } from '@artificer-toolkit/encounter-persistence/store'
 import { encounterStoreSchemas } from '@artificer-toolkit/encounter-persistence/storeTables'
+import {
+  liveSessionCheckpointAcknowledgementSchema,
+  liveSessionCheckpointJournalInputSchema,
+  liveSessionCheckpointJournalEntrySchema,
+  type LiveSessionCheckpointAcknowledgement,
+  type LiveSessionCheckpointJournalInput,
+  type LiveSessionCheckpointJournalEntry,
+  type LiveSessionCheckpointJournalResult
+} from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 
 /** The Durable Object SQLite surface the room store uses; `DurableObjectStorage` satisfies it. */
@@ -61,6 +70,7 @@ export interface RoomTransaction {
   restoreDocument(document: RoomDocument): void
   /** The record as this command sees it, staged changes included. */
   record(kind: string, key: string): RoomRecord | null
+  records(kind: string): RoomRecord[]
   setRecord(record: RoomRecord): void
   deleteRecord(kind: string, key: string): void
 }
@@ -91,7 +101,7 @@ const EMPTY_CHAIN = sha256Hex('room-store:empty')
 /** JSON with every non-ASCII character escaped, so a string's length is its byte length. */
 function asciiJson(value: unknown) {
   return JSON.stringify(value).replace(
-    /[\u007f-￿]/g,
+    /[\u007f-ÃƒÂ¯Ã‚Â¿Ã‚Â¿]/g,
     (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`
   )
 }
@@ -135,9 +145,9 @@ function loadTable(
  * Durability: a command commits with a single SQLite transaction that inserts one log row, and
  * the in-memory aggregate follows only after that succeeds. A crash or eviction before it loses the
  * command completely (its memory was never durable); after it, the row alone reproduces the command.
- * Rehydration applies rows in order and discards an invalid last row (a command that never
- * committed); an invalid row anywhere else, or a broken snapshot, leaves the store empty and
- * reports {@link RoomStoreCorruptError} as `corruption`. Compaction folds the log into a new snapshot generation atomically.
+ * Rehydration applies rows in order; an invalid row anywhere, or a broken snapshot, leaves the
+ * store empty and reports {@link RoomStoreCorruptError} as `corruption`, retaining durable rows.
+ * Compaction folds the log into a new snapshot generation atomically.
  */
 export class RoomEncounterStore {
   /** Reads pass through; writes are refused outside {@link transact}. */
@@ -149,6 +159,7 @@ export class RoomEncounterStore {
   #epoch: string | null = null
   #generation = 0
   #snapshotSequence = 0
+  #snapshotChain = EMPTY_CHAIN
   #sequence = 0
   #chain = EMPTY_CHAIN
   #open = false
@@ -216,6 +227,24 @@ export class RoomEncounterStore {
     return this.#chain
   }
 
+  /** Detects missing terminal log rows using the authority head committed beside every write set. */
+  assertAuthorityHead(head: LiveSessionCheckpointAcknowledgement) {
+    this.#assertClosed()
+    const expected = liveSessionCheckpointAcknowledgementSchema.parse(head)
+    if (this.#corruption) throw this.#corruption
+    if (
+      this.#epoch !== expected.epoch ||
+      this.#sequence !== expected.sequence ||
+      this.#chain !== expected.checksum
+    ) {
+      const corruption = new RoomStoreCorruptError(
+        'the durable authority head does not match its journal'
+      )
+      this.#discard(corruption)
+      throw corruption
+    }
+  }
+
   /** The number of commands applied since the last hydrate. */
   get sequence() {
     return this.#sequence
@@ -246,6 +275,82 @@ export class RoomEncounterStore {
       .sort((left, right) => (left.key < right.key ? -1 : left.key > right.key ? 1 : 0))
   }
 
+  /** Reads a consecutive committed prefix; compaction explicitly retires earlier ranges. */
+  committedWriteSets(input: LiveSessionCheckpointJournalInput): LiveSessionCheckpointJournalResult {
+    this.#assertClosed()
+    if (this.#corruption) throw this.#corruption
+    const { epoch, fromSequence, fromChecksum, toSequence, maxEntries, maxBytes } =
+      liveSessionCheckpointJournalInputSchema.parse(input)
+    if (epoch !== this.#requireEpoch()) throw new Error('The room journal epoch does not match.')
+    if (fromSequence < this.#snapshotSequence)
+      throw new Error('The requested room journal range has been compacted.')
+    if (toSequence < fromSequence || toSequence > this.#sequence)
+      throw new Error('The requested room journal range is outside the committed sequence.')
+
+    let anchor = this.#snapshotChain
+    if (fromSequence > this.#snapshotSequence) {
+      const [row] = this.#exec(
+        'SELECT sequence, json, checksum, chain FROM room_writeset_log WHERE sequence = ?',
+        fromSequence
+      )
+      if (!row || integer(row, 'sequence') !== fromSequence)
+        throw new RoomStoreCorruptError(`missing journal anchor ${fromSequence}`)
+      anchor = text(row, 'chain')
+    }
+    if (fromChecksum !== anchor)
+      throw new Error('The room journal starting checksum does not match.')
+
+    const entries: LiveSessionCheckpointJournalEntry[] = []
+    let sequence = fromSequence
+    let checksum = fromChecksum
+    let bytes = 2 // The serialized entries array's brackets.
+    while (sequence < toSequence && entries.length < maxEntries) {
+      const [row] = this.#exec(
+        'SELECT sequence, json, checksum, chain FROM room_writeset_log WHERE sequence = ?',
+        sequence + 1
+      )
+      if (!row || integer(row, 'sequence') !== sequence + 1)
+        throw new RoomStoreCorruptError(`missing journal row ${sequence + 1}`)
+      const entry = {
+        sequence: integer(row, 'sequence'),
+        writeSetJson: text(row, 'json'),
+        writeSetChecksum: text(row, 'checksum'),
+        chainChecksum: text(row, 'chain')
+      }
+      if (
+        !liveSessionCheckpointJournalEntrySchema.safeParse(entry).success ||
+        sha256Hex(entry.writeSetJson) !== entry.writeSetChecksum ||
+        chainOf(checksum, entry.writeSetChecksum) !== entry.chainChecksum
+      )
+        throw new RoomStoreCorruptError(
+          `journal row ${entry.sequence} failed its checksum or chain`
+        )
+      try {
+        if (!Array.isArray(JSON.parse(entry.writeSetJson))) throw new Error('not an array')
+      } catch {
+        throw new RoomStoreCorruptError(
+          `journal row ${entry.sequence} is not a JSON write-set array`
+        )
+      }
+      const entryBytes =
+        new TextEncoder().encode(JSON.stringify(entry)).byteLength + (entries.length === 0 ? 0 : 1)
+      if (bytes + entryBytes > maxBytes) {
+        if (entries.length === 0) throw new Error('The next room journal entry exceeds maxBytes.')
+        break
+      }
+      entries.push(entry)
+      bytes += entryBytes
+      sequence = entry.sequence
+      checksum = entry.chainChecksum
+    }
+    return {
+      entries,
+      toSequence: sequence,
+      toChecksum: checksum,
+      complete: sequence === toSequence
+    }
+  }
+
   /**
    * Loads a Convex-read aggregate as a new snapshot generation, replacing everything (a new epoch
    * or a store found corrupt). Documents are validated; nothing changes if any is invalid.
@@ -253,13 +358,19 @@ export class RoomEncounterStore {
   hydrate({
     epoch,
     documents,
-    records
+    records,
+    checkpoint,
+    commitDurable
   }: {
     epoch: string
     documents: readonly RoomDocument[]
     records: readonly RoomRecord[]
+    checkpoint?: LiveSessionCheckpointAcknowledgement
+    commitDurable?: () => undefined
   }) {
     this.#assertClosed()
+    const base = checkpoint && liveSessionCheckpointAcknowledgementSchema.parse(checkpoint)
+    if (base && base.epoch !== epoch) throw new Error('The room snapshot authority epoch is stale.')
     const unknown = documents.find((document) => !isTable(document.table))
     if (unknown) throw new Error(`Unknown room table ${unknown.table}.`)
     const memory = createMemoryEncounterStore({ idPrefix: 'room' })
@@ -279,13 +390,15 @@ export class RoomEncounterStore {
     const recordMap = new Map(records.map((record) => [recordId(record.kind, record.key), record]))
     const content = this.#content(memory, recordMap)
     const serialized = asciiJson(content)
-    const chain = sha256Hex(`room-store:genesis:${sha256Hex(serialized)}`)
-    this.#persistSnapshot({ epoch, sequence: 0, chain, serialized })
+    const chain = base?.checksum ?? sha256Hex(`room-store:genesis:${sha256Hex(serialized)}`)
+    const sequence = base?.sequence ?? 0
+    this.#persistSnapshot({ epoch, sequence, chain, serialized, replaceLog: true, commitDurable })
     this.#memory = memory
     this.#records = recordMap
     this.#epoch = epoch
-    this.#snapshotSequence = 0
-    this.#sequence = 0
+    this.#snapshotSequence = sequence
+    this.#snapshotChain = chain
+    this.#sequence = sequence
     this.#chain = chain
     this.#corruption = null
   }
@@ -293,9 +406,13 @@ export class RoomEncounterStore {
   /**
    * Runs one command's writes as an all-or-nothing overlay. If `work` throws or the write set
    * cannot be logged, every change is discarded; otherwise one log row is committed and the change
-   * becomes the new state. A command that changes nothing writes no row.
+   * becomes the new state. `commitDurable` writes the command receipt and authority head inside that
+   * same SQLite transaction. Without it, a command that changes nothing writes no row.
    */
-  async transact<Result>(work: (transaction: RoomTransaction) => Promise<Result>): Promise<Result> {
+  async transact<Result>(
+    work: (transaction: RoomTransaction) => Promise<Result>,
+    commitDurable?: (entry: LiveSessionCheckpointJournalEntry) => undefined
+  ): Promise<Result> {
     this.#assertClosed()
     this.#open = true
     this.#memory.transaction.begin()
@@ -304,12 +421,22 @@ export class RoomEncounterStore {
     const transaction: RoomTransaction = {
       restoreDocument: ({ table, id, creationTime, fields }) => {
         if (!isTable(table)) throw new Error(`Unknown room table ${table}.`)
-        this.#memory.apply([{ op: 'INSERT', table, id, creationTime, fields }])
+        this.#memory.apply([{ op: 'RESTORE', table, id, creationTime, fields }])
       },
       record: (kind, key) => {
         const id = recordId(kind, key)
         const record = staged.has(id) ? staged.get(id) : this.#records.get(id)
         return record ? { ...record } : null
+      },
+      records: (kind) => {
+        const records = new Map(this.#records)
+        for (const [id, record] of staged) {
+          if (record) records.set(id, record)
+          else records.delete(id)
+        }
+        return [...records.values()]
+          .filter((record) => record.kind === kind)
+          .map((record) => ({ ...record }))
       },
       setRecord: (record) => {
         staged.set(recordId(record.kind, record.key), { ...record })
@@ -323,7 +450,7 @@ export class RoomEncounterStore {
     try {
       const result = await work(transaction)
       const writes: RoomWrite[] = [...this.#memory.transaction.writes(), ...recordWrites]
-      if (writes.length > 0) this.#logWrites(writes)
+      if (writes.length > 0 || commitDurable) this.#logWrites(writes, commitDurable)
       this.#memory.transaction.commit()
       for (const [id, record] of staged)
         if (record) this.#records.set(id, record)
@@ -338,19 +465,105 @@ export class RoomEncounterStore {
   }
 
   /**
-   * Folds the log into a new snapshot generation at the current sequence and chain, so the state
-   * checksum is unchanged. Snapshot, old chunks and folded rows change in one SQLite transaction.
+   * Retires only the acknowledged prefix. Later committed rows and live state remain unchanged;
+   * the acknowledged snapshot and prefix deletion commit in one SQLite transaction.
    */
-  compact() {
+  compact(input: LiveSessionCheckpointAcknowledgement, commitDurable?: () => undefined) {
     this.#assertClosed()
-    if (this.logRows === 0) return
+    if (this.#corruption) throw this.#corruption
+    const acknowledgement = liveSessionCheckpointAcknowledgementSchema.parse(input)
+    const { epoch, sequence, checksum } = acknowledgement
+    if (epoch !== this.#requireEpoch()) throw new Error('The room checkpoint epoch does not match.')
+    if (sequence < this.#snapshotSequence || sequence > this.#sequence)
+      throw new Error('The room checkpoint is outside the retained committed sequence.')
+    const base = this.#checkpointBase()
+    const memory = this.#snapshotMemory(base.content)
+    const records = new Map(
+      base.content.records.map((record) => [recordId(record.kind, record.key), record])
+    )
+    let cursor = base.sequence
+    let chain = base.checksum
+    let serialized = sequence === cursor ? asciiJson(base.content) : ''
+    let acknowledgedChain = chain
+    while (cursor < this.#sequence) {
+      const page = this.committedWriteSets({
+        epoch,
+        fromSequence: cursor,
+        fromChecksum: chain,
+        toSequence: this.#sequence,
+        maxEntries: 100,
+        maxBytes: 4 * 1024 * 1024
+      })
+      for (const entry of page.entries) {
+        const failure = this.#applyWrites(
+          memory,
+          records,
+          JSON.parse(entry.writeSetJson) as RoomWrite[]
+        )
+        if (failure) throw new RoomStoreCorruptError(`log row ${entry.sequence} is ${failure}`)
+        if (entry.sequence === sequence) {
+          serialized = asciiJson(this.#content(memory, records))
+          acknowledgedChain = entry.chainChecksum
+        }
+      }
+      cursor = page.toSequence
+      chain = page.toChecksum
+    }
+    if (chain !== this.#chain)
+      throw new RoomStoreCorruptError('the journal no longer matches the room checksum')
+    if (checksum !== acknowledgedChain)
+      throw new Error('The room checkpoint checksum does not match.')
+    if (sequence === this.#snapshotSequence) {
+      if (commitDurable) this.#storage.transactionSync(commitDurable)
+      return
+    }
     this.#persistSnapshot({
-      epoch: this.#requireEpoch(),
-      sequence: this.#sequence,
-      chain: this.#chain,
-      serialized: asciiJson(this.#content(this.#memory, this.#records))
+      epoch,
+      sequence,
+      chain: checksum,
+      serialized,
+      commitDurable
     })
-    this.#snapshotSequence = this.#sequence
+    this.#snapshotSequence = sequence
+    this.#snapshotChain = checksum
+  }
+
+  /** The durable base to which the retained committed journal applies. */
+  checkpointSnapshot() {
+    const { epoch, sequence, checksum, content } = this.#checkpointBase()
+    const documents: RoomDocument[] = []
+    for (const table of TABLES)
+      for (const { _id, _creationTime, ...fields } of content.documents[table] ?? [])
+        documents.push({ table, id: _id, creationTime: _creationTime, fields })
+    return {
+      epoch,
+      sequence,
+      checksum,
+      documents,
+      records: content.records.map((record) => ({ ...record }))
+    }
+  }
+
+  #checkpointBase() {
+    this.#assertClosed()
+    if (this.#corruption) throw this.#corruption
+    const chunks = this.#exec(
+      `SELECT generation, part, part_count, epoch, sequence, chain, content_checksum, content
+       FROM room_snapshot_chunks
+       WHERE generation = (SELECT MAX(generation) FROM room_snapshot_chunks)
+       ORDER BY part`
+    )
+    const { first, content } = this.#readSnapshotContent(chunks)
+    const epoch = text(first, 'epoch')
+    const sequence = integer(first, 'sequence')
+    const checksum = text(first, 'chain')
+    if (
+      epoch !== this.#requireEpoch() ||
+      sequence !== this.#snapshotSequence ||
+      checksum !== this.#snapshotChain
+    )
+      throw new RoomStoreCorruptError('the checkpoint snapshot no longer matches the room')
+    return { epoch, sequence, checksum, content }
   }
 
   #assertClosed() {
@@ -390,12 +603,16 @@ export class RoomEncounterStore {
     epoch,
     sequence,
     chain,
-    serialized
+    serialized,
+    replaceLog = false,
+    commitDurable
   }: {
     epoch: string
     sequence: number
     chain: string
     serialized: string
+    replaceLog?: boolean
+    commitDurable?: () => undefined
   }) {
     const generation = this.#generation + 1
     const checksum = sha256Hex(serialized)
@@ -416,12 +633,17 @@ export class RoomEncounterStore {
           serialized.slice(part * SNAPSHOT_CHUNK_CHARS, (part + 1) * SNAPSHOT_CHUNK_CHARS)
         )
       this.#exec('DELETE FROM room_snapshot_chunks WHERE generation < ?', generation)
-      this.#exec('DELETE FROM room_writeset_log')
+      if (replaceLog) this.#exec('DELETE FROM room_writeset_log')
+      else this.#exec('DELETE FROM room_writeset_log WHERE sequence <= ?', sequence)
+      commitDurable?.()
     })
     this.#generation = generation
   }
 
-  #logWrites(writes: readonly RoomWrite[]) {
+  #logWrites(
+    writes: readonly RoomWrite[],
+    commitDurable?: (entry: LiveSessionCheckpointJournalEntry) => undefined
+  ) {
     const json = asciiJson(writes)
     if (json.length > MAX_WRITE_SET_CHARS) throw new RoomWriteSetTooLargeError(json.length)
     const checksum = sha256Hex(json)
@@ -435,6 +657,12 @@ export class RoomEncounterStore {
         checksum,
         chain
       )
+      commitDurable?.({
+        sequence,
+        writeSetJson: json,
+        writeSetChecksum: checksum,
+        chainChecksum: chain
+      })
     })
     this.#sequence = sequence
     this.#chain = chain
@@ -448,6 +676,7 @@ export class RoomEncounterStore {
     this.#epoch = null
     this.#generation = newest && typeof newest['generation'] === 'number' ? newest['generation'] : 0
     this.#snapshotSequence = 0
+    this.#snapshotChain = EMPTY_CHAIN
     this.#sequence = 0
     this.#chain = EMPTY_CHAIN
     this.#corruption = corruption
@@ -468,19 +697,16 @@ export class RoomEncounterStore {
       return
     }
     this.#loadSnapshot(chunks)
-    for (const [index, row] of rows.entries()) {
+    for (const row of rows) {
       const failure = this.#replayRow(row)
-      if (!failure) continue
-      // A row is written only when its command commits, so an invalid last row is a write that was
-      // torn; it never acknowledged and is dropped. An invalid row before a valid one is damage.
-      if (index !== rows.length - 1)
+      if (failure)
         throw new RoomStoreCorruptError(`log row ${String(row['sequence'])} is ${failure}`)
-      this.#exec('DELETE FROM room_writeset_log WHERE sequence = ?', integer(row, 'sequence'))
     }
   }
 
-  #loadSnapshot(chunks: Record<string, RoomSqlValue>[]) {
+  #readSnapshotContent(chunks: Record<string, RoomSqlValue>[]) {
     const [first] = chunks
+    if (!first) throw new RoomStoreCorruptError('the snapshot is missing')
     const parts = integer(first!, 'part_count')
     const header = ['generation', 'epoch', 'sequence', 'chain', 'content_checksum'] as const
     if (
@@ -498,13 +724,12 @@ export class RoomEncounterStore {
       throw new RoomStoreCorruptError('the snapshot checksum does not match')
     // The checksum covers the text, so the shape below was written by this store.
     const content = JSON.parse(serialized) as SnapshotContent
-    const memory = createMemoryEncounterStore({ idPrefix: 'room' })
-    for (const table of TABLES) {
-      const documents = content.documents[table]
-      if (documents) loadTable(memory, table, documents, false)
-    }
-    memory.restoreCounters(content.counters)
-    this.#memory = memory
+    return { first, content }
+  }
+
+  #loadSnapshot(chunks: Record<string, RoomSqlValue>[]) {
+    const { first, content } = this.#readSnapshotContent(chunks)
+    this.#memory = this.#snapshotMemory(content)
     this.#records = new Map(
       content.records.map((record) => [recordId(record.kind, record.key), record])
     )
@@ -513,6 +738,17 @@ export class RoomEncounterStore {
     this.#snapshotSequence = integer(first!, 'sequence')
     this.#sequence = this.#snapshotSequence
     this.#chain = text(first!, 'chain')
+    this.#snapshotChain = this.#chain
+  }
+
+  #snapshotMemory(content: SnapshotContent) {
+    const memory = createMemoryEncounterStore({ idPrefix: 'room' })
+    for (const table of TABLES) {
+      const documents = content.documents[table]
+      if (documents) loadTable(memory, table, documents, false)
+    }
+    memory.restoreCounters(content.counters)
+    return memory
   }
 
   /** Applies one log row, or returns why it is invalid without having changed anything. */
@@ -530,25 +766,35 @@ export class RoomEncounterStore {
     } catch {
       return 'not JSON'
     }
+    const failure = this.#applyWrites(this.#memory, this.#records, writes)
+    if (failure) return failure
+    this.#sequence += 1
+    this.#chain = chain
+    return null
+  }
+
+  #applyWrites(
+    memory: Memory,
+    records: Map<string, RoomRecord>,
+    writes: RoomWrite[]
+  ): string | null {
     const documentWrites: EncounterStoreWrite[] = []
     const recordWrites: RecordWrite[] = []
     for (const write of writes)
       if (write.op === 'RECORD_SET' || write.op === 'RECORD_DELETE') recordWrites.push(write)
       else documentWrites.push(write)
-    this.#memory.transaction.begin()
+    memory.transaction.begin()
     try {
-      this.#memory.apply(documentWrites, { validate: false })
-      this.#memory.transaction.commit()
+      memory.apply(documentWrites, { validate: false })
+      memory.transaction.commit()
     } catch {
-      this.#memory.transaction.abort()
+      memory.transaction.abort()
       return 'not applicable to the state'
     }
     for (const write of recordWrites)
       if (write.op === 'RECORD_SET')
-        this.#records.set(recordId(write.record.kind, write.record.key), write.record)
-      else this.#records.delete(recordId(write.kind, write.key))
-    this.#sequence += 1
-    this.#chain = chain
+        records.set(recordId(write.record.kind, write.record.key), write.record)
+      else records.delete(recordId(write.kind, write.key))
     return null
   }
 }

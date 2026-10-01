@@ -1,10 +1,10 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { ActionIcon, Badge, Text, Title, Tooltip } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { MessageCircle, Settings } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { MediaImageControl } from '#app/components/MediaImage'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
-import type { CharacterSheet } from '../core/CharacterSheet.types'
 import * as heroStyles from './hero.css'
 
 export function CharacterSheetHero({
@@ -20,7 +20,7 @@ export function CharacterSheetHero({
   editable: boolean
   hasDraft: boolean
   onOpenRollHistory?: () => void
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
 }) {
   const navigate = useNavigate()
   const characterParams = buildCharacterRouteParams(characterPublicId, sheet.identity.label)

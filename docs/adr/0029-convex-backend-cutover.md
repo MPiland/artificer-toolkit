@@ -2,7 +2,7 @@
 
 - **Status:** decision (Session-scoped room identity and Session presentation superseded by [ADR 0033](0033-campaign-owned-play-and-session-log.md); per-command Convex capture and commit for live Encounter commands superseded by [ADR 0035](0035-room-authoritative-live-encounters.md); "Netlify hosts TanStack Start SSR" superseded by [ADR 0037](0037-web-app-on-cloudflare-workers.md))
 - **Date:** 2026-09-03
-- **Revised:** 2026-09-24
+- **Revised:** 2026-09-29
 
 ## Historical cutover context
 
@@ -20,27 +20,26 @@ WASI binding requires workers; that loses the desired single-mutation boundary.
 
 ## Current status
 
-Convex is the current product persistence, authentication integration, transport, current-membership
-and subscription authority. The TypeScript Rules Kernel is the mechanics authority. During an active
-live Session, one Cloudflare Session Durable Object is the single command authority for the supported
-Door and standalone token move/undo paths. It also carries authenticated, recipient-filtered
-ephemeral previews. Every Character Sheet mutation remains in Convex, alongside its version,
-rule execution, and receipt. Other commands remain with their owning Convex functions.
+Convex remains the product persistence and authentication boundary. The TypeScript Rules Kernel is
+the mechanics authority. The Campaign-owned Session Durable Object serializes live Scene commands
+and Encounter rules evaluation, with authenticated, recipient-filtered previews. Encounter commands
+still capture inputs from Convex and commit their results there; Character Sheet mutations also
+remain in Convex. The SQLite Encounter store hydrates locally but is not yet the command authority.
 
-The Character authority amendment below passed its 2026-09-24 review; R06 is now reopened because
-V15-20260924-05 exposed a missing live Encounter movement path. The current narrow DO command lane
-also leaves heavy Encounter fact preparation and rule execution in Convex; it does not implement the
-live rules execution direction reaffirmed below. The retired Supabase/SQL/Kysely,
-tRPC/Netlify, GoRules and durable session-host runtime source has been removed locally. Final
-same-source lifecycle proof remains R01–R05/R08 work, and V15 performance remains open. Current Phase 8.2 execution remains local-only on
-the existing stack. Staging, production and external service retirement require their separate
-authorization gates.
+[ADR 0035](0035-room-authoritative-live-encounters.md) replaces that per-command Convex path with
+room-owned live state, held Character play state and fenced checkpoints; its authority switch is
+pending. [ADR 0036](0036-versioned-content-snapshots-and-browser-builder.md) has moved Builder
+evaluation and authored-content lists to browser snapshots locally. The web app has moved from
+Netlify to Cloudflare Workers in the local source under [ADR 0037](0037-web-app-on-cloudflare-workers.md);
+managed hosting remains pending. Retired Supabase/SQL/Kysely, tRPC/Netlify and GoRules runtime source
+has been removed locally. R06, V15 and final-source R08 proof remain open. Staging, production and
+external service retirement retain their separate authorization gates.
 
 ## Decision
 
 The original placement of heavy live rules inside Convex mutations is superseded by the live rules
-execution clarification below. The diagram retains the existing partial cutover shape; it is not
-evidence that the remaining DO execution boundary is complete.
+execution clarification below. The diagram shows the current transition; ADR 0035's checkpoint
+authority switch remains pending.
 
 Phase 8.2 replaces the product backend with Convex before launch:
 
@@ -52,9 +51,10 @@ flowchart LR
     Convex --> Kernel["TypeScript Rules Kernel"]
     Convex --> Email["React Email and Resend"]
     Convex --> R2["Cloudflare R2"]
-    Clients <--> DO["Session Durable Object: Scene commands + previews"]
+    Clients <--> DO["Campaign room: Scene commands, Encounter rules + previews"]
+    DO --> Kernel
     DO --> SQLite[("SQLite Scene state + receipt + outbox")]
-    DO -->|ordered publication| Convex
+    DO -->|Scene publication; Encounter capture + commit| Convex
 ```
 
 - `apps/apis` remains the canonical product-data workspace and becomes the Convex backend.
@@ -84,18 +84,19 @@ flowchart LR
 - Convex stores bounded authored aggregates and aggregate-owned state. Independently queried or
   contended memberships, notifications, Scene tokens, Encounter actors, occurrences, and receipts
   remain separate indexed documents. Convex `_id` values never replace public RFC UUIDs.
-- The TypeScript Rules Kernel and code-owned system-neutral primitives run within authoritative
-  mutations. Game System policies provide D&D mechanics; supported Campaign settings override System
-  defaults. Unknown mechanics fail closed to manual adjudication.
-- Handler-local Convex random generation supplies authoritative dice; the same mutation persists the
-  evidence and command receipt. GoRules and the visual Rule Studio are retired from current product
-  authority, and their runtime source has been removed. Final same-source proof remains R04/R08 work.
+- The TypeScript Rules Kernel and code-owned system-neutral primitives run in Convex for Sheet
+  mutations and in the room for live Encounter evaluation. Game System policies provide D&D mechanics;
+  supported Campaign settings override System defaults. Unknown mechanics fail closed to manual adjudication.
+- Authoritative dice are generated where rules execute: Convex for its commands and the room for
+  live Encounter commands. Convex currently persists the evidence and command receipt. GoRules and
+  the visual Rule Studio are retired from current product authority, and their runtime source has
+  been removed. Final same-source proof remains R04/R08 work.
 - Cloudflare R2 owns all media bytes through the official component and signed single-PUT uploads.
   Convex owns media identity, authorization, references, and lifecycle.
 - React Email is rendered in a `"use node"` action and delivered through `@convex-dev/resend`.
 - One Session Durable Object owns the minimum live projection and ordered execution while its
-  authority epoch is active. Each supported command atomically commits SQLite live state, its replay
-  receipt, and the next Convex publication outbox entry before success is broadcast.
+  authority epoch is active. Each supported Scene command atomically commits SQLite live state,
+  its replay receipt and the next Convex publication outbox entry before success is broadcast.
 - Convex independently revalidates each ordered publication, commits durable cross-session/system
   product state, drives subscriptions, and supplies recovery after authority release or eviction.
   Direct overlapping Convex writes are fenced while the Session DO is active.
@@ -104,9 +105,9 @@ flowchart LR
   Replacement of provisional SQLite state requires current Convex verification and zero committed or
   published commands, receipts, and outbox entries. This prevents abandoned joins from permanently
   fencing Campaign play while preserving committed authority and replay evidence.
-- Current live command coverage is Door state and standalone token movement/undo. Character Sheet
-  and Encounter rule execution remains in Convex, using the same TypeScript Rules Kernel.
-  Recipient-filtered pointer, measurement, drag, and fog previews remain ephemeral.
+- Live Encounter rules execute in the room; their persistence remains in Convex until ADR 0035's
+  switch. Character Sheet rules and persistence remain in Convex until held play actions move to the
+  room. Recipient-filtered pings, measurement, drag and fog previews remain ephemeral.
 - The web host serves TanStack Start SSR only (Netlify at the cutover; a Cloudflare Worker since
   [ADR 0037](0037-web-app-on-cloudflare-workers.md)). No GraphQL, generic document patches, dual
   writes, or compatibility database layer is introduced.
@@ -115,6 +116,9 @@ The [fixed acceptance contract](../roadmap/08-2-convex-cutover-acceptance.md) co
 Its denominator changes only with explicit user approval.
 
 ### Live rules execution clarification — 2026-09-24
+
+The rules placement below remains accepted. Its per-command capture and Convex commit contract is
+superseded by [ADR 0035](0035-room-authoritative-live-encounters.md).
 
 The user reaffirmed that heavy live rules belong in the Session Durable Object because the real
 workload exceeded Convex execution and size limits. The small earlier Convex proof of concept does
@@ -136,13 +140,16 @@ do not introduce a second unfenced Scene writer.
 
 Historical (before S4-d removed `encounters/actionCommands.ts`): source called
 `advanceNativeActionGraphs` inside that Convex action path and evaluated spatial movement during both
-preparation and commit. The Worker now depends on the existing
-rules-runtime and has authorized Character/Encounter capture and preparation, but live dispatch,
-execution and atomic commit remain disconnected. These are implementation gaps, not the intended final placement. The
-earlier proposed choices retaining heavy Encounter evaluation in Convex are superseded. The
-separate Session-finish/unfinished-Encounter behavior remains unresolved.
+preparation and commit. The room now dispatches and evaluates Encounter commands through
+`nativeRoomEncounterCommand.ts`, with authorized Convex capture and fenced commits. The remaining
+authority switch is tracked in ADR 0035. Session finish and unfinished Runs were resolved by
+[ADR 0033](0033-campaign-owned-play-and-session-log.md): Session finish changes no Run or room state.
 
 ### Character authority amendment — 2026-09-23
+
+Historical: [ADR 0035](0035-room-authoritative-live-encounters.md) supersedes this amendment while a
+Character is held by a live Run. The current implementation still writes Sheet play state in Convex;
+the target routes held play actions through the room and keeps outside-play writes in Convex.
 
 The user approved keeping all Character Sheet changes in Convex for Phase 8.2. The prior split sent
 adjustments through the DO while HP, resources, and other writes advanced the same Character version
@@ -467,6 +474,30 @@ protections, and permanent block/invalidation records remain unchanged. Each bat
 eligibility in its own transaction. This replaces the legacy whole-run SQL transaction guarantee;
 it does not authorize an unguarded staging/production purge or change deployment approval gates.
 Implementation and retention proof remain required under P17.
+
+### Character operational persistence clarification — 2026-09-29
+
+Convex remains the application backend and durable product record. The approved Phase 8.2 completion
+splits mutable Character storage into head, Build, play, inventory/currency, spell, extra and note
+records, with complete domain assembly at rules, Builder, import/export and capture boundaries.
+This is an access-pattern change within Convex. Complete authored versions, drafts, snapshots and
+replay/capture artifacts may retain validated, checksummed JSON.
+
+The structure and play clocks, UUIDs, current-source semantics, authorization, privacy, atomic writes,
+replay and cleanup remain load-bearing contracts. Database-schema evaluation uses focused shared
+validators without importing the full mechanics graph. See the [persistence target](../architecture/persistence.md#character-operational-records--approved-completion-target).
+Typed head, Build, play and owned collection storage is implemented locally. The head retains complete
+structure checksums to detect missing or altered collection rows. The Build record also carries
+checksummed counts for each owned collection, so a selected query detects missing tail or all rows
+without loading unrelated families. Count changes share the collection writer's transaction and
+existing structure clock. Focused Sheet access is implemented locally; mechanical read narrowing
+and integrated proof remain pending.
+Public Sheet commands now return compact UUID/version/history/result acknowledgements. Private
+Encounter execution retains its complete Sheet only inside its transaction. Owner-only note commands
+reuse the existing reducer and writer without mechanics evaluation, retaining implicit Campaign
+lifecycle checks before replay. These are local implementations of the approved narrower access target.
+Development data is reset/seeded locally in the same change; no retired
+storage compatibility path is retained for launch.
 
 ## Evidence
 

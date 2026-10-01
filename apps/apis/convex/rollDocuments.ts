@@ -113,12 +113,22 @@ export async function retainUserRoll(
   record: RollRecordDto,
   gmCampaignRoll: GmCampaignRollDto | null
 ) {
-  await ctx.db.insert('userRollHistory', { ...record, userId, consumedAt: null, gmCampaignRoll })
+  return retainUserRolls(ctx, userId, [{ record, gmCampaignRoll }])
+}
+
+export async function retainUserRolls(
+  ctx: MutationCtx,
+  userId: string,
+  records: readonly { record: RollRecordDto; gmCampaignRoll: GmCampaignRollDto | null }[]
+) {
+  if (records.length === 0) return
+  for (const { record, gmCampaignRoll } of records)
+    await ctx.db.insert('userRollHistory', { ...record, userId, consumedAt: null, gmCampaignRoll })
   const retained = await ctx.db
     .query('userRollHistory')
     .withIndex('by_userId_createdAt_id', (q) => q.eq('userId', userId))
     .order('desc')
-    .take(21)
+    .take(20 + records.length)
   // Every writer preserves the existing twenty-record per-user history bound.
   for (const expired of retained.slice(20)) await ctx.db.delete(expired._id)
 }

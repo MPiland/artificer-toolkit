@@ -1,3 +1,7 @@
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
 // @vitest-environment node
 import { afterEach, expect, it, vi } from 'vitest'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -121,7 +125,9 @@ it.each([
       if (!row) throw new Error('Concentration Run is unavailable.')
       const state = readRunState(row)
       expect(state).toEqual(planned.nextState)
-      const effectsAfter = await createActiveRuleEffectStore(ctx).list({
+      const effectsAfter = await createActiveRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      }).list({
         kind: 'CHARACTER',
         characterId: fixture.character.id
       })
@@ -176,9 +182,11 @@ it.each([
     expect(after.effects.map((effect) => effect.id)).toContain(seeded.independent.id)
     if (outcome === 'PENDING') {
       expect(after.pending).toHaveLength(1)
-      expect(await fixture.t.run((ctx) => readPendingSnapshot(ctx, after.pending[0]!))).toEqual(
-        concentration.pending
-      )
+      expect(
+        await fixture.t.run((ctx) =>
+          readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, after.pending[0]!)
+        )
+      ).toEqual(concentration.pending)
     } else {
       const child = concentration.completed[0]!
       const receipt = after.receipts.find((entry) => entry.commandId === child.commandId)

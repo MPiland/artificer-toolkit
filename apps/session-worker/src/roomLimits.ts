@@ -18,6 +18,7 @@ export const ROOM_LIMITS = {
    * socket's re-authentication, and later each checkpoint response, renews it.
    */
   authorizationLeaseMs: 240_000,
+  checkpointDeadlineMs: 120_000,
   /** A background preview refresh starts at most once per input in this window. */
   previewRetryMs: 5_000,
   /** Rules captures reused across Encounter commands; see `nativeCaptureCache.ts`. */

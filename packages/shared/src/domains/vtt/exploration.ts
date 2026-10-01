@@ -1,4 +1,5 @@
 import { SceneBarrierIndex, visibilityPolygonForToken } from './geometry.js'
+import { decodeBase64, encodeBase64 } from '../../utils/base64.js'
 import {
   VTT_SCENE_LIMITS,
   type CampaignSceneState,
@@ -19,17 +20,6 @@ export type SceneExplorationState = Pick<
   CampaignSceneState,
   'map' | 'grid' | 'tokens' | 'barriers' | 'doorStates' | 'fogMode' | 'fogLayers'
 >
-
-function decodeBase64(value: string): Uint8Array {
-  const binary = atob(value)
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0))
-}
-
-function encodeBase64(value: Uint8Array): string {
-  let binary = ''
-  for (const byte of value) binary += String.fromCharCode(byte)
-  return btoa(binary)
-}
 
 function bitIsSet(bytes: Uint8Array, index: number): boolean {
   return (bytes[Math.floor(index / 8)]! & (1 << (index % 8))) !== 0

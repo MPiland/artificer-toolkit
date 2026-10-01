@@ -31,7 +31,7 @@ import { makeFunctionReference } from 'convex/server'
 import { sliceMovementPath } from '@artificer-toolkit/rules-runtime/encounterMovementPath'
 import { action, type ActionCtx } from '../_generated/server'
 import { internal } from '../_generated/api'
-import { geometryTarget } from './geometryValues'
+import { geometryTarget } from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
 import { loadSceneSessionVision } from './sessionVisionComposition'
 
 const geometryBeginReference = makeFunctionReference<

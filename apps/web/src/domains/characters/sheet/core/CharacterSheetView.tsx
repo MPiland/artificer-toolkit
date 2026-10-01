@@ -1,4 +1,6 @@
 import { Alert, Tabs } from '@mantine/core'
+import { useMediaQuery, useMounted } from '@mantine/hooks'
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
@@ -33,7 +35,6 @@ import {
 } from './characterSheetTabs'
 import { isCharacterSheetTabId } from './characterSheet.utils'
 import type {
-  CharacterSheet,
   CharacterSheetCommandDraft,
   CharacterSheetMobilePageId,
   CharacterSheetTabId
@@ -56,8 +57,10 @@ export function CharacterSheetView({
   hasDraft: boolean
   initialTab?: CharacterSheetTabId
   rollerName?: string
-  sheet: CharacterSheet
+  sheet: CharacterSheetCommonDto
 }) {
+  const isMobile = useMediaQuery('(max-width: 760px)')
+  const mounted = useMounted()
   const [activeTab, setActiveTab] = useState<CharacterSheetTabId>(
     initialTab === 'overview' ? 'actions' : initialTab
   )
@@ -89,13 +92,7 @@ export function CharacterSheetView({
     ) : undefined
 
   const revealRoll = useCallback((roll: RollRecordDto) => setRevealedRollId(roll.id), [])
-  const hasSpellcasting =
-    sheet.spells.attackBonus != null ||
-    sheet.spells.saveDc != null ||
-    sheet.spells.slots.length > 0 ||
-    sheet.spells.activeGroups.length > 0 ||
-    sheet.spells.spells.length > 0 ||
-    Boolean(sheet.spells.preparationSources?.length)
+  const hasSpellcasting = sheet.hasSpellcasting
   const visibleTabs = CHARACTER_SHEET_DESKTOP_TABS.filter(
     (tab) =>
       (hasSpellcasting || tab.id !== 'spells') &&
@@ -332,20 +329,25 @@ export function CharacterSheetView({
                       key={tab.id}
                       value={tab.id}
                     >
-                      <CharacterSheetPanelContent
-                        campaignInventory={campaignInventory}
-                        openPanel={openInspector}
-                        pending={pending}
-                        sheet={sheet}
-                        submitCommand={submitCommand}
-                        tab={tab.id}
-                      />
+                      {mounted &&
+                      (!isMobile ||
+                        (visibleActiveMobilePage !== 'overview' && !isMobileAuxiliaryPage)) &&
+                      tab.id === visibleActiveTab ? (
+                        <CharacterSheetPanelContent
+                          campaignInventory={campaignInventory}
+                          openPanel={openInspector}
+                          pending={pending}
+                          sheet={sheet}
+                          submitCommand={submitCommand}
+                          tab={tab.id}
+                        />
+                      ) : null}
                     </Tabs.Panel>
                   ))}
                 </Tabs>
               </section>
 
-              {isMobileAuxiliaryPage ? (
+              {isMobile && isMobileAuxiliaryPage ? (
                 <div className={coreStyles.mobileAuxiliaryPanel} data-mobile-visible='true'>
                   <CharacterSheetPanelContent
                     campaignInventory={campaignInventory}
@@ -382,7 +384,6 @@ export function CharacterSheetView({
           pending={pending}
           submitCommand={submitCommand}
           target={inspectorTarget}
-          equipmentItems={sheet.inventory.items}
           onClose={closeInspector}
           onTargetChange={setInspectorTarget}
         />

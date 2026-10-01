@@ -1,3 +1,5 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
@@ -181,7 +183,11 @@ async function setup() {
       .unique()
     if (!row || !heroAction) throw new Error('Missing journey action sources.')
     const enemyAction = discoverEncounterFeatureActionCapabilities({
-      actor: await readRunActor(ctx, readRunState(row), enemy.id),
+      actor: await readRunActor(
+        { db: createConvexEncounterStoreReader(ctx) },
+        readRunState(row),
+        enemy.id
+      ),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({
         id: ability.id,
@@ -380,6 +386,9 @@ describe('Encounter reads of live Character state', () => {
                 q.eq('campaignId', fixture.campaign.id).eq('commandId', commandId)
               )
               .unique()
+              .then((header) =>
+                header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
+              )
           )
           const outputs = receipt
             ? storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

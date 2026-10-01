@@ -96,6 +96,10 @@ describe('native personal Sheet inspector panels', () => {
         adjustment: { family: 'ABILITY', ability: 'STRENGTH', field: 'SCORE_OVERRIDE', value: 18 }
       }
     })
+    expect(updated).not.toHaveProperty('sheet')
+    const updatedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: updated.characterId
+    }))!
     const afterCommand = await readState()
     expect(
       await owner.caller.query(panel, { id: character.id, target: targets[0]! })
@@ -109,7 +113,7 @@ describe('native personal Sheet inspector panels', () => {
       ])
     })
     expect(
-      updated.sheet.overview.abilities.find((ability) => ability.ability === 'STRENGTH')!.score
+      updatedSheet.overview.abilities.find((ability) => ability.ability === 'STRENGTH')!.score
     ).toBe(18)
     expect(await readState()).toEqual(afterCommand)
   })
@@ -189,13 +193,15 @@ describe('native personal Sheet inspector panels', () => {
         extra: { kind: 'VEHICLE', vehicleId: rowboat.id }
       }
     })
-    const spell = current.sheet.spells.spells.find((entry) => entry.id === fireBolt.id)!
+    expect(current).not.toHaveProperty('sheet')
+    const currentSheet = (await base.owner.caller.query(api.characters.sheet.get, {
+      id: current.characterId
+    }))!
+    const spell = currentSheet.spells.spells.find((entry) => entry.id === fireBolt.id)!
     const spellSource = spell.sources![0]!.source
-    const resource = current.sheet.resources.items.find(
-      (entry) => entry.label === 'Panel Resource'
-    )!
-    const companion = current.sheet.extras.items.find((entry) => entry.kind !== 'VEHICLE')!
-    const vehicle = current.sheet.extras.items.find((entry) => entry.kind === 'VEHICLE')!
+    const resource = currentSheet.resources.items.find((entry) => entry.label === 'Panel Resource')!
+    const companion = currentSheet.extras.items.find((entry) => entry.kind !== 'VEHICLE')!
+    const vehicle = currentSheet.extras.items.find((entry) => entry.kind === 'VEHICLE')!
     const targets: CharacterSheetPanelTargetDto[] = [
       { kind: 'SPELL', source: spellSource },
       { kind: 'RESOURCE', owner: resource.owner },
@@ -232,6 +238,6 @@ describe('native personal Sheet inspector panels', () => {
     await expect(
       base.other.caller.query(panel, { id: character.id, target: targets[0]! })
     ).rejects.toThrow('unavailable')
-    expect(await base.owner.caller.query(getSheet, { id: character.id })).toEqual(current.sheet)
+    expect(await base.owner.caller.query(getSheet, { id: character.id })).toEqual(currentSheet)
   })
 })

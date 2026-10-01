@@ -44,4 +44,57 @@ describe('canonical JSON persistence compatibility', () => {
       expect(() => checksumCanonicalJson({ nested: value })).toThrow(TypeError)
     }
   })
+
+  it('preserves own __proto__ properties at every depth without changing prototypes', () => {
+    const canonical = '{"__proto__":{"polluted":true},"nested":[{"__proto__":{"value":1}}]}'
+    const input: unknown = JSON.parse(canonical)
+    const normalized = normalizeCanonicalJson(input)
+
+    expect(normalized).toStrictEqual(input)
+    expect(Object.getPrototypeOf(normalized)).toBe(Object.prototype)
+    expect(Object.getOwnPropertyDescriptor(normalized, '__proto__')?.value).toEqual({
+      polluted: true
+    })
+    expect(canonicalizeJson(input)).toBe(canonical)
+    expect(canonicalizeJson(JSON.parse(canonicalizeJson(input)))).toBe(canonical)
+    expect(Object.getPrototypeOf(input)).toBe(Object.prototype)
+    expect(Object.prototype).not.toHaveProperty('polluted')
+  })
+
+  it('rejects enumerable accessors without executing them, including nested objects and arrays', () => {
+    let getterCalls = 0
+    const accessor = {
+      get value() {
+        getterCalls += 1
+        return 1
+      }
+    }
+    const array: unknown[] = [null]
+    Object.defineProperty(array, '0', Object.getOwnPropertyDescriptor(accessor, 'value')!)
+    const setterOnly = Object.defineProperty({}, 'value', { enumerable: true, set() {} })
+
+    for (const value of [
+      accessor,
+      { nested: accessor },
+      [accessor],
+      array,
+      { nested: array },
+      setterOnly
+    ]) {
+      expect(() => normalizeCanonicalJson(value)).toThrow(TypeError)
+      expect(() => canonicalizeJson(value)).toThrow(TypeError)
+      expect(() => checksumCanonicalJson(value)).toThrow(TypeError)
+      expect(() => equalCanonicalJson(value, {})).toThrow(TypeError)
+    }
+    expect(getterCalls).toBe(0)
+  })
+
+  it('continues to ignore non-enumerable accessors', () => {
+    const value = Object.defineProperty({ kept: 1 }, 'hidden', {
+      get() {
+        throw new Error('Non-enumerable getters must not run.')
+      }
+    })
+    expect(canonicalizeJson(value)).toBe('{"kept":1}')
+  })
 })

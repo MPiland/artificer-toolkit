@@ -8,7 +8,7 @@ import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/s
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
-import { parseGeometrySave } from '../scenes/geometryDocuments'
+import { parseGeometrySave } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { advanceCampaignLiveAuthorityPersisted } from './authority'
 import { requireActiveCampaignLiveAuthority, requireCampaignLiveAuthority } from './authorityGuard'
 

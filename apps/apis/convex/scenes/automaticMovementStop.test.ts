@@ -32,6 +32,8 @@ it.each([false, true])(
         runCommands: await ctx.db.query('encounterRunCommands').collect(),
         liveStates: await ctx.db.query('sceneLiveStates').collect(),
         fog: await ctx.db.query('sceneFogLayers').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await ctx.db.query('encounterRuleReceipts').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect(),
         commands: await ctx.db.query('sceneLiveCommands').collect()

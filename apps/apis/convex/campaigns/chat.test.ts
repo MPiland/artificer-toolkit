@@ -27,7 +27,12 @@ import { fixture as characterFixture } from '../../tests/fixtures/characters'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { requireCampaignAuthority } from './authority'
 import { postCampaignChatEntry, readCampaignChatPage } from './chat'
-import { conversationAccess, findConversation, presentConversation } from './conversationDocuments'
+import {
+  conversationAccess,
+  findConversation,
+  insertConversationEntry,
+  presentConversation
+} from './conversationDocuments'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -298,16 +303,16 @@ describe('native Campaign text chat', () => {
           }
         ]
       ] as const) {
-        await ctx.db.insert('campaignConversationEntries', {
-          id,
-          campaignId: campaign.id,
-          conversationId: ooc.conversationId,
-          authorUserId: other.userId,
-          clientNonce: nonce(),
-          createdAt: now
-        })
-        await ctx.db.insert(
-          'campaignConversationEntryPayloads',
+        await insertConversationEntry(
+          ctx,
+          {
+            id,
+            campaignId: campaign.id,
+            conversationId: ooc.conversationId,
+            authorUserId: other.userId,
+            clientNonce: nonce(),
+            createdAt: now
+          },
           campaignStoredEntryPayloadSchema.parse(payload)
         )
       }
@@ -482,15 +487,15 @@ describe('native Campaign text chat', () => {
     const rollId = crypto.randomUUID()
     await t.run(async (ctx) => {
       const now = new Date().toISOString()
-      await ctx.db.insert('campaignConversationEntries', {
+      const identity = {
         id: rollId,
         campaignId: campaign.id,
         conversationId: entry.conversationId,
         authorUserId: owner.userId,
         createdAt: now,
         clientNonce: nonce()
-      })
-      await ctx.db.insert('campaignConversationEntryPayloads', {
+      }
+      const payload = campaignStoredEntryPayloadSchema.parse({
         entryId: rollId,
         kind: 'ROLL',
         mode: null,
@@ -520,6 +525,7 @@ describe('native Campaign text chat', () => {
           }
         }
       })
+      await insertConversationEntry(ctx, identity, payload)
     })
     await expect(
       owner.caller.mutation(edit, { campaignId: campaign.id, entryId: rollId, body: 'no' })
@@ -827,15 +833,15 @@ async function seedHistory(
     await t.run(async (ctx) => {
       for (let index = start; index < Math.min(count, start + 250); index++) {
         const id = ids[index]!
-        await ctx.db.insert('campaignConversationEntries', {
+        const identity = {
           id,
           campaignId: conversation.campaignId,
           conversationId: conversation.id,
           authorUserId,
           createdAt: new Date(startMs + Math.floor(index / 3)).toISOString(),
           clientNonce: crypto.randomUUID()
-        })
-        await ctx.db.insert('campaignConversationEntryPayloads', {
+        }
+        const payload = campaignStoredEntryPayloadSchema.parse({
           entryId: id,
           kind: 'CHAT',
           mode: 'OOC',
@@ -849,6 +855,7 @@ async function seedHistory(
           unsentAt: null,
           consumedAt: null
         })
+        await insertConversationEntry(ctx, identity, payload)
       }
     })
   return ids

@@ -11,7 +11,7 @@ import type { CharacterPlayState } from '@artificer-toolkit/schema/projections/c
 import { readCharacterMaximumHitPoints } from './characterMaximumHitPoints.js'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { readRunActors, replaceRunActor } from './documents.js'
-import type { EncounterReadTransaction, EncounterWriteTransaction } from './ports.js'
+import type { EncounterPersistenceTransaction, EncounterProjectionTransaction } from './ports.js'
 
 /**
  * Projects a Character's hit points over its effective maximum, as the Sheet shows them, and its
@@ -44,7 +44,7 @@ export function characterProjectionState(
  * frozen when the Run stopped reading it: a detached Character grants no current Sheet access.
  */
 export async function readEncounterCharacterStates(
-  ctx: EncounterReadTransaction,
+  ctx: EncounterProjectionTransaction,
   state: Pick<EncounterRunState, 'campaignId' | 'gameSystemId' | 'status'>,
   actors: readonly (
     | Pick<EncounterRunCharacterActorState, 'kind' | 'sourceId' | 'frozenState'>
@@ -99,7 +99,7 @@ export async function readEncounterCharacterStates(
  * and after.
  */
 export async function freezeEncounterCharacterStates(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   state: EncounterRunState,
   characterId?: string
 ): Promise<void> {

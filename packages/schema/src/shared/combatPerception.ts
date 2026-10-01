@@ -1,6 +1,6 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import { measurementUnitCodeSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'

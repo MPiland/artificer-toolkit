@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type { z } from 'zod/mini'
@@ -66,7 +67,11 @@ async function controlMatrix(base: PlayerControlFixture, members: Record<string,
         ['companion', base.companion.id],
         ['enemy', base.enemy.id]
       ] as const) {
-        const actor = await readRunActor(ctx, state, actorId)
+        const actor = await readRunActor(
+          { db: createConvexEncounterStoreReader(ctx) },
+          state,
+          actorId
+        )
         matrix[name]![label] = await readEncounterActorControl(encounterReadTransaction(ctx), {
           campaign,
           membership,
@@ -76,7 +81,11 @@ async function controlMatrix(base: PlayerControlFixture, members: Record<string,
       const controlled = await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
         campaign,
         membership,
-        actors: await Promise.all(state.actorIds.map((id) => readRunActor(ctx, state, id)))
+        actors: await Promise.all(
+          state.actorIds.map((id) =>
+            readRunActor({ db: createConvexEncounterStoreReader(ctx) }, state, id)
+          )
+        )
       })
       expect(
         Object.entries(matrix[name]!)
@@ -187,7 +196,11 @@ describe('Encounter actor control', () => {
           encounterReadTransaction(ctx),
           readRunState(row)
         ),
-        companion: await readRunActor(ctx, readRunState(row), base.companion.id)
+        companion: await readRunActor(
+          { db: createConvexEncounterStoreReader(ctx) },
+          readRunState(row),
+          base.companion.id
+        )
       }
     })
     expect(projection.companion.controllerUserIds).toEqual([base.player.userId])

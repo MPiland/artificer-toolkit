@@ -7,9 +7,10 @@ import {
 import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { SignJWT } from 'jose'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { readContentSnapshotObject } from '../src/contentSnapshotStorage.js'
 
-// ADR 0036 S3 delivery: the authorization matrix of `GET /content/v1/...`.
+// ADR 0036 S3 delivery: the authorization matrix of `GET /content/v2/...`.
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes-content'
 const allowedOrigin = 'https://app.test'
@@ -22,7 +23,7 @@ const json = '{"roots":[]}'
 
 function keyOf(scope: 'SOURCE' | 'CAMPAIGN', scopeId: string, seed: string) {
   return contentSnapshotObjectKey(
-    { format: 1, scope, scopeId, kind: 'RACE', part: 'index' },
+    { format: 2, scope, scopeId, kind: 'RACE', part: 'index' },
     seed.repeat(64)
   )
 }
@@ -85,6 +86,49 @@ async function text(response: Response) {
 }
 
 describe('content snapshot delivery', () => {
+  it('reads raw local gzip with native Request options and refuses fixture redirects', async () => {
+    const bytes = new Uint8Array(
+      await new Response(
+        new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))
+      ).arrayBuffer()
+    )
+    let redirect = false
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      // Native Request validation catches options that Node's fetch accepts but workerd rejects.
+      const request = new Request(input, init)
+      expect(request.headers.get('x-artificer-local-raw-body')).toBe('1')
+      return redirect
+        ? new Response(null, { status: 302, headers: { location: 'https://foreign.test/' } })
+        : new Response(bytes, {
+            headers: {
+              'content-type': 'application/json',
+              'x-artificer-content-encoding': 'gzip',
+              'x-amz-meta-access': CONTENT_SNAPSHOT_PUBLIC_METADATA.access,
+              etag: 'local-fixture'
+            }
+          })
+    })
+    const get = vi.fn<R2Bucket['get']>()
+    const environment = {
+      LOCAL_CONTENT_SNAPSHOT_ORIGIN: 'http://127.0.0.1:8026',
+      CONTENT_SNAPSHOTS: { get }
+    }
+    try {
+      const object = await readContentSnapshotObject(environment, keys.platform)
+      expect(object?.httpMetadata?.contentEncoding).toBe('gzip')
+      expect(object?.customMetadata?.access).toBe(CONTENT_SNAPSHOT_PUBLIC_METADATA.access)
+      expect(await new Response(object?.body).arrayBuffer()).toEqual(bytes.buffer)
+      redirect = true
+      await expect(readContentSnapshotObject(environment, keys.platform)).rejects.toThrow(
+        'Content snapshot is not available.'
+      )
+      expect(fetch).toHaveBeenCalledTimes(2)
+      expect(get).not.toHaveBeenCalled()
+    } finally {
+      fetch.mockRestore()
+    }
+  })
+
   it('serves PLATFORM source objects publicly, immutable and cacheable', async () => {
     const response = await get(keys.platform)
     expect(response.status).toBe(200)

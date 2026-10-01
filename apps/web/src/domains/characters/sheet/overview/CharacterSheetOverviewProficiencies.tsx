@@ -1,3 +1,4 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Text, Title } from '@mantine/core'
 import { ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
@@ -5,7 +6,6 @@ import * as overviewStyles from './overview.css'
 import * as proficiencyStyles from './proficiencies.css'
 import * as panelStyles from '../shared/panel.css'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
-import type { CharacterSheet } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { formatProficiencyLevel, getAbilityShortLabel } from './characterSheetOverview.utils'
 import { CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
@@ -17,9 +17,9 @@ export function CharacterSheetOverviewProficiencies({
   skills,
   openPanel
 }: {
-  abilities: CharacterSheet['overview']['abilities']
-  savingThrows: CharacterSheet['overview']['savingThrows']
-  skills: CharacterSheet['overview']['skills']
+  abilities: CharacterSheetCommonDto['overview']['abilities']
+  savingThrows: CharacterSheetCommonDto['overview']['savingThrows']
+  skills: CharacterSheetCommonDto['overview']['skills']
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
   return (
@@ -35,7 +35,7 @@ export function CharacterSheetSavingThrowsPanel({
   openPanel,
   headingId = 'character-sheet-saving-throws'
 }: {
-  savingThrows: CharacterSheet['overview']['savingThrows']
+  savingThrows: CharacterSheetCommonDto['overview']['savingThrows']
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
   headingId?: string
 }) {
@@ -104,8 +104,8 @@ export function CharacterSheetSkillsPanel({
   skills,
   openPanel
 }: {
-  abilities?: CharacterSheet['overview']['abilities']
-  skills: CharacterSheet['overview']['skills']
+  abilities?: CharacterSheetCommonDto['overview']['abilities']
+  skills: CharacterSheetCommonDto['overview']['skills']
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
   const abilityModifiers = new Map(abilities.map((ability) => [ability.ability, ability.modifier]))

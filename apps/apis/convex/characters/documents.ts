@@ -1,12 +1,13 @@
 import * as zMini from 'zod/mini'
 import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
-import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
+import { readCharacterReceiptHistory as parseCharacterReceiptHistory } from '@artificer-toolkit/encounter-persistence/characterSheetReceipts'
 import {
   characterBuilderDraftDtoSchema,
   characterBuilderDraftPayloadDtoSchema,
   characterBuilderDraftSummaryDtoSchema
 } from '@artificer-toolkit/schema/api/characterBuilder'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
+import type { EncounterStoreDocuments } from '@artificer-toolkit/schema/projections/encounterStore'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES,
@@ -19,7 +20,10 @@ import {
 } from '@artificer-toolkit/schema/projections/characterPlayState'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { decodeUtf8PayloadChunks, encodeUtf8PayloadChunks } from '../lib/jsonPayloadChunks'
+import {
+  decodeUtf8PayloadChunks,
+  encodeUtf8PayloadChunks
+} from '@artificer-toolkit/shared/jsonPayloadChunks'
 import { characterDocumentSchema, loadCharacterState, readCharacterRecord } from './stateDocuments'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
 export { loadCharacterState, readCharacterRecord } from './stateDocuments'
@@ -321,19 +325,10 @@ export async function loadCharacterDraftCandidate(
   }
 }
 
-export function readCharacterReceiptHistory(receipt: Doc<'characterCommandReceipts'>) {
-  const raw: unknown = JSON.parse(receipt.historyJson)
-  if (checksumRuleDocument(raw) !== receipt.historyChecksum)
-    throw new Error('Stored Sheet command receipt history checksum mismatch.')
-  const historyEntry = characterHistoryEntryDtoSchema.parse(raw)
-  if (
-    historyEntry.eventId !== receipt.id ||
-    historyEntry.actorId !== receipt.actorId ||
-    historyEntry.occurredAt !== receipt.occurredAt
-  ) {
-    throw new Error('Stored Sheet command receipt history identity mismatch.')
-  }
-  return historyEntry
+export function readCharacterReceiptHistory(
+  receipt: EncounterStoreDocuments['characterCommandReceipts']
+) {
+  return parseCharacterReceiptHistory(receipt)
 }
 
 export function readCharacterDraftSummary(

@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { describe, expect, it, vi } from 'vitest'
 import type {
   ResolveEncounterActionInputDto,
@@ -621,7 +622,7 @@ describe('room Disarm commands', () => {
           })
         else {
           const changed = { ...state, currentHitPoints: state.currentHitPoints - 1 }
-          await writeRunActor(ctx, row._id, changed)
+          await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, changed)
         }
       })
       const changed = await disarmRecords(assisted)

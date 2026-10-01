@@ -1,3 +1,4 @@
+import { readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -371,13 +372,15 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', base.run.id).eq('commandId', scene.rootInput.commandId)
       )
-      .unique(),
+      .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null)),
     terminal: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', base.run.id).eq('commandId', command.commandId)
       )
-      .unique(),
+      .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null)),
     occurrence: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))

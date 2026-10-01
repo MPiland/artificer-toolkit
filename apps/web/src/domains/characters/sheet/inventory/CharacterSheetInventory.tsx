@@ -1,3 +1,4 @@
+import type { CharacterSheetInventoryDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import {
   Accordion,
   Alert,
@@ -24,11 +25,7 @@ import * as inventoryStyles from './inventory.css'
 import * as detailStyles from '../shared/detail.css'
 import * as panelStyles from '../shared/panel.css'
 import * as rowStyles from '../shared/rows.css'
-import type {
-  CharacterSheet,
-  OpenSheetPanel,
-  SubmitSheetCommand
-} from '../core/CharacterSheet.types'
+import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import {
   getInventoryCurrencyRows,
   getInventoryCurrencyTotals
@@ -55,7 +52,7 @@ export function CharacterSheetInventory({
   openPanel?: OpenSheetPanel
   partyInventory?: ReactNode
   pending: boolean
-  sheet: CharacterSheet
+  sheet: CharacterSheetInventoryDto
   submitCommand: SubmitSheetCommand
 }) {
   const version = sheet.meta.streamVersion

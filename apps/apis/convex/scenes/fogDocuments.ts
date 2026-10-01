@@ -1,13 +1,17 @@
 import {
   sceneStoredFogSaveSchema,
-  sceneStoredFogLayerSchema,
-  sceneStoredFogChunkSchema
+  sceneStoredFogLayerSchema
 } from '@artificer-toolkit/schema/projections/sceneFogPersistence'
 import { sceneStoredFogCommandSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readLiveScene } from './liveDocuments'
+import {
+  parseSceneFogSave,
+  parseSceneFogLayer,
+  parseSceneReferencedFogChunk
+} from '@artificer-toolkit/encounter-persistence/sceneFogDocuments'
 
 function stored<T extends { _id: unknown; _creationTime: unknown }>(row: T) {
   const { _id, _creationTime, ...value } = row
@@ -15,18 +19,7 @@ function stored<T extends { _id: unknown; _creationTime: unknown }>(row: T) {
 }
 
 export function parseFogSave(row: Doc<'sceneFogSaves'>) {
-  const save = sceneStoredFogSaveSchema.parse(stored(row))
-  if (
-    save.sceneId !== save.input.sceneId ||
-    save.commandId !== save.input.commandId ||
-    save.inputChecksum !== checksumCanonicalJson(save.input) ||
-    save.receivedChunks > save.input.chunkManifest.length ||
-    (save.chunksRemoved && save.status !== 'EXPIRED') ||
-    (save.status === 'PUBLISHED' &&
-      (save.chunksRemoved || save.receivedChunks !== save.input.chunkManifest.length))
-  )
-    throw new Error('Stored Scene fog save is inconsistent.')
-  return save
+  return parseSceneFogSave(stored(row))
 }
 
 export async function readFogSave(ctx: QueryCtx, saveId: string) {
@@ -40,15 +33,7 @@ export async function readFogSave(ctx: QueryCtx, saveId: string) {
 }
 
 export function parseFogLayer(row: Doc<'sceneFogLayers'>, version: number) {
-  const layer = sceneStoredFogLayerSchema.parse(stored(row))
-  const { checksum, ...content } = layer
-  if (
-    checksum !== checksumCanonicalJson(content) ||
-    layer.version > version ||
-    new Set(layer.chunks.map((chunk) => chunk.index)).size !== layer.chunks.length
-  )
-    throw new Error('Stored Scene fog layer is inconsistent.')
-  return layer
+  return parseSceneFogLayer(stored(row), version)
 }
 
 export function parseFogCommand(row: Doc<'sceneLiveCommands'>, version: number) {
@@ -90,26 +75,22 @@ export async function readFogChunk(
       )
       .unique()
   ])
-  if (!saveRow || !chunkRow) throw new Error('Stored Scene fog chunk is unavailable.')
-  const save = parseFogSave(saveRow)
-  const chunk = sceneStoredFogChunkSchema.parse(stored(chunkRow))
-  const manifest = save.input.chunkManifest[reference.ordinal]
-  if (
-    save.sceneId !== sceneId ||
-    save.status !== 'PUBLISHED' ||
-    save.input.layer.ownerUserId !== layer.ownerUserId ||
-    save.input.layer.width !== layer.width ||
-    save.input.layer.height !== layer.height ||
-    chunk.saveId !== save.id ||
-    chunk.ordinal !== reference.ordinal ||
-    chunk.chunk.index !== reference.index ||
-    chunk.checksum !== reference.checksum ||
-    chunk.checksum !== checksumCanonicalJson(chunk.chunk) ||
-    manifest?.index !== reference.index ||
-    manifest.checksum !== reference.checksum ||
-    chunk.chunk.x + chunk.chunk.width > save.input.layer.width ||
-    chunk.chunk.y + chunk.chunk.height > save.input.layer.height
+  return parseReferencedFogChunk(saveRow, chunkRow, reference, sceneId, layer)
+}
+
+/** Publication can reuse already loaded save metadata instead of rereading it for every tile. */
+export function parseReferencedFogChunk(
+  saveRow: Doc<'sceneFogSaves'> | null,
+  chunkRow: Doc<'sceneFogChunks'> | null,
+  reference: ReturnType<typeof sceneStoredFogLayerSchema.parse>['chunks'][number],
+  sceneId: string,
+  layer: ReturnType<typeof sceneStoredFogSaveSchema.parse>['input']['layer']
+) {
+  return parseSceneReferencedFogChunk(
+    saveRow ? stored(saveRow) : null,
+    chunkRow ? stored(chunkRow) : null,
+    reference,
+    sceneId,
+    layer
   )
-    throw new Error('Stored Scene fog chunk is inconsistent.')
-  return chunk.chunk
 }

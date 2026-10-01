@@ -1,10 +1,10 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button, Checkbox, Text } from '@mantine/core'
 import { Dices, Minus, Plus } from 'lucide-react'
 import type {
   CharacterRestPreviewRequestDto,
   CharacterRestPreviewResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import type { CharacterSheet } from '../core/CharacterSheet.types'
 import * as coreStyles from '../core/sheetShell.css'
 import { CharacterSheetRollDestination } from '../dice/CharacterSheetRollDestination'
 import { useCharacterSheetRoll } from '../dice/rollContext'
@@ -51,7 +51,7 @@ export function CharacterSheetRestPreviewContent({
   restKind: CharacterRestPreviewRequestDto['restKind']
   selectedCompanionInstanceIds: string[]
   selectedHitDice: CharacterRestPreviewRequestDto['selectedHitDice']
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
 }) {
   const rollController = useCharacterSheetRoll()
   if (!preview) {

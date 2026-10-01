@@ -1,3 +1,5 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -278,6 +280,8 @@ it.each([
     const runtime = await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
     const records = () =>
       value.base.t.run(async (ctx) => ({
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         run: await ctx.db
           .query('encounterRuns')
           .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
@@ -308,13 +312,15 @@ it.each([
         receipts: await ctx.db
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-          .collect(),
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
         characterReceipts: await ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) =>
             q.eq('characterId', value.base.character.id)
           )
-          .collect(),
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers)),
         occurrences: await ctx.db
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
@@ -469,7 +475,7 @@ it.each([
             .unique()
           if (!row) throw new Error('Movement Run is unavailable.')
           const state = readRunState(row)
-          const actors = await readRunActors(ctx, state)
+          const actors = await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state)
           const authorizedCharacterIds = new Set(
             actors.flatMap((actor) =>
               actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []
@@ -685,7 +691,7 @@ it.each([
         .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
         .unique()
       if (!run) throw new Error('Published movement Run is unavailable.')
-      return readRunActors(ctx, readRunState(run))
+      return readRunActors({ db: createConvexEncounterStoreReader(ctx) }, readRunState(run))
     })
     const sourceActor = settledActors.find(
       (actor) => actor.id === reaction.option.candidate.reactorActorId

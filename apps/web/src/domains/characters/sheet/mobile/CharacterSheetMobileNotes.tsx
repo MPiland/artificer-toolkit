@@ -1,4 +1,5 @@
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { CharacterSheetNotesSliceDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetNotes } from '../notes/CharacterSheetNotes'
 import * as coreStyles from '../core/sheetShell.css'
 import * as mobileStyles from './mobile.css'
@@ -9,7 +10,7 @@ export function CharacterSheetMobileNotes({
   submitCommand
 }: {
   pending: boolean
-  sheet: CharacterSheet
+  sheet: CharacterSheetNotesSliceDto
   submitCommand: SubmitSheetCommand
 }) {
   return (

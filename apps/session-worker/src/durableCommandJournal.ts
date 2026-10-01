@@ -2,6 +2,7 @@ import {
   liveSessionExternalCommitSubjectSchema,
   type LiveSessionExternalCommitSubject
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import type { LiveSessionRoomCommandDurability } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 
 export const MAX_DURABLE_COMMAND_JSON_BYTES = 1_000_000
 export const MAX_DURABLE_OUTBOX_BATCH_COUNT = 100
@@ -29,7 +30,7 @@ export interface DurableCommandJournalState {
   status: DurableCommandJournalStatus
 }
 
-export interface DurableCommandReceipt {
+export interface DurableCommandReceipt extends LiveSessionRoomCommandDurability {
   actorId: string
   commandId: string
   fingerprint: string
@@ -109,6 +110,7 @@ interface AuthorityRow extends Record<string, SqlStorageValue> {
 
 interface ReceiptRow extends Record<string, SqlStorageValue> {
   actor_id: string
+  checkpoint_before_ack: number
   command_id: string
   fingerprint: string
   receipt_json: string
@@ -286,6 +288,8 @@ function stateFromRow(
 }
 
 function receiptFromRow(row: ReceiptRow, storage: DurableObjectStorage): DurableCommandReceipt {
+  if (row.checkpoint_before_ack !== 0 && row.checkpoint_before_ack !== 1)
+    fail('CORRUPT_JOURNAL', 'The durable command receipt has an invalid acknowledgement fence.')
   assertIdentifier('stored actor ID', row.actor_id)
   assertIdentifier('stored command ID', row.command_id)
   assertIdentifier('stored command fingerprint', row.fingerprint)
@@ -297,6 +301,7 @@ function receiptFromRow(row: ReceiptRow, storage: DurableObjectStorage): Durable
   if (undoJson !== null) assertJsonContents('stored undo', undoJson)
   return {
     actorId: row.actor_id,
+    checkpointBeforeAcknowledgement: row.checkpoint_before_ack === 1,
     commandId: row.command_id,
     fingerprint: row.fingerprint,
     receiptJson: row.receipt_json,
@@ -329,7 +334,9 @@ export class DurableCommandJournal {
         sequence INTEGER NOT NULL UNIQUE CHECK (sequence > 0),
         state_checksum TEXT NOT NULL,
         receipt_json TEXT NOT NULL,
-        undo_json TEXT
+        undo_json TEXT,
+        created_at INTEGER NOT NULL,
+        checkpoint_before_ack INTEGER NOT NULL DEFAULT 0 CHECK (checkpoint_before_ack IN (0, 1))
       );
       CREATE TABLE IF NOT EXISTS durable_command_outbox (
         sequence INTEGER PRIMARY KEY CHECK (sequence > 0),
@@ -357,6 +364,22 @@ export class DurableCommandJournal {
         CHECK (part_index < part_count)
       );
     `)
+    const receiptColumns = storage.sql
+      .exec<{ name: string }>("SELECT name FROM pragma_table_info('durable_command_receipts')")
+      .toArray()
+    if (!receiptColumns.some((column) => column.name === 'created_at'))
+      storage.transactionSync(() => {
+        storage.sql.exec(
+          'ALTER TABLE durable_command_receipts ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0'
+        )
+        storage.sql.exec('UPDATE durable_command_receipts SET created_at = ?', Date.now())
+      })
+    if (!receiptColumns.some((column) => column.name === 'checkpoint_before_ack'))
+      storage.transactionSync(() => {
+        storage.sql.exec(
+          'ALTER TABLE durable_command_receipts ADD COLUMN checkpoint_before_ack INTEGER NOT NULL DEFAULT 0'
+        )
+      })
     // Before D47 the record named only its Scene save; an unsettled one keeps that as its subject.
     const legacy = storage.sql
       .exec<{ name: string }>("SELECT name FROM pragma_table_info('durable_external_commit')")
@@ -409,6 +432,25 @@ export class DurableCommandJournal {
       )
       return this.#requiredState()
     })
+  }
+
+  /** Reads the fence even when the state JSON cannot be recovered. */
+  get authorityEpoch(): string | null {
+    return this.#authorityRow()?.authority_epoch ?? null
+  }
+
+  /** Called inside the replacement snapshot transaction, only after Convex fences this epoch. */
+  discardFencedAuthorityInTransaction(authorityEpoch: string): undefined {
+    assertIdentifier('authority epoch', authorityEpoch)
+    const currentEpoch = this.authorityEpoch
+    if (currentEpoch !== null && currentEpoch !== authorityEpoch)
+      fail('AUTHORITY_MISMATCH', 'The recovered authority epoch is stale.')
+    this.storage.sql.exec('DELETE FROM durable_session_authority')
+    this.storage.sql.exec('DELETE FROM durable_command_receipts')
+    this.storage.sql.exec('DELETE FROM durable_command_outbox')
+    this.storage.sql.exec('DELETE FROM durable_external_commit')
+    this.storage.sql.exec('DELETE FROM durable_command_json_chunks')
+    return undefined
   }
 
   readCurrent(): DurableCommandJournalState | null {
@@ -465,7 +507,7 @@ export class DurableCommandJournal {
     const row = this.storage.sql
       .exec<ReceiptRow>(
         `SELECT moved.command_id, moved.actor_id, moved.fingerprint, moved.sequence,
-                moved.state_checksum, moved.receipt_json, moved.undo_json
+                moved.state_checksum, moved.receipt_json, moved.undo_json, moved.checkpoint_before_ack
          FROM durable_command_receipts AS moved
          WHERE json_extract(moved.receipt_json, '$.delta.scope') = 'SCENE'
            AND json_extract(moved.receipt_json, '$.delta.result.sceneId') = ?
@@ -491,93 +533,117 @@ export class DurableCommandJournal {
   commit(input: {
     actorId: string
     authorityEpoch: string
+    checkpointBeforeAcknowledgement?: LiveSessionRoomCommandDurability['checkpointBeforeAcknowledgement']
     commandId: string
     expectedSequence: number
     expectedStateChecksum: string
     fingerprint: string
     nextStateChecksum: string
     nextStateJson: string
-    outboxPayloadJson: string
+    /** Omit when RoomEncounterStore supplies the checkpoint publication write set. */
+    outboxPayloadJson?: string
     receiptJson: string
     undoJson?: string
   }): DurableCommandCommitResult {
+    return this.storage.transactionSync(() => this.commitInTransaction(input))
+  }
+
+  /**
+   * Shares RoomEncounterStore's SQLite transaction with its write set. The caller must already
+   * hold storage.transactionSync; memory is published only after this method and the log commit.
+   */
+  commitInTransaction(
+    input: Parameters<DurableCommandJournal['commit']>[0]
+  ): DurableCommandCommitResult {
     assertIdentifier('actor ID', input.actorId)
     assertIdentifier('authority epoch', input.authorityEpoch)
     assertIdentifier('command ID', input.commandId)
     assertIdentifier('command fingerprint', input.fingerprint)
     assertSequence('expected sequence', input.expectedSequence)
     assertChecksum('expected state checksum', input.expectedStateChecksum)
+    const existing = this.#receiptRow(input.commandId)
+    if (existing) {
+      if (existing.actor_id !== input.actorId || existing.fingerprint !== input.fingerprint)
+        fail('COMMAND_ID_REUSE', 'The command ID was reused with different command input.')
+      return { kind: 'REPLAY', receipt: receiptFromRow(existing, this.storage) }
+    }
 
-    return this.storage.transactionSync(() => {
-      const existing = this.#receiptRow(input.commandId)
-      if (existing) {
-        if (existing.actor_id !== input.actorId || existing.fingerprint !== input.fingerprint)
-          fail('COMMAND_ID_REUSE', 'The command ID was reused with different command input.')
-        return { kind: 'REPLAY', receipt: receiptFromRow(existing, this.storage) }
-      }
+    assertChecksum('next state checksum', input.nextStateChecksum)
+    assertJsonContents('next state', input.nextStateJson)
+    assertJson('command receipt', input.receiptJson)
+    if (input.outboxPayloadJson !== undefined) assertJson('outbox payload', input.outboxPayloadJson)
+    if (input.undoJson !== undefined) assertJsonContents('command undo', input.undoJson)
+    const checkpointBeforeAcknowledgement =
+      input.checkpointBeforeAcknowledgement === undefined
+        ? false
+        : input.checkpointBeforeAcknowledgement
+    if (typeof checkpointBeforeAcknowledgement !== 'boolean')
+      fail('INVALID_INPUT', 'The command acknowledgement fence must be a boolean.')
 
-      assertChecksum('next state checksum', input.nextStateChecksum)
-      assertJsonContents('next state', input.nextStateJson)
-      assertJson('command receipt', input.receiptJson)
-      assertJson('outbox payload', input.outboxPayloadJson)
-      if (input.undoJson !== undefined) assertJsonContents('command undo', input.undoJson)
+    const authorityRow = this.#authorityRow()
+    if (!authorityRow) fail('NOT_ACTIVATED', 'The durable Session authority is not active.')
+    const current = stateFromRow(authorityRow, this.storage)
+    if (current.authorityEpoch !== input.authorityEpoch)
+      fail('AUTHORITY_MISMATCH', 'The command authority epoch is stale.')
+    if (current.status !== 'ACTIVE')
+      fail('DRAIN_IN_PROGRESS', 'The Session authority is no longer accepting commands.')
+    if (this.#externalRow())
+      fail('EXTERNAL_COMMIT_PENDING', 'An earlier table change has not settled.')
+    if (
+      current.sequence !== input.expectedSequence ||
+      current.stateChecksum !== input.expectedStateChecksum
+    )
+      fail('STALE_STATE', 'The command was prepared from stale Session state.')
+    if (current.sequence === Number.MAX_SAFE_INTEGER)
+      fail('CORRUPT_JOURNAL', 'The durable command sequence is exhausted.')
+    const sequence = current.sequence + 1
+    const storedStateJson =
+      input.nextStateJson === current.stateJson
+        ? authorityRow.state_json
+        : writeStoredJson(this.storage, 'state', input.nextStateJson)
+    const storedUndoJson =
+      input.undoJson === undefined
+        ? null
+        : writeStoredJson(this.storage, `undo:${input.commandId}`, input.undoJson)
 
-      const current = this.#requiredState()
-      if (current.authorityEpoch !== input.authorityEpoch)
-        fail('AUTHORITY_MISMATCH', 'The command authority epoch is stale.')
-      if (current.status !== 'ACTIVE')
-        fail('DRAIN_IN_PROGRESS', 'The Session authority is no longer accepting commands.')
-      if (this.#externalRow())
-        fail('EXTERNAL_COMMIT_PENDING', 'An earlier table change has not settled.')
-      if (
-        current.sequence !== input.expectedSequence ||
-        current.stateChecksum !== input.expectedStateChecksum
-      )
-        fail('STALE_STATE', 'The command was prepared from stale Session state.')
-      if (current.sequence === Number.MAX_SAFE_INTEGER)
-        fail('CORRUPT_JOURNAL', 'The durable command sequence is exhausted.')
-      const sequence = current.sequence + 1
-      const storedStateJson = writeStoredJson(this.storage, 'state', input.nextStateJson)
-      const storedUndoJson =
-        input.undoJson === undefined
-          ? null
-          : writeStoredJson(this.storage, `undo:${input.commandId}`, input.undoJson)
-
-      this.storage.sql.exec(
-        `UPDATE durable_session_authority
+    this.storage.sql.exec(
+      `UPDATE durable_session_authority
          SET state_checksum = ?, state_json = ?, sequence = ?
          WHERE id = 1`,
-        input.nextStateChecksum,
-        storedStateJson,
-        sequence
-      )
-      this.storage.sql.exec(
-        `INSERT INTO durable_command_receipts (
-          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        input.commandId,
-        input.actorId,
-        input.fingerprint,
-        sequence,
-        input.nextStateChecksum,
-        input.receiptJson,
-        storedUndoJson
-      )
+      input.nextStateChecksum,
+      storedStateJson,
+      sequence
+    )
+    this.storage.sql.exec(
+      `INSERT INTO durable_command_receipts (
+          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json,
+          created_at, checkpoint_before_ack
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      input.commandId,
+      input.actorId,
+      input.fingerprint,
+      sequence,
+      input.nextStateChecksum,
+      input.receiptJson,
+      storedUndoJson,
+      Date.now(),
+      checkpointBeforeAcknowledgement ? 1 : 0
+    )
+    if (input.outboxPayloadJson !== undefined)
       this.storage.sql.exec(
         `INSERT INTO durable_command_outbox (sequence, state_checksum, payload_json)
-         VALUES (?, ?, ?)`,
+           VALUES (?, ?, ?)`,
         sequence,
         input.nextStateChecksum,
         input.outboxPayloadJson
       )
-      const receipt = this.#receiptRow(input.commandId)
-      if (!receipt) fail('CORRUPT_JOURNAL', 'The committed command receipt is missing.')
-      return {
-        kind: 'COMMITTED',
-        receipt: receiptFromRow(receipt, this.storage),
-        state: this.#requiredState()
-      }
-    })
+    const receipt = this.#receiptRow(input.commandId)
+    if (!receipt) fail('CORRUPT_JOURNAL', 'The committed command receipt is missing.')
+    return {
+      kind: 'COMMITTED',
+      receipt: receiptFromRow(receipt, this.storage),
+      state: this.#requiredState()
+    }
   }
 
   /**
@@ -680,14 +746,16 @@ export class DurableCommandJournal {
       )
       this.storage.sql.exec(
         `INSERT INTO durable_command_receipts (
-          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json
-        ) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json,
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)`,
         record.commandId,
         record.actorId,
         record.fingerprint,
         sequence,
         record.nextStateChecksum,
-        input.receiptJson ?? record.receiptJson
+        input.receiptJson ?? record.receiptJson,
+        Date.now()
       )
       this.#deleteExternal()
       const receipt = this.#receiptRow(record.commandId)
@@ -703,6 +771,21 @@ export class DurableCommandJournal {
         fail('STALE_STATE', 'A different table change is unsettled.')
       this.#deleteExternal()
     })
+  }
+
+  /** The unchanged start of the oldest unpublished command's checkpoint deadline. */
+  oldestUnpublishedCommandTime(): number | null {
+    const current = this.#requiredState()
+    const createdAt = this.storage.sql
+      .exec<{ created_at: number | null }>(
+        'SELECT MIN(created_at) AS created_at FROM durable_command_receipts WHERE sequence > ?',
+        current.publishedSequence
+      )
+      .one().created_at
+    if (createdAt === null) return null
+    if (typeof createdAt !== 'number' || !Number.isSafeInteger(createdAt) || createdAt <= 0)
+      fail('CORRUPT_JOURNAL', 'The unpublished command timestamp is invalid.')
+    return createdAt
   }
 
   listPending(limit: number): DurableCommandOutboxEntry[] {
@@ -802,6 +885,61 @@ export class DurableCommandJournal {
     })
   }
 
+  /** Acknowledges an accepted room write-set prefix using its terminal durable receipt. */
+  acknowledgeCheckpoint(
+    input: Parameters<DurableCommandJournal['acknowledge']>[0]
+  ): DurableCommandJournalState {
+    return this.storage.transactionSync(() => this.acknowledgeCheckpointInTransaction(input))
+  }
+
+  /** Shares the room snapshot compaction transaction; the caller must hold transactionSync. */
+  acknowledgeCheckpointInTransaction(
+    input: Parameters<DurableCommandJournal['acknowledgeCheckpoint']>[0]
+  ): DurableCommandJournalState {
+    assertIdentifier('authority epoch', input.authorityEpoch)
+    assertChecksum('acknowledged state checksum', input.stateChecksum)
+    assertSequence('acknowledged sequence', input.throughSequence)
+
+    const current = this.#requiredState()
+    if (current.authorityEpoch !== input.authorityEpoch)
+      fail('AUTHORITY_MISMATCH', 'The checkpoint acknowledgement authority epoch is stale.')
+    if (input.throughSequence === current.publishedSequence) {
+      if (input.stateChecksum !== current.publishedChecksum)
+        fail('INVALID_ACKNOWLEDGEMENT', 'The repeated acknowledgement checksum differs.')
+      return current
+    }
+    if (
+      input.throughSequence < current.publishedSequence ||
+      input.throughSequence > current.sequence
+    )
+      fail('INVALID_ACKNOWLEDGEMENT', 'The acknowledgement sequence is outside the pending range.')
+    const external = this.#externalRow()
+    if (external && input.throughSequence > external.expected_sequence)
+      fail('EXTERNAL_COMMIT_PENDING', 'An unsettled table change crosses the checkpoint prefix.')
+    const receipt = this.storage.sql
+      .exec<{ state_checksum: string }>(
+        'SELECT state_checksum FROM durable_command_receipts WHERE sequence = ?',
+        input.throughSequence
+      )
+      .toArray()[0]
+    if (!receipt) fail('CORRUPT_JOURNAL', 'The acknowledged checkpoint receipt is missing.')
+    if (receipt.state_checksum !== input.stateChecksum)
+      fail('INVALID_ACKNOWLEDGEMENT', 'The acknowledgement checksum does not match its sequence.')
+
+    this.storage.sql.exec(
+      `UPDATE durable_session_authority
+         SET published_sequence = ?, published_checksum = ?
+         WHERE id = 1`,
+      input.throughSequence,
+      input.stateChecksum
+    )
+    this.storage.sql.exec(
+      'DELETE FROM durable_command_outbox WHERE sequence <= ?',
+      input.throughSequence
+    )
+    return this.#requiredState()
+  }
+
   beginDrain(input: {
     authorityEpoch: string
     finalSequence: number
@@ -888,7 +1026,7 @@ export class DurableCommandJournal {
     return this.storage.sql
       .exec<ReceiptRow>(
         `SELECT command_id, actor_id, fingerprint, sequence,
-                state_checksum, receipt_json, undo_json
+                state_checksum, receipt_json, undo_json, checkpoint_before_ack
          FROM durable_command_receipts
          WHERE command_id = ?`,
         commandId

@@ -1,16 +1,17 @@
-import { act, renderHook } from '@testing-library/react'
+import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { ConvexQueryClient } from '@convex-dev/react-query'
 import type { ReactNode } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { createSheet } from '#domains/characters/sheet/tests/sheetTestHarness'
 import { itemPanelFixture } from '#domains/characters/sheet/inspector/inspector.fixtures'
-import { getCharacterSheet } from './queries'
+import { getCharacterSheetSlice } from './queries'
 import { useCharacterRestPreviewMutation, useCharacterSheetCommandMutation } from './mutations'
 
 function setup() {
@@ -49,8 +50,7 @@ describe('native character sheet mutations', () => {
     const sheet = createSheet()
     const mutation = vi.spyOn(client, 'mutation').mockResolvedValue({
       characterId: sheet.meta.characterId,
-      streamVersion: 5,
-      sheet: { ...sheet, meta: { ...sheet.meta, streamVersion: 5 } }
+      streamVersion: 5
     })
     const hook = renderHook(() => useCharacterSheetCommandMutation('character-1'), { wrapper })
     await act(async () => {
@@ -70,11 +70,11 @@ describe('native character sheet mutations', () => {
     const { client, queryClient, wrapper } = setup()
     const campaignId = '00000000-0000-4000-8000-000000000123'
     const sheet = createSheet()
+    sheet.meta.campaignId = campaignId
     const panel = { ...itemPanelFixture, characterId: sheet.meta.characterId }
     const mutation = vi.spyOn(client, 'mutation').mockResolvedValue({
       characterId: sheet.meta.characterId,
-      streamVersion: 5,
-      sheet
+      streamVersion: 5
     })
     const hook = renderHook(
       () => useCharacterSheetCommandMutation(sheet.meta.characterId, campaignId),
@@ -99,17 +99,42 @@ describe('native character sheet mutations', () => {
           .fn()
           .mockImplementation((reference: Parameters<OptimisticLocalStore['getAllQueries']>[0]) => {
             const name = getFunctionName(reference)
-            if (name === 'campaigns/characterSheet:get') {
+            if (name === 'characters/sheetSlices:get') {
               return [
-                { args: { campaignId, characterId: sheet.meta.characterId }, value: sheet },
+                {
+                  args: { campaignId, id: sheet.meta.characterId, slice: 'COMMON' },
+                  value: projectCharacterSheetSlice(sheet, 'COMMON')
+                },
+                {
+                  args: { id: 'public-alias', slice: 'COMMON' },
+                  value: projectCharacterSheetSlice(sheet, 'COMMON')
+                },
+                {
+                  args: { id: 'public-alias', slice: 'ACTIONS' },
+                  value: projectCharacterSheetSlice(sheet, 'ACTIONS')
+                },
                 {
                   args: {
                     campaignId: 'other-campaign',
-                    characterId: sheet.meta.characterId
+                    id: sheet.meta.characterId,
+                    slice: 'COMMON'
                   },
-                  value: sheet
+                  value: projectCharacterSheetSlice(sheet, 'COMMON')
                 },
-                { args: { campaignId, characterId: 'other-character' }, value: sheet }
+                {
+                  args: { campaignId, id: 'other-character', slice: 'COMMON' },
+                  value: projectCharacterSheetSlice(
+                    { ...sheet, meta: { ...sheet.meta, characterId: 'other-character' } },
+                    'COMMON'
+                  )
+                },
+                {
+                  args: { id: 'other-campaign-alias', slice: 'COMMON' },
+                  value: projectCharacterSheetSlice(
+                    { ...sheet, meta: { ...sheet.meta, campaignId: 'other-campaign' } },
+                    'COMMON'
+                  )
+                }
               ]
             }
             if (name === 'campaigns/characterSheet:panel') {
@@ -133,18 +158,48 @@ describe('native character sheet mutations', () => {
         setQuery: write
       }
       update?.(store, { campaignId, characterId: sheet.meta.characterId, command })
-      expect(write).toHaveBeenCalledTimes(2)
+      expect(write).toHaveBeenCalledTimes(4)
       expect(write).toHaveBeenCalledWith(
-        convexApi.campaigns.characterSheet.get,
-        { campaignId, characterId: sheet.meta.characterId },
+        convexApi.characters.sheetSlices.get,
+        { campaignId, id: sheet.meta.characterId, slice: 'COMMON' },
         expect.objectContaining({
-          overview: expect.objectContaining({ currentHitPoints: 10, tempHitPoints: 2 })
+          data: expect.objectContaining({
+            overview: expect.objectContaining({ currentHitPoints: 10, tempHitPoints: 2 })
+          })
         })
       )
       expect(write).toHaveBeenCalledWith(
         convexApi.campaigns.characterSheet.panel,
         { campaignId, characterId: sheet.meta.characterId, target: panel.target },
         panel
+      )
+      expect(write).toHaveBeenCalledWith(
+        convexApi.characters.sheetSlices.get,
+        { id: 'public-alias', slice: 'COMMON' },
+        expect.objectContaining({
+          data: expect.objectContaining({ overview: expect.objectContaining({ tempHitPoints: 2 }) })
+        })
+      )
+      write.mockClear()
+      update?.(store, {
+        campaignId,
+        characterId: sheet.meta.characterId,
+        command: {
+          commandId: command.commandId,
+          expectedVersion: command.expectedVersion,
+          type: 'USE_RESOURCE',
+          resourceGrantId: sheet.resources.items[0]!.id
+        }
+      })
+      expect(write).toHaveBeenCalledTimes(4)
+      expect(write).toHaveBeenCalledWith(
+        convexApi.characters.sheetSlices.get,
+        { id: 'public-alias', slice: 'ACTIONS' },
+        expect.objectContaining({
+          data: expect.objectContaining({
+            resources: { items: [expect.objectContaining({ used: 1, remaining: 0 })] }
+          })
+        })
       )
     } finally {
       hook.unmount()
@@ -159,8 +214,7 @@ describe('native character sheet mutations', () => {
     const panel = { ...itemPanelFixture, characterId: sheet.meta.characterId }
     const mutation = vi.spyOn(client, 'mutation').mockResolvedValue({
       characterId: sheet.meta.characterId,
-      streamVersion: 5,
-      sheet: { ...sheet, meta: { ...sheet.meta, streamVersion: 5 } }
+      streamVersion: 5
     })
     const hook = renderHook(() => useCharacterSheetCommandMutation(sheet.meta.characterId), {
       wrapper
@@ -177,15 +231,24 @@ describe('native character sheet mutations', () => {
         getAllQueries: vi
           .fn()
           .mockImplementation((reference: Parameters<OptimisticLocalStore['getAllQueries']>[0]) =>
-            getFunctionName(reference) === 'characters/sheet:get'
+            getFunctionName(reference) === 'characters/sheetSlices:get'
               ? [
-                  { args: { id: sheet.meta.characterId }, value: sheet },
-                  { args: { id: 'alias' }, value: sheet },
-                  { args: { id: 'unloaded' }, value: undefined },
-                  { args: { id: 'absent' }, value: null },
                   {
-                    args: { id: sheet.meta.characterId },
-                    value: { ...sheet, meta: { ...sheet.meta, characterId: 'other' } }
+                    args: { id: sheet.meta.characterId, slice: 'COMMON' },
+                    value: projectCharacterSheetSlice(sheet, 'COMMON')
+                  },
+                  {
+                    args: { id: 'alias', slice: 'COMMON' },
+                    value: projectCharacterSheetSlice(sheet, 'COMMON')
+                  },
+                  { args: { id: 'unloaded', slice: 'COMMON' }, value: undefined },
+                  { args: { id: 'absent', slice: 'COMMON' }, value: null },
+                  {
+                    args: { id: sheet.meta.characterId, slice: 'COMMON' },
+                    value: projectCharacterSheetSlice(
+                      { ...sheet, meta: { ...sheet.meta, characterId: 'other' } },
+                      'COMMON'
+                    )
                   }
                 ]
               : [
@@ -204,10 +267,12 @@ describe('native character sheet mutations', () => {
       expect(write).toHaveBeenCalledTimes(4)
       for (const id of [sheet.meta.characterId, 'alias']) {
         expect(write).toHaveBeenCalledWith(
-          convexApi.characters.sheet.get,
-          { id },
+          convexApi.characters.sheetSlices.get,
+          { id, slice: 'COMMON' },
           expect.objectContaining({
-            overview: expect.objectContaining({ currentHitPoints: 10, tempHitPoints: 2 })
+            data: expect.objectContaining({
+              overview: expect.objectContaining({ currentHitPoints: 10, tempHitPoints: 2 })
+            })
           })
         )
         expect(write).toHaveBeenCalledWith(
@@ -248,7 +313,7 @@ describe('native character sheet mutations', () => {
   it('keeps a newer pushed Sheet when a command returns an older receipt', async () => {
     const client = new ConvexReactClient('https://sheet-test.convex.cloud')
     const original = createSheet()
-    let current = original
+    let current = projectCharacterSheetSlice(original, 'COMMON')
     const callbacks = new Set<() => void>()
     vi.spyOn(client, 'watchQuery').mockReturnValue({
       localQueryResult: () => current,
@@ -260,12 +325,14 @@ describe('native character sheet mutations', () => {
     })
     const read = vi.spyOn(client, 'query').mockImplementation(async () => current)
     vi.spyOn(client, 'mutation').mockImplementation(async () => {
-      current = { ...original, meta: { ...original.meta, streamVersion: 9 } }
+      current = projectCharacterSheetSlice(
+        { ...original, meta: { ...original.meta, streamVersion: 9 } },
+        'COMMON'
+      )
       for (const callback of callbacks) callback()
       return {
         characterId: original.meta.characterId,
-        streamVersion: 5,
-        sheet: { ...original, meta: { ...original.meta, streamVersion: 5 } }
+        streamVersion: 5
       }
     })
     const convex = new ConvexQueryClient(client)
@@ -275,16 +342,26 @@ describe('native character sheet mutations', () => {
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       </ConvexProvider>
     )
-    const hook = renderHook(() => useCharacterSheetCommandMutation(original.meta.characterId), {
-      wrapper
-    })
+    const query = getCharacterSheetSlice('alias', 'COMMON')
+    const hook = renderHook(
+      () => ({
+        sheet: useQuery(query),
+        mutation: useCharacterSheetCommandMutation(original.meta.characterId)
+      }),
+      { wrapper }
+    )
     try {
-      const query = getCharacterSheet('alias')
-      await queryClient.ensureQueryData(query)
+      await waitFor(() => expect(hook.result.current.sheet.data?.meta.streamVersion).toBe(4))
+      expect(
+        queryClient.getQueryCache().find({ queryKey: query.queryKey })?.getObserversCount()
+      ).toBe(1)
       await act(async () => {
-        await hook.result.current.mutateAsync(command)
+        await hook.result.current.mutation.mutateAsync(command)
       })
-      expect(queryClient.getQueryData(query.queryKey)).toMatchObject({ meta: { streamVersion: 9 } })
+      await waitFor(() => expect(hook.result.current.sheet.data?.meta.streamVersion).toBe(9))
+      expect(queryClient.getQueryData(query.queryKey)).toMatchObject({
+        data: { meta: { streamVersion: 9 } }
+      })
       expect(read).toHaveBeenCalledTimes(1)
     } finally {
       hook.unmount()

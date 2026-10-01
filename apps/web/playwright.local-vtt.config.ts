@@ -100,21 +100,33 @@ for (const origin of allowedOrigins) {
 }
 
 const localWorkerEnvironmentFile = join(localWorkerPersistencePath, '.dev.vars')
-writeFileSync(
-  localWorkerEnvironmentFile,
-  [
-    `CONVEX_SITE_URL=${localConvexSiteOrigin}`,
-    `LIVE_SESSION_ALLOWED_ORIGINS=${localAppOrigin}`,
-    `LIVE_SESSION_TICKET_SECRET=${requireWorkerSecret('LIVE_SESSION_TICKET_SECRET')}`,
-    `LIVE_SESSION_WORKER_SECRET=${requireWorkerSecret('LIVE_SESSION_WORKER_SECRET')}`
-  ].join('\n'),
-  { encoding: 'utf8', mode: 0o600 }
-)
+writeFileSync(localWorkerEnvironmentFile, '', { encoding: 'utf8', mode: 0o600 })
 
 const sharedEnvironment = {
   ...process.env,
   ...localTestOverrides
 }
+
+// Use the same in-memory binding path as the lifecycle runner; never write Worker secrets.
+const workerEnvironment: Record<string, string> = Object.fromEntries(
+  Object.entries(sharedEnvironment).filter(
+    (entry): entry is [string, string] => entry[1] !== undefined
+  )
+)
+for (const name of Object.keys(localEnvironment)) delete workerEnvironment[name]
+for (const name of Object.keys(workerEnvironment))
+  if (name.startsWith('MANAGED_') || name === 'CONVEX_SELF_HOSTED_ADMIN_KEY')
+    delete workerEnvironment[name]
+Object.assign(workerEnvironment, {
+  CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
+  YARN_INJECT_ENVIRONMENT_FILES: localWorkerEnvironmentFile,
+  CONVEX_SITE_URL: localConvexSiteOrigin,
+  LIVE_SESSION_ALLOWED_ORIGINS: localAppOrigin,
+  LOCAL_CONTENT_SNAPSHOT_ORIGIN: 'http://127.0.0.1:8026',
+  LIVE_SESSION_TICKET_SECRET: requireWorkerSecret('LIVE_SESSION_TICKET_SECRET'),
+  LIVE_SESSION_WORKER_SECRET: requireWorkerSecret('LIVE_SESSION_WORKER_SECRET'),
+  CONTENT_SNAPSHOT_TOKEN_SECRET: requireWorkerSecret('CONTENT_SNAPSHOT_TOKEN_SECRET')
+})
 
 export default defineConfig({
   expect: { timeout: 15_000 },
@@ -148,7 +160,7 @@ export default defineConfig({
     {
       command: `yarn workspace @artificer-toolkit/session-worker dev --env-file "${localWorkerEnvironmentFile}" --ip 127.0.0.1 --port 8787 --persist-to "${localWorkerPersistencePath}"`,
       cwd: repoRoot,
-      env: sharedEnvironment,
+      env: workerEnvironment,
       name: 'local-vtt-worker',
       reuseExistingServer: false,
       stdout: 'pipe',

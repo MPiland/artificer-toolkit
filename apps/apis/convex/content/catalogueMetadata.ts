@@ -38,6 +38,13 @@ export async function catalogueMetadata(
     ...(spell
       ? {
           spell: {
+            selectionVersion: 1,
+            publishedActive: spell.status === 'ACTIVE',
+            ...(spell.attributes === undefined ? {} : { attributes: spell.attributes }),
+            ...(spell.components === undefined ? {} : { components: spell.components }),
+            ...(spell.materialDescription === undefined
+              ? {}
+              : { materialDescription: spell.materialDescription }),
             level: spell.level,
             magicSchoolId: spell.magicSchoolId,
             magicSchoolNameKey: magicSchool!.label.toLowerCase(),

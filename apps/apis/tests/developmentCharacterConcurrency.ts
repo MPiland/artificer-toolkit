@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
+import type { CharacterSheetSliceDtoMap } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { DevelopmentClient } from './developmentClient'
 import { api } from '../convex/_generated/api.js'
@@ -19,6 +20,18 @@ export async function verifyCharacterConcurrency({
   first: CharacterBuilderResolveInput
   second: CharacterBuilderResolveInput
 }) {
+  async function readSlice<Slice extends 'COMMON' | 'NOTES'>(
+    client: DevelopmentClient,
+    slice: Slice
+  ) {
+    const response = await client.query(api.characters.sheetSlices.get, {
+      id: first.character.id,
+      slice
+    })
+    assert.ok(response && response.slice === slice)
+    return response.data as CharacterSheetSliceDtoMap[Slice]
+  }
+
   const creates = await Promise.allSettled([
     owner.mutation(api.characters.commit.commit, first),
     peer.mutation(api.characters.commit.commit, first)
@@ -59,11 +72,29 @@ export async function verifyCharacterConcurrency({
     owner.mutation(api.characters.sheetCommands.execute, originalNoteInput),
     peer.mutation(api.characters.sheetCommands.execute, originalNoteInput)
   ])
-  assert.deepEqual(notes[0].historyEntry, notes[1].historyEntry)
+  assert.deepEqual(notes[0], notes[1])
+  assert.equal(notes[0].characterId, first.character.id)
+  assert.equal('sheet' in notes[0], false)
+  assert.equal('panels' in notes[0], false)
   assert.equal(notes[0].streamVersion, 2)
   assert.equal(notes[1].streamVersion, 2)
-  assert.equal(notes[0].sheet.notes.items?.length, 1)
-  assert.deepEqual(notes[0].sheet, notes[1].sheet)
+  const notedSheet = await readSlice(owner, 'COMMON')
+  assert.ok(notedSheet)
+  assert.equal(notedSheet.meta.streamVersion, 2)
+  const notedNotes = await readSlice(owner, 'NOTES')
+  assert.equal(notedNotes.meta.streamVersion, 2)
+  assert.equal(notedNotes.notes.items?.length, 1)
+  assert.deepEqual(await readSlice(peer, 'NOTES'), notedNotes)
+  assert.equal(
+    await foreign.query(api.characters.sheetSlices.get, { id: first.character.id, slice: 'NOTES' }),
+    null
+  )
+  await assert.rejects(
+    () =>
+      anonymous.query(api.characters.sheetSlices.get, { id: first.character.id, slice: 'NOTES' }),
+    /Unauthenticated/
+  )
+  assert.deepEqual(await readSlice(peer, 'COMMON'), notedSheet)
   const conflict = await Promise.allSettled([
     owner.mutation(api.characters.sheetCommands.execute, {
       id: first.character.id,
@@ -119,10 +150,15 @@ export async function verifyCharacterConcurrency({
   ])
   assert.equal(unrelated[0].streamVersion, 4)
   assert.equal(unrelated[1].streamVersion, 2)
+  const unrelatedSheet = await readSlice(owner, 'COMMON')
+  assert.ok(unrelatedSheet)
+  assert.equal(unrelatedSheet.meta.streamVersion, 4)
+  assert.equal(unrelatedSheet.overview.inspiration, true)
+  const unrelatedNotes = await readSlice(owner, 'NOTES')
+  assert.equal(unrelatedNotes.meta.streamVersion, 4)
+  assert.deepEqual(unrelatedNotes.notes, notedNotes.notes)
   const replay = await owner.mutation(api.characters.sheetCommands.execute, originalNoteInput)
-  assert.deepEqual(replay.historyEntry, notes[0].historyEntry)
-  assert.equal(replay.streamVersion, 4)
-  assert.deepEqual(replay.sheet, unrelated[0].sheet)
+  assert.deepEqual(replay, { ...notes[0], streamVersion: 4 })
   await assert.rejects(
     () =>
       owner.mutation(api.characters.sheetCommands.execute, {
@@ -151,10 +187,8 @@ export async function verifyCharacterConcurrency({
     () => anonymous.mutation(api.characters.sheetCommands.execute, originalNoteInput),
     /Unauthenticated/
   )
-  assert.deepEqual(
-    await owner.query(api.characters.sheet.get, { id: first.character.id }),
-    replay.sheet
-  )
+  assert.deepEqual(await readSlice(owner, 'COMMON'), unrelatedSheet)
+  assert.deepEqual(await readSlice(owner, 'NOTES'), unrelatedNotes)
   const staleEdit = await owner.mutation(api.characters.drafts.create, {
     id: first.character.id,
     systemId: first.character.systemId
@@ -169,6 +203,11 @@ export async function verifyCharacterConcurrency({
     }
   })
   assert.equal(staleSheetUpdate.streamVersion, 5)
+  const staleSheet = await readSlice(owner, 'COMMON')
+  assert.ok(staleSheet)
+  assert.equal(staleSheet.meta.streamVersion, staleSheetUpdate.streamVersion)
+  const staleNotes = await readSlice(owner, 'NOTES')
+  assert.equal(staleNotes.meta.streamVersion, staleSheetUpdate.streamVersion)
   const staleCandidate: CharacterBuilderResolveInput = {
     expectedDraftId: staleEdit.id,
     mode: 'edit',
@@ -182,10 +221,8 @@ export async function verifyCharacterConcurrency({
     await owner.query(api.characters.drafts.get, { id: first.character.id }),
     staleEdit
   )
-  assert.deepEqual(
-    await owner.query(api.characters.sheet.get, { id: first.character.id }),
-    staleSheetUpdate.sheet
-  )
+  assert.deepEqual(await readSlice(owner, 'COMMON'), staleSheet)
+  assert.deepEqual(await readSlice(owner, 'NOTES'), staleNotes)
   await owner.mutation(api.characters.drafts.discard, {
     id: first.character.id,
     expectedDraftId: staleEdit.id
@@ -226,14 +263,15 @@ export async function verifyCharacterConcurrency({
     winningEdit.value.character.state.equipment.inventory,
     create.value.character.state.equipment.inventory
   )
-  const currentSheet = await owner.query(api.characters.sheet.get, { id: first.character.id })
+  const currentSheet = await readSlice(owner, 'COMMON')
   assert.ok(currentSheet)
   assert.equal(currentSheet.meta.streamVersion, 5)
-  assert.deepEqual(currentSheet.overview, staleSheetUpdate.sheet.overview)
-  assert.deepEqual(currentSheet.notes, staleSheetUpdate.sheet.notes)
+  assert.deepEqual(currentSheet.overview, staleSheet.overview)
+  const currentNotes = await readSlice(owner, 'NOTES')
+  assert.deepEqual(currentNotes, staleNotes)
   return {
     originalNoteInput,
-    originalHistoryEntry: notes[0].historyEntry,
+    originalReceipt: notes[0],
     currentSheet
   }
 }

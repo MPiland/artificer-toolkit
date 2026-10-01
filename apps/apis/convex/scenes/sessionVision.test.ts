@@ -475,6 +475,8 @@ async function boundMovementState(
         q.eq('sceneId', base.sceneId).eq('commandId', commandId)
       )
       .unique(),
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     ruleReceipt: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>

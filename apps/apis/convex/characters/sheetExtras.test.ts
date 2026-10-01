@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -68,10 +69,14 @@ async function fixture() {
         character: stored,
         authored: stored ? readCharacterRecord(stored) : null,
         sheetState: stored ? readCharacterSheetState(stored) : null,
-        receipts: await ctx.db
-          .query('characterCommandReceipts')
-          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-          .collect()
+        receipts: await readReceiptHeaders(
+          ctx,
+          'characterCommandReceipts',
+          await ctx.db
+            .query('characterCommandReceipts')
+            .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+            .collect()
+        )
       }
     })
   return { ...base, character, creature, vehicle, readState }
@@ -101,13 +106,17 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'WORLD' }
       })
     )
-    const companion = creatureResponse.sheet.extras.items.find((item) => item.kind === 'COMPANION')!
+    expect(creatureResponse).not.toHaveProperty('sheet')
+    const creatureResponseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: creatureResponse.characterId
+    }))!
+    const companion = creatureResponseSheet.extras.items.find((item) => item.kind === 'COMPANION')!
     expect(companion).toMatchObject({
       creatureId: creature.id,
       hitPoints: { maximum: 2, current: 2 }
     })
     expect(
-      creatureResponse.sheet.resources.items.some(
+      creatureResponseSheet.resources.items.some(
         (resource) =>
           resource.owner.kind === 'COMPANION_FEATURE' &&
           resource.owner.companionInstanceId === companion.id &&
@@ -121,6 +130,10 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'MOUNT', creatureId: creature.id, originKind: 'WORLD' }
       })
     )
+    expect(mountResponse).not.toHaveProperty('sheet')
+    const mountResponseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: mountResponse.characterId
+    }))!
     const ownedResponse = await owner.caller.mutation(
       execute,
       command(character.id, 3, {
@@ -128,11 +141,15 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'OWNED', creatureId: creature.id, originKind: 'SUMMONED' }
       })
     )
-    expect(mountResponse.sheet.extras.items.find((item) => item.kind === 'MOUNT')).toMatchObject({
+    expect(ownedResponse).not.toHaveProperty('sheet')
+    const ownedResponseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: ownedResponse.characterId
+    }))!
+    expect(mountResponseSheet.extras.items.find((item) => item.kind === 'MOUNT')).toMatchObject({
       hitPoints: { maximum: 2, current: 2 },
       hitDice: [{ die: 4, total: 1, used: 0 }]
     })
-    expect(ownedResponse.sheet.extras.items.find((item) => item.kind === 'OWNED')).toMatchObject({
+    expect(ownedResponseSheet.extras.items.find((item) => item.kind === 'OWNED')).toMatchObject({
       hitPoints: { maximum: 2, current: 2 },
       hitDice: [{ die: 4, total: 1, used: 0 }]
     })
@@ -143,7 +160,11 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'VEHICLE', vehicleId: vehicle.id }
       })
     )
-    const boat = vehicleResponse.sheet.extras.items.find((item) => item.kind === 'VEHICLE')!
+    expect(vehicleResponse).not.toHaveProperty('sheet')
+    const vehicleResponseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: vehicleResponse.characterId
+    }))!
+    const boat = vehicleResponseSheet.extras.items.find((item) => item.kind === 'VEHICLE')!
     expect(boat.hitPoints).toMatchObject({ maximum: 20, current: 20 })
     const stored = (await readState()).authored!
     expect(stored.intent).toEqual(before.authored?.intent)
@@ -169,7 +190,11 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'SUMMONED' }
       })
     )
-    const companionId = response.sheet.extras.items.find((item) => item.kind === 'COMPANION')!.id
+    expect(response).not.toHaveProperty('sheet')
+    let responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const companionId = responseSheet.extras.items.find((item) => item.kind === 'COMPANION')!.id
     response = await owner.caller.mutation(
       execute,
       command(character.id, 2, {
@@ -177,7 +202,11 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'VEHICLE', vehicleId: vehicle.id }
       })
     )
-    const vehicleId = response.sheet.extras.items.find((item) => item.kind === 'VEHICLE')!.id
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const vehicleId = responseSheet.extras.items.find((item) => item.kind === 'VEHICLE')!.id
     response = await owner.caller.mutation(
       execute,
       command(character.id, 3, {
@@ -186,7 +215,11 @@ describe('native Character Sheet extra commands', () => {
         quantity: 1
       })
     )
-    const itemId = response.sheet.inventory.items.at(-1)!.id
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const itemId = responseSheet.inventory.items.at(-1)!.id
     response = await owner.caller.mutation(
       execute,
       command(character.id, 4, {
@@ -203,7 +236,11 @@ describe('native Character Sheet extra commands', () => {
         }
       })
     )
-    expect(response.sheet.extras.items.find((item) => item.id === companionId)).toMatchObject({
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    expect(responseSheet.extras.items.find((item) => item.id === companionId)).toMatchObject({
       customName: 'Mittens',
       hitPoints: { current: 2, temp: 4 },
       equipmentItemIds: [itemId]
@@ -231,8 +268,12 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'VEHICLE', extraId: vehicleId, equipmentItemIds: [itemId] }
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     expect(
-      response.sheet.extras.items.find((item) => item.id === vehicleId)?.equipmentItemIds
+      responseSheet.extras.items.find((item) => item.id === vehicleId)?.equipmentItemIds
     ).toEqual([itemId])
     const beforeInvalid = await readState()
     await expect(
@@ -270,7 +311,11 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'COMPANION', extraId: companionId, customName: 'Renamed', notes: 'Updated' }
       })
     )
-    expect(response.sheet.extras.items.find((item) => item.id === companionId)).toMatchObject({
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    expect(responseSheet.extras.items.find((item) => item.id === companionId)).toMatchObject({
       customName: 'Renamed',
       notes: 'Updated',
       hitPoints: { current: 2, temp: 4 }
@@ -295,7 +340,11 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'VEHICLE', extraId: vehicleId }
       })
     )
-    expect(removed.sheet.extras.items.some((item) => item.id === vehicleId)).toBe(false)
+    expect(removed).not.toHaveProperty('sheet')
+    const removedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: removed.characterId
+    }))!
+    expect(removedSheet.extras.items.some((item) => item.id === vehicleId)).toBe(false)
     expect((await readState()).authored?.state.vehicles).toEqual([])
   })
 
@@ -319,8 +368,12 @@ describe('native Character Sheet extra commands', () => {
     vi.restoreAllMocks()
     const first = await owner.caller.mutation(execute, request)
     const replay = await owner.caller.mutation(execute, request)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.historyEntry).toEqual(first.historyEntry)
-    expect(replay.sheet.extras.items.filter((item) => item.kind === 'COMPANION')).toHaveLength(1)
+    expect(replaySheet.extras.items.filter((item) => item.kind === 'COMPANION')).toHaveLength(1)
     const before = await readState()
     await expect(
       other.caller.mutation(
@@ -343,7 +396,11 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'WORLD' }
       })
     )
-    const firstId = response.sheet.extras.items.find((item) => item.kind === 'COMPANION')!.id
+    expect(response).not.toHaveProperty('sheet')
+    let responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const firstId = responseSheet.extras.items.find((item) => item.kind === 'COMPANION')!.id
     response = await owner.caller.mutation(
       execute,
       command(character.id, 2, {
@@ -351,7 +408,11 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'SUMMONED' }
       })
     )
-    const secondId = response.sheet.extras.items
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const secondId = responseSheet.extras.items
       .filter((item) => item.kind === 'COMPANION')
       .find((item) => item.id !== firstId)!.id
     response = await owner.caller.mutation(
@@ -362,7 +423,11 @@ describe('native Character Sheet extra commands', () => {
         quantity: 1
       })
     )
-    const itemId = response.sheet.inventory.items.at(-1)!.id
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const itemId = responseSheet.inventory.items.at(-1)!.id
     response = await owner.caller.mutation(
       execute,
       command(character.id, 4, {
@@ -370,7 +435,11 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'COMPANION', extraId: firstId, equipmentItemIds: [itemId] }
       })
     )
-    const secondItemId = response.sheet.inventory.items.find((item) => item.id !== itemId)!.id
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const secondItemId = responseSheet.inventory.items.find((item) => item.id !== itemId)!.id
     response = await owner.caller.mutation(
       execute,
       command(character.id, 5, {
@@ -378,12 +447,16 @@ describe('native Character Sheet extra commands', () => {
         extra: { kind: 'COMPANION', extraId: secondId, equipmentItemIds: [secondItemId] }
       })
     )
-    const firstResource = response.sheet.resources.items.find(
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const firstResource = responseSheet.resources.items.find(
       (resource) =>
         resource.owner.kind === 'COMPANION_FEATURE' &&
         resource.owner.companionInstanceId === firstId
     )!
-    const secondResource = response.sheet.resources.items.find(
+    const secondResource = responseSheet.resources.items.find(
       (resource) =>
         resource.owner.kind === 'COMPANION_FEATURE' &&
         resource.owner.companionInstanceId === secondId
@@ -396,6 +469,10 @@ describe('native Character Sheet extra commands', () => {
         amount: 1
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     response = await owner.caller.mutation(
       execute,
       command(character.id, 7, {
@@ -404,6 +481,10 @@ describe('native Character Sheet extra commands', () => {
         amount: 1
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     await owner.caller.mutation(
       execute,
       command(character.id, 8, {
@@ -445,6 +526,10 @@ describe('native Character Sheet extra commands', () => {
     expect(await readState()).toEqual(beforeRemove)
     vi.restoreAllMocks()
     const removed = await owner.caller.mutation(execute, remove)
+    expect(removed).not.toHaveProperty('sheet')
+    const removedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: removed.characterId
+    }))!
     const afterRemove = await readState()
     const state = afterRemove.sheetState!
     expect(state.adjustments).toEqual(
@@ -490,8 +575,9 @@ describe('native Character Sheet extra commands', () => {
     expect(afterRemove.authored!.state.creatureEquipment?.[secondId]).toEqual([
       { equipmentItemId: secondItemId }
     ])
-    expect(removed.sheet.extras.items.some((item) => item.id === firstId)).toBe(false)
+    expect(removedSheet.extras.items.some((item) => item.id === firstId)).toBe(false)
     const replay = await owner.caller.mutation(execute, remove)
+    expect(replay).not.toHaveProperty('sheet')
     expect(replay.historyEntry).toEqual(removed.historyEntry)
     expect(await readState()).toEqual(afterRemove)
   })

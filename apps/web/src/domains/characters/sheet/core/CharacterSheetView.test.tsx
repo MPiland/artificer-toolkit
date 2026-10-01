@@ -5,9 +5,36 @@ import { getFunctionName } from 'convex/server'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { tabletopCampaignId } from '#domains/campaigns/vtt/CampaignTabletop.stories.fixtures'
-import { CharacterSheetView } from './CharacterSheetView'
+import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
 import { createRestPreview, createSheet, openHpControls } from '../tests/sheetTestHarness'
 import { characterRestPreviewInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
+import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
+
+function mockSheetSliceReads(
+  convexClient: ConvexReactClient,
+  sheet: ReturnType<typeof createSheet>
+) {
+  const read = (reference: Parameters<ConvexReactClient['query']>[0], args: unknown) => {
+    if (
+      getFunctionName(reference) !== getFunctionName(convexApi.characters.sheetSlices.get) ||
+      !args ||
+      typeof args !== 'object' ||
+      !('slice' in args)
+    )
+      throw new Error('Unexpected Sheet test query.')
+    return projectCharacterSheetSlice(sheet, characterSheetSliceSchema.parse(args.slice))
+  }
+  vi.spyOn(convexClient, 'query').mockImplementation(async (...[reference, args]) =>
+    read(reference, args)
+  )
+  vi.spyOn(convexClient, 'watchQuery').mockImplementation((...[reference, args]) => ({
+    localQueryResult: () => read(reference, args),
+    journal: () => undefined,
+    onUpdate: () => () => undefined
+  }))
+  return read
+}
 
 const diceCanvasMocks = vi.hoisted(() => ({
   onRollSettled: undefined as ((rollId: string) => void) | undefined,
@@ -122,6 +149,7 @@ describe('Character Sheet shell', () => {
 
   it('shows immediate roll feedback and cancels active dice from the next sheet click', async () => {
     const user = userEvent.setup()
+    const sheet = createSheet()
     const rollRecord = createRollRecord('roll-cancel')
     let discardedRoll: unknown
     let releaseRoll!: () => void
@@ -129,6 +157,7 @@ describe('Character Sheet shell', () => {
       releaseRoll = resolve
     })
     const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    mockSheetSliceReads(convexClient, sheet)
     window.localStorage.setItem(
       'artificer:dice-presentation:v1',
       JSON.stringify({
@@ -152,11 +181,7 @@ describe('Character Sheet shell', () => {
 
     try {
       renderWithAppProviders(
-        <CharacterSheetView
-          characterPublicId='character-1'
-          hasDraft={false}
-          sheet={createSheet()}
-        />,
+        <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />,
         { convexClient }
       )
 
@@ -196,6 +221,7 @@ describe('Character Sheet shell', () => {
     }
     let rollNumber = 0
     const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    const readSlice = mockSheetSliceReads(convexClient, sheet)
     const mutation = vi
       .spyOn(convexClient, 'mutation')
       .mockImplementation(async (...[reference, _args]) => {
@@ -226,7 +252,7 @@ describe('Character Sheet shell', () => {
       if (getFunctionName(reference) === 'characters/rest:preview') {
         return createRestPreview(characterRestPreviewInputSchema.parse(args).input)
       }
-      return []
+      return readSlice(reference, args)
     })
     window.localStorage.setItem(
       'artificer:dice-presentation:v1',
@@ -333,6 +359,7 @@ describe('Character Sheet shell', () => {
     const user = userEvent.setup()
     const sheet = createSheet()
     const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    mockSheetSliceReads(convexClient, sheet)
     const execute = vi.spyOn(convexClient, 'mutation').mockResolvedValue({
       characterId: sheet.meta.characterId,
       streamVersion: 5,
@@ -364,6 +391,7 @@ describe('Character Sheet shell', () => {
     sheet.meta.campaignId = tabletopCampaignId
     sheet.meta.characterId = liveCharacterId
     const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    mockSheetSliceReads(convexClient, sheet)
     const execute = vi.spyOn(convexClient, 'mutation').mockResolvedValue({
       characterId: sheet.meta.characterId,
       streamVersion: 5,
@@ -389,13 +417,15 @@ describe('Character Sheet shell', () => {
 
   it('shows sheet command errors from the production command mutation path', async () => {
     const user = userEvent.setup()
+    const sheet = createSheet()
     const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    mockSheetSliceReads(convexClient, sheet)
     vi.spyOn(convexClient, 'mutation').mockRejectedValue(
       new Error('This character changed in another tab. Refresh the sheet, then try again.')
     )
 
     renderWithAppProviders(
-      <CharacterSheetView characterPublicId='character-1' hasDraft sheet={createSheet()} />,
+      <CharacterSheetView characterPublicId='character-1' hasDraft sheet={sheet} />,
       { convexClient }
     )
 
@@ -407,7 +437,7 @@ describe('Character Sheet shell', () => {
     await convexClient.close()
   })
 
-  it('reacts when the requested initial sheet tab changes', () => {
+  it('reacts when the requested initial sheet tab changes', async () => {
     const sheet = createSheet()
     sheet.spells.attackBonus = 5
     const { rerender } = renderWithAppProviders(
@@ -420,7 +450,7 @@ describe('Character Sheet shell', () => {
     )
 
     expect(screen.getByRole('tab', { name: /spells/i })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('heading', { name: /^spells$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^spells$/i })).toBeInTheDocument()
 
     rerender(
       <CharacterSheetView
@@ -435,7 +465,7 @@ describe('Character Sheet shell', () => {
       'aria-selected',
       'true'
     )
-    expect(screen.getByRole('heading', { name: /^inventory$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^inventory$/i })).toBeInTheDocument()
   })
 
   it('hides player-private and Builder controls from a Campaign GM viewer', async () => {

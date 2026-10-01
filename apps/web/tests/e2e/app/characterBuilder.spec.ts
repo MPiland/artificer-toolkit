@@ -26,10 +26,7 @@ test.describe('MVP character Builder to Sheet', () => {
     const characterName = `MVP Martial Multiclass ${Date.now()}`
     characterCleanup.trackLabel(characterName)
 
-    await page.goto('/characters/new', { waitUntil: 'domcontentloaded' })
-    await expectBuilderReady(page)
-    await expect(page.getByLabel('Character Name')).toBeVisible()
-    await page.getByLabel('Character Name').fill(characterName)
+    await startNewCharacter(page, characterName, characterCleanup)
 
     await goToBuilderStep(page, 'Race')
     await selectBuilderCatalogOptionAndResolve(page, 'Choose Race', 'Choose a race', 'Human')
@@ -84,13 +81,9 @@ test.describe('MVP character Builder to Sheet', () => {
     await goToBuilderStep(page, 'Review')
     await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
 
-    const editRedirectPromise = page.waitForURL(/\/characters\/[^/]+\/[^/]+\/edit$/)
-    await page.getByRole('button', { name: 'Save Draft', exact: true }).click()
-    await editRedirectPromise
+    const concept = `${characterName} concept`
+    await saveDraftWithConcept(page, concept)
     characterCleanup.captureRoute(page)
-    expect(new URL(page.url()).pathname).toMatch(
-      /^\/characters\/[^/]+\/mvp-martial-multiclass-\d+\/edit$/
-    )
     await expectBuilderReady(page)
 
     await page.waitForLoadState('networkidle')
@@ -98,6 +91,7 @@ test.describe('MVP character Builder to Sheet', () => {
     await expectBuilderReady(page)
     await goToBuilderStep(page, 'Basics')
     await expect(page.getByLabel('Character Name')).toHaveValue(characterName)
+    await expect(page.getByLabel('Concept', { exact: true })).toHaveText(concept)
     await assertPersistedMulticlassChoices(page, expectedHitPointProgression)
     await goToBuilderStep(page, 'Review')
     await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
@@ -141,7 +135,7 @@ test.describe('MVP character Builder to Sheet', () => {
     const characterName = `MVP Prepared ${Date.now()}`
     characterCleanup.trackLabel(characterName)
 
-    await startNewCharacter(page, characterName)
+    await startNewCharacter(page, characterName, characterCleanup)
 
     await goToBuilderStep(page, 'Race')
     await selectBuilderCatalogOptionAndResolve(page, 'Choose Race', 'Choose a race', 'Human')
@@ -198,6 +192,18 @@ test.describe('MVP character Builder to Sheet', () => {
       name: 'Manage Spells'
     })
     const healingWordRow = getSheetDetailRow(manageSpellsDrawer, 'Healing Word')
+    await expect
+      .poll(
+        async () => {
+          if (await healingWordRow.isVisible()) return true
+          await manageSpellsDrawer.evaluate((element) => {
+            element.scrollTop += element.clientHeight || 400
+          })
+          return false
+        },
+        { timeout: 20_000, message: 'Scroll the virtual preparation picker to Healing Word' }
+      )
+      .toBe(true)
     await expect(healingWordRow.getByRole('button', { name: 'Prepare', exact: true })).toBeVisible()
     await healingWordRow.getByRole('button', { name: 'Prepare', exact: true }).click()
     await expect(
@@ -277,7 +283,7 @@ test.describe('MVP character Builder to Sheet', () => {
     const characterName = `MVP Choice Heavy ${Date.now()}`
     characterCleanup.trackLabel(characterName)
 
-    await startNewCharacter(page, characterName)
+    await startNewCharacter(page, characterName, characterCleanup)
 
     await goToBuilderStep(page, 'Race')
     await selectBuilderCatalogOptionAndResolve(page, 'Choose Race', 'Choose a race', 'Dragonborn')
@@ -320,19 +326,23 @@ test.describe('MVP character Builder to Sheet', () => {
   })
 })
 
-async function startNewCharacter(page: Page, characterName: string): Promise<void> {
+async function startNewCharacter(
+  page: Page,
+  characterName: string,
+  characterCleanup: E2ECharacterCleanup
+): Promise<void> {
   await page.goto('/characters/new', { waitUntil: 'domcontentloaded' })
+  await expect(page).toHaveURL(/\/characters\/[^/]+\/[^/]+\/edit$/, { timeout: 60_000 })
+  characterCleanup.captureRoute(page)
   await expectBuilderReady(page)
   await expect(page.getByLabel('Character Name')).toBeVisible()
   await page.getByLabel('Character Name').fill(characterName)
 }
 
 async function expectBuilderReady(page: Page): Promise<void> {
-  await page.waitForFunction(
-    () => performance.getEntriesByName('character-builder:hydration-completed', 'mark').length > 0,
-    undefined,
-    { timeout: 60_000 }
-  )
+  await expect(page.locator('#character-builder-active-step-title')).toBeVisible({
+    timeout: 60_000
+  })
   const navigation = page.getByRole('navigation', { name: 'Authoring steps' })
   const links = navigation.getByRole('link')
 
@@ -430,17 +440,16 @@ async function saveReloadPreviewAndFinalize(
   await goToBuilderStep(page, 'Review')
   await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
 
-  const editRedirectPromise = page.waitForURL(/\/characters\/[^/]+\/[^/]+\/edit$/)
-  await page.getByRole('button', { name: 'Save Draft', exact: true }).click()
-  await editRedirectPromise
+  const concept = `${characterName} concept`
+  await saveDraftWithConcept(page, concept)
   characterCleanup.captureRoute(page)
-  expect(new URL(page.url()).pathname).toMatch(/^\/characters\/[^/]+\/[^/]+\/edit$/)
 
   await page.waitForLoadState('networkidle')
   await page.reload({ waitUntil: 'networkidle' })
   await expectBuilderReady(page)
   await goToBuilderStep(page, 'Basics')
   await expect(page.getByLabel('Character Name')).toHaveValue(characterName)
+  await expect(page.getByLabel('Concept', { exact: true })).toHaveText(concept)
   await assertPersistedChoices(page)
 
   await goToBuilderStep(page, 'Review')
@@ -456,6 +465,18 @@ async function saveReloadPreviewAndFinalize(
     timeout: 120_000
   })
   await expect(page.getByRole('heading', { name: characterName, exact: true })).toBeVisible()
+}
+
+async function saveDraftWithConcept(page: Page, concept: string): Promise<void> {
+  await goToBuilderStep(page, 'Basics')
+  const saved = page.getByLabel('Saved', { exact: true })
+  await expect(saved).toBeVisible({ timeout: 30_000 })
+  const editPath = new URL(page.url()).pathname
+  expect(editPath).toMatch(/^\/characters\/[^/]+\/[^/]+\/edit$/)
+  await page.getByLabel('Concept', { exact: true }).fill(concept)
+  await page.getByRole('button', { name: 'Save Draft', exact: true }).click({ timeout: 10_000 })
+  await expect(saved).toBeVisible({ timeout: 30_000 })
+  expect(new URL(page.url()).pathname).toBe(editPath)
 }
 
 async function assertPersistedClericChoices(page: Page): Promise<void> {

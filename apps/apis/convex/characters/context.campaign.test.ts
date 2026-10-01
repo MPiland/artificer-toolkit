@@ -291,7 +291,11 @@ describe('assigned native Character Campaign source access', () => {
         extra: { kind: 'VEHICLE', vehicleId }
       }
     })
-    expect(added.sheet.extras.items).toEqual(
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    expect(addedSheet.extras.items).toEqual(
       expect.arrayContaining([expect.objectContaining({ kind: 'VEHICLE', vehicleId })])
     )
     await t.run(async (ctx) => {
@@ -388,11 +392,15 @@ describe('assigned native Character Campaign source access', () => {
         }
       }
     })
-    expect(added.sheet.extras.items).toEqual(
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    expect(addedSheet.extras.items).toEqual(
       expect.arrayContaining([expect.objectContaining({ creatureId: sharedId })])
     )
-    expect(JSON.stringify(added.sheet.extras)).not.toContain('Shitstorm')
-    const companion = added.sheet.extras.items.find((item) => item.kind === 'COMPANION')
+    expect(JSON.stringify(addedSheet.extras)).not.toContain('Shitstorm')
+    const companion = addedSheet.extras.items.find((item) => item.kind === 'COMPANION')
     if (!companion) throw new Error('Missing companion.')
     const panel = await owner.caller.query(api.characters.panels.get, {
       id: character.id,
@@ -451,7 +459,11 @@ describe('assigned native Character Campaign source access', () => {
       groupId: 'session-notes'
     }
     const created = await owner.caller.mutation(executeSheet, { id: character.id, command })
-    expect(created.sheet.notes.items).toEqual(
+    expect(created).not.toHaveProperty('sheet')
+    const createdSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: created.characterId
+    }))!
+    expect(createdSheet.notes.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: command.title, body: command.body })
       ])
@@ -504,7 +516,11 @@ describe('assigned native Character Campaign source access', () => {
         quantity: 1
       }
     })
-    const item = added.sheet.inventory.items.find((row) => row.equipmentId === equipmentId)
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    const item = addedSheet.inventory.items.find((row) => row.equipmentId === equipmentId)
     if (!item) throw new Error('Missing shared inventory item.')
     const equipped = await owner.caller.mutation(executeSheet, {
       id: character.id,
@@ -515,7 +531,11 @@ describe('assigned native Character Campaign source access', () => {
         itemId: item.id
       }
     })
-    const action = equipped.sheet.actions.items.find(
+    expect(equipped).not.toHaveProperty('sheet')
+    const equippedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: equipped.characterId
+    }))!
+    const action = equippedSheet.actions.items.find(
       (row) => row.label.includes('storm') && row.mechanic?.attackBonus != null
     )
     if (!action?.mechanic || action.mechanic.attackBonus == null)

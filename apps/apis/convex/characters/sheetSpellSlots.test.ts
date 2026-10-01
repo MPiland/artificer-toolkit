@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -42,10 +43,14 @@ async function fixture() {
   const readState = () =>
     base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, character.id),
-      receipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-        .collect()
+      receipts: await readReceiptHeaders(
+        ctx,
+        'characterCommandReceipts',
+        await ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+          .collect()
+      )
     }))
   const sheet = await base.owner.caller.query(getSheet, { id: character.id })
   expect(sheet!.spells.slots).toContainEqual(
@@ -75,12 +80,20 @@ describe('native Character Sheet spell slots', () => {
       }
     }
     const first = await owner.caller.mutation(execute, request)
-    expect(first.sheet.spells.slots[0]).toMatchObject({ used: 1, remaining: 1 })
+    expect(first).not.toHaveProperty('sheet')
+    const firstSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: first.characterId
+    }))!
+    expect(firstSheet.spells.slots[0]).toMatchObject({ used: 1, remaining: 1 })
     const second = await owner.caller.mutation(execute, {
       ...request,
       command: { ...request.command, commandId: crypto.randomUUID(), expectedVersion: 2 }
     })
-    expect(second.sheet.spells.slots[0]).toMatchObject({ used: 2, remaining: 0 })
+    expect(second).not.toHaveProperty('sheet')
+    const secondSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: second.characterId
+    }))!
+    expect(secondSheet.spells.slots[0]).toMatchObject({ used: 2, remaining: 0 })
     const after = await readState()
     expect(readCharacterRecord(after.character!).intent).toEqual(
       readCharacterRecord(before.character!).intent
@@ -106,9 +119,13 @@ describe('native Character Sheet spell slots', () => {
       expect(await readState()).toEqual(after)
     }
     const replay = await owner.caller.mutation(execute, request)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.historyEntry).toEqual(first.historyEntry)
     expect(replay.streamVersion).toBe(3)
-    expect(replay.sheet.spells.slots[0]).toMatchObject({ used: 2, remaining: 0 })
+    expect(replaySheet.spells.slots[0]).toMatchObject({ used: 2, remaining: 0 })
     expect(await readState()).toEqual(after)
     for (const [expectedVersion, all, remaining] of [
       [3, false, 1],
@@ -125,7 +142,11 @@ describe('native Character Sheet spell slots', () => {
           all
         }
       })
-      expect(restored.sheet.spells.slots[0]).toMatchObject({ used: 2 - remaining, remaining })
+      expect(restored).not.toHaveProperty('sheet')
+      const restoredSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: restored.characterId
+      }))!
+      expect(restoredSheet.spells.slots[0]).toMatchObject({ used: 2 - remaining, remaining })
     }
     expect(readCharacterRecord((await readState()).character!).state.spellSlots).toBeUndefined()
   })
@@ -154,7 +175,11 @@ describe('native Character Sheet spell slots', () => {
     expect(await readState()).toEqual(before)
     vi.restoreAllMocks()
     const result = await owner.caller.mutation(execute, request)
-    expect(result.sheet.spells.slots[0]).toMatchObject({ used: 1, remaining: 1 })
+    expect(result).not.toHaveProperty('sheet')
+    const resultSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: result.characterId
+    }))!
+    expect(resultSheet.spells.slots[0]).toMatchObject({ used: 1, remaining: 1 })
     expect((await readState()).receipts).toHaveLength(1)
   })
 })

@@ -113,7 +113,7 @@ function query<Document>(read: () => Document[]): EncounterQuery<Document> {
  */
 export type EncounterStoreWrite =
   | {
-      op: 'INSERT'
+      op: 'INSERT' | 'RESTORE'
       table: EncounterTableName
       id: string
       creationTime: number
@@ -342,7 +342,7 @@ export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?:
     ) {
       withValidation(validate, () => {
         for (const change of writes) {
-          if (change.op === 'INSERT') {
+          if (change.op === 'INSERT' || change.op === 'RESTORE') {
             restoreDocument(
               change.table,
               { ...change.fields, _id: change.id, _creationTime: change.creationTime },

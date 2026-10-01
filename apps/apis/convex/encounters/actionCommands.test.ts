@@ -1,3 +1,6 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, vi } from 'vitest'
@@ -825,6 +828,8 @@ function creatureActorState(stateJson: string) {
 
 async function records(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: string) {
   return t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', encounterId))
@@ -840,11 +845,13 @@ async function records(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId:
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
-      .collect(),
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .collect(),
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     activeEffects: await ctx.db
       .query('encounterActiveRuleEffects')
       .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
@@ -1151,8 +1158,11 @@ describe('native encounter actions', () => {
           q.eq('encounterId', base.run.id).eq('commandId', input.commandId)
         )
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
       if (!receipt) throw new Error('Missing native action receipt.')
-      await ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) })
+      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
+        resultChecksum: '0'.repeat(64)
+      })
     })
     await expect(
       executeInRoom(base.owner.caller, {
@@ -1592,11 +1602,11 @@ describe('native encounter actions', () => {
     })
     const tamperedChecksum = checksumRuleDocument(tampered)
     await base.t.run(async (ctx) => {
-      await ctx.db.patch(receipt._id, {
+      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
         resultJson: JSON.stringify(tampered),
         resultChecksum: tamperedChecksum
       })
-      await ctx.db.patch(commandRecord._id, {
+      await replaceReceiptRecord(ctx, 'encounterRunCommands', commandRecord._id, {
         ruleResultChecksum: tamperedChecksum
       })
     })
@@ -1702,7 +1712,7 @@ describe('native encounter actions', () => {
           0
         )
       })
-      await writeRunActor(ctx, row._id, exhausted)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, exhausted)
     })
     const exhausted = await rejection(
       executeInRoom(base.owner.caller, {
@@ -1743,6 +1753,9 @@ describe('native encounter actions', () => {
             q.eq('encounterId', base.run.id).eq('commandId', input.commandId)
           )
           .unique()
+          .then((header) =>
+            header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
+          )
         return { effect, receipt }
       })
       expect(stored.effect).toBeTruthy()
@@ -1969,13 +1982,15 @@ describe('Assisted soft enforcement', () => {
         .withIndex('by_encounterId_version', (q) =>
           q.eq('encounterId', base.run.id).eq('version', 2)
         )
-        .unique(),
+        .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null)),
       receipt: await ctx.db
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_encounterVersion', (q) =>
           q.eq('encounterId', base.run.id).eq('encounterVersion', 2)
         )
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     }))
     if (stored.runCommand?.commandType !== 'RESOLVE_ACTION' || !stored.receipt)
       throw new Error('Missing overridden action records.')

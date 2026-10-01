@@ -142,8 +142,8 @@ describe('native Encounter current Character conditions', () => {
       await t.run(async (ctx) => {
         if (corruption === 'Character') {
           const row = await ctx.db
-            .query('characters')
-            .withIndex('by_publicId', (q) => q.eq('id', character.id))
+            .query('characterBuildStates')
+            .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
             .unique()
           if (!row) throw new Error('Missing Character fixture.')
           await ctx.db.patch(row._id, { checksum: '0'.repeat(64) })
@@ -173,7 +173,7 @@ describe('native Encounter current Character conditions', () => {
         }
       })
       await expect(owner.caller.query(get, { encounterId: run.id })).rejects.toThrow(
-        corruption === 'route owner' ? /assignment mismatch/ : /checksum mismatch/
+        corruption === 'route owner' ? /assignment mismatch/ : corruption === 'Character' ? /build integrity mismatch/ : /checksum mismatch/
       )
     },
     30_000

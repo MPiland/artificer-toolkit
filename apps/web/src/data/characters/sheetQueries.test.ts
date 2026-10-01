@@ -5,8 +5,7 @@ import {
   getCharacterBuilderActiveCharacter,
   getCharacterDraft,
   getCharacterPreparationOptions,
-  getCharacterSheet,
-  getCharacterSheetActions,
+  getCharacterSheetSlice,
   getCharacterSheetEquipmentOptions,
   getCharacterSheetExtraOptions,
   getCharacterSheetPanel
@@ -25,13 +24,13 @@ describe('native character sheet query adapters', () => {
     expect(getCharacterDraft('character-1')).toEqual(
       convexQuery(convexApi.characters.drafts.get, { id: 'character-1' })
     )
-    expect(getCharacterSheet('character-1')).toEqual(
-      convexQuery(convexApi.characters.sheet.get, { id: 'character-1' })
+    expect(getCharacterSheetSlice('character-1', 'COMMON').queryKey).toEqual(
+      convexQuery(convexApi.characters.sheetSlices.get, { id: 'character-1', slice: 'COMMON' })
+        .queryKey
     )
-    expect(getCharacterPreparationOptions('character-1')).toEqual({
-      ...convexQuery(convexApi.characters.preparationOptions.get, { id: 'character-1' }),
-      retry: false
-    })
+    expect(getCharacterPreparationOptions('character-1').queryKey).toEqual(
+      convexQuery(convexApi.characters.preparationOptions.get, { id: 'character-1' }).queryKey
+    )
     expect(getCharacterSheetEquipmentOptions('character-1')).toEqual({
       ...convexQuery(convexApi.characters.equipmentOptions.list, { id: 'character-1' }),
       retry: false
@@ -45,10 +44,9 @@ describe('native character sheet query adapters', () => {
       }),
       retry: false
     })
-    expect(getCharacterSheetPanel('character-1', target)).toEqual({
-      ...convexQuery(convexApi.characters.panels.get, { id: 'character-1', target }),
-      retry: false
-    })
+    expect(getCharacterSheetPanel('character-1', target).queryKey).toEqual(
+      convexQuery(convexApi.characters.panels.get, { id: 'character-1', target }).queryKey
+    )
     const input = { kind: 'CREATURE' as const, limit: 25, query: 'owl' }
     expect(getCharacterSheetExtraOptions('character-1', input)).toEqual(
       convexQuery(convexApi.characters.extraOptions.list, { id: 'character-1', ...input })
@@ -63,13 +61,10 @@ describe('native character sheet query adapters', () => {
     )
   })
 
-  it('uses skip for disabled sheet reads and selects sheet actions', () => {
-    expect(getCharacterSheet(undefined)).toEqual(
-      convexQuery(convexApi.characters.sheet.get, 'skip')
+  it('uses skip for disabled sheet reads', () => {
+    expect(getCharacterSheetSlice(undefined, 'COMMON').queryKey).toEqual(
+      convexQuery(convexApi.characters.sheetSlices.get, 'skip').queryKey
     )
-    const actions = getCharacterSheetActions(undefined)
-    expect(actions.queryKey).toEqual(convexQuery(convexApi.characters.sheet.get, 'skip').queryKey)
-    expect(actions.select(null)).toBeNull()
     expect(getCharacterPreparationOptions(undefined).queryKey).toEqual(
       convexQuery(convexApi.characters.preparationOptions.get, 'skip').queryKey
     )
@@ -83,21 +78,19 @@ describe('native character sheet query adapters', () => {
 
   it('uses campaign-authorized panel and preparation queries for campaign sheets', () => {
     const campaignId = '00000000-0000-4000-8000-000000000123'
-    expect(getCharacterSheetPanel('character-1', target, campaignId)).toEqual({
-      ...convexQuery(convexApi.campaigns.characterSheet.panel, {
+    expect(getCharacterSheetPanel('character-1', target, campaignId).queryKey).toEqual(
+      convexQuery(convexApi.campaigns.characterSheet.panel, {
         campaignId,
         characterId: 'character-1',
         target
-      }),
-      retry: false
-    })
-    expect(getCharacterPreparationOptions('character-1', campaignId)).toEqual({
-      ...convexQuery(convexApi.campaigns.characterSheet.preparationOptions, {
+      }).queryKey
+    )
+    expect(getCharacterPreparationOptions('character-1', campaignId).queryKey).toEqual(
+      convexQuery(convexApi.campaigns.characterSheet.preparationOptions, {
         campaignId,
         characterId: 'character-1'
-      }),
-      retry: false
-    })
+      }).queryKey
+    )
     expect(getCharacterPreparationOptions(undefined, campaignId).queryKey).toEqual(
       convexQuery(convexApi.campaigns.characterSheet.preparationOptions, 'skip').queryKey
     )

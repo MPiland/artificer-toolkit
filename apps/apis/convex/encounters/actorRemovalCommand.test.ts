@@ -1,3 +1,6 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -18,6 +21,7 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSessions'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import { isRoomLocalEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
@@ -29,7 +33,11 @@ import {
   removeAccountCharacterActors,
   removeEncounterActor
 } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  insertActiveLiveAuthority,
+  replayInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
@@ -117,19 +125,30 @@ async function setup(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
 type Fixture = Awaited<ReturnType<typeof setup>>
 async function capture(base: Fixture) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
     rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     sides: await ctx.db.query('encounterInitiativeSides').collect(),
-    commands: await ctx.db.query('encounterRunCommands').collect(),
+    commands: await ctx.db
+      .query('encounterRunCommands')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+    receipts: await ctx.db
+      .query('encounterRuleReceipts')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
     sceneBindings: await ctx.db.query('encounterSceneBindings').collect(),
     characters: await ctx.db.query('characters').collect(),
     characterPlayStates: await ctx.db.query('characterPlayStates').collect(),
-    characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
+    characterReceipts: await ctx.db
+      .query('characterCommandReceipts')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers)),
     effects: await ctx.db.query('encounterActiveRuleEffects').collect(),
     characterEffects: await ctx.db.query('characterActiveRuleEffects').collect(),
     states: await ctx.db.query('encounterMaintainedEffectStates').collect()
@@ -137,6 +156,183 @@ async function capture(base: Fixture) {
 }
 
 describe('native actor removal transaction', () => {
+  it.each(['REORDER', 'REMOVE_ACTOR', 'REINFORCE'] as const)(
+    'fences direct %s while room authority is held and allows expired or released authority',
+    async (type) => {
+      const base = await setup()
+      const actor = base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!
+      const command: EncounterExecuteInput['command'] =
+        type === 'REORDER'
+          ? {
+              type,
+              encounterId: base.run.id,
+              commandId: crypto.randomUUID(),
+              expectedVersion: base.run.version,
+              actorIds: base.run.actors.map(({ id }) => id).reverse()
+            }
+          : type === 'REMOVE_ACTOR'
+            ? {
+                type,
+                encounterId: base.run.id,
+                commandId: crypto.randomUUID(),
+                expectedVersion: base.run.version,
+                actorId: actor.id
+              }
+            : {
+                type,
+                encounterId: base.run.id,
+                commandId: crypto.randomUUID(),
+                expectedVersion: base.run.version,
+                enemy: { kind: 'CUSTOM', label: 'Reinforcement', maxHitPoints: 3 },
+                public: true
+              }
+      const authorityId = await base.t.run((ctx) =>
+        insertActiveLiveAuthority(ctx, {
+          campaignId: base.campaign.id,
+          epoch: crypto.randomUUID(),
+          createdAt: new Date().toISOString()
+        })
+      )
+      const before = await capture(base)
+      for (const phase of ['ACTIVATING', 'DO_ACTIVE', 'DRAINING'] as const) {
+        await base.t.run((ctx) =>
+          ctx.db.patch(authorityId, {
+            phase,
+            activationExpiresAt: Date.now() + 60_000,
+            ...(phase === 'DRAINING'
+              ? { finalSequence: 0, finalStateChecksum: '0'.repeat(64) }
+              : {})
+          })
+        )
+        await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
+          'This Encounter is currently owned by its Campaign live table.'
+        )
+        expect(await capture(base)).toEqual(before)
+      }
+      await base.t.run((ctx) =>
+        ctx.db.patch(authorityId, {
+          phase: 'ACTIVATING',
+          activationExpiresAt: Date.now() - 1
+        })
+      )
+      const expired = await base.owner.caller.mutation(execute, { command })
+      expect(expired.projection.version).toBe(base.run.version + 1)
+      await base.t.run((ctx) => ctx.db.delete(authorityId))
+      const next: EncounterExecuteInput['command'] =
+        type === 'REORDER'
+          ? {
+              type,
+              encounterId: base.run.id,
+              commandId: crypto.randomUUID(),
+              expectedVersion: expired.projection.version,
+              actorIds: expired.projection.actors.map(({ id }) => id).reverse()
+            }
+          : type === 'REMOVE_ACTOR'
+            ? {
+                type,
+                encounterId: base.run.id,
+                commandId: crypto.randomUUID(),
+                expectedVersion: expired.projection.version,
+                actorId: expired.projection.actors.find(
+                  (candidate) => candidate.id !== actor.id && candidate.kind === 'CUSTOM'
+                )!.id
+              }
+            : {
+                type,
+                encounterId: base.run.id,
+                commandId: crypto.randomUUID(),
+                expectedVersion: expired.projection.version,
+                enemy: { kind: 'CUSTOM', label: 'Released reinforcement', maxHitPoints: 3 },
+                public: true
+              }
+      const released = await base.owner.caller.mutation(execute, { command: next })
+      expect(released.projection.version).toBe(expired.projection.version + 1)
+    }
+  )
+
+  it.each([
+    'SET_ROUND',
+    'COMPLETE',
+    'UPDATE_ACTOR',
+    'REVERT_LAST_ACTION',
+    'ROLL_ACTOR_INITIATIVE',
+    'ROLL_ENEMY_ACTION'
+  ] as const)(
+    'fences direct %s while room authority is held without changing state or receipts',
+    async (type) => {
+      const base = await setup()
+      const common = {
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version
+      }
+      const command: EncounterExecuteInput['command'] =
+        type === 'SET_ROUND'
+          ? { ...common, type, round: 2 }
+          : type === 'UPDATE_ACTOR'
+            ? {
+                ...common,
+                type,
+                actorId: base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!.id,
+                gmNotes: 'Room-owned correction'
+              }
+            : type === 'ROLL_ACTOR_INITIATIVE'
+              ? {
+                  ...common,
+                  type,
+                  actorId: base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!.id
+                }
+              : type === 'ROLL_ENEMY_ACTION'
+                ? {
+                    ...common,
+                    type,
+                    actorId: base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!.id,
+                    featureId: crypto.randomUUID(),
+                    rollDefinitionId: crypto.randomUUID(),
+                    visibility: 'PRIVATE'
+                  }
+                : { ...common, type }
+      const authorityId = await base.t.run((ctx) =>
+        insertActiveLiveAuthority(ctx, {
+          campaignId: base.campaign.id,
+          epoch: crypto.randomUUID(),
+          createdAt: new Date().toISOString()
+        })
+      )
+      const before = await capture(base)
+      for (const phase of ['ACTIVATING', 'DO_ACTIVE', 'DRAINING'] as const) {
+        await base.t.run((ctx) =>
+          ctx.db.patch(authorityId, {
+            phase,
+            activationExpiresAt: Date.now() + 60_000,
+            ...(phase === 'DRAINING'
+              ? { finalSequence: 0, finalStateChecksum: '0'.repeat(64) }
+              : {})
+          })
+        )
+        await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
+          'This Encounter is currently owned by its Campaign live table.'
+        )
+        expect(await capture(base)).toEqual(before)
+      }
+    }
+  )
+
+  it('classifies private enemy rolls locally while table rolls remain transitional', () => {
+    const command: Extract<EncounterExecuteInput['command'], { type: 'ROLL_ENEMY_ACTION' }> = {
+      type: 'ROLL_ENEMY_ACTION',
+      encounterId: crypto.randomUUID(),
+      commandId: crypto.randomUUID(),
+      expectedVersion: 0,
+      actorId: crypto.randomUUID(),
+      featureId: crypto.randomUUID(),
+      rollDefinitionId: crypto.randomUUID(),
+      visibility: 'PRIVATE'
+    }
+    expect(isRoomLocalEncounterCommand(command)).toBe(true)
+    expect(isRoomLocalEncounterCommand({ ...command, visibility: 'TABLE' })).toBe(false)
+  })
+
   it('removes prepared actors and exact bindings/reminders, preserves Scene identity, and replays historically with current authority', async () => {
     const base = await setup()
     const actor = base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!
@@ -361,7 +557,9 @@ describe('native actor removal transaction', () => {
     expect(await replayInRoom(base.owner.caller, { command })).toEqual(result)
     expect(await capture(base)).toEqual(after)
     await base.t.run(async (ctx) => {
-      await ctx.db.patch(receipt._id, { resultChecksum: 'b'.repeat(64) })
+      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
+        resultChecksum: 'b'.repeat(64)
+      })
     })
     await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
       LiveSessionRouteError
@@ -515,9 +713,9 @@ describe('native actor removal transaction', () => {
           .unique()
         if (
           !run ||
-          (await readRunActors(ctx, readRunState(run))).some(
-            (actor) => actor.id === command.actorId
-          )
+          (
+            await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, readRunState(run))
+          ).some((actor) => actor.id === command.actorId)
         )
           throw new Error('Removal failed before rollback assertion')
         throw new Error('Abort after actor deletion')

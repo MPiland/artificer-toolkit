@@ -15,6 +15,7 @@ import {
   type MovementTarget as RuntimeMovementTarget
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { encounterReadTransaction } from './encounterPorts'
 
 export type MovementTarget = RuntimeMovementTarget<
   NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts>>>
@@ -71,8 +72,10 @@ export async function loadMovementTargets(
     throw new Error('Encounter actor was not found.')
   const currentActors =
     targetActorIds.length === state.actorIds.length
-      ? await readRunActors(ctx, state)
-      : await Promise.all(targetActorIds.map((id) => readRunActor(ctx, state, id)))
+      ? await readRunActors(encounterReadTransaction(ctx), state)
+      : await Promise.all(
+          targetActorIds.map((id) => readRunActor(encounterReadTransaction(ctx), state, id))
+        )
   const actorsById = new Map(currentActors.map((actor) => [actor.id, actor]))
   const actors = targetActorIds.map((id) => actorsById.get(id)!)
   const result = new Map<string, MovementTarget>()
@@ -101,7 +104,7 @@ export async function loadMovementTargets(
       result.set(actor.id, target)
       continue
     }
-    const activeEffects = await listActiveRuleEffects(ctx, {
+    const activeEffects = await listActiveRuleEffects(encounterReadTransaction(ctx), {
       kind: 'ENCOUNTER_ACTOR',
       encounterId: state.id,
       targetActorId: actor.id

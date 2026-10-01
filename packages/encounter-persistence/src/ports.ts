@@ -1,6 +1,5 @@
 import type { AuthIdentityDto } from '@artificer-toolkit/schema/api/authIdentity'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
-import type { CampaignSummaryDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type {
   CharacterEncounterCommandInput,
@@ -65,13 +64,15 @@ export interface EncounterReadPorts {
     kind: 'CREATURE' | 'EQUIPMENT'
   ): Promise<EncounterAuthoredSource>
   readCharacterRecord(row: EncounterCharacterRow): EncounterCharacterDocument
+  /** Complete Character assembly belongs to the Character domain, outside the Encounter store. */
+  readCharacterRow(characterId: string): Promise<EncounterCharacterRow | null>
   readCharacterSheetState(row: EncounterCharacterRow): CharacterSheetState
   /** The play record's fields, verified against its checksum. */
   readCharacterPlay(play: EncounterDocument<'characterPlayStates'>): CharacterPlayState
   readAssignedCharacter(
     campaign: EncounterDocument<'campaigns'>,
     membership: EncounterDocument<'campaignMemberships'>
-  ): Promise<CampaignSummaryDto['assignedCharacter']>
+  ): Promise<{ id: string } | null>
   readAutoRollDice(userId: string): Promise<boolean>
   /** Whether the app profile of this user still exists (it goes last in account deletion). */
   hasAccountProfile(userId: string): Promise<boolean>
@@ -147,7 +148,26 @@ export interface EncounterReadTransaction extends EncounterReadContext {
   readonly ports: EncounterReadPorts
 }
 
+/** Stored projection reads need only the System vocabulary and verified Character play. */
+export interface EncounterProjectionTransaction extends EncounterReadContext {
+  readonly ports: Pick<EncounterReadPorts, 'requireSystem' | 'readCharacterPlay'>
+}
+
 /** A write transaction over the Encounter store and the ports it uses beside it. */
-export interface EncounterWriteTransaction<CharacterSources = never> extends EncounterWriteContext {
+export interface EncounterPersistenceTransaction extends EncounterWriteContext {
+  readonly ports: EncounterReadPorts
+}
+
+/** Commands that also write Character or communication state through the owning domains. */
+export interface EncounterCharacterWriteTransaction<
+  CharacterSources = never
+> extends EncounterPersistenceTransaction {
+  readonly ports: EncounterReadPorts &
+    Pick<EncounterWritePorts<CharacterSources>, 'writeCharacterRecord'>
+}
+
+export interface EncounterWriteTransaction<
+  CharacterSources = never
+> extends EncounterCharacterWriteTransaction<CharacterSources> {
   readonly ports: EncounterWritePorts<CharacterSources>
 }

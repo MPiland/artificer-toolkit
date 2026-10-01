@@ -1,22 +1,19 @@
+import type { CharacterSheetExtrasSliceDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Alert, Button, Drawer, Select, Text } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { IconPlus } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { getCharacterSheetExtraOptions } from '#app/data/characters/queries'
-import type {
-  CharacterSheet,
-  OpenSheetPanel,
-  SubmitSheetCommand
-} from '../core/CharacterSheet.types'
+import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
 import { CharacterSheetExtraList } from './CharacterSheetExtraList'
 import { getExtraTarget } from './CharacterSheetExtraList.model'
 import * as extrasStyles from './extras.css'
 import * as panelStyles from '../shared/panel.css'
 
-type ExtraKind = CharacterSheet['extras']['kindOptions'][number]['code']
-type OriginKind = CharacterSheet['extras']['originOptions'][number]['code']
+type ExtraKind = CharacterSheetExtrasSliceDto['extras']['kindOptions'][number]['code']
+type OriginKind = CharacterSheetExtrasSliceDto['extras']['originOptions'][number]['code']
 
 const CREATURE_KINDS = new Set<ExtraKind>(['COMPANION', 'MOUNT', 'OWNED'])
 
@@ -30,7 +27,7 @@ export function CharacterSheetExtras({
   hideTitle?: boolean
   openPanel?: OpenSheetPanel
   pending: boolean
-  sheet: CharacterSheet
+  sheet: CharacterSheetExtrasSliceDto
   submitCommand: SubmitSheetCommand
 }) {
   const isMobile = useMediaQuery('(max-width: 760px)', false)

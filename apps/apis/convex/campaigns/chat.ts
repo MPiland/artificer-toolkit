@@ -12,7 +12,7 @@ import {
   type SendCampaignChatEntryInput
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 import {
-  campaignStoredEntryHeaderSchema,
+  campaignStoredEntryIdentitySchema,
   campaignStoredEntryPayloadSchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
@@ -176,7 +176,7 @@ export async function postCampaignChatEntry(
   )
     throw new Error('Assigned Character is unavailable.')
   requireCampaignAuthorUsername(username)
-  const header = campaignStoredEntryHeaderSchema.parse({
+  const header = campaignStoredEntryIdentitySchema.parse({
     id: crypto.randomUUID(),
     campaignId: authority.campaign.id,
     conversationId: conversation.id,

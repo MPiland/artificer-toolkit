@@ -1,0 +1,280 @@
+import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { z } from '../zod.js'
+import type {
+  characterStoredHeadSchema,
+  characterStoredRecordSchema
+} from './characterPersistence.js'
+import {
+  characterStoredBuildStateSchema,
+  characterOptionalStateKeySchema,
+  type CharacterCollectionRecords,
+  type CharacterStoredBuildState
+} from './characterOperationalRecords.js'
+import {
+  characterStructureDocumentSchema,
+  readCharacterSheetStructure
+} from './characterStoredState.js'
+
+type CharacterHead = z.infer<typeof characterStoredHeadSchema>
+type CharacterCapture = z.infer<typeof characterStoredRecordSchema>
+type OptionalStateKey = z.infer<typeof characterOptionalStateKeySchema>
+const optionalStateKeys: OptionalStateKey[] = [
+  'classes',
+  'noteGroups',
+  'notes',
+  'creatures',
+  'vehicles',
+  'creatureEquipment',
+  'vehicleEquipment'
+]
+
+function record<Value>(characterId: string, id: string, position: number, value: Value) {
+  const fields = { characterId, id, position, value }
+  return { ...fields, checksum: checksumRuleDocument(fields) }
+}
+
+/** Splits a validated complete structure capture into the mutable operational records. */
+export function encodeCharacterOperationalStructure(capture: CharacterCapture): {
+  build: CharacterStoredBuildState
+  collections: CharacterCollectionRecords
+} {
+  const raw: unknown = JSON.parse(capture.documentJson)
+  if (checksumRuleDocument(raw) !== capture.checksum)
+    throw new Error('Stored Character checksum mismatch.')
+  const document = characterStructureDocumentSchema.parse(raw)
+  if (
+    document.id !== capture.id ||
+    document.userId !== capture.userId ||
+    document.systemId !== capture.systemId ||
+    document.label !== capture.label ||
+    document.status !== capture.status
+  )
+    throw new Error('Stored Character identity mismatch.')
+  const sheet = readCharacterSheetStructure(capture.sheetState)
+  const { state } = document
+  const collections: CharacterCollectionRecords = {
+    characterInventoryItems: state.equipment.inventory.map((value, position) =>
+      record(capture.id, value.id, position, value)
+    ),
+    characterCurrencyGroups: state.currency.map((value, position) =>
+      record(capture.id, value.id, position, value)
+    ),
+    // Class state has no instance ID; its existing array position identifies its record.
+    characterClassSpellStates: (state.classes ?? []).map((value, position) =>
+      record(capture.id, String(position), position, value)
+    ),
+    characterSpellCustomizations: sheet.spellCustomizations.map((value, position) =>
+      record(capture.id, value.id, position, value)
+    ),
+    characterCreatureInstances: (state.creatures ?? []).map((value, position) =>
+      record(capture.id, value.id, position, value)
+    ),
+    characterVehicleInstances: (state.vehicles ?? []).map((value, position) =>
+      record(capture.id, value.id, position, value)
+    ),
+    characterNotes: (state.notes ?? []).map((value, position) =>
+      record(capture.id, value.id, position, value)
+    ),
+    characterNoteGroups: (state.noteGroups ?? []).map((value, position) =>
+      record(capture.id, value.id, position, value)
+    ),
+    characterExtraEquipment: [
+      ...Object.entries(state.creatureEquipment ?? {}).map(([instanceId, assignments]) => ({
+        kind: 'CREATURE' as const,
+        instanceId,
+        equipmentItemIds: assignments.map((item) => item.equipmentItemId)
+      })),
+      ...Object.entries(state.vehicleEquipment ?? {}).map(([instanceId, assignments]) => ({
+        kind: 'VEHICLE' as const,
+        instanceId,
+        equipmentItemIds: assignments.map((item) => item.equipmentItemId)
+      }))
+    ].map((value, position) =>
+      record(capture.id, `${value.kind}:${value.instanceId}`, position, value)
+    )
+  }
+  const fields = {
+    characterId: capture.id,
+    ...(document.description === undefined ? {} : { description: document.description }),
+    profile: document.profile,
+    intent: document.intent,
+    adjustments: sheet.adjustments,
+    movementDisplayPreference: sheet.movementDisplayPreference,
+    optionalStateKeys: optionalStateKeys.filter((key) => document.state[key] !== undefined),
+    collectionCounts: {
+      characterInventoryItems: collections.characterInventoryItems.length,
+      characterCurrencyGroups: collections.characterCurrencyGroups.length,
+      characterClassSpellStates: collections.characterClassSpellStates.length,
+      characterSpellCustomizations: collections.characterSpellCustomizations.length,
+      characterCreatureInstances: collections.characterCreatureInstances.length,
+      characterVehicleInstances: collections.characterVehicleInstances.length,
+      characterNotes: collections.characterNotes.length,
+      characterNoteGroups: collections.characterNoteGroups.length,
+      characterExtraEquipment: collections.characterExtraEquipment.length
+    }
+  }
+  return {
+    build: characterStoredBuildStateSchema.parse({
+      ...fields,
+      checksum: checksumRuleDocument(fields)
+    }),
+    collections
+  }
+}
+
+/** Focused reads validate every selected owned row without assembling unrelated collections. */
+export function readCharacterCollectionValues<Value>(
+  characterId: string,
+  rows: readonly {
+    characterId: string
+    id: string
+    position: number
+    value: Value
+    checksum: string
+  }[],
+  expectedCount: number
+): Value[] {
+  if (rows.length !== expectedCount)
+    throw new Error('Stored Character collection integrity mismatch.')
+  const ids = new Set<string>()
+  return [...rows]
+    .sort((left, right) => left.position - right.position)
+    .map((row, position) => {
+      const fields = {
+        characterId: row.characterId,
+        id: row.id,
+        position: row.position,
+        value: row.value
+      }
+      if (
+        row.characterId !== characterId ||
+        row.position !== position ||
+        ids.has(row.id) ||
+        (row.value !== null &&
+          typeof row.value === 'object' &&
+          'id' in row.value &&
+          row.value.id !== row.id) ||
+        checksumRuleDocument(fields) !== row.checksum
+      )
+        throw new Error('Stored Character collection integrity mismatch.')
+      ids.add(row.id)
+      return row.value
+    })
+}
+
+export function readCharacterBuildFields(characterId: string, build: CharacterStoredBuildState) {
+  const { checksum, ...fields } = characterStoredBuildStateSchema.parse(build)
+  if (fields.characterId !== characterId || checksumRuleDocument(fields) !== checksum)
+    throw new Error('Stored Character build integrity mismatch.')
+  return fields
+}
+
+/** Central assembly for Builder, rules, import/export and complete room captures. */
+export function assembleCharacterStructure(
+  head: CharacterHead,
+  build: CharacterStoredBuildState,
+  collections: CharacterCollectionRecords
+): CharacterCapture {
+  const fields = readCharacterBuildFields(head.id, build)
+  if (
+    collections.characterClassSpellStates.some((row) => row.id !== String(row.position)) ||
+    collections.characterExtraEquipment.some(
+      (row) => row.id !== `${row.value.kind}:${row.value.instanceId}`
+    )
+  )
+    throw new Error('Stored Character collection identity mismatch.')
+  const extras = readCharacterCollectionValues(
+    head.id,
+    collections.characterExtraEquipment,
+    fields.collectionCounts.characterExtraEquipment
+  )
+  const assignments = (kind: 'CREATURE' | 'VEHICLE') =>
+    Object.fromEntries(
+      extras
+        .filter((row) => row.kind === kind)
+        .map((row) => [
+          row.instanceId,
+          row.equipmentItemIds.map((equipmentItemId) => ({ equipmentItemId }))
+        ])
+    )
+  const optional = {
+    classes: readCharacterCollectionValues(
+      head.id,
+      collections.characterClassSpellStates,
+      fields.collectionCounts.characterClassSpellStates
+    ),
+    notes: readCharacterCollectionValues(
+      head.id,
+      collections.characterNotes,
+      fields.collectionCounts.characterNotes
+    ),
+    noteGroups: readCharacterCollectionValues(
+      head.id,
+      collections.characterNoteGroups,
+      fields.collectionCounts.characterNoteGroups
+    ),
+    creatures: readCharacterCollectionValues(
+      head.id,
+      collections.characterCreatureInstances,
+      fields.collectionCounts.characterCreatureInstances
+    ),
+    vehicles: readCharacterCollectionValues(
+      head.id,
+      collections.characterVehicleInstances,
+      fields.collectionCounts.characterVehicleInstances
+    ),
+    creatureEquipment: assignments('CREATURE'),
+    vehicleEquipment: assignments('VEHICLE')
+  }
+  for (const key of optionalStateKeys) {
+    if (!fields.optionalStateKeys.includes(key) && Object.keys(optional[key]).length)
+      throw new Error('Stored Character optional collection mismatch.')
+  }
+  const document = characterStructureDocumentSchema.parse({
+    id: head.id,
+    userId: head.userId,
+    systemId: head.systemId,
+    label: head.label,
+    status: head.status,
+    ...(fields.description === undefined ? {} : { description: fields.description }),
+    profile: fields.profile,
+    intent: fields.intent,
+    state: {
+      equipment: {
+        inventory: readCharacterCollectionValues(
+          head.id,
+          collections.characterInventoryItems,
+          fields.collectionCounts.characterInventoryItems
+        )
+      },
+      currency: readCharacterCollectionValues(
+        head.id,
+        collections.characterCurrencyGroups,
+        fields.collectionCounts.characterCurrencyGroups
+      ),
+      ...Object.fromEntries(fields.optionalStateKeys.map((key) => [key, optional[key]]))
+    }
+  })
+  const sheet = {
+    adjustments: fields.adjustments,
+    movementDisplayPreference: fields.movementDisplayPreference,
+    spellCustomizations: readCharacterCollectionValues(
+      head.id,
+      collections.characterSpellCustomizations,
+      fields.collectionCounts.characterSpellCustomizations
+    )
+  }
+  if (
+    checksumRuleDocument(document) !== head.checksum ||
+    checksumRuleDocument(sheet) !== head.sheetStateChecksum
+  )
+    throw new Error('Stored Character assembled structure checksum mismatch.')
+  return {
+    ...head,
+    documentJson: canonicalizeRuleDocument(document),
+    sheetState: {
+      documentJson: canonicalizeRuleDocument(sheet),
+      checksum: checksumRuleDocument(sheet)
+    }
+  }
+}

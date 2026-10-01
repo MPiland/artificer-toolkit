@@ -1,3 +1,5 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { api } from '../_generated/api'
 import { createHash } from 'node:crypto'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
@@ -244,7 +246,7 @@ describe('native Character rest preview and completion', () => {
   })
 
   it('consumes exact hit-die evidence with HP/state/receipt atomically and replays after history clearing', async () => {
-    const { t, owner, character, readState } = await readySheetFixture()
+    const { t, owner, character, readState, readReceiptStorage } = await readySheetFixture()
     const originalIntent = readCharacterRecord((await readState()).character!).intent
     const damaged = await owner.caller.mutation(execute, {
       id: character.id,
@@ -256,13 +258,17 @@ describe('native Character rest preview and completion', () => {
         expectedVersion: 1
       }
     })
+    expect(damaged).not.toHaveProperty('sheet')
+    const damagedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: damaged.characterId
+    }))!
     const effectIds = {
       matching: '00000000-0000-4000-8000-000000000111',
       preserved: '00000000-0000-4000-8000-000000000112',
       preservedMaximum: '00000000-0000-4000-8000-000000000113'
     }
     await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       await store.create({
         id: effectIds.matching,
         owner: { kind: 'CHARACTER', characterId: character.id },
@@ -286,8 +292,8 @@ describe('native Character rest preview and completion', () => {
         lifecycle: { schemaVersion: 1, remainingTicks: null }
       })
     })
-    const pool = damaged.sheet.overview.hitDice[0]!
-    const constitution = damaged.sheet.overview.abilities.find(
+    const pool = damagedSheet.overview.hitDice[0]!
+    const constitution = damagedSheet.overview.abilities.find(
       (ability) => ability.ability === 'CONSTITUTION'
     )!
     const rolled = await owner.caller.mutation(roll, {
@@ -361,9 +367,13 @@ describe('native Character rest preview and completion', () => {
     const command = completion(input, projected)
     const beforeComplete = {
       state: await readState(),
+      receiptStorage: await readReceiptStorage(),
       rolls: await t.run((ctx) => ctx.db.query('userRollHistory').collect()),
       effects: await t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
+          kind: 'CHARACTER',
+          characterId: character.id
+        })
       )
     }
     const original = projection.projectCharacterSheetBundle
@@ -377,16 +387,27 @@ describe('native Character rest preview and completion', () => {
     )
     expect({
       state: await readState(),
+      receiptStorage: await readReceiptStorage(),
       rolls: await t.run((ctx) => ctx.db.query('userRollHistory').collect()),
       effects: await t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
+          kind: 'CHARACTER',
+          characterId: character.id
+        })
       )
     }).toEqual(beforeComplete)
     vi.restoreAllMocks()
     const completed = await owner.caller.mutation(execute, command)
+    expect(completed).not.toHaveProperty('sheet')
+    const completedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: completed.characterId
+    }))!
     expect(
       await t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
+          kind: 'CHARACTER',
+          characterId: character.id
+        })
       )
     ).toEqual(
       expect.arrayContaining([
@@ -396,17 +417,20 @@ describe('native Character rest preview and completion', () => {
     )
     expect(
       await t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
+          kind: 'CHARACTER',
+          characterId: character.id
+        })
       )
     ).toHaveLength(2)
     expect(completed.streamVersion).toBe(3)
-    expect(completed.sheet.overview.hitDice.find((die) => die.die === pool.die)?.used).toBe(1)
+    expect(completedSheet.overview.hitDice.find((die) => die.die === pool.die)?.used).toBe(1)
     // Healing stops at the maximum the preserved Life Drain reduction still lowers.
-    expect(completed.sheet.overview.maxHitPoints).toBe(damaged.sheet.overview.maxHitPoints - 3)
-    expect(completed.sheet.overview.currentHitPoints).toBe(
+    expect(completedSheet.overview.maxHitPoints).toBe(damagedSheet.overview.maxHitPoints - 3)
+    expect(completedSheet.overview.currentHitPoints).toBe(
       Math.min(
-        damaged.sheet.overview.maxHitPoints - 3,
-        damaged.sheet.overview.currentHitPoints + rolled.evidence.total
+        damagedSheet.overview.maxHitPoints - 3,
+        damagedSheet.overview.currentHitPoints + rolled.evidence.total
       )
     )
     expect(completed.result).toMatchObject({
@@ -439,10 +463,18 @@ describe('native Character rest preview and completion', () => {
         expectedVersion: 3
       }
     })
+    expect(noted).not.toHaveProperty('sheet')
+    const notedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: noted.characterId
+    }))!
     await owner.caller.mutation(clearRolls, {})
     const beforeReplay = await readState()
     const replay = await owner.caller.mutation(execute, command)
-    expect(replay.sheet).toEqual(noted.sheet)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
+    expect(replaySheet).toEqual(notedSheet)
     expect(replay.result).toEqual(completed.result)
     expect(replay.historyEntry).toEqual(completed.historyEntry)
     expect(await readState()).toEqual(beforeReplay)
@@ -498,7 +530,7 @@ describe('native Character rest preview and completion', () => {
     const longMaximumEffectId = '00000000-0000-4000-8000-000000000122'
     const restorationOnlyEffectId = '00000000-0000-4000-8000-000000000123'
     await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       await store.create({
         id: longEffectId,
         owner: { kind: 'CHARACTER', characterId: character.id },
@@ -549,17 +581,27 @@ describe('native Character rest preview and completion', () => {
     expect(await readState()).toEqual(before)
     expect(
       await t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
+          kind: 'CHARACTER',
+          characterId: character.id
+        })
       )
     ).toHaveLength(3)
     vi.restoreAllMocks()
     const completed = await owner.caller.mutation(execute, command)
+    expect(completed).not.toHaveProperty('sheet')
+    const completedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: completed.characterId
+    }))!
     expect(
       await t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).list({ kind: 'CHARACTER', characterId: character.id })
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
+          kind: 'CHARACTER',
+          characterId: character.id
+        })
       )
     ).toEqual([expect.objectContaining({ id: restorationOnlyEffectId })])
-    expect(completed.sheet.overview).toMatchObject({
+    expect(completedSheet.overview).toMatchObject({
       currentHitPoints: originalSheet.overview.maxHitPoints - 3,
       maxHitPoints: originalSheet.overview.maxHitPoints - 3,
       maxHitPointsReductions: [
@@ -574,7 +616,7 @@ describe('native Character rest preview and completion', () => {
       tempHitPoints: 0,
       exhaustion: { level: 1 }
     })
-    expect(completed.sheet.overview.hitDice[0]!.used).toBe(0)
+    expect(completedSheet.overview.hitDice[0]!.used).toBe(0)
     if (completed.result?.type !== 'COMPLETE_REST')
       throw new Error('Missing completed rest result.')
     expect(completed.result.rest.resetMaximumHitPointModifier).toBe(true)

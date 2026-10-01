@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { expect, it } from 'vitest'
 import { makeFunctionReference } from 'convex/server'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -77,11 +78,19 @@ it('runs the actual-backend Character/Encounter assertions against local transac
         ctx.db.query('campaignSessionAttendance').collect(),
         ctx.db.query('encounterRuns').collect(),
         ctx.db.query('encounterRunActors').collect(),
-        ctx.db.query('encounterRunCommands').collect(),
-        ctx.db.query('characterCommandReceipts').collect(),
+        ctx.db
+          .query('encounterRunCommands')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+        ctx.db
+          .query('characterCommandReceipts')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers)),
         ctx.db.query('characters').collect(),
-        ctx.db.query('characterPlayStates').collect()
+        ctx.db.query('characterPlayStates').collect(),
+        ctx.db.query('receiptLedgers').collect(),
+        ctx.db.query('receiptLedgerParts').collect()
       ])
     )
-  ).toEqual(Array.from({ length: 12 }, () => []))
+  ).toEqual(Array.from({ length: 14 }, () => []))
 }, 30000)

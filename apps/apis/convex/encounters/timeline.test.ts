@@ -1,6 +1,7 @@
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { readReceiptHeader, writeReceiptRecord } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
-import migrations from '@convex-dev/migrations/test'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -42,15 +43,6 @@ const timeline = makeFunctionReference<
   { encounterId: string; cursor?: string; limit?: number },
   EncounterTimelineDto
 >('encounters/timelineReads:timeline')
-const timelineBackfill = makeFunctionReference<'mutation', { reset?: boolean }, unknown>(
-  'encounters/timelineBackfill:run'
-)
-const timelineReceiptsBatch = makeFunctionReference<
-  'mutation',
-  { oneBatchOnly: boolean; dryRun: boolean; cursor: string | null; batchSize: number },
-  unknown
->('encounters/timelineBackfill:receipts')
-
 async function setup() {
   const base = await fixture()
   const campaign = await base.owner.caller.mutation(createCampaign, {
@@ -166,13 +158,7 @@ describe('native Encounter timeline reads', () => {
     ).toEqual({ entries: [], nextCursor: null })
   }, 30000)
 
-  it('backfills timeline metadata in resumable idempotent batches and rejects tampering', async ({
-    onTestFinished
-  }) => {
-    vi.useFakeTimers()
-    onTestFinished(() => {
-      vi.useRealTimers()
-    })
+  it('rejects missing and tampered physical timeline metadata and reads restored history', async () => {
     const { t, owner, run } = await setup()
     await writeHistory(owner, run)
     const commands = await t.run((ctx) =>
@@ -183,54 +169,36 @@ describe('native Encounter timeline reads', () => {
     )
     const command = commands.find((row) => row.commandType === 'CREATE')
     if (!command) throw new Error('Missing CREATE receipt')
-    await t.run(async (ctx) => {
-      for (const row of commands)
-        await ctx.db.patch(
-          row._id,
-          row.commandType === 'CREATE'
-            ? { id: undefined, version: undefined, visibility: undefined }
-            : { visibility: undefined }
-        )
-    })
-    migrations.register(t)
-    await expect(owner.caller.query(timeline, { encounterId: run.id })).rejects.toThrow(
-      'backfill is incomplete'
-    )
-    await t.mutation(timelineReceiptsBatch, {
-      oneBatchOnly: true,
-      dryRun: false,
-      cursor: null,
-      batchSize: 1
-    })
-    await expect(owner.caller.query(timeline, { encounterId: run.id })).rejects.toThrow(
-      'backfill is incomplete'
-    )
-    await t.mutation(timelineBackfill, { reset: true })
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
-    const backfilled = await t.run((ctx) => ctx.db.get(command._id))
-    expect(backfilled).toMatchObject({ id: command.commandId, version: 0, visibility: 'PRIVATE' })
-    await t.mutation(timelineBackfill, { reset: true })
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
-    const finalCommands = await t.run((ctx) =>
-      ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
-        .collect()
-    )
-    expect(finalCommands).toEqual(commands)
-    expect((await owner.caller.query(timeline, { encounterId: run.id })).entries).toHaveLength(3)
-    await t.run((ctx) => ctx.db.patch(commands[0]!._id, { visibility: 'TABLE' }))
-    await expect(
-      t.mutation(timelineReceiptsBatch, {
-        oneBatchOnly: true,
-        dryRun: false,
-        cursor: null,
-        batchSize: 1
+    await t.run((ctx) =>
+      ctx.db.patch(command._id, {
+        id: undefined,
+        version: undefined,
+        visibility: undefined
       })
-    ).rejects.toThrow('timeline metadata mismatch')
-    await expect(owner.caller.query(timeline, { encounterId: run.id })).rejects.toThrow(
-      'timeline metadata mismatch'
     )
+    await expect(owner.caller.query(timeline, { encounterId: run.id })).rejects.toThrow(
+      'backfill is incomplete'
+    )
+    await t.run((ctx) =>
+      ctx.db.patch(command._id, {
+        id: command.id,
+        version: command.version,
+        visibility: command.visibility
+      })
+    )
+    expect((await owner.caller.query(timeline, { encounterId: run.id })).entries).toHaveLength(3)
+    await t.run((ctx) => ctx.db.patch(command._id, { visibility: 'TABLE' }))
+    await expect(owner.caller.query(timeline, { encounterId: run.id })).rejects.toThrow(
+      'Receipt header metadata does not match its ledger entry.'
+    )
+    await t.run((ctx) => ctx.db.patch(command._id, { visibility: command.visibility }))
+    expect((await owner.caller.query(timeline, { encounterId: run.id })).entries).toHaveLength(3)
+    await t.run((ctx) => ctx.db.patch(command._id, { entryChecksum: '0'.repeat(64) }))
+    await expect(owner.caller.query(timeline, { encounterId: run.id })).rejects.toThrow(
+      'Receipt ledger pointer identity or checksum does not match.'
+    )
+    await t.run((ctx) => ctx.db.patch(command._id, { entryChecksum: command.entryChecksum }))
+    expect((await owner.caller.query(timeline, { encounterId: run.id })).entries).toHaveLength(3)
   }, 30000)
 
   it('shortens large history pages at the byte budget without omissions', async () => {
@@ -240,6 +208,7 @@ describe('native Encounter timeline reads', () => {
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
         .first()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
     )
     const actor = run.actors[0]
     if (!source || !actor) throw new Error('Missing timeline fixture')
@@ -279,7 +248,7 @@ describe('native Encounter timeline reads', () => {
         expect(new TextEncoder().encode(JSON.stringify(document)).byteLength).toBeLessThan(
           1024 * 1024
         )
-        await ctx.db.insert('encounterRunCommands', document)
+        await writeReceiptRecord(ctx, 'encounterRunCommands', document)
         if (document.commandType === 'CREATE') throw new Error('Expected roll fixture')
         created.push(document.id)
       }
@@ -382,8 +351,11 @@ describe('native Encounter timeline reads', () => {
         .query('encounterRunCommands')
         .withIndex('by_encounterId_version', (q) => q.eq('encounterId', run.id).eq('version', 1))
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
       if (!command || command.commandType === 'CREATE') throw new Error('Missing command receipt')
-      await ctx.db.patch(command._id, { replayReceiptChecksum: '0'.repeat(64) })
+      await replaceReceiptRecord(ctx, 'encounterRunCommands', command._id, {
+        replayReceiptChecksum: '0'.repeat(64)
+      })
     })
     await expect(owner.caller.query(timeline, { encounterId: run.id })).rejects.toThrow(
       'receipt mismatch'

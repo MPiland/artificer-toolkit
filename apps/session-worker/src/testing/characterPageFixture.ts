@@ -1,8 +1,26 @@
-/** The first part of a real CHARACTERS room-inputs read (a level 1 Character), captured from Convex. */
-export const characterPageFixture: unknown = {
+import { characterStoredRowSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
+import {
+  characterDocumentSchema,
+  encodeCharacterRecord
+} from '@artificer-toolkit/schema/projections/characterStoredState'
+import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+
+/** A level 1 Character capture; the private transport row below uses the canonical storage codec. */
+const capturedPage = {
   status: 'ASSIGNED',
   characterId: 'f84fd6f1-8c90-4578-b9c5-2593b797bcb9',
   documents: [],
+  contentSnapshots: {
+    systemId: '00000000-0000-0000-0000-000000000001',
+    sources: [],
+    campaign: {
+      id: '6ac2c5e6-6b7a-4af7-809d-bafb66543183',
+      contentMaturity: 'STANDARD',
+      head: null
+    }
+  },
   inputs: {
     campaign: {
       attunementSlotOverride: null,
@@ -87,7 +105,6 @@ export const characterPageFixture: unknown = {
       systemId: '00000000-0000-0000-0000-000000000001',
       userId: '4b355870-c307-4b42-a70f-e73cecc6c459'
     },
-    characterChecksum: 'f35579e7d575f6f8a9836295bac6d0a9ed4bd2ed985700a41cb54c87fc58d5b1',
     sheetState: {
       adjustments: [],
       movementDisplayPreference: { mode: 'AUTO' },
@@ -120,4 +137,49 @@ export const characterPageFixture: unknown = {
       scope: 'CHARACTER'
     }
   ]
+}
+
+const character = characterDocumentSchema.parse(capturedPage.inputs.character)
+const sheetState = characterSheetStateSchema.parse(capturedPage.inputs.sheetState)
+const updatedAt = capturedPage.inputs.updatedAt
+const play = splitCharacterPlayState({ state: character.state, sheetState }).play
+const owner = characterStoredRowSchema.parse(
+  encodeCharacterRecord(
+    {
+      _id: 'fixture:character',
+      _creationTime: Date.parse(updatedAt),
+      id: character.id,
+      userId: character.userId,
+      systemId: character.systemId,
+      label: character.label,
+      status: 'ACTIVE',
+      createdAt: updatedAt,
+      updatedAt,
+      documentJson: JSON.stringify(character),
+      checksum: checksumRuleDocument(character),
+      play: {
+        _id: 'fixture:character-play',
+        _creationTime: Date.parse(updatedAt),
+        characterId: character.id,
+        userId: character.userId,
+        streamVersion: capturedPage.inputs.streamVersion,
+        maximumHitPoints: 11,
+        walkingSpeed: 30,
+        state: play,
+        checksum: checksumRuleDocument(play),
+        updatedAt
+      }
+    },
+    { document: character, sheetState, streamVersion: capturedPage.inputs.streamVersion, updatedAt }
+  )
+)
+
+/** The assigned Character's first room-input part, including its complete private owner capture. */
+export const characterPageFixture: unknown = {
+  status: capturedPage.status,
+  characterId: capturedPage.characterId,
+  documents: capturedPage.documents,
+  contentSnapshots: capturedPage.contentSnapshots,
+  inputs: { owner, campaign: capturedPage.inputs.campaign, sheetState },
+  revisions: capturedPage.revisions
 }

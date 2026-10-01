@@ -117,6 +117,36 @@ async function setup() {
 }
 
 describe('live room authorization (ADR 0035 Amendment 14)', () => {
+  it('reports the canonical System revision and changes no authorization sections when only it bumps', async () => {
+    const base = await setup()
+    await base.holdRoom()
+    const request = { campaignId: base.campaign.id, epoch: base.epoch }
+    const stored = await base.t.run((ctx) =>
+      ctx.db
+        .query('sceneVisionRevisions')
+        .withIndex('by_scope_id', (q) =>
+          q.eq('scope', 'SYSTEM').eq('id', base.campaign.gameSystemId)
+        )
+        .unique()
+    )
+    const first = await base.t.query(read, { ...request, known: null })
+    expect(first.revisions.system).toBe(stored?.revision ?? null)
+    const revision = crypto.randomUUID()
+    await base.t.run(async (ctx) => {
+      if (stored) await ctx.db.patch(stored._id, { revision })
+      else
+        await ctx.db.insert('sceneVisionRevisions', {
+          scope: 'SYSTEM',
+          id: base.campaign.gameSystemId,
+          revision
+        })
+    })
+    expect(await base.t.query(read, { ...request, known: first.revisions })).toEqual({
+      revisions: { ...first.revisions, system: revision },
+      characters: []
+    })
+  })
+
   it('serves the room by its DO_ACTIVE epoch and sends only the sections that changed', async () => {
     const base = await setup()
     await base.holdRoom()
@@ -168,6 +198,27 @@ describe('live room authorization (ADR 0035 Amendment 14)', () => {
       if (authority) await ctx.db.patch(authority._id, { phase: 'DRAINING' })
     })
     await expect(base.t.query(read, { ...request, known: null })).rejects.toThrow('not active')
+  })
+
+  it('reloads canonical author names after a username change and invalidates the held room', async () => {
+    const base = await setup()
+    await base.holdRoom()
+    const request = { campaignId: base.campaign.id, epoch: base.epoch }
+    const first = await base.t.query(read, { ...request, known: null })
+    await base.player.caller.mutation(api.account.updateProfile, { username: 'LivePlayer', bio: null })
+    const changed = await base.t.query(read, { ...request, known: first.revisions })
+    expect(changed.revisions.preferences).not.toBe(first.revisions.preferences)
+    expect(changed.preferences).toEqual(expect.arrayContaining([
+      { userId: base.player.userId, autoRollDice: expect.any(Boolean), username: 'LivePlayer' }
+    ]))
+    expect(await base.invalidations()).toEqual([
+      { campaignId: base.campaign.id, operation: { type: 'INVALIDATE_INPUTS', scopes: ['PREFERENCES'] } }
+    ])
+    expect(await base.t.query(read, { ...request, known: changed.revisions })).toEqual({
+      revisions: changed.revisions, characters: []
+    })
+    await base.player.caller.mutation(api.account.updateProfile, { bio: 'Updated profile' })
+    expect(await base.invalidations()).toHaveLength(1)
   })
 
   it('notifies the room once per transaction and Campaign, only while it holds DO_ACTIVE authority', async () => {

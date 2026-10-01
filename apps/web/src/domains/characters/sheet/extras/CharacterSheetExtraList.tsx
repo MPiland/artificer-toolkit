@@ -1,9 +1,10 @@
+import type { CharacterSheetExtrasSliceDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Text } from '@mantine/core'
-import type { CharacterSheet, OpenSheetPanel } from '../core/CharacterSheet.types'
+import type { OpenSheetPanel } from '../core/CharacterSheet.types'
 import * as extrasStyles from './extras.css'
 import { getExtraTarget } from './CharacterSheetExtraList.model'
 
-type Extra = CharacterSheet['extras']['items'][number]
+type Extra = CharacterSheetExtrasSliceDto['extras']['items'][number]
 
 function ExtraMetric({
   hideOnMobile,

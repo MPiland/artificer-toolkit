@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import type { AuthoredCatalogueSearchBackfillResult } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api, internal } from '../_generated/api'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
@@ -36,6 +38,87 @@ async function snapshot(t: Awaited<ReturnType<typeof fixture>>['t']) {
 }
 
 describe('exact catalogue counter backfill', () => {
+  it.each(['components', 'publishedActive'] as const)(
+    'backfills complete Spell selector facts exactly and rejects corrupt marked %s',
+    async (corruptField) => {
+      const { t } = await fixture()
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects: [importedSubject({ subjectKind: 'SPELL', ...light, document: light })]
+      })
+      const original = await t.run((ctx) =>
+        ctx.db
+          .query('authoredRoots')
+          .withIndex('by_publicId', (q) => q.eq('id', light.id))
+          .unique()
+      )
+      if (!original?.catalogue?.spell) throw new Error('Missing Spell catalogue fixture.')
+      const {
+        selectionVersion: _marker,
+        publishedActive: _active,
+        attributes: _attributes,
+        components: _components,
+        materialDescription: _material,
+        ...oldSpell
+      } = original.catalogue.spell
+      await t.run((ctx) =>
+        ctx.db.patch(original._id, { catalogue: { ...original.catalogue!, spell: oldSpell } })
+      )
+      for (let replay = 0; replay < 2; replay++) {
+        if (replay === 1) {
+          const { publishedActive: _active, ...markedSpell } = original.catalogue.spell
+          await t.run((ctx) =>
+            ctx.db.patch(original._id, {
+              catalogue: { ...original.catalogue!, spell: markedSpell }
+            })
+          )
+        }
+        let cursor: string | null = null
+        let isDone = false
+        while (!isDone) {
+          const page: AuthoredCatalogueSearchBackfillResult = await t.mutation(
+            internal.content.catalogueSearchBackfill.backfill,
+            {
+              paginationOpts: { cursor, numItems: 8 }
+            }
+          )
+          cursor = page.continueCursor
+          isDone = page.isDone
+        }
+        expect((await t.run((ctx) => ctx.db.get(original._id)))?.catalogue).toEqual(
+          original.catalogue
+        )
+      }
+      await t.run((ctx) =>
+        ctx.db.patch(original._id, {
+          catalogue: {
+            ...original.catalogue!,
+            spell: {
+              ...original.catalogue!.spell!,
+              ...(corruptField === 'components'
+                ? { components: [] }
+                : { publishedActive: !original.catalogue!.spell!.publishedActive })
+            }
+          }
+        })
+      )
+      let cursor: string | null = null
+      await expect(
+        (async () => {
+          for (;;) {
+            const page: AuthoredCatalogueSearchBackfillResult = await t.mutation(
+              internal.content.catalogueSearchBackfill.backfill,
+              {
+                paginationOpts: { cursor, numItems: 8 }
+              }
+            )
+            if (page.isDone) break
+            cursor = page.continueCursor
+          }
+        })()
+      ).rejects.toThrow('metadata mismatch')
+    }
+  )
   it.each(['search-present', 'search-absent'] as const)(
     'canonical replay fills only missing owner memberships (%s)',
     async (searchState) => {

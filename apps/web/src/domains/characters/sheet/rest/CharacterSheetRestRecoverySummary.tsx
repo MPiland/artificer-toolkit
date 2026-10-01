@@ -1,9 +1,9 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Text } from '@mantine/core'
 import type {
   CharacterRestPreviewRequestDto,
   CharacterRestPreviewResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import type { CharacterSheet } from '../core/CharacterSheet.types'
 import * as restStyles from './rest.css'
 import { formatRestRecoveryLabels } from './rest.utils'
 
@@ -16,7 +16,7 @@ export function CharacterSheetRestRecoverySummary({
   preview: CharacterRestPreviewResponseDto
   restKind: CharacterRestPreviewRequestDto['restKind']
   selectedHitDice: CharacterRestPreviewRequestDto['selectedHitDice']
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
 }) {
   return (
     <div className={restStyles.recoverySummary}>

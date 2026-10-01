@@ -1,3 +1,4 @@
+import { readReceiptHeader } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -115,6 +116,7 @@ describe('a Character weapon critical hit in the room', () => {
           q.eq('encounterId', base.run.id).eq('commandId', base.command.commandId)
         )
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     )
     if (!receipt) throw new Error('The Longsword receipt is missing.')
     const settled = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

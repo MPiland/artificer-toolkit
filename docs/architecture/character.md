@@ -10,7 +10,7 @@
 
 Characters are playable aggregates rather than generic authored forms. Builder owns structural choices
 and reconciliation. Sheet owns play-state commands. Both resolve current readable authored sources and
-installed System capabilities through Convex; neither persists an authored-version vector or old rules
+installed System capabilities from authorized current inputs; neither persists an authored-version vector or old rules
 pack pin.
 
 ```mermaid
@@ -37,9 +37,61 @@ once. A same command ID with the same input returns its stored result; a conflic
 
 Sheet reads expose only the authorized projection. Commands derive the user from authenticated context,
 check Character/Campaign authority and expected stream version, validate bounded rule decisions, and
-atomically update state, projections and receipts. Encounter-owned orchestration may call private
-Character functions inside the same Convex transaction; full private Sheet data does not cross that
-boundary.
+atomically update state, projections and receipts. Encounter-owned orchestration calls the owning
+Character write ports in its transaction; full private Sheet data stays within that boundary.
+
+**Held Character play (current source, unverified S7).** The room protocol now accepts
+`CHARACTER_SHEET` with Character UUID, active Run UUID and one of the nineteen typed play commands in
+[characterSheetLiveCommands](../../packages/schema/src/api/characterSheetLiveCommands.ts).
+[roomCharacterSheetCommands](../../apps/session-worker/src/roomCharacterSheetCommands.ts) uses the
+canonical Sheet reducer/resource helpers, current active-effect projection and real typed play writer
+inside the caller's SQLite transaction. The private Character receipt and room journal commit before
+acknowledgement. Current assignment/owner, active Campaign/System/Run and unfrozen Character actor
+checks precede replay; socket replay also rereads the checksummed ACTIVE Run/unfrozen Character actor
+and current Campaign/System/play ownership. Replay precedes expected-version refusal. GM restrictions apply when the viewer
+is the Campaign owner rather than the Character owner. Only the initiator receives private history;
+other admitted recipients advance the same room sequence with required `delta: null`. A pending
+Sheet command waits for its own CHARACTER_SHEET delta before settling. Current vision is
+composed before commit, and party visibility takes effect locally and survives an unpublished suffix.
+
+The [liveCharacterHold contract](../../packages/schema/src/projections/liveCharacterHold.ts) records
+one Character/active Run pair, Campaign and room epoch. Claim/recovery establishes holds, changed Run
+or actor checkpoints reconcile them, and final acknowledged release removes that epoch's holds.
+Held direct Convex play/preferences/rest writes refuse. Outside Builder/structure writes preserve the
+entire acknowledged play row, stream clock and stats; Builder commit returns the actual persisted
+play/version. At the next room command boundary, changed Builder inputs reconcile hit dice/usage,
+filter equipped/attuned IDs against prepared inventory while preserving valid order, and
+clamp HP only when the newly evaluated Character-only maximum falls below the prior native maximum.
+Canonical source-loss reconciliation already removes vanished inventory IDs, but held writes retain
+native play until this room cleanup. All reconciliation joins one native transaction and advances
+the play clock only on changed state. Existing SQLite commit/rollback/eviction/warm source checks
+cover retained/removed IDs with mocked preparation; full integration remains unverified. The shared
+[Character receipt test](../../packages/encounter-persistence/src/__tests__/characterSheetReceipts.test.ts)
+adds raw STANDARD-to-MATURE replay/current-stream and checksum/fingerprint refusal coverage without execution.
+`SET_HIT_POINTS.maxOverride`, rests, notes, structure and customization commands are outside this lane.
+
+Frontend Sheet commands still use Convex; live routing, projection subscriptions and
+membership/controller/account-deletion hold integration are unfinished. Campaign deletion includes
+hold rows, but native lifecycle cleanup needs proof. The new schema needs the guarded local
+reset/seed/codegen lifecycle. No generated check or integrated execution gate has run; S7/S8 remain open.
+
+The focused [sheetSlices.liveAuthority](../../apps/apis/convex/characters/sheetSlices.ts) query now
+reads head, epoch-matching holds and validated typed play to return owner/GM routing metadata:
+Campaign/epoch/phase, held Run IDs, checkpoint sequence/time and acknowledged play stream. Party
+readers receive null. It loads neither mechanics nor owned collections. Authority `checkpointedAt`
+is set only by an actual acknowledged delta checkpoint or retained per-command publication; exact
+retry and drain preserve it. Activation/new recovery has no timestamp, so routing metadata returns
+null before the epoch's first acknowledgement. This freshness provenance is authored in source;
+frontend routing and freshness presentation remain open.
+
+Public `SET_INSPIRATION` and `SET_PARTY_VISIBILITY` acknowledgements now use
+[sheetPlayPreferences](../../apps/apis/convex/characters/sheetPlayPreferences.ts) in current source.
+They read head/play, current assignment authority, route/draft ownership and receipt facts without
+assembling owned collections or evaluating mechanics. The typed play checksum, stream and play clock
+advance atomically with the existing receipt; structure checksums/clocks, derived stats and unrelated
+play fields remain intact. Current authority precedes replay. Assigned GMs may set inspiration, while
+party visibility remains the Character owner's choice. The full Sheet executor remains for protected
+comparators and internal consumers. Focused source coverage is present; execution evidence is pending.
 
 Campaign assignment preserves identity separately from play eligibility. An active Encounter actor is
 removed when its Character/account is deleted, while completed turns, rolls, Session records and other
@@ -302,8 +354,8 @@ adjustment changes also validate current Sheet evaluation before committing. Con
 the current System vocabulary. Neither writer changes the Character stream or personal adjustments.
 Resource and Spell slot counters, Spell casting, Clock recovery and GM adjustment post-write
 validation may reuse authored sources within the same mutation. Known/prepared Spell selection also
-reuses the complete authorized, validated Spell document set already loaded for that mutation;
-evaluation hydrates the newly selected spells from that set. Character state, authority, overlays and
+reuses the complete authorized selector facts already loaded for that mutation; evaluation reads and
+validates only newly selected Spell documents, without rebuilding the source catalogue. Character state, authority, overlays and
 rule evaluation remain fresh; the internal context is bound to the Character, owner and System and is
 never persisted or returned by public APIs. Commands requiring sources outside the loaded set load
 sources again.
@@ -408,8 +460,9 @@ Commit reads referenced content only (see [Referenced commit reads](#referenced-
 First-create starting-equipment materialization reloads the selected mechanics registry and reuses the catalogue
 from the same transaction, so newly granted inventory contributes mechanics without a second full
 catalogue read. The reload repeats System/source admission and selected-root validation while reusing
-the complete validated Spell map from that preparation transaction. If no Spell catalogue was loaded
-before materialization, newly granted spell-bearing equipment triggers its first full load. This remains
+the complete checksum-bound Spell selector facts and previously referenced documents from that
+preparation transaction. Newly granted spell-bearing equipment hydrates missing referenced documents.
+Full authored Spell documents are mechanics inputs; selector facts are not substitutes for them. This remains
 a transitional current-source path, not the pinned Sheet target below.
 
 The existing pure Builder catalogue/presentation, hit-point, spell, equipment, chosen-grant,
@@ -617,15 +670,18 @@ loaded or wrote, and commit passes the verified owner to `syncAccountUsage`.
 
 ### Character play state (ADR 0035 Amendment 12) — local implementation
 
-> Status: current local implementation of the Character part of Amendment 12. Inventory, currency,
-> companion hit points and class-spell state still sit in the structure document (see below).
+> Status: current local operational storage implementation; integrated proof and focused Sheet access
+> remain in progress. The two concurrency clocks retain Amendment 12's ownership.
 
-A Character is two stored records, so a play change never rewrites the large document.
+A Character has a small head and typed operational records. Complete checksummed JSON is assembled
+for rules, Builder, export and room captures; it is no longer stored in the mutable head.
 
-| Record | Owner | Holds | Concurrency clock |
-| --- | --- | --- | --- |
-| `characters` | Builder | `documentJson` (structure), `sheetState` (adjustments, movement preference, spell customizations), identity | `updatedAt` |
-| `characterPlayStates` | Sheet, rests, Encounter mechanics, GM adjustments | `playJson` (below), `maximumHitPoints`, `walkingSpeed`, identity | `streamVersion` |
+| Record                 | Owner                                             | Holds                                                                                                                                                 | Concurrency clock |
+| ---------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `characters`           | Builder and structural Sheet writes               | Identity, portrait, complete structure checksums                                                                                                      | `updatedAt`       |
+| `characterBuildStates` | Builder and Sheet adjustments                     | Profile, intent, adjustments, movement preference, optional collection presence                                                                       | Head `updatedAt`  |
+| `characterPlayStates`  | Sheet, rests, Encounter mechanics, GM adjustments | typed `state` (below), checksum, `maximumHitPoints`, `walkingSpeed`, identity                                                                         | `streamVersion`   |
+| Owned collections      | Existing Builder/Sheet owners                     | Inventory items, currency groups, class spell state, spell customizations, Creature/Vehicle instances, equipment relationships, notes and note groups | Head `updatedAt`  |
 
 - **Contract.** `packages/schema/src/projections/characterPlayState.ts` names the play fields
   (`characterPlayStateSchema`): the state's hit points (current, temporary, hit dice), resources,
@@ -633,16 +689,30 @@ A Character is two stored records, so a play change never rewrites the large doc
   resource usage and party visibility. `splitCharacterPlayState` and `mergeCharacterPlayState` are
   pure, and a property test proves split then merge round-trips. `characterStoredState.ts` is the one
   reader (`readCharacterRecord`, `readCharacterSheetState`, checksum and identity checks) and pure
-  re-encoder (`encodeCharacterRecord`) for a Character row joined with its play record. Apis,
-  rules-runtime and the session worker all use it, so none of them re-implements the join.
-- **One writer.** `writeCharacterRecord` splits the document and Sheet state it is given, replaces a
-  record only when its checksum changed, and advances the structure `updatedAt` only when the
-  structure changed. A play write therefore replaces only the small record. The Encounter
-  persistence port (`writeCharacterRecord`) reaches the same function.
-- **Readers merge.** `readCharacterRow` joins the two records; the Sheet projection, rules
+  re-encoder (`encodeCharacterRecord`) for a complete Character capture joined with its play record.
+  `characterOperationalRecords.ts` defines typed storage; `characterOperationalState.ts` owns its
+  split and assembly. Per-row checksums and the head's complete structure checksums reject altered,
+  missing, duplicated or foreign rows. Checksummed Build collection counts also detect truncated
+  selected reads, including missing final or all rows, without assembling unrelated collections.
+  Array positions and optional collection presence preserve complete domain results. Apis,
+  rules-runtime and the session worker share these contracts.
+  The persisted play value is typed, replacing the retired `playJson` field. Its canonical checksum
+  still guards assembly and replay captures. Database schema evaluation imports the focused
+  `shared/character/sheetRest` value validator, never the complete Character mechanics barrel.
+  Development data is reset and seeded with the local lifecycle; no compatibility reader is retained.
+- **One writer.** `writeCharacterRecord` splits the document and Sheet state it is given, diffs
+  individual owned records by ID and checksum, and advances the structure `updatedAt` only when
+  structure changes. All changes share the caller's transaction. A play write replaces only the
+  small play record. The Encounter persistence port reaches this same function.
+- **Readers merge.** `readCharacterRow` assembles all indexed operational records; the Sheet projection, rules
   evaluation, Encounter facts and the live-session INPUTS capture (one joined `owner` row, from which
   the Worker derives the Character) all read the merged Character. Party visibility and health
-  display for the room authorization cache read the play record alone.
+  display for the room authorization cache read the play record alone. Character lists read only
+  the head, play version, draft summary and route identity. NOTES reads its selected families alone;
+  mechanical Sheet slices still use complete assembly before selecting their response.
+  Public queries validate DTOs after viewer projection: a slice query validates its selected
+  shared contract, while a complete Sheet query validates the complete response. Stored Character
+  assembly and rules inputs retain their validation independently of the returned DTO.
 - **Campaign state stays separate.** `campaignCharacterStates` and `characterActiveRuleEffects`
   remain per Character per Campaign. Folding them into the play record would fan one Character
   record out across every Campaign context that uses it and make each Campaign's write rewrite the
@@ -680,9 +750,9 @@ that overlap both survive: whichever runs second reads the first's result.
 split both paths replaced the whole 7.6 KB Character row; now they replace the play record (about
 0.5 KB), so the total is dominated by the command receipt.
 
-| Path | Before | After |
-| --- | --- | --- |
-| Sheet HP change | 8.2 KB (Character 7,589 B, receipt 648 B) | 1.1 KB (play record 496 B, receipt 648 B) |
+| Path                            | Before                                    | After                                     |
+| ------------------------------- | ----------------------------------------- | ----------------------------------------- |
+| Sheet HP change                 | 8.2 KB (Character 7,589 B, receipt 648 B) | 1.1 KB (play record 496 B, receipt 648 B) |
 | Encounter damage to a Character | 8.3 KB (Character 7,606 B, receipt 676 B) | 1.2 KB (play record 513 B, receipt 676 B) |
 
 ### Neutral Sheet commands — extraction, native persistence pending
@@ -747,30 +817,41 @@ route no longer loads the legacy HTTP list. This deliberately retains full-summa
 server-side filters are a future change if personal list size requires them. Campaign's other reads
 and writes remain transitional; this list integration is not Campaign or release acceptance.
 
-### Native personal Sheet read — locally integrated, acceptance pending
+### Focused Sheet reads — local implementation, acceptance pending
 
 ```mermaid
 flowchart LR
-  Request["characters/sheet:get — UUID or alias"] --> Owner["Better Auth owner + active Character + route checks"]
-  Owner --> Current["Current published sources + active Sheet state"]
+  Request["characters/sheetSlices:get — UUID or alias, optional Campaign, slice"] --> Owner["Current viewer + active Character + route checks"]
+  Owner --> Notes["NOTES: play version, Build notebook, note/group records"]
+  Owner --> Current["Mechanical slices: current published sources + complete active state"]
   Current --> Prepare["Shared structural repair + readiness, read-only"]
   Prepare --> Policy["Installed TypeScript Character policy"]
   Policy --> Projection["Neutral Sheet projector"]
-  Projection --> Result["CharacterSheetResponseDto + publicId"]
+  Projection --> Result["COMMON, ACTIONS, SPELLS, INVENTORY, EXTRAS or FEATURES DTO"]
+  Notes --> Notebook["Owner-only NOTES DTO"]
 ```
 
-The query reads only the committed Character document. A working draft contributes only its presence
+The queries read committed Character state. A working draft contributes only its presence
 flag, never proposed structure, play state or private notes. UUID and route-alias lookups share the
 same owner/route integrity checks; missing, draft-only and other-owner Characters return null, and
 anonymous callers are denied. The current-source preparation and policy run synchronously on every
 read. An unresolved structural source blocks the Sheet instead of serving a stored stale projection.
 This query does not persist repairs, advance the stream or consume a draft.
 
-Its read input lives in `schema/api/characterSheetData`. The backend's Builder context loader retains
+The shared read envelope and DTOs live in `schema/api/characterSheetSlices`. The backend's Builder context loader retains
 the selected Creature/Vehicle maps for the final policy/projection call without adding those records
-to the structural registry. Generated endpoint bindings now serve the personal web Sheet route.
-Campaign viewers, publication/deletion reconciliation transactions and complete same-source lifecycle
-proofs remain pending. No deployment is implied by the focused local integration.
+to the structural registry. COMMON supplies identity, versions and visible vitals. The web subscribes
+to a feature slice only while its surface is mounted, and immediately releases that subscription on
+unmount. Mobile Overview does not mount hidden desktop Actions. Editable Creature/Vehicle equipment
+selectors request INVENTORY while open; other inspectors use their existing focused panel query.
+
+NOTES validates only the head, play and Build records and complete ordered note/group records against
+the Build's checksummed collection counts, with no
+inventory, spell, extras or authored-source reads and no mechanics evaluation. It is owner-only;
+Campaign GM and party projections cannot request private notes. Both explicit and implicit assignment
+authority retain the Campaign deletion fence. The mechanical slices still assemble and evaluate the
+complete Character before selecting their DTO; narrowing HP and mechanical storage reads remains
+completion work. The complete Sheet endpoint remains a transitional native-proof consumer.
 
 ### Native personal Sheet commands — partial local implementation
 
@@ -778,17 +859,17 @@ proofs remain pending. No deployment is implied by the focused local integration
 sequenceDiagram
   participant Client
   participant Command as characters/sheetCommands:execute
-  participant Character as characters document
+  participant Character as Character operational records
   participant Receipt as characterCommandReceipts
   Client->>Command: UUID/alias + commandId + expectedVersion + typed command
-  Command->>Character: Authenticate owner, read active state, prepare current Sheet
+  Command->>Character: Authenticate owner and Campaign fence, read validated state
   Command->>Receipt: Read by Character UUID + command UUID
   alt Matching receipt exists
-    Command-->>Client: Original history entry + current Sheet, no writes
+    Command-->>Client: Original history/result + current stream version, no writes
   else New command and matching version
-    Command->>Character: Apply neutral reducer, advance version, reload Sheet
+    Command->>Character: Apply neutral reducer and advance version
     Command->>Receipt: Insert fingerprint + validated history in the same mutation
-    Command-->>Client: Current Sheet + history entry
+    Command-->>Client: Character UUID + stream version + history/result
   end
 ```
 
@@ -806,19 +887,33 @@ union remains transitional until all native consumers replace it. This is not co
 
 Receipts are separate indexed documents, not an unbounded array on the Character. Their scalar
 persistence schema retains public UUIDs, authenticated actor, full parsed-command fingerprint and
-checksummed canonical history JSON. Replay checks current owner access before reading a receipt;
-the original payload and expected version must match. It returns original history with a freshly
-evaluated current Sheet, never a historical cached Sheet. A different command with a stale version
+checksummed canonical history JSON. Replay checks current owner access, including the implicit
+assigned Campaign lifecycle fence, before reading a receipt; the original payload and expected
+version must match. Public commands return only Character UUID, current stream version and the
+original history/result acknowledgement. Subscriptions supply state. A different command with a stale version
 rejects. Aggregate writes, version advancement and receipt insertion share one Convex mutation;
 post-write validation/projection failure rolls everything back. Convex transaction conflict handling
 owns competing writes; local `convex-test` schedules are not managed OCC acceptance evidence.
+
+The six private note/group commands use `rules-runtime/character/sheetNotes` without source hydration,
+rules evaluation or Sheet projection. They retain complete operational assembly for checksum validation,
+the shared canonical writer, existing mechanical values and atomic receipt insertion. Focused note reads
+and web subscriptions use the slices above. Mechanical commands still prepare
+current-source facts; the private Encounter execution result retains its full Sheet transiently inside
+the transaction, never in the public acknowledgement.
 
 Native `characters/sheetFacts.ts` owns current-source authorization, record/route consistency,
 Builder reconciliation/readiness, Campaign adjustments and rules evaluation. Sheet presentation in
 `sheetPreparation.ts` consumes those facts and validates the full viewer response. The private
 Encounter initiative query uses the facts directly, validates the pinned Character revision and
 System, and returns initiative facts plus rule-policy output without building a Sheet response.
-Spell identity hydration uses the shared `rules-runtime/character/sheetSpellIds` functions.
+Spell identity hydration uses the shared `rules-runtime/character/sheetSpellIds` functions. Current
+source reads preserve the complete authorized selector pool while loading full Spell documents for
+learned, prepared, chosen and granted references. Opening an individual Spell inspector requests its
+document and mechanics explicitly; the aggregate list does not expand every available Spell into
+mechanical input. Post-command and post-materialization reuse reload missing referenced documents
+within the same transaction. Retained acquired-Equipment Spell documents remain mechanics-only and
+never re-enter the current picker catalogue.
 The private Encounter Character mutation returns receipt identity, current Character stream version,
 HP and visible conditions after the existing Sheet command completes. Encounter atomically advances
 the actor and its snapshot to that returned version, including when an inner receipt replay returns
@@ -831,20 +926,41 @@ remains pending.
 Commands apply the reducer to the checksum-validated stored Character, not the reconciled projection
 input. Read-time Builder repair may alter derived display inputs, but an unrelated notes/inspiration
 write must preserve stored structural intent; owning reconciliation transactions remain separate work.
-Commands do not edit or consume working drafts. Advancing the active timestamp invalidates an older
-Builder commit baseline under the existing stale-draft rule. Campaign-scoped authority and command/privacy
+Commands do not edit or consume working drafts. Structural commands advance the active structure clock
+and invalidate an older Builder commit baseline; play-only commands advance the separate Sheet stream.
+Campaign-scoped authority and command/privacy
 rules use the same transaction as described above. Active-effect rest expiry, cleanup and managed
 transaction proofs remain pending. Native browser
 command routing is described below; it is not Campaign or complete P04 acceptance.
 
 `characters/history:list` reads the native receipt history in chronological `(occurredAt, id)` order.
-The shared `schema/api/characterHistory` contract uses cursor pages of 1..48 entries, with row/byte
-bounds and continuation metadata; it does not silently truncate an all-history response. The query
+The shared `schema/api/characterHistory` contract accepts a requested count of 1..48 and returns
+at most one complete entry per page. A strict application cursor binds the authorized Character,
+actor and chronological index key; two bounded header lookaheads determine exhaustion while one
+ledger body is loaded. It excludes native `endCursor`/`id` and `usePaginatedQuery` rebalancing, whose
+reactive windows can exceed native scan limits. Restart from a null cursor to include insertions
+before a consumed key. The query
 authorizes the current owner and validates the stored Character, then shares receipt checksum and
 event/actor/time binding validation with command replay. History does not require current source
 availability or a ready Sheet, and completed-rest results remain unchanged. It exposes existing native
 receipts only: no synthetic Builder events, new event table or legacy-event import is implied. The
 transitional all-events endpoint and future Campaign/Encounter history integration remain separate.
+
+The locally integrated [D71 cleanup](../adr/0035-room-authoritative-live-encounters.md#d71-bounded-deferred-private-payload-purge--2026-09-30),
+recommended by Codex and approved by the user on 2026-09-30,
+deletes account/Character state and private receipt headers atomically with durable purge intent.
+Private history immediately becomes inaccessible; unreachable private Character ledger payloads are
+physically purged in bounded, retryable native mutations through the existing deferred-cleanup lifecycle.
+Purge verifies private ownership scope and the absence of live receipt headers, retaining shared
+Encounter history. No lifetime retention cap is introduced. Publication, reads and selective cleanup
+of retained history still require full payload validation. Focused local proof passed 54 API tests,
+dependency builds/Convex TypeScript checks and local Docker codegen/deploy. Native proof
+`phase82-receipt-max-v8-20260930` passed three 4,194,304-byte ledgers, creation/retirement rollback,
+complete paging/replay, real `auth:onDelete` logical removal, bounded purge, duplicate retries,
+SDK cleanup and stale-JWT denial. See the
+[private receipt retirement evidence](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+Final integration, the complete local lifecycle, F12/R08 acceptance and Q16 remain pending;
+acceptance remains 51/75 with 24 open. Checkpoint packing and live authority remain pending.
 
 `characters/panels:get` accepts the shared Character/target envelope and reuses the owner-authorized
 current Sheet preparation. It retains the already-computed rule projection and passes the same
@@ -853,35 +969,46 @@ reconciled presentation Character, resolution, adjustments and movement preferen
 in the frontend. Calculation breakdowns and editor values therefore match the current Sheet after a
 command. Per-panel behavior is unchanged: the Skills overview is read-only; FEATURE, BACKGROUND and
 HIT_POINTS targets retain their existing unsupported status. The web inspector now subscribes to
-the native query; Campaign redaction/editability remains separate. Transitional command responses still use the same
-neutral affected-target mapper and resolver; native commands do not gain an extra panel-write path.
+the native query; Campaign redaction/editability remains separate. Public command acknowledgements do
+not return panel data; the subscribed inspector query supplies it.
 Spell inspectors receive known-spell eligibility from that same rule evaluation through the existing
 policy helper. Learning capability is independent of preparation capability: spellbook users can
 learn and prepare, while full-list preparers cannot manage learned spells. Known state comes from
 the current Character's learned selection, so preparing a learned spell does not hide Forget.
 
 `characters/preparationOptions:get` reuses that current owner-authorized Sheet and its already-loaded
-Spell catalogue. It returns the existing lightweight preparation-options DTO: independent class
-limits, eligible accessible spells, current prepared flags and committed Sheet labels/levels when
-available. Spellbook/learned sources are restricted to learned eligible roots; full-list preparers
-receive their current eligible list. The response composer is shared with the transitional adapter.
-The query adds no catalogue, storage or repair writes; spell commands revalidate current eligibility.
+Spell selector catalogue. Its shared DTO carries independent class limits, complete eligible and
+prepared ID sets, and an authorized catalogue delivery choice. Character owners receive current
+SOURCE/CAMPAIGN snapshot heads; the browser reads compact SPELL metadata once per immutable hash.
+Campaign GMs receive compact inline eligible rows through the existing Character projection. This
+preserves GM preparation authority without granting access to the owner's private USER source token
+or unrelated authored content. Spellbook/learned sources are restricted to learned eligible roots;
+full-list preparers receive their current eligible list. Spell commands revalidate current eligibility.
+The picker virtualizes rows and pages their browser presentation; scrolling adds no Convex calls.
+Commands derive the new selection from the complete prepared-ID set, independently of visible rows.
+Stale stream versions, updating snapshot heads, missing eligible metadata and failed loads disable
+preparation until current inputs are available. Snapshot labels use the existing Campaign text policy.
+The query adds no catalogue, storage or repair writes.
 The web opens this subscription only for the aggregate Spells inspector; other targets use native
-`skip`, not only TanStack Query's `enabled` flag. Campaign visibility remains pending.
+`skip`, not only TanStack Query's `enabled` flag.
 
-Adjustments, movement preference, resource usage and spell display customization use a checksummed `characters.sheetState` envelope,
-validated through `schema/projections/characterSheetState`; absent state means no adjustments and
-automatic movement display. Reads reject invalid Character bindings, duplicate adjustment UUIDs or
+Adjustments and movement preference use typed `characterBuildStates` fields; resource usage lives in
+the play record, and spell display customization uses `characterSpellCustomizations` rows. Complete
+Sheet state is reconstructed through the shared contracts; its checksummed JSON envelope is retained
+only in complete captures. Reads reject invalid Character bindings, duplicate adjustment UUIDs or
 duplicate semantic slots. Shared adjustment input/output schemas canonicalize UUID casing, including
 removal IDs, before identity checks. Upserts preserve slot identity and creation metadata while stamping the
 authenticated updater and command time. Panel targets and explicit movement types are checked against
-current authorized System/Character data. Builder commit preserves this Sheet-owned envelope.
+current authorized System/Character data. Builder commit preserves this Sheet-owned state.
 HP override/modifier changes clamp stored current HP to the freshly evaluated maximum in the same
 mutation; removing an override never heals. The neutral adjustment identity, prospective-state and
 panel/command validators are shared with transitional adapters, which retain only database IO.
 
 Resource usage is keyed by the shared canonical resource owner, not by an authored-state counter.
 The current Sheet supplies available pools, action cost/availability and allowed recovery triggers.
+Current Convex commands use `getSheetCommandResourceUsageUpdate` in the neutral
+`sheetResourceUsage` module for pool admission, raw usage, casting costs and recovery;
+room Sheet integration remains pending.
 Use commands cannot exceed remaining capacity; restoration decrements raw stored usage even when
 the current display has clamped it to a lower capacity. Full recovery removes the usage row. Reads
 reject cross-Character rows and duplicate row/owner identities. Existing Sheet envelopes without
@@ -947,7 +1074,7 @@ sequenceDiagram
   UI->>Command: COMPLETE_REST + command UUID + fingerprint
   Command->>History: Verify caller-owned unconsumed evidence
   Note over Command,History: Same mutation: Character state/version, recovered usage, roll consumption, receipt
-  Command-->>UI: Current Sheet + completed-rest result
+  Command-->>UI: Stream version + receipt + completed-rest result
 ```
 
 `rolls:execute` resolves non-manual requests against current authorized Sheet mechanics. Manual

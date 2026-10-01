@@ -1,3 +1,8 @@
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -443,7 +448,7 @@ async function setup(
           ...JSON.parse(targetRow.stateJson),
           public: target.id === run.actors[2]!.id
         })
-        await writeRunActor(ctx, targetRow._id, targetState)
+        await writeRunActor({ db: createConvexEncounterStore(ctx) }, targetRow._id, targetState)
       }
     }
     const now = new Date().toISOString()
@@ -633,6 +638,8 @@ function replayAnswer(
 
 async function records(base: Awaited<ReturnType<typeof setup>>) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
@@ -648,11 +655,13 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
   }))
 }
 
@@ -811,9 +820,11 @@ describe('native Cleaving action settlement', () => {
       )
       const pending = after.occurrences.filter((occurrence) => occurrence.state === 'PENDING')
       expect(pending).toHaveLength(1)
-      expect(await base.t.run((ctx) => readPendingSnapshot(ctx, pending[0]!))).toEqual(
-        planned.cleaving
-      )
+      expect(
+        await base.t.run((ctx) =>
+          readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, pending[0]!)
+        )
+      ).toEqual(planned.cleaving)
       if (planned.cleaving?.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING') {
         throw new Error('Missing planned Cleaving choice.')
       }
@@ -850,7 +861,7 @@ describe('native Cleaving action settlement', () => {
         if (!dexterity) throw new Error('Missing Cleaving candidate Dexterity.')
         const authoredEffectId = crypto.randomUUID()
         return (
-          await createActiveRuleEffectStore(ctx).create({
+          await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
             id: crypto.randomUUID(),
             owner: {
               kind: 'ENCOUNTER_ACTOR',
@@ -1305,7 +1316,9 @@ describe('native Cleaving action settlement', () => {
       )!
       const before = await records(base)
       const pending = before.occurrences.find((occurrence) => occurrence.state === 'PENDING')!
-      const snapshot = await base.t.run((ctx) => readPendingSnapshot(ctx, pending))
+      const snapshot = await base.t.run((ctx) =>
+        readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, pending)
+      )
       const sourceCharacter = await base.t.run((ctx) => readCharacterRow(ctx, base.characterId!))
       expect(snapshot?.applicationContext).toMatchObject({
         kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING',
@@ -1482,7 +1495,7 @@ describe('native Cleaving action settlement', () => {
             ...JSON.parse(row.stateJson),
             currentHitPoints: 10
           })
-          await writeRunActor(ctx, row._id, actor)
+          await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
         })
       const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(reason === 'miss' ? 0 : 18)
       try {
@@ -1530,7 +1543,7 @@ describe('native Cleaving action settlement', () => {
       await base.t.run(async (ctx) => {
         const row = before.actors.find((actor) => actor.id === actorId)!
         const changed = { ...JSON.parse(row.stateJson), currentHitPoints: 1 }
-        await writeRunActor(ctx, row._id, changed)
+        await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, changed)
       })
       const stale = await records(base)
       // Fixture writes skip the revision triggers, so the stale plan meets the damage re-check.
@@ -1548,7 +1561,9 @@ describe('native Cleaving action settlement', () => {
       })
     }
     const occurrence = before.occurrences.find((occurrence) => occurrence.state === 'PENDING')!
-    const original = await base.t.run((ctx) => readPendingSnapshot(ctx, occurrence))
+    const original = await base.t.run((ctx) =>
+      readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
+    )
     if (!original) throw new Error('Expected pending Cleaving choice.')
     for (const tamper of ['damage', 'policy'] as const) {
       await base.t.run(async (ctx) => {
@@ -1561,7 +1576,11 @@ describe('native Cleaving action settlement', () => {
           context.damage.remainingAmount += 1
         } else context.optionalCombat.definitionChecksum = 'f'.repeat(64)
         await ctx.db.patch(occurrence._id, {
-          pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, snapshot)
+          pendingSnapshotChecksum: await writePendingSnapshot(
+            { db: createConvexEncounterStore(ctx) },
+            occurrence,
+            snapshot
+          )
         })
       })
       const tampered = await records(base)
@@ -1569,7 +1588,11 @@ describe('native Cleaving action settlement', () => {
       expect(await records(base)).toEqual(tampered)
       await base.t.run(async (ctx) =>
         ctx.db.patch(occurrence._id, {
-          pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, original)
+          pendingSnapshotChecksum: await writePendingSnapshot(
+            { db: createConvexEncounterStore(ctx) },
+            occurrence,
+            original
+          )
         })
       )
     }

@@ -1,6 +1,8 @@
 import { z, lazySchema } from '../zod.js'
 import { encounterCommandResultDtoSchema } from './encounterData.js'
 import { encounterCommandInputDtoSchema } from './encounters.js'
+import { characterSheetLivePlayCommandSchema } from './characterSheetLiveCommands.js'
+import { characterSheetCommandResponseDtoSchema } from './characterSheetCommands.js'
 import {
   bindEncounterToPresentedSceneInputDtoSchema,
   bindEncounterToPresentedSceneResultDtoSchema,
@@ -15,15 +17,22 @@ export const liveSessionSequenceDtoSchema = lazySchema(() =>
 )
 
 /**
- * Scene commands change the room's live projection; Encounter commands are planned by the room and
- * committed by Convex before acknowledgement. Encounter-bound token moves stay Scene-scoped here:
+ * Scene commands and the Encounter tools listed in ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES commit
+ * locally; other Encounter commands still use the transitional Convex commit. Bound token moves stay Scene-scoped here:
  * the room recognizes the binding and runs the Encounter movement rules for them. The GM binds an
- * Encounter to the presented Scene through the room too (D47), which commits it to Convex first.
+ * Encounter to the presented Scene through the room's native SQLite transaction (D47).
+ * Held Character play commands identify their active Run; rests and structural edits stay outside this lane.
  */
 export const liveSessionCommandDtoSchema = lazySchema(() =>
   z.discriminatedUnion('scope', [
     z.strictObject({ scope: z.literal('SCENE'), command: sceneCommandInputDtoSchema }),
     z.strictObject({ scope: z.literal('ENCOUNTER'), command: encounterCommandInputDtoSchema }),
+    z.strictObject({
+      scope: z.literal('CHARACTER_SHEET'),
+      characterId: uuidSchema,
+      encounterId: uuidSchema,
+      command: characterSheetLivePlayCommandSchema
+    }),
     z.strictObject({
       scope: z.literal('ENCOUNTER_BINDING'),
       command: bindEncounterToPresentedSceneInputDtoSchema
@@ -41,8 +50,12 @@ export const liveSessionRecipientStateDtoSchema = lazySchema(() =>
 export const liveSessionRecipientDeltaDtoSchema = lazySchema(() =>
   z.discriminatedUnion('scope', [
     z.strictObject({ scope: z.literal('SCENE'), result: sceneCommandResultDtoSchema }),
-    // Sent only to the initiator; other recipients converge through Convex subscriptions.
+    // Local commands fan out recipient projections; transitional commits still reach only the initiator.
     z.strictObject({ scope: z.literal('ENCOUNTER'), result: encounterCommandResultDtoSchema }),
+    z.strictObject({
+      scope: z.literal('CHARACTER_SHEET'),
+      result: characterSheetCommandResponseDtoSchema
+    }),
     // Sent to every member: the Scene's Encounter binding is Campaign-visible.
     z.strictObject({
       scope: z.literal('ENCOUNTER_BINDING'),

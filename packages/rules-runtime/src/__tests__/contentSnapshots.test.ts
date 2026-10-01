@@ -14,6 +14,7 @@ import {
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
 import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
@@ -49,6 +50,31 @@ function srdDocuments<Kind extends ContentSnapshotKind>(kind: Kind) {
 }
 
 const equipmentById = new Map(srdDocuments('EQUIPMENT').map((document) => [document.id, document]))
+function publicationVersions<Kind extends ContentSnapshotKind>(
+  kind: Kind,
+  documents: readonly ContentSnapshotDocument<Kind>[],
+  contentSourceId = SCOPE_ID
+) {
+  return documents.map((document) => ({
+    identity: {
+      subjectKind: kind,
+      subjectId: document.id,
+      systemId: document.systemId,
+      contentSourceId,
+      versionId: document.id,
+      checksum: checksumRuleDocument(JSON.parse(JSON.stringify(document)))
+    },
+    version: 1,
+    storedParentId:
+      'parentRaceId' in document
+        ? document.parentRaceId
+        : 'parentClassId' in document
+          ? document.parentClassId
+          : 'parentEquipmentId' in document
+            ? document.parentEquipmentId
+            : null
+  }))
+}
 function indexSource<Kind extends ContentSnapshotKind>(
   kind: Kind,
   document: ContentSnapshotDocument<Kind>
@@ -86,6 +112,7 @@ function listSource<Kind extends ContentSnapshotKind>(
   return {
     ...indexSource(kind, document),
     publicId: `${kind.toLowerCase()}-${document.id}`,
+    publicationVersion: publicationVersions(kind, [document])[0]!,
     magicSchoolLabel: 'School'
   } as Extract<ContentSnapshotListSource, { subjectKind: Kind }>
 }
@@ -96,15 +123,54 @@ function header<Kind extends ContentSnapshotKind, Part extends ContentSnapshotPa
   scope: ContentSnapshotHeader['scope'] = 'SOURCE',
   scopeId = SCOPE_ID
 ) {
-  return { format: 1 as const, scope, scopeId, kind, part }
+  return { format: 2 as const, scope, scopeId, kind, part }
 }
 
 const races = srdDocuments('RACE')
 
 describe('content snapshot parts', () => {
+  it('requires matching publication pins and rejects missing or duplicate pins', () => {
+    const roots = [races[0]!]
+    const pins = publicationVersions('RACE', roots)
+    expect(() => buildContentSnapshotPart(header('RACE', 'documents'), roots)).toThrow()
+    expect(() => buildContentSnapshotPart(header('RACE', 'documents'), roots, [])).toThrow()
+    expect(() =>
+      buildContentSnapshotPart(header('RACE', 'documents'), roots, [...pins, ...pins])
+    ).toThrow(/Duplicate/)
+    for (const identity of [
+      { ...pins[0]!.identity, subjectId: SCOPE_ID },
+      { ...pins[0]!.identity, subjectKind: 'FEAT' as const },
+      { ...pins[0]!.identity, systemId: SCOPE_ID },
+      { ...pins[0]!.identity, contentSourceId: roots[0]!.id }
+    ]) {
+      expect(() =>
+        buildContentSnapshotPart(header('RACE', 'documents'), roots, [{ ...pins[0]!, identity }])
+      ).toThrow()
+    }
+    const object = contentSnapshotDocumentsObjectSchema.parse(
+      JSON.parse(buildContentSnapshotPart(header('RACE', 'documents'), roots, pins).json)
+    )
+    expect(() =>
+      contentSnapshotDocumentsObjectSchema.parse({ ...object, versions: undefined })
+    ).toThrow()
+    expect(() =>
+      contentSnapshotDocumentsObjectSchema.parse({
+        ...object,
+        versions: [{ ...pins[0]!, version: 0 }]
+      })
+    ).toThrow()
+  })
   it('builds the same object and hash regardless of root order', () => {
-    const forward = buildContentSnapshotPart(header('RACE', 'documents'), races)
-    const reversed = buildContentSnapshotPart(header('RACE', 'documents'), [...races].reverse())
+    const forward = buildContentSnapshotPart(
+      header('RACE', 'documents'),
+      races,
+      publicationVersions('RACE', races)
+    )
+    const reversed = buildContentSnapshotPart(
+      header('RACE', 'documents'),
+      [...races].reverse(),
+      publicationVersions('RACE', races)
+    )
 
     expect(reversed).toEqual(forward)
     expect(forward.rootCount).toBe(races.length)
@@ -116,21 +182,30 @@ describe('content snapshot parts', () => {
   })
 
   it('hashes the header, so the same roots in another scope, kind or part get another key', () => {
-    const source = buildContentSnapshotPart(header('RACE', 'documents'), races)
-    const system = buildContentSnapshotPart(header('RACE', 'documents', 'SYSTEM'), races)
+    const source = buildContentSnapshotPart(
+      header('RACE', 'documents'),
+      races,
+      publicationVersions('RACE', races)
+    )
+    const system = buildContentSnapshotPart(
+      header('RACE', 'documents', 'SYSTEM'),
+      races,
+      publicationVersions('RACE', races)
+    )
     const otherSource = buildContentSnapshotPart(
       header('RACE', 'documents', 'SOURCE', '00000000-0000-4000-8000-000000000303'),
-      races
+      races,
+      publicationVersions('RACE', races, '00000000-0000-4000-8000-000000000303')
     )
     const empty = (kind: 'FEAT' | 'VEHICLE') => buildContentSnapshotPart(header(kind, 'index'), [])
 
     expect(new Set([source.sha256, system.sha256, otherSource.sha256]).size).toBe(3)
     expect(empty('FEAT').sha256).not.toBe(empty('VEHICLE').sha256)
     expect(contentSnapshotObjectKey(header('RACE', 'documents'), source.sha256)).toBe(
-      `v1/source/${SCOPE_ID}/race/documents/${source.sha256}.json`
+      `v2/source/${SCOPE_ID}/race/documents/${source.sha256}.json`
     )
     expect(contentSnapshotObjectKey(header('RACE', 'documents', 'SYSTEM'), system.sha256)).toBe(
-      `v1/system/${SCOPE_ID}/race/documents/${system.sha256}.json`
+      `v2/system/${SCOPE_ID}/race/documents/${system.sha256}.json`
     )
     expect(() => contentSnapshotObjectKey(header('RACE', 'index'), 'not-a-hash')).toThrow()
   })
@@ -143,7 +218,7 @@ describe('content snapshot parts', () => {
       key.toUpperCase(),
       key.replace('/race/', '/RACE/'),
       key.replace(SCOPE_ID, 'not-a-uuid'),
-      key.replace('v1/', 'v2/'),
+      key.replace('v2/', 'v1/'),
       key.replace('/index/', '/other/'),
       key.replace('.json', ''),
       `${key}/extra`,
@@ -159,7 +234,13 @@ describe('content snapshot parts', () => {
       JSON.parse(buildContentSnapshotPart(header('RACE', 'index'), entries).json)
     )
     const documents = contentSnapshotDocumentsObjectSchema.parse(
-      JSON.parse(buildContentSnapshotPart(header('RACE', 'documents'), races).json)
+      JSON.parse(
+        buildContentSnapshotPart(
+          header('RACE', 'documents'),
+          races,
+          publicationVersions('RACE', races)
+        ).json
+      )
     )
 
     expect(index.roots.map((root) => root.id)).toEqual(documents.roots.map((root) => root.id))
@@ -228,7 +309,7 @@ describe('content snapshot parts', () => {
     const withFeatures = { ...entries[0]!, features: [] }
     expect(() => buildContentSnapshotPart(header('RACE', 'index'), [withFeatures])).toThrow()
     expect(() =>
-      buildContentSnapshotPart({ ...header('RACE', 'index'), format: 2 as 1 }, entries)
+      buildContentSnapshotPart({ ...header('RACE', 'index'), format: 1 as 2 }, entries)
     ).toThrow()
   })
 
@@ -244,7 +325,11 @@ describe('content snapshot parts', () => {
           header(kind, 'list'),
           documents.map((document) => toContentSnapshotListEntry(listSource(kind, document)))
         ),
-        buildContentSnapshotPart(header(kind, 'documents'), documents)
+        buildContentSnapshotPart(
+          header(kind, 'documents'),
+          documents,
+          publicationVersions(kind, documents)
+        )
       ]
       for (const part of parts) {
         const parsed = JSON.parse(part.json) as { part: string }
@@ -290,7 +375,11 @@ describe('content snapshot parts', () => {
           header(kind, 'index', 'SYSTEM'),
           documents.map((document) => toContentSnapshotIndexEntry(indexSource(kind, document)))
         )
-        const full = buildContentSnapshotPart(header(kind, 'documents', 'SYSTEM'), documents)
+        const full = buildContentSnapshotPart(
+          header(kind, 'documents', 'SYSTEM'),
+          documents,
+          publicationVersions(kind, documents)
+        )
         return {
           kind,
           roots: documents.length,

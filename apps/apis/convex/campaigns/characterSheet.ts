@@ -25,7 +25,7 @@ import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
-import { executeCharacterSheetCommand } from '../characters/sheetCommands'
+import { executeCharacterSheetCommandAcknowledgement } from '../characters/sheetCommands'
 import { projectCharacterSheetPanel } from '../characters/panels'
 import { projectCharacterPreparationOptions } from '../characters/preparationOptions'
 import { prepareCharacterRest } from '../characters/rest'
@@ -78,9 +78,11 @@ export const get = query({
     )
     if (party && !current.sheetState.partyVisibility.sheet)
       throw new Error('Assigned Character not found.')
-    return projectCharacterSheetForViewer(
-      current.sheet,
-      party ? { ...current.campaignContext, viewer: 'PARTY_MEMBER' } : current.campaignContext
+    return characterSheetResponseDtoSchema.parse(
+      projectCharacterSheetForViewer(
+        current.sheet,
+        party ? { ...current.campaignContext, viewer: 'PARTY_MEMBER' } : current.campaignContext
+      )
     )
   }
 })
@@ -120,7 +122,9 @@ export const panel = query({
       characterId,
       campaignId,
       undefined,
-      target.kind === 'PROFICIENCIES' ? 'resolution' : 'active'
+      target.kind === 'PROFICIENCIES' ? 'resolution' : 'active',
+      undefined,
+      target.kind === 'SPELL' ? [target.source.spellId] : []
     )
     if (!current) throw new Error('Assigned Character not found.')
     return projectCharacterSheetPanel(current, target)
@@ -135,7 +139,7 @@ export const preparationOptions = query({
     const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
     const current = await loadCharacterSheet(ctx, userId, characterId, campaignId)
     if (!current) throw new Error('Assigned Character not found.')
-    return projectCharacterPreparationOptions(current)
+    return projectCharacterPreparationOptions(ctx, current)
   }
 })
 
@@ -161,6 +165,11 @@ export const execute = mutation({
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId, command } =
       campaignCharacterSheetExecuteInputSchema.parse(args)
-    return executeCharacterSheetCommand(ctx, userId, { id: characterId, command }, campaignId)
+    return executeCharacterSheetCommandAcknowledgement(
+      ctx,
+      userId,
+      { id: characterId, command },
+      campaignId
+    )
   }
 })

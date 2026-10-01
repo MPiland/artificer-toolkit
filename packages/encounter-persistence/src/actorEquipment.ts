@@ -12,10 +12,10 @@ import {
 import { assertEncounterCreatureEquipmentLoadoutCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscovery'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterPersistenceTransaction } from './ports.js'
 
 export async function replaceActorEquipment(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   userId: string,
   actor: EncounterRunActorState,
   input: Extract<EncounterExecuteInput['command'], { type: 'REPLACE_CREATURE_EQUIPMENT' }>,

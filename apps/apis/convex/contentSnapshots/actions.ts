@@ -60,7 +60,7 @@ export const build = internalAction({
           isDone = page.isDone
         }
         if (sources.length === 0) continue
-        const header = { format: 1 as const, ...ref, kind }
+        const header = { format: 2 as const, ...ref, kind }
         const parts = buildContentSnapshotKind(header, sources)
         for (const part of ['index', 'list', 'documents'] as const)
           objects.set(

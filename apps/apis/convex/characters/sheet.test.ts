@@ -4,7 +4,7 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { api } from '../_generated/api'
 import { input } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
@@ -80,15 +80,7 @@ describe('native personal Character Sheet reads', () => {
       if (!stored) throw new Error('Missing committed Character fixture.')
       const changed = readCharacterRecord(stored)
       changed.state.equipment.inventory[0]!.equipmentId = crypto.randomUUID()
-      const encoded = encodeCharacterRecord(stored, {
-        document: changed,
-        streamVersion: stored.play.streamVersion,
-        updatedAt: stored.updatedAt
-      })
-      await ctx.db.patch(stored._id, {
-        documentJson: encoded.documentJson,
-        checksum: encoded.checksum
-      })
+      await writeCharacterRecord(ctx, stored, { document: changed })
     })
     await expect(owner.caller.query(getSheet, { id: character.id })).rejects.toThrow(
       'Acquired Equipment scope mismatch'

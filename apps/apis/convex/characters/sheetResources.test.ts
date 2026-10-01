@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -42,7 +43,7 @@ async function storeResourceUsage(
     updatedAt: row.play.updatedAt
   })
   await ctx.db.patch(row.play._id, {
-    playJson: stored.play.playJson,
+    state: stored.play.state,
     checksum: stored.play.checksum,
     updatedAt: stored.play.updatedAt
   })
@@ -73,10 +74,14 @@ async function fixture() {
   const readState = () =>
     base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, character.id),
-      receipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-        .collect()
+      receipts: await readReceiptHeaders(
+        ctx,
+        'characterCommandReceipts',
+        await ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+          .collect()
+      )
     }))
   const sheet = await base.owner.caller.query(getSheet, { id: character.id })
   const resource = sheet!.resources.items.find((entry) => entry.label === 'Focus')!
@@ -101,7 +106,11 @@ describe('native Character Sheet resource usage', () => {
       }
     }
     const first = await owner.caller.mutation(execute, request)
-    expect(first.sheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
+    expect(first).not.toHaveProperty('sheet')
+    const firstSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: first.characterId
+    }))!
+    expect(firstSheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
       used: 2,
       remaining: 1
     })
@@ -147,7 +156,11 @@ describe('native Character Sheet resource usage', () => {
         resourceGrantId: resource.id
       }
     })
-    expect(restored.sheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
+    expect(restored).not.toHaveProperty('sheet')
+    const restoredSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: restored.characterId
+    }))!
+    expect(restoredSheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
       used: 1,
       remaining: 2
     })
@@ -169,9 +182,13 @@ describe('native Character Sheet resource usage', () => {
     })
     const beforeReplay = await readState()
     const replay = await owner.caller.mutation(execute, request)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.historyEntry).toEqual(first.historyEntry)
     expect(replay.streamVersion).toBe(4)
-    expect(replay.sheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
+    expect(replaySheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
       used: 2
     })
     expect(await readState()).toEqual(beforeReplay)
@@ -186,9 +203,14 @@ describe('native Character Sheet resource usage', () => {
         trigger: 'SHORT_REST'
       }
     })
-    expect(recovered.sheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject(
-      { used: 0, remaining: 3 }
-    )
+    expect(recovered).not.toHaveProperty('sheet')
+    const recoveredSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: recovered.characterId
+    }))!
+    expect(recoveredSheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
+      used: 0,
+      remaining: 3
+    })
     expect(readCharacterSheetState((await readState()).character!).resourceUsage).toEqual([])
   })
 
@@ -229,7 +251,11 @@ describe('native Character Sheet resource usage', () => {
         resourceGrantId: resource.id
       }
     })
-    expect(restored.sheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
+    expect(restored).not.toHaveProperty('sheet')
+    const restoredSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: restored.characterId
+    }))!
+    expect(restoredSheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
       used: 3,
       remaining: 0
     })
@@ -257,9 +283,14 @@ describe('native Character Sheet resource usage', () => {
     expect(await readState()).toEqual(beforeFailure)
     vi.restoreAllMocks()
     const recovered = await owner.caller.mutation(execute, request)
-    expect(recovered.sheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject(
-      { used: 0, remaining: 3 }
-    )
+    expect(recovered).not.toHaveProperty('sheet')
+    const recoveredSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: recovered.characterId
+    }))!
+    expect(recoveredSheet.resources.items.find((entry) => entry.id === resource.id)).toMatchObject({
+      used: 0,
+      remaining: 3
+    })
   })
 
   it('rejects stored resource rows belonging to another Character or sharing one owner', async () => {

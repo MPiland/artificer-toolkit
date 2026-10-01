@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { promisify } from 'node:util'
+import { jsonToConvex } from 'convex/values'
+import { z } from 'zod'
 import { developmentTarget } from './developmentTarget'
 
 const workspace = fileURLToPath(new URL('..', import.meta.url))
@@ -17,6 +19,7 @@ export async function developmentCli(
   const command =
     '$ErrorActionPreference = "Stop"; $input | yarn.ps1 node tests/developmentCliEntry.mjs; if (-not $?) { exit 1 }; exit $LASTEXITCODE'
   let stdout: string
+  const startedAt = Date.now()
   try {
     const localUrl = process.env.CONVEX_SELF_HOSTED_URL
     const localAdminKey = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
@@ -24,6 +27,28 @@ export async function developmentCli(
       const target = developmentTarget(process.env)
       if (target.mode !== 'local' || localUrl !== target.deploymentUrl.origin || !localAdminKey)
         throw new Error('Self-hosted fixture CLI requires the selected local backend and key.')
+      if (operation === 'run') {
+        if (!/^[\w./-]+:[\w]+$/.test(name))
+          throw new Error('The local fixture function name is invalid.')
+        // Use the CLI's native function endpoint without its Windows process-exit assertion
+        // on large piped results. Keep fixture arguments and the admin key in memory.
+        const response = await fetch(`${localUrl}/api/function`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Convex ${localAdminKey}` },
+          body: JSON.stringify({
+            path: name,
+            componentPath: component ? 'betterAuth' : undefined,
+            format: 'convex_encoded_json',
+            args: z.record(z.string(), z.json()).parse(JSON.parse(JSON.stringify(args)))
+          }),
+          signal: AbortSignal.timeout(60_000)
+        })
+        if (!response.ok) throw new Error('The local fixture request failed.')
+        const result = z
+          .object({ status: z.literal('success'), value: z.json() })
+          .parse(await response.json())
+        return jsonToConvex(result.value)
+      }
     }
     if (operation === 'disarm-receipts') {
       const target = developmentTarget(process.env)
@@ -66,8 +91,28 @@ export async function developmentCli(
     // ASCII stdin avoids Windows console decoding changing Unicode JSON values.
     const input = pipeline(Readable.from([Buffer.from(serializedArgs).toString('base64')]), stdin)
     ;[{ stdout }] = await Promise.all([pending, input])
-  } catch {
-    throw new Error(`Development fixture CLI failed at ${name}; arguments/output withheld.`)
+  } catch (error) {
+    const fields = error instanceof Error ? error : {}
+    const code: unknown = Reflect.get(fields, 'code')
+    const signal: unknown = Reflect.get(fields, 'signal')
+    const killed: unknown = Reflect.get(fields, 'killed')
+    const childOut: unknown = Reflect.get(fields, 'stdout')
+    const childErr: unknown = Reflect.get(fields, 'stderr')
+    const metadata = {
+      code:
+        typeof code === 'number' || (typeof code === 'string' && /^[A-Z_\d]+$/.test(code))
+          ? code
+          : null,
+      signal: typeof signal === 'string' && /^[A-Z\d]+$/.test(signal) ? signal : null,
+      killed: killed === true,
+      elapsedMs: Date.now() - startedAt,
+      stdoutBytes: typeof childOut === 'string' ? Buffer.byteLength(childOut) : null,
+      stderrBytes: typeof childErr === 'string' ? Buffer.byteLength(childErr) : null,
+      libuvClosingAssertion: typeof childErr === 'string' && childErr.includes('UV_HANDLE_CLOSING')
+    }
+    throw new Error(
+      `Development fixture CLI failed at ${name}; ${JSON.stringify(metadata)}; arguments/output withheld.`
+    )
   }
   let result: unknown
   try {

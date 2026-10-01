@@ -2,13 +2,18 @@ import { z, lazySchema } from '../zod.js'
 import { authoredSubjectKindSchema, projectionChecksumSchema } from '../projections/identity.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { castingTimeDtoSchema } from '../subjects/castingTime.js'
+import {
+  authoredReferenceCollectionSchema,
+  authoredRichTextSchema
+} from '../shared/authoredLimits.js'
+import { spellAttributeSchema, spellComponentSchema } from '../shared/enums.js'
 import { RACE_SELECTION_MODE } from '@artificer-toolkit/shared/subjects/core'
 import {
   authoredContentPermissionsDtoSchema,
   authoredContentProvenanceDtoSchema
 } from './common.js'
 
-// Derived list data, never a second authored document or an execution input.
+// Derived browse and selector facts; full documents remain the mechanics input.
 export const authoredCatalogueFamilySchema = lazySchema(() =>
   z.strictObject({
     // UUID establishes the group; the label key only orders groups alphabetically.
@@ -38,6 +43,12 @@ export const authoredCatalogueMetadataSchema = lazySchema(() =>
     selectionMode: z.optional(z.enum(RACE_SELECTION_MODE)),
     spell: z.optional(
       z.strictObject({
+        // Transitional backfill marker; readers reject incomplete selector facts.
+        selectionVersion: z.optional(z.literal(1)),
+        publishedActive: z.optional(z.boolean()),
+        attributes: z.optional(authoredReferenceCollectionSchema(spellAttributeSchema)),
+        components: z.optional(authoredReferenceCollectionSchema(spellComponentSchema)),
+        materialDescription: z.optional(authoredRichTextSchema),
         level: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9)),
         magicSchoolId: z.string().check(z.minLength(1)),
         magicSchoolNameKey: z.string().check(z.minLength(1)),

@@ -11,11 +11,8 @@ import {
   encounterStoredSourceProjectionFactsSchema,
   encounterSceneBindingSchema,
   encounterActorTokenBindingSchema,
-  encounterStoredRunCommandSchema,
   encounterStoredRuleOccurrenceSchema,
   encounterStoredPendingSnapshotPartSchema,
-  encounterStoredRuleReceiptSchema,
-  encounterStoredEvidenceRollSchema,
   encounterStoredTurnMovementSchema,
   encounterStoredDecisionSkipSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
@@ -24,6 +21,11 @@ import {
   encounterInitiativeRoundDtoSchema,
   encounterInitiativeSideDtoSchema
 } from '@artificer-toolkit/schema/shared/initiativeState'
+import {
+  encounterRunCommandHeaderSchema,
+  encounterRuleReceiptHeaderSchema,
+  encounterEvidenceRollHeaderSchema
+} from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 
 export const encounterTables = {
   encounterRuns: defineTable(zodToConvexFields(encounterStoredRunSchema.shape))
@@ -62,7 +64,8 @@ export const encounterTables = {
   encounterInitiativeSides: defineTable(
     zodToConvexFields(encounterInitiativeSideDtoSchema.shape)
   ).index('by_encounterId_round_sideId', ['encounterId', 'round', 'sideId']),
-  encounterRunCommands: defineTable(zodToConvex(encounterStoredRunCommandSchema))
+  encounterRunCommands: defineTable(zodToConvex(encounterRunCommandHeaderSchema))
+    .index('by_ledgerId_entryIndex', ['ledgerId', 'entryIndex'])
     .index('by_campaignId_commandId', ['campaignId', 'commandId'])
     .index('by_encounterId', ['encounterId'])
     .index('by_encounterId_id', ['encounterId', 'id'])
@@ -79,12 +82,14 @@ export const encounterTables = {
   )
     .index('by_occurrenceId_sequence', ['occurrenceId', 'sequence'])
     .index('by_encounterId', ['encounterId']),
-  encounterRuleReceipts: defineTable(zodToConvexFields(encounterStoredRuleReceiptSchema.shape))
+  encounterRuleReceipts: defineTable(zodToConvexFields(encounterRuleReceiptHeaderSchema.shape))
+    .index('by_ledgerId_entryIndex', ['ledgerId', 'entryIndex'])
     .index('by_campaignId_commandId', ['campaignId', 'commandId'])
     .index('by_encounterId_commandId', ['encounterId', 'commandId'])
     .index('by_encounterId_encounterVersion', ['encounterId', 'encounterVersion'])
     .index('by_occurrenceId', ['occurrenceId']),
-  encounterEvidenceRolls: defineTable(zodToConvexFields(encounterStoredEvidenceRollSchema.shape))
+  encounterEvidenceRolls: defineTable(zodToConvexFields(encounterEvidenceRollHeaderSchema.shape))
+    .index('by_ledgerId_entryIndex', ['ledgerId', 'entryIndex'])
     .index('by_publicId', ['id'])
     .index('by_campaignId_commandId', ['campaignId', 'commandId'])
     .index('by_encounterId', ['encounterId'])

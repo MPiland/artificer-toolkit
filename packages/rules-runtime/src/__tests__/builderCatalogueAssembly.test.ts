@@ -3,11 +3,13 @@ import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/
 import {
   contentSnapshotDocumentsObjectSchema,
   contentSnapshotIndexObjectSchema,
+  type ContentSnapshotIndexObject,
   type ContentSnapshotObject,
   type ContentSnapshotScope
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   CharacterAuthored,
   EquipmentAuthored
@@ -25,8 +27,10 @@ import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
+import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
+import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { parsePublicationDocument } from '../authoredPublicationRead.js'
 import {
@@ -36,11 +40,13 @@ import {
 import { createCharacterBuilderChangePreview } from '../character/builderPresentation.js'
 import { prepareCharacterBuilderFromContext } from '../character/builderPreparation.js'
 import { toCharacterBuilderPayload } from '../character/characterBuilderView.js'
+import { evaluateCharacterRules } from '../character/characterRuleEvaluation.js'
+import { getSheetSpellIdsByClass } from '../character/sheetSpellIds.js'
 import {
   assembleCharacterBuilderContext,
   prepareCharacterRuleContext
 } from '../character/contextPreparation.js'
-import { createSnapshotReaders } from '../character/snapshotReaders.js'
+import { createLazySnapshotReaders, createSnapshotReaders } from '../character/snapshotReaders.js'
 import { buildContentSnapshotKind, toContentSnapshotIndexEntry } from '../contentSnapshots.js'
 
 // ADR 0036 S9: the Builder's picker pools come only from content snapshots, so the catalogue
@@ -63,8 +69,31 @@ function scopeObjects(
         entry.subjectKind === 'EQUIPMENT' ? [[entry.document.id, entry.document] as const] : []
       )
     )
-    const sources = published.map((entry) => {
-      const listFacts = { publicId: entry.document.id, magicSchoolLabel: 'School' }
+    const sources = published.map((entry, index) => {
+      const document = entry.document
+      const listFacts = {
+        publicId: document.id,
+        magicSchoolLabel: 'School',
+        publicationVersion: {
+          identity: {
+            subjectKind: entry.subjectKind,
+            subjectId: document.id,
+            systemId: document.systemId,
+            contentSourceId: scopeId,
+            versionId: document.id,
+            checksum: checksumRuleDocument(JSON.parse(JSON.stringify(raw![index])))
+          },
+          version: 1,
+          storedParentId:
+            'parentRaceId' in document
+              ? document.parentRaceId
+              : 'parentClassId' in document
+                ? document.parentClassId
+                : 'parentEquipmentId' in document
+                  ? document.parentEquipmentId
+                  : null
+        }
+      }
       if (entry.subjectKind !== 'EQUIPMENT') return { ...entry, ...listFacts }
       // The stored projection the build reads: the effective facts along the variant chain.
       const effective = resolveEquipmentAuthored(
@@ -91,7 +120,7 @@ function scopeObjects(
       return { ...entry, builder, ...listFacts }
     })
     const { index, documents: part } = buildContentSnapshotKind(
-      { format: 1, scope, scopeId, kind },
+      { format: 2, scope, scopeId, kind },
       sources
     )
     return [
@@ -121,6 +150,153 @@ async function selectorsCatalogue(objects: readonly ContentSnapshotObject[]) {
 }
 
 describe('Builder catalogue from content snapshots', () => {
+  it('keeps the complete Spell picker and readiness while hydrating only selected mechanics', async () => {
+    const objects = scopeObjects({ CLASS: [wizard], SPELL: [fireBolt, magicMissile] })
+    const indexes = objects.filter(
+      (object): object is ContentSnapshotIndexObject => object.part === 'index'
+    )
+    const loadDocuments = vi.fn(async (kinds: readonly Kind[]) =>
+      objects.filter((object) => object.part === 'documents' && kinds.includes(object.kind))
+    )
+    const readers = createLazySnapshotReaders(indexes, loadDocuments)
+    const character = emptyCharacter()
+    character.intent.classes = [{ classId: wizard.id, classLevel: 1 }]
+    const unselected = await prepareCharacterRuleContext(character, system, undefined, readers)
+    expect(unselected.catalog.spells.map((spell) => spell.id)).toEqual([
+      fireBolt.id,
+      magicMissile.id
+    ])
+    expect(unselected.spellDocumentsById.size).toBe(0)
+    expect(loadDocuments.mock.calls.some(([kinds]) => kinds.includes('SPELL'))).toBe(false)
+
+    character.intent.spellSelections = [
+      {
+        id: crypto.randomUUID(),
+        source: { kind: 'CLASS', classId: wizard.id },
+        timing: { kind: 'CLASS_LEVEL', classId: wizard.id, classLevel: 1 },
+        spells: [fireBolt.id]
+      }
+    ]
+    const selected = await prepareCharacterRuleContext(character, system, undefined, readers)
+    expect([...selected.currentSpellDocumentsById.keys()]).toEqual([fireBolt.id])
+    expect(selected.spellDocumentsById.has(magicMissile.id)).toBe(false)
+    const fullDocuments = new Map([fireBolt, magicMissile].map((spell) => [spell.id, spell]))
+    const prepared = await Promise.all(
+      [selected, { ...selected, spellDocumentsById: fullDocuments }].map(async (ruleContext) =>
+        prepareCharacterBuilderFromContext({
+          character,
+          current: null,
+          mode: 'create',
+          context: await assembleCharacterBuilderContext(character, ruleContext, {
+            scope: 'selectors',
+            readers
+          })
+        })
+      )
+    )
+    expect(prepared[0]!.resolution).toEqual(prepared[1]!.resolution)
+    expect(prepared[0]!.character).toEqual(prepared[1]!.character)
+    expect(prepared[0]!.context.catalog.spells.map((spell) => spell.id)).toEqual([
+      fireBolt.id,
+      magicMissile.id
+    ])
+    const evaluationInput = {
+      character: prepared[0]!.character,
+      context: prepared[0]!.context,
+      spellDocumentsById: selected.spellDocumentsById
+    }
+    const evaluation = evaluateCharacterRules(evaluationInput)
+    expect(getSheetSpellIdsByClass(evaluation.output, evaluation.facts).get(wizard.id)).toContain(
+      magicMissile.id
+    )
+    expect(
+      evaluation.facts.spellActionFacts.some((spell) => spell.spellId === magicMissile.id)
+    ).toBe(false)
+    const inspected = evaluateCharacterRules({
+      ...evaluationInput,
+      spellDocumentsById: fullDocuments,
+      referenceSpellIds: [magicMissile.id]
+    })
+    expect(
+      inspected.facts.spellActionFacts.some((spell) => spell.spellId === magicMissile.id)
+    ).toBe(true)
+    const readSpellCatalogue = vi.fn(readers.readSpellCatalogue)
+    const reused = await prepareCharacterRuleContext(character, system, selected, {
+      ...readers,
+      readSpellCatalogue
+    })
+    expect(reused.spellCatalogueEntries).toBe(selected.spellCatalogueEntries)
+    expect(reused.currentSpellDocumentsById).toEqual(selected.currentSpellDocumentsById)
+    expect(readSpellCatalogue).not.toHaveBeenCalled()
+
+    character.intent.spellSelections[0]!.spells.push(magicMissile.id)
+    const extended = await prepareCharacterRuleContext(character, system, selected, {
+      ...readers,
+      readSpellCatalogue
+    })
+    expect(readSpellCatalogue).toHaveBeenCalledExactlyOnceWith(
+      new Set([fireBolt.id, magicMissile.id])
+    )
+    expect([...extended.currentSpellDocumentsById.keys()]).toEqual([fireBolt.id, magicMissile.id])
+    expect(extended.catalog.spells).toEqual(selected.catalog.spells)
+  })
+
+  it('keeps retained inaccessible Equipment spells in mechanics without restoring picker access', async () => {
+    const equipment: EquipmentAuthored = {
+      ...backpack,
+      features: [
+        {
+          id: crypto.randomUUID(),
+          label: 'Retained cantrip',
+          description: 'The acquired item grants Fire Bolt.',
+          order: 0,
+          grants: {
+            spells: [
+              {
+                id: crypto.randomUUID(),
+                grantKind: 'SPELL_GRANT',
+                selectionKind: 'GRANTED',
+                scalingKind: 'NONE',
+                authoringModeKind: 'SELECTED',
+                spellIds: [fireBolt.id],
+                attributes: ['KNOWN', 'CAST_AT_WILL'],
+                castingAbility: 'INTELLIGENCE',
+                order: 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+    const character = emptyCharacter()
+    character.state.equipment.inventory.push({
+      id: crypto.randomUUID(),
+      equipmentId: equipment.id,
+      quantity: 1,
+      retainedRulesJson: JSON.stringify({
+        equipmentId: equipment.id,
+        systemId: system.id,
+        sources: [equipment, fireBolt].map((document) => ({
+          subjectKind: document.kind,
+          subjectId: document.id,
+          versionId: document.id,
+          version: 1,
+          checksum: checksumRuleDocument(JSON.parse(JSON.stringify(document))),
+          documentJson: JSON.stringify(document)
+        }))
+      })
+    })
+    const readers = createSnapshotReaders(scopeObjects({ SPELL: [magicMissile] }))
+    const context = await prepareCharacterRuleContext(character, system, undefined, readers)
+    expect(context.spellDocumentsById.get(fireBolt.id)?.label).toBe(fireBolt.label)
+    expect(context.currentSpellDocumentsById.has(fireBolt.id)).toBe(false)
+    const builder = await assembleCharacterBuilderContext(character, context, {
+      scope: 'selectors',
+      readers
+    })
+    expect(builder.catalog.spells.map((spell) => spell.id)).toEqual([magicMissile.id])
+  })
+
   it.each(['valid', 'missing parent', 'non-base parent'] as const)(
     'validates Class catalogue parents from the complete pool: %s',
     async (scenario) => {

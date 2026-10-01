@@ -10,6 +10,11 @@ import type { CharacterSheetExtraCatalogInputDto } from '@artificer-toolkit/sche
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
+import type {
+  CharacterSheetSlice,
+  CharacterSheetSliceResponseDto,
+  CharacterSheetSliceDtoMap
+} from '@artificer-toolkit/schema/api/characterSheetSlices'
 
 export function useGetCharacterList(enabled = true) {
   const active = usePaginatedQuery(convexApi.characters.list.list, enabled ? {} : 'skip', {
@@ -69,15 +74,21 @@ export function getCharacterDraft(id: string) {
   return convexQuery(convexApi.characters.drafts.get, { id })
 }
 
-export function getCharacterSheet(id: string | undefined) {
-  return convexQuery(convexApi.characters.sheet.get, id ? { id } : 'skip')
-}
-
-export function getCharacterSheetActions(id: string | undefined) {
+export function getCharacterSheetSlice<Slice extends CharacterSheetSlice>(
+  id: string | undefined,
+  slice: Slice,
+  campaignId?: string | null
+) {
   return {
-    ...convexQuery(convexApi.characters.sheet.get, id ? { id } : 'skip'),
-    select: (sheet: FunctionReturnType<typeof convexApi.characters.sheet.get>) =>
-      sheet?.actions.items ?? null
+    ...convexQuery(
+      convexApi.characters.sheetSlices.get,
+      id ? { id, slice, ...(campaignId ? { campaignId } : {}) } : 'skip'
+    ),
+    gcTime: 0,
+    select: (
+      response: CharacterSheetSliceResponseDto | null
+    ): CharacterSheetSliceDtoMap[Slice] | null =>
+      response?.slice === slice ? (response.data as CharacterSheetSliceDtoMap[Slice]) : null
   }
 }
 

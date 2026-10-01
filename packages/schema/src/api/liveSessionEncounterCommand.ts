@@ -3,7 +3,8 @@ import {
   encounterCommandResultDtoSchema,
   encounterCommandInputDtoSchema,
   rollEncounterActorInitiativeInputDtoSchema,
-  rollEncounterEnemyActionInputDtoSchema
+  rollEncounterEnemyActionInputDtoSchema,
+  type EncounterCommandInputDto
 } from './encounters.js'
 import {
   resolveRuleOccurrenceInputDtoSchema,
@@ -43,11 +44,74 @@ export const liveSessionEncounterRouteResponseSchema = lazySchema(() =>
 
 type EncounterCommandType = z.infer<typeof encounterCommandInputDtoSchema>['type']
 
+/** Commands whose shared reducers commit against the room's native transaction. */
+export const ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES = [
+  'START',
+  'ADVANCE_TURN',
+  'USE_BASIC_ACTION',
+  'RESOLVE_ACTION',
+  'REORDER',
+  'REMOVE_ACTOR',
+  'REINFORCE',
+  'REVERT_LAST_ACTION',
+  'UPDATE_ACTOR',
+  'UPSERT_REMINDER',
+  'REMOVE_REMINDER',
+  'PREVIOUS_TURN',
+  'SET_CURRENT_ACTOR',
+  'SET_ROUND',
+  'SET_INITIATIVE',
+  'ROLL_ACTOR_INITIATIVE',
+  'ROLL_ENEMY_ACTION',
+  'ADJUST_FEATURE_RESOURCE',
+  'REPLACE_CREATURE_EQUIPMENT',
+  'REPLACE_OPTIONAL_COMBAT_RULES',
+  'SET_HEALTH_DISPLAY_DEFAULT',
+  'COMPLETE'
+] as const satisfies readonly EncounterCommandType[]
+
+export type RoomLocalEncounterCommand =
+  | Extract<
+      EncounterCommandInputDto,
+      {
+        type: Exclude<
+          (typeof ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES)[number],
+          'UPDATE_ACTOR' | 'ROLL_ENEMY_ACTION'
+        >
+      }
+    >
+  | (Extract<EncounterCommandInputDto, { type: 'UPDATE_ACTOR' }> & {
+      characterCommand?: undefined
+    })
+  | (Extract<EncounterCommandInputDto, { type: 'ROLL_ENEMY_ACTION' }> & {
+      visibility: 'PRIVATE'
+    })
+
+const roomLocalCommandTypes = new Set<EncounterCommandType>(ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES)
+
+/** A decision joins the native path only after retained evidence identifies an implemented planner. */
+export type RoomNativeEncounterCommand =
+  | RoomLocalEncounterCommand
+  | Extract<EncounterCommandInputDto, { type: 'RESOLVE_RULE_OCCURRENCE' | 'VOID_RULE_OCCURRENCE' }>
+
+export function isRoomLocalEncounterCommand(
+  command: EncounterCommandInputDto
+): command is RoomLocalEncounterCommand {
+  return (
+    roomLocalCommandTypes.has(command.type) &&
+    (command.type !== 'UPDATE_ACTOR' || command.characterCommand === undefined) &&
+    (command.type !== 'ROLL_ENEMY_ACTION' || command.visibility === 'PRIVATE')
+  )
+}
+
 /**
- * GM tools Convex records directly (D41): no dice, and no derived mechanics beyond the
+ * Transitional GM tools Convex still records directly (D41): no dice, and no derived mechanics beyond the
  * deterministic actor recalculation every Convex commit runs anyway. A Character's Sheet command
- * inside `UPDATE_ACTOR` stays with the Sheet's owner (R06.3), and actor removal is the lifecycle
- * cleanup account deletion shares. Dice commands are rolled by the room (`liveSessionEncounterRoll*`).
+ * inside `UPDATE_ACTOR` stays with the Sheet's owner (R06.3). Commands listed in
+ * ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES commit in room SQLite; their protected Convex path remains
+ * for shadow parity until S5 closes.
+ * Account cleanup still shares the actor-removal reducer.
+ * Dice commands are rolled by the room (`liveSessionEncounterRoll*`).
  */
 export const CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES = [
   'UPDATE_ACTOR',

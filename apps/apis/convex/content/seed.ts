@@ -229,19 +229,14 @@ export const seed = internalAction({
           })
       }
     }
-    // All canonical parent sources are now immutable and present. Bound parallel
-    // per-record compilation by the existing import batches, avoiding one RPC wait per item.
-    for (const batch of sourceImportBatches(
-      manifest.subjects.filter((subject) => subject.subjectKind === 'EQUIPMENT')
-    ))
-      await Promise.all(
-        batch.map((subject) =>
-          ctx.runMutation(internal.content.import.syncEquipmentDerived, {
-            id: subject.id,
-            checksum: subject.checksum
-          })
-        )
-      )
+    // Derived writes invalidate the same snapshot head; serialize them to avoid OCC retries.
+    for (const subject of manifest.subjects) {
+      if (subject.subjectKind === 'EQUIPMENT')
+        await ctx.runMutation(internal.content.import.syncEquipmentDerived, {
+          id: subject.id,
+          checksum: subject.checksum
+        })
+    }
     for (const definitions of sourceImportBatches(manifest.definitions)) {
       const batch = await ctx.runMutation(internal.content.import.importDefinitions, {
         contentSourceId: manifest.contentSource.id,

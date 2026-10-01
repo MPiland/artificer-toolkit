@@ -25,10 +25,10 @@ import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encou
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
-import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterPersistenceTransaction } from './ports.js'
 
 export async function reorderEncounterActors(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   command: Extract<EncounterExecuteInput['command'], { type: 'REORDER' }>,
   userId: string
 ) {

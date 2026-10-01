@@ -65,7 +65,7 @@ export async function presentRun(
   const { role } = viewer
   const transaction = encounterReadTransaction(ctx)
   const state = readCampaignRunState(row, campaign)
-  const facts = await readRunProjectionFacts(ctx, state)
+  const facts = await readRunProjectionFacts(transaction, state)
   const { actors } = facts
   // The GM reads a completed Run's Characters as they were when it completed.
   if (row.status === 'COMPLETED' && role === 'OWNER')
@@ -131,7 +131,7 @@ export async function presentRun(
             })
           ]
         },
-        await readCharacterMaximumHitPoints(ctx, active.play),
+        await readCharacterMaximumHitPoints(transaction, active.play),
         system?.conditionTypes ?? []
       )
     )
@@ -322,7 +322,7 @@ export const actorSides = query({
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
     if (row.version !== input.expectedVersion) return null
     const state = readCampaignRunState(row, campaign)
-    const actors = await readRunActors(ctx, state)
+    const actors = await readRunActors(encounterReadTransaction(ctx), state)
     if (actors.some((actor) => !state.sides.some((side) => side.id === actor.sideId)))
       throw new Error('Encounter actor side is unavailable.')
     return encounterActorSidesDtoSchema.parse({

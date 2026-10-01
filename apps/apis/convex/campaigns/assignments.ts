@@ -40,11 +40,12 @@ export const assign = mutation({
         q.eq('campaignId', campaign.id).eq('userId', record.userId)
       )
       .unique()
+    // Assignment retries still validate the complete Character before accepting its binding.
+    const character = readCharacterRecord(record) as CharacterAuthored
     if (current?.characterId === characterId) {
       await readCampaignAssignedCharacter(ctx, campaign, player)
       return { ok: true as const }
     }
-    const character = readCharacterRecord(record) as CharacterAuthored
     if (record.status !== 'ACTIVE' || record.systemId !== campaign.gameSystemId)
       throw new Error('An active Character in the Campaign System is required.')
     const existing = await ctx.db

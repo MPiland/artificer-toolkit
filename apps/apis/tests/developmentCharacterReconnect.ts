@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { ConvexClient } from 'convex/browser'
-import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import type { verifyCharacterConcurrency } from './developmentCharacterConcurrency'
 import type { DevelopmentClient } from './developmentClient'
 import { api } from '../convex/_generated/api.js'
@@ -46,11 +46,13 @@ export async function verifyCharacterReconnect({
   }
 
   function observeVersion(version: number) {
-    return new Promise<CharacterSheetResponseDto>((resolve, reject) => {
+    return new Promise<CharacterSheetCommonDto>((resolve, reject) => {
       const unsubscribe = sdk.onUpdate(
-        api.characters.sheet.get,
-        { id: characterId },
-        (sheet) => {
+        api.characters.sheetSlices.get,
+        { id: characterId, slice: 'COMMON' },
+        (response) => {
+          if (response?.slice !== 'COMMON') return
+          const sheet = response.data
           if (sheet?.meta.streamVersion !== version) return
           unsubscribe()
           resolve(sheet)
@@ -89,17 +91,25 @@ export async function verifyCharacterReconnect({
       ])
     )
     assert.ok(sockets.length > countBeforeDisconnect, 'SDK must open a new WebSocket.')
-    assert.deepEqual(reconnectedSheet, command.sheet)
+    assert.equal(command.characterId, characterId)
+    assert.equal(reconnectedSheet.meta.streamVersion, command.streamVersion)
+    assert.deepEqual(reconnectedSheet, {
+      ...proof.currentSheet,
+      meta: { ...proof.currentSheet.meta, streamVersion: nextVersion },
+      overview: {
+        ...proof.currentSheet.overview,
+        inspiration: !proof.currentSheet.overview.inspiration
+      }
+    })
     const replay = await bounded(
       sdk.mutation(api.characters.sheetCommands.execute, proof.originalNoteInput)
     )
-    assert.equal(replay.streamVersion, nextVersion)
-    assert.deepEqual(replay.sheet, reconnectedSheet)
-    assert.deepEqual(replay.historyEntry, proof.originalHistoryEntry)
-    assert.deepEqual(
-      await bounded(peer.query(api.characters.sheet.get, { id: characterId })),
-      reconnectedSheet
+    assert.deepEqual(replay, { ...proof.originalReceipt, streamVersion: nextVersion })
+    const queried = await bounded(
+      peer.query(api.characters.sheetSlices.get, { id: characterId, slice: 'COMMON' })
     )
+    assert.ok(queried?.slice === 'COMMON')
+    assert.deepEqual(queried.data, reconnectedSheet)
     console.log(
       JSON.stringify({
         proof: 'Character SDK reconnect',

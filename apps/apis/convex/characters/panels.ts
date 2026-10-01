@@ -77,7 +77,9 @@ export const get = query({
       input.id,
       undefined,
       undefined,
-      input.target.kind === 'PROFICIENCIES' ? 'resolution' : 'active'
+      input.target.kind === 'PROFICIENCIES' ? 'resolution' : 'active',
+      undefined,
+      input.target.kind === 'SPELL' ? [input.target.source.spellId] : []
     )
     if (!current) throw new Error('Character Sheet panel is unavailable for the current user.')
     return projectCharacterSheetPanel(current, input.target)

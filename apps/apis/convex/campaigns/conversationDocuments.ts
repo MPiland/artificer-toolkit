@@ -1,17 +1,24 @@
 import {
-  campaignChatEntryDtoSchema,
   campaignChatUnreadCountLimit,
   campaignConversationDtoSchema,
   type CampaignChatEntryDto,
   type CampaignConversationDto
 } from '@artificer-toolkit/schema/api/campaignCommunication'
-import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
+import { presentChatEntries as presentStoredChatEntries } from '@artificer-toolkit/encounter-persistence/conversationPresentation'
+import type { campaignStoredEntryIdentitySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import {
-  campaignStoredConversationSchema,
-  campaignStoredConversationMemberSchema
-} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+  findConversation as findStoredConversation,
+  conversationParticipants as readConversationParticipants,
+  conversationAccess as readConversationAccess,
+  openConversation as openStoredConversation,
+  insertConversationEntry as insertStoredConversationEntry
+} from '@artificer-toolkit/encounter-persistence/conversationPersistence'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
+import {
+  createConvexEncounterStoreReader,
+  createConvexEncounterStore
+} from '../lib/convexEncounterStore'
 import { readCampaignAuthorLabels } from './authorLabels'
 import { requireCampaignAuthority, readActiveCampaignMembers } from './authority'
 
@@ -30,12 +37,12 @@ export async function findConversation(
   kind: CampaignConversationDto['kind'],
   participantUserIds: string[]
 ) {
-  return ctx.db
-    .query('campaignConversations')
-    .withIndex('by_campaignId_kind_participants', (q) =>
-      q.eq('campaignId', campaignId).eq('kind', kind).eq('participantUserIds', participantUserIds)
-    )
-    .unique()
+  return findStoredConversation(
+    { db: createConvexEncounterStoreReader(ctx) },
+    campaignId,
+    kind,
+    participantUserIds
+  )
 }
 
 export async function conversationParticipants(
@@ -44,14 +51,11 @@ export async function conversationParticipants(
   kind: CampaignConversationDto['kind'],
   directUserId?: string
 ) {
-  const { campaign, membership } = authority
-  if (kind === 'PARTY' && membership.role !== 'PLAYER') throw new Error('Conversation not found.')
-  if (kind !== 'DIRECT') return [membership]
-  const peerId = directUserId?.toLowerCase()
-  if (!peerId || peerId === membership.userId) throw new Error('Conversation not found.')
-  const peer = await requireCampaignAuthority(ctx, campaign.id, peerId)
-  return [membership, peer.membership].sort((left, right) =>
-    left.userId.localeCompare(right.userId)
+  return readConversationParticipants(
+    authority,
+    kind,
+    (campaignId, userId) => requireCampaignAuthority(ctx, campaignId, userId),
+    directUserId
   )
 }
 
@@ -60,36 +64,12 @@ export async function conversationAccess(
   authority: Awaited<ReturnType<typeof requireCampaignAuthority>>,
   conversation: Doc<'campaignConversations'>
 ) {
-  if (conversation.campaignId !== authority.campaign.id) throw new Error('Conversation not found.')
-  const peerId =
-    conversation.kind === 'DIRECT'
-      ? conversation.participantUserIds.find((id) => id !== authority.membership.userId)
-      : undefined
-  if (
-    conversation.kind === 'DIRECT' &&
-    !conversation.participantUserIds.includes(authority.membership.userId)
+  return readConversationAccess(
+    { db: createConvexEncounterStoreReader(ctx) },
+    authority,
+    conversation,
+    (campaignId, userId) => requireCampaignAuthority(ctx, campaignId, userId)
   )
-    throw new Error('Conversation not found.')
-  const participants = await conversationParticipants(ctx, authority, conversation.kind, peerId)
-  const expected = conversation.kind === 'DIRECT' ? participants.map((member) => member.userId) : []
-  if (
-    conversation.participantUserIds.length !== expected.length ||
-    conversation.participantUserIds.some((id, index) => id !== expected[index])
-  )
-    throw new Error('Stored conversation participants mismatch.')
-  const member = await ctx.db
-    .query('campaignConversationMembers')
-    .withIndex('by_conversationId_userId', (q) =>
-      q.eq('conversationId', conversation.id).eq('userId', authority.membership.userId)
-    )
-    .unique()
-  if (
-    !member ||
-    member.campaignId !== authority.campaign.id ||
-    member.accessStartedAt !== authority.membership.accessStartedAt
-  )
-    return null
-  return { conversation, member }
 }
 
 export async function openConversation(
@@ -98,52 +78,13 @@ export async function openConversation(
   kind: CampaignConversationDto['kind'],
   directUserId?: string
 ) {
-  const participants = await conversationParticipants(ctx, authority, kind, directUserId)
-  const participantUserIds = kind === 'DIRECT' ? participants.map((member) => member.userId) : []
-  let conversation = await findConversation(ctx, authority.campaign.id, kind, participantUserIds)
-  if (!conversation) {
-    const id = await ctx.db.insert(
-      'campaignConversations',
-      campaignStoredConversationSchema.parse({
-        id: crypto.randomUUID(),
-        campaignId: authority.campaign.id,
-        kind,
-        participantUserIds,
-        createdAt: new Date().toISOString()
-      })
-    )
-    conversation = await ctx.db.get(id)
-  }
-  if (!conversation) throw new Error('Conversation could not be opened.')
-  const room = conversation
-  for (const participant of participants) {
-    const member = await ctx.db
-      .query('campaignConversationMembers')
-      .withIndex('by_conversationId_userId', (q) =>
-        q.eq('conversationId', room.id).eq('userId', participant.userId)
-      )
-      .unique()
-    if (member) {
-      if (member.campaignId !== authority.campaign.id)
-        throw new Error('Stored conversation membership mismatch.')
-      if (member.accessStartedAt !== participant.accessStartedAt)
-        await ctx.db.patch(member._id, { accessStartedAt: participant.accessStartedAt })
-    } else {
-      await ctx.db.insert(
-        'campaignConversationMembers',
-        campaignStoredConversationMemberSchema.parse({
-          conversationId: room.id,
-          campaignId: authority.campaign.id,
-          userId: participant.userId,
-          accessStartedAt: participant.accessStartedAt,
-          lastReadAt: null
-        })
-      )
-    }
-  }
-  const access = await conversationAccess(ctx, authority, room)
-  if (!access) throw new Error('Conversation could not be opened.')
-  return access
+  return openStoredConversation(
+    { db: createConvexEncounterStore(ctx) },
+    authority,
+    kind,
+    (campaignId, userId) => requireCampaignAuthority(ctx, campaignId, userId),
+    directUserId
+  )
 }
 
 /**
@@ -198,17 +139,17 @@ export async function readEntryPayload(ctx: QueryCtx, entryId: string) {
 /** Text and rolls write both halves of an entry together; history is kept and paged, not trimmed. */
 export async function insertConversationEntry(
   ctx: MutationCtx,
-  header: Omit<Doc<'campaignConversationEntries'>, '_id' | '_creationTime'>,
+  identity: ReturnType<typeof campaignStoredEntryIdentitySchema.parse>,
   payload: Omit<Doc<'campaignConversationEntryPayloads'>, '_id' | '_creationTime'>
 ) {
-  await ctx.db.insert('campaignConversationEntries', header)
-  await ctx.db.insert('campaignConversationEntryPayloads', payload)
+  await insertStoredConversationEntry({ db: createConvexEncounterStore(ctx) }, identity, payload)
 }
 
 type StoredEntry = {
-  header:
-    | Doc<'campaignConversationEntries'>
-    | Omit<Doc<'campaignConversationEntries'>, '_id' | '_creationTime'>
+  header: Pick<
+    Doc<'campaignConversationEntries'>,
+    'id' | 'campaignId' | 'conversationId' | 'authorUserId' | 'createdAt'
+  >
   payload:
     | Doc<'campaignConversationEntryPayloads'>
     | Omit<Doc<'campaignConversationEntryPayloads'>, '_id' | '_creationTime'>
@@ -244,59 +185,5 @@ export async function presentChatEntries(
       username: payload.authorUsername
     }))
   )
-  return entries.map(({ header: entry, payload }, index) =>
-    campaignChatEntryDtoSchema.parse({
-      id: entry.id,
-      campaignId: entry.campaignId,
-      conversationId: entry.conversationId,
-      room: conversation.kind,
-      kind: payload.kind,
-      mode: payload.mode,
-      // Masking can expand a short word; bound display text without changing stored snapshots.
-      body:
-        payload.body === null
-          ? null
-          : presentCampaignPlainText(payload.body, maturity).slice(0, 2000),
-      roll:
-        payload.roll === null
-          ? null
-          : {
-              ...payload.roll,
-              characterLabel: presentCampaignPlainText(payload.roll.characterLabel, maturity),
-              source: {
-                ...payload.roll.source,
-                label: presentCampaignPlainText(payload.roll.source.label, maturity).slice(0, 80)
-              },
-              ...(payload.roll.ruleCheck
-                ? {
-                    ruleCheck: {
-                      ...payload.roll.ruleCheck,
-                      actorLabel: presentCampaignPlainText(
-                        payload.roll.ruleCheck.actorLabel,
-                        maturity
-                      ).slice(0, 160),
-                      sourceLabel:
-                        payload.roll.ruleCheck.sourceLabel === null
-                          ? null
-                          : presentCampaignPlainText(
-                              payload.roll.ruleCheck.sourceLabel,
-                              maturity
-                            ).slice(0, 160)
-                    }
-                  }
-                : {})
-            },
-      revealedByGm: payload.revealedByGm,
-      authorUserId: entry.authorUserId,
-      authorUsername: authorUsernames[index],
-      characterId: payload.characterId,
-      characterLabel:
-        payload.characterLabel === null
-          ? null
-          : presentCampaignPlainText(payload.characterLabel, maturity).slice(0, 100),
-      editedAt: payload.editedAt,
-      unsentAt: payload.unsentAt,
-      createdAt: entry.createdAt
-    })
-  )
+  return presentStoredChatEntries(entries, conversation, maturity, authorUsernames)
 }

@@ -1,3 +1,4 @@
+import { deleteReceiptHeaders } from '../lib/receiptLedgers'
 import type { MutationCtx } from '../_generated/server'
 
 /** Deletes one bounded page of a Run's child rows and reports whether none remained. */
@@ -42,21 +43,28 @@ export async function removeEncounterRunChildren(ctx: MutationCtx, encounterId: 
     ctx.db
       .query('encounterEvidenceRolls')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .take(8),
+      .take(1),
     ctx.db
       .query('encounterTurnMovements')
-      .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
-        q.eq('encounterId', encounterId)
+      .withIndex('by_encounterId_round_turnActorId_actorId', (q) => q.eq('encounterId', encounterId)
       )
       .take(8),
     ctx.db
       .query('encounterDecisionSkips')
-      .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (q) =>
-        q.eq('encounterId', encounterId)
+      .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (q) => q.eq('encounterId', encounterId)
       )
       .take(8)
   ])
-  for (const rows of groups) for (const row of rows) await ctx.db.delete(row._id)
+  const evidenceRolls = groups[9]
+  await deleteReceiptHeaders(
+    ctx,
+    evidenceRolls.map((header) => ({
+      table: 'encounterEvidenceRolls',
+      header
+    }))
+  )
+  for (const rows of groups)
+    if (rows !== evidenceRolls) for (const row of rows) await ctx.db.delete(row._id)
   return groups.every((rows) => rows.length === 0)
 }
 
@@ -83,6 +91,16 @@ export async function removeCampaignEncounterRuns(ctx: MutationCtx, campaignId: 
       .withIndex('by_campaignId_rootCommandId', (q) => q.eq('campaignId', campaignId))
       .take(1)
   ])
-  for (const rows of groups) for (const row of rows) await ctx.db.delete(row._id)
+  await deleteReceiptHeaders(ctx, [
+    ...groups[0].map((header) => ({
+      table: 'encounterRunCommands' as const,
+      header
+    })),
+    ...groups[1].map((header) => ({
+      table: 'encounterRuleReceipts' as const,
+      header
+    }))
+  ])
+  for (const row of groups[2]) await ctx.db.delete(row._id)
   return groups.every((rows) => rows.length === 0)
 }

@@ -43,6 +43,8 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -232,7 +234,7 @@ async function resetAndDetachScene(value: Awaited<ReturnType<typeof setup>>) {
         ...actor,
         resources: withEncounterRuleUsageUsed(actor, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 0)
       })
-      await writeRunActor(ctx, row._id, available)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, available)
     }
     for (const row of await ctx.db
       .query('encounterActorTokenBindings')
@@ -277,10 +279,17 @@ async function snapshot(value: Awaited<ReturnType<typeof setup>>) {
       .collect(),
     characterEffects: await ctx.db.query('characterActiveRuleEffects').collect(),
     characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
-    receipts: await ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.run.id))
-      .collect(),
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+    receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
+    receipts: await readReceiptHeaders(
+      ctx,
+      'encounterRuleReceipts',
+      await ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.run.id))
+        .collect()
+    ),
     commands: await ctx.db.query('sceneLiveCommands').collect(),
     scenes: await ctx.db.query('sceneLiveStates').collect()
   }))
@@ -299,7 +308,7 @@ it('settles present and detached Character maintenance once per used automatic c
     (condition) => condition.code === 'POISONED'
   )!
   const seeded = await value.t.run(async (ctx) => {
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const states = await store.listMaintainedStatesByOwner({
       encounterId: value.run.id,
       ownerActorId: value.reactors[0].id

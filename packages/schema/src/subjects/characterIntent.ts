@@ -8,7 +8,7 @@ import {
 import {
   CharacterStartingEquipmentSource,
   getCharacterChosenGrantSelectionIdentityKey
-} from '@artificer-toolkit/shared/subjects/authored'
+} from '@artificer-toolkit/shared/subjects/authored/character/intent'
 
 import { abilityCodeSchema } from '../shared/enums.js'
 

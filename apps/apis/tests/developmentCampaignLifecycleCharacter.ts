@@ -14,12 +14,20 @@ import { sceneVisionRevisionSchema } from '@artificer-toolkit/schema/projections
 import {
   CHARACTER_DRAFT_PAYLOAD_INLINE_MAX_BYTES,
   characterStoredPlayStateSchema,
-  characterStoredRecordSchema
+  characterStoredHeadSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
 import {
   encodeCharacterRecord,
   readCharacterRecord
 } from '@artificer-toolkit/schema/projections/characterStoredState'
+import {
+  assembleCharacterStructure,
+  encodeCharacterOperationalStructure
+} from '@artificer-toolkit/schema/projections/characterOperationalState'
+import {
+  characterCollectionSchemas,
+  characterStoredBuildStateSchema
+} from '@artificer-toolkit/schema/projections/characterOperationalRecords'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { reconcileCharacterAuthoredSourceLoss } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -27,7 +35,10 @@ import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
-import { decodeUtf8PayloadChunks, encodeUtf8PayloadChunks } from '../convex/lib/jsonPayloadChunks'
+import {
+  decodeUtf8PayloadChunks,
+  encodeUtf8PayloadChunks
+} from '@artificer-toolkit/shared/jsonPayloadChunks'
 
 type WithoutMetadata<T> = T extends unknown ? Omit<T, 'commandId' | 'expectedVersion'> : never
 type NativeTables = Record<string, Record<string, unknown>[]>
@@ -430,14 +441,58 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   const record = records[0]!
   const play = plays[0]!
   const draft = drafts[0]!
-  assert.equal(typeof record.documentJson, 'string')
   assert.equal(typeof record.updatedAt, 'string')
   assert.equal(typeof draft.updatedAt, 'string')
   assert.equal(typeof play.streamVersion, 'number')
   const { _id: _recordId, _creationTime: _recordCreationTime, ...storedRecord } = record
   const { _id: _playId, _creationTime: _playCreationTime, ...storedPlay } = play
+  const builds = expected.characterBuildStates!.filter((row) => row.characterId === characterId)
+  assert.equal(builds.length, 1)
+  const build = builds[0]!
+  const { _id: _buildId, _creationTime: _buildCreationTime, ...storedBuild } = build
+  const collections = characterCollectionSchemas
+  const readCollection = <Value>(table: string, schema: { parse: (input: unknown) => Value }) =>
+    expected[table]!.filter((row) => row.characterId === characterId).map((row) => {
+      const { _id: _collectionId, _creationTime: _collectionCreationTime, ...fields } = row
+      return schema.parse(fields)
+    })
   const stored = {
-    ...characterStoredRecordSchema.parse(storedRecord),
+    ...assembleCharacterStructure(
+      characterStoredHeadSchema.parse(storedRecord),
+      characterStoredBuildStateSchema.parse(storedBuild),
+      {
+        characterInventoryItems: readCollection(
+          'characterInventoryItems',
+          collections.characterInventoryItems
+        ),
+        characterCurrencyGroups: readCollection(
+          'characterCurrencyGroups',
+          collections.characterCurrencyGroups
+        ),
+        characterClassSpellStates: readCollection(
+          'characterClassSpellStates',
+          collections.characterClassSpellStates
+        ),
+        characterSpellCustomizations: readCollection(
+          'characterSpellCustomizations',
+          collections.characterSpellCustomizations
+        ),
+        characterCreatureInstances: readCollection(
+          'characterCreatureInstances',
+          collections.characterCreatureInstances
+        ),
+        characterVehicleInstances: readCollection(
+          'characterVehicleInstances',
+          collections.characterVehicleInstances
+        ),
+        characterNotes: readCollection('characterNotes', collections.characterNotes),
+        characterNoteGroups: readCollection('characterNoteGroups', collections.characterNoteGroups),
+        characterExtraEquipment: readCollection(
+          'characterExtraEquipment',
+          collections.characterExtraEquipment
+        )
+      }
+    ),
     play: characterStoredPlayStateSchema.parse(storedPlay)
   }
   const original = readCharacterRecord(stored)
@@ -497,8 +552,8 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
     streamVersion: stored.play.streamVersion + 1,
     updatedAt
   })
-  assert.notEqual(written.checksum, record.checksum)
-  assert.equal(written.play.playJson, play.playJson)
+  assert.notEqual(written.checksum, stored.checksum)
+  assert.deepEqual(written.play.state, play.state)
   expected.characters = expected.characters!.map((row) =>
     row._id !== record._id
       ? row
@@ -506,18 +561,42 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
           ...row,
           label: character.label,
           status: 'DRAFT',
-          documentJson: written.documentJson,
           checksum: written.checksum,
+          sheetStateChecksum: written.sheetStateChecksum,
           updatedAt
         }
   )
+  const operational = encodeCharacterOperationalStructure({
+    ...stored,
+    ...written,
+    status: 'DRAFT'
+  })
+  expected.characterBuildStates = expected.characterBuildStates!.map((row) =>
+    row._id === build._id
+      ? { _id: row._id, _creationTime: row._creationTime, ...operational.build }
+      : row
+  )
+  for (const [table, rows] of Object.entries(operational.collections)) {
+    const previous = expected[table]!.filter((row) => row.characterId === characterId)
+    assert.equal(
+      rows.length,
+      previous.length,
+      'Source pruning retains operational instance identities.'
+    )
+    expected[table] = expected[table]!.map((row) => {
+      if (row.characterId !== characterId) return row
+      const next = rows.find((candidate) => candidate.id === row.id)
+      assert.ok(next, 'Source pruning retains operational instance identities.')
+      return { _id: row._id, _creationTime: row._creationTime, ...next }
+    })
+  }
   expected.characterPlayStates = expected.characterPlayStates!.map((row) =>
     row._id !== play._id
       ? row
       : {
           ...row,
           streamVersion: written.play.streamVersion,
-          playJson: written.play.playJson,
+          state: written.play.state,
           checksum: written.play.checksum,
           updatedAt: written.play.updatedAt
         }

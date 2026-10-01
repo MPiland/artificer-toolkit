@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
@@ -469,7 +470,7 @@ export async function setupCreatureReactionRun(
         sideId: party.id,
         disposition: 'FRIENDLY'
       })
-      await writeRunActor(ctx, row._id, state)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, state)
     }
     await activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',

@@ -1,5 +1,6 @@
+import type { CharacterSheetInventoryDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Text } from '@mantine/core'
-import type { CharacterSheet, OpenSheetPanel } from '../core/CharacterSheet.types'
+import type { OpenSheetPanel } from '../core/CharacterSheet.types'
 import * as panelStyles from '../shared/panel.css'
 import * as inventoryStyles from './inventory.css'
 
@@ -8,9 +9,9 @@ function CharacterSheetInventoryItemRow({
   openPanel,
   resources
 }: {
-  item: CharacterSheet['inventory']['items'][number]
+  item: CharacterSheetInventoryDto['inventory']['items'][number]
   openPanel?: OpenSheetPanel
-  resources: CharacterSheet['resources']['items']
+  resources: CharacterSheetInventoryDto['resources']['items']
 }) {
   const resourceSummary = resources
     .filter(
@@ -64,9 +65,9 @@ export function CharacterSheetInventoryList({
   resources
 }: {
   emptyLabel: string
-  items: CharacterSheet['inventory']['items']
+  items: CharacterSheetInventoryDto['inventory']['items']
   openPanel?: OpenSheetPanel
-  resources: CharacterSheet['resources']['items']
+  resources: CharacterSheetInventoryDto['resources']['items']
 }) {
   if (!items.length) return <Text className={panelStyles.muted}>{emptyLabel}</Text>
 

@@ -11,7 +11,7 @@ import type {
   VehicleResponseDto
 } from '@artificer-toolkit/schema/api/content'
 import type { CharacterBuilderDraftDto } from '@artificer-toolkit/schema/api/characterBuilder'
-import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
 import type {
   SystemListResponseDto,
@@ -152,7 +152,7 @@ export interface CharacterSheetLoaderData {
   characterId: string
   characterPublicId: string
   draft: CharacterBuilderDraftDto | null
-  response: CharacterSheetResponseDto | null
+  response: CharacterSheetCommonDto | null
 }
 
 export interface CharacterEditAuthoringData {

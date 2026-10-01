@@ -7,6 +7,7 @@ import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api, internal } from '../../convex/_generated/api'
 import { readCharacterRow } from '../../convex/characters/stateDocuments'
+import { readReceiptHeaders } from '../../convex/lib/receiptLedgers'
 import { fixture, input } from './characters'
 import { importedSubject } from './publication'
 
@@ -139,12 +140,26 @@ export async function readySheetFixture(
     character
   })
   const readState = () =>
-    base.t.run(async (ctx) => ({
-      character: await readCharacterRow(ctx, character.id),
-      receipts: await ctx.db
+    base.t.run(async (ctx) => {
+      const headers = await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
         .collect()
+      return {
+        character: await readCharacterRow(ctx, character.id),
+        receipts: await readReceiptHeaders(ctx, 'characterCommandReceipts', headers)
+      }
+    })
+  // Physical snapshots include orphan bodies so rollback assertions cover the whole publication.
+  const readReceiptStorage = () =>
+    base.t.run(async (ctx) => ({
+      character: await readCharacterRow(ctx, character.id),
+      headers: await ctx.db
+        .query('characterCommandReceipts')
+        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+        .collect(),
+      ledgers: await ctx.db.query('receiptLedgers').collect(),
+      parts: await ctx.db.query('receiptLedgerParts').collect()
     }))
-  return { ...base, character, committed, readState }
+  return { ...base, character, committed, readState, readReceiptStorage }
 }

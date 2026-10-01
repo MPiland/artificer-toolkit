@@ -12,7 +12,7 @@ import {
 import {
   getCharacterDraft,
   useGetCharacterList,
-  getCharacterSheet
+  getCharacterSheetSlice
 } from '#app/data/characters/queries'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 
@@ -43,7 +43,7 @@ export function CharacterListPage() {
         })
       }
       onViewIntent={(item) => {
-        void queryClient.prefetchQuery(getCharacterSheet(item.publicId))
+        void queryClient.prefetchQuery(getCharacterSheetSlice(item.publicId, 'COMMON'))
         void queryClient.prefetchQuery(getCharacterDraft(item.publicId))
       }}
       onEdit={(item) =>

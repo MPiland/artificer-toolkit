@@ -4,6 +4,7 @@ import { IMPORT_MAX_ENTRY_BYTES } from '../api/imports.js'
 import { normalizedImageCropSchema } from '../api/media.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
+import { characterPlayStateSchema } from './characterPlayState.js'
 
 const uuid = lazySchema(() =>
   z.pipe(
@@ -12,39 +13,50 @@ const uuid = lazySchema(() =>
   )
 )
 
-// Schema evaluation must load scalar persistence contracts, not the authored mechanics graph.
+// Schema evaluation must load persistence contracts, not the authored mechanics graph.
+const characterHeadFields = lazySchemaParts(() => ({
+  id: uuid,
+  userId: uuid,
+  systemId: postgresUuidSchema,
+  label: z.string(),
+  status: z.enum(['ACTIVE', 'DRAFT']),
+  /** Integrity of the complete structure assembled from the owned records. */
+  checksum: projectionChecksumSchema,
+  sheetStateChecksum: z.optional(projectionChecksumSchema),
+  portraitAssetId: z.optional(uuid),
+  portraitRevision: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+  /** The portrait's own framing; the same image framed differently elsewhere is unaffected. */
+  portraitCrop: z.optional(normalizedImageCropSchema),
+  createdAt: z.iso.datetime(),
+  /** The structure clock: it advances only when the document or the Sheet structure changes. */
+  updatedAt: z.iso.datetime()
+}))
+
+/** Identity and structure clock only; mutable values live in typed operational records. */
+export const characterStoredHeadSchema = lazySchema(() =>
+  z.strictObject({
+    ...characterHeadFields(),
+    sheetStateChecksum: projectionChecksumSchema
+  })
+)
+
+/** Complete private structure capture assembled at rules, export and room boundaries. */
 export const characterStoredRecordSchema = lazySchema(() =>
   z.strictObject({
-    id: uuid,
-    userId: uuid,
-    systemId: postgresUuidSchema,
-    // Old records remain readable during cutover; new native writes do not store this field.
-    primaryRulesCatalogueId: z.optional(postgresUuidSchema),
-    label: z.string(),
-    status: z.enum(['ACTIVE', 'DRAFT']),
-    /** The Builder-owned structure (`characterStructureDocumentSchema`); play state lives in the play record. */
+    ...characterHeadFields(),
     documentJson: z.string(),
-    checksum: projectionChecksumSchema,
-    portraitAssetId: z.optional(uuid),
-    portraitRevision: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-    /** The portrait's own framing; the same image framed differently elsewhere is unaffected. */
-    portraitCrop: z.optional(normalizedImageCropSchema),
-    /** The Sheet-owned structure records (`characterSheetStructureSchema`); play fields live in the play record. */
     sheetState: z.optional(
       z.strictObject({
         documentJson: z.string(),
         checksum: projectionChecksumSchema
       })
-    ),
-    createdAt: z.iso.datetime(),
-    /** The structure clock: it advances only when the document or the Sheet structure changes. */
-    updatedAt: z.iso.datetime()
+    )
   })
 )
 
 /**
  * A Character's small, hot play record, one per Character (ADR 0035 Amendment 12): the play fields
- * (`characterPlayStateSchema`) as canonical JSON beside the Character's own version and derived
+ * (`characterPlayStateSchema`) as typed fields beside the Character's own version and derived
  * stats. Every play write replaces only this record, never the large Character document.
  */
 export const characterStoredPlayStateSchema = lazySchema(() =>
@@ -67,7 +79,7 @@ export const characterStoredPlayStateSchema = lazySchema(() =>
     maximumHitPoints: z.number().check(z.int()).check(z.nonnegative()),
     /** Effective walking speed in feet, stored beside `maximumHitPoints` for the movement budget (D38). */
     walkingSpeed: z.number().check(z.nonnegative()),
-    playJson: z.string(),
+    state: characterPlayStateSchema,
     checksum: projectionChecksumSchema,
     /** The play clock: it advances only when the play state changes. */
     updatedAt: z.iso.datetime()

@@ -19,6 +19,7 @@ import { retainCharacterEquipmentRules } from './acquiredEquipment'
 import { prepareCharacterBuilder } from './builderPreparation'
 import { writeCharacterRecord } from './characterWrites'
 import type { CharacterReferencedReads } from './context'
+import { readCharacterRecord } from './stateDocuments'
 
 export const commit = mutation({
   args: zodToConvexFields(characterBuilderCommitInputSchema.shape),
@@ -113,20 +114,21 @@ export async function commitCharacter(
         }
       }
     : committed
-  if (clampsHitPoints)
-    await writeCharacterRecord(ctx, {
-      current: written.row,
-      fields: { streamVersion: streamVersion + (playChanged ? 0 : 1), updatedAt: now },
-      document: stored,
-      stats: { maximumHitPoints, walkingSpeed }
-    })
+  const persisted = clampsHitPoints
+    ? await writeCharacterRecord(ctx, {
+        current: written.row,
+        fields: { streamVersion: streamVersion + (playChanged ? 0 : 1), updatedAt: now },
+        document: stored,
+        stats: { maximumHitPoints, walkingSpeed }
+      })
+    : written
   await deleteCharacterDraftPayload(ctx, draftRecord)
   await ctx.db.delete(draftRecord._id)
   // This mutation verified the owner and just wrote the row.
   await syncAccountUsage(ctx, 'personalCharacters', committed.id, userId)
   return characterBuilderCommitOutputSchema.parse({
-    character: JSON.parse(JSON.stringify(stored)),
+    character: JSON.parse(JSON.stringify(readCharacterRecord(persisted.row))),
     publicId,
-    streamVersion: streamVersion + (clampsHitPoints && !playChanged ? 1 : 0)
+    streamVersion: persisted.row.play.streamVersion
   })
 }

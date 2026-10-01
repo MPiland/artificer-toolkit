@@ -46,7 +46,7 @@ function listPart(scopeId: string, firstId: number, labels: readonly string[]) {
     publicId: label.toLowerCase().replaceAll(' ', '-')
   }))
   return buildContentSnapshotPart(
-    { format: 1, scope: 'SOURCE', scopeId, kind: 'FEAT', part: 'list' },
+    { format: 2, scope: 'SOURCE', scopeId, kind: 'FEAT', part: 'list' },
     roots
   )
 }
@@ -150,7 +150,7 @@ describe('useContentCatalogue', () => {
     expect(result.current.updating).toBe(false)
     expect(catalogue.manifest).toHaveBeenCalledTimes(1)
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      `https://session.example.test/content/v1/source/${PLATFORM_SOURCE_ID}/feat/list/${platform.sha256}.json`
+      `https://session.example.test/content/v2/source/${PLATFORM_SOURCE_ID}/feat/list/${platform.sha256}.json`
     ])
     expect(fetchMock.mock.calls[0]?.[1]?.headers).toEqual({})
     expect(catalogue.issueAccess).not.toHaveBeenCalled()

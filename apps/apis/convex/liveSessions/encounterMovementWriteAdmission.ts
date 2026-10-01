@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import type { LiveSessionMovementPrepareInput } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
@@ -18,7 +19,7 @@ export async function readLiveMovementWriteAdmission(
     input.preparation.expectedEncounterVersion !== state.version
   )
     throw new Error('Live movement preparation Run mismatch.')
-  const actors = await readRunActors(ctx, state)
+  const actors = await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state)
   const characterIds = new Set(
     state.automationMode === 'MANUAL'
       ? []

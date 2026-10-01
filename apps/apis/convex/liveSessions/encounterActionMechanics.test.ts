@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
@@ -78,6 +79,7 @@ async function stored(fixture: Fixture) {
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', fixture.character.id))
         .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
     ])
     if (!run || !actor || !character) throw new Error('Mechanics fixture is unavailable.')
     return { run, actor, character, receipts }

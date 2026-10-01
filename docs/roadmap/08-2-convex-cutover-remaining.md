@@ -1,12 +1,14 @@
 # Phase 8.2 — fixed remaining work
 
-> **Current execution:** See the [living handoff](../handoffs/phase-08-2-convex-cutover.md) and [validation record](../validation/phase-08-2/README.md) for the regular checkout, declaration integration and latest scoped proof. The fixed ledger and this plan retain the 65/75 gate boundary.
+> **Current status:** The [acceptance JSON](08-2-convex-cutover-acceptance.json) is authoritative: 51/75 cases accepted and 24 open. The dated implementation log below is historical; its counts and scoped evidence describe earlier checkpoints, not current integrated acceptance. See the [living handoff](../handoffs/phase-08-2-convex-cutover.md), [validation record](../validation/phase-08-2/README.md), and [release runbook](../runbooks/phase-8-2-release.md) for current execution and promotion gates.
 
 Historical `.codex/validation/` evidence paths below are now available at `local-validation/` in the regular checkout. The old worktree is a retained backup.
 
 ## Goal
 
-Close the remaining 10 cases in the unchanged 75-case ledger, complete the final-source local lifecycle and frozen workload, perform the bounded staging promotion, obtain explicit service-retirement authorization, and finish production smoke and retirement. The open cases are V15, R01–R06 and R08–R10; the current count is 65/75. Missing live Encounter movement is tracked under R06 ownership integration. V07, V10 and V13 retain their scoped feature acceptance; the combined current system remains unproven under R08 and V15. The acceptance JSON remains authoritative.
+Complete the 24 cases currently open in the unchanged 75-case ledger: F12, P02, P06, P15, V03, V05, V07–V15, R01–R06 and R08–R10. The current count is 51/75 accepted. Keep Character typed persistence and narrow Sheet queries in Convex; retain Cloudflare for web hosting, room execution and R2. Finish snapshot local-bridge and room integration, then follow ADR 0035 checkpoints: S3 persistence checkpoints, S5 shadow parity, S6 authority, then the held S7/S8 Sheet/chat work. Complete the final-source local lifecycle before any separately approved managed promotion. See [ADR 0029](../adr/0029-convex-backend-cutover.md), [ADR 0035](../adr/0035-room-authoritative-live-encounters.md), [persistence](../architecture/persistence.md), [Character](../architecture/character.md), and [live-session coordination](../architecture/live-sessions.md). Exact case status remains in the acceptance JSON.
+
+The implementation notes below preserve historical checkpoint evidence. Counts stated in those dated notes are snapshots from their time and do not describe current acceptance or integration.
 
 ## Requirements
 
@@ -58,12 +60,9 @@ flowchart TD
 
 ### Next closure batch
 
-Builder, initiative, custody, Campaign and account lifecycle cases retain their acceptance. The
-current count is 65/75, with 10 open. Restore and verify the live Encounter movement authority
-boundary under R06, then complete R01–R05 plus R08;
-V15 local runs on that final runtime. R09, the managed V15 portion and R10 remain authorized
-promotion work. Exact case status and evidence are maintained in the acceptance JSON and progress
-tracker.
+Historical next-closure note: restore and verify the live Encounter movement authority boundary,
+then complete removal and final-source proof before managed promotion. Current case status and
+remaining work are defined by the acceptance JSON and the current-status paragraph above.
 
 | Case | Next deliverable                                                                                                                                        |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |

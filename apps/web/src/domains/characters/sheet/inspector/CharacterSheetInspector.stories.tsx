@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, within } from 'storybook/test'
 import { astralTearCharacterSheetFixture } from '../fixtures/astralTearSheet.fixtures'
-import { CharacterSheetView } from '../core/CharacterSheetView'
+import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
 import {
   abilityPanelFixture,
   adjustedAbilityPanelFixture,

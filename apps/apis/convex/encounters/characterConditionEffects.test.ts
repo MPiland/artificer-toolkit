@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { expect, it } from 'vitest'
 import {
   encounterCommandResultDtoSchema,
@@ -298,6 +299,8 @@ async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
 
 async function stored(base: Awaited<ReturnType<typeof setup>>) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     character: await readCharacterRow(ctx, base.character.id),
     effects: await ctx.db
       .query('characterActiveRuleEffects')
@@ -306,11 +309,13 @@ async function stored(base: Awaited<ReturnType<typeof setup>>) {
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .take(10),
+      .take(10)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
       .take(10)
+      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
   }))
 }
 

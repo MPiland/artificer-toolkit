@@ -1,8 +1,9 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button, Text, TextInput } from '@mantine/core'
 import { useRef, useState } from 'react'
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import { AppSelect } from '#ui/primitives/Select'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { sheetFieldClassNames } from '../shared/characterSheetFieldStyles'
 import * as rowStyles from '../shared/rows.css'
 import * as proficiencyStyles from '../overview/proficiencies.css'
@@ -14,7 +15,7 @@ export function ConditionsEditor({
   submitCommand
 }: {
   pending: boolean
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   submitCommand: SubmitSheetCommand
 }) {
   const [conditionTypeId, setConditionTypeId] = useState<string | null>(null)

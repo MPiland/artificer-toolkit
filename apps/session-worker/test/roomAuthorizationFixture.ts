@@ -23,6 +23,7 @@ export function roomAuthorizationResponse(input: {
   const characterRevisions = input.characterRevisions ?? []
   return {
     revisions: {
+      system: null,
       campaign: null,
       play: null,
       characters: characterRevisions,
@@ -36,7 +37,7 @@ export function roomAuthorizationResponse(input: {
         ownerUserId,
       partyVisibility: { sheet: false, health: 'HIDDEN' }
     })),
-    preferences: members.map(({ userId }) => ({ userId, autoRollDice: false })),
+    preferences: members.map(({ userId }) => ({ userId, autoRollDice: false, username: 'FixtureMember' })),
     play: input.play ?? { encounter: null }
   }
 }

@@ -23,6 +23,7 @@ const localSessionWorker = {
   secretNames: [
     'LIVE_SESSION_TICKET_SECRET',
     'LIVE_SESSION_WORKER_SECRET',
+    'CONTENT_SNAPSHOT_TOKEN_SECRET',
     'RULES_CONTINUATION_SECRET'
   ],
   selfManagedStage: 'r08-browser-vtt-browser'
@@ -309,7 +310,7 @@ async function useGeneratedLocalAdminKey() {
 }
 
 function localChildEnvironment(overrides = {}) {
-  const environment = { ...process.env, YARN_ENABLE_NETWORK: '0', ...overrides }
+  const environment = { ...process.env, YARN_ENABLE_NETWORK: '0', ...overrides, GOMAXPROCS: '2' }
   const remoteNames = Object.keys(environment).filter(isRemoteOnlyEnvironmentName).sort()
   if (remoteNames.length > 0) {
     throw new Error(
@@ -502,10 +503,11 @@ async function startLocalSessionWorker(artifactDirectory) {
   const environment = { ...process.env }
   for (const name of loadedEnvironmentNames) delete environment[name]
   delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
-  delete environment.YARN_INJECT_ENVIRONMENT_FILES
+  environment.YARN_INJECT_ENVIRONMENT_FILES = environmentFile
   Object.assign(environment, secrets, {
     CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
     CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
+    LOCAL_CONTENT_SNAPSHOT_ORIGIN: 'http://127.0.0.1:8026',
     LIVE_SESSION_ALLOWED_ORIGINS: allowedOrigins
   })
   return startLocalService({
@@ -538,7 +540,7 @@ function startLocalWebApp(artifactDirectory) {
   return startLocalService({
     artifactDirectory,
     environment,
-    healthUrl: `http://localhost:${localWebApp.port}/`,
+    healthUrl: `http://localhost:${localWebApp.port}/zod-csp-bootstrap.js`,
     name: 'web-app',
     port: localWebApp.port,
     yarnArgs: [
@@ -716,6 +718,7 @@ const releaseProofAttempt = Date.now().toString(36)
 const nativeProofModes = [
   'encounter-blueprints',
   'character-concurrency',
+  'receipt-ledgers',
   'notification-delivery',
   'session-control',
   'campaign-inventory',
@@ -726,6 +729,9 @@ const nativeProofModes = [
   'publication-feat',
   'publication-equipment',
   'encounter-lifecycle',
+  'checkpoint',
+  'checkpoint-staging',
+  'checkpoint-scenes',
   'encounter-action-contention',
   'encounter-reaction-contention',
   'campaign-item-producers',
@@ -813,6 +819,15 @@ const stages = [
     '@artificer-toolkit/apis',
     'generate:srd:manifest'
   ]),
+  // Prelaunch schema changes can reject old fixtures before codegen finishes its push.
+  stage('convex-reset', 'Back up and reset disposable local Convex fixture tables', 'pwsh.exe', [
+    '-NoProfile',
+    '-NonInteractive',
+    '-File',
+    'scripts/resetLocalConvex.ps1',
+    '-Name',
+    `r08-reset-${releaseProofAttempt}`
+  ]),
   stage('convex-codegen', 'Generate native Convex bindings', 'yarn', [
     'workspace',
     '@artificer-toolkit/apis',
@@ -840,7 +855,8 @@ const stages = [
     'run',
     'typecheck',
     '--force',
-    '--concurrency=1'
+    '--concurrency=1',
+    '--env-mode=loose'
   ]),
   stage('convex-typecheck', 'Native Convex typecheck', 'yarn', [
     'workspace',
@@ -933,14 +949,6 @@ const stages = [
     'disable',
     '--codegen',
     'disable'
-  ]),
-  stage('convex-reset', 'Back up and reset disposable local Convex fixture tables', 'pwsh.exe', [
-    '-NoProfile',
-    '-NonInteractive',
-    '-File',
-    'scripts/resetLocalConvex.ps1',
-    '-Name',
-    `r08-reset-${releaseProofAttempt}`
   ]),
   stage('convex-seed', 'Seed canonical source into the isolated Convex deployment', 'yarn', [
     'workspace',
@@ -1360,11 +1368,7 @@ async function main() {
 
   for (let index = 0; index < selectedStages.length; ) {
     const current = selectedStages[index]
-    const next = selectedStages[index + 1]
-    const pair =
-      (current.name === 'convex-tests-1' && next?.name === 'convex-tests-2') ||
-      (current.name === 'convex-tests-3' && next?.name === 'convex-tests-4')
-    const batch = pair ? [current, next] : [current]
+    const batch = [current]
     if (!manifest.localConvexFixtures && batch.some(({ proofName }) => proofName)) {
       console.log('[pre-staging] Ensure the local Convex fixtures')
       try {

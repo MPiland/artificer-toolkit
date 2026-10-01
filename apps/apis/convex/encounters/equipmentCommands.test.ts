@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -176,7 +177,16 @@ async function stored(t: Awaited<ReturnType<typeof setup>>['t'], encounterId: st
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
       .collect()
-    return { run, actors, receipts: await ctx.db.query('encounterRunCommands').collect() }
+    return {
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+      run,
+      actors,
+      receipts: await ctx.db
+        .query('encounterRunCommands')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
+    }
   })
 }
 

@@ -54,7 +54,11 @@ export const dice = internalQuery({
         dice: rollMode === 'NORMAL' ? [20] : [20, 20]
       })
     }
-    const actor = await readRunActor(ctx, readRunState(run), command.actorId.toLowerCase())
+    const actor = await readRunActor(
+      encounterReadTransaction(ctx),
+      readRunState(run),
+      command.actorId.toLowerCase()
+    )
     const definition = snapshotFeatureDefinitions(actor)
       .find((feature) => feature.id === command.featureId)
       ?.rollDefinitions?.find((candidate) => candidate.id === command.rollDefinitionId)

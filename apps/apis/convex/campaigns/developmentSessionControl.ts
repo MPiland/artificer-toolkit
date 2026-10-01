@@ -4,6 +4,7 @@ import { internalMutation } from '../lib/mutations'
 import { readCharacterReceiptHistory } from '../characters/documents'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { readCampaignCharacterState } from './characterState'
+import { deleteReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 
 const NAME = 'Encounter execution fixture'
 const limits = {
@@ -264,7 +265,9 @@ export const removeFixtureState = internalMutation({
       const receipt = characterReceipts.find((row) => row.id === data.characterEventId)
       check(receipt?.actorId === input.ownerUserId, 'Fixture recovery receipt ownership mismatch.')
       check(
-        readCharacterReceiptHistory(receipt).eventType === 'RECOVER_SHEET_RESOURCE',
+        readCharacterReceiptHistory(
+          await readReceiptHeader(ctx, 'characterCommandReceipts', receipt)
+        ).eventType === 'RECOVER_SHEET_RESOURCE',
         'Fixture recovery receipt command mismatch.'
       )
       recoveryReceiptIds.add(receipt.id)
@@ -283,8 +286,12 @@ export const removeFixtureState = internalMutation({
       'Fixture Character receipt ownership mismatch.'
     )
 
-    for (const receipt of characterReceipts)
-      if (recoveryReceiptIds.has(receipt.id)) await ctx.db.delete(receipt._id)
+    await deleteReceiptHeaders(
+      ctx,
+      characterReceipts
+        .filter((receipt) => recoveryReceiptIds.has(receipt.id))
+        .map((header) => ({ table: 'characterCommandReceipts', header }))
+    )
     for (const row of notes) await ctx.db.delete(row._id)
     for (const row of references) await ctx.db.delete(row._id)
     for (const row of rsvps) await ctx.db.delete(row._id)

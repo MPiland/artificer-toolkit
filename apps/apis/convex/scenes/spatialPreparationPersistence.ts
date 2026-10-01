@@ -2,11 +2,8 @@ import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projecti
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import {
-  assertGeometryReceiving,
-  readGeometrySave,
-  readSpatialPreparation
-} from './geometryDocuments'
+import { readGeometrySave } from './geometryDocuments'
+import { assertGeometryReceiving, readSpatialPreparation } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { beforeWrite } from '@artificer-toolkit/encounter-persistence/transactionReads'
 

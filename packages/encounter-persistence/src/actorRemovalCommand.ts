@@ -14,7 +14,6 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import type { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { readEncounterCharacterRow } from './characterPlay.js'
 import { changedFields, deleteRunActor, readRunActors, readRunState } from './documents.js'
 import {
   encounterReplayReceipt,
@@ -28,7 +27,10 @@ import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntr
 import { rejectDomain } from './domainRejections.js'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument } from './store.js'
-import type { EncounterWriteTransaction } from './ports.js'
+import type {
+  EncounterCharacterWriteTransaction,
+  EncounterPersistenceTransaction
+} from './ports.js'
 
 type RemoveActorCommand = Extract<EncounterExecuteInput['command'], { type: 'REMOVE_ACTOR' }>
 type Campaign = EncounterDocument<'campaigns'>
@@ -44,7 +46,7 @@ const storedReceipt = encounterStoredRuleReceiptSchema.clone({
 })
 
 export async function removeEncounterActor(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   command: RemoveActorCommand,
   userId: string
 ) {
@@ -64,7 +66,7 @@ export async function removeEncounterActor(
 
 /** Trusted lifecycle cleanup while the deleting account profile still exists. */
 export async function removeAccountCharacterActors(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   campaignId: string,
   userId: string
 ) {
@@ -128,7 +130,7 @@ export async function removeAccountCharacterActors(
       .sort((left, right) => left.id.localeCompare(right.id))) {
       const characterId = actor.sourceId
       if (!characterId) throw new Error('Stored Encounter Character source is unavailable.')
-      const character = await readEncounterCharacterRow(ctx, characterId)
+      const character = await ctx.ports.readCharacterRow(characterId)
       if (!character || character.userId !== userId)
         throw new Error('Stored Encounter Character source is unavailable.')
       ctx.ports.readCharacterRecord(character)
@@ -168,7 +170,7 @@ function normalizeRemoveActorCommand(command: RemoveActorCommand) {
 }
 
 async function removeEncounterActorCore(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   input: RemoveActorCommand,
   userId: string,
   campaign: Campaign,
@@ -475,14 +477,14 @@ async function removeEncounterActorCore(
 }
 
 async function requireOwnedCharacterActor(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   actor: Awaited<ReturnType<typeof readRunActors>>[number],
   userId: string
 ) {
   const characterId = actor.sourceId
   if (actor.kind !== 'CHARACTER' || !characterId)
     throw new Error('Encounter actor is not a Character.')
-  const character = await readEncounterCharacterRow(ctx, characterId)
+  const character = await ctx.ports.readCharacterRow(characterId)
   if (!character || character.userId !== userId)
     throw new Error('Encounter Character is unavailable for account cleanup.')
   ctx.ports.readCharacterRecord(character)

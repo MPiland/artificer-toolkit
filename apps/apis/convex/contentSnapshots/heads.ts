@@ -108,7 +108,7 @@ export const readScopeKind = internalQuery({
         : await readCampaignPublications(ctx, scopeId, kind, paginationOpts)
     const sources: string[] = []
     const schoolLabels = new Map<string, ReadonlyMap<string, string>>()
-    for (const { root, publication } of page) {
+    for (const { root, publication, version } of page) {
       // Fails closed on a root whose catalogue metadata was never written.
       const { publicId } = authoredCatalogueMetadataSchema.parse(root.catalogue)
       let magicSchoolLabel: string | undefined
@@ -126,15 +126,39 @@ export const readScopeKind = internalQuery({
         magicSchoolLabel = schoolLabels.get(root.systemId)!.get(publication.document.magicSchoolId)
         if (!magicSchoolLabel) throw new Error('Spell Magic School is not in its System.')
       }
+      const publicationVersion = {
+        identity: {
+          subjectKind: root.subjectKind,
+          subjectId: root.id,
+          systemId: root.systemId,
+          contentSourceId: root.contentSourceId,
+          versionId: root.currentVersionPublicId,
+          checksum: root.checksum
+        },
+        version,
+        ...(root.subjectKind === 'CLASS' && root.parentClassId !== undefined
+          ? { storedParentId: root.parentClassId }
+          : root.subjectKind === 'RACE' && root.parentRaceId !== undefined
+            ? { storedParentId: root.parentRaceId }
+            : root.subjectKind === 'EQUIPMENT' && root.parentEquipmentId !== undefined
+              ? { storedParentId: root.parentEquipmentId }
+              : {})
+      }
       const source: ContentSnapshotListSource =
         publication.subjectKind === 'EQUIPMENT'
           ? {
               subjectKind: 'EQUIPMENT',
               document: publication.document,
               builder: await readEquipmentBuilderFacts(ctx, root, publication.document),
-              publicId
+              publicId,
+              publicationVersion
             }
-          : { ...publication, publicId, ...(magicSchoolLabel ? { magicSchoolLabel } : {}) }
+          : {
+              ...publication,
+              publicId,
+              publicationVersion,
+              ...(magicSchoolLabel ? { magicSchoolLabel } : {})
+            }
       sources.push(JSON.stringify(source))
     }
     return { sources, continueCursor, isDone }
@@ -144,6 +168,7 @@ export const readScopeKind = internalQuery({
 type ScopePublication = {
   root: Doc<'authoredRoots'>
   publication: ReturnType<typeof parsePublicationDocument>
+  version: number
 }
 const emptyPage = { page: [], continueCursor: '', isDone: true }
 
@@ -174,11 +199,12 @@ async function readSourcePublications(
     if (root.systemId !== source.gameSystemId)
       throw new Error('Stored content source System mismatch.')
     if (!(await canReadAuthoredRoot(ctx, root, source.ownerUserId, source))) continue
+    const version = await readAuthoredVersion(ctx, root)
     const publication = parsePublicationDocument(
       kind,
-      await readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root))
+      await readPublishedDocument(ctx, root, version)
     )
-    page.push({ root, publication })
+    page.push({ root, publication, version: version.version })
   }
   return { ...roots, page }
 }
@@ -216,7 +242,7 @@ async function readCampaignPublications(
       .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))
       .unique()
     if (!root) throw new Error('Stored Campaign content root is missing.')
-    page.push({ root, publication })
+    page.push({ root, publication, version: (await readAuthoredVersion(ctx, root)).version })
   }
   return { ...shares, page }
 }
@@ -263,7 +289,7 @@ function referencedKeys(ref: ContentSnapshotScopeRef, kinds: ContentSnapshotHead
     const parts = kinds[kind]
     if (!parts) continue
     for (const part of ['index', 'list', 'documents'] as const)
-      keys.add(contentSnapshotObjectKey({ format: 1, ...ref, kind, part }, parts[part].sha256))
+      keys.add(contentSnapshotObjectKey({ format: 2, ...ref, kind, part }, parts[part].sha256))
   }
   return keys
 }

@@ -9,8 +9,8 @@ import { resolveWalkingSpeedFeet } from '@artificer-toolkit/rules-runtime/walkin
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
-import type { EncounterDocument } from './store.js'
-import type { EncounterReadTransaction, EncounterWriteTransaction } from './ports.js'
+import type { EncounterDocument, EncounterWriteContext } from './store.js'
+import type { EncounterReadTransaction } from './ports.js'
 
 type RunTurnState = Pick<EncounterRunState, 'id' | 'status' | 'round' | 'currentActorId'>
 
@@ -23,7 +23,7 @@ function currentTurn(state: RunTurnState) {
 
 /** Adds to an actor's record for the current turn, creating it at zero (D38). */
 async function addTurnMovement(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterWriteContext,
   input: { state: RunTurnState; actorId: string; usedFeet: number; speedBonuses: number }
 ) {
   const turn = currentTurn(input.state)
@@ -60,7 +60,7 @@ async function addTurnMovement(
  * Run, so it bumps no version and adds no contention to Encounter commands.
  */
 export async function recordTurnMovement(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterWriteContext,
   input: { state: RunTurnState; actorId: string; feet: number }
 ) {
   if (!currentTurn(input.state) || input.feet <= 0) return
@@ -74,7 +74,7 @@ export async function recordTurnMovement(
 
 /** Records a basic action that added the actor's speed to its budget this turn (Dash, D38). */
 export async function recordTurnSpeedBonus(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterWriteContext,
   input: { state: RunTurnState; actorId: string }
 ) {
   await addTurnMovement(ctx, { ...input, usedFeet: 0, speedBonuses: 1 })
@@ -82,7 +82,7 @@ export async function recordTurnSpeedBonus(
 
 /** Takes back one recorded speed bonus from an actor's turn record (the GM's undo of a Dash). */
 export async function removeTurnSpeedBonus(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterWriteContext,
   input: { encounterId: string; round: number; turnActorId: string; actorId: string }
 ) {
   const row = await ctx.db
@@ -160,7 +160,7 @@ export async function readTurnMovementView(
 
 /** A completed Run keeps no turn movement (D38) or GM-skip records (D39). */
 export async function removeCompletedRunTurnRecords(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterWriteContext,
   encounterId: string
 ) {
   const [movements, skips] = await Promise.all([

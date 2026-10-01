@@ -11,7 +11,7 @@ import {
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
-import type { EncounterReadTransaction } from './ports.js'
+import type { EncounterProjectionTransaction } from './ports.js'
 import type { EncounterReadContext } from './store.js'
 
 function readCurrentInitiativeRound(ctx: EncounterReadContext, state: EncounterRunState) {
@@ -22,7 +22,7 @@ function readCurrentInitiativeRound(ctx: EncounterReadContext, state: EncounterR
 
 /** Projects a Run's actors with rules already evaluated for them. */
 export async function projectNativeGm(
-  ctx: EncounterReadTransaction,
+  ctx: EncounterProjectionTransaction,
   state: EncounterRunState,
   actors: readonly EncounterRunActorState[],
   rules: EncounterActorRuleOutput
@@ -57,7 +57,7 @@ export async function projectEncounterFacts(
  * and command results build it here without reading the actor documents.
  */
 export async function readEncounterGmProjection(
-  ctx: EncounterReadTransaction,
+  ctx: EncounterProjectionTransaction,
   state: EncounterRunState
 ) {
   const facts = await readRunProjectionFacts(ctx, state)

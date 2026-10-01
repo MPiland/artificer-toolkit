@@ -101,10 +101,16 @@ function previewStreamKey(envelope: SceneTransientEnvelopeDto): string {
 
 function applyRecipientDelta(
   state: LiveSessionRecipientStateDto,
-  delta: Exclude<LiveSessionRecipientDeltaDto, { scope: 'ENCOUNTER' }> | null
+  delta: LiveSessionRecipientDeltaDto | null
 ): LiveSessionRecipientStateDto | null {
-  // A binding changes no Scene state; members read it through their Convex subscription.
-  if (delta === null || delta.scope === 'ENCOUNTER_BINDING') return state
+  // These receipts share the room sequence; their owning surface consumes their result.
+  if (
+    delta === null ||
+    delta.scope === 'ENCOUNTER_BINDING' ||
+    delta.scope === 'ENCOUNTER' ||
+    delta.scope === 'CHARACTER_SHEET'
+  )
+    return state
   if (delta.scope === 'SCENE_VERSION') {
     if (state.scene?.id !== delta.sceneId || delta.version !== state.scene.version + 1) return null
     return { ...state, scene: { ...state.scene, version: delta.version } }
@@ -311,20 +317,18 @@ export function createLiveSessionConnection(
             }
           }
         } else if (message.type === 'COMMAND_COMMITTED') {
-          // A movement decision's Scene change reaches its initiator before its Encounter result,
-          // so an Encounter command settles only with the Encounter acknowledgement.
+          // Geometry notifications and private-history-free fanout advance the shared sequence,
+          // but the command's own result must arrive before its submitting surface settles.
           const settle = () => {
             const pending = pendingCommands.get(message.commandId)
-            if (pending?.command.scope === 'ENCOUNTER' && message.delta?.scope !== 'ENCOUNTER')
+            if (
+              (pending?.command.scope === 'ENCOUNTER' ||
+                pending?.command.scope === 'CHARACTER_SHEET') &&
+              message.delta?.scope !== pending.command.scope
+            )
               return
             pending?.resolve(message)
             pendingCommands.delete(message.commandId)
-          }
-          // Encounter commits persist in Convex and converge through subscriptions; they do not
-          // advance the room sequence, so they acknowledge the initiator without touching state.
-          if (message.delta?.scope === 'ENCOUNTER') {
-            settle()
-            return
           }
           if (sequence === null || recipientState === null) {
             commandReady = false

@@ -182,3 +182,10 @@ const characterStateDtoSchemaRaw = lazySchema(() =>
 export type CharacterStateDto = z.infer<typeof characterStateDtoSchemaRaw>
 
 export const characterStateDtoSchema = characterStateDtoSchemaRaw
+export const characterEquipmentItemStateDtoSchema = characterEquipmentItemStateDtoSchemaRaw
+export const characterCurrencyGroupStateDtoSchema = characterCurrencyGroupStateDtoSchemaRaw
+export const characterClassStateDtoSchema = characterClassStateDtoSchemaRaw
+export const characterOwnedCreatureStateDtoSchema = characterOwnedCreatureStateDtoSchemaRaw
+export const characterOwnedVehicleStateDtoSchema = characterOwnedVehicleStateDtoSchemaRaw
+export const characterNoteGroupStateDtoSchema = characterNoteGroupStateDtoSchemaRaw
+export const characterNoteStateDtoSchema = characterNoteStateDtoSchemaRaw

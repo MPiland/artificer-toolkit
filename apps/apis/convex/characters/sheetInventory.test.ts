@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -56,10 +57,14 @@ async function fixture() {
   const readState = () =>
     base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, character.id),
-      receipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-        .collect()
+      receipts: await readReceiptHeaders(
+        ctx,
+        'characterCommandReceipts',
+        await ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+          .collect()
+      )
     }))
   return { ...base, character, equipment, readState }
 }
@@ -97,7 +102,11 @@ describe('native Character Sheet inventory commands', () => {
       }
     }
     const firstAdd = await owner.caller.mutation(execute, addRequest)
-    const added = inventoryItems(firstAdd.sheet, equipment.id)
+    expect(firstAdd).not.toHaveProperty('sheet')
+    const firstAddSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: firstAdd.characterId
+    }))!
+    const added = inventoryItems(firstAddSheet, equipment.id)
     expect(added).toHaveLength(4)
     expect(new Set(added.map((item) => item.id)).size).toBe(4)
     expect(added.every((item) => item.quantity === 1)).toBe(true)
@@ -139,7 +148,11 @@ describe('native Character Sheet inventory commands', () => {
         notes: 'Keep ready'
       }
     })
-    expect(renamed.sheet.inventory.items.find((item) => item.id === added[0]!.id)).toMatchObject({
+    expect(renamed).not.toHaveProperty('sheet')
+    const renamedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: renamed.characterId
+    }))!
+    expect(renamedSheet.inventory.items.find((item) => item.id === added[0]!.id)).toMatchObject({
       customName: 'Charged Club One',
       notes: 'Keep ready'
     })
@@ -154,7 +167,11 @@ describe('native Character Sheet inventory commands', () => {
         notes: null
       }
     })
-    const clearedItem = cleared.sheet.inventory.items.find((item) => item.id === added[0]!.id)!
+    expect(cleared).not.toHaveProperty('sheet')
+    const clearedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: cleared.characterId
+    }))!
+    const clearedItem = clearedSheet.inventory.items.find((item) => item.id === added[0]!.id)!
     expect(clearedItem.customName).toBeUndefined()
     expect(clearedItem.notes).toBeUndefined()
 
@@ -218,20 +235,28 @@ describe('native Character Sheet inventory commands', () => {
         itemId: added[3]!.id
       }
     })
-    expect(final.sheet.inventory.items.find((item) => item.id === added[0]!.id)).toMatchObject({
+    expect(final).not.toHaveProperty('sheet')
+    const finalSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: final.characterId
+    }))!
+    expect(finalSheet.inventory.items.find((item) => item.id === added[0]!.id)).toMatchObject({
       attuned: false,
       equipped: false
     })
-    expect(final.sheet.inventory.items.find((item) => item.id === added[3]!.id)?.attuned).toBe(true)
+    expect(finalSheet.inventory.items.find((item) => item.id === added[3]!.id)?.attuned).toBe(true)
     const afterAttunement = await readState()
     expect(authoredOf(afterAttunement).intent).toEqual(builderIntent)
     expect(
       inventoryItems((await owner.caller.query(getSheet, { id: character.id }))!, equipment.id)
     ).toHaveLength(4)
     const replay = await owner.caller.mutation(execute, addRequest)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.historyEntry).toEqual(firstAdd.historyEntry)
-    expect(inventoryItems(replay.sheet, equipment.id)).toHaveLength(4)
-    expect(replay.sheet).toEqual(final.sheet)
+    expect(inventoryItems(replaySheet, equipment.id)).toHaveLength(4)
+    expect(replaySheet).toEqual(finalSheet)
     expect(await readState()).toEqual(afterAttunement)
   }, 15000)
 
@@ -249,6 +274,10 @@ describe('native Character Sheet inventory commands', () => {
           quantity: 1
         }
       })
+      expect(first).not.toHaveProperty('sheet')
+      const firstSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: first.characterId
+      }))!
       const second = await owner.caller.mutation(execute, {
         id: character.id,
         command: {
@@ -259,8 +288,12 @@ describe('native Character Sheet inventory commands', () => {
           quantity: 1
         }
       })
-      const firstItem = inventoryItems(first.sheet, equipment.id)[0]!
-      const secondItem = inventoryItems(second.sheet, equipment.id).find(
+      expect(second).not.toHaveProperty('sheet')
+      const secondSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: second.characterId
+      }))!
+      const firstItem = inventoryItems(firstSheet, equipment.id)[0]!
+      const secondItem = inventoryItems(secondSheet, equipment.id).find(
         (item) => item.id !== firstItem.id
       )!
       let response = await owner.caller.mutation(execute, {
@@ -272,6 +305,10 @@ describe('native Character Sheet inventory commands', () => {
           itemId: firstItem.id
         }
       })
+      expect(response).not.toHaveProperty('sheet')
+      let responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       response = await owner.caller.mutation(execute, {
         id: character.id,
         command: {
@@ -281,13 +318,17 @@ describe('native Character Sheet inventory commands', () => {
           itemId: firstItem.id
         }
       })
+      expect(response).not.toHaveProperty('sheet')
+      responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       response = await owner.caller.mutation(execute, {
         id: character.id,
         command: {
           type: 'USE_SHEET_RESOURCE',
           commandId: crypto.randomUUID(),
           expectedVersion: 5,
-          owner: response.sheet.resources.items.find(
+          owner: responseSheet.resources.items.find(
             (resource) =>
               resource.owner.kind === 'ITEM_INSTANCE' &&
               resource.owner.itemInstanceId === firstItem.id
@@ -295,6 +336,10 @@ describe('native Character Sheet inventory commands', () => {
           amount: 1
         }
       })
+      expect(response).not.toHaveProperty('sheet')
+      responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       response = await owner.caller.mutation(execute, {
         id: character.id,
         command: {
@@ -309,6 +354,10 @@ describe('native Character Sheet inventory commands', () => {
           }
         }
       })
+      expect(response).not.toHaveProperty('sheet')
+      responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       response = await owner.caller.mutation(execute, {
         id: character.id,
         command: {
@@ -318,6 +367,10 @@ describe('native Character Sheet inventory commands', () => {
           itemId: secondItem.id
         }
       })
+      expect(response).not.toHaveProperty('sheet')
+      responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       response = await owner.caller.mutation(execute, {
         id: character.id,
         command: {
@@ -327,13 +380,17 @@ describe('native Character Sheet inventory commands', () => {
           itemId: secondItem.id
         }
       })
+      expect(response).not.toHaveProperty('sheet')
+      responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       response = await owner.caller.mutation(execute, {
         id: character.id,
         command: {
           type: 'USE_SHEET_RESOURCE',
           commandId: crypto.randomUUID(),
           expectedVersion: 9,
-          owner: response.sheet.resources.items.find(
+          owner: responseSheet.resources.items.find(
             (resource) =>
               resource.owner.kind === 'ITEM_INSTANCE' &&
               resource.owner.itemInstanceId === secondItem.id
@@ -341,6 +398,10 @@ describe('native Character Sheet inventory commands', () => {
           amount: 1
         }
       })
+      expect(response).not.toHaveProperty('sheet')
+      responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       response = await owner.caller.mutation(execute, {
         id: character.id,
         command: {
@@ -355,6 +416,10 @@ describe('native Character Sheet inventory commands', () => {
           }
         }
       })
+      expect(response).not.toHaveProperty('sheet')
+      responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       const beforeDelete = await readState()
       const command =
         type === 'REMOVE_INVENTORY_ITEM'
@@ -372,6 +437,10 @@ describe('native Character Sheet inventory commands', () => {
               quantity: 0
             }
       const deleted = await owner.caller.mutation(execute, { id: character.id, command })
+      expect(deleted).not.toHaveProperty('sheet')
+      const deletedSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: deleted.characterId
+      }))!
       const state = stateOf(await readState())
       expect(
         state.adjustments.some(
@@ -396,14 +465,15 @@ describe('native Character Sheet inventory commands', () => {
             adjustment.family === 'ITEM' && adjustment.itemInstanceId === secondItem.id
         )
       ).toBe(true)
-      expect(deleted.sheet.inventory.items.some((item) => item.id === firstItem.id)).toBe(false)
-      expect(deleted.sheet.inventory.items.find((item) => item.id === secondItem.id)).toBeDefined()
+      expect(deletedSheet.inventory.items.some((item) => item.id === firstItem.id)).toBe(false)
+      expect(deletedSheet.inventory.items.find((item) => item.id === secondItem.id)).toBeDefined()
       expect((await readState()).receipts).toHaveLength(beforeDelete.receipts.length + 1)
       const afterDelete = await readState()
       expect(authoredOf(afterDelete).state.equipment.equipped).not.toContain(firstItem.id)
       expect(authoredOf(afterDelete).state.equipment.attuned).not.toContain(firstItem.id)
       expect(deleted.streamVersion).toBe(command.expectedVersion + 1)
       const replay = await owner.caller.mutation(execute, { id: character.id, command })
+      expect(replay).not.toHaveProperty('sheet')
       expect(replay.historyEntry).toEqual(deleted.historyEntry)
       expect(await readState()).toEqual(afterDelete)
     }
@@ -448,9 +518,13 @@ describe('native Character Sheet inventory commands', () => {
     expect(await readState()).toEqual(before)
     vi.restoreAllMocks()
     const retried = await owner.caller.mutation(execute, request)
+    expect(retried).not.toHaveProperty('sheet')
+    const retriedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: retried.characterId
+    }))!
     expect(retried.streamVersion).toBe(2)
     expect((await readState()).receipts).toHaveLength(1)
-    const stack = retried.sheet.inventory.items.find((item) => item.equipmentId === club.id)!
+    const stack = retriedSheet.inventory.items.find((item) => item.equipmentId === club.id)!
     expect(stack.quantity).toBe(2)
     await owner.caller.mutation(execute, {
       id: character.id,
@@ -472,7 +546,11 @@ describe('native Character Sheet inventory commands', () => {
         quantity: 1
       }
     })
-    expect(partial.sheet.inventory.items.find((item) => item.id === stack.id)?.quantity).toBe(1)
+    expect(partial).not.toHaveProperty('sheet')
+    const partialSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: partial.characterId
+    }))!
+    expect(partialSheet.inventory.items.find((item) => item.id === stack.id)?.quantity).toBe(1)
     expect(stateOf(await readState())).toEqual(beforePartialRemoval)
   })
 })

@@ -1,3 +1,4 @@
+import type { CharacterSheetFeaturesDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Badge, Text } from '@mantine/core'
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import {
@@ -10,7 +11,7 @@ import * as actionSummaryStyles from '../actions/actionSummary.css'
 import * as actionTableStyles from '../actions/actionTable.css'
 import * as featureUseStyles from '../shared/featureUse.css'
 import * as panelStyles from '../shared/panel.css'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 
 function ReferenceFactRows({
   badge,
@@ -51,7 +52,7 @@ export function CharacterSheetReference({
   hideTitle?: boolean
   mode?: 'all' | 'features' | 'proficiencies'
   pending: boolean
-  sheet: CharacterSheet
+  sheet: CharacterSheetFeaturesDto
   submitCommand: SubmitSheetCommand
 }) {
   const showFeatures = mode !== 'proficiencies'

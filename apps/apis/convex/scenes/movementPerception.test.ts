@@ -23,12 +23,19 @@ import type { SceneFogChunksPage } from '@artificer-toolkit/schema/api/sceneFog'
 import { api, internal } from '../_generated/api'
 import { setupCreatureReactionRun, reactionRecords } from '../../tests/fixtures/movementReaction'
 import { readSessionVisionScope } from './sessionVisionDocuments'
-import { advanceLiveState, readLiveScene } from './liveDocuments'
+import { readLiveScene } from './liveDocuments'
+import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import {
   planMovementDecisionInRoom,
   planMovementInRoom,
   planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import {
+  createConvexEncounterStoreReader,
+  createConvexEncounterStore
+} from '../lib/convexEncounterStore'
 
 const bindActorToken = makeFunctionReference<
   'mutation',
@@ -320,7 +327,14 @@ describe('room Scene movement perception staging', () => {
     const records = () =>
       base.t.run(async (ctx) => ({
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+        receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
+        receipts: await readReceiptHeaders(
+          ctx,
+          'encounterRuleReceipts',
+          await ctx.db.query('encounterRuleReceipts').collect()
+        ),
         commands: await ctx.db.query('sceneLiveCommands').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect(),
         states: await ctx.db.query('sceneLiveStates').collect()
@@ -354,7 +368,11 @@ describe('room Scene movement perception staging', () => {
     expect(after.receipts).toHaveLength(before.receipts.length + 1)
     const occurrence = after.occurrences.find((row) => row.id === occurrenceId)!
     expect(
-      (await base.t.run((ctx) => readPendingSnapshot(ctx, occurrence)))?.applicationContext
+      (
+        await base.t.run((ctx) =>
+          readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
+        )
+      )?.applicationContext
     ).toMatchObject({ root: { currentSceneVersion: 1 } })
     expect(after.entities.find((row) => row.entityId === tokens[1]!.id)?.value).toMatchObject({
       entity: { position: { x: 200, y: 50 } }
@@ -395,7 +413,11 @@ describe('room Scene movement perception staging', () => {
       encounterVersionTransition: 'UNCHANGED',
       sceneVersionTransition: 'ADVANCED'
     })
-    await base.t.run((ctx) => ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) }))
+    await base.t.run((ctx) =>
+      replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
+        resultChecksum: '0'.repeat(64)
+      })
+    )
     await expect(plan.publish()).rejects.toThrow('replay evidence is inconsistent')
   }, 30000)
 
@@ -432,7 +454,7 @@ describe('room Scene movement perception staging', () => {
           version: 0,
           expectedEncounterVersion: prepared.expectedEncounterVersion,
           pendingSnapshotChecksum: await writePendingSnapshot(
-            ctx,
+            { db: createConvexEncounterStore(ctx) },
             { id: prepared.occurrenceId, encounterId: base.run.id },
             snapshot
           ),

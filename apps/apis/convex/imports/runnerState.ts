@@ -192,7 +192,7 @@ export const loadPreflight = internalQuery({
       activeCharacters.push({
         characterId,
         systemId: character.systemId,
-        primaryRulesCatalogueId: active.primaryRulesCatalogueId ?? null
+        primaryRulesCatalogueId: null
       })
     }
 

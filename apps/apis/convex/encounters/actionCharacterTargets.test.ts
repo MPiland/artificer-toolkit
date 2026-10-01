@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -307,7 +308,8 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
         ctx.db
           .query('encounterRunCommands')
           .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-          .collect(),
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
         ctx.db
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
@@ -315,11 +317,13 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
         ctx.db
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-          .collect(),
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
         ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
           .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
       ])
     return { character, target, source, run, commands, occurrences, receipts, characterReceipts }
   })
@@ -481,6 +485,7 @@ describe('native Creature actions against Character targets', () => {
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
           .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
       )
     ).resolves.toEqual([])
     await expect(

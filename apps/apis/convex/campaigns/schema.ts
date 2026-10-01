@@ -2,6 +2,8 @@ import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { projectionChecksumSchema } from '@artificer-toolkit/schema/projections/identity'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
+import { liveSessionStoredCheckpointFenceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
+import { liveCharacterHoldSchema } from '@artificer-toolkit/schema/projections/liveCharacterHold'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   campaignStoredAssignmentSchema,
@@ -52,6 +54,10 @@ import {
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 
 export const campaignTables = {
+  liveCharacterHolds: defineTable(zodToConvexFields(liveCharacterHoldSchema.shape))
+    .index('by_characterId', ['characterId'])
+    .index('by_campaignId', ['campaignId'])
+    .index('by_campaignId_encounterId', ['campaignId', 'encounterId']),
   campaignDeletionJobs: defineTable({
     ...zodToConvexFields(campaignDeletionJobSchema.shape),
     campaignRootId: v.id('campaigns'),
@@ -66,6 +72,8 @@ export const campaignTables = {
     activationExpiresAt: v.optional(v.number()),
     persistedSequence: v.number(),
     persistedStateChecksum: zodToConvex(projectionChecksumSchema),
+    lastCheckpoint: v.optional(zodToConvex(liveSessionStoredCheckpointFenceSchema)),
+    checkpointedAt: v.optional(v.string()),
     finalSequence: v.optional(v.number()),
     finalStateChecksum: v.optional(zodToConvex(projectionChecksumSchema)),
     createdAt: v.string(),
@@ -263,7 +271,9 @@ export const campaignTables = {
     .index('by_campaignId_kind_participants', ['campaignId', 'kind', 'participantUserIds']),
   campaignConversationMembers: defineTable(
     zodToConvexFields(campaignStoredConversationMemberSchema.shape)
-  ).index('by_conversationId_userId', ['conversationId', 'userId']),
+  )
+    .index('by_conversationId_userId', ['conversationId', 'userId'])
+    .index('by_campaignId', ['campaignId']),
   campaignConversationEntries: defineTable(zodToConvexFields(campaignStoredEntryHeaderSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_conversationId_createdAt_id', ['conversationId', 'createdAt', 'id'])

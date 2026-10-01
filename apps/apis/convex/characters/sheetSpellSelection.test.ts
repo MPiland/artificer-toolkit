@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -8,6 +9,10 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
+import type {
+  CharacterSheetPanelDto,
+  CharacterSheetPanelInput
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
@@ -19,7 +24,7 @@ import { api, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import * as builderContext from './builderContext'
-import { readCharacterRow } from './stateDocuments'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -31,6 +36,9 @@ const getSheet = makeFunctionReference<
   CharacterSheetReadInput,
   CharacterSheetResponseDto | null
 >('characters/sheet:get')
+const getPanel = makeFunctionReference<'query', CharacterSheetPanelInput, CharacterSheetPanelDto>(
+  'characters/panels:get'
+)
 
 async function fixture(usesSpellbook = true) {
   if (!wizard.spellcasting) throw new Error('Expected canonical Wizard spellcasting.')
@@ -73,10 +81,14 @@ async function fixture(usesSpellbook = true) {
   const readState = () =>
     base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, character.id),
-      receipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-        .collect()
+      receipts: await readReceiptHeaders(
+        ctx,
+        'characterCommandReceipts',
+        await ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+          .collect()
+      )
     }))
   return { ...base, character, readState }
 }
@@ -89,12 +101,15 @@ describe('native Character Sheet spell selection', () => {
     const before = await readState()
     const initial = await owner.caller.query(getSheet, { id: character.id })
     expect(initial!.spells.spells.map((spell) => spell.id)).toContain(magicMissile.id)
-    expect(initial!.spells.spells.find((spell) => spell.id === magicMissile.id)!.mechanics).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          outcomes: expect.arrayContaining([expect.objectContaining({ kind: 'DAMAGE' })])
-        })
-      ])
+    const initialSpell = initial!.spells.spells.find((spell) => spell.id === magicMissile.id)!
+    expect(initialSpell.mechanics).toBeUndefined()
+    const inspector = await owner.caller.query(getPanel, {
+      id: character.id,
+      target: { kind: 'SPELL', source: initialSpell.sources![0]!.source }
+    })
+    if (inspector.kind !== 'SPELL') throw new Error('Expected Magic Missile inspector.')
+    expect(inspector.effects).toEqual(
+      expect.arrayContaining([expect.objectContaining({ label: 'Damage' })])
     )
     const prepare: CharacterSheetExecuteInput = {
       id: character.id,
@@ -121,8 +136,12 @@ describe('native Character Sheet spell selection', () => {
     const sourceLoads = vi.spyOn(builderContext, 'loadCharacterBuilderContext')
     const learned = await owner.caller.mutation(execute, known)
     expect(sourceLoads).toHaveBeenCalledTimes(1)
+    expect(learned).not.toHaveProperty('sheet')
+    const learnedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: learned.characterId
+    }))!
     expect(learned.streamVersion).toBe(2)
-    expect(learned.sheet).toEqual(await owner.caller.query(getSheet, { id: character.id }))
+    expect(learnedSheet).toEqual(await owner.caller.query(getSheet, { id: character.id }))
     const afterKnown = await readState()
     for (const command of [
       {
@@ -172,17 +191,21 @@ describe('native Character Sheet spell selection', () => {
       }
     })
     expect(sourceLoads).toHaveBeenCalledTimes(1)
-    expect(prepared.sheet.spells.preparationSources).toContainEqual(
+    expect(prepared).not.toHaveProperty('sheet')
+    const preparedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: prepared.characterId
+    }))!
+    expect(preparedSheet.spells.preparationSources).toContainEqual(
       expect.objectContaining({
         classId: baseClass.id,
         preparedSpellLimit: 2,
         preparedSpellIds: [magicMissile.id]
       })
     )
-    expect(prepared.sheet).toEqual(await owner.caller.query(getSheet, { id: character.id }))
+    expect(preparedSheet).toEqual(await owner.caller.query(getSheet, { id: character.id }))
     const after = await readState()
-    const stored = JSON.parse(after.character!.documentJson)
-    expect(stored.intent).toEqual(JSON.parse(before.character!.documentJson).intent)
+    const stored = readCharacterRecord(after.character!)
+    expect(stored.intent).toEqual(readCharacterRecord(before.character!).intent)
     expect(stored.state.classes).toEqual([
       {
         classId: baseClass.id,
@@ -193,9 +216,13 @@ describe('native Character Sheet spell selection', () => {
       }
     ])
     const replay = await owner.caller.mutation(execute, known)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.historyEntry).toEqual(learned.historyEntry)
     expect(replay.streamVersion).toBe(3)
-    expect(replay.sheet).toEqual(prepared.sheet)
+    expect(replaySheet).toEqual(preparedSheet)
     expect(await readState()).toEqual(after)
     await owner.caller.mutation(execute, {
       id: character.id,
@@ -207,11 +234,9 @@ describe('native Character Sheet spell selection', () => {
         spellIds: []
       }
     })
-    expect(JSON.parse((await readState()).character!.documentJson).state.classes[0].spells).toEqual(
-      {
-        learned: [magicMissile.id, shield.id, detectMagic.id]
-      }
-    )
+    expect(readCharacterRecord((await readState()).character!).state.classes![0]!.spells).toEqual({
+      learned: [magicMissile.id, shield.id, detectMagic.id]
+    })
     await owner.caller.mutation(execute, {
       id: character.id,
       command: {
@@ -222,9 +247,9 @@ describe('native Character Sheet spell selection', () => {
         spellIds: []
       }
     })
-    expect(JSON.parse((await readState()).character!.documentJson).state.classes[0].spells).toEqual(
-      { learned: [] }
-    )
+    expect(readCharacterRecord((await readState()).character!).state.classes![0]!.spells).toEqual({
+      learned: []
+    })
   })
 
   it('does not confuse a full-list preparation source with a known-spell source', async () => {
@@ -253,7 +278,11 @@ describe('native Character Sheet spell selection', () => {
         spellIds: [magicMissile.id]
       }
     })
-    expect(prepared.sheet.spells.preparationSources).toContainEqual(
+    expect(prepared).not.toHaveProperty('sheet')
+    const preparedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: prepared.characterId
+    }))!
+    expect(preparedSheet.spells.preparationSources).toContainEqual(
       expect.objectContaining({
         classId: baseClass.id,
         preparedSpellIds: [magicMissile.id]

@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import type {
   CampaignDetailDto,
@@ -354,7 +355,7 @@ export async function seedTurnSaveEffect(
       })
     })
     if (!prepared) throw new Error('Frozen turn-effect graph compilation unavailable.')
-    return createActiveRuleEffectStore(ctx).create({
+    return createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
       id: crypto.randomUUID(),
       owner:
         actor.kind === 'CHARACTER' && actor.sourceId

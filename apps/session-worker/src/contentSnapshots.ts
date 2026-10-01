@@ -7,6 +7,10 @@ import {
 
 import { verifyContentSnapshotToken } from './contentToken.js'
 import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
+import {
+  readContentSnapshotObject,
+  type ContentSnapshotObjectBody
+} from './contentSnapshotStorage.js'
 
 // ADR 0036 delivery. `docs/architecture/media.md` describes the authorization matrix.
 
@@ -19,7 +23,12 @@ const IMMUTABLE_YEAR = 'max-age=31536000, immutable'
  */
 export async function serveContentSnapshot(
   request: Request,
-  environment: SessionWorkerEnvironment
+  environment: Pick<
+    SessionWorkerEnvironment,
+    | 'CONTENT_SNAPSHOT_TOKEN_SECRET'
+    | 'LOCAL_CONTENT_SNAPSHOT_ORIGIN'
+    | 'LIVE_SESSION_ALLOWED_ORIGINS'
+  > & { CONTENT_SNAPSHOTS: Pick<R2Bucket, 'get'> }
 ): Promise<Response> {
   const origin = request.headers.get('origin')
   // Browsers always send Origin on these cross-origin reads; other origins get no CORS grant.
@@ -29,6 +38,15 @@ export async function serveContentSnapshot(
     origin === null ? {} : { 'access-control-allow-origin': origin, vary: 'Origin' }
   const refuse = (status: number, message: string) =>
     new Response(message, { status, headers: { ...cors, 'cache-control': 'no-store' } })
+
+  const url = new URL(request.url)
+  const localOrigin = environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN
+  if (
+    localOrigin !== undefined &&
+    (localOrigin !== 'http://127.0.0.1:8026' ||
+      !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname))
+  )
+    return refuse(503, 'Local content snapshot delivery is not available.')
 
   if (request.method === 'OPTIONS')
     return new Response(null, {
@@ -41,7 +59,6 @@ export async function serveContentSnapshot(
       }
     })
   if (request.method !== 'GET') return refuse(405, 'Method not allowed.')
-  const url = new URL(request.url)
   // Keys are content-addressed, so no request needs a query; a token there would leak into logs.
   if (url.search !== '') return refuse(400, 'Content requests take no query string.')
   const key = url.pathname.slice(CONTENT_SNAPSHOT_PATH_PREFIX.length)
@@ -60,7 +77,14 @@ export async function serveContentSnapshot(
     }
   }
 
-  const object = await environment.CONTENT_SNAPSHOTS.get(key)
+  let object: ContentSnapshotObjectBody | null
+  if (localOrigin !== undefined) {
+    try {
+      object = await readContentSnapshotObject(environment, key)
+    } catch {
+      return refuse(503, 'Local content snapshot delivery is not available.')
+    }
+  } else object = await readContentSnapshotObject(environment, key)
   if (!object) return refuse(404, 'Not found.')
   const isPublic = object.customMetadata?.access === CONTENT_SNAPSHOT_PUBLIC_METADATA.access
   if (!isPublic) {

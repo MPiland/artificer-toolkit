@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -113,10 +114,14 @@ async function fixture(attribute: 'LIMITED_USE' | 'CAST_AT_LEVEL' = 'LIMITED_USE
   const readState = () =>
     base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, character.id),
-      receipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-        .collect()
+      receipts: await readReceiptHeaders(
+        ctx,
+        'characterCommandReceipts',
+        await ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+          .collect()
+      )
     }))
   const sheet = (await base.owner.caller.query(getSheet, { id: character.id }))!
   const spell = sheet.spells.spells.find((entry) => entry.id === magicMissile.id)!
@@ -170,12 +175,20 @@ describe('native Character Sheet casting', () => {
       }
     }
     const first = await owner.caller.mutation(execute, request)
-    expect(first.sheet.spells.slots[0]).toMatchObject({ used: 1, remaining: 1 })
+    expect(first).not.toHaveProperty('sheet')
+    const firstSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: first.characterId
+    }))!
+    expect(firstSheet.spells.slots[0]).toMatchObject({ used: 1, remaining: 1 })
     const second = await owner.caller.mutation(execute, {
       ...request,
       command: { ...request.command, commandId: crypto.randomUUID(), expectedVersion: 4 }
     })
-    expect(second.sheet.spells.slots[0]).toMatchObject({ used: 2, remaining: 0 })
+    expect(second).not.toHaveProperty('sheet')
+    const secondSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: second.characterId
+    }))!
+    expect(secondSheet.spells.slots[0]).toMatchObject({ used: 2, remaining: 0 })
     const after = await readState()
     await expect(
       owner.caller.mutation(execute, {
@@ -195,13 +208,21 @@ describe('native Character Sheet casting', () => {
         sourceId: cantrip.sources!.find((source) => source.source.sourceKind === 'FEATURE')!.id
       }
     })
-    expect(free.sheet.spells.slots).toEqual(second.sheet.spells.slots)
-    expect(free.sheet.resources).toEqual(second.sheet.resources)
+    expect(free).not.toHaveProperty('sheet')
+    const freeSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: free.characterId
+    }))!
+    expect(freeSheet.spells.slots).toEqual(secondSheet.spells.slots)
+    expect(freeSheet.resources).toEqual(secondSheet.resources)
     const beforeReplay = await readState()
     const replay = await owner.caller.mutation(execute, request)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.historyEntry).toEqual(first.historyEntry)
     expect(replay.streamVersion).toBe(6)
-    expect(replay.sheet).toEqual(free.sheet)
+    expect(replaySheet).toEqual(freeSheet)
     expect(await readState()).toEqual(beforeReplay)
     expect(JSON.parse(beforeReplay.character!.documentJson).intent).toEqual(
       JSON.parse(before.character!.documentJson).intent
@@ -224,18 +245,26 @@ describe('native Character Sheet casting', () => {
         }
       }
       const first = await owner.caller.mutation(execute, request)
-      expect(first.sheet.spells.slots).toEqual(sheet.spells.slots)
+      expect(first).not.toHaveProperty('sheet')
+      const firstSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: first.characterId
+      }))!
+      expect(firstSheet.spells.slots).toEqual(sheet.spells.slots)
       expect(
-        first.sheet.resources.items.find((resource) => resource.id === chargedResourceId)
+        firstSheet.resources.items.find((resource) => resource.id === chargedResourceId)
       ).toMatchObject({ used: 1, remaining: 1 })
       const second = await owner.caller.mutation(execute, {
         ...request,
         command: { ...request.command, commandId: crypto.randomUUID(), expectedVersion: 4 }
       })
+      expect(second).not.toHaveProperty('sheet')
+      const secondSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: second.characterId
+      }))!
       expect(
-        second.sheet.resources.items.find((resource) => resource.id === chargedResourceId)
+        secondSheet.resources.items.find((resource) => resource.id === chargedResourceId)
       ).toMatchObject({ used: 2, remaining: 0 })
-      expect(second.sheet.spells.slots).toEqual(sheet.spells.slots)
+      expect(secondSheet.spells.slots).toEqual(sheet.spells.slots)
       const after = await readState()
       await expect(
         owner.caller.mutation(execute, {
@@ -245,8 +274,12 @@ describe('native Character Sheet casting', () => {
       ).rejects.toThrow(/resource|remaining/i)
       expect(await readState()).toEqual(after)
       const replay = await owner.caller.mutation(execute, request)
+      expect(replay).not.toHaveProperty('sheet')
+      const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: replay.characterId
+      }))!
       expect(replay.historyEntry).toEqual(first.historyEntry)
-      expect(replay.sheet).toEqual(second.sheet)
+      expect(replaySheet).toEqual(secondSheet)
       expect(await readState()).toEqual(after)
     }
   )
@@ -276,8 +309,12 @@ describe('native Character Sheet casting', () => {
     expect(await readState()).toEqual(before)
     vi.restoreAllMocks()
     const result = await owner.caller.mutation(execute, request)
+    expect(result).not.toHaveProperty('sheet')
+    const resultSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: result.characterId
+    }))!
     expect(
-      result.sheet.resources.items.find((resource) => resource.id === chargedResourceId)
+      resultSheet.resources.items.find((resource) => resource.id === chargedResourceId)
     ).toMatchObject({ used: 1, remaining: 1 })
     expect((await readState()).receipts).toHaveLength(before.receipts.length + 1)
   })

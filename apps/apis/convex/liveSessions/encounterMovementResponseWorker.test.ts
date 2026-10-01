@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -59,6 +60,8 @@ it('publishes a sealed movement response through the private DO path without rep
   )
   const records = () =>
     value.base.t.run(async (ctx) => ({
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run: await ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
@@ -80,11 +83,13 @@ it('publishes a sealed movement response through the private DO path without rep
       receipts: await ctx.db
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-        .collect(),
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
       commands: await ctx.db
         .query('encounterRunCommands')
         .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', value.base.campaign.id))
-        .collect(),
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
       scene: await ctx.db
         .query('campaignScenes')
         .withIndex('by_publicId', (q) => q.eq('id', value.sceneId))

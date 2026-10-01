@@ -5,7 +5,8 @@ import type {
   CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
-import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
 import { api } from '../_generated/api'
 import { readySheetFixture as fixture } from '../../tests/fixtures/readyCharacter'
 import { input } from '../../tests/fixtures/characters'
@@ -34,17 +35,7 @@ describe('native personal Sheet command transactions', () => {
         timing: { kind: 'IMMEDIATE' }
       }
     ]
-    const encoded = encodeCharacterRecord(stored.character!, {
-      document: before,
-      streamVersion: stored.character!.play.streamVersion,
-      updatedAt: stored.character!.updatedAt
-    })
-    await t.run((ctx) =>
-      ctx.db.patch(stored.character!._id, {
-        documentJson: encoded.documentJson,
-        checksum: encoded.checksum
-      })
-    )
+    await t.run((ctx) => writeCharacterRecord(ctx, stored.character!, { document: before }))
     const spy = vi.spyOn(projection, 'projectCharacterSheetBundle')
     await owner.caller.mutation(execute, {
       id: character.id,
@@ -66,7 +57,7 @@ describe('native personal Sheet command transactions', () => {
   })
 
   it('stores notes once, preserves original history on replay, and returns current state', async () => {
-    const { owner, character, committed, readState } = await fixture()
+    const { owner, character, committed, readState, readReceiptStorage } = await fixture()
     const command = {
       type: 'CREATE_NOTE' as const,
       commandId: crypto.randomUUID(),
@@ -76,6 +67,8 @@ describe('native personal Sheet command transactions', () => {
       groupId: 'session-notes'
     }
     const first = await owner.caller.mutation(execute, { id: committed.publicId, command })
+    expect(first).not.toHaveProperty('sheet')
+    expect(first).not.toHaveProperty('panels')
     expect(first).toMatchObject({
       characterId: character.id,
       streamVersion: 2,
@@ -87,6 +80,25 @@ describe('native personal Sheet command transactions', () => {
     })
     let stored = await readState()
     expect(stored.receipts).toHaveLength(1)
+    expect(JSON.parse(stored.receipts[0]!.historyJson)).toEqual(first.historyEntry)
+    const physical = await readReceiptStorage()
+    expect(physical.headers).toHaveLength(1)
+    expect(physical.headers[0]).toMatchObject({
+      id: first.historyEntry!.eventId,
+      characterId: character.id,
+      commandId: command.commandId,
+      entryIndex: 0
+    })
+    expect(physical.headers[0]).not.toHaveProperty('historyJson')
+    expect(physical.headers[0]).not.toHaveProperty('historyChecksum')
+    expect(physical.headers[0]).not.toHaveProperty('result')
+    expect(physical.ledgers).toHaveLength(1)
+    expect(physical.ledgers[0]).toMatchObject({
+      id: physical.headers[0]!.ledgerId,
+      scope: 'CHARACTER',
+      scopeId: character.id,
+      entryCount: 1
+    })
     const authored = readCharacterRecord(stored.character!)
     expect(authored.state.notes).toHaveLength(1)
     expect(authored.state.notes?.[0]).toMatchObject({ title: 'Private plan', body: 'Meet at dawn' })
@@ -100,13 +112,23 @@ describe('native personal Sheet command transactions', () => {
         inspired: true
       }
     })
-    expect(next.sheet.overview.inspiration).toBe(true)
+    expect(next).not.toHaveProperty('sheet')
+    const nextSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: next.characterId
+    }))!
+    expect(nextSheet.overview.inspiration).toBe(true)
     stored = await readState()
+    const storedStorage = await readReceiptStorage()
     const replay = await owner.caller.mutation(execute, { id: character.id.toUpperCase(), command })
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.streamVersion).toBe(3)
-    expect(replay.sheet).toEqual(next.sheet)
+    expect(replaySheet).toEqual(nextSheet)
     expect(replay.historyEntry).toEqual(first.historyEntry)
     expect(await readState()).toEqual(stored)
+    expect(await readReceiptStorage()).toEqual(storedStorage)
     for (const changed of [
       { ...command, body: 'Changed private plan' },
       { ...command, expectedVersion: 3 },
@@ -122,6 +144,7 @@ describe('native personal Sheet command transactions', () => {
       ).rejects.toThrow()
     }
     expect(await readState()).toEqual(stored)
+    expect(await readReceiptStorage()).toEqual(storedStorage)
   })
 
   it('rejects anonymous, foreign, stale, unavailable, and unported commands without writes', async () => {
@@ -210,8 +233,9 @@ describe('native personal Sheet command transactions', () => {
   })
 
   it('rolls back state and receipt when projection fails after the state write', async () => {
-    const { owner, character, readState } = await fixture()
+    const { owner, character, readState, readReceiptStorage } = await fixture()
     const before = await readState()
+    const beforeStorage = await readReceiptStorage()
     const original = projection.projectCharacterSheetBundle
     const spy = vi
       .spyOn(projection, 'projectCharacterSheetBundle')
@@ -223,16 +247,16 @@ describe('native personal Sheet command transactions', () => {
       owner.caller.mutation(execute, {
         id: character.id,
         command: {
-          type: 'CREATE_NOTE',
+          type: 'SET_INSPIRATION',
           commandId: crypto.randomUUID(),
           expectedVersion: 1,
-          title: 'Must roll back',
-          groupId: 'session-notes'
+          inspired: true
         }
       })
     ).rejects.toThrow('Injected post-write projection failure')
     expect(spy).toHaveBeenCalledTimes(2)
     expect(await readState()).toEqual(before)
+    expect(await readReceiptStorage()).toEqual(beforeStorage)
   })
 
   it('preserves working drafts but makes their pre-command commit baseline stale after a structural command', async () => {
@@ -250,7 +274,11 @@ describe('native personal Sheet command transactions', () => {
         label: 'Plans'
       }
     })
-    expect(result.sheet.meta.hasBuilderDraft).toBe(true)
+    expect(result).not.toHaveProperty('sheet')
+    const resultSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: result.characterId
+    }))!
+    expect(resultSheet.meta.hasBuilderDraft).toBe(true)
     expect(await owner.caller.query(api.characters.drafts.get, { id: character.id })).toEqual(draft)
     const after = await readState()
     await expect(
@@ -274,7 +302,11 @@ describe('native personal Sheet command transactions', () => {
         label: 'Plans'
       }
     })
-    const groupId = groupResult.sheet.notes.groups?.find((group) => group.kind === 'CUSTOM')?.id
+    expect(groupResult).not.toHaveProperty('sheet')
+    const groupResultSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: groupResult.characterId
+    }))!
+    const groupId = groupResultSheet.notes.groups?.find((group) => group.kind === 'CUSTOM')?.id
     if (!groupId) throw new Error('Missing created custom group')
     await owner.caller.mutation(execute, {
       id: character.id,
@@ -359,7 +391,7 @@ describe('native personal Sheet command transactions', () => {
   })
 
   it('rejects corrupted replay history without mutating the aggregate', async () => {
-    const { t, owner, character, readState } = await fixture()
+    const { t, owner, character, readState, readReceiptStorage } = await fixture()
     const request = {
       id: character.id,
       command: {
@@ -371,9 +403,16 @@ describe('native personal Sheet command transactions', () => {
     }
     await owner.caller.mutation(execute, request)
     const stored = await readState()
-    await t.run((ctx) => ctx.db.patch(stored.receipts[0]!._id, { historyJson: '{}' }))
+    await t.run((ctx) =>
+      replaceReceiptRecord(ctx, 'characterCommandReceipts', stored.receipts[0]!._id, {
+        historyJson: '{}',
+        historyChecksum: stored.receipts[0]!.historyChecksum
+      })
+    )
     const corrupted = await readState()
-    await expect(owner.caller.mutation(execute, request)).rejects.toThrow()
+    const corruptedStorage = await readReceiptStorage()
+    await expect(owner.caller.mutation(execute, request)).rejects.toThrow('history checksum mismatch')
     expect(await readState()).toEqual(corrupted)
+    expect(await readReceiptStorage()).toEqual(corruptedStorage)
   })
 })

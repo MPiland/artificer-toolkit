@@ -23,7 +23,7 @@ import type {
   leaveCampaignInputSchema,
   removeCampaignMemberInputSchema
 } from '@artificer-toolkit/schema/api/campaignCore'
-import { useGetCharacterList, getCharacterSheet } from '#app/data/characters/queries'
+import { useGetCharacterList, getCharacterSheetSlice } from '#app/data/characters/queries'
 import { useGetCampaignList } from '#app/data/campaigns/queries'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
 import * as sharedStyles from '../campaigns.css'
@@ -65,17 +65,13 @@ export function CampaignParty({
     )
   })
   const sheets = useQueries({
-    queries: assignedCharacters.map(({ member, character }) =>
-      member.userId === currentUserId
-        ? getCharacterSheet(character.id)
-        : {
-            ...convexQuery(convexApi.campaigns.characterSheet.get, {
-              campaignId: campaign.id,
-              characterId: character.id
-            }),
-            enabled: campaign.role === 'OWNER' || inspectCharacterId === character.id
-          }
-    )
+    queries: assignedCharacters.map(({ member, character }) => ({
+      ...getCharacterSheetSlice(character.id, 'COMMON', campaign.id),
+      enabled:
+        member.userId === currentUserId ||
+        campaign.role === 'OWNER' ||
+        inspectCharacterId === character.id
+    }))
   })
   const selectedIndex = assignedCharacters.findIndex(
     ({ character }) => character.id === inspectCharacterId

@@ -22,6 +22,24 @@ export async function readLiveCampaignAuthority(ctx: QueryCtx, campaignId: strin
   return authority && !isExpiredActivatingAuthority(authority) ? authority : null
 }
 
+/** A stale activation or retired epoch never owns a Character's current play state. */
+export async function readCharacterLiveHold(ctx: QueryCtx, characterId: string) {
+  const holds = await ctx.db
+    .query('liveCharacterHolds')
+    .withIndex('by_characterId', (q) => q.eq('characterId', characterId.toLowerCase()))
+    .collect()
+  for (const hold of holds) {
+    const authority = await readLiveCampaignAuthority(ctx, hold.campaignId)
+    if (authority?.epoch === hold.epoch) return hold
+  }
+  return null
+}
+
+export async function assertConvexOwnsCharacterPlay(ctx: QueryCtx, characterId: string) {
+  if (await readCharacterLiveHold(ctx, characterId))
+    throw new Error('This Character is held by its live table; use the room for play commands.')
+}
+
 /** Direct Convex writes are fenced only for the presented Scene while the room owns it. */
 export async function assertConvexOwnsSceneLiveState(
   ctx: QueryCtx,
@@ -57,5 +75,10 @@ export async function requireActiveCampaignLiveAuthority(
 ) {
   const authority = await requireCampaignLiveAuthority(ctx, input)
   if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
+  const deletion = await ctx.db
+    .query('campaignDeletionJobs')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', authority.campaignId))
+    .unique()
+  if (deletion) throw new Error('Campaign not found.')
   return authority
 }

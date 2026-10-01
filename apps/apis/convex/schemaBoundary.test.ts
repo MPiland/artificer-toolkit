@@ -52,6 +52,40 @@ it('keeps UUID-only leaf contracts independent of execution schemas', () => {
   }
 })
 
+it('keeps typed Character persistence independent of the authored mechanics graph', () => {
+  const bundle = buildSync({
+    entryPoints: [fileURLToPath(new URL('./characters/schema.ts', import.meta.url))],
+    bundle: true,
+    platform: 'browser',
+    write: false,
+    metafile: true,
+    logLevel: 'silent'
+  })
+  const mechanicsImports = Object.keys(bundle.metafile!.inputs).filter((path) =>
+    /\/packages\/(rules-runtime\/|shared\/(src|dist)\/(domains\/rules\/|domains\/subjects\/(authored|compilers)\/index\.))/.test(
+      `/${path.replaceAll('\\', '/')}`
+    )
+  )
+  expect(mechanicsImports).toEqual([])
+})
+
+it('keeps the complete database schema independent of the executable rules kernel', () => {
+  const bundle = buildSync({
+    entryPoints: [fileURLToPath(new URL('./schema.ts', import.meta.url))],
+    bundle: true,
+    platform: 'browser',
+    write: false,
+    metafile: true,
+    logLevel: 'silent'
+  })
+  const executionImports = Object.keys(bundle.metafile!.inputs).filter((path) =>
+    /\/packages\/(rules-runtime\/|shared\/(src|dist)\/domains\/rules\/(kernel|graphCompiler|operationRegistry|operations|index)\.(ts|js)$)/.test(
+      `/${path.replaceAll('\\', '/')}`
+    )
+  )
+  expect(executionImports).toEqual([])
+})
+
 it('evaluates the complete database schema without environment-variable access', () => {
   const bundle = buildSync({
     entryPoints: [fileURLToPath(new URL('./schema.ts', import.meta.url))],

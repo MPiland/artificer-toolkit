@@ -3,7 +3,8 @@ import {
   type ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { applyJsonDelta, diffJson, type JsonDelta, type JsonValue } from './jsonDelta.js'
+import type { JsonDelta, JsonValue } from '@artificer-toolkit/schema/shared/jsonDelta'
+import { applyJsonDelta, diffJson } from './jsonDelta.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 /**

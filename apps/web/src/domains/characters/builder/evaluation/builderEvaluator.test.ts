@@ -57,11 +57,28 @@ for (const kind of KINDS) {
           subjectKind: kind,
           document: subject.document,
           publicId: (subject.document as { id: string }).id,
+          publicationVersion: {
+            identity: {
+              subjectKind: kind,
+              subjectId: subject.id,
+              systemId: subject.systemId,
+              contentSourceId: SRD_CONTENT_SOURCE.id,
+              versionId: subject.id,
+              checksum: subject.checksum
+            },
+            version: 1,
+            storedParentId:
+              subject.document &&
+              typeof subject.document === 'object' &&
+              !Array.isArray(subject.document)
+                ? (subject.document.parentRaceId ?? subject.document.parentClassId ?? null)
+                : null
+          },
           magicSchoolLabel: 'School'
         }) as unknown as ContentSnapshotListSource
     )
   const built = buildContentSnapshotKind(
-    { format: 1, scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id, kind },
+    { format: 2, scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id, kind },
     sources
   )
   const ref = (part: { sha256: string; byteLength: number; rootCount: number }) => ({

@@ -1,10 +1,10 @@
 param(
   [Parameter(Mandatory)][ValidatePattern('^[a-z0-9][a-z0-9-]{2,120}$')][string]$Name,
   [Parameter(Mandatory)][ValidateSet(
-    'encounter-blueprints', 'character-concurrency', 'notification-delivery', 'session-control',
+    'encounter-blueprints', 'character-concurrency', 'receipt-ledgers', 'notification-delivery', 'session-control',
     'campaign-inventory', 'equipment-capacity', 'equipment-character', 'publication', 'publication-class',
     'publication-feat', 'publication-equipment', 'encounter-lifecycle', 'encounter-action-contention',
-    'encounter-reaction-contention', 'campaign-item-producers', 'campaign-vehicle-producers',
+    'encounter-reaction-contention', 'checkpoint', 'checkpoint-staging', 'checkpoint-scenes', 'campaign-item-producers', 'campaign-vehicle-producers',
     'campaign-inventory-read-probe', 'campaign-membership-custody', 'campaign-currency-lifecycle',
     'campaign-assignment-lifecycle', 'campaign-qualified-currency', 'campaign-custody-authored-delete',
     'auth-browser', 'profile-browser', 'recovery-browser', 'social-browser', 'account-entitlements',

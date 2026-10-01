@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
@@ -157,7 +158,7 @@ async function setup() {
       [enemy.id, hero.id]
     )
     const capability = discoverEncounterFeatureActionCapabilities({
-      actor: await readRunActor(ctx, state, enemy.id),
+      actor: await readRunActor({ db: createConvexEncounterStoreReader(ctx) }, state, enemy.id),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({
         id: ability.id,

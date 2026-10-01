@@ -43,6 +43,46 @@ The [persistence guide](../../docs/architecture/persistence.md),
 [notification runbook](../../docs/runbooks/convex-notification-delivery.md), and
 [R2 runbook](../../docs/runbooks/vtt-map-r2.md) own the current operational contracts.
 
+Character writes use typed head, Build and play records plus focused owned collections. The shared
+operational codec assembles complete rules/export/room captures and checks them against the head's
+structure checksums. Structural changes share one transaction and advance the existing Builder clock;
+play changes retain their separate stream. Final local release proof remains pending.
+
+Public Sheet commands acknowledge UUID, stream version and retained history/result only. Notes reuse
+the shared note reducer and canonical writer without preparing mechanics. Their current path still
+assembles the complete Character for integrity. `SET_INSPIRATION` and `SET_PARTY_VISIBILITY` now use
+`characters/sheetPlayPreferences` to replace only validated typed play state and retain the receipt
+atomically, using head/play and current authority/route facts without owned collections or mechanics.
+Structure clocks/checksums and derived stats remain intact; focused execution proof is pending.
+`characters/sheetSlices:get` serves COMMON and the
+active feature collections. Owner-only NOTES reads select only head, play, Build and note/group
+records without mechanics. Mechanical slices still use complete current-source preparation;
+narrower HP/storage reads and integrated browser acceptance remain pending.
+
+The local S3 checkpoint endpoint validates the actual payload digest, contiguous authority range,
+public record keys, Campaign/assigned Character scope and canonical stored integrity. It publishes
+changed fields, grouped shared/private receipt ledgers and the replay fence in one mutation, bumps
+the Character play stream once per checkpoint, and returns authorization revisions. Checkpoint writes
+refresh outside-view revisions without invalidating their own room. Oversized checkpoint payloads
+upload indexed 240 KiB UTF-8 parts through the existing Worker-secret routes; fenced publication
+removes staging bytes in the same transaction. Abandoned uploads expire and use bounded scheduled
+cleanup. Scene/fog records now share that publication transaction, with source/presentation pins,
+normalized deltas and complete native save/chunk/receipt references. Integrated Scene execution
+proof, Scene receipt packing and the room authority switch remain pending; current command publication
+is transitional.
+
+Raw Scene input hydration is implemented in source through
+[liveSessions/roomInputs](convex/liveSessions/roomInputs.ts) and its
+[roomSceneInputs pager](convex/liveSessions/roomSceneInputs.ts), using the shared
+[SCENE contract](../../packages/schema/src/api/liveRoomInputs.ts). The active Campaign epoch,
+current presentation and Campaign-owner source access authorize every page. Indexed pages read
+live states, entities, commands, fog layers, fog saves, geometry saves, then save-scoped fog chunks;
+they retain native counters, tombstones and receipts and omit unfinished saves and derived vision.
+Fog-save selection and chunk reads use separate queries with one native pagination call each.
+Batch joins stop when source/presentation pins or the Scene version change. Pure geometry/value
+and live-head validation lives in [encounter-persistence](../../packages/encounter-persistence/README.md),
+shared with the Worker; database/auth reads remain here. Integrated execution proof remains pending.
+
 ## Historical Phase 8.2 implementation record
 
 The sections below preserve dated implementation decisions and partial-gate notes. They are evidence
@@ -302,17 +342,36 @@ owner-only `characters/extraOptions:list` query while its drawer has a selected 
 existing 25-result search. The retired web HTTP Character facade is removed. Complete Builder journey
 proof, Campaign authority and managed proofs remain pending. See
 [native Sheet commands](../../docs/architecture/character.md#native-personal-sheet-commands--partial-local-implementation).
-`characters/history:list` exposes owner-only native receipt history through bounded chronological
-cursor pages. It shares replay's stored-history validation and remains readable when current rules
+`characters/history:list` exposes owner-only receipt history through bounded chronological
+application cursor pages. Each page hydrates one complete entry, using at most two indexed header
+lookaheads; native `endCursor` and `id` are excluded. Restarting from null includes insertions before
+a consumed key. It shares replay's stored-history validation and remains readable when current rules
 sources cannot render a Sheet; legacy/Campaign event integration remains pending. There is no existing
 Character receipt-history UI consumer; these backend pages do not establish browser journey evidence.
+The approved ledger target packs each Character's private command receipts separately from shared
+Encounter receipts. Under [D71](../../docs/adr/0035-room-authoritative-live-encounters.md#d71-bounded-deferred-private-payload-purge--2026-09-30),
+account/Character state and private receipt headers are deleted atomically with durable purge intent;
+bounded, retryable native mutations then purge unreachable private ledger payloads after verifying
+private ownership scope and no live headers. Shared Encounter history remains, with no lifetime
+private-history retention cap. Full payload validation remains required for publication, reads and
+selective retained-history cleanup. Codex recommended D71; the user approved it on 2026-09-30.
+D71 source is integrated, with 54 focused API tests, dependency builds/Convex TypeScript checks and
+local Docker codegen/deploy passing. Native proof `phase82-receipt-max-v8-20260930` passed three
+4,194,304-byte ledgers, creation/retirement rollback, complete paging/replay, real `auth:onDelete`
+logical removal, bounded purge, duplicate retries, SDK cleanup and stale-JWT denial. See the
+[private receipt retirement evidence](../../docs/validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+Final integration, the complete local lifecycle, F12/R08 acceptance, checkpoint publication/live
+authority and Q16 remain pending; acceptance remains 51/75 with 24 open. D71 establishes no Q16 budget pass.
 `characters/panels:get` composes current authorized Sheet data with the neutral inspector resolver,
 including calculation breakdowns, adjustment editors and owned spell/item/resource/extra targets.
 This preserves existing supported panel kinds and does not implement the previously unsupported kinds.
-`characters/preparationOptions:get` returns lightweight per-class preparation choices from the same
-current authorized spell map, with spellbook eligibility and committed Sheet presentation preserved.
-It adds no catalogue or persistence path. The web subscribes only while the Spells inspector is open;
-Campaign visibility remains pending.
+`characters/preparationOptions:get` returns per-class limits and complete eligible/prepared ID sets.
+Owner pickers use authorized compact snapshot metadata; Campaign GMs receive the existing scoped
+Character projection as compact rows, without private source-token access. The browser virtualizes
+available rows and pages their presentation without Convex scroll calls. Full Spell documents load
+for referenced mechanics and individual inspector requests. Complete selector facts remain
+checksum-bound to current publications, and the bounded exact metadata backfill fills their new fields.
+The web subscribes only while the Spells inspector is open.
 
 The server-only `characters/context` loader reads selected current personal sources and the exact
 System document through Convex, including authorized Race/Equipment parents, direct feature ownership
@@ -325,21 +384,22 @@ active session, and returns only the shared public identity contract. Signup def
 The private `accountDeletion:confirmCredentials` mutation reuses the strict shared
 `AccountDeleteInput`, resolves the current profile/session and email, and verifies exactly one
 current Better Auth password credential without creating a session or changing account state.
-It returns no credential or profile data. It is a preparation step for F12; the public deletion
-command and web transport remain unfinished, and deletion is not enabled by this step. The final
-command must keep credential confirmation, ownership checks and app/component cleanup inside one
-native mutation, following the password-recovery transaction pattern. Calling Better Auth's default
-delete API directly from an action would remove sessions/credentials in separate mutations before
-the app-owned deletion guard; that cannot prove F12 refusal/rollback semantics. Shared-history policy,
-complete owned-source reconciliation and real native/browser proof remain F12 requirements.
+It returns no credential or profile data. The implemented `POST /api/auth/account/delete` handler
+passes its server-derived cookie session token and strict command to private `accountDeletion:execute`.
+That mutation rechecks current session, user, email and password before the installed SDK deletes
+credentials and sessions with app cleanup and deferred scheduling in one native transaction.
+The HTTP handler expires session and Convex JWT cookies after commit. See the
+[native account deletion transaction](../../docs/architecture/persistence.md#native-account-deletion-transaction--accepted-local-implementation).
+D71 private-payload purge has focused local native proof; final integrated native/browser acceptance
+and the complete local lifecycle remain pending.
 Native account password changes use `POST /api/auth/account/password` with the existing strict
 `AccountPasswordUpdateInput`. Sensitive-session middleware reads the current stored session and user,
 checks the submitted email against that user, and delegates password verification/update to the
 installed Better Auth endpoint. The command preserves all sessions (`revokeOtherSessions: false`)
 and does not sign in again. Native email changes use the installed Better Auth two-address confirmation
 flow, retaining the current email until both addresses confirm and preserving existing sessions.
-Account deletion remains unfinished; these local producers still require live backend/browser proof
-and do not establish full R01/F12 acceptance.
+Final integrated account-deletion acceptance remains pending; these local producers still require
+live backend/browser proof and do not establish full R01/F12 acceptance.
 
 Initial invitations use the internal `authInvitationsCli:invite` action, not public signup or
 provider administration routes. After verifying the selected development target and configuring

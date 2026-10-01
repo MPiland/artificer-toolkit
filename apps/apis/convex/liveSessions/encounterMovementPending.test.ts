@@ -1,3 +1,5 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
@@ -36,6 +38,8 @@ const observe = makeFunctionReference<
 
 async function records(value: Fixture) {
   return value.base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
@@ -57,13 +61,15 @@ async function records(value: Fixture) {
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-      .collect(),
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     runCommands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_campaignId_commandId', (q) =>
         q.eq('campaignId', value.base.campaign.id).eq('commandId', value.rootInput.commandId)
       )
-      .collect(),
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     scene: await ctx.db
       .query('campaignScenes')
       .withIndex('by_publicId', (q) => q.eq('id', value.sceneId))
@@ -205,7 +211,11 @@ it('publishes an Assisted spatial evidence pause without settling retained no-in
   )
   if (!retained) throw new Error('Pending spatial evidence was not stored.')
   expect(
-    (await value.base.t.run((ctx) => readPendingSnapshot(ctx, retained)))?.applicationContext
+    (
+      await value.base.t.run((ctx) =>
+        readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, retained)
+      )
+    )?.applicationContext
   ).toHaveProperty('completedSpatialExecutions', context.completedSpatialExecutions)
   expect(await publish(value, input)).toEqual({ ...published, replayed: true })
   expect(await records(value)).toEqual(after)
@@ -261,7 +271,7 @@ it('commits a spatial prefix once before a choice pause and rolls back late fail
       .unique()
     if (!row) throw new Error('Movement Run is unavailable.')
     const state = readRunState(row)
-    const actors = await readRunActors(ctx, state)
+    const actors = await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state)
     const projected = actors.map((actor) => {
       const transition = prefix.encounterActorTransitions.find(
         (entry) => entry.targetActorId === actor.id

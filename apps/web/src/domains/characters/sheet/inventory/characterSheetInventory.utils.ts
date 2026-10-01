@@ -1,4 +1,4 @@
-import type { CharacterSheet } from '../core/CharacterSheet.types'
+import type { CharacterSheetInventoryDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import type { CharacterCurrencyIdentityDto } from '@artificer-toolkit/schema/shared/characterCurrency'
 import {
   createCharacterCurrencyIdentityKey,
@@ -7,11 +7,14 @@ import {
 
 type CurrencyIdentity = ReturnType<typeof resolveCharacterCurrencyIdentity>
 
-function currencyIdentity(currency: CharacterCurrencyIdentityDto, sheet: CharacterSheet) {
+function currencyIdentity(
+  currency: CharacterCurrencyIdentityDto,
+  sheet: CharacterSheetInventoryDto
+) {
   return resolveCharacterCurrencyIdentity(currency, sheet.reference.currencyOptions, 'PRESERVE')
 }
 
-function currencyOptionsByKey(sheet: CharacterSheet) {
+function currencyOptionsByKey(sheet: CharacterSheetInventoryDto) {
   return new Map(
     sheet.reference.currencyOptions.map((option) => {
       const identity = resolveCharacterCurrencyIdentity({ currencyId: option.id }, [option])
@@ -24,7 +27,7 @@ function currencyOptionsByKey(sheet: CharacterSheet) {
 }
 
 export function getInventoryCurrencyRows(
-  sheet: CharacterSheet,
+  sheet: CharacterSheetInventoryDto,
   currencies = sheet.inventory.currencies
 ) {
   const rows = new Map<
@@ -48,7 +51,7 @@ export function getInventoryCurrencyRows(
   return [...rows.values()]
 }
 
-export function getInventoryCurrencyTotals(sheet: CharacterSheet) {
+export function getInventoryCurrencyTotals(sheet: CharacterSheetInventoryDto) {
   const totals = new Map<string, { identity: CurrencyIdentity; label: string; amount: bigint }>()
   const options = currencyOptionsByKey(sheet)
   for (const option of options.values()) {

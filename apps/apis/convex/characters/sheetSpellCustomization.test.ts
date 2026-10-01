@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -8,17 +9,21 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import {
-  encodeCharacterRecord,
-  readCharacterSheetState
-} from '@artificer-toolkit/schema/projections/characterStoredState'
+import type {
+  CharacterSheetPanelDto,
+  CharacterSheetPanelInput
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
+import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
+import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
@@ -31,6 +36,9 @@ const getSheet = makeFunctionReference<
   CharacterSheetReadInput,
   CharacterSheetResponseDto | null
 >('characters/sheet:get')
+const getPanel = makeFunctionReference<'query', CharacterSheetPanelInput, CharacterSheetPanelDto>(
+  'characters/panels:get'
+)
 
 async function fixture() {
   const base = await readyCharacterFixture({
@@ -77,10 +85,14 @@ async function fixture() {
   const readState = () =>
     base.t.run(async (ctx) => ({
       character: await readCharacterRow(ctx, character.id),
-      receipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-        .collect()
+      receipts: await readReceiptHeaders(
+        ctx,
+        'characterCommandReceipts',
+        await ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+          .collect()
+      )
     }))
   const readSheetState = async () => readCharacterSheetState((await readState()).character!)
   return { ...base, character, sheet, source, readState, readSheetState }
@@ -89,6 +101,112 @@ async function fixture() {
 afterEach(() => vi.restoreAllMocks())
 
 describe('native Character Sheet spell customization', () => {
+  it('customizes and restores an unlearned, unprepared full-list Spell through its inspector', async () => {
+    if (!wizard.spellcasting) throw new Error('Expected canonical Wizard spellcasting.')
+    const base = await readyCharacterFixture({
+      spellcasting: {
+        ...wizard.spellcasting,
+        attributes: ['PREPARES_SPELLS'],
+        spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], cantripsLimit: 0 }]
+      }
+    })
+    await base.t.mutation(internal.content.import.importSubjects, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [
+        importedSubject({
+          subjectKind: 'SPELL',
+          ...magicMissile,
+          document: { ...magicMissile, classIds: [base.baseClass.id] }
+        })
+      ]
+    })
+    const { draft, character } = await base.createCharacter()
+    const committed = await base.owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: draft.id,
+      mode: 'create',
+      character
+    })
+    const spells = await base.owner.caller.query(getPanel, {
+      id: committed.publicId,
+      target: { kind: 'SPELLS' }
+    })
+    if (spells.kind !== 'SPELLS') throw new Error('Expected spells panel.')
+    const source = spells.groups
+      .flatMap((group) => group.sources)
+      .find((candidate) => candidate.spellId === magicMissile.id)
+    if (!source) throw new Error('Expected unprepared full-list Spell source.')
+    expect(source).toMatchObject({ known: false, prepared: false, canManageKnown: false })
+    const readPanel = async () => {
+      const panel = await base.owner.caller.query(getPanel, {
+        id: committed.publicId,
+        target: { kind: 'SPELL', source: source.source }
+      })
+      if (panel.kind !== 'SPELL') throw new Error('Expected spell inspector.')
+      return panel
+    }
+    const initial = await readPanel()
+    expect(initial.allowedCommands).toEqual(
+      expect.arrayContaining([
+        'SET_SPELL_MECHANIC_CUSTOMIZATION',
+        'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
+      ])
+    )
+    expect(initial.customizationOptions).toEqual([
+      { category: 'DAMAGE', label: 'Damage', supportedModes: ['BONUS'] }
+    ])
+    expect(initial.effects).toEqual(
+      expect.arrayContaining([expect.objectContaining({ label: 'Damage' })])
+    )
+    expect(initial.calculations.damageBonus).toBeUndefined()
+    const before = await base.t.run((ctx) => readCharacterRow(ctx, character.id))
+    const customized = await base.owner.caller.mutation(execute, {
+      id: committed.publicId,
+      command: {
+        type: 'SET_SPELL_MECHANIC_CUSTOMIZATION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: 1,
+        source: source.source,
+        category: 'DAMAGE',
+        mode: 'BONUS',
+        value: 3
+      }
+    })
+    expect(customized).toMatchObject({ characterId: character.id, streamVersion: 2 })
+    expect(customized).not.toHaveProperty('sheet')
+    const changed = await readPanel()
+    expect(changed).toMatchObject({ known: false, prepared: false })
+    expect(changed.calculations.damageBonus!.effective).toBe(3)
+    expect(changed.effects).not.toEqual(initial.effects)
+    expect(changed.customizationOptions[0]!.configured).toMatchObject({ mode: 'BONUS', value: 3 })
+    const removed = await base.owner.caller.mutation(execute, {
+      id: committed.publicId,
+      command: {
+        type: 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: 2,
+        source: source.source,
+        category: 'DAMAGE'
+      }
+    })
+    expect(removed).toMatchObject({ characterId: character.id, streamVersion: 3 })
+    expect(removed).not.toHaveProperty('sheet')
+    const restored = await readPanel()
+    expect(restored).toMatchObject({ known: false, prepared: false })
+    expect(restored.calculations.damageBonus).toBeUndefined()
+    expect(restored.effects).toEqual(initial.effects)
+    expect(restored.customizationOptions).toEqual(initial.customizationOptions)
+    const after = await base.t.run((ctx) => readCharacterRow(ctx, character.id))
+    const beforeCharacter = readCharacterRecord(before!)
+    const afterCharacter = readCharacterRecord(after!)
+    expect(afterCharacter.intent).toEqual(beforeCharacter.intent)
+    expect(afterCharacter.state).toEqual(beforeCharacter.state)
+    expect(afterCharacter.intent.spellSelections ?? []).toEqual([])
+    expect(
+      afterCharacter.state.classes?.flatMap((classState) => classState.spells?.prepared ?? []) ?? []
+    ).toEqual([])
+    expect(readCharacterSheetState(after!).adjustments).toEqual([])
+  })
+
   it('merges display fields, preserves row identity, replays current presentation, and removes empty customization', async () => {
     const { owner, character, source, readState, readSheetState } = await fixture()
     const before = await readState()
@@ -105,8 +223,12 @@ describe('native Character Sheet spell customization', () => {
       }
     }
     const first = await owner.caller.mutation(execute, request)
+    expect(first).not.toHaveProperty('sheet')
+    const firstSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: first.characterId
+    }))!
     expect(
-      first.sheet.spells.spells.find((spell) => spell.id === fireBolt.id)!.sources
+      firstSheet.spells.spells.find((spell) => spell.id === fireBolt.id)!.sources
     ).toContainEqual(
       expect.objectContaining({
         customName: 'Ember',
@@ -125,6 +247,10 @@ describe('native Character Sheet spell customization', () => {
         notes: 'Updated note'
       }
     })
+    expect(updated).not.toHaveProperty('sheet')
+    const updatedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: updated.characterId
+    }))!
     expect((await readSheetState()).spellCustomizations[0]).toMatchObject({
       id: firstRow.id,
       createdAt: firstRow.createdAt,
@@ -136,8 +262,12 @@ describe('native Character Sheet spell customization', () => {
     })
     const beforeReplay = await readState()
     const replay = await owner.caller.mutation(execute, request)
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.historyEntry).toEqual(first.historyEntry)
-    expect(replay.sheet).toEqual(updated.sheet)
+    expect(replaySheet).toEqual(updatedSheet)
     expect(await readState()).toEqual(beforeReplay)
     const cleared = await owner.caller.mutation(execute, {
       id: character.id,
@@ -151,13 +281,20 @@ describe('native Character Sheet spell customization', () => {
         displayAsAttack: false
       }
     })
+    expect(cleared).not.toHaveProperty('sheet')
+    const clearedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: cleared.characterId
+    }))!
     expect((await readSheetState()).spellCustomizations).toEqual([])
-    const clearedSource = cleared.sheet.spells.spells.find((spell) => spell.id === fireBolt.id)!
+    const clearedSource = clearedSheet.spells.spells.find((spell) => spell.id === fireBolt.id)!
       .sources![0]!
     expect(clearedSource.customName).toBeUndefined()
     expect(clearedSource.notes).toBeUndefined()
     expect(clearedSource.displayAsAttack).toBeUndefined()
-    expect((await readState()).character!.documentJson).toBe(before.character!.documentJson)
+    const beforeCharacter = readCharacterRecord(before.character!)
+    const afterCharacter = readCharacterRecord((await readState()).character!)
+    expect(afterCharacter.intent).toEqual(beforeCharacter.intent)
+    expect(afterCharacter.state).toEqual(beforeCharacter.state)
   })
 
   it('replaces mechanic categories, removes them, and rejects unavailable sources or categories', async () => {
@@ -178,8 +315,12 @@ describe('native Character Sheet spell customization', () => {
         value: 2
       }
     })
+    expect(bonus).not.toHaveProperty('sheet')
+    const bonusSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: bonus.characterId
+    }))!
     expect(
-      bonus.sheet.spells.activeGroups
+      bonusSheet.spells.activeGroups
         .flatMap((group) => group.entries)
         .find((entry) => entry.sourceId === source.id)!.mechanics![0]!.attackBonus
     ).toBe(initialAttack + 2)
@@ -195,8 +336,12 @@ describe('native Character Sheet spell customization', () => {
         value: 18
       }
     })
+    expect(overridden).not.toHaveProperty('sheet')
+    const overriddenSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: overridden.characterId
+    }))!
     expect(
-      overridden.sheet.spells.activeGroups
+      overriddenSheet.spells.activeGroups
         .flatMap((group) => group.entries)
         .find((entry) => entry.sourceId === source.id)!.mechanics![0]!.attackBonus
     ).toBe(18)
@@ -247,8 +392,12 @@ describe('native Character Sheet spell customization', () => {
         category: 'TO_HIT'
       }
     })
+    expect(removed).not.toHaveProperty('sheet')
+    const removedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: removed.characterId
+    }))!
     expect(
-      removed.sheet.spells.activeGroups
+      removedSheet.spells.activeGroups
         .flatMap((group) => group.entries)
         .find((entry) => entry.sourceId === source.id)!.mechanics![0]!.attackBonus
     ).toBe(initialAttack)
@@ -269,8 +418,12 @@ describe('native Character Sheet spell customization', () => {
         value: 2
       }
     })
+    expect(saveBonus).not.toHaveProperty('sheet')
+    const saveBonusSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: saveBonus.characterId
+    }))!
     expect(
-      saveBonus.sheet.spells.activeGroups
+      saveBonusSheet.spells.activeGroups
         .flatMap((group) => group.entries)
         .find((entry) => entry.sourceId === saveSource.id)!.mechanics![0]!.save!.dc
     ).toBe(initialSave + 2)
@@ -336,20 +489,20 @@ describe('native Character Sheet spell customization', () => {
     vi.restoreAllMocks()
     await owner.caller.mutation(execute, request)
     const state = await readSheetState()
-    const stored = (await readState()).character!
     const row = state.spellCustomizations[0]!
     for (const spellCustomizations of [
       [{ ...row, characterId: crypto.randomUUID() }],
       [row, { ...row, id: crypto.randomUUID() }]
     ]) {
       const invalid = { ...state, spellCustomizations }
-      const encoded = encodeCharacterRecord(stored, {
-        document: readCharacterRecord(stored),
-        sheetState: invalid,
-        streamVersion: stored.play.streamVersion,
-        updatedAt: stored.updatedAt
+      await t.run(async (ctx) => {
+        const stored = await readCharacterRow(ctx, character.id)
+        if (!stored) throw new Error('Missing Character customization fixture.')
+        await writeCharacterRecord(ctx, stored, {
+          document: readCharacterRecord(stored),
+          sheetState: invalid
+        })
       })
-      await t.run((ctx) => ctx.db.patch(stored._id, { sheetState: encoded.sheetState }))
       const beforeInvalid = await readState()
       await expect(owner.caller.query(getSheet, { id: character.id })).rejects.toThrow(
         /ownership|unique/

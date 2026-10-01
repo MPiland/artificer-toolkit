@@ -1,3 +1,7 @@
+import type {
+  CharacterSheetCommonDto,
+  CharacterSheetSliceResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetSlices'
 import {
   createCharacterResourceOwnerKey,
   createCharacterSpellSourceKey,
@@ -38,12 +42,14 @@ function updateSlot(slot: SheetSpellSlot, used: number): SheetSpellSlot {
   }
 }
 
-function projectResources(
-  sheet: CharacterSheetResponseDto,
-  command: CharacterSheetCommandInputDto
-): CharacterSheetResponseDto {
+function projectResources<
+  Sheet extends {
+    resources: Pick<CharacterSheetResponseDto['resources'], 'items'>
+    spells?: Pick<CharacterSheetResponseDto['spells'], 'spells'>
+  }
+>(sheet: Sheet, command: CharacterSheetCommandInputDto): Sheet {
   if (command.type === 'CAST_SPELL') {
-    const spell = sheet.spells.spells.find((candidate) => candidate.id === command.spellId)
+    const spell = sheet.spells?.spells.find((candidate) => candidate.id === command.spellId)
     const sources = spell?.sources ?? []
     if (sources.length > 1 && !command.sourceId) return sheet
     const source = command.sourceId
@@ -101,10 +107,10 @@ function projectResources(
   return sheet
 }
 
-function projectHitPoints(
-  sheet: CharacterSheetResponseDto,
+function projectHitPoints<Sheet extends Pick<CharacterSheetResponseDto, 'overview'>>(
+  sheet: Sheet,
   command: Extract<CharacterSheetCommandInputDto, { type: 'SET_HIT_POINTS' | 'ADJUST_HIT_POINTS' }>
-): CharacterSheetResponseDto {
+): Sheet {
   if (command.type === 'SET_HIT_POINTS') {
     if (command.maxOverride !== undefined) return sheet
 
@@ -146,10 +152,10 @@ function projectHitPoints(
   }
 }
 
-function projectSpellSlots(
-  sheet: CharacterSheetResponseDto,
+function projectSpellSlots<Sheet extends Pick<CharacterSheetResponseDto, 'spells'>>(
+  sheet: Sheet,
   command: CharacterSheetCommandInputDto
-): CharacterSheetResponseDto {
+): Sheet {
   const slotKey =
     command.type === 'CAST_SPELL'
       ? command.slotKey
@@ -173,10 +179,12 @@ function projectSpellSlots(
   }
 }
 
-function projectSpellSources(
-  sheet: CharacterSheetResponseDto,
-  command: CharacterSheetCommandInputDto
-): CharacterSheetResponseDto {
+function projectSpellSources<
+  Sheet extends {
+    spells: Pick<CharacterSheetResponseDto['spells'], 'activeGroups' | 'spells'> &
+      Partial<Pick<CharacterSheetResponseDto['spells'], 'preparationSources'>>
+  }
+>(sheet: Sheet, command: CharacterSheetCommandInputDto): Sheet {
   if (command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION') {
     const sourceKey = createCharacterSpellSourceKey(command.source)
     return {
@@ -253,11 +261,15 @@ function projectSpellSources(
     ...sheet,
     spells: {
       ...sheet.spells,
-      preparationSources: sheet.spells.preparationSources?.map((source) =>
-        source.classId === command.classId
-          ? { ...source, preparedSpellIds: command.spellIds }
-          : source
-      ),
+      ...('preparationSources' in sheet.spells
+        ? {
+            preparationSources: sheet.spells.preparationSources?.map((source) =>
+              source.classId === command.classId
+                ? { ...source, preparedSpellIds: command.spellIds }
+                : source
+            )
+          }
+        : {}),
       spells: sheet.spells.spells.map((spell) => {
         const sources = spell.sources?.map((source) =>
           source.classId === command.classId
@@ -274,10 +286,10 @@ function projectSpellSources(
   }
 }
 
-function projectInventory(
-  sheet: CharacterSheetResponseDto,
+function projectInventory<Sheet extends Pick<CharacterSheetResponseDto, 'inventory'>>(
+  sheet: Sheet,
   command: CharacterSheetCommandInputDto
-): CharacterSheetResponseDto {
+): Sheet {
   if (command.type === 'REMOVE_INVENTORY_ITEM') {
     return {
       ...sheet,
@@ -350,10 +362,10 @@ function projectInventory(
   }
 }
 
-function projectExtras(
-  sheet: CharacterSheetResponseDto,
+function projectExtras<Sheet extends Pick<CharacterSheetResponseDto, 'extras'>>(
+  sheet: Sheet,
   command: CharacterSheetCommandInputDto
-): CharacterSheetResponseDto {
+): Sheet {
   if (command.type === 'REMOVE_SHEET_EXTRA') {
     return {
       ...sheet,
@@ -443,10 +455,45 @@ function projectExtras(
   }
 }
 
-export function projectOptimisticCharacterSheet(
-  sheet: CharacterSheetResponseDto,
+export function projectOptimisticCharacterSheetSlice<
+  Response extends CharacterSheetSliceResponseDto
+>(response: Response, command: CharacterSheetCommandInputDto): Response
+export function projectOptimisticCharacterSheetSlice(
+  response: CharacterSheetSliceResponseDto,
   command: CharacterSheetCommandInputDto
-): CharacterSheetResponseDto {
+): CharacterSheetSliceResponseDto {
+  if (response.data.meta.streamVersion !== command.expectedVersion) return response
+  switch (response.slice) {
+    case 'COMMON':
+      return { ...response, data: projectCommon(response.data, command) }
+    case 'ACTIONS':
+      return {
+        ...response,
+        data: projectSpellSources(projectResources(response.data, command), command)
+      }
+    case 'SPELLS':
+      return {
+        ...response,
+        data: projectSpellSlots(projectSpellSources(response.data, command), command)
+      }
+    case 'INVENTORY':
+      return {
+        ...response,
+        data: projectResources(projectInventory(response.data, command), command)
+      }
+    case 'EXTRAS':
+      return { ...response, data: projectExtras(response.data, command) }
+    case 'FEATURES':
+      return { ...response, data: projectResources(response.data, command) }
+    case 'NOTES':
+      return response
+  }
+}
+
+function projectCommon(
+  sheet: CharacterSheetCommonDto,
+  command: CharacterSheetCommandInputDto
+): CharacterSheetCommonDto {
   switch (command.type) {
     case 'SET_INSPIRATION':
       return {
@@ -502,59 +549,16 @@ export function projectOptimisticCharacterSheet(
           )
         }
       }
-    case 'USE_SHEET_RESOURCE':
-    case 'RECOVER_SHEET_RESOURCE':
-    case 'USE_RESOURCE':
-    case 'RESTORE_RESOURCE':
-      return projectResources(sheet, command)
+
     case 'SET_HIT_POINTS':
     case 'ADJUST_HIT_POINTS':
       return projectHitPoints(sheet, command)
-    case 'USE_SPELL_SLOT':
-    case 'RESTORE_SPELL_SLOT':
-      return projectSpellSlots(sheet, command)
-    case 'CAST_SPELL':
-      return projectSpellSlots(projectResources(sheet, command), command)
-    case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
-    case 'SET_PREPARED_SPELLS':
-    case 'SET_KNOWN_SPELLS':
-      return projectSpellSources(sheet, command)
-    case 'REMOVE_INVENTORY_ITEM':
-    case 'UPDATE_INVENTORY_ITEM':
-    case 'EQUIP_ITEM':
-    case 'UNEQUIP_ITEM':
-    case 'ATTUNE_ITEM':
-    case 'UNATTUNE_ITEM':
-      return projectInventory(sheet, command)
-    case 'ADD_SHEET_EXTRA':
-    case 'UPDATE_SHEET_EXTRA':
-    case 'REMOVE_SHEET_EXTRA':
-      return projectExtras(sheet, command)
     case 'SET_PARTY_VISIBILITY':
       return { ...sheet, meta: { ...sheet.meta, partyVisibility: command.visibility } }
-    case 'UPSERT_SHEET_ADJUSTMENT':
-    case 'REMOVE_SHEET_ADJUSTMENT':
-    case 'RESET_SHEET_PANEL_ADJUSTMENTS':
-    case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
-    case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
-    case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':
-    case 'USE_HIT_DIE':
-    case 'COMPLETE_REST':
-    case 'ADD_INVENTORY_ITEM':
-    case 'ADJUST_CURRENCY':
-    case 'MOVE_CURRENCY':
-    case 'CREATE_NOTE':
-    case 'UPDATE_NOTE':
-    case 'DELETE_NOTE':
-    case 'CREATE_NOTE_GROUP':
-    case 'UPDATE_NOTE_GROUP':
-    case 'DELETE_NOTE_GROUP':
-      return sheet
     default:
-      return command satisfies never
+      return sheet
   }
 }
-
 function updatePanelResource(remaining: number, maximum: number, amount: number): number {
   return Math.max(0, Math.min(maximum, remaining - amount))
 }

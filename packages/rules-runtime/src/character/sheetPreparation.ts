@@ -11,7 +11,7 @@ import {
   mergeCampaignSheetAdjustments,
   type CharacterSheetCampaignContext
 } from './campaignCharacterSheet.js'
-import { getPreparedAndKnownSpellIds, getSheetSpellIdsByClass } from './sheetSpellIds.js'
+import { getPreparedAndKnownSpellIds } from './sheetSpellIds.js'
 
 /** Evaluates already-authorized current inputs without accessing persistence. */
 export async function prepareCharacterSheetFromContext<
@@ -24,6 +24,7 @@ export async function prepareCharacterSheetFromContext<
   sheetState: CharacterSheetState
   campaignContext: CharacterSheetCampaignContext
   sourcePreparation?: ReturnType<typeof prepareCharacterRuleSources>
+  referenceSpellIds?: readonly string[]
 }) {
   const { character, context, sheetState, campaignContext } = input
   const prepared = await prepareCharacterBuilderFromContext({
@@ -40,7 +41,11 @@ export async function prepareCharacterSheetFromContext<
     campaignContext.adjustments
   )
   const { learned, prepared: preparedSpellIds } = getPreparedAndKnownSpellIds(prepared.character)
-  const referenceSpellIds = new Set([...learned, ...preparedSpellIds])
+  const referenceSpellIds = new Set([
+    ...learned,
+    ...preparedSpellIds,
+    ...(input.referenceSpellIds ?? [])
+  ])
   const evaluationInput = {
     character: prepared.character,
     context: prepared.context,
@@ -51,25 +56,10 @@ export async function prepareCharacterSheetFromContext<
     resourceUsage: sheetState.resourceUsage,
     movementDisplayPreference: sheetState.movementDisplayPreference
   }
-  let ruleEvaluation = evaluateCharacterRules(
+  const ruleEvaluation = evaluateCharacterRules(
     { ...evaluationInput, referenceSpellIds: [...referenceSpellIds] },
     prepared.sourcePreparation
   )
-  const hydratedSpellIds = new Set(
-    ruleEvaluation.facts.spellActionFacts.map((spell) => spell.spellId)
-  )
-  for (const spellIds of getSheetSpellIdsByClass(
-    ruleEvaluation.output,
-    ruleEvaluation.facts
-  ).values()) {
-    for (const spellId of spellIds) referenceSpellIds.add(spellId)
-  }
-  if ([...referenceSpellIds].some((spellId) => !hydratedSpellIds.has(spellId))) {
-    ruleEvaluation = evaluateCharacterRules(
-      { ...evaluationInput, referenceSpellIds: [...referenceSpellIds] },
-      prepared.sourcePreparation
-    )
-  }
   return {
     prepared,
     adjustments,

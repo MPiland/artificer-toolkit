@@ -2,17 +2,18 @@
 
 - **Status:** decision (approved 2026-09-24; implemented locally 2026-09-24 — Convex, Worker and web; final-source R08 proof pending)
 - **Date:** 2026-09-24
+- **Revised:** 2026-09-29
 - **Scope:** live-table admission and lifecycle, Scene presentation ownership, Encounter Run ownership and lifecycle, Campaign Session meaning
 - **Update when:** live-table admission/lifecycle, presentation, Encounter Run ownership/status, or Session behavior changes
 - **Supersedes:** Session presentation and the `Campaign → Session → …` dependency order in [ADR 0027](0027-campaign-scenes-and-encounter-bindings.md); Session-scoped room identity in [ADR 0029](0029-convex-backend-cutover.md) and [ADR 0020](0020-local-and-remote-live-session-host.md). All other decisions in those ADRs remain in force.
 
 ## Context
 
-Live play currently requires an OPEN Campaign Session. The Session names the Durable Object room,
-owns Scene presentation, gates every Encounter command and supplies the Encounter party from its
-attendance. Finishing a Session closes the room but leaves its Encounter Runs untouched: an ACTIVE Run
-in a finished Session can never be changed or completed, and because a Campaign may have only one
-ACTIVE Run, it blocks every future START in that Campaign.
+Before this decision, live play required an OPEN Campaign Session. The Session named the Durable
+Object room, owned Scene presentation, gated every Encounter command and supplied the Encounter party
+from its attendance. Finishing a Session closed the room but left its Encounter Runs untouched: an
+ACTIVE Run in a finished Session could never be changed or completed, and because a Campaign could
+have only one ACTIVE Run, it blocked every future START in that Campaign.
 
 Tables stop mid-fight routinely. Comparable virtual tabletops (Foundry VTT, Roll20, Fantasy Grounds,
 D&D Beyond) have no "run a session" step. The game is simply open, and combat is a persistent record
@@ -40,8 +41,9 @@ flowchart LR
   narrows to the presented Scene.
 - **Room lifecycle.** The room activates on the first admitted socket. When no socket has been admitted
   for five minutes, it drains its outbox and releases authority through the existing drain/release
-  protocol. Campaign archive or deletion closes it. Membership removal and account deletion evict the
-  exact user. Session finish does not affect it.
+  protocol. [ADR 0035](0035-room-authoritative-live-encounters.md) supersedes the outbox drain with an
+  acknowledged final checkpoint when its authority switch lands. Campaign archive or deletion closes
+  it. Membership removal and account deletion evict the exact user. Session finish does not affect it.
 - **Campaign presentation.** The Campaign presents zero or one live Scene. Presentation survives
   reconnects, Encounter completion and Session finish.
 - **Campaign-owned Encounter Runs.** Runs belong to the Campaign and may bind to one live Scene. A

@@ -204,9 +204,15 @@ it('keeps Character Sheet commands in Convex while Scene authority is active and
     player.caller.mutation(executeCampaignSheet, adjustment),
     player.caller.mutation(executeCampaignSheet, adjustment)
   ])
+  const adjustedSheet = await player.caller.query(api.campaigns.characterSheet.get, {
+    campaignId: campaign.id,
+    characterId: adjusted.characterId
+  })
+  expect(adjusted).not.toHaveProperty('sheet')
+  expect(adjusted).not.toHaveProperty('panels')
   expect(duplicate).toEqual(adjusted)
   expect(adjusted.streamVersion).toBe(2)
-  expect(adjusted.sheet.overview.maxHitPoints).toBe(before.overview.maxHitPoints + 1)
+  expect(adjustedSheet.overview.maxHitPoints).toBe(before.overview.maxHitPoints + 1)
   expect((await base.readState()).receipts).toHaveLength(1)
 
   const drainInput: LiveSessionDrainReleaseInput = {
@@ -236,8 +242,12 @@ it('keeps Character Sheet commands in Convex while Scene authority is active and
     }
   }
   const damaged = await player.caller.mutation(executeCampaignSheet, damage)
+  const damagedSheet = await player.caller.query(api.campaigns.characterSheet.get, {
+    campaignId: campaign.id,
+    characterId: damaged.characterId
+  })
   expect(damaged.streamVersion).toBe(3)
-  expect(damaged.sheet.overview.currentHitPoints).toBe(adjusted.sheet.overview.currentHitPoints - 2)
+  expect(damagedSheet.overview.currentHitPoints).toBe(adjustedSheet.overview.currentHitPoints - 2)
   const replay = await player.caller.mutation(executeCampaignSheet, adjustment)
   expect(replay.streamVersion).toBe(3)
   expect(replay.historyEntry).toEqual(adjusted.historyEntry)

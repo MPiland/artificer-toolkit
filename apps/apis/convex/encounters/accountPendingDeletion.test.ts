@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import {
   encounterCommandResultDtoSchema,
@@ -28,14 +29,22 @@ type Fixture = Awaited<ReturnType<typeof turnCharacterEffectFixture>>
 
 async function capture(base: Fixture) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
     rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     sides: await ctx.db.query('encounterInitiativeSides').collect(),
-    commands: await ctx.db.query('encounterRunCommands').collect(),
+    commands: await ctx.db
+      .query('encounterRunCommands')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+    receipts: await ctx.db
+      .query('encounterRuleReceipts')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
     effects: await ctx.db.query('encounterActiveRuleEffects').collect(),
     characterEffects: await ctx.db.query('characterActiveRuleEffects').collect(),

@@ -180,10 +180,19 @@ function installFetch(
     backendPaths.push(pathname)
     if (pathname === ROOM_AUTHORIZATION_PATH)
       return Response.json(roomAuthorizationResponse({ members, ...authorization }))
-    if (pathname === ROOM_INPUTS_PATH)
+    if (pathname === ROOM_INPUTS_PATH) {
+      const inputs = liveRoomInputsInputSchema.parse(await request.json())
+      expect(inputs).toMatchObject({ campaignId, epoch: authorityEpoch })
       return Response.json(
-        roomInputsResponse(liveRoomInputsInputSchema.parse(await request.json()).scope)
+        roomInputsResponse(inputs.scope, {
+          campaignId,
+          systemId: '00000000-0000-4000-8000-000000000111',
+          ownerUserId: ownerId,
+          members,
+          assignments: authorization.assignments
+        })
       )
+    }
     if (pathname === '/live-sessions/bootstrap') {
       return Response.json({
         activationFingerprint,
@@ -1082,6 +1091,19 @@ async function characterVisionRoom() {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
+      if (pathname === ROOM_INPUTS_PATH) {
+        const inputs = liveRoomInputsInputSchema.parse(await request.json())
+        expect(inputs).toMatchObject({ campaignId, epoch: authorityEpoch })
+        return Response.json(
+          roomInputsResponse(inputs.scope, {
+            campaignId,
+            systemId: run.systemId,
+            ownerUserId: ownerId,
+            members,
+            assignments: [{ characterId, userId: playerId }]
+          })
+        )
+      }
       if (pathname === '/live-sessions/bootstrap') {
         return Response.json({
           activationFingerprint,

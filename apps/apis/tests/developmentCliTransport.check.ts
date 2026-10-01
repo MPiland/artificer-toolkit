@@ -121,4 +121,86 @@ try {
   if (originalPath === undefined) delete process.env.PATH
   else process.env.PATH = originalPath
 }
-console.log(JSON.stringify({ argvSafePayloadChars: JSON.stringify(args).length, help: 'PASS' }))
+const originalFetch = globalThis.fetch
+const localEnvironment = {
+  CONVEX_DEPLOYMENT: 'local:transport-check',
+  CONVEX_URL: 'http://127.0.0.1:3220',
+  CONVEX_SITE_URL: 'http://127.0.0.1:3221',
+  CONVEX_SELF_HOSTED_URL: 'http://127.0.0.1:3220',
+  CONVEX_SELF_HOSTED_ADMIN_KEY: 'fake-transport-check-key'
+}
+const originalEnvironment = Object.fromEntries(
+  Object.keys(localEnvironment).map((key) => [key, process.env[key]])
+)
+try {
+  Object.assign(process.env, localEnvironment)
+  const payload = '⚒'.repeat(Math.floor((4 * 1024 * 1024) / 3)) + 'x'
+  assert.equal(Buffer.byteLength(payload), 4 * 1024 * 1024)
+  let calls = 0
+  let expectedComponent = true
+  let response = new Response(JSON.stringify({ status: 'success', value: payload }))
+  globalThis.fetch = async (input, init) => {
+    calls++
+    assert.equal(input, `${localEnvironment.CONVEX_URL}/api/function`)
+    assert.equal(init?.method, 'POST')
+    assert.equal(
+      new Headers(init?.headers).get('Authorization'),
+      `Convex ${localEnvironment.CONVEX_SELF_HOSTED_ADMIN_KEY}`
+    )
+    assert.ok(init?.signal instanceof AbortSignal)
+    assert.equal(typeof init?.body, 'string')
+    assert.deepEqual(JSON.parse(String(init?.body)), {
+      path: 'transport:probe',
+      ...(expectedComponent ? { componentPath: 'betterAuth' } : {}),
+      format: 'convex_encoded_json',
+      args
+    })
+    return response
+  }
+  const received = await developmentCli('transport:probe', { ...args, omitted: undefined })
+  assert.equal(typeof received, 'string')
+  assert.equal(Buffer.byteLength(String(received)), Buffer.byteLength(payload))
+  assert.equal(
+    createHash('sha256').update(String(received)).digest('hex'),
+    createHash('sha256').update(payload).digest('hex')
+  )
+  expectedComponent = false
+  response = new Response(JSON.stringify({ status: 'success', value: null }))
+  assert.equal(await developmentCli('transport:probe', args, false), null)
+  for (const failure of [
+    new Response('private-http-detail', { status: 500 }),
+    new Response(JSON.stringify({ status: 'error', errorMessage: 'private-envelope-detail' })),
+    new Response(JSON.stringify({ status: 'success' }))
+  ]) {
+    response = failure
+    await assert.rejects(developmentCli('transport:probe', args, false), (error: unknown) => {
+      assert.ok(error instanceof Error)
+      assert.match(error.message, /arguments\/output withheld/)
+      assert.doesNotMatch(error.message, /private-|fake-transport-check-key/)
+      return true
+    })
+  }
+  const completedCalls = calls
+  for (const invalid of [
+    { CONVEX_SELF_HOSTED_URL: 'https://unapproved.example.invalid' },
+    { CONVEX_SELF_HOSTED_ADMIN_KEY: '' },
+    { CONVEX_SITE_URL: '' },
+    { CONVEX_DEPLOYMENT: 'dev:transport-check' }
+  ]) {
+    Object.assign(process.env, localEnvironment, invalid)
+    await assert.rejects(
+      developmentCli('transport:probe', args, false),
+      /arguments\/output withheld/
+    )
+    assert.equal(calls, completedCalls, 'Invalid targets must be rejected before fetch.')
+  }
+} finally {
+  globalThis.fetch = originalFetch
+  for (const [key, value] of Object.entries(originalEnvironment)) {
+    if (value === undefined) delete process.env[key]
+    else process.env[key] = value
+  }
+}
+console.log(
+  JSON.stringify({ argvSafePayloadChars: JSON.stringify(args).length, help: 'PASS', http: 'PASS' })
+)

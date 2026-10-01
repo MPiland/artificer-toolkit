@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
 import type {
@@ -319,7 +320,7 @@ it('pages four current owner effects and changes the checksum when the page chan
   })
   expect(empty).toMatchObject({ effects: [], continueAfter: null })
   await base.t.run(async (ctx) => {
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     for (let index = 0; index < 5; index += 1)
       await store.create({
         id: crypto.randomUUID(),

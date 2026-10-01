@@ -1,3 +1,8 @@
+import {
+  createConvexEncounterStoreReader,
+  createConvexEncounterStore
+} from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -75,6 +80,8 @@ async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>)
     actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []
   )
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     characters: await Promise.all(characterIds.map((id) => readCharacterRow(ctx, id))),
     characterEffects: (
       await Promise.all(
@@ -93,6 +100,7 @@ async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>)
             .query('characterCommandReceipts')
             .withIndex('by_characterId_commandId', (q) => q.eq('characterId', id))
             .collect()
+            .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
         )
       )
     ).flat(),
@@ -125,11 +133,13 @@ async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>)
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
   }))
 }
 
@@ -235,7 +245,9 @@ async function pendingEffect(
   const snapshot = await stored(base)
   const occurrence = snapshot.occurrences.find((row) => row.state === 'PENDING')
   if (!occurrence) throw new Error('Expected a retained turn-effect continuation.')
-  const pending = await base.t.run((ctx) => readPendingSnapshot(ctx, occurrence))
+  const pending = await base.t.run((ctx) =>
+    readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
+  )
   expect(pending?.applicationContext).toMatchObject({
     kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS',
     currentCandidate: { activeEffectId: effectId, stage }
@@ -1242,7 +1254,7 @@ describe('native public turn active-effect journeys', () => {
     await expect(replayInRoom(base.owner.caller, firstResponse)).resolves.toEqual(pendingSecond)
     expect(await stored(base)).toEqual(paused)
     await base.t.run((ctx) =>
-      createActiveRuleEffectStore(ctx).updateLifecycleCas({
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).updateLifecycleCas({
         id: first.id,
         owner: first.owner,
         expectedVersion: first.version,

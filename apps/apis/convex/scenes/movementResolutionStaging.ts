@@ -1,3 +1,5 @@
+import { readReceiptHeader } from '../lib/receiptLedgers'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { z } from 'zod'
 import { resolveRuleOccurrenceInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -13,7 +15,10 @@ import { requireUnusedEvidenceCommandId } from '@artificer-toolkit/encounter-per
 import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { beginSceneGeometry } from './geometryStaging'
-import { parseGeometrySave, readMovementResolution } from './geometryDocuments'
+import {
+  parseGeometrySave,
+  readMovementResolution
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { readMovementResponseAuthority } from './movementResolutionDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { readPresentedVisionScene } from './sessionVisionDocuments'
@@ -38,18 +43,21 @@ export async function beginMovementResolution(
     .unique()
   if (!occurrence || occurrence.encounterId !== run.id || occurrence.campaignId !== campaign.id)
     throw new Error('Rule occurrence is unavailable.')
-  const receipt = await ctx.db
+  const receiptHeader = await ctx.db
     .query('encounterRuleReceipts')
     .withIndex('by_encounterId_commandId', (q) =>
       q.eq('encounterId', run.id).eq('commandId', command.commandId)
     )
     .unique()
+  const receipt = receiptHeader
+    ? await readReceiptHeader(ctx, 'encounterRuleReceipts', receiptHeader)
+    : null
   const metadata = receipt
     ? serverRuleExecutionReceiptCommandMetadataDtoSchema.parse(
         JSON.parse(receipt.commandMetadataJson)
       )
     : null
-  const snapshot = await readPendingSnapshot(ctx, occurrence)
+  const snapshot = await readPendingSnapshot(encounterReadTransaction(ctx), occurrence)
   const context = snapshot?.applicationContext
   const pending =
     snapshot && isEncounterMovementContext(context)
@@ -90,7 +98,11 @@ export async function beginMovementResolution(
   }
   if (receipt) throw new Error('Movement response receipt has no Scene publication.')
   const current = await readMovementResponseAuthority(ctx, command)
-  await requireUnusedEvidenceCommandId(ctx, campaign.id, command.commandId)
+  await requireUnusedEvidenceCommandId(
+    encounterReadTransaction(ctx),
+    campaign.id,
+    command.commandId
+  )
   const { presentation } = await readPresentedVisionScene(ctx, {
     campaignId: campaign.id,
     sceneId

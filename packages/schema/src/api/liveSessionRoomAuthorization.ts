@@ -10,12 +10,13 @@ const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const MAX_ROOM_MEMBERS = 10_000
 
 /**
- * What the room's authorization cache was loaded from (ADR 0035 Amendment 14): the CAMPAIGN and
+ * What the room's authorization cache was loaded from (ADR 0035 Amendment 14): the SYSTEM, CAMPAIGN and
  * PLAY revisions, each assigned Character's CHARACTER revision, and a digest of the members'
- * "Roll my dice automatically" preferences. Equal revisions mean the cached sections are current.
+ * auto-roll preferences and canonical author usernames. Equal revisions mean cached sections are current.
  */
 export const liveSessionRoomAuthorizationRevisionsSchema = lazySchema(() =>
   z.strictObject({
+    system: z.nullable(postgresUuidSchema),
     campaign: z.nullable(postgresUuidSchema),
     play: z.nullable(postgresUuidSchema),
     characters: sceneSessionVisionCharacterRevisionsSchema,
@@ -45,7 +46,11 @@ export const liveSessionRoomCharacterAuthorizationSchema = lazySchema(() =>
 )
 
 export const liveSessionRoomPreferenceSchema = lazySchema(() =>
-  z.strictObject({ userId: uuidSchema, autoRollDice: z.boolean() })
+  z.strictObject({
+    userId: uuidSchema,
+    autoRollDice: z.boolean(),
+    username: z.nullable(z.string())
+  })
 )
 
 /**

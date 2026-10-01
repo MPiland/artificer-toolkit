@@ -1,0 +1,315 @@
+import { expect, it, vi } from 'vitest'
+import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { RoomEncounterStore, type RoomDocument } from './roomEncounterStore.js'
+import { RoomInputs } from './roomInputs.js'
+import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
+import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
+import { roomInputsResponse } from '../test/roomInputsFixture.js'
+import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
+import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
+import { uuid } from './testing/roomAggregateFixture.js'
+
+it('admits native turn scopes and pages the selected actor effects without a backend read', async () => {
+  const campaignId = uuid(0xe00)
+  const systemId = uuid(0xe01)
+  const epoch = uuid(0xe02)
+  const gmId = uuid(0xe03)
+  const playerId = uuid(0xe04)
+  const otherPlayerId = uuid(0xe05)
+  const encounterId = uuid(0xe06)
+  const sideId = uuid(0xe07)
+  const definitionId = uuid(0xe08)
+  const now = '2026-09-30T12:00:00.000Z'
+  const actor = encounterRunActorStateSchema.parse({
+    id: uuid(0xe10),
+    encounterId,
+    sideId,
+    label: 'Controlled Creature',
+    kind: 'CREATURE',
+    sourceId: uuid(0xe11),
+    sourceRevision: 1,
+    stableTieKey: uuid(0xe10),
+    public: true,
+    controllerUserIds: [playerId],
+    disposition: 'HOSTILE',
+    initiative: 0,
+    manualOrder: 0,
+    healthDisplay: null,
+    systemId,
+    resources: {},
+    gmNotes: 'Private native preparation input',
+    snapshot: {},
+    currentHitPoints: 10,
+    maxHitPoints: 10,
+    tempHitPoints: 0,
+    conditions: [],
+    defeated: false,
+    createdAt: now,
+    updatedAt: now
+  })
+  const otherActor = encounterRunActorStateSchema.parse({
+    ...actor,
+    id: uuid(0xe12),
+    stableTieKey: uuid(0xe12),
+    controllerUserIds: []
+  })
+  const optionalCombatSnapshot = { schemaVersion: 1, gameSystemId: systemId, definitions: [] }
+  const state = encounterRunStateSchema.parse({
+    id: encounterId,
+    campaignId,
+    gameSystemId: systemId,
+    blueprintId: uuid(0xe09),
+    blueprintVersion: 1,
+    blueprintChecksum: 'b'.repeat(64),
+    name: 'Native turn capture',
+    status: 'ACTIVE',
+    automationMode: 'MANUAL',
+    manualReminderMode: 'OFF',
+    healthDisplayDefault: 'HIDDEN',
+    version: 1,
+    round: 1,
+    currentActorId: actor.id,
+    actorIds: [actor.id, otherActor.id],
+    initiativePolicySnapshot: null,
+    initiativePolicySnapshotChecksum: null,
+    optionalCombatSnapshot,
+    optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalCombatSnapshot),
+    turnSequence: 0,
+    sides: [{ id: sideId, label: 'Creatures', sortOrder: 0 }],
+    createdAt: now,
+    updatedAt: now
+  })
+  const definition = activeRuleEffectDefinitionDtoSchema.parse({
+    schemaVersion: 1,
+    origin: {
+      kind: 'ENCOUNTER',
+      sourceAggregateId: encounterId,
+      sourceOccurrenceId: uuid(0xe20),
+      rootCommandId: uuid(0xe21),
+      sourceActorId: actor.id
+    },
+    authoredEffectId: definitionId,
+    compiledEntryId: uuid(0xe22),
+    frozenGraphNodeId: 'entry',
+    frozenGraph: {
+      schemaVersion: 1,
+      source: {
+        definitionId,
+        gameSystemId: systemId,
+        definitionFamilyKey: 'effect',
+        checksum: 'a'.repeat(64)
+      },
+      capabilityContractVersion: 1,
+      factContracts: [],
+      nodes: [{ id: 'entry', operation: { key: 'comparison', contractVersion: 1 }, inputs: {} }],
+      sourceEntryBindings: [{ sourceEntryId: uuid(0xe22), nodeId: 'entry' }],
+      outputs: { result: { kind: 'LITERAL', value: true } }
+    },
+    adapterFacts: {},
+    perceptionContributions: [],
+    recurrence: {
+      recurrenceStage: 'NONE',
+      consumeOnFirstEvent: null,
+      endOnEvents: [],
+      lifetimeScope: 'ENCOUNTER',
+      expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+    }
+  })
+  const lifecycle = { schemaVersion: 1, remainingTicks: 3 }
+  const members = [
+    { userId: gmId, role: 'OWNER' as const, membershipEpoch: now },
+    { userId: playerId, role: 'PLAYER' as const, membershipEpoch: now },
+    { userId: otherPlayerId, role: 'PLAYER' as const, membershipEpoch: now }
+  ]
+  const authorization = liveSessionRoomAuthorizationSchema.parse(
+    roomAuthorizationResponse({ members })
+  )
+  authorization.preferences.find(({ userId }) => userId === playerId)!.autoRollDice = true
+  const authority = roomInputsResponse(
+    { kind: 'AUTHORITY', cursor: null },
+    { campaignId, systemId, ownerUserId: gmId, members }
+  )
+  if (authority.kind !== 'AUTHORITY') throw new Error('Missing Campaign authority fixture.')
+  const documents: RoomDocument[] = [
+    ...authority.documents,
+    {
+      table: 'encounterRuns',
+      id: 'turn:run',
+      creationTime: 0,
+      fields: {
+        id: state.id,
+        campaignId,
+        gameSystemId: systemId,
+        status: state.status,
+        version: state.version,
+        stateJson: JSON.stringify(state),
+        stateChecksum: checksumCanonicalJson(state),
+        createdAt: now,
+        updatedAt: now
+      }
+    },
+    ...[actor, otherActor].map((value) => ({
+      table: 'encounterRunActors' as const,
+      id: `turn:actor:${value.id}`,
+      creationTime: 0,
+      fields: {
+        id: value.id,
+        encounterId,
+        stateJson: JSON.stringify(value),
+        stateChecksum: checksumCanonicalJson(value)
+      }
+    })),
+    ...[5, 1, 4, 0, 3, 2, 6].map((index) => ({
+      table: 'encounterActiveRuleEffects' as const,
+      id: `turn:effect:${index}`,
+      creationTime: index,
+      fields: encounterActiveRuleEffectStoredSchema.parse({
+        id: uuid(0xe30 + index),
+        encounterId,
+        targetActorId: index === 6 ? otherActor.id : actor.id,
+        maintainedEffectStateId: null,
+        createdOrdinal: 7 - index,
+        version: 1,
+        definitionJson: JSON.stringify(definition),
+        definitionChecksum: checksumCanonicalJson(definition),
+        lifecycle,
+        lifecycleChecksum: checksumCanonicalJson(lifecycle),
+        createdAt: now,
+        updatedAt: now
+      })
+    }))
+  ]
+  const { storage } = createNodeSqliteRoomStorage()
+  const store = new RoomEncounterStore(storage)
+  store.hydrate({
+    epoch,
+    documents,
+    records: [
+      {
+        kind: 'ROOM_INPUT',
+        key: 'AUTHORITY',
+        revision: JSON.stringify(authority.revisions),
+        json: JSON.stringify({ ...authority, documents: [] })
+      }
+    ]
+  })
+  const read = vi.fn(async () => {
+    throw new Error('Turn capture must not read Convex.')
+  })
+  const inputs = new RoomInputs(store, read, async () => [])
+  const scene = {
+    readSceneHeader: async () => {
+      throw new Error('Actor capture must not read Scene state.')
+    },
+    readSceneEntities: async () => {
+      throw new Error('Actor capture must not read Scene entities.')
+    }
+  }
+  await store.transact(async (transaction) => {
+    const context = (userId: string) =>
+      roomEncounterReadTransaction({
+        store,
+        transaction,
+        inputs,
+        authorization,
+        campaignId,
+        epoch,
+        userId,
+        observed: authority.revisions
+      })
+    const owner = await context(gmId)
+    const player = await context(playerId)
+    const input: LiveSessionEncounterRulesInput = {
+      campaignId,
+      authorityEpoch: epoch,
+      expectedUserId: gmId,
+      expectedRole: 'OWNER',
+      encounterId,
+      expectedVersion: 1,
+      request: { kind: 'ACTOR', actorId: actor.id }
+    }
+    const capture = (ctx: typeof owner, value: LiveSessionEncounterRulesInput) =>
+      readRoomEncounterTurnCapture(ctx, inputs, transaction, value, authority.revisions, scene)
+    const first = await capture(owner, input)
+    if (first.kind !== 'ACTOR') throw new Error('Missing actor capture.')
+    expect(first.actor).toEqual(actor)
+    expect(first.effects.map(({ id }) => id)).toEqual(
+      [0, 1, 2, 3].map((index) => uuid(0xe30 + index))
+    )
+    expect(first.continueAfter).toBe(uuid(0xe33))
+    const { revisions, readChecksum, ...response } = first
+    expect(revisions).toEqual(authority.revisions)
+    expect(readChecksum).toBe(checksumCanonicalJson({ input, userId: gmId, response }))
+    const second = await capture(owner, {
+      ...input,
+      request: { kind: 'EFFECTS', actorId: actor.id, afterEffectId: first.continueAfter }
+    })
+    if (second.kind !== 'EFFECTS') throw new Error('Missing effects capture.')
+    expect(second.effects.map(({ id }) => id)).toEqual([uuid(0xe34), uuid(0xe35)])
+    expect(second.continueAfter).toBeNull()
+    await expect(capture(owner, { ...input, expectedUserId: playerId })).rejects.toThrow(
+      'identity mismatch'
+    )
+    await expect(capture(owner, { ...input, expectedRole: 'PLAYER' })).rejects.toThrow(
+      'role mismatch'
+    )
+    await expect(capture(owner, { ...input, expectedVersion: 2 })).rejects.toThrow(
+      'scope or version mismatch'
+    )
+    await expect(capture(owner, { ...input, authorityEpoch: uuid(0xe40) })).rejects.toThrow(
+      'live authority changed'
+    )
+    await expect(
+      capture(owner, { ...input, request: { kind: 'CLEAVING_BINDINGS' } })
+    ).rejects.toThrow('request is unavailable')
+    const playerInput: LiveSessionEncounterRulesInput = {
+      ...input,
+      expectedUserId: playerId,
+      expectedRole: 'PLAYER'
+    }
+    await expect(capture(player, playerInput)).rejects.toThrow('role mismatch')
+    const command = {
+      type: 'ADVANCE_TURN' as const,
+      encounterId,
+      commandId: uuid(0xe41),
+      expectedVersion: 1
+    }
+    const admitted = await capture(player, { ...playerInput, turnCommand: command })
+    if (admitted.kind !== 'ACTOR') throw new Error('Missing admitted player capture.')
+    expect(admitted.actor).toEqual(actor)
+    expect(admitted.effects).toEqual(first.effects)
+    const otherPlayer = await context(otherPlayerId)
+    await expect(
+      capture(otherPlayer, {
+        ...playerInput,
+        expectedUserId: otherPlayerId,
+        turnCommand: command
+      })
+    ).rejects.toThrow('NOT_ACTOR_CONTROLLER')
+    const turn = await capture(owner, { ...input, request: { kind: 'TURN_COMMAND', command } })
+    expect(turn).toMatchObject({
+      kind: 'TURN_COMMAND',
+      campaignOwnerUserId: gmId,
+      autoRollDice: false,
+      autoRollByActorId: { [actor.id]: true, [otherActor.id]: false },
+      responderControlledActorIds: [actor.id, otherActor.id].sort(),
+      command,
+      fingerprint: checksumCanonicalJson(command),
+      occurrenceVersion: null,
+      snapshot: null,
+      result: null,
+      appRoll: null
+    })
+  })
+  expect(read).not.toHaveBeenCalled()
+  expect(store.sequence).toBe(0)
+  expect(store.documents('encounterRunCommands')).toEqual([])
+})

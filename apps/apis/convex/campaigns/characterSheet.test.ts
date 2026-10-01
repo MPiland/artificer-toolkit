@@ -1,5 +1,5 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { z } from 'zod'
 import type {
   CampaignDetailDto,
@@ -42,7 +42,11 @@ import {
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, components, internal } from '../_generated/api'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
+
+beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }))
+afterEach(() => vi.useRealTimers())
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -84,7 +88,9 @@ const history = makeFunctionReference<'query', CharacterHistoryInput, CharacterH
   'characters/history:list'
 )
 
-async function setup(fixture?: Awaited<ReturnType<typeof readySheetFixture>>) {
+async function setup(
+  fixture?: Omit<Awaited<ReturnType<typeof readySheetFixture>>, 'readReceiptStorage'>
+) {
   const { owner: player, other: gm, ...base } = fixture ?? (await readySheetFixture())
   const campaign = await gm.caller.mutation(createCampaign, {
     name: 'Campaign Sheet',
@@ -215,9 +221,11 @@ describe('native Campaign Character Sheet boundary', () => {
     const before = await readState()
     expect((await player.caller.query(get, input)).meta.viewer).toBe('CHARACTER_OWNER')
     expect((await gm.caller.query(get, input)).meta.viewer).toBe('CAMPAIGN_OWNER')
-    expect(await gm.caller.query(preparationOptions, input)).toEqual(
-      await player.caller.query(preparationOptions, input)
-    )
+    const gmPreparation = await gm.caller.query(preparationOptions, input)
+    const ownerPreparation = await player.caller.query(preparationOptions, input)
+    expect(gmPreparation.classes).toEqual(ownerPreparation.classes)
+    expect(gmPreparation.catalogue).toEqual({ kind: 'INLINE', spells: [] })
+    expect(ownerPreparation.catalogue.kind).toBe('SNAPSHOTS')
     await expect(t.query(get, input)).rejects.toThrow()
     await expect(member.query(get, input)).rejects.toThrow('Assigned Character not found')
     await expect(
@@ -242,6 +250,9 @@ describe('native Campaign Character Sheet boundary', () => {
     expect(await readState()).toEqual(before)
 
     const first = await gm.caller.mutation(execute, { ...input, command })
+    expect(first).not.toHaveProperty('sheet')
+    expect(first).not.toHaveProperty('panels')
+
     const written = await readState()
     expect(first.streamVersion).toBe(2)
     await t.run((ctx) => ctx.db.patch(memberId, { status: 'LEFT', leftAt: campaign.createdAt }))
@@ -471,10 +482,14 @@ describe('native Campaign Character Sheet boundary', () => {
     const readState = () =>
       fixture.t.run(async (ctx) => ({
         character: await readCharacterRow(ctx, character.id),
-        receipts: await ctx.db
-          .query('characterCommandReceipts')
-          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-          .take(20)
+        receipts: await readReceiptHeaders(
+          ctx,
+          'characterCommandReceipts',
+          await ctx.db
+            .query('characterCommandReceipts')
+            .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+            .take(20)
+        )
       }))
     const { player, gm, input } = await setup({ ...fixture, character, committed, readState })
     const added = await player.caller.mutation(personalExecute, {
@@ -489,7 +504,11 @@ describe('native Campaign Character Sheet boundary', () => {
         notes: 'shit PRIVATE-ITEM'
       }
     })
-    const item = added.sheet.inventory.items.find((entry) => entry.equipmentId === equipment.id)!
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await player.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    const item = addedSheet.inventory.items.find((entry) => entry.equipmentId === equipment.id)!
     const equipped = await player.caller.mutation(personalExecute, {
       id: character.id,
       command: {
@@ -499,7 +518,11 @@ describe('native Campaign Character Sheet boundary', () => {
         itemId: item.id
       }
     })
-    const source = equipped.sheet.spells.spells.find((spell) => spell.id === fireBolt.id)
+    expect(equipped).not.toHaveProperty('sheet')
+    const equippedSheet = (await player.caller.query(api.characters.sheet.get, {
+      id: equipped.characterId
+    }))!
+    const source = equippedSheet.spells.spells.find((spell) => spell.id === fireBolt.id)
       ?.sources?.[0]?.source
     if (!source) throw new Error('Missing initial Class spell grant.')
     const group = await player.caller.mutation(personalExecute, {
@@ -511,7 +534,11 @@ describe('native Campaign Character Sheet boundary', () => {
         label: 'PRIVATE-GROUP'
       }
     })
-    const groupId = group.sheet.notes.groups?.find((entry) => entry.kind === 'CUSTOM')?.id
+    expect(group).not.toHaveProperty('sheet')
+    const groupSheet = (await player.caller.query(api.characters.sheet.get, {
+      id: group.characterId
+    }))!
+    const groupId = groupSheet.notes.groups?.find((entry) => entry.kind === 'CUSTOM')?.id
     if (!groupId) throw new Error('Missing private note group.')
     await player.caller.mutation(personalExecute, {
       id: character.id,
@@ -533,7 +560,11 @@ describe('native Campaign Character Sheet boundary', () => {
         extra: { kind: 'COMPANION', creatureId: cat.id, originKind: 'WORLD' }
       }
     })
-    const companion = extra.sheet.extras.items.find((entry) => entry.kind === 'COMPANION')!
+    expect(extra).not.toHaveProperty('sheet')
+    const extraSheet = (await player.caller.query(api.characters.sheet.get, {
+      id: extra.characterId
+    }))!
+    const companion = extraSheet.extras.items.find((entry) => entry.kind === 'COMPANION')!
     await player.caller.mutation(personalExecute, {
       id: character.id,
       command: {
@@ -624,16 +655,21 @@ describe('native Campaign Character Sheet boundary', () => {
         customName: 'shit renamed flame'
       }
     })
+    expect(renamedSpell).not.toHaveProperty('sheet')
+    const renamedSpellSheet = (await gm.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: input.campaignId,
+      characterId: renamedSpell.characterId
+    }))!
+    expect(renamedSpellSheet.extras.items.find((entry) => entry.id === companion.id)).toMatchObject(
+      {
+        displayName: '**** renamed familiar',
+        customName: 'shit renamed familiar'
+      }
+    )
     expect(
-      renamedSpell.sheet.extras.items.find((entry) => entry.id === companion.id)
-    ).toMatchObject({
-      displayName: '**** renamed familiar',
-      customName: 'shit renamed familiar'
-    })
-    expect(
-      renamedSpell.sheet.spells.spells.find((spell) => spell.id === fireBolt.id)?.sources
+      renamedSpellSheet.spells.spells.find((spell) => spell.id === fireBolt.id)?.sources
     ).toContainEqual(expect.objectContaining({ customName: 'shit renamed flame' }))
-    expect(JSON.stringify(renamedSpell.sheet)).not.toContain('PRIVATE-')
+    expect(JSON.stringify(renamedSpellSheet)).not.toContain('PRIVATE-')
     const afterRenames = await readState()
     expect(
       readCharacterRecord(afterRenames.character!).state.creatures?.find(
@@ -671,12 +707,19 @@ describe('native Campaign Character Sheet boundary', () => {
       customName: 'shit club'
     }
     const first = await gm.caller.mutation(execute, { ...input, command: rename })
+    expect(first).not.toHaveProperty('sheet')
+    const firstSheet = (await gm.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: input.campaignId,
+      characterId: first.characterId
+    }))!
     expect(first).toMatchObject({ streamVersion: 3, historyEntry: { actorId: gm.userId } })
-    expect(first.sheet.inventory.items.find((item) => item.id === itemId)).toMatchObject({
+    expect(firstSheet.inventory.items.find((item) => item.id === itemId)).toMatchObject({
       label: '**** club',
       customName: 'shit club'
     })
-    expect(JSON.stringify(first)).not.toContain('PRIVATE-UNCHANGED')
+    expect(JSON.stringify({ acknowledgement: first, sheet: firstSheet })).not.toContain(
+      'PRIVATE-UNCHANGED'
+    )
     await player.caller.mutation(personalExecute, {
       id: character.id,
       command: {
@@ -688,7 +731,8 @@ describe('native Campaign Character Sheet boundary', () => {
     })
     const beforeReplay = await readState()
     const replay = await gm.caller.mutation(execute, { ...input, command: rename })
-    expect(replay).toMatchObject({ streamVersion: 4, sheet: { overview: { inspiration: true } } })
+    expect(replay).toMatchObject({ streamVersion: 4 })
+    expect((await gm.caller.query(get, input)).overview.inspiration).toBe(true)
     expect(replay.historyEntry).toEqual(first.historyEntry)
     expect(await readState()).toEqual(beforeReplay)
     const forbidden = [
@@ -729,9 +773,14 @@ describe('native Campaign Character Sheet boundary', () => {
         customName: null
       }
     })
+    expect(cleared).not.toHaveProperty('sheet')
+    const clearedSheet = (await gm.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: input.campaignId,
+      characterId: cleared.characterId
+    }))!
     expect(cleared.streamVersion).toBe(5)
     expect(
-      cleared.sheet.inventory.items.find((item) => item.id === itemId)?.customName
+      clearedSheet.inventory.items.find((item) => item.id === itemId)?.customName
     ).toBeUndefined()
     const final = await readState()
     const authored = readCharacterRecord(final.character!)
@@ -748,11 +797,17 @@ describe('native Campaign Character Sheet boundary', () => {
       id: character.id,
       paginationOpts: { cursor: null, numItems: 48 }
     })
-    expect(ownerHistory.page).toHaveLength(2)
-    expect(ownerHistory.page.every((entry) => entry.actorId === player.userId)).toBe(true)
-    expect(ownerHistory.page.some((entry) => entry.eventId === first.historyEntry?.eventId)).toBe(
-      false
-    )
+    expect(ownerHistory.page).toHaveLength(1)
+    expect(ownerHistory.isDone).toBe(false)
+    const nextOwnerHistory = await player.caller.query(history, {
+      id: character.id,
+      paginationOpts: { cursor: ownerHistory.continueCursor, numItems: 48 }
+    })
+    expect(nextOwnerHistory.page).toHaveLength(1)
+    expect(nextOwnerHistory.isDone).toBe(true)
+    const ownerEntries = [...ownerHistory.page, ...nextOwnerHistory.page]
+    expect(ownerEntries.every((entry) => entry.actorId === player.userId)).toBe(true)
+    expect(ownerEntries.some((entry) => entry.eventId === first.historyEntry?.eventId)).toBe(false)
     expect(await readState()).toEqual(final)
   })
 
@@ -844,7 +899,12 @@ describe('native Campaign Character Sheet boundary', () => {
     ).rejects.toThrow()
     expect(await readState()).toEqual(before)
     const first = await gm.caller.mutation(execute, { ...input, command })
-    expect(first.sheet.overview.currentHitPoints).toBe(15)
+    expect(first).not.toHaveProperty('sheet')
+    const firstSheet = (await gm.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: input.campaignId,
+      characterId: first.characterId
+    }))!
+    expect(firstSheet.overview.currentHitPoints).toBe(15)
     expect(first.historyEntry?.actorId).toBe(gm.userId)
     const after = await readState()
     expect(after.character?.play.streamVersion).toBe(4)
@@ -887,7 +947,12 @@ describe('native Campaign Character Sheet boundary', () => {
         quantity: 1
       }
     })
-    const itemId = added.sheet.inventory.items.find((item) => item.equipmentId === equipment.id)!.id
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await gm.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: input.campaignId,
+      characterId: added.characterId
+    }))!
+    const itemId = addedSheet.inventory.items.find((item) => item.equipmentId === equipment.id)!.id
     await gm.caller.mutation(execute, {
       ...input,
       command: {
@@ -912,7 +977,12 @@ describe('native Campaign Character Sheet boundary', () => {
       attunementSlotOverride: 1
     })
     const result = await gm.caller.mutation(execute, { ...input, command })
-    expect(result.sheet.inventory.items.find((item) => item.id === itemId)?.attuned).toBe(true)
+    expect(result).not.toHaveProperty('sheet')
+    const resultSheet = (await gm.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: input.campaignId,
+      characterId: result.characterId
+    }))!
+    expect(resultSheet.inventory.items.find((item) => item.id === itemId)?.attuned).toBe(true)
     const after = await readState()
     expect(after.character?.play.streamVersion).toBe(4)
     expect(after.receipts).toHaveLength(before.receipts.length + 1)

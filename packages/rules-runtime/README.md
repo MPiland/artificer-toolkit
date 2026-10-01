@@ -29,6 +29,13 @@ boundary. Current focused subpaths provide installed D&D Character and Encounter
 optional-combat validation, active-effect execution, occurrence handling, movement, projections,
 Builder/Sheet composition, and deterministic replay helpers. Backends provide trusted current sources,
 authority, timestamps and transaction storage; this package remains persistence-independent.
+Character resource admission and spend calculations live in `character/sheetResourceUsage`;
+Convex uses the shared calculation, with held-Sheet room integration still pending.
+
+Character source readers supply complete authorized Spell selector entries separately from referenced
+authored documents. Readiness and selection use the complete pool; mechanics use learned, prepared,
+chosen and granted references, plus explicit inspector requests. Transaction-local reuse retains both
+sets and hydrates newly referenced documents. Retained acquired rules never enlarge the current picker.
 
 Use `yarn workspace @artificer-toolkit/rules-runtime typecheck` for focused changes; it checks the
 sources (`tsconfig.build.json`) and the pure tests under `src/__tests__` (`tsconfig.tests.json`), so

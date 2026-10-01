@@ -38,13 +38,16 @@ flowchart LR
 4. Run `yarn validate:pre-staging:local`. It cleans runtime outputs and builds the workspaces before
    generating artifacts, because the generators import compiled workspace packages. The build uses
    committed generated files; regeneration must preserve their exact bytes or the gate fails.
-   Package and native Convex typechecks follow. Convex test shards run in pairs, each in a separate
-   process with one worker; every shard retains its own log and result. A failed pair waits for both
-   results and stops later stages. Other package checks and all database/browser proofs remain serial.
-   After these checks, the runner verifies source identity and deploys locally, reusing the verified
-   generation and native typecheck. It verifies identity again before Convex reset/seed/audit, native
+   Package and native Convex typechecks follow, separately from tests, with `GOMAXPROCS=2` and
+   Turbo concurrency one. Convex test shards run serially, each in a separate process with one
+   worker; every shard retains its own log and result. A failed shard stops later stages.
+   Other package checks and all database/browser proofs remain serial.
+   Before Convex codegen pushes a schema, the runner backs up and resets disposable local fixtures.
+   Required fields and removed storage paths can reject old rows during that push; resetting after
+   deployment would be too late. After package checks, the runner verifies source identity and deploys
+   locally, reusing the verified generation and native typecheck. It verifies identity again before seed/audit, native
    transaction/replay/rollback/privacy proofs, complete browser journeys, and the frozen local workload.
-   To checkpoint before the guarded reset, pass `--stop-after=convex-local-deploy`; resume with
+   To checkpoint before the guarded reset, pass `--stop-after=srd-manifest`; resume with
    `--start-at=convex-reset --provenance-manifest=<checkpoint manifest>`. The final manifest must still
    pass every stage from the same source identity. `--list` prints the stages and commands without
    running anything.

@@ -11,6 +11,7 @@ import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { ResolvedEquipment, ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
 import type { CharacterBuilderChosenGrantChoice } from './chosenGrantChoiceResolver.js'
 
@@ -36,6 +37,7 @@ export interface CharacterBuilderContext {
   /** Exact current Spell documents authorized for this Character context. */
   spellDocumentsById?: ReadonlyMap<string, SpellAuthored>
   currentSpellDocumentsById?: ReadonlyMap<string, SpellAuthored>
+  spellCatalogueEntries?: readonly ContentSnapshotIndexEntry<'SPELL'>[]
   /** Exact server-loaded vocabulary snapshot that produced this registry. */
   vocabularySnapshot?: Pick<SystemVocabularySnapshot, 'document'>
 }

@@ -42,6 +42,11 @@ import {
 } from '../../tests/fixtures/liveSessionWorker'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { grantFixtureActorControl } from '../../tests/fixtures/spatialPreparation'
+import { readReceiptHeader } from '../lib/receiptLedgers'
+import {
+  createConvexEncounterStoreReader,
+  createConvexEncounterStore
+} from '../lib/convexEncounterStore'
 
 const importDefinitions = makeFunctionReference<
   'mutation',
@@ -240,7 +245,7 @@ async function exhaustFixtureReaction(value: Awaited<ReturnType<typeof setupPass
       ...state,
       resources: withEncounterRuleUsageUsed(state, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 1)
     })
-    await writeRunActor(ctx, actor._id, exhausted)
+    await writeRunActor({ db: createConvexEncounterStore(ctx) }, actor._id, exhausted)
   })
 }
 
@@ -308,6 +313,8 @@ describe('native Scene movement passage', () => {
       return {
         entities: await ctx.db.query('sceneLiveEntities').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await ctx.db.query('encounterRuleReceipts').collect()
       }
     })
@@ -316,6 +323,8 @@ describe('native Scene movement passage', () => {
       await value.base.t.run(async (ctx) => ({
         entities: await ctx.db.query('sceneLiveEntities').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await ctx.db.query('encounterRuleReceipts').collect()
       }))
     ).toEqual(before)
@@ -367,7 +376,9 @@ describe('native Scene movement passage', () => {
         .query('encounterRuleOccurrences')
         .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))
         .unique()
-      return occurrence && readPendingSnapshot(ctx, occurrence)
+      return (
+        occurrence && readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
+      )
     })
     if (!issued) throw new Error('Resumed Passage choice is unavailable.')
     expect(issued.applicationContext).toMatchObject({
@@ -472,6 +483,8 @@ describe('native Scene movement passage', () => {
         runs: await ctx.db.query('encounterRuns').collect(),
         scenes: await ctx.db.query('sceneLiveStates').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await ctx.db.query('encounterRuleReceipts').collect()
       }))
     const before = await rows()
@@ -699,6 +712,8 @@ describe('native Scene movement passage', () => {
           sceneEntities: await ctx.db.query('sceneLiveEntities').collect(),
           sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
           occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+          receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+          receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
           receipts: await ctx.db.query('encounterRuleReceipts').collect()
         }))
       const before = await rows()
@@ -942,7 +957,9 @@ describe('native Scene movement passage', () => {
         .query('encounterRuleOccurrences')
         .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))
         .unique()
-      return occurrence && readPendingSnapshot(ctx, occurrence)
+      return (
+        occurrence && readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
+      )
     })
     if (!issued) throw new Error('Issued passage choice is unavailable.')
     expect(issued.applicationContext).toMatchObject({
@@ -962,14 +979,15 @@ describe('native Scene movement passage', () => {
       kind: 'TOKEN_MOVED',
       position: { x: 450, y: 50 }
     })
-    const receipt = await value.base.t.run((ctx) =>
-      ctx.db
+    const receipt = await value.base.t.run(async (ctx) => {
+      const header = await ctx.db
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) =>
           q.eq('encounterId', value.base.run.id).eq('commandId', response.command.commandId)
         )
         .unique()
-    )
+      return header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
+    })
     if (!receipt) throw new Error('Passage terminal receipt is unavailable.')
     const [resolution] = JSON.parse(receipt.commandMetadataJson).resolutionCommands
     expect(resolution?.passageContest?.audit.terminalPosition).toEqual({ x: 450, y: 50 })

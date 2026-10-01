@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -133,8 +134,8 @@ describe('native movement target facts', () => {
       expectedEncounterVersion: fixture.run.version,
       targetActorIds: [actor.id]
     }
-    const custom = await fixture.owner.caller.run(
-      async (ctx) => (await loadMovementTargets(ctx, input)).get(actor.id)!
+    const custom = await fixture.owner.caller.run(async (ctx) =>
+      (await loadMovementTargets(ctx, input)).get(actor.id)!
     )
     expect(custom.defenses).toEqual([])
     expect(custom.baseScalarValues).toEqual({})
@@ -179,10 +180,10 @@ describe('native movement target facts', () => {
           }
         }
       })
-      await writeRunActor(ctx, row._id, creature)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, creature)
     })
-    const creature = await fixture.owner.caller.run(
-      async (ctx) => (await loadMovementTargets(ctx, input)).get(actor.id)!
+    const creature = await fixture.owner.caller.run(async (ctx) =>
+      (await loadMovementTargets(ctx, input)).get(actor.id)!
     )
     expect(creature.baseScalarValues).toEqual({ [abilityId]: 12 })
     expect(creature.defenses).toEqual([{ kind: 'RESISTANCE', damageTypeId }])
@@ -336,7 +337,7 @@ describe('native movement target facts', () => {
       ]
     }
     await fixture.owner.caller.run(async (ctx) => {
-      await createActiveRuleEffectStore(ctx).create({
+      await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
         owner: { kind: 'CHARACTER', characterId: fixture.character.id },
         id: crypto.randomUUID(),
         definition,
@@ -366,7 +367,7 @@ describe('native movement target facts', () => {
       }
     })
     await fixture.owner.caller.run((ctx) =>
-      createActiveRuleEffectStore(ctx).updateLifecycleCas({
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).updateLifecycleCas({
         owner: { kind: 'CHARACTER', characterId: fixture.character.id },
         id: after.activeEffects[0]!.id,
         expectedVersion: after.activeEffects[0]!.version,

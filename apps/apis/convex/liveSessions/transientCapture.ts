@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   liveSessionTransientCaptureInputSchema,
@@ -55,7 +56,7 @@ async function readBoundTokenControl(
       .query('encounterActorTokenBindings')
       .withIndex('by_encounterId_tokenId', (q) => q.eq('encounterId', run.id))
       .collect(),
-    readRunActors(ctx, readRunState(run))
+    readRunActors({ db: createConvexEncounterStoreReader(ctx) }, readRunState(run))
   ])
   const controlled = await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
     ...input,
@@ -75,7 +76,9 @@ async function readMovementDecisionPending(ctx: QueryCtx, encounterId: string) {
       q.eq('encounterId', encounterId).eq('state', 'PENDING')
     )
     .take(1)
-  const snapshot = pending ? await readPendingSnapshot(ctx, pending) : null
+  const snapshot = pending
+    ? await readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, pending)
+    : null
   return snapshot !== null && isEncounterMovementContext(snapshot.applicationContext)
 }
 

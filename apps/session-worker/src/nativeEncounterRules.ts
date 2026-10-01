@@ -577,7 +577,20 @@ export async function commitNativeLiveEncounterActionPending(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PENDING' }>
 ) {
-  const input = liveSessionEncounterActionPendingInputSchema.parse({
+  return callLiveSessionRoute(
+    environment,
+    accessToken,
+    'encounterActionPending',
+    buildNativeLiveEncounterActionPendingInput(scope, plan)
+  )
+}
+
+/** Both persistence owners receive the same sealed pending contract. */
+export function buildNativeLiveEncounterActionPendingInput(
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
+  plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PENDING' }>
+) {
+  return liveSessionEncounterActionPendingInputSchema.parse({
     ...scope,
     command: plan.command,
     response: plan.response,
@@ -604,13 +617,25 @@ export async function commitNativeLiveEncounterActionPending(
       ...(plan.execution.phaseReceipts ? { phaseReceipts: plan.execution.phaseReceipts } : {})
     }
   })
-  return callLiveSessionRoute(environment, accessToken, 'encounterActionPending', input)
 }
 
 /** Publishes the completed root and its dependent records in one authenticated transaction. */
 export async function commitNativeLiveEncounterAction(
   environment: NativeLiveSessionEnvironment,
   accessToken: string,
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
+  plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PLANNED' }>
+) {
+  return callLiveSessionRoute(
+    environment,
+    accessToken,
+    'encounterActionCommit',
+    buildNativeLiveEncounterActionCommitInput(scope, plan)
+  )
+}
+
+/** Both persistence owners receive the same completed action and child contracts. */
+export function buildNativeLiveEncounterActionCommitInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PLANNED' }>
 ) {
@@ -621,7 +646,7 @@ export async function commitNativeLiveEncounterAction(
         : []
     )
   )
-  const input = liveSessionEncounterActionCommitInputSchema.parse({
+  return liveSessionEncounterActionCommitInputSchema.parse({
     ...scope,
     command: plan.command,
     response: plan.response,
@@ -640,5 +665,4 @@ export async function commitNativeLiveEncounterAction(
     cleaving: plan.cleaving,
     allyAdvantageUses: plan.allyAdvantageUses
   })
-  return callLiveSessionRoute(environment, accessToken, 'encounterActionCommit', input)
 }

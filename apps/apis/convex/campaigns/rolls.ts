@@ -14,7 +14,7 @@ import {
   type RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
 import {
-  campaignStoredEntryHeaderSchema,
+  campaignStoredEntryIdentitySchema,
   campaignStoredEntryPayloadSchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -129,7 +129,7 @@ async function insertRollEntry(
   const { authority, access, roll } = entry
   const now = await readCampaignAccessTime(ctx, authority.campaign)
   await consumeUserRateLimit(ctx, 'campaignConversation', entry.userId)
-  const header = campaignStoredEntryHeaderSchema.parse({
+  const header = campaignStoredEntryIdentitySchema.parse({
     id: crypto.randomUUID(),
     campaignId: authority.campaign.id,
     conversationId: access.conversation.id,

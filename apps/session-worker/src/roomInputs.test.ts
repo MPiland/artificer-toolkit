@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   liveRoomCharacterPartSchema,
+  liveRoomDefinitionSchema,
+  type LiveRoomDefinition,
   type LiveRoomInputsDocument,
   type LiveRoomInputsInput,
   type LiveRoomInputsResponse,
@@ -8,11 +10,37 @@ import {
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { readRoomInputsBatch } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type {
+  ContentSnapshotManifestDto,
+  ContentSnapshotObject
+} from '@artificer-toolkit/schema/api/contentSnapshots'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
+import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { liveSessionCheckpointSceneKeys } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
+import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
+import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
+import {
+  ROOM_SCENE_DEFINITION_ENTITY,
+  ROOM_SCENE_DEFINITION_HEADER
+} from './roomSceneDefinition.js'
 import { characterPageFixture } from './testing/characterPageFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
+import { roomInputsResponse } from '../test/roomInputsFixture.js'
+import {
+  readCharacterRecord,
+  readCharacterPlay
+} from '@artificer-toolkit/schema/projections/characterStoredState'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
+import {
+  campaignStoredConversationSchema,
+  campaignStoredConversationMemberSchema,
+  campaignStoredEntryHeaderSchema
+} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import { ruleCapabilityReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleState'
 
 const uuid = (index: number) => `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
 const EPOCH = uuid(0x900)
@@ -20,6 +48,61 @@ const CAMPAIGN = uuid(2)
 const ENCOUNTER = uuid(1)
 const FIRST_CHARACTER = uuid(0x201)
 const SECOND_CHARACTER = uuid(0x202)
+const SCENE = uuid(0x500)
+const FOG_SAVE = uuid(0x503)
+const sceneSource = {
+  sceneId: SCENE,
+  definitionSaveId: uuid(0x501),
+  definitionVersion: 2,
+  presentationVersion: 3
+}
+const sceneBaseToken = {
+  collection: 'tokens' as const,
+  entity: {
+    id: uuid(0x502),
+    assetId: null,
+    controlledByUserIds: [],
+    height: 1,
+    hidden: false,
+    label: 'Immutable base token',
+    locked: false,
+    position: { x: 0, y: 0 },
+    rotationDegrees: 0,
+    vision: null,
+    width: 1
+  }
+}
+const sceneDefinitionEntity = sceneStoredDefinitionEntitySchema.parse({
+  saveId: sceneSource.definitionSaveId,
+  entityId: sceneBaseToken.entity.id,
+  ordinal: 0,
+  value: sceneBaseToken,
+  checksum: checksumCanonicalJson(sceneBaseToken)
+})
+const sceneDefinitionHeader = sceneLiveStateHeaderSchema.parse({
+  id: SCENE,
+  campaignId: CAMPAIGN,
+  definitionId: uuid(0x520),
+  definitionSaveId: sceneSource.definitionSaveId,
+  definitionVersion: sceneSource.definitionVersion,
+  version: 2,
+  name: 'Room fixture Scene',
+  ambientIllumination: 'BRIGHT',
+  visionRevealMode: 'ON_DRAG',
+  fogMode: 'OFF',
+  grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },
+  map: { assetId: uuid(0x521), width: 1000, height: 1000, tileManifestAssetId: null },
+  fogLayerCount: 1,
+  counts: { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 1 },
+  currentCounts: {
+    annotations: 0,
+    barriers: 0,
+    darknessZones: 0,
+    lights: 0,
+    tokens: 0,
+    measurements: 0
+  }
+})
 /** A query page holds four Run documents and one Character effect, so every read spans pages. */
 const RUN_PAGE_SIZE = 4
 const EFFECT_PAGE_SIZE = 1
@@ -32,13 +115,101 @@ const characterPage = (() => {
   return part
 })()
 
+function characterInputs(characterId: string, label = 1) {
+  if (!characterPage.inputs) throw new Error('Missing Character fixture inputs.')
+  const inputs = structuredClone(characterPage.inputs)
+  const name = label === 1 ? inputs.owner.label : `${inputs.owner.label} ${label}`
+  const userId = uuid(0x7000 + Number.parseInt(characterId.slice(-6), 16))
+  const document = {
+    ...canonicalJsonRecordSchema.parse(JSON.parse(inputs.owner.documentJson)),
+    id: characterId,
+    userId,
+    label: name
+  }
+  return {
+    ...inputs,
+    owner: {
+      ...inputs.owner,
+      _id: `fixture:character:${characterId}`,
+      id: characterId,
+      userId,
+      label: name,
+      documentJson: JSON.stringify(document),
+      checksum: checksumRuleDocument(document),
+      play: {
+        ...inputs.owner.play,
+        _id: `fixture:character-play:${characterId}`,
+        characterId,
+        userId
+      }
+    }
+  }
+}
+
+function atRevision(
+  manifest: ContentSnapshotManifestDto,
+  revision: number
+): ContentSnapshotManifestDto {
+  return {
+    ...manifest,
+    campaign: manifest.campaign && {
+      ...manifest.campaign,
+      head: {
+        scope: 'CAMPAIGN',
+        scopeId: manifest.campaign.id,
+        revision,
+        builtRevision: revision,
+        kinds: {}
+      }
+    }
+  }
+}
+
+const characterManifest = (() => {
+  const manifest = characterPage.contentSnapshots
+  if (!manifest) throw new Error('The Character fixture has no content manifest.')
+  return manifest
+})()
+
 const revisions = (label: number, characterId?: string): LiveSessionRulesRevisions => [
-  { scope: 'SYSTEM', id: uuid(0x10), revision: uuid(0x1000 + label) },
-  { scope: 'CAMPAIGN', id: uuid(0x11), revision: uuid(0x2000 + label) },
+  { scope: 'SYSTEM', id: uuid(3), revision: uuid(0x1000 + label) },
+  { scope: 'CAMPAIGN', id: CAMPAIGN, revision: uuid(0x2000 + label) },
   characterId
     ? { scope: 'CHARACTER', id: characterId, revision: uuid(0x3000 + label) }
-    : { scope: 'PLAY', id: uuid(0x12), revision: uuid(0x4000 + label) }
+    : { scope: 'PLAY', id: CAMPAIGN, revision: uuid(0x4000 + label) }
 ]
+
+function definitionFixture(
+  id: string,
+  sourceKind: LiveRoomDefinition['sourceKind'] = 'PLATFORM',
+  systemId = uuid(3)
+) {
+  const document = ruleCapabilityReusableDefinitionDocumentDtoSchema.parse({
+    schemaVersion: 1,
+    kind: 'RULE_CAPABILITY',
+    id,
+    gameSystemId: systemId,
+    usage: null
+  })
+  return liveRoomDefinitionSchema.parse({
+    id,
+    sourceKind,
+    definition: reusableDefinitionCurrentDtoSchema.parse({
+      id,
+      gameSystemId: systemId,
+      contentSourceId: uuid(0x601),
+      definitionFamilyKey: 'rule-capability',
+      label: `Capability ${id}`,
+      description: null,
+      document,
+      checksum: checksumRuleDocument(document),
+      contractVersion: 1,
+      version: 1,
+      publishedAt: '2026-09-29T00:00:00.000Z',
+      publishedBy: uuid(4)
+    })
+  })
+}
 
 const checksum = (label: string) => sha256Hex(label)
 let creationTime = 1_780_000_000_000
@@ -101,15 +272,199 @@ const effect = (characterId: string, ordinal: number) =>
     sourceEncounterId: null
   })
 
+function sceneDocuments() {
+  const input = {
+    type: 'MOVE_SCENE_TOKEN',
+    sceneId: SCENE,
+    commandId: uuid(0x504),
+    expectedSceneVersion: 2,
+    expectedEncounterVersion: 1,
+    correlationId: null,
+    movementKind: 'VOLUNTARY',
+    tokenId: uuid(0x502),
+    path: [
+      { x: 0, y: 0 },
+      { x: 5, y: 0 }
+    ]
+  }
+  const result = {
+    sceneId: SCENE,
+    commandId: input.commandId,
+    version: 2,
+    replayed: false,
+    delta: null,
+    fogPatches: [],
+    occurrence: {
+      occurrenceId: uuid(0x511),
+      occurrenceVersion: 1,
+      status: 'PENDING',
+      outcome: null,
+      pending: null
+    }
+  }
+  const counts = {
+    annotations: 0,
+    barriers: 0,
+    darknessZones: 0,
+    lights: 0,
+    tokens: 0,
+    measurements: 0
+  }
+  const chunks = [0, 1].map((ordinal) => ({
+    data: 'AA==',
+    width: 1,
+    height: 1,
+    index: ordinal,
+    x: ordinal,
+    y: 0
+  }))
+  const manifest = chunks.map((chunk) => ({
+    index: chunk.index,
+    checksum: checksumCanonicalJson(chunk)
+  }))
+  const rows = [
+    document('sceneLiveStates', 'scene:head', {
+      sceneId: SCENE,
+      version: 2,
+      fogLayerCount: 1,
+      nextFogOrdinal: 1,
+      settings: {
+        ambientIllumination: { value: 'BRIGHT', version: 0 },
+        visionRevealMode: { value: 'ON_DRAG', version: 0 },
+        fogMode: { value: 'OFF', version: 0 }
+      },
+      counts,
+      nextOrdinals: { ...counts, tokens: 1 }
+    }),
+    document('sceneLiveEntities', 'scene:tombstone', {
+      sceneId: SCENE,
+      collection: 'tokens',
+      entityId: uuid(0x502),
+      value: null,
+      ordinal: null,
+      version: 2,
+      checksum: checksum('tombstone')
+    }),
+    document('sceneLiveCommands', 'scene:command', {
+      sceneId: SCENE,
+      commandId: input.commandId,
+      actorUserId: uuid(4),
+      encoding: 'GEOMETRY',
+      input,
+      result,
+      inputChecksum: checksum('input'),
+      resultChecksum: checksum('result')
+    }),
+    document('sceneFogLayers', 'scene:layer', {
+      sceneId: SCENE,
+      ownerUserId: null,
+      width: 2,
+      height: 1,
+      ordinal: 0,
+      version: 2,
+      chunks: manifest.map((entry, ordinal) => ({
+        index: entry.index,
+        saveId: FOG_SAVE,
+        ordinal,
+        checksum: entry.checksum
+      })),
+      checksum: checksum('layer')
+    }),
+    document('sceneFogSaves', 'scene:fogsave', {
+      id: FOG_SAVE,
+      sceneId: SCENE,
+      commandId: uuid(0x505),
+      actorUserId: uuid(4),
+      input: {
+        type: 'PATCH_SCENE_FOG',
+        sceneId: SCENE,
+        commandId: uuid(0x505),
+        expectedSceneVersion: 1,
+        layer: { ownerUserId: null, width: 2, height: 1 },
+        chunkManifest: manifest
+      },
+      inputChecksum: checksum('fog'),
+      status: 'PUBLISHED',
+      receivedChunks: 2,
+      expiresAt: 1,
+      chunksRemoved: false
+    }),
+    ...chunks.map((chunk, ordinal) =>
+      document('sceneFogChunks', `scene:chunk:${ordinal}`, {
+        saveId: FOG_SAVE,
+        ordinal,
+        chunk,
+        checksum: checksumCanonicalJson(chunk)
+      })
+    ),
+    document('sceneGeometrySaves', 'scene:geometrysave', {
+      id: uuid(0x512),
+      sceneId: SCENE,
+      commandId: input.commandId,
+      actorUserId: uuid(4),
+      input,
+      inputChecksum: checksum('input'),
+      snapshotVersion: 2,
+      status: 'PUBLISHED',
+      expiresAt: 1,
+      fogSaves: []
+    })
+  ]
+  for (const row of rows) {
+    if (row.table === 'sceneLiveEntities' || row.table === 'sceneFogLayers') {
+      const content = { ...row.fields }
+      delete content.checksum
+      row.fields.checksum = checksumCanonicalJson(content)
+    } else {
+      if ('input' in row.fields) row.fields.inputChecksum = checksumCanonicalJson(row.fields.input)
+      if ('result' in row.fields)
+        row.fields.resultChecksum = checksumCanonicalJson(row.fields.result)
+    }
+  }
+  return rows
+}
+
 /**
  * A Convex that serves the room's inputs from mutable state. `page` answers one query; `read`
  * answers one route call, which joins pages the way the real route does, so `reads.length` is the
  * number of Worker subrequests.
  */
 function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: number) {
+  const assignedCharacters = [
+    ...new Set(actors.flatMap((actor) => (typeof actor === 'string' ? [actor] : [])))
+  ]
+  const authority = roomInputsResponse(
+    { kind: 'AUTHORITY', cursor: null },
+    {
+      campaignId: CAMPAIGN,
+      systemId: uuid(3),
+      ownerUserId: uuid(4),
+      members: [
+        { userId: uuid(4), role: 'OWNER', membershipEpoch: '2026-09-29T00:00:00.000Z' },
+        ...assignedCharacters.map((characterId) => ({
+          userId: characterInputs(characterId).owner.userId,
+          role: 'PLAYER' as const,
+          membershipEpoch: '2026-09-29T00:00:00.000Z'
+        }))
+      ],
+      assignments: assignedCharacters.map((characterId) => ({
+        characterId,
+        userId: characterInputs(characterId).owner.userId
+      }))
+    }
+  )
+  if (authority.kind !== 'AUTHORITY') throw new Error('Missing authority fixture.')
   const state = {
+    authority: authority.documents,
+    chatMetadata: new Array<LiveRoomInputsDocument>(),
+    definitions: new Array<LiveRoomDefinition>(),
+    onDefinitionPage: (_offset: number) => {},
     run: runDocuments(actors, padding),
     runVersion: 1,
+    scene: sceneDocuments(),
+    sceneVersion: 2,
+    sceneSource: { ...sceneSource },
+    onScenePage: (_pageIndex: number) => {},
     /** Called before each Run page is served, to change the Run between pages. */
     onRunPage: (_pageIndex: number) => {},
     /** Called before each Character is served, to change the Campaign during the hydrate. */
@@ -126,6 +481,74 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
   const page = async ({ scope }: LiveRoomInputsInput): Promise<LiveRoomInputsResponse> => {
     pages.push(scope)
     switch (scope.kind) {
+      case 'AUTHORITY': {
+        const start = Number(scope.cursor?.paginationCursor ?? 0)
+        const next = start + RUN_PAGE_SIZE
+        return {
+          kind: 'AUTHORITY',
+          accountUserIds: authority.accountUserIds,
+          revisions: revisions(state.label).filter((revision) => revision.scope !== 'PLAY'),
+          documents: state.authority.slice(start, next),
+          continueCursor:
+            next < state.authority.length ? { position: 0, paginationCursor: String(next) } : null
+        }
+      }
+      case 'CHAT_METADATA': {
+        const start = Number(scope.cursor?.paginationCursor ?? 0)
+        const next = start + 2
+        return {
+          kind: 'CHAT_METADATA',
+          documents: state.chatMetadata.slice(start, next),
+          continueCursor:
+            next < state.chatMetadata.length
+              ? { position: 0, paginationCursor: String(next) }
+              : null
+        }
+      }
+      case 'SCENE': {
+        const start = Number(scope.cursor?.paginationCursor ?? 0)
+        state.onScenePage(start)
+        const next = start + 1
+        return {
+          kind: 'SCENE',
+          source: { ...state.sceneSource },
+          sceneVersion: state.sceneVersion,
+          documents: state.scene.slice(start, next),
+          continueCursor:
+            next < state.scene.length
+              ? {
+                  position: Math.min(next, 6),
+                  paginationCursor: String(next),
+                  fogSave: next === 6 ? { id: FOG_SAVE, nextCursor: '1', isLast: false } : null
+                }
+              : null
+        }
+      }
+      case 'SCENE_DEFINITION':
+        return {
+          kind: 'SCENE_DEFINITION',
+          source: { ...state.sceneSource },
+          header: sceneLiveStateHeaderSchema.parse({
+            ...sceneDefinitionHeader,
+            id: state.sceneSource.sceneId,
+            definitionSaveId: state.sceneSource.definitionSaveId,
+            definitionVersion: state.sceneSource.definitionVersion,
+            version: state.sceneVersion,
+            ...(state.scene.length === 0
+              ? {
+                  fogLayerCount: 0,
+                  currentCounts: { ...sceneDefinitionHeader.counts, measurements: 0 }
+                }
+              : {})
+          }),
+          entities: [
+            sceneStoredDefinitionEntitySchema.parse({
+              ...sceneDefinitionEntity,
+              saveId: state.sceneSource.definitionSaveId
+            })
+          ],
+          continueCursor: null
+        }
       case 'RUN': {
         const pageIndex = scope.cursor?.position ?? 0
         state.onRunPage(pageIndex)
@@ -164,7 +587,8 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
               ...characterPage,
               characterId,
               revisions: revisions(state.label, characterId),
-              inputs: offset === 0 ? characterPage.inputs : null,
+              inputs: offset === 0 ? characterInputs(characterId, state.label) : null,
+              contentSnapshots: offset === 0 ? atRevision(characterManifest, state.label) : null,
               documents: effects.slice(offset, end)
             }
           ],
@@ -176,6 +600,14 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
         return {
           kind: 'CAMPAIGN_PLAY',
           revisions: revisions(state.label),
+          contentSnapshots: atRevision(
+            {
+              systemId: uuid(3),
+              sources: [],
+              campaign: { id: CAMPAIGN, contentMaturity: 'STANDARD', head: null }
+            },
+            state.label
+          ),
           campaign: {
             id: CAMPAIGN,
             gameSystemId: uuid(3),
@@ -187,12 +619,24 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
         }
       case 'SYSTEM':
         return { kind: 'SYSTEM', revisions: revisions(state.label), system: null, vocabulary: null }
-      case 'DEFINITION':
-        return { kind: 'DEFINITION', revisions: revisions(state.label), definition: null }
+      case 'DEFINITIONS': {
+        const start = Number(scope.cursor?.paginationCursor ?? 0)
+        state.onDefinitionPage(start)
+        const next = start + 2
+        return {
+          kind: 'DEFINITIONS',
+          revisions: revisions(state.label).filter(({ scope }) => scope !== 'PLAY'),
+          definitions: state.definitions.slice(start, next),
+          continueCursor:
+            next < state.definitions.length ? { position: 0, paginationCursor: String(next) } : null
+        }
+      }
     }
   }
   const read = (epoch: string, scope: LiveRoomInputsScope) => {
     reads.push({ epoch, scope })
+    // Scene responses stay separate to exercise Worker continuation across route batch boundaries.
+    if (scope.kind === 'SCENE') return page({ campaignId: CAMPAIGN, epoch, scope })
     return readRoomInputsBatch(page, { campaignId: CAMPAIGN, epoch, scope })
   }
   return { state, reads, pages, read }
@@ -202,7 +646,27 @@ function open(actors: readonly ActorSpec[], { padding = 0, runPageSize = RUN_PAG
   const convex = fakeConvex(actors, padding, runPageSize)
   const { storage } = createNodeSqliteRoomStorage()
   const store = new RoomEncounterStore(storage)
-  return { ...convex, storage, store, inputs: new RoomInputs(store, convex.read) }
+  const loads: ContentSnapshotManifestDto[] = []
+  const epochsAtLoad: (string | null)[] = []
+  const loaderState = { fail: false }
+  const loadContent = async (
+    manifest: ContentSnapshotManifestDto
+  ): Promise<ContentSnapshotObject[]> => {
+    loads.push(structuredClone(manifest))
+    epochsAtLoad.push(store.epoch)
+    if (loaderState.fail) throw new Error('R2 content unavailable.')
+    return []
+  }
+  return {
+    ...convex,
+    storage,
+    store,
+    loads,
+    epochsAtLoad,
+    loaderState,
+    loadContent,
+    inputs: new RoomInputs(store, convex.read, loadContent)
+  }
 }
 
 const kinds = (reads: readonly { scope: LiveRoomInputsScope }[] | readonly LiveRoomInputsScope[]) =>
@@ -232,6 +696,493 @@ function freezeActor(run: LiveRoomInputsDocument[], sourceId: string) {
 }
 
 describe('room inputs (ADR 0035 S2)', () => {
+  describe('raw Scene hydration', () => {
+    it('atomically loads all seven families across pages and restores their exact SQLite records', async () => {
+      const convex = open([FIRST_CHARACTER])
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER, sceneId: SCENE })
+
+      expect(count(convex.reads, 'SCENE')).toBe(convex.state.scene.length)
+      expect(count(convex.reads, 'SCENE_DEFINITION')).toBe(1)
+      expect(convex.reads).toContainEqual({
+        epoch: EPOCH,
+        scope: {
+          kind: 'SCENE',
+          sceneId: SCENE,
+          cursor: {
+            position: 6,
+            paginationCursor: '6',
+            fogSave: { id: FOG_SAVE, nextCursor: '1', isLast: false }
+          }
+        }
+      })
+      expect(convex.store.records('SCENE_CHECKPOINT_SOURCE')).toEqual([
+        {
+          kind: 'SCENE_CHECKPOINT_SOURCE',
+          key: SCENE,
+          revision: null,
+          json: canonicalizeJson(sceneSource)
+        }
+      ])
+      const rows = convex.store.records('SCENE_CHECKPOINT_ROW')
+      expect(rows).toHaveLength(convex.state.scene.length)
+      for (const { table, fields } of convex.state.scene) {
+        const keyFields =
+          liveSessionCheckpointSceneKeys[table as keyof typeof liveSessionCheckpointSceneKeys]
+        expect(rows).toContainEqual({
+          kind: 'SCENE_CHECKPOINT_ROW',
+          key: canonicalizeJson([table, ...keyFields.map((field) => fields[field])]),
+          revision: null,
+          json: canonicalizeJson(fields)
+        })
+      }
+      expect(rows.some((row) => row.json.includes('"value":null'))).toBe(true)
+      expect(rows.some((row) => row.json.includes('"ownerUserId":null'))).toBe(true)
+      expect(convex.store.documents('encounterRuns')).toHaveLength(1)
+      expect(convex.store.documents('characterActiveRuleEffects')).toHaveLength(2)
+      expect(convex.store.logRows).toBe(0)
+
+      convex.reads.length = 0
+      const restored = new RoomEncounterStore(convex.storage)
+      expect(restored.epoch).toBe(EPOCH)
+      expect(restored.checksum).toBe(convex.store.checksum)
+      expect(restored.records('SCENE_CHECKPOINT_SOURCE')).toEqual(
+        convex.store.records('SCENE_CHECKPOINT_SOURCE')
+      )
+      expect(restored.records('SCENE_CHECKPOINT_ROW')).toEqual(rows)
+      expect(restored.record(ROOM_SCENE_DEFINITION_HEADER, SCENE)).toEqual({
+        kind: ROOM_SCENE_DEFINITION_HEADER,
+        key: SCENE,
+        revision: null,
+        json: canonicalizeJson(sceneDefinitionHeader)
+      })
+      expect(restored.records(ROOM_SCENE_DEFINITION_ENTITY)).toEqual([
+        {
+          kind: ROOM_SCENE_DEFINITION_ENTITY,
+          key: canonicalizeJson([
+            sceneSource.definitionSaveId,
+            'tokens',
+            sceneDefinitionEntity.ordinal,
+            sceneDefinitionEntity.entityId
+          ]),
+          revision: null,
+          json: canonicalizeJson(sceneDefinitionEntity)
+        }
+      ])
+      const retainedHeader = sceneLiveStateHeaderSchema.parse(
+        JSON.parse(restored.record(ROOM_SCENE_DEFINITION_HEADER, SCENE)!.json)
+      )
+      expect(retainedHeader).toMatchObject({
+        id: sceneSource.sceneId,
+        definitionSaveId: sceneSource.definitionSaveId,
+        definitionVersion: sceneSource.definitionVersion,
+        counts: { tokens: 1 },
+        currentCounts: { tokens: 0 }
+      })
+      expect(convex.reads).toEqual([])
+    })
+
+    it('keeps an untouched base Scene checkpoint as source-only at version zero', async () => {
+      const convex = open([])
+      convex.state.scene = []
+      convex.state.sceneVersion = 0
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null, sceneId: SCENE })
+      expect(convex.store.records('SCENE_CHECKPOINT_SOURCE')).toHaveLength(1)
+      expect(convex.store.records('SCENE_CHECKPOINT_ROW')).toEqual([])
+      expect(convex.store.records(ROOM_SCENE_DEFINITION_ENTITY)).toHaveLength(1)
+      expect(
+        sceneLiveStateHeaderSchema.parse(
+          JSON.parse(convex.store.record(ROOM_SCENE_DEFINITION_HEADER, SCENE)!.json)
+        )
+      ).toMatchObject({ version: 0, fogLayerCount: 0, currentCounts: { tokens: 1 } })
+      expect(convex.store.epoch).toBe(EPOCH)
+    })
+
+    it('uses the fenced global journal base and restores it with the raw Scene', async () => {
+      const convex = open([])
+      const checkpoint = { epoch: EPOCH, sequence: 17, checksum: checksum('global-head') }
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null, sceneId: SCENE, checkpoint })
+      expect(convex.store.sequence).toBe(checkpoint.sequence)
+      expect(convex.store.checksum).toBe(checkpoint.checksum)
+      const restored = new RoomEncounterStore(convex.storage)
+      expect(restored.sequence).toBe(checkpoint.sequence)
+      expect(restored.checksum).toBe(checkpoint.checksum)
+      expect(restored.records('SCENE_CHECKPOINT_ROW')).toEqual(
+        convex.store.records('SCENE_CHECKPOINT_ROW')
+      )
+    })
+
+    it('retains readable fog bodies after their aged geometry parent was pruned', async () => {
+      const convex = open([])
+      const save = convex.state.scene[4]!.fields
+      save.geometrySaveId = uuid(0x599)
+      save.commandId = FOG_SAVE
+      save.input = { ...(save.input as Record<string, unknown>), commandId: FOG_SAVE }
+      save.inputChecksum = checksumCanonicalJson(save.input)
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null, sceneId: SCENE })
+      expect(convex.store.records('SCENE_CHECKPOINT_ROW')).toContainEqual({
+        kind: 'SCENE_CHECKPOINT_ROW',
+        key: canonicalizeJson(['sceneFogSaves', FOG_SAVE]),
+        revision: null,
+        json: canonicalizeJson(save)
+      })
+    })
+
+    it('refuses a repeated continuation before reading it again', async () => {
+      const convex = open([])
+      const cursor = { position: 0, paginationCursor: 'repeat', fogSave: null }
+      const inputs = new RoomInputs(
+        convex.store,
+        async (epoch, scope) => {
+          if (scope.kind !== 'SCENE') return convex.read(epoch, scope)
+          convex.reads.push({ epoch, scope })
+          return {
+            kind: 'SCENE',
+            source: sceneSource,
+            sceneVersion: 0,
+            documents: [],
+            continueCursor: cursor
+          }
+        },
+        convex.loadContent
+      )
+      await expect(
+        inputs.hydrate({ epoch: EPOCH, encounterId: null, sceneId: SCENE })
+      ).rejects.toThrow('Scene input continuation repeated.')
+      expect(count(convex.reads, 'SCENE')).toBe(2)
+      expect(convex.store.epoch).toBeNull()
+      expect(convex.store.records('SCENE_CHECKPOINT_ROW')).toEqual([])
+    })
+
+    it('preserves the no-Scene path for a null Scene', async () => {
+      const convex = open([])
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null, sceneId: null })
+      expect(count(convex.reads, 'SCENE')).toBe(0)
+      expect(count(convex.reads, 'SCENE_DEFINITION')).toBe(0)
+      expect(convex.store.records('SCENE_CHECKPOINT_SOURCE')).toEqual([])
+      expect(convex.store.records(ROOM_SCENE_DEFINITION_HEADER)).toEqual([])
+      expect(convex.store.records(ROOM_SCENE_DEFINITION_ENTITY)).toEqual([])
+    })
+
+    it.each([
+      'sceneVersion',
+      'definitionSaveId',
+      'definitionVersion',
+      'presentationVersion'
+    ] as const)('restarts a torn Scene read when %s changes between pages', async (pin) => {
+      const convex = open([])
+      let changed = false
+      convex.state.onScenePage = (pageIndex) => {
+        if (pageIndex !== 1 || changed) return
+        changed = true
+        if (pin === 'sceneVersion') {
+          convex.state.sceneVersion += 1
+          convex.state.scene[0]!.fields.version = convex.state.sceneVersion
+        } else if (pin === 'definitionSaveId')
+          convex.state.sceneSource.definitionSaveId = uuid(0x599)
+        else convex.state.sceneSource[pin] += 1
+      }
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null, sceneId: SCENE })
+      expect(count(convex.reads, 'SCENE')).toBe(convex.state.scene.length * 2)
+      expect(convex.store.record('SCENE_CHECKPOINT_SOURCE', SCENE)?.json).toBe(
+        canonicalizeJson(convex.state.sceneSource)
+      )
+      expect(convex.store.records('SCENE_CHECKPOINT_ROW')).toHaveLength(convex.state.scene.length)
+      expect(count(convex.reads, 'SCENE_DEFINITION')).toBe(1)
+      expect(
+        sceneLiveStateHeaderSchema.parse(
+          JSON.parse(convex.store.record(ROOM_SCENE_DEFINITION_HEADER, SCENE)!.json)
+        )
+      ).toMatchObject({
+        definitionSaveId: convex.state.sceneSource.definitionSaveId,
+        definitionVersion: convex.state.sceneSource.definitionVersion,
+        version: convex.state.sceneVersion
+      })
+      expect(
+        convex.store
+          .records(ROOM_SCENE_DEFINITION_ENTITY)
+          .map((record) => sceneStoredDefinitionEntitySchema.parse(JSON.parse(record.json)).saveId)
+      ).toEqual([convex.state.sceneSource.definitionSaveId])
+    })
+
+    it('refuses three torn reads without storing partial initial inputs', async () => {
+      const convex = open([FIRST_CHARACTER])
+      convex.state.onScenePage = (pageIndex) => {
+        if (pageIndex !== 1) return
+        convex.state.sceneVersion += 1
+        convex.state.scene[0]!.fields.version = convex.state.sceneVersion
+      }
+      await expect(
+        convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER, sceneId: SCENE })
+      ).rejects.toThrow('The Scene changed while it was being read.')
+      expect(count(convex.reads, 'SCENE')).toBe(convex.state.scene.length * 3)
+      expect(convex.store.epoch).toBeNull()
+      expect(convex.store.records('ROOM_INPUT')).toEqual([])
+      expect(convex.store.records('SCENE_CHECKPOINT_ROW')).toEqual([])
+      expect(convex.store.documents('encounterRuns')).toEqual([])
+      expect(convex.loads).toEqual([])
+    })
+
+    it.each([
+      'unknown table',
+      'foreign source',
+      'foreign row',
+      'foreign nested input',
+      'missing fog save',
+      'foreign fog save',
+      'duplicate public key',
+      'composed vision',
+      'corrupt chunk',
+      'changed entity checksum',
+      'changed layer checksum',
+      'changed chunk checksum',
+      'missing saved chunk',
+      'changed receipt checksum',
+      'changed geometry actor',
+      'replayed receipt',
+      'mismatched head',
+      'missing head'
+    ])('rejects %s and preserves the previous epoch and memory inputs', async (corruption) => {
+      const convex = open([FIRST_CHARACTER])
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+      const before = {
+        checksum: convex.store.checksum,
+        inputs: convex.store.records('ROOM_INPUT'),
+        run: convex.store.documents('encounterRuns')
+      }
+      switch (corruption) {
+        case 'unknown table':
+          convex.state.scene[0]!.table = 'sceneUnknown'
+          break
+        case 'foreign source':
+          convex.state.sceneSource.sceneId = uuid(0x599)
+          break
+        case 'foreign row':
+          convex.state.scene[1]!.fields.sceneId = uuid(0x599)
+          break
+        case 'foreign nested input': {
+          const command = convex.state.scene[2]!.fields
+          command.input = { ...(command.input as Record<string, unknown>), sceneId: uuid(0x599) }
+          break
+        }
+        case 'missing fog save':
+          convex.state.scene = convex.state.scene.filter((row) => row.table !== 'sceneFogSaves')
+          break
+        case 'foreign fog save':
+          convex.state.scene[4]!.fields.sceneId = uuid(0x599)
+          break
+        case 'duplicate public key':
+          convex.state.scene.push({ ...convex.state.scene[1]!, id: 'scene:duplicate' })
+          break
+        case 'composed vision':
+          convex.state.scene[1]!.fields.resolvedVision = {}
+          break
+        case 'corrupt chunk':
+          convex.state.scene[5]!.fields.checksum = 'invalid'
+          break
+        case 'changed entity checksum':
+          convex.state.scene[1]!.fields.checksum = checksum('changed')
+          break
+        case 'changed layer checksum':
+          convex.state.scene[3]!.fields.checksum = checksum('changed')
+          break
+        case 'changed chunk checksum':
+          convex.state.scene[5]!.fields.checksum = checksum('changed')
+          break
+        case 'missing saved chunk':
+          convex.state.scene.splice(6, 1)
+          break
+        case 'changed receipt checksum':
+          convex.state.scene[2]!.fields.resultChecksum = checksum('changed')
+          break
+        case 'changed geometry actor':
+          convex.state.scene[7]!.fields.actorUserId = uuid(0x599)
+          break
+        case 'replayed receipt': {
+          const command = convex.state.scene[2]!.fields
+          command.result = { ...(command.result as Record<string, unknown>), replayed: true }
+          command.resultChecksum = checksumCanonicalJson(command.result)
+          break
+        }
+        case 'mismatched head':
+          convex.state.sceneVersion = 3
+          break
+        case 'missing head':
+          convex.state.scene = convex.state.scene.slice(1)
+          break
+      }
+      await expect(
+        convex.inputs.hydrate({ epoch: uuid(0x901), encounterId: ENCOUNTER, sceneId: SCENE })
+      ).rejects.toThrow()
+      expect(convex.store.epoch).toBe(EPOCH)
+      expect({
+        checksum: convex.store.checksum,
+        inputs: convex.store.records('ROOM_INPUT'),
+        run: convex.store.documents('encounterRuns')
+      }).toEqual(before)
+      expect(convex.store.records('SCENE_CHECKPOINT_ROW')).toEqual([])
+      const reads = convex.reads.length
+      const loads = convex.loads.length
+      await convex.inputs.play(revisions(1))
+      expect(convex.reads).toHaveLength(reads)
+      expect(convex.loads).toHaveLength(loads)
+    })
+  })
+
+  describe('chat metadata hydration', () => {
+    const conversationId = uuid(0x710)
+    const nonce = uuid(0x711)
+    const fingerprint = sha256Hex('retained native table-roll nonce evidence')
+    const timestamp = '2026-09-29T00:00:00.000Z'
+    function metadata(): LiveRoomInputsDocument[] {
+      return [
+        {
+          table: 'campaignConversations',
+          id: 'chat:conversation',
+          creationTime: 0,
+          fields: campaignStoredConversationSchema.parse({
+            id: conversationId,
+            campaignId: CAMPAIGN,
+            kind: 'TABLE',
+            participantUserIds: [],
+            createdAt: timestamp
+          })
+        },
+        {
+          table: 'campaignConversationMembers',
+          id: 'chat:member',
+          creationTime: 0,
+          fields: campaignStoredConversationMemberSchema.parse({
+            conversationId,
+            campaignId: CAMPAIGN,
+            userId: uuid(4),
+            accessStartedAt: timestamp,
+            lastReadAt: null
+          })
+        },
+        {
+          table: 'campaignConversationEntries',
+          id: 'chat:header',
+          creationTime: 0,
+          fields: campaignStoredEntryHeaderSchema.parse({
+            id: uuid(0x712),
+            campaignId: CAMPAIGN,
+            conversationId,
+            authorUserId: uuid(4),
+            createdAt: timestamp,
+            clientNonce: nonce,
+            kind: 'ROLL',
+            rollNonceFingerprint: fingerprint
+          })
+        }
+      ]
+    }
+
+    it('hydrates paged nonce headers and reads their native index after SQLite eviction without historical payloads', async () => {
+      const convex = open([])
+      convex.state.chatMetadata = metadata()
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })
+      expect(count(convex.pages, 'CHAT_METADATA')).toBe(2)
+      expect(count(convex.reads, 'CHAT_METADATA')).toBe(1)
+      expect(convex.store.documents('campaignConversations')).toHaveLength(1)
+      expect(convex.store.documents('campaignConversationMembers')).toHaveLength(1)
+      expect(convex.store.documents('campaignConversationEntryPayloads')).toEqual([])
+      expect(convex.store.records('ROOM_INPUT').map(({ key }) => key)).not.toContain(
+        'CHAT_METADATA'
+      )
+      const checksum = convex.store.checksum
+      convex.reads.length = 0
+      convex.loads.length = 0
+      const restarted = new RoomEncounterStore(convex.storage)
+      const header = await restarted.store
+        .query('campaignConversationEntries')
+        .withIndex('by_campaignId_authorUserId_clientNonce', (query) =>
+          query.eq('campaignId', CAMPAIGN).eq('authorUserId', uuid(4)).eq('clientNonce', nonce)
+        )
+        .unique()
+      expect(header).toMatchObject({ id: uuid(0x712), rollNonceFingerprint: fingerprint })
+      expect(header).not.toHaveProperty('roll')
+      expect(header).not.toHaveProperty('body')
+      expect(restarted.documents('campaignConversationEntryPayloads')).toEqual([])
+      expect(restarted.checksum).toBe(checksum)
+      expect(convex.reads).toEqual([])
+      expect(convex.loads).toEqual([])
+    })
+
+    it.each([
+      'unknown table',
+      'mixed Campaign',
+      'missing conversation',
+      'foreign member conversation',
+      'foreign header conversation',
+      'duplicate storage identity',
+      'duplicate public identity',
+      'duplicate member identity',
+      'duplicate author nonce',
+      'invalid header schema'
+    ] as const)('refuses %s before replacing the durable snapshot', async (corruption) => {
+      const convex = open([])
+      convex.state.chatMetadata = metadata()
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })
+      const checksum = convex.store.checksum
+      const before = {
+        conversations: convex.store.documents('campaignConversations'),
+        members: convex.store.documents('campaignConversationMembers'),
+        headers: convex.store.documents('campaignConversationEntries')
+      }
+      const rows = metadata()
+      switch (corruption) {
+        case 'unknown table':
+          rows[2]!.table = 'campaignConversationEntryPayloads'
+          break
+        case 'mixed Campaign':
+          rows[2]!.fields.campaignId = uuid(0x799)
+          break
+        case 'missing conversation':
+          rows.splice(0, 1)
+          break
+        case 'foreign member conversation':
+          rows[1]!.fields.conversationId = uuid(0x799)
+          break
+        case 'foreign header conversation':
+          rows[2]!.fields.conversationId = uuid(0x799)
+          break
+        case 'duplicate storage identity':
+          rows[2]!.id = rows[0]!.id
+          break
+        case 'duplicate public identity':
+          rows.push({ ...rows[0]!, id: 'chat:duplicate-conversation' })
+          break
+        case 'duplicate member identity':
+          rows.push({ ...rows[1]!, id: 'chat:duplicate-member' })
+          break
+        case 'duplicate author nonce':
+          rows.push({
+            ...rows[2]!,
+            id: 'chat:duplicate-nonce',
+            fields: { ...rows[2]!.fields, id: uuid(0x713) }
+          })
+          break
+        case 'invalid header schema':
+          rows[2]!.fields.rollNonceFingerprint = null
+          break
+      }
+      convex.state.chatMetadata = rows
+      await expect(
+        convex.inputs.hydrate({ epoch: uuid(0x901), encounterId: null })
+      ).rejects.toThrow()
+      const restarted = new RoomEncounterStore(convex.storage)
+      expect(restarted.epoch).toBe(EPOCH)
+      expect(restarted.checksum).toBe(checksum)
+      expect({
+        conversations: restarted.documents('campaignConversations'),
+        members: restarted.documents('campaignConversationMembers'),
+        headers: restarted.documents('campaignConversationEntries')
+      }).toEqual(before)
+      expect(restarted.sequence).toBe(0)
+      expect(restarted.logRows).toBe(0)
+    })
+  })
+
   describe('hydrate', () => {
     it('reads the Run, each Character once, the play scope and the System', async () => {
       const convex = open([FIRST_CHARACTER, null, SECOND_CHARACTER, FIRST_CHARACTER, null])
@@ -244,26 +1195,75 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(count(convex.reads, 'RUN')).toBe(1)
       expect(count(convex.reads, 'CHARACTERS')).toBe(1)
       expect(count(convex.reads, 'CAMPAIGN_PLAY')).toBe(1)
+      expect(count(convex.reads, 'AUTHORITY')).toBe(1)
+      expect(count(convex.reads, 'CHAT_METADATA')).toBe(1)
       expect(count(convex.reads, 'SYSTEM')).toBe(2)
+      expect(count(convex.reads, 'DEFINITIONS')).toBe(1)
       expect(count(convex.pages, 'RUN')).toBe(2)
       expect(count(convex.pages, 'CHARACTERS')).toBe(3)
+      expect(convex.loads).toHaveLength(3)
+      expect(convex.epochsAtLoad).toEqual([null, null, null])
+      expect(convex.loads.filter((manifest) => manifest.systemId === uuid(3))).toHaveLength(1)
+      const characterPages = convex.pages.filter((scope) => scope.kind === 'CHARACTERS')
+      expect(characterPages).toHaveLength(3)
 
       expect(convex.store.documents('encounterRunActors')).toHaveLength(5)
       expect(convex.store.documents('characterActiveRuleEffects')).toHaveLength(2)
+      expect(convex.store.documents('campaigns')).toHaveLength(1)
+      expect(convex.store.documents('campaignMemberships')).toHaveLength(3)
+      expect(convex.store.documents('campaignCharacterAssignments')).toHaveLength(2)
+      expect(convex.store.documents('characterPlayStates')).toHaveLength(2)
+      const initialPlay = convex.store
+        .documents('characterPlayStates')
+        .find((row) => row.characterId === FIRST_CHARACTER)
+      expect(initialPlay).toEqual(characterInputs(FIRST_CHARACTER).owner.play)
+      expect(readCharacterPlay(initialPlay!)).toEqual(
+        characterInputs(FIRST_CHARACTER).owner.play.state
+      )
       expect(convex.store.records('ROOM_INPUT').map((record) => record.key)).toEqual([
+        'AUTHORITY',
         'CAMPAIGN_PLAY',
         `CHARACTER:${FIRST_CHARACTER}`,
         `CHARACTER:${SECOND_CHARACTER}`,
+        'DEFINITIONS',
         'SYSTEM:SYSTEM',
         'SYSTEM:VOCABULARY'
       ])
     })
 
-    it('holds only the epoch when no Encounter is bound, without reading Convex', async () => {
+    it('loads Campaign content and System inputs before an Encounter is bound', async () => {
       const convex = open([FIRST_CHARACTER])
       await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })
-      expect(convex.reads).toEqual([])
+      expect(kinds(convex.reads)).toEqual([
+        'CAMPAIGN_PLAY',
+        'SYSTEM',
+        'SYSTEM',
+        'AUTHORITY',
+        'CHAT_METADATA',
+        'DEFINITIONS'
+      ])
+      expect(convex.loads).toHaveLength(1)
+      expect(convex.epochsAtLoad).toEqual([null])
+      expect(convex.loads[0]).toMatchObject({ systemId: uuid(3), campaign: { id: CAMPAIGN } })
       expect(convex.store.epoch).toBe(EPOCH)
+      expect(convex.store.documents('encounterRuns')).toEqual([])
+      expect(convex.store.records('ROOM_INPUT').map((record) => record.key)).toEqual([
+        'AUTHORITY',
+        'CAMPAIGN_PLAY',
+        'DEFINITIONS',
+        'SYSTEM:SYSTEM',
+        'SYSTEM:VOCABULARY'
+      ])
+    })
+
+    it('leaves the store unhydrated when content loading fails', async () => {
+      const convex = open([FIRST_CHARACTER])
+      convex.loaderState.fail = true
+      await expect(convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })).rejects.toThrow(
+        'R2 content unavailable.'
+      )
+      expect(convex.store.epoch).toBeNull()
+      expect(convex.store.records('ROOM_INPUT')).toEqual([])
       expect(convex.store.documents('encounterRuns')).toEqual([])
     })
 
@@ -296,17 +1296,21 @@ describe('room inputs (ADR 0035 S2)', () => {
     it('refuses a Character without stored inputs', async () => {
       const convex = open([FIRST_CHARACTER])
       const read = convex.read
-      const inputs = new RoomInputs(convex.store, async (epoch, scope) => {
-        const response = await read(epoch, scope)
-        return response.kind === 'CHARACTERS'
-          ? {
-              ...response,
-              parts: response.parts.map((part) =>
-                part.status === 'ASSIGNED' ? { ...part, inputs: null } : part
-              )
-            }
-          : response
-      })
+      const inputs = new RoomInputs(
+        convex.store,
+        async (epoch, scope) => {
+          const response = await read(epoch, scope)
+          return response.kind === 'CHARACTERS'
+            ? {
+                ...response,
+                parts: response.parts.map((part) =>
+                  part.status === 'ASSIGNED' ? { ...part, inputs: null } : part
+                )
+              }
+            : response
+        },
+        convex.loadContent
+      )
       await expect(inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })).rejects.toThrow(
         'Character inputs are missing'
       )
@@ -320,8 +1324,8 @@ describe('room inputs (ADR 0035 S2)', () => {
     it('hydrates a Run of 11 actors in a handful of subrequests', async () => {
       const convex = open([...characters.slice(0, 3), ...Array<null>(8).fill(null)])
       await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
-      // The play scope, the System and its vocabulary, one Run call and one Characters call.
-      expect(convex.reads).toHaveLength(5)
+      // Campaign authority, chat metadata and definitions, play, System/vocabulary, Run and Characters.
+      expect(convex.reads).toHaveLength(8)
       expect(convex.store.documents('encounterRunActors')).toHaveLength(11)
     })
 
@@ -388,8 +1392,10 @@ describe('room inputs (ADR 0035 S2)', () => {
 
       expect(count(convex.reads, 'RUN')).toBe(2)
       expect(convex.store.records('ROOM_INPUT').map((record) => record.key)).toEqual([
+        'AUTHORITY',
         'CAMPAIGN_PLAY',
         `CHARACTER:${FIRST_CHARACTER}`,
+        'DEFINITIONS',
         'SYSTEM:SYSTEM',
         'SYSTEM:VOCABULARY'
       ])
@@ -420,13 +1426,354 @@ describe('room inputs (ADR 0035 S2)', () => {
     })
   })
 
+  describe('complete definition inventory', () => {
+    const firstId = uuid(0x610)
+    const privateId = uuid(0x611)
+    const draftId = uuid(0x612)
+    const nextId = uuid(0x613)
+    const inventory = () => [
+      definitionFixture(firstId),
+      definitionFixture(privateId, 'USER'),
+      liveRoomDefinitionSchema.parse({ id: draftId, sourceKind: 'USER', definition: null })
+    ]
+    const snapshot = (store: RoomEncounterStore) => ({
+      epoch: store.epoch,
+      sequence: store.sequence,
+      checksum: store.checksum,
+      logRows: store.logRows,
+      definitions: store.records('ROOM_DEFINITION'),
+      inputs: store.records('ROOM_INPUT')
+    })
+
+    it('serves first-use, unpublished and missing IDs from the complete SQLite inventory through PLAY changes and eviction', async () => {
+      const convex = open([])
+      convex.state.definitions = inventory()
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })
+      expect(count(convex.pages, 'DEFINITIONS')).toBe(2)
+      expect(count(convex.reads, 'DEFINITIONS')).toBe(1)
+      expect(JSON.parse(convex.store.record('ROOM_INPUT', 'DEFINITIONS')!.json)).toEqual({
+        kind: 'DEFINITIONS',
+        revisions: revisions(1).filter(({ scope }) => scope !== 'PLAY'),
+        definitions: [],
+        continueCursor: null
+      })
+      expect(
+        convex.store
+          .records('ROOM_DEFINITION')
+          .map(({ json }) => liveRoomDefinitionSchema.parse(JSON.parse(json)))
+      ).toEqual(convex.state.definitions)
+      const before = snapshot(convex.store)
+      convex.reads.length = 0
+      const observed = revisions(1).map((entry) =>
+        entry.scope === 'PLAY' ? { ...entry, revision: uuid(0x999) } : entry
+      )
+      for (const inputs of [
+        convex.inputs,
+        new RoomInputs(new RoomEncounterStore(convex.storage), convex.read, convex.loadContent)
+      ]) {
+        expect(await inputs.definition(firstId, observed)).toEqual({
+          definition: convex.state.definitions[0]!.definition,
+          sourceKind: 'PLATFORM'
+        })
+        expect(await inputs.definition(privateId, observed)).toMatchObject({
+          sourceKind: 'USER',
+          definition: { id: privateId }
+        })
+        expect(await inputs.definition(draftId, observed)).toEqual({
+          definition: null,
+          sourceKind: 'USER'
+        })
+        expect(await inputs.definition(uuid(0x699), observed)).toEqual({
+          definition: null,
+          sourceKind: null
+        })
+      }
+      expect(convex.reads).toEqual([])
+      expect(snapshot(convex.store)).toEqual(before)
+      expect(snapshot(new RoomEncounterStore(convex.storage))).toEqual(before)
+    })
+
+    it('replaces revoked and deleted roots atomically, preserving the previous inventory on parent rollback', async () => {
+      const convex = open([])
+      convex.state.definitions = inventory()
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })
+      await convex.store.transact(async (transaction) =>
+        transaction.setRecord({
+          kind: 'ROOM_INPUT',
+          key: `DEFINITION:${firstId}`,
+          revision: null,
+          json: '{}'
+        })
+      )
+      const before = snapshot(convex.store)
+      convex.state.label = 2
+      convex.state.definitions = [definitionFixture(nextId, 'USER')]
+      convex.reads.length = 0
+      await expect(
+        convex.store.transact(async (transaction) => {
+          expect(await convex.inputs.definition(firstId, revisions(2), transaction)).toEqual({
+            definition: null,
+            sourceKind: null
+          })
+          expect(await convex.inputs.definition(privateId, revisions(2), transaction)).toEqual({
+            definition: null,
+            sourceKind: null
+          })
+          expect(await convex.inputs.definition(nextId, revisions(2), transaction)).toMatchObject({
+            sourceKind: 'USER',
+            definition: { id: nextId }
+          })
+          expect(transaction.record('ROOM_INPUT', `DEFINITION:${firstId}`)).toBeNull()
+          expect(convex.store.records('ROOM_DEFINITION')).toEqual(before.definitions)
+          throw new Error('Parent command refused.')
+        })
+      ).rejects.toThrow('Parent command refused.')
+      expect(kinds(convex.reads)).toEqual(['DEFINITIONS'])
+      expect(snapshot(convex.store)).toEqual(before)
+      expect(snapshot(new RoomEncounterStore(convex.storage))).toEqual(before)
+      convex.reads.length = 0
+      expect(await convex.inputs.definition(firstId, revisions(1))).toMatchObject({
+        definition: { id: firstId },
+        sourceKind: 'PLATFORM'
+      })
+      expect(convex.reads).toEqual([])
+
+      await convex.store.transact(async (transaction) => {
+        await convex.inputs.definition(nextId, revisions(2), transaction)
+        expect(await convex.inputs.definition(firstId, revisions(2), transaction)).toEqual({
+          definition: null,
+          sourceKind: null
+        })
+      })
+      expect(convex.store.logRows).toBe(before.logRows + 1)
+      expect(convex.store.records('ROOM_DEFINITION').map(({ key }) => key)).toEqual([nextId])
+      expect(convex.store.record('ROOM_INPUT', `DEFINITION:${firstId}`)).toBeNull()
+      convex.reads.length = 0
+      const restarted = new RoomInputs(
+        new RoomEncounterStore(convex.storage),
+        convex.read,
+        convex.loadContent
+      )
+      expect(await restarted.definition(privateId, revisions(2))).toEqual({
+        definition: null,
+        sourceKind: null
+      })
+      expect(await restarted.definition(nextId, revisions(2))).toMatchObject({
+        definition: { id: nextId },
+        sourceKind: 'USER'
+      })
+      expect(convex.reads).toEqual([])
+    })
+
+    it('restarts the full paged inventory after a revision tear and refuses a continuously changing read', async () => {
+      const convex = open([])
+      convex.state.definitions = inventory()
+      let changed = false
+      convex.state.onDefinitionPage = (offset) => {
+        if (offset !== 2 || changed) return
+        changed = true
+        convex.state.label += 1
+      }
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })
+      expect(count(convex.reads, 'DEFINITIONS')).toBe(3)
+      expect(
+        convex.pages.filter((scope) => scope.kind === 'DEFINITIONS' && scope.cursor === null)
+      ).toHaveLength(2)
+      expect(convex.store.record('ROOM_INPUT', 'DEFINITIONS')!.revision).toBe(
+        JSON.stringify(revisions(2).filter(({ scope }) => scope !== 'PLAY'))
+      )
+      const before = snapshot(convex.store)
+      convex.reads.length = 0
+      convex.state.onDefinitionPage = (offset) => {
+        if (offset === 2) convex.state.label += 1
+      }
+      await expect(
+        convex.inputs.hydrate({ epoch: uuid(0x901), encounterId: null })
+      ).rejects.toThrow('Definitions changed while they were being read.')
+      expect(count(convex.reads, 'DEFINITIONS')).toBe(6)
+      expect(snapshot(convex.store)).toEqual(before)
+      expect(snapshot(new RoomEncounterStore(convex.storage))).toEqual(before)
+    })
+
+    it.each([
+      'duplicate',
+      'wrong-system',
+      'wrong-identity',
+      'bad-checksum',
+      'invalid-schema'
+    ] as const)(
+      'refuses %s before either refresh or hydration replaces the durable inventory',
+      async (corruption) => {
+        const convex = open([])
+        convex.state.definitions = inventory()
+        await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })
+        const before = snapshot(convex.store)
+        convex.state.label = 2
+        const current = definitionFixture(firstId)
+        if (!current.definition) throw new Error('Missing published definition fixture.')
+        switch (corruption) {
+          case 'duplicate':
+            convex.state.definitions = [current, structuredClone(current)]
+            break
+          case 'wrong-system':
+            convex.state.definitions = [definitionFixture(firstId, 'PLATFORM', uuid(0x999))]
+            break
+          case 'wrong-identity':
+            convex.state.definitions = [{ ...current, id: nextId }]
+            break
+          case 'bad-checksum':
+            convex.state.definitions = [
+              { ...current, definition: { ...current.definition, checksum: '0'.repeat(64) } }
+            ]
+            break
+          case 'invalid-schema':
+            convex.state.definitions = [{ ...current, id: 'invalid definition UUID' }]
+            break
+        }
+        await expect(convex.inputs.definition(firstId, revisions(2))).rejects.toThrow()
+        expect(snapshot(convex.store)).toEqual(before)
+        await expect(
+          convex.inputs.hydrate({ epoch: uuid(0x901), encounterId: null })
+        ).rejects.toThrow()
+        expect(snapshot(convex.store)).toEqual(before)
+        expect(snapshot(new RoomEncounterStore(convex.storage))).toEqual(before)
+      }
+    )
+  })
+
   describe('revision-keyed cache', () => {
     async function hydrated() {
       const convex = open([FIRST_CHARACTER, SECOND_CHARACTER])
       await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
       convex.reads.length = 0
+      convex.loads.length = 0
       return convex
     }
+
+    it('joins warm cached Character structure to the latest typed room play without a backend read', async () => {
+      const convex = await hydrated()
+      const initial = characterInputs(FIRST_CHARACTER)
+      const play = convex.store
+        .documents('characterPlayStates')
+        .find((row) => row.characterId === FIRST_CHARACTER)!
+      const nextState = {
+        ...play.state,
+        hitpoints: { ...play.state.hitpoints, current: 4 },
+        partyVisibility: { ...play.state.partyVisibility, sheet: true }
+      }
+      await convex.store.transact(async () => {
+        await convex.store.store.patch(play._id, {
+          state: nextState,
+          checksum: checksumRuleDocument(nextState),
+          streamVersion: 2
+        })
+      })
+      const afterMutation = { checksum: convex.store.checksum, logRows: convex.store.logRows }
+      const part = await convex.inputs.character(FIRST_CHARACTER, revisions(1, FIRST_CHARACTER))
+      if (!part.inputs) throw new Error('Missing warm Character inputs.')
+      expect(part.inputs.owner.documentJson).toBe(initial.owner.documentJson)
+      expect(readCharacterRecord(part.inputs.owner).state.hitpoints.current).toBe(4)
+      expect(part.inputs.owner.play.streamVersion).toBe(2)
+      expect(part.inputs.sheetState.partyVisibility.sheet).toBe(true)
+      expect(convex.reads).toEqual([])
+      expect(convex.loads).toEqual([])
+      expect({ checksum: convex.store.checksum, logRows: convex.store.logRows }).toEqual(
+        afterMutation
+      )
+      const restarted = new RoomEncounterStore(convex.storage)
+      expect(restarted.documents('characterPlayStates')).toEqual(
+        convex.store.documents('characterPlayStates')
+      )
+    })
+
+    it('stages stale Character and authority caches inside the parent command and rolls back its play and inputs', async () => {
+      const convex = await hydrated()
+      const before = {
+        records: convex.store.records('ROOM_INPUT'),
+        play: convex.store.documents('characterPlayStates'),
+        effects: convex.store.documents('characterActiveRuleEffects'),
+        campaigns: convex.store.documents('campaigns'),
+        checksum: convex.store.checksum,
+        sequence: convex.store.sequence,
+        logRows: convex.store.logRows
+      }
+      convex.state.label = 2
+      convex.state.characters.set(FIRST_CHARACTER, [effect(FIRST_CHARACTER, 3)])
+      await expect(
+        convex.store.transact(async (transaction) => {
+          const play = before.play.find((row) => row.characterId === FIRST_CHARACTER)!
+          const nextState = { ...play.state, hitpoints: { ...play.state.hitpoints, current: 3 } }
+          await convex.store.store.patch(play._id, {
+            state: nextState,
+            checksum: checksumRuleDocument(nextState),
+            streamVersion: 2
+          })
+          await convex.inputs.authority(revisions(2), transaction)
+          const part = await convex.inputs.character(
+            FIRST_CHARACTER,
+            revisions(2, FIRST_CHARACTER),
+            transaction
+          )
+          if (!part.inputs) throw new Error('Missing staged Character inputs.')
+          expect(part.inputs.owner.label).toBe(characterInputs(FIRST_CHARACTER, 2).owner.label)
+          expect(readCharacterRecord(part.inputs.owner).state.hitpoints.current).toBe(3)
+          expect(transaction.record('ROOM_INPUT', `CHARACTER:${FIRST_CHARACTER}`)?.revision).toBe(
+            JSON.stringify(revisions(2, FIRST_CHARACTER))
+          )
+          expect(convex.store.record('ROOM_INPUT', `CHARACTER:${FIRST_CHARACTER}`)?.revision).toBe(
+            JSON.stringify(revisions(1, FIRST_CHARACTER))
+          )
+          expect(convex.store.logRows).toBe(before.logRows)
+          throw new Error('Parent command refused.')
+        })
+      ).rejects.toThrow('Parent command refused.')
+      expect(kinds(convex.reads)).toEqual(['AUTHORITY', 'CHARACTERS'])
+      expect({
+        records: convex.store.records('ROOM_INPUT'),
+        play: convex.store.documents('characterPlayStates'),
+        effects: convex.store.documents('characterActiveRuleEffects'),
+        campaigns: convex.store.documents('campaigns'),
+        checksum: convex.store.checksum,
+        sequence: convex.store.sequence,
+        logRows: convex.store.logRows
+      }).toEqual(before)
+      convex.reads.length = 0
+      const restored = await convex.inputs.character(FIRST_CHARACTER, revisions(1, FIRST_CHARACTER))
+      expect(restored.inputs).toEqual(characterInputs(FIRST_CHARACTER))
+      expect(convex.reads).toEqual([])
+      expect(convex.store.logRows).toBe(before.logRows)
+      const restarted = new RoomEncounterStore(convex.storage)
+      expect(restarted.records('ROOM_INPUT')).toEqual(before.records)
+      expect(restarted.documents('characterPlayStates')).toEqual(before.play)
+    })
+
+    it('commits a parent play mutation and stale Character refresh as one journal entry', async () => {
+      const convex = await hydrated()
+      const before = { sequence: convex.store.sequence, logRows: convex.store.logRows }
+      convex.state.label = 2
+      convex.state.characters.set(FIRST_CHARACTER, [effect(FIRST_CHARACTER, 3)])
+      await convex.store.transact(async (transaction) => {
+        const play = convex.store
+          .documents('characterPlayStates')
+          .find((row) => row.characterId === FIRST_CHARACTER)!
+        const state = { ...play.state, hitpoints: { ...play.state.hitpoints, current: 5 } }
+        await convex.store.store.patch(play._id, { state, checksum: checksumRuleDocument(state) })
+        await convex.inputs.character(FIRST_CHARACTER, revisions(2, FIRST_CHARACTER), transaction)
+      })
+      expect(convex.store.logRows).toBe(before.logRows + 1)
+      expect(convex.store.sequence).toBe(before.sequence + 1)
+      expect(kinds(convex.reads)).toEqual(['CHARACTERS'])
+      convex.reads.length = 0
+      const part = await convex.inputs.character(FIRST_CHARACTER, revisions(2, FIRST_CHARACTER))
+      if (!part.inputs) throw new Error('Missing committed Character inputs.')
+      expect(readCharacterRecord(part.inputs.owner).state.hitpoints.current).toBe(5)
+      expect(part.inputs.owner.label).toBe(characterInputs(FIRST_CHARACTER, 2).owner.label)
+      expect(
+        convex.store.documents('characterActiveRuleEffects').map((row) => row.createdOrdinal)
+      ).toEqual([3])
+      expect(convex.reads).toEqual([])
+      expect(convex.store.logRows).toBe(before.logRows + 1)
+    })
 
     it('serves a scope from the store while the observed revisions include its own', async () => {
       const convex = await hydrated()
@@ -436,6 +1783,7 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(play.campaign.id).toBe(CAMPAIGN)
       expect(await convex.inputs.system('SYSTEM', held)).toMatchObject({ kind: 'SYSTEM' })
       expect(convex.reads).toEqual([])
+      expect(convex.loads).toEqual([])
     })
 
     it('reads a scope again when a revision changed, and stores the new read', async () => {
@@ -443,16 +1791,45 @@ describe('room inputs (ADR 0035 S2)', () => {
       convex.state.label = 2
       await convex.inputs.play(revisions(2))
       expect(kinds(convex.reads)).toEqual(['CAMPAIGN_PLAY'])
+      expect(convex.loads).toHaveLength(1)
       convex.reads.length = 0
+      convex.loads.length = 0
       await convex.inputs.play(revisions(2))
       expect(convex.reads).toEqual([])
+      expect(convex.loads).toEqual([])
+    })
+
+    it('reloads content once after hibernation using cached SQLite inputs without reading Convex', async () => {
+      const convex = await hydrated()
+      const store = new RoomEncounterStore(convex.storage)
+      const before = {
+        checksum: store.checksum,
+        logRows: store.logRows,
+        records: store.records('ROOM_INPUT')
+      }
+      const restarted = new RoomInputs(store, convex.read, convex.loadContent)
+      const loaded = await restarted.character(FIRST_CHARACTER, revisions(1, FIRST_CHARACTER))
+      expect(loaded.inputs).toEqual(characterInputs(FIRST_CHARACTER))
+      expect(convex.reads).toEqual([])
+      expect(convex.loads).toEqual([atRevision(characterManifest, 1)])
+      convex.loads.length = 0
+      expect(await restarted.character(FIRST_CHARACTER, revisions(1, FIRST_CHARACTER))).toEqual(
+        loaded
+      )
+      expect(convex.reads).toEqual([])
+      expect(convex.loads).toEqual([])
+      expect({
+        checksum: store.checksum,
+        logRows: store.logRows,
+        records: store.records('ROOM_INPUT')
+      }).toEqual(before)
     })
 
     it('reads a scope again when nothing is observed', async () => {
       const convex = await hydrated()
       await convex.inputs.definition(uuid(0x600), null)
       await convex.inputs.play(null)
-      expect(kinds(convex.reads)).toEqual(['DEFINITION', 'CAMPAIGN_PLAY'])
+      expect(kinds(convex.reads)).toEqual(['DEFINITIONS', 'CAMPAIGN_PLAY'])
     })
 
     it('replaces a Character’s effects and record in one room command, once', async () => {
@@ -462,8 +1839,9 @@ describe('room inputs (ADR 0035 S2)', () => {
       convex.state.label = 2
 
       const loaded = await convex.inputs.character(FIRST_CHARACTER, revisions(2, FIRST_CHARACTER))
-      expect(loaded.inputs).toEqual(characterPage.inputs)
+      expect(loaded.inputs).toEqual(characterInputs(FIRST_CHARACTER, 2))
       expect(kinds(convex.reads)).toEqual(['CHARACTERS'])
+      expect(convex.loads).toEqual([atRevision(characterManifest, 2)])
       expect(
         convex.store.documents('characterActiveRuleEffects').map((row) => row.createdOrdinal)
       ).toEqual([3])
@@ -478,8 +1856,10 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(restarted.checksum).toBe(convex.store.checksum)
 
       convex.reads.length = 0
+      convex.loads.length = 0
       await convex.inputs.character(FIRST_CHARACTER, revisions(2, FIRST_CHARACTER))
       expect(convex.reads).toEqual([])
+      expect(convex.loads).toEqual([])
       expect(convex.store.logRows).toBe(rowsBefore + 1)
     })
 
@@ -487,5 +1867,37 @@ describe('room inputs (ADR 0035 S2)', () => {
       const convex = open([FIRST_CHARACTER])
       await expect(convex.inputs.play(null)).rejects.toThrow('has not been hydrated')
     })
+
+    it.each(['play', 'character'] as const)(
+      'retains stored inputs when stale %s content cannot load',
+      async (scope) => {
+        const convex = await hydrated()
+        const before = {
+          records: convex.store.records('ROOM_INPUT'),
+          effects: convex.store.documents('characterActiveRuleEffects'),
+          checksum: convex.store.checksum,
+          logRows: convex.store.logRows
+        }
+        convex.state.label = 2
+        convex.state.characters.set(FIRST_CHARACTER, [effect(FIRST_CHARACTER, 3)])
+        convex.loaderState.fail = true
+        await expect(
+          scope === 'play'
+            ? convex.inputs.play(revisions(2))
+            : convex.inputs.character(FIRST_CHARACTER, revisions(2, FIRST_CHARACTER))
+        ).rejects.toThrow('R2 content unavailable.')
+        expect({
+          records: convex.store.records('ROOM_INPUT'),
+          effects: convex.store.documents('characterActiveRuleEffects'),
+          checksum: convex.store.checksum,
+          logRows: convex.store.logRows
+        }).toEqual(before)
+        convex.loaderState.fail = false
+        await (scope === 'play'
+          ? convex.inputs.play(revisions(2))
+          : convex.inputs.character(FIRST_CHARACTER, revisions(2, FIRST_CHARACTER)))
+        expect(convex.loads).toHaveLength(2)
+      }
+    )
   })
 })

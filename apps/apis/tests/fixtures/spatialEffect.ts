@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 import { createEncounterSceneFixture } from './encounterScene'
 import { createRulesRuntime } from './rulesRuntime'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
@@ -102,10 +103,12 @@ export async function seedSpatialEffect(
         expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
       }
     })
-    const scope = await createSpatialRuleEffectStore(ctx).scope({
-      encounterId: base.run.id,
-      sceneId: base.sceneId
-    })
+    const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(
+      {
+        encounterId: base.run.id,
+        sceneId: base.sceneId
+      }
+    )
     if (!scope) throw new Error('Fixture binding missing')
     return scope.create({
       id: crypto.randomUUID(),

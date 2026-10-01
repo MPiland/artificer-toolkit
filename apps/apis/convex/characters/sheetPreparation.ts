@@ -1,4 +1,4 @@
-import { characterSheetResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetData'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { getCharacterSheetDisplayAdjustments } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
@@ -13,7 +13,8 @@ export async function loadCharacterSheet(
   campaignId?: string,
   sourceContext?: CharacterSheetSourceContext,
   catalogScope: 'active' | 'resolution' = 'active',
-  authorityScope?: import('../campaigns/authority').CampaignInternalScope
+  authorityScope?: import('../campaigns/authority').CampaignInternalScope,
+  referenceSpellIds: readonly string[] = []
 ) {
   const facts = await loadCharacterSheetFacts(
     ctx,
@@ -22,7 +23,9 @@ export async function loadCharacterSheet(
     campaignId,
     sourceContext,
     catalogScope,
-    authorityScope
+    authorityScope,
+    undefined,
+    referenceSpellIds
   )
   if (!facts) return null
   return projectCharacterSheetFacts(facts)
@@ -63,10 +66,10 @@ export function projectCharacterSheetFacts(
     ruleProjection,
     resolution: facts.prepared.resolution,
     contentMaturity: facts.prepared.context.sourceAccess.campaign?.contentMaturity ?? null,
-    sheet: characterSheetResponseDtoSchema.parse({
+    sheet: {
       ...sheet,
       meta: { ...sheet.meta, partyVisibility: facts.sheetState.partyVisibility },
       publicId: facts.route.publicId
-    })
+    } satisfies CharacterSheetResponseDto
   }
 }

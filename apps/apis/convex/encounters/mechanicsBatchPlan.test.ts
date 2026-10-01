@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { describe, expect, it } from 'vitest'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
@@ -61,7 +62,7 @@ async function currentActor(
       .withIndex('by_publicId', (query) => query.eq('id', fixture.run.id))
       .unique()
     if (!run) throw new Error('Fixture Run is unavailable.')
-    return readRunActor(ctx, readRunState(run), actorId)
+    return readRunActor({ db: createConvexEncounterStoreReader(ctx) }, readRunState(run), actorId)
   })
 }
 
@@ -107,7 +108,11 @@ describe('planEncounterMechanicsBatch', () => {
         .withIndex('by_publicId', (query) => query.eq('id', fixture.run.id))
         .unique()
       if (!run) throw new Error('Fixture Run is unavailable.')
-      const actor = await readRunActor(ctx, readRunState(run), fixture.actor.id)
+      const actor = await readRunActor(
+        { db: createConvexEncounterStoreReader(ctx) },
+        readRunState(run),
+        fixture.actor.id
+      )
       const loaded = await loadCharacterSheetFacts(
         ctx,
         fixture.owner.userId,

@@ -2872,2272 +2872,6 @@ export declare const api: {
             };
             summary: string;
           };
-          panels?: Array<
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                editors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "OTHER_MODIFIER" | "SCORE_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
-                }>;
-                kind: "ABILITY";
-                modifier: number;
-                panelId: string;
-                score: number;
-                scoreCalculation: {
-                  base: number;
-                  contributions: Array<{
-                    id: string;
-                    source:
-                      | {
-                          definitionId: string;
-                          kind: "AUTHORED";
-                          sourceInstanceId: string;
-                          sourceKind:
-                            | "ANCESTRY"
-                            | "BACKGROUND"
-                            | "CLASS"
-                            | "FEAT"
-                            | "FEATURE"
-                            | "OPTION"
-                            | "RACE"
-                            | "SPELL"
-                            | "SUBRACE"
-                            | "SUBCLASS";
-                        }
-                      | {
-                          equipmentId: string;
-                          itemInstanceId: string;
-                          kind: "EQUIPMENT_INSTANCE";
-                        }
-                      | {
-                          companionInstanceId: string;
-                          creatureId: string;
-                          kind: "COMPANION_INSTANCE";
-                        }
-                      | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    state: "APPLIED" | "SUPPRESSED";
-                    value: number;
-                  }>;
-                  effective: number;
-                  override?: {
-                    adjustmentId: string;
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    value: number;
-                  };
-                };
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
-                  kind: "ABILITY";
-                };
-                title: string;
-              }
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                calculation: {
-                  base: number;
-                  contributions: Array<{
-                    id: string;
-                    source:
-                      | {
-                          definitionId: string;
-                          kind: "AUTHORED";
-                          sourceInstanceId: string;
-                          sourceKind:
-                            | "ANCESTRY"
-                            | "BACKGROUND"
-                            | "CLASS"
-                            | "FEAT"
-                            | "FEATURE"
-                            | "OPTION"
-                            | "RACE"
-                            | "SPELL"
-                            | "SUBRACE"
-                            | "SUBCLASS";
-                        }
-                      | {
-                          equipmentId: string;
-                          itemInstanceId: string;
-                          kind: "EQUIPMENT_INSTANCE";
-                        }
-                      | {
-                          companionInstanceId: string;
-                          creatureId: string;
-                          kind: "COMPANION_INSTANCE";
-                        }
-                      | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    state: "APPLIED" | "SUPPRESSED";
-                    value: number;
-                  }>;
-                  effective: number;
-                  override?: {
-                    adjustmentId: string;
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    value: number;
-                  };
-                };
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "SAVING_THROW";
-                numericEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
-                }>;
-                panelId: string;
-                proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                proficiencyEditor: {
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field: "PROFICIENCY_OVERRIDE";
-                  kind: "SELECT";
-                  label: string;
-                  options: Array<{ label: string; value: string }>;
-                  sourceNote?: string;
-                  value: string | null;
-                };
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
-                  kind: "SAVING_THROW";
-                };
-                title: string;
-                total: number;
-              }
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                abilityEditor: {
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field: "GOVERNING_ABILITY_OVERRIDE";
-                  kind: "SELECT";
-                  label: string;
-                  options: Array<{ label: string; value: string }>;
-                  sourceNote?: string;
-                  value: string | null;
-                };
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                calculation: {
-                  base: number;
-                  contributions: Array<{
-                    id: string;
-                    source:
-                      | {
-                          definitionId: string;
-                          kind: "AUTHORED";
-                          sourceInstanceId: string;
-                          sourceKind:
-                            | "ANCESTRY"
-                            | "BACKGROUND"
-                            | "CLASS"
-                            | "FEAT"
-                            | "FEATURE"
-                            | "OPTION"
-                            | "RACE"
-                            | "SPELL"
-                            | "SUBRACE"
-                            | "SUBCLASS";
-                        }
-                      | {
-                          equipmentId: string;
-                          itemInstanceId: string;
-                          kind: "EQUIPMENT_INSTANCE";
-                        }
-                      | {
-                          companionInstanceId: string;
-                          creatureId: string;
-                          kind: "COMPANION_INSTANCE";
-                        }
-                      | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    state: "APPLIED" | "SUPPRESSED";
-                    value: number;
-                  }>;
-                  effective: number;
-                  override?: {
-                    adjustmentId: string;
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    value: number;
-                  };
-                };
-                characterId: string;
-                code: string;
-                description?: string;
-                editable: boolean;
-                kind: "SKILL";
-                numericEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
-                }>;
-                panelId: string;
-                proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                proficiencyEditor: {
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field: "PROFICIENCY_OVERRIDE";
-                  kind: "SELECT";
-                  label: string;
-                  options: Array<{ label: string; value: string }>;
-                  sourceNote?: string;
-                  value: string | null;
-                };
-                skillId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "SKILL"; skillId: string };
-                title: string;
-                total: number;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "SKILLS";
-                panelId: string;
-                skills: Array<{
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
-                  code: string;
-                  label: string;
-                  proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                  skillId: string;
-                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                  target: { kind: "SKILL"; skillId: string };
-                  total: number;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "SKILLS" };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "SENSES";
-                panelId: string;
-                passiveChecks: Array<{
-                  calculation: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  editor: {
-                    adjustmentId?: string;
-                    commitIntent: "ON_BLUR_OR_ENTER";
-                    field: "TOTAL_OVERRIDE";
-                    kind: "NUMBER";
-                    label: string;
-                    sourceNote?: string;
-                    validation: {
-                      integer: boolean;
-                      maximum?: number;
-                      minimum?: number;
-                    };
-                    value: number | null;
-                  };
-                  label: string;
-                  skillId: string;
-                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                  total: number;
-                }>;
-                senses: Array<{
-                  calculation: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  editor: {
-                    adjustmentId?: string;
-                    commitIntent: "ON_BLUR_OR_ENTER";
-                    field: "RANGE_OVERRIDE";
-                    kind: "NUMBER";
-                    label: string;
-                    sourceNote?: string;
-                    validation: {
-                      integer: boolean;
-                      maximum?: number;
-                      minimum?: number;
-                    };
-                    value: number | null;
-                  };
-                  label: string;
-                  range: number;
-                  senseId: string;
-                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                  unitLabel: string;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  entry?:
-                    | { kind: "PASSIVE"; skillId: string }
-                    | { kind: "SENSE"; senseId: string };
-                  kind: "SENSES";
-                };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "MOVEMENT";
-                panelId: string;
-                preference:
-                  { mode: "AUTO" } | { mode: "EXPLICIT"; speedId: string };
-                preferenceOptions: Array<{ label: string; value: string }>;
-                primarySpeedId?: string;
-                speeds: Array<{
-                  amount: number;
-                  calculation: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  editor: {
-                    adjustmentId?: string;
-                    commitIntent: "ON_BLUR_OR_ENTER";
-                    field: "SPEED_OVERRIDE";
-                    kind: "NUMBER";
-                    label: string;
-                    sourceNote?: string;
-                    validation: {
-                      integer: boolean;
-                      maximum?: number;
-                      minimum?: number;
-                    };
-                    value: number | null;
-                  };
-                  label: string;
-                  speedId: string;
-                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                  unitLabel: string;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "MOVEMENT" };
-                title: string;
-              }
-            | {
-                additionOptions: Array<{
-                  damageTypeId: string;
-                  defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
-                  label: string;
-                }>;
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                defenses: Array<{
-                  adjustmentId?: string;
-                  damageTypeId: string;
-                  kind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
-                  label: string;
-                  sourceLabel: string;
-                }>;
-                description?: string;
-                editable: boolean;
-                kind: "DEFENSES";
-                panelId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "DEFENSES" };
-                title: string;
-              }
-            | {
-                additionOptions: Array<{
-                  kind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
-                  label: string;
-                  targetId: string;
-                }>;
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "PROFICIENCIES";
-                panelId: string;
-                proficiencies: Array<{
-                  adjustmentId?: string;
-                  kind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
-                  label: string;
-                  sourceLabel: string;
-                  targetId: string;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "PROFICIENCIES" };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                authoredName: string;
-                calculations: {
-                  attackBonus?: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  damageBonus?: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  saveDC?: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                };
-                canManageKnown: boolean;
-                canPrepare: boolean;
-                characterId: string;
-                customizationOptions: Array<{
-                  category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
-                  configured?: {
-                    adjustmentId: string;
-                    mode: "BONUS" | "OVERRIDE";
-                    sourceNote?: string;
-                    value: number;
-                  };
-                  label: string;
-                  supportedModes: Array<"BONUS" | "OVERRIDE">;
-                }>;
-                description?: string;
-                displayAsAttack: boolean;
-                displayName: string;
-                editable: boolean;
-                effects: Array<{ label: string; value: string }>;
-                facts: Array<{ label: string; value: string }>;
-                kind: "SPELL";
-                known: boolean;
-                knownClassId?: string;
-                legalCastModes: Array<{
-                  available: boolean;
-                  castLevel?: number;
-                  kind:
-                    | "AT_WILL"
-                    | "SPELL_SLOT"
-                    | "RITUAL"
-                    | "FIXED_LEVEL"
-                    | "LIMITED_USE";
-                  label: string;
-                  slotKey?: string;
-                  unavailableReason?: string;
-                }>;
-                panelId: string;
-                preparationClassId?: string;
-                prepared: boolean;
-                references: Array<{ label: string; value: string }>;
-                source: {
-                  sourceInstanceId: string;
-                  sourceKind:
-                    | "BACKGROUND"
-                    | "CLASS"
-                    | "FEAT"
-                    | "FEATURE"
-                    | "ITEM"
-                    | "OPTION"
-                    | "RACE"
-                    | "SUBCLASS";
-                  spellId: string;
-                };
-                sourceLabel: string;
-                spellId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  castLevel?: number;
-                  kind: "SPELL";
-                  source: {
-                    sourceInstanceId: string;
-                    sourceKind:
-                      | "BACKGROUND"
-                      | "CLASS"
-                      | "FEAT"
-                      | "FEATURE"
-                      | "ITEM"
-                      | "OPTION"
-                      | "RACE"
-                      | "SUBCLASS";
-                    spellId: string;
-                  };
-                };
-                textEditors: Array<{
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "CUSTOM_NAME" | "NOTES";
-                  kind: "TEXT";
-                  label: string;
-                  maximumLength: number;
-                  multiline: boolean;
-                  value: string | null;
-                }>;
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                groups: Array<{
-                  label: string;
-                  level: number;
-                  sources: Array<{
-                    canManageKnown: boolean;
-                    canPrepare: boolean;
-                    known: boolean;
-                    knownClassId?: string;
-                    label: string;
-                    preparationClassId?: string;
-                    prepared: boolean;
-                    source: {
-                      sourceInstanceId: string;
-                      sourceKind:
-                        | "BACKGROUND"
-                        | "CLASS"
-                        | "FEAT"
-                        | "FEATURE"
-                        | "ITEM"
-                        | "OPTION"
-                        | "RACE"
-                        | "SUBCLASS";
-                      spellId: string;
-                    };
-                    sourceLabel: string;
-                    spellId: string;
-                    state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                    target: {
-                      kind: "SPELL";
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                    };
-                  }>;
-                }>;
-                kind: "SPELLS";
-                panelId: string;
-                slots: Array<{
-                  label: string;
-                  maximum: number;
-                  remaining: number;
-                  slotKey: string;
-                  used: number;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "SPELLS" };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                facts: Array<{ label: string; value: string }>;
-                featureId: string;
-                kind: "FEATURE";
-                panelId: string;
-                resources: Array<{
-                  label: string;
-                  maximum: number;
-                  remaining: number;
-                  target: {
-                    kind: "RESOURCE";
-                    owner:
-                      | {
-                          kind: "AUTHORED_GRANT";
-                          resourceGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          kind: "AUTHORED_SOURCE";
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          kind: "SPELL_SOURCE";
-                          resourceGrantId: string;
-                          source: {
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "ITEM"
-                              | "OPTION"
-                              | "RACE"
-                              | "SUBCLASS";
-                            spellId: string;
-                          };
-                        }
-                      | {
-                          chargeId: string;
-                          itemInstanceId: string;
-                          kind: "ITEM_INSTANCE";
-                        }
-                      | {
-                          kind: "SENSE_GRANT";
-                          senseGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          companionInstanceId: string;
-                          featureId: string;
-                          kind: "COMPANION_FEATURE";
-                        };
-                  };
-                }>;
-                sourceInstanceId: string;
-                sourceLabel: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  featureId: string;
-                  kind: "FEATURE";
-                  sourceInstanceId: string;
-                };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                attuned: boolean;
-                authoredName: string;
-                characterId: string;
-                description?: string;
-                displayName: string;
-                editable: boolean;
-                equipmentId: string;
-                equipped: boolean;
-                facts: Array<{ label: string; value: string }>;
-                features: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                  resourceCost?: number;
-                  resourceGrantId?: string;
-                }>;
-                itemInstanceId: string;
-                kind: "ITEM";
-                numericEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field:
-                    | "ATTACK_BONUS"
-                    | "ATTACK_OVERRIDE"
-                    | "COST_OVERRIDE"
-                    | "DAMAGE_BONUS"
-                    | "WEIGHT_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
-                }>;
-                panelId: string;
-                propertyEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field:
-                    | "ADAMANTINE"
-                    | "DISPLAY_AS_ATTACK"
-                    | "DUAL_WIELD"
-                    | "SILVERED";
-                  kind: "BOOLEAN";
-                  label: string;
-                  sourceNote?: string;
-                  value: boolean;
-                }>;
-                requiresAttunement: boolean;
-                resources: Array<{
-                  id: string;
-                  label: string;
-                  maximum: number;
-                  recoveries: Array<{
-                    amount:
-                      | { kind: "ALL" }
-                      | { amount: number; kind: "FIXED" }
-                      | {
-                          dice: {
-                            count: number;
-                            die: number;
-                            modifier: number;
-                          };
-                          kind: "DICE";
-                        };
-                    trigger:
-                      | "SHORT_REST"
-                      | "LONG_REST"
-                      | "DAWN"
-                      | "DUSK"
-                      | "DAILY"
-                      | "MANUAL";
-                  }>;
-                  remaining: number;
-                  target: {
-                    kind: "RESOURCE";
-                    owner:
-                      | {
-                          kind: "AUTHORED_GRANT";
-                          resourceGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          kind: "AUTHORED_SOURCE";
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          kind: "SPELL_SOURCE";
-                          resourceGrantId: string;
-                          source: {
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "ITEM"
-                              | "OPTION"
-                              | "RACE"
-                              | "SUBCLASS";
-                            spellId: string;
-                          };
-                        }
-                      | {
-                          chargeId: string;
-                          itemInstanceId: string;
-                          kind: "ITEM_INSTANCE";
-                        }
-                      | {
-                          kind: "SENSE_GRANT";
-                          senseGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          companionInstanceId: string;
-                          featureId: string;
-                          kind: "COMPANION_FEATURE";
-                        };
-                  };
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { itemInstanceId: string; kind: "ITEM" };
-                textEditors: Array<{
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "CUSTOM_NAME" | "NOTES";
-                  kind: "TEXT";
-                  label: string;
-                  maximumLength: number;
-                  multiline: boolean;
-                  value: string | null;
-                }>;
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                backgroundId: string;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                facts: Array<{ label: string; value: string }>;
-                features: Array<{
-                  description?: string;
-                  label: string;
-                  target: {
-                    featureId: string;
-                    kind: "FEATURE";
-                    sourceInstanceId: string;
-                  };
-                }>;
-                kind: "BACKGROUND";
-                panelId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "BACKGROUND" };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "RESOURCE";
-                maximum: number;
-                owner:
-                  | {
-                      kind: "AUTHORED_GRANT";
-                      resourceGrantId: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      chargeId: string;
-                      kind: "AUTHORED_SOURCE";
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      kind: "SPELL_SOURCE";
-                      resourceGrantId: string;
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                    }
-                  | {
-                      chargeId: string;
-                      itemInstanceId: string;
-                      kind: "ITEM_INSTANCE";
-                    }
-                  | {
-                      kind: "SENSE_GRANT";
-                      senseGrantId: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      chargeId: string;
-                      companionInstanceId: string;
-                      featureId: string;
-                      kind: "COMPANION_FEATURE";
-                    };
-                panelId: string;
-                recoveries: Array<{
-                  amount:
-                    | { kind: "ALL" }
-                    | { amount: number; kind: "FIXED" }
-                    | {
-                        dice: { count: number; die: number; modifier: number };
-                        kind: "DICE";
-                      };
-                  trigger:
-                    | "SHORT_REST"
-                    | "LONG_REST"
-                    | "DAWN"
-                    | "DUSK"
-                    | "DAILY"
-                    | "MANUAL";
-                }>;
-                remaining: number;
-                sourceLabel: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  kind: "RESOURCE";
-                  owner:
-                    | {
-                        kind: "AUTHORED_GRANT";
-                        resourceGrantId: string;
-                        source:
-                          | {
-                              definitionId: string;
-                              kind: "AUTHORED";
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "ANCESTRY"
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "OPTION"
-                                | "RACE"
-                                | "SPELL"
-                                | "SUBRACE"
-                                | "SUBCLASS";
-                            }
-                          | {
-                              equipmentId: string;
-                              itemInstanceId: string;
-                              kind: "EQUIPMENT_INSTANCE";
-                            }
-                          | {
-                              companionInstanceId: string;
-                              creatureId: string;
-                              kind: "COMPANION_INSTANCE";
-                            }
-                          | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      }
-                    | {
-                        chargeId: string;
-                        kind: "AUTHORED_SOURCE";
-                        source:
-                          | {
-                              definitionId: string;
-                              kind: "AUTHORED";
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "ANCESTRY"
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "OPTION"
-                                | "RACE"
-                                | "SPELL"
-                                | "SUBRACE"
-                                | "SUBCLASS";
-                            }
-                          | {
-                              equipmentId: string;
-                              itemInstanceId: string;
-                              kind: "EQUIPMENT_INSTANCE";
-                            }
-                          | {
-                              companionInstanceId: string;
-                              creatureId: string;
-                              kind: "COMPANION_INSTANCE";
-                            }
-                          | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      }
-                    | {
-                        kind: "SPELL_SOURCE";
-                        resourceGrantId: string;
-                        source: {
-                          sourceInstanceId: string;
-                          sourceKind:
-                            | "BACKGROUND"
-                            | "CLASS"
-                            | "FEAT"
-                            | "FEATURE"
-                            | "ITEM"
-                            | "OPTION"
-                            | "RACE"
-                            | "SUBCLASS";
-                          spellId: string;
-                        };
-                      }
-                    | {
-                        chargeId: string;
-                        itemInstanceId: string;
-                        kind: "ITEM_INSTANCE";
-                      }
-                    | {
-                        kind: "SENSE_GRANT";
-                        senseGrantId: string;
-                        source:
-                          | {
-                              definitionId: string;
-                              kind: "AUTHORED";
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "ANCESTRY"
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "OPTION"
-                                | "RACE"
-                                | "SPELL"
-                                | "SUBRACE"
-                                | "SUBCLASS";
-                            }
-                          | {
-                              equipmentId: string;
-                              itemInstanceId: string;
-                              kind: "EQUIPMENT_INSTANCE";
-                            }
-                          | {
-                              companionInstanceId: string;
-                              creatureId: string;
-                              kind: "COMPANION_INSTANCE";
-                            }
-                          | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      }
-                    | {
-                        chargeId: string;
-                        companionInstanceId: string;
-                        featureId: string;
-                        kind: "COMPANION_FEATURE";
-                      };
-                };
-                title: string;
-                used: number;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                companionCount: number;
-                description?: string;
-                editable: boolean;
-                kind: "EXTRAS";
-                mountCount: number;
-                ownedCreatureCount: number;
-                panelId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "EXTRAS" };
-                title: string;
-                vehicleCount: number;
-              }
-            | {
-                actions: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                }>;
-                alignmentId?: string;
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                armorClass: number;
-                authoredName: string;
-                characterId: string;
-                companionInstanceId: string;
-                creatureId: string;
-                creatureTypeId?: string;
-                description?: string;
-                displayName: string;
-                editable: boolean;
-                equipmentItemIds: Array<string>;
-                facts: Array<{ label: string; value: string }>;
-                features: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                }>;
-                hitDice: Array<{
-                  die: number;
-                  remaining: number;
-                  total: number;
-                  used: number;
-                }>;
-                hitPoints: { current: number; maximum: number; temp: number };
-                isActive: boolean;
-                kind: "COMPANION";
-                numericEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
-                }>;
-                originKind: "WORLD" | "SUMMONED";
-                originLabel: string;
-                panelId: string;
-                relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
-                relationshipLabel: string;
-                resources: Array<{
-                  label: string;
-                  maximum: number;
-                  recoveries: Array<{
-                    amount:
-                      | { kind: "ALL" }
-                      | { amount: number; kind: "FIXED" }
-                      | {
-                          dice: {
-                            count: number;
-                            die: number;
-                            modifier: number;
-                          };
-                          kind: "DICE";
-                        };
-                    trigger:
-                      | "SHORT_REST"
-                      | "LONG_REST"
-                      | "DAWN"
-                      | "DUSK"
-                      | "DAILY"
-                      | "MANUAL";
-                  }>;
-                  remaining: number;
-                  target: {
-                    kind: "RESOURCE";
-                    owner:
-                      | {
-                          kind: "AUTHORED_GRANT";
-                          resourceGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          kind: "AUTHORED_SOURCE";
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          kind: "SPELL_SOURCE";
-                          resourceGrantId: string;
-                          source: {
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "ITEM"
-                              | "OPTION"
-                              | "RACE"
-                              | "SUBCLASS";
-                            spellId: string;
-                          };
-                        }
-                      | {
-                          chargeId: string;
-                          itemInstanceId: string;
-                          kind: "ITEM_INSTANCE";
-                        }
-                      | {
-                          kind: "SENSE_GRANT";
-                          senseGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          companionInstanceId: string;
-                          featureId: string;
-                          kind: "COMPANION_FEATURE";
-                        };
-                  };
-                }>;
-                selectEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field:
-                    | "ALIGNMENT_OVERRIDE"
-                    | "CREATURE_TYPE_OVERRIDE"
-                    | "SIZE_OVERRIDE";
-                  kind: "SELECT";
-                  label: string;
-                  options: Array<{ label: string; value: string }>;
-                  sourceNote?: string;
-                  value: string | null;
-                }>;
-                size?: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { companionInstanceId: string; kind: "COMPANION" };
-                textEditors: Array<{
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "CUSTOM_NAME" | "NOTES";
-                  kind: "TEXT";
-                  label: string;
-                  maximumLength: number;
-                  multiline: boolean;
-                  value: string | null;
-                }>;
-                title: string;
-              }
-            | {
-                actions: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                }>;
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                authoredName: string;
-                categoryLabel: string;
-                characterId: string;
-                description?: string;
-                displayName: string;
-                editable: boolean;
-                equipmentItemIds: Array<string>;
-                facts: Array<{ label: string; value: string }>;
-                features: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                }>;
-                hitPoints: { current: number; maximum: number };
-                isActive: boolean;
-                kind: "VEHICLE";
-                panelId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "VEHICLE"; vehicleInstanceId: string };
-                textEditors: Array<{
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "CUSTOM_NAME" | "NOTES";
-                  kind: "TEXT";
-                  label: string;
-                  maximumLength: number;
-                  multiline: boolean;
-                  value: string | null;
-                }>;
-                title: string;
-                vehicleId: string;
-                vehicleInstanceId: string;
-              }
-          >;
           result?: {
             rest: {
               companionRecoveries: Array<{
@@ -5172,1174 +2906,6 @@ export declare const api: {
               spentHitDice: Array<{ count: number; die: number }>;
             };
             type: "COMPLETE_REST";
-          };
-          sheet: {
-            actions: {
-              items: Array<{
-                availability:
-                  | { status: "AVAILABLE" }
-                  | {
-                      reasonCode:
-                        | "SOURCE_NOT_EQUIPPED"
-                        | "SOURCE_NOT_ATTUNED"
-                        | "SOURCE_REQUIREMENTS_NOT_MET"
-                        | "RESOURCE_MISSING"
-                        | "INSUFFICIENT_RESOURCE";
-                      status: "UNAVAILABLE";
-                    };
-                description?: string;
-                id: string;
-                kind: "ACTION" | "BONUS_ACTION" | "REACTION" | "OTHER";
-                label: string;
-                mechanic?: {
-                  activation?: { amount: number; kind: string };
-                  attackBonus?: number;
-                  attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  effectId: string;
-                  outcomes: Array<
-                    | {
-                        damageTypeId: string;
-                        damageTypeLabel: string;
-                        expression: string;
-                        kind: "DAMAGE";
-                        pathCode: string;
-                        scaling?: Array<{ expression: string; level: number }>;
-                      }
-                    | {
-                        expression: string;
-                        kind: "HEAL";
-                        pathCode: string;
-                        scaling?: Array<{ expression: string; level: number }>;
-                        temporary: boolean;
-                      }
-                    | {
-                        conditionId: string;
-                        kind: "CONDITION";
-                        label: string;
-                        pathCode: string;
-                      }
-                    | {
-                        effectKind: string;
-                        kind: "EFFECT";
-                        label?: string;
-                        pathCode: string;
-                      }
-                  >;
-                  rangeLabel?: string;
-                  save?: {
-                    ability:
-                      | "CHARISMA"
-                      | "CONSTITUTION"
-                      | "DEXTERITY"
-                      | "INTELLIGENCE"
-                      | "STRENGTH"
-                      | "WISDOM";
-                    dc?: number;
-                  };
-                  trigger: string;
-                };
-                resourceCost?: number;
-                resourceGrantId?: string;
-                rollable?: boolean;
-                sourceLabel?: string;
-              }>;
-            };
-            extras: {
-              items: Array<
-                | {
-                    actions: Array<{
-                      description?: string;
-                      id: string;
-                      label: string;
-                    }>;
-                    alignmentId?: string;
-                    armorClass: number;
-                    authoredName: string;
-                    carryingCapacityLabel?: string;
-                    creatureId: string;
-                    creatureTypeId?: string;
-                    customName?: string;
-                    displayName: string;
-                    equipmentItemIds: Array<string>;
-                    features: Array<{
-                      description?: string;
-                      id: string;
-                      label: string;
-                    }>;
-                    hitDice: Array<{
-                      die: number;
-                      remaining: number;
-                      total: number;
-                      used: number;
-                    }>;
-                    hitPoints: {
-                      current: number;
-                      maximum: number;
-                      temp: number;
-                    };
-                    id: string;
-                    isActive: boolean;
-                    kind: "COMPANION" | "MOUNT" | "OWNED";
-                    kindLabel: string;
-                    notes?: string;
-                    originKind: "WORLD" | "SUMMONED";
-                    originLabel: string;
-                    relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
-                    relationshipLabel: string;
-                    riderCapacity?: number;
-                    size?:
-                      | "COLOSSAL"
-                      | "DIMUNITIVE"
-                      | "FINE"
-                      | "GARGANTUAN"
-                      | "GIANT"
-                      | "HUGE"
-                      | "LARGE"
-                      | "MEDIUM"
-                      | "SMALL"
-                      | "TINY";
-                    speedLabel?: string;
-                  }
-                | {
-                    actions: Array<{
-                      description?: string;
-                      id: string;
-                      label: string;
-                    }>;
-                    authoredName: string;
-                    cargoCapacityLabel?: string;
-                    categoryLabel: string;
-                    crewLabel?: string;
-                    customName?: string;
-                    displayName: string;
-                    equipmentItemIds: Array<string>;
-                    features: Array<{
-                      description?: string;
-                      id: string;
-                      label: string;
-                    }>;
-                    hitPoints: { current: number; maximum: number };
-                    id: string;
-                    isActive: boolean;
-                    kind: "VEHICLE";
-                    kindLabel: string;
-                    notes?: string;
-                    passengerCapacity?: number;
-                    speedLabel?: string;
-                    vehicleId: string;
-                  }
-              >;
-              kindOptions: Array<{
-                code: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
-                label: string;
-              }>;
-              originOptions: Array<{
-                code: "WORLD" | "SUMMONED";
-                label: string;
-              }>;
-            };
-            identity: {
-              backgroundLabel?: string;
-              classSummary: string;
-              concept?: string;
-              description?: string;
-              label: string;
-              raceLabel?: string;
-              totalLevel: number;
-            };
-            inventory: {
-              containers?: Array<{
-                capacity?: {
-                  amount: number;
-                  unit:
-                    | "POUNDS"
-                    | "GALLONS"
-                    | "INCHES"
-                    | "FEET"
-                    | "YARDS"
-                    | "MILES"
-                    | "OUNCES"
-                    | "CUPS"
-                    | "TABLESPOONS"
-                    | "TEASPOONS"
-                    | "LITERS"
-                    | "QUARTS";
-                };
-                currencies: Array<{
-                  amount: number;
-                  campaignCurrencySystemId?: string;
-                  containerId?: string;
-                  currencyId: string;
-                  kind?: "RULESET" | "CAMPAIGN";
-                  label: string;
-                }>;
-                id: string;
-                itemIds: Array<string>;
-                label: string;
-              }>;
-              currencies: Array<{
-                amount: number;
-                campaignCurrencySystemId?: string;
-                containerId?: string;
-                currencyId: string;
-                kind?: "RULESET" | "CAMPAIGN";
-                label: string;
-              }>;
-              items: Array<{
-                armorClass?: number;
-                attuned: boolean;
-                capacity?: {
-                  amount: number;
-                  unit:
-                    | "POUNDS"
-                    | "GALLONS"
-                    | "INCHES"
-                    | "FEET"
-                    | "YARDS"
-                    | "MILES"
-                    | "OUNCES"
-                    | "CUPS"
-                    | "TABLESPOONS"
-                    | "TEASPOONS"
-                    | "LITERS"
-                    | "QUARTS";
-                };
-                category?: string;
-                containerId?: string;
-                cost?: { amount: number; currencyId: string };
-                costLabel?: string;
-                customName?: string;
-                description?: string | null;
-                displayAsAttack?: boolean;
-                equipmentId: string;
-                equipmentLabel?: string;
-                equipped: boolean;
-                id: string;
-                label: string;
-                notes?: string;
-                properties?: Array<{
-                  code:
-                    | "LIGHT"
-                    | "ONE_HANDED"
-                    | "TWO_HANDED"
-                    | "FINESSE"
-                    | "RANGED"
-                    | "THROWN"
-                    | "HEAVY"
-                    | "LOADING"
-                    | "AMMUNITION"
-                    | "REACH"
-                    | "SPECIAL"
-                    | "VERSATILE"
-                    | "MEDIUM"
-                    | "SIMPLE"
-                    | "MARTIAL"
-                    | "MELEE"
-                    | "FLASK"
-                    | "VIAL"
-                    | "POISON"
-                    | "CONTAINER"
-                    | "POTION"
-                    | "SCROLL"
-                    | "WONDEROUS_ITEM"
-                    | "ARCANE_FOCUS"
-                    | "HOLY_SYMBOL"
-                    | "DRINK"
-                    | "FOOD"
-                    | "ARTISANAL_TOOL"
-                    | "MUSICAL_INSTRUMENT"
-                    | "GAMING_SET"
-                    | "DRUIDIC_FOCUS"
-                    | "PROFESSIONAL_TOOL"
-                    | "WOOD"
-                    | "METAL"
-                    | "MAGIC"
-                    | "VEX"
-                    | "CLOTHING";
-                  label: string;
-                }>;
-                quantity: number;
-                rarityId?: string;
-                requiresAttunement: boolean;
-                weight?: {
-                  amount: number;
-                  unit:
-                    | "POUNDS"
-                    | "GALLONS"
-                    | "INCHES"
-                    | "FEET"
-                    | "YARDS"
-                    | "MILES"
-                    | "OUNCES"
-                    | "CUPS"
-                    | "TABLESPOONS"
-                    | "TEASPOONS"
-                    | "LITERS"
-                    | "QUARTS";
-                };
-              }>;
-            };
-            meta: {
-              campaignId?: string | null;
-              capabilities: {
-                manageInventory: boolean;
-                managePlayState: boolean;
-                managePrivateNotes: boolean;
-                openBuilder: boolean;
-              };
-              characterId: string;
-              hasBuilderDraft?: boolean;
-              partyVisibility?: {
-                health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
-                sheet: boolean;
-              };
-              status: "DRAFT" | "ACTIVE";
-              streamVersion: number;
-              systemId: string;
-              viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
-            };
-            notes: {
-              age?: string;
-              alignment?: string;
-              allies?: string;
-              appearance?: string;
-              backstory?: string;
-              bonds?: string;
-              enemies?: string;
-              faith?: string;
-              flaws?: string;
-              gender?: string;
-              groups?: Array<{
-                id: string;
-                kind: "SESSION" | "LOOT" | "CHARACTERS" | "PLACES" | "CUSTOM";
-                label: string;
-                sortOrder: number;
-              }>;
-              ideals?: string;
-              items?: Array<{
-                body?: string;
-                createdAt: string;
-                groupId: string;
-                id: string;
-                pinned: boolean;
-                title: string;
-                updatedAt: string;
-              }>;
-              lifestyle?: string;
-              notes?: string;
-              organizations?: string;
-              personalityTraits?: string;
-            };
-            overview: {
-              abilities: Array<{
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                modifier: number;
-                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                score: number;
-              }>;
-              armorClass: number;
-              conditions: Array<{
-                conditionTypeId: string;
-                description?: string;
-                label: string;
-                notes?: string;
-              }>;
-              currentHitPoints: number;
-              exhaustion: {
-                description: string;
-                label: string;
-                level: number;
-                maximumLevel: number;
-                minimumLevel: number;
-                notes?: string;
-              };
-              facts: Array<{ label: string; value: string }>;
-              hitDice: Array<{
-                die: number;
-                remaining: number;
-                total: number;
-                used: number;
-              }>;
-              initiative: number;
-              initiativeRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              inspiration?: boolean;
-              maxHitPoints: number;
-              maxHitPointsModifier: number;
-              maxHitPointsModifierAdjustmentId: string | null;
-              maxHitPointsOverride: number | null;
-              maxHitPointsReductions: Array<{
-                amount: number;
-                id: string;
-                label: string | null;
-                recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
-                sourceHidden: boolean;
-              }>;
-              proficiencyBonus: number;
-              savingThrows: Array<{
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                label: string;
-                proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                total: number;
-              }>;
-              skills: Array<{
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                code: string;
-                label: string;
-                proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                skillId: string;
-                total: number;
-              }>;
-              tempHitPoints: number;
-            };
-            publicId?: string;
-            reference: {
-              conditionOptions: Array<{
-                code: string;
-                description?: string;
-                id: string;
-                label: string;
-              }>;
-              currencyOptions: Array<{
-                campaignCurrencySystemId?: string;
-                description?: string;
-                id: string;
-                kind?: "RULESET" | "CAMPAIGN";
-                label: string;
-              }>;
-              defenses: Array<{
-                damageTypeId: string;
-                kind: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
-                label: string;
-                value: string;
-              }>;
-              equipmentOptions: Array<{
-                description?: string;
-                id: string;
-                isContainer: boolean;
-                label: string;
-                maxStack?: number;
-                requiresAttunement: boolean;
-              }>;
-              features: Array<{
-                attributes?: Array<string>;
-                availableAtLevel?: number;
-                description?: string;
-                details?: Array<{
-                  description: string;
-                  id: string;
-                  label: string;
-                }>;
-                id: string;
-                label: string;
-                resourceCost?: number;
-                resourceGrantId?: string;
-                sortOrder?: number;
-                source:
-                  | { classId: string; classLevel?: number; kind: "CLASS" }
-                  | {
-                      classLevel?: number;
-                      kind: "SUBCLASS";
-                      subclassId: string;
-                    }
-                  | { kind: "RACE"; raceId: string }
-                  | { kind: "SUBRACE"; subraceId: string }
-                  | { ancestryId: string; kind: "ANCESTRY"; optionId: string }
-                  | { backgroundId: string; kind: "BACKGROUND" }
-                  | { featId: string; kind: "FEAT" }
-                  | { featureId: string; kind: "FEATURE" }
-                  | {
-                      acquiredParentId: string;
-                      kind: "OPTION";
-                      optionId: string;
-                    }
-                  | { kind: "MANUAL"; reason?: string }
-                  | {
-                      equipmentId: string;
-                      itemInstanceId: string;
-                      kind: "EQUIPMENT_INSTANCE";
-                    };
-                sourceLabel: string;
-              }>;
-              proficiencies: Array<{
-                kind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
-                label: string;
-                value: string;
-              }>;
-              senses: Array<{
-                label: string;
-                range?:
-                  | {
-                      id: string;
-                      rangeKind:
-                        "SELF" | "TOUCH" | "SIGHT" | "SPECIAL" | "UNLIMITED";
-                    }
-                  | {
-                      amount: number;
-                      id: string;
-                      longAmount?: number;
-                      rangeKind: "DISTANCE";
-                      scaling?:
-                        | {
-                            breakpoints: Array<{
-                              id: string;
-                              level: number;
-                              order: number;
-                              value: {
-                                amount: number;
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
-                              };
-                            }>;
-                            scalingKind: "BREAKPOINTS";
-                            scalingSource: "CHARACTER_LEVEL";
-                          }
-                        | {
-                            breakpoints: Array<{
-                              id: string;
-                              level: number;
-                              order: number;
-                              value: {
-                                amount: number;
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
-                              };
-                            }>;
-                            classId: string;
-                            scalingKind: "BREAKPOINTS";
-                            scalingSource: "CLASS_LEVEL";
-                          }
-                        | {
-                            breakpoints: Array<{
-                              id: string;
-                              level: number;
-                              order: number;
-                              value: {
-                                amount: number;
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
-                              };
-                            }>;
-                            scalingKind: "BREAKPOINTS";
-                            scalingSource: "PARENT_CLASS_LEVEL";
-                          }
-                        | {
-                            breakpoints: Array<{
-                              id: string;
-                              level: number;
-                              order: number;
-                              value: {
-                                amount: number;
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
-                              };
-                            }>;
-                            scalingKind: "BREAKPOINTS";
-                            scalingSource: "SPELL_CAST_LEVEL";
-                          };
-                      unit:
-                        | "POUNDS"
-                        | "GALLONS"
-                        | "INCHES"
-                        | "FEET"
-                        | "YARDS"
-                        | "MILES"
-                        | "OUNCES"
-                        | "CUPS"
-                        | "TABLESPOONS"
-                        | "TEASPOONS"
-                        | "LITERS"
-                        | "QUARTS";
-                    };
-                senseId: string;
-                value: string;
-              }>;
-            };
-            resources: {
-              hitDice: Array<{
-                die: number;
-                remaining: number;
-                total: number;
-                used: number;
-              }>;
-              items: Array<{
-                description?: string;
-                id: string;
-                label: string;
-                max: number;
-                owner:
-                  | {
-                      kind: "AUTHORED_GRANT";
-                      resourceGrantId: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      chargeId: string;
-                      kind: "AUTHORED_SOURCE";
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      kind: "SPELL_SOURCE";
-                      resourceGrantId: string;
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                    }
-                  | {
-                      chargeId: string;
-                      itemInstanceId: string;
-                      kind: "ITEM_INSTANCE";
-                    }
-                  | {
-                      kind: "SENSE_GRANT";
-                      senseGrantId: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      chargeId: string;
-                      companionInstanceId: string;
-                      featureId: string;
-                      kind: "COMPANION_FEATURE";
-                    };
-                recoveries: Array<{
-                  amount:
-                    | { kind: "ALL" }
-                    | { amount: number; kind: "FIXED" }
-                    | {
-                        dice: { count: number; die: number; modifier: number };
-                        kind: "DICE";
-                      };
-                  trigger:
-                    | "SHORT_REST"
-                    | "LONG_REST"
-                    | "DAWN"
-                    | "DUSK"
-                    | "DAILY"
-                    | "MANUAL";
-                }>;
-                remaining: number;
-                sourceFeatureId?: string;
-                sourceLabel: string;
-                used: number;
-              }>;
-            };
-            spells: {
-              activeGroups: Array<{
-                entries: Array<{
-                  activationLabel?: string;
-                  activationType?:
-                    "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
-                  available: boolean;
-                  cast: { slotKey?: string; sourceId: string; spellId: string };
-                  castLevel: number;
-                  displayName: string;
-                  hitOrDcLabel?: string;
-                  mechanics?: Array<{
-                    activation?: { amount: number; kind: string };
-                    attackBonus?: number;
-                    attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                    effectId: string;
-                    outcomes: Array<
-                      | {
-                          damageTypeId: string;
-                          damageTypeLabel: string;
-                          expression: string;
-                          kind: "DAMAGE";
-                          pathCode: string;
-                          scaling?: Array<{
-                            expression: string;
-                            level: number;
-                          }>;
-                        }
-                      | {
-                          expression: string;
-                          kind: "HEAL";
-                          pathCode: string;
-                          scaling?: Array<{
-                            expression: string;
-                            level: number;
-                          }>;
-                          temporary: boolean;
-                        }
-                      | {
-                          conditionId: string;
-                          kind: "CONDITION";
-                          label: string;
-                          pathCode: string;
-                        }
-                      | {
-                          effectKind: string;
-                          kind: "EFFECT";
-                          label?: string;
-                          pathCode: string;
-                        }
-                    >;
-                    rangeLabel?: string;
-                    save?: {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      dc?: number;
-                    };
-                    trigger: string;
-                  }>;
-                  primaryEffect?: string;
-                  rangeLabel?: string;
-                  rowId: string;
-                  source: {
-                    sourceInstanceId: string;
-                    sourceKind:
-                      | "BACKGROUND"
-                      | "CLASS"
-                      | "FEAT"
-                      | "FEATURE"
-                      | "ITEM"
-                      | "OPTION"
-                      | "RACE"
-                      | "SUBCLASS";
-                    spellId: string;
-                  };
-                  sourceId: string;
-                  sourceLabel?: string;
-                  sourceQualifier?: string;
-                  spellId: string;
-                  target: {
-                    castLevel: number;
-                    kind: "SPELL";
-                    source: {
-                      sourceInstanceId: string;
-                      sourceKind:
-                        | "BACKGROUND"
-                        | "CLASS"
-                        | "FEAT"
-                        | "FEATURE"
-                        | "ITEM"
-                        | "OPTION"
-                        | "RACE"
-                        | "SUBCLASS";
-                      spellId: string;
-                    };
-                  };
-                  unavailableReason?: string;
-                }>;
-                label: string;
-                level: number;
-              }>;
-              attackBonus: number | null;
-              attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              preparationSources?: Array<{
-                classId: string;
-                label: string;
-                preparedSpellIds: Array<string>;
-                preparedSpellLimit?: number;
-              }>;
-              saveDc: number | null;
-              slots: Array<{
-                label: string;
-                level: number | null;
-                max: number;
-                remaining: number;
-                slotKey: string;
-                used: number;
-              }>;
-              spells: Array<{
-                attributes?: Array<
-                  "CONCENTRATION" | "RITUAL" | "ADDS_TO_WEAPON_ATTACK"
-                >;
-                castingTime?: {
-                  amount: number;
-                  unit: "ROUND" | "MINUTE" | "HOUR";
-                };
-                components?: Array<"VERBAL" | "SOMATIC" | "MATERIAL">;
-                description?: string;
-                id: string;
-                known?: boolean;
-                label: string;
-                level: number;
-                materialDescription?: string;
-                mechanics?: Array<{
-                  activation?: { amount: number; kind: string };
-                  attackBonus?: number;
-                  attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  effectId: string;
-                  outcomes: Array<
-                    | {
-                        damageTypeId: string;
-                        damageTypeLabel: string;
-                        expression: string;
-                        kind: "DAMAGE";
-                        pathCode: string;
-                        scaling?: Array<{ expression: string; level: number }>;
-                      }
-                    | {
-                        expression: string;
-                        kind: "HEAL";
-                        pathCode: string;
-                        scaling?: Array<{ expression: string; level: number }>;
-                        temporary: boolean;
-                      }
-                    | {
-                        conditionId: string;
-                        kind: "CONDITION";
-                        label: string;
-                        pathCode: string;
-                      }
-                    | {
-                        effectKind: string;
-                        kind: "EFFECT";
-                        label?: string;
-                        pathCode: string;
-                      }
-                  >;
-                  rangeLabel?: string;
-                  save?: {
-                    ability:
-                      | "CHARISMA"
-                      | "CONSTITUTION"
-                      | "DEXTERITY"
-                      | "INTELLIGENCE"
-                      | "STRENGTH"
-                      | "WISDOM";
-                    dc?: number;
-                  };
-                  trigger: string;
-                }>;
-                prepared?: boolean;
-                school?: string;
-                sourceLabel?: string;
-                sources?: Array<{
-                  acquisition?:
-                    "KNOWN" | "PREPARED" | "ALWAYS_PREPARED" | "GRANTED";
-                  canPrepare: boolean;
-                  castMode?:
-                    | "SPELL_SLOT"
-                    | "AT_WILL"
-                    | "RITUAL"
-                    | "FIXED_LEVEL"
-                    | "LIMITED_USE";
-                  classId?: string;
-                  customName?: string;
-                  displayAsAttack?: boolean;
-                  fixedLevel?: number;
-                  id?: string;
-                  label: string;
-                  notes?: string;
-                  prepared?: boolean;
-                  provenance?:
-                    | "CLASS"
-                    | "SUBCLASS"
-                    | "RACE"
-                    | "BACKGROUND"
-                    | "FEAT"
-                    | "FEATURE"
-                    | "OPTION"
-                    | "EQUIPMENT";
-                  resourceGrantId?: string;
-                  resourceOwner?:
-                    | {
-                        kind: "AUTHORED_GRANT";
-                        resourceGrantId: string;
-                        source:
-                          | {
-                              definitionId: string;
-                              kind: "AUTHORED";
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "ANCESTRY"
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "OPTION"
-                                | "RACE"
-                                | "SPELL"
-                                | "SUBRACE"
-                                | "SUBCLASS";
-                            }
-                          | {
-                              equipmentId: string;
-                              itemInstanceId: string;
-                              kind: "EQUIPMENT_INSTANCE";
-                            }
-                          | {
-                              companionInstanceId: string;
-                              creatureId: string;
-                              kind: "COMPANION_INSTANCE";
-                            }
-                          | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      }
-                    | {
-                        chargeId: string;
-                        kind: "AUTHORED_SOURCE";
-                        source:
-                          | {
-                              definitionId: string;
-                              kind: "AUTHORED";
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "ANCESTRY"
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "OPTION"
-                                | "RACE"
-                                | "SPELL"
-                                | "SUBRACE"
-                                | "SUBCLASS";
-                            }
-                          | {
-                              equipmentId: string;
-                              itemInstanceId: string;
-                              kind: "EQUIPMENT_INSTANCE";
-                            }
-                          | {
-                              companionInstanceId: string;
-                              creatureId: string;
-                              kind: "COMPANION_INSTANCE";
-                            }
-                          | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      }
-                    | {
-                        kind: "SPELL_SOURCE";
-                        resourceGrantId: string;
-                        source: {
-                          sourceInstanceId: string;
-                          sourceKind:
-                            | "BACKGROUND"
-                            | "CLASS"
-                            | "FEAT"
-                            | "FEATURE"
-                            | "ITEM"
-                            | "OPTION"
-                            | "RACE"
-                            | "SUBCLASS";
-                          spellId: string;
-                        };
-                      }
-                    | {
-                        chargeId: string;
-                        itemInstanceId: string;
-                        kind: "ITEM_INSTANCE";
-                      }
-                    | {
-                        kind: "SENSE_GRANT";
-                        senseGrantId: string;
-                        source:
-                          | {
-                              definitionId: string;
-                              kind: "AUTHORED";
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "ANCESTRY"
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "OPTION"
-                                | "RACE"
-                                | "SPELL"
-                                | "SUBRACE"
-                                | "SUBCLASS";
-                            }
-                          | {
-                              equipmentId: string;
-                              itemInstanceId: string;
-                              kind: "EQUIPMENT_INSTANCE";
-                            }
-                          | {
-                              companionInstanceId: string;
-                              creatureId: string;
-                              kind: "COMPANION_INSTANCE";
-                            }
-                          | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      }
-                    | {
-                        chargeId: string;
-                        companionInstanceId: string;
-                        featureId: string;
-                        kind: "COMPANION_FEATURE";
-                      };
-                  source: {
-                    sourceInstanceId: string;
-                    sourceKind:
-                      | "BACKGROUND"
-                      | "CLASS"
-                      | "FEAT"
-                      | "FEATURE"
-                      | "ITEM"
-                      | "OPTION"
-                      | "RACE"
-                      | "SUBCLASS";
-                    spellId: string;
-                  };
-                }>;
-              }>;
-            };
           };
           streamVersion: number;
         }
@@ -9992,17 +6558,323 @@ export declare const api: {
         "public",
         { campaignId: string; characterId: string },
         {
+          catalogue:
+            | {
+                kind: "SNAPSHOTS";
+                manifest: {
+                  campaign: {
+                    contentMaturity: "STANDARD" | "MATURE";
+                    head: {
+                      builtRevision: number;
+                      kinds: {
+                        BACKGROUND?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        CLASS?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        CREATURE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        EQUIPMENT?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        FEAT?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        RACE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        SPELL?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        VEHICLE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                      };
+                      revision: number;
+                      scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+                      scopeId: string;
+                    } | null;
+                    id: string;
+                  } | null;
+                  sources: Array<{
+                    contentSourceId: string;
+                    head: {
+                      builtRevision: number;
+                      kinds: {
+                        BACKGROUND?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        CLASS?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        CREATURE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        EQUIPMENT?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        FEAT?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        RACE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        SPELL?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        VEHICLE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                      };
+                      revision: number;
+                      scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+                      scopeId: string;
+                    } | null;
+                    kind: "PLATFORM" | "USER";
+                  }>;
+                  systemId: string;
+                };
+              }
+            | {
+                kind: "INLINE";
+                spells: Array<{
+                  label: string;
+                  level: number;
+                  spellId: string;
+                }>;
+              };
           characterId: string;
           classes: Array<{
             classId: string;
+            eligibleSpellIds: Array<string>;
             label: string;
-            options: Array<{
-              committed: boolean;
-              label: string;
-              level: number;
-              prepared: boolean;
-              spellId: string;
-            }>;
+            preparedSpellIds: Array<string>;
             preparedSpellLimit: number;
           }>;
           streamVersion: number;
@@ -17471,12 +14343,7 @@ export declare const api: {
         "public",
         {
           id: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
+          paginationOpts: { cursor: string | null; numItems: number };
         },
         {
           characterId: string;
@@ -17524,8 +14391,6 @@ export declare const api: {
             };
             summary: string;
           }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
         }
       >;
     };
@@ -19990,17 +16855,323 @@ export declare const api: {
         "public",
         { id: string },
         null | {
+          catalogue:
+            | {
+                kind: "SNAPSHOTS";
+                manifest: {
+                  campaign: {
+                    contentMaturity: "STANDARD" | "MATURE";
+                    head: {
+                      builtRevision: number;
+                      kinds: {
+                        BACKGROUND?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        CLASS?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        CREATURE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        EQUIPMENT?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        FEAT?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        RACE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        SPELL?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        VEHICLE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                      };
+                      revision: number;
+                      scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+                      scopeId: string;
+                    } | null;
+                    id: string;
+                  } | null;
+                  sources: Array<{
+                    contentSourceId: string;
+                    head: {
+                      builtRevision: number;
+                      kinds: {
+                        BACKGROUND?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        CLASS?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        CREATURE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        EQUIPMENT?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        FEAT?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        RACE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        SPELL?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                        VEHICLE?: {
+                          documents: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          index: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                          list: {
+                            byteLength: number;
+                            rootCount: number;
+                            sha256: string;
+                          };
+                        };
+                      };
+                      revision: number;
+                      scope: "SYSTEM" | "SOURCE" | "CAMPAIGN";
+                      scopeId: string;
+                    } | null;
+                    kind: "PLATFORM" | "USER";
+                  }>;
+                  systemId: string;
+                };
+              }
+            | {
+                kind: "INLINE";
+                spells: Array<{
+                  label: string;
+                  level: number;
+                  spellId: string;
+                }>;
+              };
           characterId: string;
           classes: Array<{
             classId: string;
+            eligibleSpellIds: Array<string>;
             label: string;
-            options: Array<{
-              committed: boolean;
-              label: string;
-              level: number;
-              prepared: boolean;
-              spellId: string;
-            }>;
+            preparedSpellIds: Array<string>;
             preparedSpellLimit: number;
           }>;
           streamVersion: number;
@@ -22371,107 +19542,95 @@ export declare const api: {
             };
             summary: string;
           };
-          panels?: Array<
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                editors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "OTHER_MODIFIER" | "SCORE_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
+          result?: {
+            rest: {
+              companionRecoveries: Array<{
+                companionInstanceId: string;
+                recoveredHitDice: Array<{ count: number; die: number }>;
+                recoveredResourceIds: Array<string>;
+              }>;
+              exhaustion: { after: number; before: number };
+              hitPoints: {
+                currentAfter: number;
+                currentBefore: number;
+                healingApplied: number;
+                temporaryAfter: number;
+                temporaryBefore: number;
+              };
+              previewFingerprint: string;
+              recoveredHitDice: Array<{ count: number; die: number }>;
+              recoveredResourceIds: Array<string>;
+              recoveredSpellSlotKeys: Array<string>;
+              resetMaximumHitPointModifier: boolean;
+              restKind: "SHORT" | "LONG";
+              rollEvidence?: {
+                expression: string;
+                terms: Array<{
+                  count: number;
+                  die: number;
+                  modifierPerDie: number;
+                  rolls: Array<number>;
                 }>;
-                kind: "ABILITY";
-                modifier: number;
-                panelId: string;
-                score: number;
-                scoreCalculation: {
-                  base: number;
-                  contributions: Array<{
-                    id: string;
-                    source:
-                      | {
-                          definitionId: string;
-                          kind: "AUTHORED";
-                          sourceInstanceId: string;
-                          sourceKind:
-                            | "ANCESTRY"
-                            | "BACKGROUND"
-                            | "CLASS"
-                            | "FEAT"
-                            | "FEATURE"
-                            | "OPTION"
-                            | "RACE"
-                            | "SPELL"
-                            | "SUBRACE"
-                            | "SUBCLASS";
-                        }
-                      | {
-                          equipmentId: string;
-                          itemInstanceId: string;
-                          kind: "EQUIPMENT_INSTANCE";
-                        }
-                      | {
-                          companionInstanceId: string;
-                          creatureId: string;
-                          kind: "COMPANION_INSTANCE";
-                        }
-                      | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    state: "APPLIED" | "SUPPRESSED";
-                    value: number;
-                  }>;
-                  effective: number;
-                  override?: {
-                    adjustmentId: string;
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    value: number;
-                  };
+                total: number;
+              };
+              spentHitDice: Array<{ count: number; die: number }>;
+            };
+            type: "COMPLETE_REST";
+          };
+          streamVersion: number;
+        }
+      >;
+    };
+    sheetSlices: {
+      get: FunctionReference<
+        "query",
+        "public",
+        {
+          campaignId?: string;
+          id: string;
+          slice:
+            | "COMMON"
+            | "ACTIONS"
+            | "SPELLS"
+            | "INVENTORY"
+            | "EXTRAS"
+            | "FEATURES"
+            | "NOTES";
+        },
+        | null
+        | {
+            data: {
+              hasSpellcasting: boolean;
+              identity: {
+                backgroundLabel?: string;
+                classSummary: string;
+                concept?: string;
+                description?: string;
+                label: string;
+                raceLabel?: string;
+                totalLevel: number;
+              };
+              meta: {
+                campaignId?: string | null;
+                capabilities: {
+                  manageInventory: boolean;
+                  managePlayState: boolean;
+                  managePrivateNotes: boolean;
+                  openBuilder: boolean;
                 };
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
+                characterId: string;
+                hasBuilderDraft?: boolean;
+                partyVisibility?: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
+                };
+                status: "DRAFT" | "ACTIVE";
+                streamVersion: number;
+                systemId: string;
+                viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
+              };
+              overview: {
+                abilities: Array<{
                   ability:
                     | "CHARISMA"
                     | "CONSTITUTION"
@@ -22479,119 +19638,51 @@ export declare const api: {
                     | "INTELLIGENCE"
                     | "STRENGTH"
                     | "WISDOM";
-                  kind: "ABILITY";
-                };
-                title: string;
-              }
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                calculation: {
-                  base: number;
-                  contributions: Array<{
-                    id: string;
-                    source:
-                      | {
-                          definitionId: string;
-                          kind: "AUTHORED";
-                          sourceInstanceId: string;
-                          sourceKind:
-                            | "ANCESTRY"
-                            | "BACKGROUND"
-                            | "CLASS"
-                            | "FEAT"
-                            | "FEATURE"
-                            | "OPTION"
-                            | "RACE"
-                            | "SPELL"
-                            | "SUBRACE"
-                            | "SUBCLASS";
-                        }
-                      | {
-                          equipmentId: string;
-                          itemInstanceId: string;
-                          kind: "EQUIPMENT_INSTANCE";
-                        }
-                      | {
-                          companionInstanceId: string;
-                          creatureId: string;
-                          kind: "COMPANION_INSTANCE";
-                        }
-                      | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    state: "APPLIED" | "SUPPRESSED";
-                    value: number;
-                  }>;
-                  effective: number;
-                  override?: {
-                    adjustmentId: string;
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    value: number;
-                  };
-                };
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "SAVING_THROW";
-                numericEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
+                  modifier: number;
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  score: number;
                 }>;
-                panelId: string;
-                proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                proficiencyEditor: {
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field: "PROFICIENCY_OVERRIDE";
-                  kind: "SELECT";
+                armorClass: number;
+                conditions: Array<{
+                  conditionTypeId: string;
+                  description?: string;
                   label: string;
-                  options: Array<{ label: string; value: string }>;
-                  sourceNote?: string;
-                  value: string | null;
+                  notes?: string;
+                }>;
+                currentHitPoints: number;
+                exhaustion: {
+                  description: string;
+                  label: string;
+                  level: number;
+                  maximumLevel: number;
+                  minimumLevel: number;
+                  notes?: string;
                 };
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
+                facts: Array<{ label: string; value: string }>;
+                hitDice: Array<{
+                  die: number;
+                  remaining: number;
+                  total: number;
+                  used: number;
+                }>;
+                initiative: number;
+                initiativeRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                inspiration?: boolean;
+                maxHitPoints: number;
+                maxHitPointsModifier: number;
+                maxHitPointsModifierAdjustmentId: string | null;
+                maxHitPointsOverride: number | null;
+                maxHitPointsReductions: Array<{
+                  amount: number;
+                  id: string;
+                  label: string | null;
+                  recoveryTags: Array<
+                    "RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST"
+                  >;
+                  sourceHidden: boolean;
+                }>;
+                proficiencyBonus: number;
+                savingThrows: Array<{
                   ability:
                     | "CHARISMA"
                     | "CONSTITUTION"
@@ -22599,164 +19690,11 @@ export declare const api: {
                     | "INTELLIGENCE"
                     | "STRENGTH"
                     | "WISDOM";
-                  kind: "SAVING_THROW";
-                };
-                title: string;
-                total: number;
-              }
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                abilityEditor: {
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field: "GOVERNING_ABILITY_OVERRIDE";
-                  kind: "SELECT";
                   label: string;
-                  options: Array<{ label: string; value: string }>;
-                  sourceNote?: string;
-                  value: string | null;
-                };
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                calculation: {
-                  base: number;
-                  contributions: Array<{
-                    id: string;
-                    source:
-                      | {
-                          definitionId: string;
-                          kind: "AUTHORED";
-                          sourceInstanceId: string;
-                          sourceKind:
-                            | "ANCESTRY"
-                            | "BACKGROUND"
-                            | "CLASS"
-                            | "FEAT"
-                            | "FEATURE"
-                            | "OPTION"
-                            | "RACE"
-                            | "SPELL"
-                            | "SUBRACE"
-                            | "SUBCLASS";
-                        }
-                      | {
-                          equipmentId: string;
-                          itemInstanceId: string;
-                          kind: "EQUIPMENT_INSTANCE";
-                        }
-                      | {
-                          companionInstanceId: string;
-                          creatureId: string;
-                          kind: "COMPANION_INSTANCE";
-                        }
-                      | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    state: "APPLIED" | "SUPPRESSED";
-                    value: number;
-                  }>;
-                  effective: number;
-                  override?: {
-                    adjustmentId: string;
-                    sourceLabel: string;
-                    sourceNote?: string;
-                    value: number;
-                  };
-                };
-                characterId: string;
-                code: string;
-                description?: string;
-                editable: boolean;
-                kind: "SKILL";
-                numericEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
+                  proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  total: number;
                 }>;
-                panelId: string;
-                proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                proficiencyEditor: {
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field: "PROFICIENCY_OVERRIDE";
-                  kind: "SELECT";
-                  label: string;
-                  options: Array<{ label: string; value: string }>;
-                  sourceNote?: string;
-                  value: string | null;
-                };
-                skillId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "SKILL"; skillId: string };
-                title: string;
-                total: number;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "SKILLS";
-                panelId: string;
                 skills: Array<{
                   ability:
                     | "CHARISMA"
@@ -22768,1378 +19706,270 @@ export declare const api: {
                   code: string;
                   label: string;
                   proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   skillId: string;
-                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                  target: { kind: "SKILL"; skillId: string };
                   total: number;
                 }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "SKILLS" };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "SENSES";
-                panelId: string;
-                passiveChecks: Array<{
-                  calculation: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  editor: {
-                    adjustmentId?: string;
-                    commitIntent: "ON_BLUR_OR_ENTER";
-                    field: "TOTAL_OVERRIDE";
-                    kind: "NUMBER";
-                    label: string;
-                    sourceNote?: string;
-                    validation: {
-                      integer: boolean;
-                      maximum?: number;
-                      minimum?: number;
-                    };
-                    value: number | null;
-                  };
+                tempHitPoints: number;
+              };
+              publicId?: string;
+              reference: {
+                conditionOptions: Array<{
+                  code: string;
+                  description?: string;
+                  id: string;
                   label: string;
-                  skillId: string;
-                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                  total: number;
+                }>;
+                defenses: Array<{
+                  damageTypeId: string;
+                  kind: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                  label: string;
+                  value: string;
+                }>;
+                proficiencies: Array<{
+                  kind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                  label: string;
+                  value: string;
                 }>;
                 senses: Array<{
-                  calculation: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  editor: {
-                    adjustmentId?: string;
-                    commitIntent: "ON_BLUR_OR_ENTER";
-                    field: "RANGE_OVERRIDE";
-                    kind: "NUMBER";
-                    label: string;
-                    sourceNote?: string;
-                    validation: {
-                      integer: boolean;
-                      maximum?: number;
-                      minimum?: number;
-                    };
-                    value: number | null;
-                  };
                   label: string;
-                  range: number;
-                  senseId: string;
-                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                  unitLabel: string;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  entry?:
-                    | { kind: "PASSIVE"; skillId: string }
-                    | { kind: "SENSE"; senseId: string };
-                  kind: "SENSES";
-                };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "MOVEMENT";
-                panelId: string;
-                preference:
-                  { mode: "AUTO" } | { mode: "EXPLICIT"; speedId: string };
-                preferenceOptions: Array<{ label: string; value: string }>;
-                primarySpeedId?: string;
-                speeds: Array<{
-                  amount: number;
-                  calculation: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  editor: {
-                    adjustmentId?: string;
-                    commitIntent: "ON_BLUR_OR_ENTER";
-                    field: "SPEED_OVERRIDE";
-                    kind: "NUMBER";
-                    label: string;
-                    sourceNote?: string;
-                    validation: {
-                      integer: boolean;
-                      maximum?: number;
-                      minimum?: number;
-                    };
-                    value: number | null;
-                  };
-                  label: string;
-                  speedId: string;
-                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                  unitLabel: string;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "MOVEMENT" };
-                title: string;
-              }
-            | {
-                additionOptions: Array<{
-                  damageTypeId: string;
-                  defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
-                  label: string;
-                }>;
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                defenses: Array<{
-                  adjustmentId?: string;
-                  damageTypeId: string;
-                  kind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
-                  label: string;
-                  sourceLabel: string;
-                }>;
-                description?: string;
-                editable: boolean;
-                kind: "DEFENSES";
-                panelId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "DEFENSES" };
-                title: string;
-              }
-            | {
-                additionOptions: Array<{
-                  kind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
-                  label: string;
-                  targetId: string;
-                }>;
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "PROFICIENCIES";
-                panelId: string;
-                proficiencies: Array<{
-                  adjustmentId?: string;
-                  kind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
-                  label: string;
-                  sourceLabel: string;
-                  targetId: string;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "PROFICIENCIES" };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                authoredName: string;
-                calculations: {
-                  attackBonus?: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  damageBonus?: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                  saveDC?: {
-                    base: number;
-                    contributions: Array<{
-                      id: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      state: "APPLIED" | "SUPPRESSED";
-                      value: number;
-                    }>;
-                    effective: number;
-                    override?: {
-                      adjustmentId: string;
-                      sourceLabel: string;
-                      sourceNote?: string;
-                      value: number;
-                    };
-                  };
-                };
-                canManageKnown: boolean;
-                canPrepare: boolean;
-                characterId: string;
-                customizationOptions: Array<{
-                  category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
-                  configured?: {
-                    adjustmentId: string;
-                    mode: "BONUS" | "OVERRIDE";
-                    sourceNote?: string;
-                    value: number;
-                  };
-                  label: string;
-                  supportedModes: Array<"BONUS" | "OVERRIDE">;
-                }>;
-                description?: string;
-                displayAsAttack: boolean;
-                displayName: string;
-                editable: boolean;
-                effects: Array<{ label: string; value: string }>;
-                facts: Array<{ label: string; value: string }>;
-                kind: "SPELL";
-                known: boolean;
-                knownClassId?: string;
-                legalCastModes: Array<{
-                  available: boolean;
-                  castLevel?: number;
-                  kind:
-                    | "AT_WILL"
-                    | "SPELL_SLOT"
-                    | "RITUAL"
-                    | "FIXED_LEVEL"
-                    | "LIMITED_USE";
-                  label: string;
-                  slotKey?: string;
-                  unavailableReason?: string;
-                }>;
-                panelId: string;
-                preparationClassId?: string;
-                prepared: boolean;
-                references: Array<{ label: string; value: string }>;
-                source: {
-                  sourceInstanceId: string;
-                  sourceKind:
-                    | "BACKGROUND"
-                    | "CLASS"
-                    | "FEAT"
-                    | "FEATURE"
-                    | "ITEM"
-                    | "OPTION"
-                    | "RACE"
-                    | "SUBCLASS";
-                  spellId: string;
-                };
-                sourceLabel: string;
-                spellId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  castLevel?: number;
-                  kind: "SPELL";
-                  source: {
-                    sourceInstanceId: string;
-                    sourceKind:
-                      | "BACKGROUND"
-                      | "CLASS"
-                      | "FEAT"
-                      | "FEATURE"
-                      | "ITEM"
-                      | "OPTION"
-                      | "RACE"
-                      | "SUBCLASS";
-                    spellId: string;
-                  };
-                };
-                textEditors: Array<{
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "CUSTOM_NAME" | "NOTES";
-                  kind: "TEXT";
-                  label: string;
-                  maximumLength: number;
-                  multiline: boolean;
-                  value: string | null;
-                }>;
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                groups: Array<{
-                  label: string;
-                  level: number;
-                  sources: Array<{
-                    canManageKnown: boolean;
-                    canPrepare: boolean;
-                    known: boolean;
-                    knownClassId?: string;
-                    label: string;
-                    preparationClassId?: string;
-                    prepared: boolean;
-                    source: {
-                      sourceInstanceId: string;
-                      sourceKind:
-                        | "BACKGROUND"
-                        | "CLASS"
-                        | "FEAT"
-                        | "FEATURE"
-                        | "ITEM"
-                        | "OPTION"
-                        | "RACE"
-                        | "SUBCLASS";
-                      spellId: string;
-                    };
-                    sourceLabel: string;
-                    spellId: string;
-                    state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                    target: {
-                      kind: "SPELL";
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
+                  range?:
+                    | {
+                        id: string;
+                        rangeKind:
+                          "SELF" | "TOUCH" | "SIGHT" | "SPECIAL" | "UNLIMITED";
+                      }
+                    | {
+                        amount: number;
+                        id: string;
+                        longAmount?: number;
+                        rangeKind: "DISTANCE";
+                        scaling?:
+                          | {
+                              breakpoints: Array<{
+                                id: string;
+                                level: number;
+                                order: number;
+                                value: {
+                                  amount: number;
+                                  unit:
+                                    | "POUNDS"
+                                    | "GALLONS"
+                                    | "INCHES"
+                                    | "FEET"
+                                    | "YARDS"
+                                    | "MILES"
+                                    | "OUNCES"
+                                    | "CUPS"
+                                    | "TABLESPOONS"
+                                    | "TEASPOONS"
+                                    | "LITERS"
+                                    | "QUARTS";
+                                };
+                              }>;
+                              scalingKind: "BREAKPOINTS";
+                              scalingSource: "CHARACTER_LEVEL";
+                            }
+                          | {
+                              breakpoints: Array<{
+                                id: string;
+                                level: number;
+                                order: number;
+                                value: {
+                                  amount: number;
+                                  unit:
+                                    | "POUNDS"
+                                    | "GALLONS"
+                                    | "INCHES"
+                                    | "FEET"
+                                    | "YARDS"
+                                    | "MILES"
+                                    | "OUNCES"
+                                    | "CUPS"
+                                    | "TABLESPOONS"
+                                    | "TEASPOONS"
+                                    | "LITERS"
+                                    | "QUARTS";
+                                };
+                              }>;
+                              classId: string;
+                              scalingKind: "BREAKPOINTS";
+                              scalingSource: "CLASS_LEVEL";
+                            }
+                          | {
+                              breakpoints: Array<{
+                                id: string;
+                                level: number;
+                                order: number;
+                                value: {
+                                  amount: number;
+                                  unit:
+                                    | "POUNDS"
+                                    | "GALLONS"
+                                    | "INCHES"
+                                    | "FEET"
+                                    | "YARDS"
+                                    | "MILES"
+                                    | "OUNCES"
+                                    | "CUPS"
+                                    | "TABLESPOONS"
+                                    | "TEASPOONS"
+                                    | "LITERS"
+                                    | "QUARTS";
+                                };
+                              }>;
+                              scalingKind: "BREAKPOINTS";
+                              scalingSource: "PARENT_CLASS_LEVEL";
+                            }
+                          | {
+                              breakpoints: Array<{
+                                id: string;
+                                level: number;
+                                order: number;
+                                value: {
+                                  amount: number;
+                                  unit:
+                                    | "POUNDS"
+                                    | "GALLONS"
+                                    | "INCHES"
+                                    | "FEET"
+                                    | "YARDS"
+                                    | "MILES"
+                                    | "OUNCES"
+                                    | "CUPS"
+                                    | "TABLESPOONS"
+                                    | "TEASPOONS"
+                                    | "LITERS"
+                                    | "QUARTS";
+                                };
+                              }>;
+                              scalingKind: "BREAKPOINTS";
+                              scalingSource: "SPELL_CAST_LEVEL";
+                            };
+                        unit:
+                          | "POUNDS"
+                          | "GALLONS"
+                          | "INCHES"
+                          | "FEET"
+                          | "YARDS"
+                          | "MILES"
+                          | "OUNCES"
+                          | "CUPS"
+                          | "TABLESPOONS"
+                          | "TEASPOONS"
+                          | "LITERS"
+                          | "QUARTS";
                       };
-                    };
-                  }>;
+                  senseId: string;
+                  value: string;
                 }>;
-                kind: "SPELLS";
-                panelId: string;
-                slots: Array<{
-                  label: string;
-                  maximum: number;
-                  remaining: number;
-                  slotKey: string;
-                  used: number;
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "SPELLS" };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                facts: Array<{ label: string; value: string }>;
-                featureId: string;
-                kind: "FEATURE";
-                panelId: string;
-                resources: Array<{
-                  label: string;
-                  maximum: number;
-                  remaining: number;
-                  target: {
-                    kind: "RESOURCE";
-                    owner:
-                      | {
-                          kind: "AUTHORED_GRANT";
-                          resourceGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          kind: "AUTHORED_SOURCE";
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          kind: "SPELL_SOURCE";
-                          resourceGrantId: string;
-                          source: {
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "ITEM"
-                              | "OPTION"
-                              | "RACE"
-                              | "SUBCLASS";
-                            spellId: string;
-                          };
-                        }
-                      | {
-                          chargeId: string;
-                          itemInstanceId: string;
-                          kind: "ITEM_INSTANCE";
-                        }
-                      | {
-                          kind: "SENSE_GRANT";
-                          senseGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          companionInstanceId: string;
-                          featureId: string;
-                          kind: "COMPANION_FEATURE";
-                        };
-                  };
-                }>;
-                sourceInstanceId: string;
-                sourceLabel: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  featureId: string;
-                  kind: "FEATURE";
-                  sourceInstanceId: string;
-                };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                attuned: boolean;
-                authoredName: string;
-                characterId: string;
-                description?: string;
-                displayName: string;
-                editable: boolean;
-                equipmentId: string;
-                equipped: boolean;
-                facts: Array<{ label: string; value: string }>;
-                features: Array<{
+              };
+            };
+            slice: "COMMON";
+          }
+        | {
+            data: {
+              actions: {
+                items: Array<{
+                  availability:
+                    | { status: "AVAILABLE" }
+                    | {
+                        reasonCode:
+                          | "SOURCE_NOT_EQUIPPED"
+                          | "SOURCE_NOT_ATTUNED"
+                          | "SOURCE_REQUIREMENTS_NOT_MET"
+                          | "RESOURCE_MISSING"
+                          | "INSUFFICIENT_RESOURCE";
+                        status: "UNAVAILABLE";
+                      };
                   description?: string;
                   id: string;
+                  kind: "ACTION" | "BONUS_ACTION" | "REACTION" | "OTHER";
                   label: string;
+                  mechanic?: {
+                    activation?: { amount: number; kind: string };
+                    attackBonus?: number;
+                    attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    effectId: string;
+                    outcomes: Array<
+                      | {
+                          damageTypeId: string;
+                          damageTypeLabel: string;
+                          expression: string;
+                          kind: "DAMAGE";
+                          pathCode: string;
+                          scaling?: Array<{
+                            expression: string;
+                            level: number;
+                          }>;
+                        }
+                      | {
+                          expression: string;
+                          kind: "HEAL";
+                          pathCode: string;
+                          scaling?: Array<{
+                            expression: string;
+                            level: number;
+                          }>;
+                          temporary: boolean;
+                        }
+                      | {
+                          conditionId: string;
+                          kind: "CONDITION";
+                          label: string;
+                          pathCode: string;
+                        }
+                      | {
+                          effectKind: string;
+                          kind: "EFFECT";
+                          label?: string;
+                          pathCode: string;
+                        }
+                    >;
+                    rangeLabel?: string;
+                    save?: {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      dc?: number;
+                    };
+                    trigger: string;
+                  };
                   resourceCost?: number;
                   resourceGrantId?: string;
+                  rollable?: boolean;
+                  sourceLabel?: string;
                 }>;
-                itemInstanceId: string;
-                kind: "ITEM";
-                numericEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field:
-                    | "ATTACK_BONUS"
-                    | "ATTACK_OVERRIDE"
-                    | "COST_OVERRIDE"
-                    | "DAMAGE_BONUS"
-                    | "WEIGHT_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
-                }>;
-                panelId: string;
-                propertyEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field:
-                    | "ADAMANTINE"
-                    | "DISPLAY_AS_ATTACK"
-                    | "DUAL_WIELD"
-                    | "SILVERED";
-                  kind: "BOOLEAN";
-                  label: string;
-                  sourceNote?: string;
-                  value: boolean;
-                }>;
-                requiresAttunement: boolean;
-                resources: Array<{
+              };
+              meta: {
+                campaignId?: string | null;
+                capabilities: {
+                  manageInventory: boolean;
+                  managePlayState: boolean;
+                  managePrivateNotes: boolean;
+                  openBuilder: boolean;
+                };
+                characterId: string;
+                hasBuilderDraft?: boolean;
+                partyVisibility?: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
+                };
+                status: "DRAFT" | "ACTIVE";
+                streamVersion: number;
+                systemId: string;
+                viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
+              };
+              resources: {
+                items: Array<{
+                  description?: string;
                   id: string;
                   label: string;
-                  maximum: number;
-                  recoveries: Array<{
-                    amount:
-                      | { kind: "ALL" }
-                      | { amount: number; kind: "FIXED" }
-                      | {
-                          dice: {
-                            count: number;
-                            die: number;
-                            modifier: number;
-                          };
-                          kind: "DICE";
-                        };
-                    trigger:
-                      | "SHORT_REST"
-                      | "LONG_REST"
-                      | "DAWN"
-                      | "DUSK"
-                      | "DAILY"
-                      | "MANUAL";
-                  }>;
-                  remaining: number;
-                  target: {
-                    kind: "RESOURCE";
-                    owner:
-                      | {
-                          kind: "AUTHORED_GRANT";
-                          resourceGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          kind: "AUTHORED_SOURCE";
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          kind: "SPELL_SOURCE";
-                          resourceGrantId: string;
-                          source: {
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "ITEM"
-                              | "OPTION"
-                              | "RACE"
-                              | "SUBCLASS";
-                            spellId: string;
-                          };
-                        }
-                      | {
-                          chargeId: string;
-                          itemInstanceId: string;
-                          kind: "ITEM_INSTANCE";
-                        }
-                      | {
-                          kind: "SENSE_GRANT";
-                          senseGrantId: string;
-                          source:
-                            | {
-                                definitionId: string;
-                                kind: "AUTHORED";
-                                sourceInstanceId: string;
-                                sourceKind:
-                                  | "ANCESTRY"
-                                  | "BACKGROUND"
-                                  | "CLASS"
-                                  | "FEAT"
-                                  | "FEATURE"
-                                  | "OPTION"
-                                  | "RACE"
-                                  | "SPELL"
-                                  | "SUBRACE"
-                                  | "SUBCLASS";
-                              }
-                            | {
-                                equipmentId: string;
-                                itemInstanceId: string;
-                                kind: "EQUIPMENT_INSTANCE";
-                              }
-                            | {
-                                companionInstanceId: string;
-                                creatureId: string;
-                                kind: "COMPANION_INSTANCE";
-                              }
-                            | { kind: "SYSTEM"; systemId: string }
-                            | {
-                                adjustmentId: string;
-                                kind: "MANUAL_ADJUSTMENT";
-                              };
-                        }
-                      | {
-                          chargeId: string;
-                          companionInstanceId: string;
-                          featureId: string;
-                          kind: "COMPANION_FEATURE";
-                        };
-                  };
-                }>;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { itemInstanceId: string; kind: "ITEM" };
-                textEditors: Array<{
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "CUSTOM_NAME" | "NOTES";
-                  kind: "TEXT";
-                  label: string;
-                  maximumLength: number;
-                  multiline: boolean;
-                  value: string | null;
-                }>;
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                backgroundId: string;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                facts: Array<{ label: string; value: string }>;
-                features: Array<{
-                  description?: string;
-                  label: string;
-                  target: {
-                    featureId: string;
-                    kind: "FEATURE";
-                    sourceInstanceId: string;
-                  };
-                }>;
-                kind: "BACKGROUND";
-                panelId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "BACKGROUND" };
-                title: string;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                description?: string;
-                editable: boolean;
-                kind: "RESOURCE";
-                maximum: number;
-                owner:
-                  | {
-                      kind: "AUTHORED_GRANT";
-                      resourceGrantId: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      chargeId: string;
-                      kind: "AUTHORED_SOURCE";
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      kind: "SPELL_SOURCE";
-                      resourceGrantId: string;
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                    }
-                  | {
-                      chargeId: string;
-                      itemInstanceId: string;
-                      kind: "ITEM_INSTANCE";
-                    }
-                  | {
-                      kind: "SENSE_GRANT";
-                      senseGrantId: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      chargeId: string;
-                      companionInstanceId: string;
-                      featureId: string;
-                      kind: "COMPANION_FEATURE";
-                    };
-                panelId: string;
-                recoveries: Array<{
-                  amount:
-                    | { kind: "ALL" }
-                    | { amount: number; kind: "FIXED" }
-                    | {
-                        dice: { count: number; die: number; modifier: number };
-                        kind: "DICE";
-                      };
-                  trigger:
-                    | "SHORT_REST"
-                    | "LONG_REST"
-                    | "DAWN"
-                    | "DUSK"
-                    | "DAILY"
-                    | "MANUAL";
-                }>;
-                remaining: number;
-                sourceLabel: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: {
-                  kind: "RESOURCE";
+                  max: number;
                   owner:
                     | {
                         kind: "AUTHORED_GRANT";
@@ -24268,124 +20098,6 @@ export declare const api: {
                         featureId: string;
                         kind: "COMPANION_FEATURE";
                       };
-                };
-                title: string;
-                used: number;
-              }
-            | {
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                characterId: string;
-                companionCount: number;
-                description?: string;
-                editable: boolean;
-                kind: "EXTRAS";
-                mountCount: number;
-                ownedCreatureCount: number;
-                panelId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "EXTRAS" };
-                title: string;
-                vehicleCount: number;
-              }
-            | {
-                actions: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                }>;
-                alignmentId?: string;
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                armorClass: number;
-                authoredName: string;
-                characterId: string;
-                companionInstanceId: string;
-                creatureId: string;
-                creatureTypeId?: string;
-                description?: string;
-                displayName: string;
-                editable: boolean;
-                equipmentItemIds: Array<string>;
-                facts: Array<{ label: string; value: string }>;
-                features: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                }>;
-                hitDice: Array<{
-                  die: number;
-                  remaining: number;
-                  total: number;
-                  used: number;
-                }>;
-                hitPoints: { current: number; maximum: number; temp: number };
-                isActive: boolean;
-                kind: "COMPANION";
-                numericEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
-                  kind: "NUMBER";
-                  label: string;
-                  sourceNote?: string;
-                  validation: {
-                    integer: boolean;
-                    maximum?: number;
-                    minimum?: number;
-                  };
-                  value: number | null;
-                }>;
-                originKind: "WORLD" | "SUMMONED";
-                originLabel: string;
-                panelId: string;
-                relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
-                relationshipLabel: string;
-                resources: Array<{
-                  label: string;
-                  maximum: number;
                   recoveries: Array<{
                     amount:
                       | { kind: "ALL" }
@@ -24407,9 +20119,221 @@ export declare const api: {
                       | "MANUAL";
                   }>;
                   remaining: number;
-                  target: {
-                    kind: "RESOURCE";
-                    owner:
+                  sourceFeatureId?: string;
+                  sourceLabel: string;
+                  used: number;
+                }>;
+              };
+              spells: {
+                activeGroups: Array<{
+                  entries: Array<{
+                    activationLabel?: string;
+                    activationType?:
+                      "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+                    available: boolean;
+                    cast: {
+                      slotKey?: string;
+                      sourceId: string;
+                      spellId: string;
+                    };
+                    castLevel: number;
+                    displayName: string;
+                    hitOrDcLabel?: string;
+                    mechanics?: Array<{
+                      activation?: { amount: number; kind: string };
+                      attackBonus?: number;
+                      attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      effectId: string;
+                      outcomes: Array<
+                        | {
+                            damageTypeId: string;
+                            damageTypeLabel: string;
+                            expression: string;
+                            kind: "DAMAGE";
+                            pathCode: string;
+                            scaling?: Array<{
+                              expression: string;
+                              level: number;
+                            }>;
+                          }
+                        | {
+                            expression: string;
+                            kind: "HEAL";
+                            pathCode: string;
+                            scaling?: Array<{
+                              expression: string;
+                              level: number;
+                            }>;
+                            temporary: boolean;
+                          }
+                        | {
+                            conditionId: string;
+                            kind: "CONDITION";
+                            label: string;
+                            pathCode: string;
+                          }
+                        | {
+                            effectKind: string;
+                            kind: "EFFECT";
+                            label?: string;
+                            pathCode: string;
+                          }
+                      >;
+                      rangeLabel?: string;
+                      save?: {
+                        ability:
+                          | "CHARISMA"
+                          | "CONSTITUTION"
+                          | "DEXTERITY"
+                          | "INTELLIGENCE"
+                          | "STRENGTH"
+                          | "WISDOM";
+                        dc?: number;
+                      };
+                      trigger: string;
+                    }>;
+                    primaryEffect?: string;
+                    rangeLabel?: string;
+                    rowId: string;
+                    source: {
+                      sourceInstanceId: string;
+                      sourceKind:
+                        | "BACKGROUND"
+                        | "CLASS"
+                        | "FEAT"
+                        | "FEATURE"
+                        | "ITEM"
+                        | "OPTION"
+                        | "RACE"
+                        | "SUBCLASS";
+                      spellId: string;
+                    };
+                    sourceId: string;
+                    sourceLabel?: string;
+                    sourceQualifier?: string;
+                    spellId: string;
+                    target: {
+                      castLevel: number;
+                      kind: "SPELL";
+                      source: {
+                        sourceInstanceId: string;
+                        sourceKind:
+                          | "BACKGROUND"
+                          | "CLASS"
+                          | "FEAT"
+                          | "FEATURE"
+                          | "ITEM"
+                          | "OPTION"
+                          | "RACE"
+                          | "SUBCLASS";
+                        spellId: string;
+                      };
+                    };
+                    unavailableReason?: string;
+                  }>;
+                  label: string;
+                  level: number;
+                }>;
+                spells: Array<{
+                  attributes?: Array<
+                    "CONCENTRATION" | "RITUAL" | "ADDS_TO_WEAPON_ATTACK"
+                  >;
+                  castingTime?: {
+                    amount: number;
+                    unit: "ROUND" | "MINUTE" | "HOUR";
+                  };
+                  components?: Array<"VERBAL" | "SOMATIC" | "MATERIAL">;
+                  description?: string;
+                  id: string;
+                  known?: boolean;
+                  label: string;
+                  level: number;
+                  materialDescription?: string;
+                  mechanics?: Array<{
+                    activation?: { amount: number; kind: string };
+                    attackBonus?: number;
+                    attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    effectId: string;
+                    outcomes: Array<
+                      | {
+                          damageTypeId: string;
+                          damageTypeLabel: string;
+                          expression: string;
+                          kind: "DAMAGE";
+                          pathCode: string;
+                          scaling?: Array<{
+                            expression: string;
+                            level: number;
+                          }>;
+                        }
+                      | {
+                          expression: string;
+                          kind: "HEAL";
+                          pathCode: string;
+                          scaling?: Array<{
+                            expression: string;
+                            level: number;
+                          }>;
+                          temporary: boolean;
+                        }
+                      | {
+                          conditionId: string;
+                          kind: "CONDITION";
+                          label: string;
+                          pathCode: string;
+                        }
+                      | {
+                          effectKind: string;
+                          kind: "EFFECT";
+                          label?: string;
+                          pathCode: string;
+                        }
+                    >;
+                    rangeLabel?: string;
+                    save?: {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      dc?: number;
+                    };
+                    trigger: string;
+                  }>;
+                  prepared?: boolean;
+                  school?: string;
+                  sourceLabel?: string;
+                  sources?: Array<{
+                    acquisition?:
+                      "KNOWN" | "PREPARED" | "ALWAYS_PREPARED" | "GRANTED";
+                    canPrepare: boolean;
+                    castMode?:
+                      | "SPELL_SLOT"
+                      | "AT_WILL"
+                      | "RITUAL"
+                      | "FIXED_LEVEL"
+                      | "LIMITED_USE";
+                    classId?: string;
+                    customName?: string;
+                    displayAsAttack?: boolean;
+                    fixedLevel?: number;
+                    id?: string;
+                    label: string;
+                    notes?: string;
+                    prepared?: boolean;
+                    provenance?:
+                      | "CLASS"
+                      | "SUBCLASS"
+                      | "RACE"
+                      | "BACKGROUND"
+                      | "FEAT"
+                      | "FEATURE"
+                      | "OPTION"
+                      | "EQUIPMENT";
+                    resourceGrantId?: string;
+                    resourceOwner?:
                       | {
                           kind: "AUTHORED_GRANT";
                           resourceGrantId: string;
@@ -24546,859 +20470,137 @@ export declare const api: {
                           featureId: string;
                           kind: "COMPANION_FEATURE";
                         };
-                  };
+                    source: {
+                      sourceInstanceId: string;
+                      sourceKind:
+                        | "BACKGROUND"
+                        | "CLASS"
+                        | "FEAT"
+                        | "FEATURE"
+                        | "ITEM"
+                        | "OPTION"
+                        | "RACE"
+                        | "SUBCLASS";
+                      spellId: string;
+                    };
+                  }>;
                 }>;
-                selectEditors: Array<{
-                  adjustmentId?: string;
-                  commitIntent: "IMMEDIATE";
-                  field:
-                    | "ALIGNMENT_OVERRIDE"
-                    | "CREATURE_TYPE_OVERRIDE"
-                    | "SIZE_OVERRIDE";
-                  kind: "SELECT";
-                  label: string;
-                  options: Array<{ label: string; value: string }>;
-                  sourceNote?: string;
-                  value: string | null;
-                }>;
-                size?: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { companionInstanceId: string; kind: "COMPANION" };
-                textEditors: Array<{
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "CUSTOM_NAME" | "NOTES";
-                  kind: "TEXT";
-                  label: string;
-                  maximumLength: number;
-                  multiline: boolean;
-                  value: string | null;
-                }>;
-                title: string;
-              }
-            | {
-                actions: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                }>;
-                allowedCommands: Array<
-                  | "UPSERT_ADJUSTMENT"
-                  | "REMOVE_ADJUSTMENT"
-                  | "RESET_ADJUSTMENTS"
-                  | "SET_MOVEMENT_DISPLAY_PREFERENCE"
-                  | "SET_PREPARED_SPELLS"
-                  | "SET_KNOWN_SPELLS"
-                  | "USE_SPELL_SLOT"
-                  | "RESTORE_SPELL_SLOT"
-                  | "CAST_SPELL"
-                  | "SET_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "REMOVE_SPELL_MECHANIC_CUSTOMIZATION"
-                  | "UPDATE_SPELL_SOURCE_CUSTOMIZATION"
-                  | "UPDATE_OWNED_ITEM"
-                  | "REMOVE_OWNED_ITEM"
-                  | "SET_ITEM_EQUIPPED"
-                  | "SET_ITEM_ATTUNED"
-                  | "USE_RESOURCE"
-                  | "RECOVER_RESOURCE"
-                  | "ADD_EXTRA"
-                  | "UPDATE_EXTRA"
-                  | "REMOVE_EXTRA"
-                >;
-                authoredName: string;
-                categoryLabel: string;
+              };
+            };
+            slice: "ACTIONS";
+          }
+        | {
+            data: {
+              meta: {
+                campaignId?: string | null;
+                capabilities: {
+                  manageInventory: boolean;
+                  managePlayState: boolean;
+                  managePrivateNotes: boolean;
+                  openBuilder: boolean;
+                };
                 characterId: string;
-                description?: string;
-                displayName: string;
-                editable: boolean;
-                equipmentItemIds: Array<string>;
-                facts: Array<{ label: string; value: string }>;
-                features: Array<{
-                  description?: string;
-                  id: string;
-                  label: string;
-                }>;
-                hitPoints: { current: number; maximum: number };
-                isActive: boolean;
-                kind: "VEHICLE";
-                panelId: string;
-                state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-                target: { kind: "VEHICLE"; vehicleInstanceId: string };
-                textEditors: Array<{
-                  commitIntent: "ON_BLUR_OR_ENTER";
-                  field: "CUSTOM_NAME" | "NOTES";
-                  kind: "TEXT";
-                  label: string;
-                  maximumLength: number;
-                  multiline: boolean;
-                  value: string | null;
-                }>;
-                title: string;
-                vehicleId: string;
-                vehicleInstanceId: string;
-              }
-          >;
-          result?: {
-            rest: {
-              companionRecoveries: Array<{
-                companionInstanceId: string;
-                recoveredHitDice: Array<{ count: number; die: number }>;
-                recoveredResourceIds: Array<string>;
-              }>;
-              exhaustion: { after: number; before: number };
-              hitPoints: {
-                currentAfter: number;
-                currentBefore: number;
-                healingApplied: number;
-                temporaryAfter: number;
-                temporaryBefore: number;
-              };
-              previewFingerprint: string;
-              recoveredHitDice: Array<{ count: number; die: number }>;
-              recoveredResourceIds: Array<string>;
-              recoveredSpellSlotKeys: Array<string>;
-              resetMaximumHitPointModifier: boolean;
-              restKind: "SHORT" | "LONG";
-              rollEvidence?: {
-                expression: string;
-                terms: Array<{
-                  count: number;
-                  die: number;
-                  modifierPerDie: number;
-                  rolls: Array<number>;
-                }>;
-                total: number;
-              };
-              spentHitDice: Array<{ count: number; die: number }>;
-            };
-            type: "COMPLETE_REST";
-          };
-          sheet: {
-            actions: {
-              items: Array<{
-                availability:
-                  | { status: "AVAILABLE" }
-                  | {
-                      reasonCode:
-                        | "SOURCE_NOT_EQUIPPED"
-                        | "SOURCE_NOT_ATTUNED"
-                        | "SOURCE_REQUIREMENTS_NOT_MET"
-                        | "RESOURCE_MISSING"
-                        | "INSUFFICIENT_RESOURCE";
-                      status: "UNAVAILABLE";
-                    };
-                description?: string;
-                id: string;
-                kind: "ACTION" | "BONUS_ACTION" | "REACTION" | "OTHER";
-                label: string;
-                mechanic?: {
-                  activation?: { amount: number; kind: string };
-                  attackBonus?: number;
-                  attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  effectId: string;
-                  outcomes: Array<
-                    | {
-                        damageTypeId: string;
-                        damageTypeLabel: string;
-                        expression: string;
-                        kind: "DAMAGE";
-                        pathCode: string;
-                        scaling?: Array<{ expression: string; level: number }>;
-                      }
-                    | {
-                        expression: string;
-                        kind: "HEAL";
-                        pathCode: string;
-                        scaling?: Array<{ expression: string; level: number }>;
-                        temporary: boolean;
-                      }
-                    | {
-                        conditionId: string;
-                        kind: "CONDITION";
-                        label: string;
-                        pathCode: string;
-                      }
-                    | {
-                        effectKind: string;
-                        kind: "EFFECT";
-                        label?: string;
-                        pathCode: string;
-                      }
-                  >;
-                  rangeLabel?: string;
-                  save?: {
-                    ability:
-                      | "CHARISMA"
-                      | "CONSTITUTION"
-                      | "DEXTERITY"
-                      | "INTELLIGENCE"
-                      | "STRENGTH"
-                      | "WISDOM";
-                    dc?: number;
-                  };
-                  trigger: string;
+                hasBuilderDraft?: boolean;
+                partyVisibility?: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
                 };
-                resourceCost?: number;
-                resourceGrantId?: string;
-                rollable?: boolean;
-                sourceLabel?: string;
-              }>;
-            };
-            extras: {
-              items: Array<
-                | {
-                    actions: Array<{
-                      description?: string;
-                      id: string;
-                      label: string;
-                    }>;
-                    alignmentId?: string;
-                    armorClass: number;
-                    authoredName: string;
-                    carryingCapacityLabel?: string;
-                    creatureId: string;
-                    creatureTypeId?: string;
-                    customName?: string;
+                status: "DRAFT" | "ACTIVE";
+                streamVersion: number;
+                systemId: string;
+                viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
+              };
+              spells: {
+                activeGroups: Array<{
+                  entries: Array<{
+                    activationLabel?: string;
+                    activationType?:
+                      "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+                    available: boolean;
+                    cast: {
+                      slotKey?: string;
+                      sourceId: string;
+                      spellId: string;
+                    };
+                    castLevel: number;
                     displayName: string;
-                    equipmentItemIds: Array<string>;
-                    features: Array<{
-                      description?: string;
-                      id: string;
-                      label: string;
+                    hitOrDcLabel?: string;
+                    mechanics?: Array<{
+                      activation?: { amount: number; kind: string };
+                      attackBonus?: number;
+                      attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      effectId: string;
+                      outcomes: Array<
+                        | {
+                            damageTypeId: string;
+                            damageTypeLabel: string;
+                            expression: string;
+                            kind: "DAMAGE";
+                            pathCode: string;
+                            scaling?: Array<{
+                              expression: string;
+                              level: number;
+                            }>;
+                          }
+                        | {
+                            expression: string;
+                            kind: "HEAL";
+                            pathCode: string;
+                            scaling?: Array<{
+                              expression: string;
+                              level: number;
+                            }>;
+                            temporary: boolean;
+                          }
+                        | {
+                            conditionId: string;
+                            kind: "CONDITION";
+                            label: string;
+                            pathCode: string;
+                          }
+                        | {
+                            effectKind: string;
+                            kind: "EFFECT";
+                            label?: string;
+                            pathCode: string;
+                          }
+                      >;
+                      rangeLabel?: string;
+                      save?: {
+                        ability:
+                          | "CHARISMA"
+                          | "CONSTITUTION"
+                          | "DEXTERITY"
+                          | "INTELLIGENCE"
+                          | "STRENGTH"
+                          | "WISDOM";
+                        dc?: number;
+                      };
+                      trigger: string;
                     }>;
-                    hitDice: Array<{
-                      die: number;
-                      remaining: number;
-                      total: number;
-                      used: number;
-                    }>;
-                    hitPoints: {
-                      current: number;
-                      maximum: number;
-                      temp: number;
+                    primaryEffect?: string;
+                    rangeLabel?: string;
+                    rowId: string;
+                    source: {
+                      sourceInstanceId: string;
+                      sourceKind:
+                        | "BACKGROUND"
+                        | "CLASS"
+                        | "FEAT"
+                        | "FEATURE"
+                        | "ITEM"
+                        | "OPTION"
+                        | "RACE"
+                        | "SUBCLASS";
+                      spellId: string;
                     };
-                    id: string;
-                    isActive: boolean;
-                    kind: "COMPANION" | "MOUNT" | "OWNED";
-                    kindLabel: string;
-                    notes?: string;
-                    originKind: "WORLD" | "SUMMONED";
-                    originLabel: string;
-                    relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
-                    relationshipLabel: string;
-                    riderCapacity?: number;
-                    size?:
-                      | "COLOSSAL"
-                      | "DIMUNITIVE"
-                      | "FINE"
-                      | "GARGANTUAN"
-                      | "GIANT"
-                      | "HUGE"
-                      | "LARGE"
-                      | "MEDIUM"
-                      | "SMALL"
-                      | "TINY";
-                    speedLabel?: string;
-                  }
-                | {
-                    actions: Array<{
-                      description?: string;
-                      id: string;
-                      label: string;
-                    }>;
-                    authoredName: string;
-                    cargoCapacityLabel?: string;
-                    categoryLabel: string;
-                    crewLabel?: string;
-                    customName?: string;
-                    displayName: string;
-                    equipmentItemIds: Array<string>;
-                    features: Array<{
-                      description?: string;
-                      id: string;
-                      label: string;
-                    }>;
-                    hitPoints: { current: number; maximum: number };
-                    id: string;
-                    isActive: boolean;
-                    kind: "VEHICLE";
-                    kindLabel: string;
-                    notes?: string;
-                    passengerCapacity?: number;
-                    speedLabel?: string;
-                    vehicleId: string;
-                  }
-              >;
-              kindOptions: Array<{
-                code: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
-                label: string;
-              }>;
-              originOptions: Array<{
-                code: "WORLD" | "SUMMONED";
-                label: string;
-              }>;
-            };
-            identity: {
-              backgroundLabel?: string;
-              classSummary: string;
-              concept?: string;
-              description?: string;
-              label: string;
-              raceLabel?: string;
-              totalLevel: number;
-            };
-            inventory: {
-              containers?: Array<{
-                capacity?: {
-                  amount: number;
-                  unit:
-                    | "POUNDS"
-                    | "GALLONS"
-                    | "INCHES"
-                    | "FEET"
-                    | "YARDS"
-                    | "MILES"
-                    | "OUNCES"
-                    | "CUPS"
-                    | "TABLESPOONS"
-                    | "TEASPOONS"
-                    | "LITERS"
-                    | "QUARTS";
-                };
-                currencies: Array<{
-                  amount: number;
-                  campaignCurrencySystemId?: string;
-                  containerId?: string;
-                  currencyId: string;
-                  kind?: "RULESET" | "CAMPAIGN";
-                  label: string;
-                }>;
-                id: string;
-                itemIds: Array<string>;
-                label: string;
-              }>;
-              currencies: Array<{
-                amount: number;
-                campaignCurrencySystemId?: string;
-                containerId?: string;
-                currencyId: string;
-                kind?: "RULESET" | "CAMPAIGN";
-                label: string;
-              }>;
-              items: Array<{
-                armorClass?: number;
-                attuned: boolean;
-                capacity?: {
-                  amount: number;
-                  unit:
-                    | "POUNDS"
-                    | "GALLONS"
-                    | "INCHES"
-                    | "FEET"
-                    | "YARDS"
-                    | "MILES"
-                    | "OUNCES"
-                    | "CUPS"
-                    | "TABLESPOONS"
-                    | "TEASPOONS"
-                    | "LITERS"
-                    | "QUARTS";
-                };
-                category?: string;
-                containerId?: string;
-                cost?: { amount: number; currencyId: string };
-                costLabel?: string;
-                customName?: string;
-                description?: string | null;
-                displayAsAttack?: boolean;
-                equipmentId: string;
-                equipmentLabel?: string;
-                equipped: boolean;
-                id: string;
-                label: string;
-                notes?: string;
-                properties?: Array<{
-                  code:
-                    | "LIGHT"
-                    | "ONE_HANDED"
-                    | "TWO_HANDED"
-                    | "FINESSE"
-                    | "RANGED"
-                    | "THROWN"
-                    | "HEAVY"
-                    | "LOADING"
-                    | "AMMUNITION"
-                    | "REACH"
-                    | "SPECIAL"
-                    | "VERSATILE"
-                    | "MEDIUM"
-                    | "SIMPLE"
-                    | "MARTIAL"
-                    | "MELEE"
-                    | "FLASK"
-                    | "VIAL"
-                    | "POISON"
-                    | "CONTAINER"
-                    | "POTION"
-                    | "SCROLL"
-                    | "WONDEROUS_ITEM"
-                    | "ARCANE_FOCUS"
-                    | "HOLY_SYMBOL"
-                    | "DRINK"
-                    | "FOOD"
-                    | "ARTISANAL_TOOL"
-                    | "MUSICAL_INSTRUMENT"
-                    | "GAMING_SET"
-                    | "DRUIDIC_FOCUS"
-                    | "PROFESSIONAL_TOOL"
-                    | "WOOD"
-                    | "METAL"
-                    | "MAGIC"
-                    | "VEX"
-                    | "CLOTHING";
-                  label: string;
-                }>;
-                quantity: number;
-                rarityId?: string;
-                requiresAttunement: boolean;
-                weight?: {
-                  amount: number;
-                  unit:
-                    | "POUNDS"
-                    | "GALLONS"
-                    | "INCHES"
-                    | "FEET"
-                    | "YARDS"
-                    | "MILES"
-                    | "OUNCES"
-                    | "CUPS"
-                    | "TABLESPOONS"
-                    | "TEASPOONS"
-                    | "LITERS"
-                    | "QUARTS";
-                };
-              }>;
-            };
-            meta: {
-              campaignId?: string | null;
-              capabilities: {
-                manageInventory: boolean;
-                managePlayState: boolean;
-                managePrivateNotes: boolean;
-                openBuilder: boolean;
-              };
-              characterId: string;
-              hasBuilderDraft?: boolean;
-              partyVisibility?: {
-                health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
-                sheet: boolean;
-              };
-              status: "DRAFT" | "ACTIVE";
-              streamVersion: number;
-              systemId: string;
-              viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
-            };
-            notes: {
-              age?: string;
-              alignment?: string;
-              allies?: string;
-              appearance?: string;
-              backstory?: string;
-              bonds?: string;
-              enemies?: string;
-              faith?: string;
-              flaws?: string;
-              gender?: string;
-              groups?: Array<{
-                id: string;
-                kind: "SESSION" | "LOOT" | "CHARACTERS" | "PLACES" | "CUSTOM";
-                label: string;
-                sortOrder: number;
-              }>;
-              ideals?: string;
-              items?: Array<{
-                body?: string;
-                createdAt: string;
-                groupId: string;
-                id: string;
-                pinned: boolean;
-                title: string;
-                updatedAt: string;
-              }>;
-              lifestyle?: string;
-              notes?: string;
-              organizations?: string;
-              personalityTraits?: string;
-            };
-            overview: {
-              abilities: Array<{
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                modifier: number;
-                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                score: number;
-              }>;
-              armorClass: number;
-              conditions: Array<{
-                conditionTypeId: string;
-                description?: string;
-                label: string;
-                notes?: string;
-              }>;
-              currentHitPoints: number;
-              exhaustion: {
-                description: string;
-                label: string;
-                level: number;
-                maximumLevel: number;
-                minimumLevel: number;
-                notes?: string;
-              };
-              facts: Array<{ label: string; value: string }>;
-              hitDice: Array<{
-                die: number;
-                remaining: number;
-                total: number;
-                used: number;
-              }>;
-              initiative: number;
-              initiativeRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              inspiration?: boolean;
-              maxHitPoints: number;
-              maxHitPointsModifier: number;
-              maxHitPointsModifierAdjustmentId: string | null;
-              maxHitPointsOverride: number | null;
-              maxHitPointsReductions: Array<{
-                amount: number;
-                id: string;
-                label: string | null;
-                recoveryTags: Array<"RESTORE_HIT_POINT_MAXIMUM" | "LONG_REST">;
-                sourceHidden: boolean;
-              }>;
-              proficiencyBonus: number;
-              savingThrows: Array<{
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                label: string;
-                proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                total: number;
-              }>;
-              skills: Array<{
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                code: string;
-                label: string;
-                proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                skillId: string;
-                total: number;
-              }>;
-              tempHitPoints: number;
-            };
-            publicId?: string;
-            reference: {
-              conditionOptions: Array<{
-                code: string;
-                description?: string;
-                id: string;
-                label: string;
-              }>;
-              currencyOptions: Array<{
-                campaignCurrencySystemId?: string;
-                description?: string;
-                id: string;
-                kind?: "RULESET" | "CAMPAIGN";
-                label: string;
-              }>;
-              defenses: Array<{
-                damageTypeId: string;
-                kind: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
-                label: string;
-                value: string;
-              }>;
-              equipmentOptions: Array<{
-                description?: string;
-                id: string;
-                isContainer: boolean;
-                label: string;
-                maxStack?: number;
-                requiresAttunement: boolean;
-              }>;
-              features: Array<{
-                attributes?: Array<string>;
-                availableAtLevel?: number;
-                description?: string;
-                details?: Array<{
-                  description: string;
-                  id: string;
-                  label: string;
-                }>;
-                id: string;
-                label: string;
-                resourceCost?: number;
-                resourceGrantId?: string;
-                sortOrder?: number;
-                source:
-                  | { classId: string; classLevel?: number; kind: "CLASS" }
-                  | {
-                      classLevel?: number;
-                      kind: "SUBCLASS";
-                      subclassId: string;
-                    }
-                  | { kind: "RACE"; raceId: string }
-                  | { kind: "SUBRACE"; subraceId: string }
-                  | { ancestryId: string; kind: "ANCESTRY"; optionId: string }
-                  | { backgroundId: string; kind: "BACKGROUND" }
-                  | { featId: string; kind: "FEAT" }
-                  | { featureId: string; kind: "FEATURE" }
-                  | {
-                      acquiredParentId: string;
-                      kind: "OPTION";
-                      optionId: string;
-                    }
-                  | { kind: "MANUAL"; reason?: string }
-                  | {
-                      equipmentId: string;
-                      itemInstanceId: string;
-                      kind: "EQUIPMENT_INSTANCE";
-                    };
-                sourceLabel: string;
-              }>;
-              proficiencies: Array<{
-                kind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
-                label: string;
-                value: string;
-              }>;
-              senses: Array<{
-                label: string;
-                range?:
-                  | {
-                      id: string;
-                      rangeKind:
-                        "SELF" | "TOUCH" | "SIGHT" | "SPECIAL" | "UNLIMITED";
-                    }
-                  | {
-                      amount: number;
-                      id: string;
-                      longAmount?: number;
-                      rangeKind: "DISTANCE";
-                      scaling?:
-                        | {
-                            breakpoints: Array<{
-                              id: string;
-                              level: number;
-                              order: number;
-                              value: {
-                                amount: number;
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
-                              };
-                            }>;
-                            scalingKind: "BREAKPOINTS";
-                            scalingSource: "CHARACTER_LEVEL";
-                          }
-                        | {
-                            breakpoints: Array<{
-                              id: string;
-                              level: number;
-                              order: number;
-                              value: {
-                                amount: number;
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
-                              };
-                            }>;
-                            classId: string;
-                            scalingKind: "BREAKPOINTS";
-                            scalingSource: "CLASS_LEVEL";
-                          }
-                        | {
-                            breakpoints: Array<{
-                              id: string;
-                              level: number;
-                              order: number;
-                              value: {
-                                amount: number;
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
-                              };
-                            }>;
-                            scalingKind: "BREAKPOINTS";
-                            scalingSource: "PARENT_CLASS_LEVEL";
-                          }
-                        | {
-                            breakpoints: Array<{
-                              id: string;
-                              level: number;
-                              order: number;
-                              value: {
-                                amount: number;
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
-                              };
-                            }>;
-                            scalingKind: "BREAKPOINTS";
-                            scalingSource: "SPELL_CAST_LEVEL";
-                          };
-                      unit:
-                        | "POUNDS"
-                        | "GALLONS"
-                        | "INCHES"
-                        | "FEET"
-                        | "YARDS"
-                        | "MILES"
-                        | "OUNCES"
-                        | "CUPS"
-                        | "TABLESPOONS"
-                        | "TEASPOONS"
-                        | "LITERS"
-                        | "QUARTS";
-                    };
-                senseId: string;
-                value: string;
-              }>;
-            };
-            resources: {
-              hitDice: Array<{
-                die: number;
-                remaining: number;
-                total: number;
-                used: number;
-              }>;
-              items: Array<{
-                description?: string;
-                id: string;
-                label: string;
-                max: number;
-                owner:
-                  | {
-                      kind: "AUTHORED_GRANT";
-                      resourceGrantId: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      chargeId: string;
-                      kind: "AUTHORED_SOURCE";
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      kind: "SPELL_SOURCE";
-                      resourceGrantId: string;
+                    sourceId: string;
+                    sourceLabel?: string;
+                    sourceQualifier?: string;
+                    spellId: string;
+                    target: {
+                      castLevel: number;
+                      kind: "SPELL";
                       source: {
                         sourceInstanceId: string;
                         sourceKind:
@@ -25412,84 +20614,44 @@ export declare const api: {
                           | "SUBCLASS";
                         spellId: string;
                       };
-                    }
-                  | {
-                      chargeId: string;
-                      itemInstanceId: string;
-                      kind: "ITEM_INSTANCE";
-                    }
-                  | {
-                      kind: "SENSE_GRANT";
-                      senseGrantId: string;
-                      source:
-                        | {
-                            definitionId: string;
-                            kind: "AUTHORED";
-                            sourceInstanceId: string;
-                            sourceKind:
-                              | "ANCESTRY"
-                              | "BACKGROUND"
-                              | "CLASS"
-                              | "FEAT"
-                              | "FEATURE"
-                              | "OPTION"
-                              | "RACE"
-                              | "SPELL"
-                              | "SUBRACE"
-                              | "SUBCLASS";
-                          }
-                        | {
-                            equipmentId: string;
-                            itemInstanceId: string;
-                            kind: "EQUIPMENT_INSTANCE";
-                          }
-                        | {
-                            companionInstanceId: string;
-                            creatureId: string;
-                            kind: "COMPANION_INSTANCE";
-                          }
-                        | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
-                    }
-                  | {
-                      chargeId: string;
-                      companionInstanceId: string;
-                      featureId: string;
-                      kind: "COMPANION_FEATURE";
                     };
-                recoveries: Array<{
-                  amount:
-                    | { kind: "ALL" }
-                    | { amount: number; kind: "FIXED" }
-                    | {
-                        dice: { count: number; die: number; modifier: number };
-                        kind: "DICE";
-                      };
-                  trigger:
-                    | "SHORT_REST"
-                    | "LONG_REST"
-                    | "DAWN"
-                    | "DUSK"
-                    | "DAILY"
-                    | "MANUAL";
+                    unavailableReason?: string;
+                  }>;
+                  label: string;
+                  level: number;
                 }>;
-                remaining: number;
-                sourceFeatureId?: string;
-                sourceLabel: string;
-                used: number;
-              }>;
-            };
-            spells: {
-              activeGroups: Array<{
-                entries: Array<{
-                  activationLabel?: string;
-                  activationType?:
-                    "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
-                  available: boolean;
-                  cast: { slotKey?: string; sourceId: string; spellId: string };
-                  castLevel: number;
-                  displayName: string;
-                  hitOrDcLabel?: string;
+                attackBonus: number | null;
+                attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                preparationSources?: Array<{
+                  classId: string;
+                  label: string;
+                  preparedSpellIds: Array<string>;
+                  preparedSpellLimit?: number;
+                }>;
+                saveDc: number | null;
+                slots: Array<{
+                  label: string;
+                  level: number | null;
+                  max: number;
+                  remaining: number;
+                  slotKey: string;
+                  used: number;
+                }>;
+                spells: Array<{
+                  attributes?: Array<
+                    "CONCENTRATION" | "RITUAL" | "ADDS_TO_WEAPON_ATTACK"
+                  >;
+                  castingTime?: {
+                    amount: number;
+                    unit: "ROUND" | "MINUTE" | "HOUR";
+                  };
+                  components?: Array<"VERBAL" | "SOMATIC" | "MATERIAL">;
+                  description?: string;
+                  id: string;
+                  known?: boolean;
+                  label: string;
+                  level: number;
+                  materialDescription?: string;
                   mechanics?: Array<{
                     activation?: { amount: number; kind: string };
                     attackBonus?: number;
@@ -25543,29 +20705,174 @@ export declare const api: {
                     };
                     trigger: string;
                   }>;
-                  primaryEffect?: string;
-                  rangeLabel?: string;
-                  rowId: string;
-                  source: {
-                    sourceInstanceId: string;
-                    sourceKind:
-                      | "BACKGROUND"
+                  prepared?: boolean;
+                  school?: string;
+                  sourceLabel?: string;
+                  sources?: Array<{
+                    acquisition?:
+                      "KNOWN" | "PREPARED" | "ALWAYS_PREPARED" | "GRANTED";
+                    canPrepare: boolean;
+                    castMode?:
+                      | "SPELL_SLOT"
+                      | "AT_WILL"
+                      | "RITUAL"
+                      | "FIXED_LEVEL"
+                      | "LIMITED_USE";
+                    classId?: string;
+                    customName?: string;
+                    displayAsAttack?: boolean;
+                    fixedLevel?: number;
+                    id?: string;
+                    label: string;
+                    notes?: string;
+                    prepared?: boolean;
+                    provenance?:
                       | "CLASS"
+                      | "SUBCLASS"
+                      | "RACE"
+                      | "BACKGROUND"
                       | "FEAT"
                       | "FEATURE"
-                      | "ITEM"
                       | "OPTION"
-                      | "RACE"
-                      | "SUBCLASS";
-                    spellId: string;
-                  };
-                  sourceId: string;
-                  sourceLabel?: string;
-                  sourceQualifier?: string;
-                  spellId: string;
-                  target: {
-                    castLevel: number;
-                    kind: "SPELL";
+                      | "EQUIPMENT";
+                    resourceGrantId?: string;
+                    resourceOwner?:
+                      | {
+                          kind: "AUTHORED_GRANT";
+                          resourceGrantId: string;
+                          source:
+                            | {
+                                definitionId: string;
+                                kind: "AUTHORED";
+                                sourceInstanceId: string;
+                                sourceKind:
+                                  | "ANCESTRY"
+                                  | "BACKGROUND"
+                                  | "CLASS"
+                                  | "FEAT"
+                                  | "FEATURE"
+                                  | "OPTION"
+                                  | "RACE"
+                                  | "SPELL"
+                                  | "SUBRACE"
+                                  | "SUBCLASS";
+                              }
+                            | {
+                                equipmentId: string;
+                                itemInstanceId: string;
+                                kind: "EQUIPMENT_INSTANCE";
+                              }
+                            | {
+                                companionInstanceId: string;
+                                creatureId: string;
+                                kind: "COMPANION_INSTANCE";
+                              }
+                            | { kind: "SYSTEM"; systemId: string }
+                            | {
+                                adjustmentId: string;
+                                kind: "MANUAL_ADJUSTMENT";
+                              };
+                        }
+                      | {
+                          chargeId: string;
+                          kind: "AUTHORED_SOURCE";
+                          source:
+                            | {
+                                definitionId: string;
+                                kind: "AUTHORED";
+                                sourceInstanceId: string;
+                                sourceKind:
+                                  | "ANCESTRY"
+                                  | "BACKGROUND"
+                                  | "CLASS"
+                                  | "FEAT"
+                                  | "FEATURE"
+                                  | "OPTION"
+                                  | "RACE"
+                                  | "SPELL"
+                                  | "SUBRACE"
+                                  | "SUBCLASS";
+                              }
+                            | {
+                                equipmentId: string;
+                                itemInstanceId: string;
+                                kind: "EQUIPMENT_INSTANCE";
+                              }
+                            | {
+                                companionInstanceId: string;
+                                creatureId: string;
+                                kind: "COMPANION_INSTANCE";
+                              }
+                            | { kind: "SYSTEM"; systemId: string }
+                            | {
+                                adjustmentId: string;
+                                kind: "MANUAL_ADJUSTMENT";
+                              };
+                        }
+                      | {
+                          kind: "SPELL_SOURCE";
+                          resourceGrantId: string;
+                          source: {
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "ITEM"
+                              | "OPTION"
+                              | "RACE"
+                              | "SUBCLASS";
+                            spellId: string;
+                          };
+                        }
+                      | {
+                          chargeId: string;
+                          itemInstanceId: string;
+                          kind: "ITEM_INSTANCE";
+                        }
+                      | {
+                          kind: "SENSE_GRANT";
+                          senseGrantId: string;
+                          source:
+                            | {
+                                definitionId: string;
+                                kind: "AUTHORED";
+                                sourceInstanceId: string;
+                                sourceKind:
+                                  | "ANCESTRY"
+                                  | "BACKGROUND"
+                                  | "CLASS"
+                                  | "FEAT"
+                                  | "FEATURE"
+                                  | "OPTION"
+                                  | "RACE"
+                                  | "SPELL"
+                                  | "SUBRACE"
+                                  | "SUBCLASS";
+                              }
+                            | {
+                                equipmentId: string;
+                                itemInstanceId: string;
+                                kind: "EQUIPMENT_INSTANCE";
+                              }
+                            | {
+                                companionInstanceId: string;
+                                creatureId: string;
+                                kind: "COMPANION_INSTANCE";
+                              }
+                            | { kind: "SYSTEM"; systemId: string }
+                            | {
+                                adjustmentId: string;
+                                kind: "MANUAL_ADJUSTMENT";
+                              };
+                        }
+                      | {
+                          chargeId: string;
+                          companionInstanceId: string;
+                          featureId: string;
+                          kind: "COMPANION_FEATURE";
+                        };
                     source: {
                       sourceInstanceId: string;
                       sourceKind:
@@ -25579,123 +20886,189 @@ export declare const api: {
                         | "SUBCLASS";
                       spellId: string;
                     };
-                  };
-                  unavailableReason?: string;
+                  }>;
                 }>;
-                label: string;
-                level: number;
-              }>;
-              attackBonus: number | null;
-              attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              preparationSources?: Array<{
-                classId: string;
-                label: string;
-                preparedSpellIds: Array<string>;
-                preparedSpellLimit?: number;
-              }>;
-              saveDc: number | null;
-              slots: Array<{
-                label: string;
-                level: number | null;
-                max: number;
-                remaining: number;
-                slotKey: string;
-                used: number;
-              }>;
-              spells: Array<{
-                attributes?: Array<
-                  "CONCENTRATION" | "RITUAL" | "ADDS_TO_WEAPON_ATTACK"
-                >;
-                castingTime?: {
+              };
+            };
+            slice: "SPELLS";
+          }
+        | {
+            data: {
+              inventory: {
+                containers?: Array<{
+                  capacity?: {
+                    amount: number;
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                  currencies: Array<{
+                    amount: number;
+                    campaignCurrencySystemId?: string;
+                    containerId?: string;
+                    currencyId: string;
+                    kind?: "RULESET" | "CAMPAIGN";
+                    label: string;
+                  }>;
+                  id: string;
+                  itemIds: Array<string>;
+                  label: string;
+                }>;
+                currencies: Array<{
                   amount: number;
-                  unit: "ROUND" | "MINUTE" | "HOUR";
-                };
-                components?: Array<"VERBAL" | "SOMATIC" | "MATERIAL">;
-                description?: string;
-                id: string;
-                known?: boolean;
-                label: string;
-                level: number;
-                materialDescription?: string;
-                mechanics?: Array<{
-                  activation?: { amount: number; kind: string };
-                  attackBonus?: number;
-                  attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  effectId: string;
-                  outcomes: Array<
-                    | {
-                        damageTypeId: string;
-                        damageTypeLabel: string;
-                        expression: string;
-                        kind: "DAMAGE";
-                        pathCode: string;
-                        scaling?: Array<{ expression: string; level: number }>;
-                      }
-                    | {
-                        expression: string;
-                        kind: "HEAL";
-                        pathCode: string;
-                        scaling?: Array<{ expression: string; level: number }>;
-                        temporary: boolean;
-                      }
-                    | {
-                        conditionId: string;
-                        kind: "CONDITION";
-                        label: string;
-                        pathCode: string;
-                      }
-                    | {
-                        effectKind: string;
-                        kind: "EFFECT";
-                        label?: string;
-                        pathCode: string;
-                      }
-                  >;
-                  rangeLabel?: string;
-                  save?: {
-                    ability:
-                      | "CHARISMA"
-                      | "CONSTITUTION"
-                      | "DEXTERITY"
-                      | "INTELLIGENCE"
-                      | "STRENGTH"
-                      | "WISDOM";
-                    dc?: number;
-                  };
-                  trigger: string;
+                  campaignCurrencySystemId?: string;
+                  containerId?: string;
+                  currencyId: string;
+                  kind?: "RULESET" | "CAMPAIGN";
+                  label: string;
                 }>;
-                prepared?: boolean;
-                school?: string;
-                sourceLabel?: string;
-                sources?: Array<{
-                  acquisition?:
-                    "KNOWN" | "PREPARED" | "ALWAYS_PREPARED" | "GRANTED";
-                  canPrepare: boolean;
-                  castMode?:
-                    | "SPELL_SLOT"
-                    | "AT_WILL"
-                    | "RITUAL"
-                    | "FIXED_LEVEL"
-                    | "LIMITED_USE";
-                  classId?: string;
+                items: Array<{
+                  armorClass?: number;
+                  attuned: boolean;
+                  capacity?: {
+                    amount: number;
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                  category?: string;
+                  containerId?: string;
+                  cost?: { amount: number; currencyId: string };
+                  costLabel?: string;
                   customName?: string;
+                  description?: string | null;
                   displayAsAttack?: boolean;
-                  fixedLevel?: number;
-                  id?: string;
+                  equipmentId: string;
+                  equipmentLabel?: string;
+                  equipped: boolean;
+                  id: string;
                   label: string;
                   notes?: string;
-                  prepared?: boolean;
-                  provenance?:
-                    | "CLASS"
-                    | "SUBCLASS"
-                    | "RACE"
-                    | "BACKGROUND"
-                    | "FEAT"
-                    | "FEATURE"
-                    | "OPTION"
-                    | "EQUIPMENT";
-                  resourceGrantId?: string;
-                  resourceOwner?:
+                  properties?: Array<{
+                    code:
+                      | "LIGHT"
+                      | "ONE_HANDED"
+                      | "TWO_HANDED"
+                      | "FINESSE"
+                      | "RANGED"
+                      | "THROWN"
+                      | "HEAVY"
+                      | "LOADING"
+                      | "AMMUNITION"
+                      | "REACH"
+                      | "SPECIAL"
+                      | "VERSATILE"
+                      | "MEDIUM"
+                      | "SIMPLE"
+                      | "MARTIAL"
+                      | "MELEE"
+                      | "FLASK"
+                      | "VIAL"
+                      | "POISON"
+                      | "CONTAINER"
+                      | "POTION"
+                      | "SCROLL"
+                      | "WONDEROUS_ITEM"
+                      | "ARCANE_FOCUS"
+                      | "HOLY_SYMBOL"
+                      | "DRINK"
+                      | "FOOD"
+                      | "ARTISANAL_TOOL"
+                      | "MUSICAL_INSTRUMENT"
+                      | "GAMING_SET"
+                      | "DRUIDIC_FOCUS"
+                      | "PROFESSIONAL_TOOL"
+                      | "WOOD"
+                      | "METAL"
+                      | "MAGIC"
+                      | "VEX"
+                      | "CLOTHING";
+                    label: string;
+                  }>;
+                  quantity: number;
+                  rarityId?: string;
+                  requiresAttunement: boolean;
+                  weight?: {
+                    amount: number;
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                }>;
+              };
+              meta: {
+                campaignId?: string | null;
+                capabilities: {
+                  manageInventory: boolean;
+                  managePlayState: boolean;
+                  managePrivateNotes: boolean;
+                  openBuilder: boolean;
+                };
+                characterId: string;
+                hasBuilderDraft?: boolean;
+                partyVisibility?: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
+                };
+                status: "DRAFT" | "ACTIVE";
+                streamVersion: number;
+                systemId: string;
+                viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
+              };
+              reference: {
+                currencyOptions: Array<{
+                  campaignCurrencySystemId?: string;
+                  description?: string;
+                  id: string;
+                  kind?: "RULESET" | "CAMPAIGN";
+                  label: string;
+                }>;
+                equipmentOptions: Array<{
+                  description?: string;
+                  id: string;
+                  isContainer: boolean;
+                  label: string;
+                  maxStack?: number;
+                  requiresAttunement: boolean;
+                }>;
+              };
+              resources: {
+                items: Array<{
+                  description?: string;
+                  id: string;
+                  label: string;
+                  max: number;
+                  owner:
                     | {
                         kind: "AUTHORED_GRANT";
                         resourceGrantId: string;
@@ -25823,25 +21196,560 @@ export declare const api: {
                         featureId: string;
                         kind: "COMPANION_FEATURE";
                       };
-                  source: {
-                    sourceInstanceId: string;
-                    sourceKind:
-                      | "BACKGROUND"
-                      | "CLASS"
-                      | "FEAT"
-                      | "FEATURE"
-                      | "ITEM"
-                      | "OPTION"
-                      | "RACE"
-                      | "SUBCLASS";
-                    spellId: string;
-                  };
+                  recoveries: Array<{
+                    amount:
+                      | { kind: "ALL" }
+                      | { amount: number; kind: "FIXED" }
+                      | {
+                          dice: {
+                            count: number;
+                            die: number;
+                            modifier: number;
+                          };
+                          kind: "DICE";
+                        };
+                    trigger:
+                      | "SHORT_REST"
+                      | "LONG_REST"
+                      | "DAWN"
+                      | "DUSK"
+                      | "DAILY"
+                      | "MANUAL";
+                  }>;
+                  remaining: number;
+                  sourceFeatureId?: string;
+                  sourceLabel: string;
+                  used: number;
                 }>;
-              }>;
+              };
             };
-          };
-          streamVersion: number;
-        }
+            slice: "INVENTORY";
+          }
+        | {
+            data: {
+              extras: {
+                items: Array<
+                  | {
+                      actions: Array<{
+                        description?: string;
+                        id: string;
+                        label: string;
+                      }>;
+                      alignmentId?: string;
+                      armorClass: number;
+                      authoredName: string;
+                      carryingCapacityLabel?: string;
+                      creatureId: string;
+                      creatureTypeId?: string;
+                      customName?: string;
+                      displayName: string;
+                      equipmentItemIds: Array<string>;
+                      features: Array<{
+                        description?: string;
+                        id: string;
+                        label: string;
+                      }>;
+                      hitDice: Array<{
+                        die: number;
+                        remaining: number;
+                        total: number;
+                        used: number;
+                      }>;
+                      hitPoints: {
+                        current: number;
+                        maximum: number;
+                        temp: number;
+                      };
+                      id: string;
+                      isActive: boolean;
+                      kind: "COMPANION" | "MOUNT" | "OWNED";
+                      kindLabel: string;
+                      notes?: string;
+                      originKind: "WORLD" | "SUMMONED";
+                      originLabel: string;
+                      relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
+                      relationshipLabel: string;
+                      riderCapacity?: number;
+                      size?:
+                        | "COLOSSAL"
+                        | "DIMUNITIVE"
+                        | "FINE"
+                        | "GARGANTUAN"
+                        | "GIANT"
+                        | "HUGE"
+                        | "LARGE"
+                        | "MEDIUM"
+                        | "SMALL"
+                        | "TINY";
+                      speedLabel?: string;
+                    }
+                  | {
+                      actions: Array<{
+                        description?: string;
+                        id: string;
+                        label: string;
+                      }>;
+                      authoredName: string;
+                      cargoCapacityLabel?: string;
+                      categoryLabel: string;
+                      crewLabel?: string;
+                      customName?: string;
+                      displayName: string;
+                      equipmentItemIds: Array<string>;
+                      features: Array<{
+                        description?: string;
+                        id: string;
+                        label: string;
+                      }>;
+                      hitPoints: { current: number; maximum: number };
+                      id: string;
+                      isActive: boolean;
+                      kind: "VEHICLE";
+                      kindLabel: string;
+                      notes?: string;
+                      passengerCapacity?: number;
+                      speedLabel?: string;
+                      vehicleId: string;
+                    }
+                >;
+                kindOptions: Array<{
+                  code: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
+                  label: string;
+                }>;
+                originOptions: Array<{
+                  code: "WORLD" | "SUMMONED";
+                  label: string;
+                }>;
+              };
+              meta: {
+                campaignId?: string | null;
+                capabilities: {
+                  manageInventory: boolean;
+                  managePlayState: boolean;
+                  managePrivateNotes: boolean;
+                  openBuilder: boolean;
+                };
+                characterId: string;
+                hasBuilderDraft?: boolean;
+                partyVisibility?: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
+                };
+                status: "DRAFT" | "ACTIVE";
+                streamVersion: number;
+                systemId: string;
+                viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
+              };
+            };
+            slice: "EXTRAS";
+          }
+        | {
+            data: {
+              meta: {
+                campaignId?: string | null;
+                capabilities: {
+                  manageInventory: boolean;
+                  managePlayState: boolean;
+                  managePrivateNotes: boolean;
+                  openBuilder: boolean;
+                };
+                characterId: string;
+                hasBuilderDraft?: boolean;
+                partyVisibility?: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
+                };
+                status: "DRAFT" | "ACTIVE";
+                streamVersion: number;
+                systemId: string;
+                viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
+              };
+              reference: {
+                defenses: Array<{
+                  damageTypeId: string;
+                  kind: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                  label: string;
+                  value: string;
+                }>;
+                features: Array<{
+                  attributes?: Array<string>;
+                  availableAtLevel?: number;
+                  description?: string;
+                  details?: Array<{
+                    description: string;
+                    id: string;
+                    label: string;
+                  }>;
+                  id: string;
+                  label: string;
+                  resourceCost?: number;
+                  resourceGrantId?: string;
+                  sortOrder?: number;
+                  source:
+                    | { classId: string; classLevel?: number; kind: "CLASS" }
+                    | {
+                        classLevel?: number;
+                        kind: "SUBCLASS";
+                        subclassId: string;
+                      }
+                    | { kind: "RACE"; raceId: string }
+                    | { kind: "SUBRACE"; subraceId: string }
+                    | { ancestryId: string; kind: "ANCESTRY"; optionId: string }
+                    | { backgroundId: string; kind: "BACKGROUND" }
+                    | { featId: string; kind: "FEAT" }
+                    | { featureId: string; kind: "FEATURE" }
+                    | {
+                        acquiredParentId: string;
+                        kind: "OPTION";
+                        optionId: string;
+                      }
+                    | { kind: "MANUAL"; reason?: string }
+                    | {
+                        equipmentId: string;
+                        itemInstanceId: string;
+                        kind: "EQUIPMENT_INSTANCE";
+                      };
+                  sourceLabel: string;
+                }>;
+                proficiencies: Array<{
+                  kind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                  label: string;
+                  value: string;
+                }>;
+                senses: Array<{
+                  label: string;
+                  range?:
+                    | {
+                        id: string;
+                        rangeKind:
+                          "SELF" | "TOUCH" | "SIGHT" | "SPECIAL" | "UNLIMITED";
+                      }
+                    | {
+                        amount: number;
+                        id: string;
+                        longAmount?: number;
+                        rangeKind: "DISTANCE";
+                        scaling?:
+                          | {
+                              breakpoints: Array<{
+                                id: string;
+                                level: number;
+                                order: number;
+                                value: {
+                                  amount: number;
+                                  unit:
+                                    | "POUNDS"
+                                    | "GALLONS"
+                                    | "INCHES"
+                                    | "FEET"
+                                    | "YARDS"
+                                    | "MILES"
+                                    | "OUNCES"
+                                    | "CUPS"
+                                    | "TABLESPOONS"
+                                    | "TEASPOONS"
+                                    | "LITERS"
+                                    | "QUARTS";
+                                };
+                              }>;
+                              scalingKind: "BREAKPOINTS";
+                              scalingSource: "CHARACTER_LEVEL";
+                            }
+                          | {
+                              breakpoints: Array<{
+                                id: string;
+                                level: number;
+                                order: number;
+                                value: {
+                                  amount: number;
+                                  unit:
+                                    | "POUNDS"
+                                    | "GALLONS"
+                                    | "INCHES"
+                                    | "FEET"
+                                    | "YARDS"
+                                    | "MILES"
+                                    | "OUNCES"
+                                    | "CUPS"
+                                    | "TABLESPOONS"
+                                    | "TEASPOONS"
+                                    | "LITERS"
+                                    | "QUARTS";
+                                };
+                              }>;
+                              classId: string;
+                              scalingKind: "BREAKPOINTS";
+                              scalingSource: "CLASS_LEVEL";
+                            }
+                          | {
+                              breakpoints: Array<{
+                                id: string;
+                                level: number;
+                                order: number;
+                                value: {
+                                  amount: number;
+                                  unit:
+                                    | "POUNDS"
+                                    | "GALLONS"
+                                    | "INCHES"
+                                    | "FEET"
+                                    | "YARDS"
+                                    | "MILES"
+                                    | "OUNCES"
+                                    | "CUPS"
+                                    | "TABLESPOONS"
+                                    | "TEASPOONS"
+                                    | "LITERS"
+                                    | "QUARTS";
+                                };
+                              }>;
+                              scalingKind: "BREAKPOINTS";
+                              scalingSource: "PARENT_CLASS_LEVEL";
+                            }
+                          | {
+                              breakpoints: Array<{
+                                id: string;
+                                level: number;
+                                order: number;
+                                value: {
+                                  amount: number;
+                                  unit:
+                                    | "POUNDS"
+                                    | "GALLONS"
+                                    | "INCHES"
+                                    | "FEET"
+                                    | "YARDS"
+                                    | "MILES"
+                                    | "OUNCES"
+                                    | "CUPS"
+                                    | "TABLESPOONS"
+                                    | "TEASPOONS"
+                                    | "LITERS"
+                                    | "QUARTS";
+                                };
+                              }>;
+                              scalingKind: "BREAKPOINTS";
+                              scalingSource: "SPELL_CAST_LEVEL";
+                            };
+                        unit:
+                          | "POUNDS"
+                          | "GALLONS"
+                          | "INCHES"
+                          | "FEET"
+                          | "YARDS"
+                          | "MILES"
+                          | "OUNCES"
+                          | "CUPS"
+                          | "TABLESPOONS"
+                          | "TEASPOONS"
+                          | "LITERS"
+                          | "QUARTS";
+                      };
+                  senseId: string;
+                  value: string;
+                }>;
+              };
+              resources: {
+                items: Array<{
+                  description?: string;
+                  id: string;
+                  label: string;
+                  max: number;
+                  owner:
+                    | {
+                        kind: "AUTHORED_GRANT";
+                        resourceGrantId: string;
+                        source:
+                          | {
+                              definitionId: string;
+                              kind: "AUTHORED";
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "ANCESTRY"
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "OPTION"
+                                | "RACE"
+                                | "SPELL"
+                                | "SUBRACE"
+                                | "SUBCLASS";
+                            }
+                          | {
+                              equipmentId: string;
+                              itemInstanceId: string;
+                              kind: "EQUIPMENT_INSTANCE";
+                            }
+                          | {
+                              companionInstanceId: string;
+                              creatureId: string;
+                              kind: "COMPANION_INSTANCE";
+                            }
+                          | { kind: "SYSTEM"; systemId: string }
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      }
+                    | {
+                        chargeId: string;
+                        kind: "AUTHORED_SOURCE";
+                        source:
+                          | {
+                              definitionId: string;
+                              kind: "AUTHORED";
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "ANCESTRY"
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "OPTION"
+                                | "RACE"
+                                | "SPELL"
+                                | "SUBRACE"
+                                | "SUBCLASS";
+                            }
+                          | {
+                              equipmentId: string;
+                              itemInstanceId: string;
+                              kind: "EQUIPMENT_INSTANCE";
+                            }
+                          | {
+                              companionInstanceId: string;
+                              creatureId: string;
+                              kind: "COMPANION_INSTANCE";
+                            }
+                          | { kind: "SYSTEM"; systemId: string }
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      }
+                    | {
+                        kind: "SPELL_SOURCE";
+                        resourceGrantId: string;
+                        source: {
+                          sourceInstanceId: string;
+                          sourceKind:
+                            | "BACKGROUND"
+                            | "CLASS"
+                            | "FEAT"
+                            | "FEATURE"
+                            | "ITEM"
+                            | "OPTION"
+                            | "RACE"
+                            | "SUBCLASS";
+                          spellId: string;
+                        };
+                      }
+                    | {
+                        chargeId: string;
+                        itemInstanceId: string;
+                        kind: "ITEM_INSTANCE";
+                      }
+                    | {
+                        kind: "SENSE_GRANT";
+                        senseGrantId: string;
+                        source:
+                          | {
+                              definitionId: string;
+                              kind: "AUTHORED";
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "ANCESTRY"
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "OPTION"
+                                | "RACE"
+                                | "SPELL"
+                                | "SUBRACE"
+                                | "SUBCLASS";
+                            }
+                          | {
+                              equipmentId: string;
+                              itemInstanceId: string;
+                              kind: "EQUIPMENT_INSTANCE";
+                            }
+                          | {
+                              companionInstanceId: string;
+                              creatureId: string;
+                              kind: "COMPANION_INSTANCE";
+                            }
+                          | { kind: "SYSTEM"; systemId: string }
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      }
+                    | {
+                        chargeId: string;
+                        companionInstanceId: string;
+                        featureId: string;
+                        kind: "COMPANION_FEATURE";
+                      };
+                  recoveries: Array<{
+                    amount:
+                      | { kind: "ALL" }
+                      | { amount: number; kind: "FIXED" }
+                      | {
+                          dice: {
+                            count: number;
+                            die: number;
+                            modifier: number;
+                          };
+                          kind: "DICE";
+                        };
+                    trigger:
+                      | "SHORT_REST"
+                      | "LONG_REST"
+                      | "DAWN"
+                      | "DUSK"
+                      | "DAILY"
+                      | "MANUAL";
+                  }>;
+                  remaining: number;
+                  sourceFeatureId?: string;
+                  sourceLabel: string;
+                  used: number;
+                }>;
+              };
+            };
+            slice: "FEATURES";
+          }
+        | {
+            data: {
+              meta: { characterId: string; streamVersion: number };
+              notes: {
+                age?: string;
+                alignment?: string;
+                allies?: string;
+                appearance?: string;
+                backstory?: string;
+                bonds?: string;
+                enemies?: string;
+                faith?: string;
+                flaws?: string;
+                gender?: string;
+                groups?: Array<{
+                  id: string;
+                  kind: "SESSION" | "LOOT" | "CHARACTERS" | "PLACES" | "CUSTOM";
+                  label: string;
+                  sortOrder: number;
+                }>;
+                ideals?: string;
+                items?: Array<{
+                  body?: string;
+                  createdAt: string;
+                  groupId: string;
+                  id: string;
+                  pinned: boolean;
+                  title: string;
+                  updatedAt: string;
+                }>;
+                lifestyle?: string;
+                notes?: string;
+                organizations?: string;
+                personalityTraits?: string;
+              };
+            };
+            slice: "NOTES";
+          }
       >;
     };
   };
@@ -54893,6 +50801,209 @@ export declare const internal: {
         null
       >;
     };
+    developmentReceiptLedgers: {
+      inspect: FunctionReference<
+        "query",
+        "internal",
+        { characterId: string; ordinal: number; userId: string },
+        { headerExists: boolean; ledgerExists: boolean; partCount: number }
+      >;
+      keysetPage: FunctionReference<
+        "query",
+        "internal",
+        {
+          characterId: string;
+          paginationOpts: { cursor: string | null; numItems: number };
+          userId: string;
+        },
+        {
+          characterId: string;
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            actorId: string;
+            eventId: string;
+            eventType: string;
+            occurredAt: string;
+            result?: {
+              rest: {
+                companionRecoveries: Array<{
+                  companionInstanceId: string;
+                  recoveredHitDice: Array<{ count: number; die: number }>;
+                  recoveredResourceIds: Array<string>;
+                }>;
+                exhaustion: { after: number; before: number };
+                hitPoints: {
+                  currentAfter: number;
+                  currentBefore: number;
+                  healingApplied: number;
+                  temporaryAfter: number;
+                  temporaryBefore: number;
+                };
+                previewFingerprint: string;
+                recoveredHitDice: Array<{ count: number; die: number }>;
+                recoveredResourceIds: Array<string>;
+                recoveredSpellSlotKeys: Array<string>;
+                resetMaximumHitPointModifier: boolean;
+                restKind: "SHORT" | "LONG";
+                rollEvidence?: {
+                  expression: string;
+                  terms: Array<{
+                    count: number;
+                    die: number;
+                    modifierPerDie: number;
+                    rolls: Array<number>;
+                  }>;
+                  total: number;
+                };
+                spentHitDice: Array<{ count: number; die: number }>;
+              };
+              type: "COMPLETE_REST";
+            };
+            summary: string;
+          }>;
+        }
+      >;
+      nativeWindow: FunctionReference<
+        "query",
+        "internal",
+        {
+          characterId: string;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            numItems: number;
+          };
+          userId: string;
+        },
+        {
+          continueCursor: string;
+          headerIds: Array<string>;
+          isDone: boolean;
+          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+          splitCursor?: string | null;
+        }
+      >;
+      page: FunctionReference<
+        "query",
+        "internal",
+        {
+          characterId: string;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            numItems: number;
+          };
+          userId: string;
+        },
+        {
+          characterId: string;
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            actorId: string;
+            eventId: string;
+            eventType: string;
+            occurredAt: string;
+            result?: {
+              rest: {
+                companionRecoveries: Array<{
+                  companionInstanceId: string;
+                  recoveredHitDice: Array<{ count: number; die: number }>;
+                  recoveredResourceIds: Array<string>;
+                }>;
+                exhaustion: { after: number; before: number };
+                hitPoints: {
+                  currentAfter: number;
+                  currentBefore: number;
+                  healingApplied: number;
+                  temporaryAfter: number;
+                  temporaryBefore: number;
+                };
+                previewFingerprint: string;
+                recoveredHitDice: Array<{ count: number; die: number }>;
+                recoveredResourceIds: Array<string>;
+                recoveredSpellSlotKeys: Array<string>;
+                resetMaximumHitPointModifier: boolean;
+                restKind: "SHORT" | "LONG";
+                rollEvidence?: {
+                  expression: string;
+                  terms: Array<{
+                    count: number;
+                    die: number;
+                    modifierPerDie: number;
+                    rolls: Array<number>;
+                  }>;
+                  total: number;
+                };
+                spentHitDice: Array<{ count: number; die: number }>;
+              };
+              type: "COMPLETE_REST";
+            };
+            summary: string;
+          }>;
+          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+          splitCursor?: string | null;
+        }
+      >;
+      remove: FunctionReference<
+        "mutation",
+        "internal",
+        { characterId: string; ordinal: number; userId: string },
+        null
+      >;
+      seed: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          characterId: string;
+          ordinal: number;
+          rollback: boolean;
+          userId: string;
+        },
+        {
+          byteLength: number;
+          commandId: string;
+          eventId: string;
+          ledgerId: string;
+        }
+      >;
+      verifySeedRollback: FunctionReference<
+        "action",
+        "internal",
+        { characterId: string; ordinal: number; userId: string },
+        null
+      >;
+    };
+    developmentReceiptRetirement: {
+      inspect: FunctionReference<
+        "query",
+        "internal",
+        { authUserId: string; characterId: string; userId: string },
+        {
+          characterExists: boolean;
+          headerCount: number;
+          jobExists: boolean;
+          ledgerCount: number;
+          profileExists: boolean;
+          storagePresent: boolean;
+        }
+      >;
+      rollback: FunctionReference<
+        "mutation",
+        "internal",
+        { characterId: string; userId: string },
+        null
+      >;
+      verifyRollback: FunctionReference<
+        "action",
+        "internal",
+        { characterId: string; userId: string },
+        null
+      >;
+    };
     encounterInitiative: {
       read: FunctionReference<
         "query",
@@ -58966,6 +55077,14 @@ export declare const internal: {
           systemId: string;
           userIds: Array<string>;
         },
+        null
+      >;
+    };
+    receiptCleanup: {
+      purge: FunctionReference<
+        "mutation",
+        "internal",
+        { characterId: string },
         null
       >;
     };
@@ -63988,36 +60107,6 @@ export declare const internal: {
         }>
       >;
     };
-    timelineBackfill: {
-      receipts: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-      run: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-    };
   };
   imports: {
     finalize: {
@@ -64595,6 +60684,14 @@ export declare const internal: {
           epoch: string;
           finalSequence?: number;
           finalStateChecksum?: string;
+          lastCheckpoint?: {
+            checkpointId: string;
+            checksum: string;
+            fromChecksum: string;
+            fromSequence: number;
+            payloadChecksum: string;
+            sequence: number;
+          };
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
@@ -64618,6 +60715,14 @@ export declare const internal: {
           epoch: string;
           finalSequence?: number;
           finalStateChecksum?: string;
+          lastCheckpoint?: {
+            checkpointId: string;
+            checksum: string;
+            fromChecksum: string;
+            fromSequence: number;
+            payloadChecksum: string;
+            sequence: number;
+          };
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
@@ -64636,6 +60741,14 @@ export declare const internal: {
           epoch: string;
           finalSequence?: number;
           finalStateChecksum?: string;
+          lastCheckpoint?: {
+            checkpointId: string;
+            checksum: string;
+            fromChecksum: string;
+            fromSequence: number;
+            payloadChecksum: string;
+            sequence: number;
+          };
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
@@ -64659,6 +60772,14 @@ export declare const internal: {
           epoch: string;
           finalSequence?: number;
           finalStateChecksum?: string;
+          lastCheckpoint?: {
+            checkpointId: string;
+            checksum: string;
+            fromChecksum: string;
+            fromSequence: number;
+            payloadChecksum: string;
+            sequence: number;
+          };
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
@@ -64702,6 +60823,178 @@ export declare const internal: {
     };
     characterRulesCapture: {
       capture: FunctionReference<"query", "internal", any, any>;
+    };
+    checkpoint: {
+      publish: FunctionReference<
+        "mutation",
+        "internal",
+        any,
+        {
+          authority: {
+            activationExpiresAt?: number;
+            activationFingerprint: string;
+            campaignId: string;
+            createdAt: string;
+            epoch: string;
+            finalSequence?: number;
+            finalStateChecksum?: string;
+            lastCheckpoint?: {
+              checkpointId: string;
+              checksum: string;
+              fromChecksum: string;
+              fromSequence: number;
+              payloadChecksum: string;
+              sequence: number;
+            };
+            persistedSequence: number;
+            persistedStateChecksum: string;
+            phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
+            updatedAt: string;
+          };
+          authorization: {
+            campaign?: {
+              assignments: Array<{ characterId: string; userId: string }>;
+              members: Array<{
+                membershipEpoch: string;
+                role: "OWNER" | "PLAYER";
+                userId: string;
+              }>;
+              ownerUserId: string;
+            };
+            characters: Array<{
+              characterId: string;
+              ownerUserId: string;
+              partyVisibility: {
+                health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                sheet: boolean;
+              };
+            }>;
+            play?: {
+              encounter: {
+                actors: Array<{
+                  controllerUserIds: Array<string>;
+                  healthDisplay:
+                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
+                  id: string;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  sourceId: string | null;
+                }>;
+                encounterId: string;
+                healthDisplayDefault:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                sceneId: string;
+                tokens: Array<{ actorId: string; tokenId: string }>;
+              } | null;
+            };
+            preferences?: Array<{ autoRollDice: boolean; userId: string }>;
+            revisions: {
+              campaign: string | null;
+              characters: Array<{
+                characterId: string;
+                revision: string | null;
+              }>;
+              play: string | null;
+              preferences: string;
+            };
+          };
+          status: "COMMITTED" | "REPLAYED";
+        }
+      >;
+    };
+    checkpointStaging: {
+      begin: FunctionReference<
+        "mutation",
+        "internal",
+        any,
+        { status: "STAGED" | "REPLAYED" }
+      >;
+      cleanup: FunctionReference<
+        "mutation",
+        "internal",
+        { checkpointId: string },
+        null
+      >;
+      commit: FunctionReference<
+        "mutation",
+        "internal",
+        any,
+        {
+          authority: {
+            activationExpiresAt?: number;
+            activationFingerprint: string;
+            campaignId: string;
+            createdAt: string;
+            epoch: string;
+            finalSequence?: number;
+            finalStateChecksum?: string;
+            lastCheckpoint?: {
+              checkpointId: string;
+              checksum: string;
+              fromChecksum: string;
+              fromSequence: number;
+              payloadChecksum: string;
+              sequence: number;
+            };
+            persistedSequence: number;
+            persistedStateChecksum: string;
+            phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
+            updatedAt: string;
+          };
+          authorization: {
+            campaign?: {
+              assignments: Array<{ characterId: string; userId: string }>;
+              members: Array<{
+                membershipEpoch: string;
+                role: "OWNER" | "PLAYER";
+                userId: string;
+              }>;
+              ownerUserId: string;
+            };
+            characters: Array<{
+              characterId: string;
+              ownerUserId: string;
+              partyVisibility: {
+                health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                sheet: boolean;
+              };
+            }>;
+            play?: {
+              encounter: {
+                actors: Array<{
+                  controllerUserIds: Array<string>;
+                  healthDisplay:
+                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
+                  id: string;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  sourceId: string | null;
+                }>;
+                encounterId: string;
+                healthDisplayDefault:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                sceneId: string;
+                tokens: Array<{ actorId: string; tokenId: string }>;
+              } | null;
+            };
+            preferences?: Array<{ autoRollDice: boolean; userId: string }>;
+            revisions: {
+              campaign: string | null;
+              characters: Array<{
+                characterId: string;
+                revision: string | null;
+              }>;
+              play: string | null;
+              preferences: string;
+            };
+          };
+          status: "COMMITTED" | "REPLAYED";
+        }
+      >;
+      part: FunctionReference<
+        "mutation",
+        "internal",
+        any,
+        { status: "STAGED" | "REPLAYED" }
+      >;
     };
     control: {
       evictUser: FunctionReference<
@@ -64766,6 +61059,66 @@ export declare const internal: {
         },
         null
       >;
+    };
+    developmentCheckpoint: {
+      discardUpload: FunctionReference<"mutation", "internal", any, null>;
+      inspect: FunctionReference<
+        "query",
+        "internal",
+        {
+          campaignId: string;
+          characterId: string;
+          encounterId: string;
+          ownerUserId: string;
+          playerUserId: string;
+        },
+        {
+          authority: {
+            activationExpiresAt?: number;
+            activationFingerprint: string;
+            campaignId: string;
+            createdAt: string;
+            epoch: string;
+            finalSequence?: number;
+            finalStateChecksum?: string;
+            lastCheckpoint?: {
+              checkpointId: string;
+              checksum: string;
+              fromChecksum: string;
+              fromSequence: number;
+              payloadChecksum: string;
+              sequence: number;
+            };
+            persistedSequence: number;
+            persistedStateChecksum: string;
+            phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
+            updatedAt: string;
+          } | null;
+          digest: string;
+          ledgers: Array<{
+            byteLength: number;
+            checkpointId: string | null;
+            checksum: string;
+            createdAt: string;
+            entryCount: number;
+            epoch: string | null;
+            id: string;
+            partCount: number;
+            scope: "CAMPAIGN" | "CHARACTER";
+            scopeId: string;
+          }>;
+          playChecksum: string;
+          playStreamVersion: number;
+          privateHeaderCount: number;
+          runChecksum: string;
+          runVersion: number;
+          sharedHeaderCount: number;
+          stagedPartCount: number;
+          stagedUploadCount: number;
+        }
+      >;
+      prepare: FunctionReference<"mutation", "internal", any, any>;
+      rollback: FunctionReference<"mutation", "internal", any, null>;
     };
     encounterAction: {
       commitPending: FunctionReference<"mutation", "internal", any, any>;
@@ -64930,6 +61283,14 @@ export declare const internal: {
           epoch: string;
           finalSequence?: number;
           finalStateChecksum?: string;
+          lastCheckpoint?: {
+            checkpointId: string;
+            checksum: string;
+            fromChecksum: string;
+            fromSequence: number;
+            payloadChecksum: string;
+            sequence: number;
+          };
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
@@ -64949,6 +61310,14 @@ export declare const internal: {
             epoch: string;
             finalSequence?: number;
             finalStateChecksum?: string;
+            lastCheckpoint?: {
+              checkpointId: string;
+              checksum: string;
+              fromChecksum: string;
+              fromSequence: number;
+              payloadChecksum: string;
+              sequence: number;
+            };
             persistedSequence: number;
             persistedStateChecksum: string;
             phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";

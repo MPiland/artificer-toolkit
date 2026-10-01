@@ -33,18 +33,17 @@ import type { MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
 import { readCurrentEntitiesFromScene } from './currentEntities'
-import { parseGeometryCommand, parseGeometrySave } from './geometryDocuments'
+import {
+  parseGeometryCommand,
+  parseGeometrySave
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import {
   geometryTarget,
   normalizeGeometryInput,
   normalizeSceneGeometryEntity
-} from './geometryValues'
-import {
-  advanceLiveState,
-  parseLiveEntity,
-  readLiveScene,
-  readLiveSceneForUser
-} from './liveDocuments'
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
+import { parseLiveEntity, readLiveScene, readLiveSceneForUser } from './liveDocuments'
+import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import { readPresentedVisionScene } from './sessionVisionDocuments'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 

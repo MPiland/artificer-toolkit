@@ -13,6 +13,7 @@ import {
   type DevelopmentAccountDeletionKnown
 } from '@artificer-toolkit/schema/api/developmentAccountDeletion'
 import { requireFixtureAccount } from './lib/developmentFixtures'
+import { readReceiptHeaders } from './lib/receiptLedgers'
 import { authoredSubjectKindSchema } from '@artificer-toolkit/schema/projections/identity'
 
 const emptyKnown = (): DevelopmentAccountDeletionKnown => ({
@@ -762,7 +763,52 @@ async function readCharacters(
   const characters = uniqueRows([...current, ...knownCharacters.flat()])
   if (characters.some((row) => row.userId !== userId))
     throw new Error('Known Character identity collides with another account.')
+  const operational: Tables = {
+    characterBuildStates: uniqueRows(
+      (
+        await Promise.all(
+          characterIds.map((id) =>
+            bounded(
+              ctx.db
+                .query('characterBuildStates')
+                .withIndex('by_characterId', (q) => q.eq('characterId', id)),
+              1,
+              'Character build states'
+            )
+          )
+        )
+      ).flat()
+    )
+  }
+  for (const table of [
+    'characterInventoryItems',
+    'characterCurrencyGroups',
+    'characterClassSpellStates',
+    'characterSpellCustomizations',
+    'characterCreatureInstances',
+    'characterVehicleInstances',
+    'characterNotes',
+    'characterNoteGroups',
+    'characterExtraEquipment'
+  ] as const) {
+    operational[table] = uniqueRows(
+      (
+        await Promise.all(
+          characterIds.map((id) =>
+            bounded(
+              ctx.db
+                .query(table)
+                .withIndex('by_characterId_position', (q) => q.eq('characterId', id)),
+              32,
+              table
+            )
+          )
+        )
+      ).flat()
+    )
+  }
   return {
+    ...operational,
     characters,
     characterPlayStates: plays.flat().sort((a, b) => a._id.localeCompare(b._id)),
     characterDrafts: drafts,
@@ -770,7 +816,9 @@ async function readCharacters(
     userRollHistory: rolls,
     authoredRouteIds: routes.flat().sort((a, b) => a._id.localeCompare(b._id)),
     campaignCharacterAssignments: assignments.flat().sort((a, b) => a._id.localeCompare(b._id)),
-    characterCommandReceipts: receipts.flat().sort((a, b) => a._id.localeCompare(b._id)),
+    characterCommandReceipts: (
+      await readReceiptHeaders(ctx, 'characterCommandReceipts', receipts.flat())
+    ).sort((a, b) => a._id.localeCompare(b._id)),
     characterActiveRuleEffects: effects.flat().sort((a, b) => a._id.localeCompare(b._id))
   }
 }

@@ -1,3 +1,8 @@
+import {
+  createConvexEncounterStoreReader,
+  createConvexEncounterStore
+} from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -194,13 +199,21 @@ async function storedInitiative<T extends { t: Awaited<ReturnType<typeof fixture
   base: T
 ) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
-    commands: await ctx.db.query('encounterRunCommands').collect(),
+    commands: await ctx.db
+      .query('encounterRunCommands')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await ctx.db.query('encounterRuleReceipts').collect()
+    receipts: await ctx.db
+      .query('encounterRuleReceipts')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
 }
 
@@ -403,7 +416,10 @@ describe('native initiative declarations', () => {
     await base.t.run(async (ctx) => {
       const occurrence = await ctx.db.query('encounterRuleOccurrences').unique()
       if (!occurrence) throw new Error('Expected declaration occurrence.')
-      const snapshot = await readPendingSnapshot(ctx, occurrence)
+      const snapshot = await readPendingSnapshot(
+        { db: createConvexEncounterStoreReader(ctx) },
+        occurrence
+      )
       if (
         snapshot?.snapshotKind !== 'AGGREGATE_CHOICE' ||
         snapshot.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION'
@@ -422,7 +438,11 @@ describe('native initiative declarations', () => {
         }
       }
       await ctx.db.patch(occurrence._id, {
-        pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, tampered)
+        pendingSnapshotChecksum: await writePendingSnapshot(
+          { db: createConvexEncounterStore(ctx) },
+          occurrence,
+          tampered
+        )
       })
     })
     await expect(
@@ -447,7 +467,10 @@ describe('native initiative declarations', () => {
     await base.t.run(async (ctx) => {
       const occurrence = await ctx.db.query('encounterRuleOccurrences').unique()
       if (!occurrence) throw new Error('Expected declaration occurrence.')
-      const snapshot = await readPendingSnapshot(ctx, occurrence)
+      const snapshot = await readPendingSnapshot(
+        { db: createConvexEncounterStoreReader(ctx) },
+        occurrence
+      )
       if (snapshot?.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
         throw new Error('Expected declaration context.')
       const root = snapshot.applicationContext.root
@@ -465,7 +488,11 @@ describe('native initiative declarations', () => {
         }
       })
       await ctx.db.patch(occurrence._id, {
-        pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, tampered)
+        pendingSnapshotChecksum: await writePendingSnapshot(
+          { db: createConvexEncounterStore(ctx) },
+          occurrence,
+          tampered
+        )
       })
     })
     const before = await storedInitiative(base)
@@ -955,7 +982,9 @@ describe('native initiative declarations', () => {
             (entry) => entry.encounterId === run.id
           )
           if (!retained) throw new Error('Expected retained private declaration response.')
-          const retainedSnapshot = await base.t.run((ctx) => readPendingSnapshot(ctx, retained))
+          const retainedSnapshot = await base.t.run((ctx) =>
+            readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, retained)
+          )
           if (retainedSnapshot?.applicationContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
             throw new Error('Expected retained initiative declaration root.')
           expect(retainedSnapshot.applicationContext.root.resolutionCommands.at(-1)).toMatchObject({
@@ -1329,6 +1358,8 @@ describe('native initiative declarations', () => {
     result = await executeInRoom(base.owner.caller, response)
     expect(result.projection.status).toBe('ACTIVE')
     const after = await base.t.run(async (ctx) => ({
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       actor: await ctx.db
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
@@ -1339,9 +1370,12 @@ describe('native initiative declarations', () => {
           q.eq('encounterId', run.id).eq('round', 1).eq('actorId', actor.id)
         )
         .unique(),
-      receipts: (await ctx.db.query('encounterRuleReceipts').collect()).filter(
-        (value) => value.encounterId === run.id
-      ),
+      receipts: (
+        await ctx.db
+          .query('encounterRuleReceipts')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
+      ).filter((value) => value.encounterId === run.id),
       run: await ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
@@ -1354,6 +1388,8 @@ describe('native initiative declarations', () => {
     await expect(replayInRoom(base.owner.caller, response)).resolves.toEqual(result)
     expect(
       await base.t.run(async (ctx) => ({
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         actor: await ctx.db
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
@@ -1364,9 +1400,12 @@ describe('native initiative declarations', () => {
             q.eq('encounterId', run.id).eq('round', 1).eq('actorId', actor.id)
           )
           .unique(),
-        receipts: (await ctx.db.query('encounterRuleReceipts').collect()).filter(
-          (value) => value.encounterId === run.id
-        ),
+        receipts: (
+          await ctx.db
+            .query('encounterRuleReceipts')
+            .collect()
+            .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
+        ).filter((value) => value.encounterId === run.id),
         run: await ctx.db
           .query('encounterRuns')
           .withIndex('by_publicId', (q) => q.eq('id', run.id))

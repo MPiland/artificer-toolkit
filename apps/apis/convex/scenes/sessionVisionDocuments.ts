@@ -22,8 +22,12 @@ export async function readPresentedVisionScene(
 export async function readSessionVisionScope(
   ctx: QueryCtx,
   input: SceneSessionVisionScope | SceneSessionVisionCaptureInput,
-  current?: Pick<Awaited<ReturnType<typeof readLiveScene>>, 'campaign' | 'header' | 'userId'> &
-    Awaited<ReturnType<typeof readPresentedVisionScene>>
+  current?: Pick<Awaited<ReturnType<typeof readLiveScene>>, 'campaign' | 'header' | 'userId'> & {
+    presentation: Pick<
+      Awaited<ReturnType<typeof readPresentedVisionScene>>['presentation'],
+      'campaignId' | 'sceneId' | 'version'
+    >
+  }
 ) {
   const scene = current ?? (await readLiveScene(ctx, input.sceneId, 'MEMBER'))
   const { header, campaign, userId } = scene

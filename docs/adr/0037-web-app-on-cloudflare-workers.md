@@ -1,11 +1,20 @@
 # ADR 0037: Web app hosted on Cloudflare Workers
 
-- **Status:** decision (D65, user-approved on 2026-09-27; local prototype done on 2026-09-28; staging and production need the user's approval for each step)
+- **Status:** decision (D65, user-approved on 2026-09-27; local Netlify → Cloudflare migration implemented and validated on 2026-09-28; managed cutover pending, with approval for each cloud step)
 - **Date:** 2026-09-28
+- **Revised:** 2026-09-29
 - **Scope:** where and how `apps/web` (TanStack Start SSR, server functions and the `/api/auth` proxy) is built, configured and deployed
 - **Update when:** the web host, the Worker layout, the client-IP source, the security-policy mode, server-side error reporting or the deploy path changes
 - **Supersedes:** ADR 0029's "Netlify hosts TanStack Start SSR only". The rest of that bullet (no GraphQL, generic patches, dual writes or compatibility database layer) stands.
 - **Evidence:** the [D65 feasibility record](../validation/phase-08-2/d65-cloudflare-web-hosting-2026-09-28.md), including its local prototype section
+
+## Implementation status — 2026-09-29
+
+The local source builds and serves TanStack Start through the Cloudflare Vite plugin, a web Worker
+entry and Workers Static Assets. The manual deploy workflow is present and Netlify runtime code is
+removed. Managed hostnames, secrets/origins, deployment and the staging CPU, Sentry and client-IP
+proofs remain in the [hosting runbook](../runbooks/web-worker-hosting.md). Local validation does not
+establish a hosted cutover.
 
 ## Context
 
@@ -42,8 +51,10 @@ small, with conditions C1–C6 on CPU, headers, Sentry and the client IP.
    Linux runner, with per-environment GitHub secrets. Workers Builds' Git integration stays
    disconnected. Staging is a named Wrangler environment on a stable hostname; version preview URLs
    are not used, because Better Auth trusts exactly one origin (`SITE_URL`).
-7. **No Netlify fallback.** The product is pre-launch, so the Netlify plugin, functions, tests,
-   patches, configuration and CLI are removed, and the native boundary audit bans them.
+7. **Retire the Netlify application runtime.** The product is pre-launch, so the Netlify plugin,
+   functions, tests, patches, configuration and CLI are removed, and the native boundary audit bans
+   them. The existing hosted Netlify site and environment are retained only for first-release-cycle
+   DNS rollback, then retired with approval, as the hosting runbook specifies.
 
 ## Consequences
 

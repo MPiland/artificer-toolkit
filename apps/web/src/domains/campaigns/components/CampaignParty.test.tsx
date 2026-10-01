@@ -68,9 +68,10 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
 }))
 vi.mock('#app/data/characters/queries', () => ({
   useGetCharacterList: () => mocks.characters,
-  getCharacterSheet: (...args: unknown[]) => {
-    mocks.personalSheet(...args)
-    return { queryKey: ['personal-sheet'] }
+  getCharacterSheetSlice: (id: string, slice: string, campaignId: string) => {
+    const args = { id, slice, campaignId }
+    mocks.campaignSheet(convexApi.characters.sheetSlices.get, args)
+    return { queryKey: ['characters/sheetSlices:get', args] }
   }
 }))
 vi.mock('#app/data/media', () => ({
@@ -319,14 +320,15 @@ describe('CampaignParty native transport', () => {
         currentUserId='owner-1'
       />
     )
-    expect(mocks.campaignSheet).toHaveBeenCalledWith(convexApi.campaigns.characterSheet.get, {
+    expect(mocks.campaignSheet).toHaveBeenCalledWith(convexApi.characters.sheetSlices.get, {
       campaignId: campaign.id,
-      characterId: character.id
+      id: character.id,
+      slice: 'COMMON'
     })
     expect(mocks.personalSheet).not.toHaveBeenCalled()
   })
 
-  it('retains personal Sheet reads for Player roster views', () => {
+  it('uses campaign-scoped common reads for Player roster views', () => {
     const character = {
       id: 'character-1',
       publicId: 'aria',
@@ -342,8 +344,15 @@ describe('CampaignParty native transport', () => {
         currentUserId={playerId}
       />
     )
-    expect(mocks.personalSheet).toHaveBeenCalledWith(character.id)
-    expect(convexQueryNames()).toEqual(['campaigns/characterSheet:basics'])
+    expect(mocks.campaignSheet).toHaveBeenCalledWith(convexApi.characters.sheetSlices.get, {
+      id: character.id,
+      slice: 'COMMON',
+      campaignId: campaign.id
+    })
+    expect(convexQueryNames()).toEqual([
+      'campaigns/characterSheet:basics',
+      'characters/sheetSlices:get'
+    ])
   })
 
   it.each([true, false])(
@@ -394,7 +403,8 @@ describe('CampaignParty native transport', () => {
       expect(convexQueryNames()).toEqual([
         'campaigns/characterSheet:basics',
         'campaigns/characterSheet:basics',
-        'campaigns/characterSheet:get'
+        'characters/sheetSlices:get',
+        'characters/sheetSlices:get'
       ])
       // Portraits use the Campaign-scoped read, which only covers Characters assigned here.
       for (const character of [own, other])

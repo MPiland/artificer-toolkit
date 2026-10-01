@@ -310,7 +310,7 @@ describe('native Character working drafts', () => {
       })
       await ctx.db.patch(activeId, { updatedAt })
       await ctx.db.patch(active.play._id, {
-        playJson: encoded.play.playJson,
+        state: encoded.play.state,
         checksum: encoded.play.checksum,
         streamVersion: encoded.play.streamVersion,
         updatedAt: encoded.play.updatedAt

@@ -3,6 +3,7 @@ import { campaignAnnouncementDtoSchema } from '../api/campaignAnnouncements.js'
 import { campaignChatEntryDtoSchema } from '../api/campaignCommunication.js'
 import { timestampSchema, uuidSchema } from '../api/campaignContractSchemas.js'
 import { projectionChecksumSchema } from './identity.js'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 export const campaignStoredConversationSchema = lazySchema(() =>
   z
@@ -43,7 +44,7 @@ export const campaignStoredAnnouncementSchema = lazySchema(() =>
 )
 
 // Counts and retention read only these compact rows, not 500 message/roll payloads per room.
-export const campaignStoredEntryHeaderSchema = lazySchema(() =>
+export const campaignStoredEntryIdentitySchema = lazySchema(() =>
   z.extend(
     z.pick(campaignChatEntryDtoSchema, {
       id: true,
@@ -54,6 +55,21 @@ export const campaignStoredEntryHeaderSchema = lazySchema(() =>
     }),
     { clientNonce: uuidSchema }
   )
+)
+
+/** Compact nonce evidence is read without loading old roll/message bodies. */
+export const campaignStoredEntryHeaderSchema = lazySchema(() =>
+  z
+    .extend(campaignStoredEntryIdentitySchema, {
+      kind: campaignChatEntryDtoSchema.shape.kind,
+      rollNonceFingerprint: z.nullable(projectionChecksumSchema)
+    })
+    .check(
+      z.superRefine((header, context) => {
+        if ((header.kind === 'ROLL') !== (header.rollNonceFingerprint !== null))
+          context.addIssue({ code: 'custom', message: 'Invalid Campaign chat nonce evidence.' })
+      })
+    )
 )
 
 export const campaignStoredEntryPayloadSchema = lazySchema(() =>
@@ -93,3 +109,35 @@ export const campaignStoredEntryPayloadSchema = lazySchema(() =>
       })
     )
 )
+
+/** Exactly the fields the existing table-roll retry compares; reveal/consumption do not alter reuse. */
+export function campaignRollNonceFingerprint(
+  payload: z.infer<typeof campaignStoredEntryPayloadSchema>
+): string {
+  return checksumCanonicalJson({
+    kind: payload.kind,
+    roll: payload.roll,
+    authorUsername: payload.authorUsername,
+    characterId: payload.characterId,
+    characterLabel: payload.characterLabel,
+    mode: payload.mode,
+    body: payload.body,
+    editedAt: payload.editedAt,
+    unsentAt: payload.unsentAt
+  })
+}
+
+/** Header and payload identity and nonce evidence are committed together by each host. */
+export function createCampaignEntryHeader(
+  identity: z.infer<typeof campaignStoredEntryIdentitySchema>,
+  payload: z.infer<typeof campaignStoredEntryPayloadSchema>
+): z.infer<typeof campaignStoredEntryHeaderSchema> {
+  const validated = campaignStoredEntryPayloadSchema.parse(payload)
+  if (validated.entryId !== identity.id)
+    throw new Error('Stored conversation payload identity mismatch.')
+  return campaignStoredEntryHeaderSchema.parse({
+    ...identity,
+    kind: validated.kind,
+    rollNonceFingerprint: validated.kind === 'ROLL' ? campaignRollNonceFingerprint(validated) : null
+  })
+}

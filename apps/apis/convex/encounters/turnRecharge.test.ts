@@ -1,3 +1,8 @@
+import {
+  createConvexEncounterStoreReader,
+  createConvexEncounterStore
+} from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -117,6 +122,8 @@ function rechargeResolution(input: {
 
 async function stored(base: Awaited<ReturnType<typeof fixture>>['t'], encounterId: string) {
   return base.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', encounterId))
@@ -136,12 +143,18 @@ async function stored(base: Awaited<ReturnType<typeof fixture>>['t'], encounterI
     occurrences: (await ctx.db.query('encounterRuleOccurrences').collect()).filter(
       (row) => row.encounterId === encounterId
     ),
-    receipts: (await ctx.db.query('encounterRuleReceipts').collect()).filter(
-      (row) => row.encounterId === encounterId
-    ),
-    commands: (await ctx.db.query('encounterRunCommands').collect()).filter(
-      (row) => row.encounterId === encounterId
-    )
+    receipts: (
+      await ctx.db
+        .query('encounterRuleReceipts')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
+    ).filter((row) => row.encounterId === encounterId),
+    commands: (
+      await ctx.db
+        .query('encounterRunCommands')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
+    ).filter((row) => row.encounterId === encounterId)
   }))
 }
 
@@ -610,7 +623,11 @@ describe('native Encounter turn Recharge', () => {
       (row) => row.state === 'PENDING'
     )
     if (!pausedRoot) throw new Error('Expected the paused Recharge root.')
-    expect(await base.t.run((ctx) => readPendingSnapshot(ctx, pausedRoot))).toMatchObject({
+    expect(
+      await base.t.run((ctx) =>
+        readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, pausedRoot)
+      )
+    ).toMatchObject({
       applicationContext: {
         root: {
           rootCommandId: advance.command.commandId,
@@ -795,7 +812,7 @@ describe('native Encounter turn Recharge', () => {
       const state = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
       const snapshot = state.snapshot as { payload: { features: unknown[] } }
       snapshot.payload.features = []
-      await writeRunActor(ctx, actor._id, state)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, actor._id, state)
     })
     const staleBefore = await stored(base.t, base.run.id)
     await expect(executeInRoom(base.owner.caller, invalid)).rejects.toThrow(

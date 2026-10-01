@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { characterSheetMulticlassFixture } from '../fixtures/characterRest.fixtures'
 import { characterSheetSpellStatesFixture } from '../fixtures/characterSpell.fixtures'
 import { astralTearCharacterSheetFixture } from '../fixtures/astralTearSheet.fixtures'
-import { CharacterSheetView } from './CharacterSheetView'
+import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
 import {
   characterSheetStoryMeta,
   characterSheetTabletViewports

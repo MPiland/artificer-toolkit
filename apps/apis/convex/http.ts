@@ -5,6 +5,7 @@ import { authComponent } from './lib/authClient.helper'
 import { captureHttp, hydrationHttp } from './liveSessions/transientHttp'
 import {
   activateHttp,
+  recoverStorageHttp,
   beginDrainHttp,
   bootstrapHttp,
   characterRulesHttp,
@@ -32,6 +33,10 @@ import {
   externalCommitResolveHttp,
   presentHttp,
   publishHttp,
+  checkpointHttp,
+  checkpointStageHttp,
+  checkpointPartHttp,
+  checkpointCommitHttp,
   releaseHttp,
   roomAuthorizationHttp,
   roomInputsHttp
@@ -50,7 +55,12 @@ const liveSessionHandlers = {
   roomInputs: roomInputsHttp,
   bootstrap: bootstrapHttp,
   activate: activateHttp,
+  recoverStorage: recoverStorageHttp,
   publish: publishHttp,
+  checkpoint: checkpointHttp,
+  checkpointStage: checkpointStageHttp,
+  checkpointPart: checkpointPartHttp,
+  checkpointCommit: checkpointCommitHttp,
   present: presentHttp,
   beginDrain: beginDrainHttp,
   release: releaseHttp,

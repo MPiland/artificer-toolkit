@@ -1,14 +1,14 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
-  characterHistoryEntryDtoSchema,
+  characterSheetCommandExecutionDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetExecuteInputSchema,
   type CharacterSheetCommandInputDto,
+  type CharacterSheetCommandExecutionDto,
   type CharacterSheetCommandResponseDto,
   type CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type {
   CharacterAuthored,
@@ -21,18 +21,17 @@ import {
   createCharacterSpellSourceKey,
   toCharacterResourceOwnerKey
 } from '@artificer-toolkit/shared/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   applyCharacterSheetCommand,
   CharacterSheetCommandError,
-  ensureResource,
-  ensureResourceByOwner,
-  resolveSpellCastSource,
-  summarizeCharacterSheetCommand,
-  type SheetResource
+  summarizeCharacterSheetCommand
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { getProspectiveSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentCommands'
-import { getProspectiveSheetResourceUsage } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
+import {
+  getProspectiveSheetResourceUsage,
+  getSheetCommandResourceUsageUpdate
+} from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
 import {
   activeEffectEndsOnRest,
   applyCompletedCharacterRest
@@ -43,14 +42,12 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/characterSpellPreparationEligibility'
 import {
   validatePanelTarget,
-  validateActionResourceUse,
   validateSheetAdjustmentTarget,
   validateSpellMechanicCustomization,
   validateSpellSource,
   assertCampaignGmSheetCommandAllowed
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
-import { presentCampaignCharacterHistory } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { type MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from './acquiredEquipment'
@@ -62,11 +59,16 @@ import type { CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { prepareCharacterRest } from './rest'
-import { readCharacterReceiptHistory } from './documents'
+import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
+import { executeCharacterNoteCommand } from './sheetNoteCommands'
+import { executeCharacterPlayPreferenceCommand } from './sheetPlayPreferences'
 import type { CharacterRecordRow } from './stateDocuments'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { isCharacterSheetLivePlayCommand } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
+import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
 function applySupportedCommand(
   character: CharacterAuthored,
-  sheet: CharacterSheetCommandResponseDto['sheet'],
+  sheet: CharacterSheetCommandExecutionDto['sheet'],
   command: CharacterSheetCommandInputDto,
   now: string,
   attunementSlotLimit: number,
@@ -134,7 +136,7 @@ export async function executeCharacterSheetCommand(
   input: CharacterSheetExecuteInput,
   campaignId?: string,
   sourceContext?: CharacterSheetSourceContext
-): Promise<CharacterSheetCommandResponseDto> {
+): Promise<CharacterSheetCommandExecutionDto> {
   if (sourceContext && input.command.type !== 'RECOVER_SHEET_RESOURCE')
     throw new Error('Only Clock resource recovery accepts an existing source context.')
   const catalogScope =
@@ -149,7 +151,12 @@ export async function executeCharacterSheetCommand(
     input.id,
     campaignId,
     sourceContext,
-    catalogScope
+    catalogScope,
+    undefined,
+    input.command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
+      input.command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
+      ? [input.command.source.spellId]
+      : []
   )
   if (!initial) throw new Error('Character Sheet is unavailable for the current user.')
   if (initial.campaignContext.viewer === 'CAMPAIGN_OWNER') {
@@ -157,28 +164,23 @@ export async function executeCharacterSheetCommand(
       throw new Error('Archived Campaigns are read-only.')
     assertCampaignGmSheetCommandAllowed(input.command)
   }
+  if (
+    isCharacterSheetLivePlayCommand(input.command) ||
+    input.command.type === 'COMPLETE_REST' ||
+    (input.command.type === 'SET_HIT_POINTS' &&
+      (input.command.current !== undefined || input.command.temp !== undefined))
+  )
+    await assertConvexOwnsCharacterPlay(ctx, initial.active.id)
 
-  const commandJson: unknown = JSON.parse(JSON.stringify(input.command))
-  const commandFingerprint = checksumRuleDocument(commandJson)
-  const commandId = input.command.commandId.toLowerCase()
-  const receipt = await ctx.db
-    .query('characterCommandReceipts')
-    .withIndex('by_characterId_commandId', (q) =>
-      q.eq('characterId', initial.active.id).eq('commandId', commandId)
-    )
-    .unique()
-
-  if (receipt) {
-    if (
-      receipt.characterId !== initial.active.id ||
-      receipt.commandId !== commandId ||
-      receipt.actorId !== userId
-    ) {
-      throw new Error('Stored Sheet command receipt identity mismatch.')
-    }
-    const historyEntry = readCharacterReceiptHistory(receipt)
-    if (receipt.commandFingerprint !== commandFingerprint)
-      throw new Error('Sheet command replay does not match the original command.')
+  const replay = await readCharacterCommandReplay(ctx, {
+    characterId: initial.active.id,
+    userId,
+    command: input.command,
+    streamVersion: initial.active.play.streamVersion,
+    contentMaturity: initial.contentMaturity,
+    viewer: initial.campaignContext.viewer
+  })
+  if (replay) {
     const replaySheet = projectCharacterSheetForViewer(initial.sheet, initial.campaignContext)
     if (catalogScope === 'resolution') {
       const activeEquipmentIds = new Set(
@@ -188,16 +190,9 @@ export async function executeCharacterSheetCommand(
         (option) => activeEquipmentIds.has(option.id)
       )
     }
-    return characterSheetCommandResponseDtoSchema.parse({
-      characterId: initial.active.id,
-      streamVersion: initial.sheet.meta.streamVersion,
-      sheet: replaySheet,
-      historyEntry: presentCampaignCharacterHistory(
-        { characterId: initial.active.id, entries: [historyEntry] },
-        initial.contentMaturity,
-        initial.campaignContext.viewer
-      ).entries[0],
-      ...(historyEntry.result ? { result: historyEntry.result } : {})
+    return characterSheetCommandExecutionDtoSchema.parse({
+      ...replay,
+      sheet: replaySheet
     })
   }
 
@@ -286,66 +281,11 @@ export async function executeCharacterSheetCommand(
     if (!initial.resolution.registry.system?.speeds.some((speed) => speed.id === speedId))
       throw new Error('Movement type is unavailable in this Game System.')
   }
-  let resourceUsageUpdate:
-    | {
-        resource: CharacterSheetCommandResponseDto['sheet']['resources']['items'][number]
-        used: number
-      }
-    | undefined
-  const getRawResourceUsed = (resource: SheetResource) => {
-    const ownerKey = createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(resource.owner))
-    return (
-      initial.sheetState.resourceUsage.find(
-        (usage) => createCharacterResourceOwnerKey(usage.owner) === ownerKey
-      )?.used ?? resource.used
-    )
-  }
-  if (
-    command.type === 'USE_RESOURCE' ||
-    command.type === 'RESTORE_RESOURCE' ||
-    command.type === 'USE_SHEET_RESOURCE' ||
-    command.type === 'RECOVER_SHEET_RESOURCE'
-  ) {
-    const resource =
-      'owner' in command
-        ? ensureResourceByOwner(initial.sheet, command.owner)
-        : ensureResource(initial.sheet, command.resourceGrantId)
-    const used = getRawResourceUsed(resource)
-    if (command.type === 'USE_RESOURCE' || command.type === 'USE_SHEET_RESOURCE') {
-      const amount = command.amount ?? 1
-      validateActionResourceUse({
-        sheet: initial.sheet,
-        actionId: command.actionId,
-        resourceId: resource.id,
-        amount
-      })
-      if (amount > resource.remaining)
-        throw new CharacterSheetCommandError(
-          `Resource "${resource.label}" only has ${resource.remaining} uses remaining.`
-        )
-      resourceUsageUpdate = { resource, used: used + amount }
-    } else if (command.type === 'RECOVER_SHEET_RESOURCE') {
-      if (!resource.recoveries.some((recovery) => recovery.trigger === command.trigger))
-        throw new CharacterSheetCommandError(`Resource cannot be recovered by ${command.trigger}.`)
-      resourceUsageUpdate = { resource, used: 0 }
-    } else {
-      resourceUsageUpdate = {
-        resource,
-        used: command.all ? 0 : Math.max(used - (command.amount ?? 1), 0)
-      }
-    }
-  }
-  if (command.type === 'CAST_SPELL') {
-    const { source, spell } = resolveSpellCastSource(initial.sheet, command)
-    if (
-      spell.level > 0 &&
-      (source?.castMode === 'LIMITED_USE' || source?.castMode === 'FIXED_LEVEL') &&
-      source.resourceOwner
-    ) {
-      const resource = ensureResourceByOwner(initial.sheet, source.resourceOwner)
-      resourceUsageUpdate = { resource, used: getRawResourceUsed(resource) + 1 }
-    }
-  }
+  const resourceUsageUpdate = getSheetCommandResourceUsageUpdate({
+    sheet: initial.sheet,
+    resourceUsage: initial.sheetState.resourceUsage,
+    command
+  })
   const occurredAt = new Date(
     Math.max(
       Date.now(),
@@ -500,7 +440,7 @@ export async function executeCharacterSheetCommand(
 
   if (command.type === 'COMPLETE_REST' && completedRest) {
     const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }
-    const effectStore = createActiveRuleEffectStore(ctx)
+    const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     for (const effect of initial.activeEffects)
       if (activeEffectEndsOnRest(effect, command.restKind))
         await effectStore.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
@@ -546,42 +486,53 @@ export async function executeCharacterSheetCommand(
     current = projectCharacterSheetFacts(written.facts)
   }
 
-  const receiptId = crypto.randomUUID()
   const result = completedRest
     ? { type: 'COMPLETE_REST' as const, rest: completedRest.result }
     : undefined
-  const historyEntry = characterHistoryEntryDtoSchema.parse({
-    eventId: receiptId,
+  const acknowledgement = await writeCharacterCommandReceipt(ctx, {
+    characterId: current.active.id,
+    streamVersion: current.active.play.streamVersion,
+    userId,
+    command: input.command,
     occurredAt,
-    actorId: userId,
-    eventType: input.command.type,
     summary: summarizeCharacterSheetCommand(input.command, initial.sheet),
+    contentMaturity: current.contentMaturity,
+    viewer: current.campaignContext.viewer,
     ...(result ? { result } : {})
   })
-  const historyJson = canonicalizeRuleDocument(historyEntry)
-  const storedReceipt = characterStoredCommandReceiptSchema.parse({
-    id: receiptId,
-    characterId: current.active.id,
-    commandId,
-    actorId: userId,
-    commandFingerprint,
-    occurredAt,
-    historyJson,
-    historyChecksum: checksumRuleDocument(historyEntry)
+  return characterSheetCommandExecutionDtoSchema.parse({
+    ...acknowledgement,
+    sheet: projectCharacterSheetForViewer(current.sheet, current.campaignContext)
   })
-  await ctx.db.insert('characterCommandReceipts', storedReceipt)
+}
 
-  return characterSheetCommandResponseDtoSchema.parse({
-    characterId: current.active.id,
-    streamVersion: current.sheet.meta.streamVersion,
-    sheet: projectCharacterSheetForViewer(current.sheet, current.campaignContext),
-    historyEntry: presentCampaignCharacterHistory(
-      { characterId: current.active.id, entries: [historyEntry] },
-      current.contentMaturity,
-      current.campaignContext.viewer
-    ).entries[0],
-    ...(result ? { result } : {})
-  })
+/** Public command responses are receipts; subscribed state owns the resulting presentation. */
+export async function executeCharacterSheetCommandAcknowledgement(
+  ctx: MutationCtx,
+  userId: string,
+  input: CharacterSheetExecuteInput,
+  campaignId?: string
+): Promise<CharacterSheetCommandResponseDto> {
+  switch (input.command.type) {
+    case 'SET_INSPIRATION':
+    case 'SET_PARTY_VISIBILITY':
+      return executeCharacterPlayPreferenceCommand(ctx, userId, input.id, input.command, campaignId)
+    case 'CREATE_NOTE':
+    case 'UPDATE_NOTE':
+    case 'DELETE_NOTE':
+    case 'CREATE_NOTE_GROUP':
+    case 'UPDATE_NOTE_GROUP':
+    case 'DELETE_NOTE_GROUP':
+      return executeCharacterNoteCommand(ctx, userId, input.id, input.command, campaignId)
+  }
+  const { sheet, ...acknowledgement } = await executeCharacterSheetCommand(
+    ctx,
+    userId,
+    input,
+    campaignId
+  )
+  void sheet
+  return acknowledgement
 }
 
 export const execute = mutation({
@@ -589,6 +540,10 @@ export const execute = mutation({
   returns: zodToConvex(characterSheetCommandResponseDtoSchema),
   handler: async (ctx, args): Promise<CharacterSheetCommandResponseDto> => {
     const { userId } = await requireIdentity(ctx)
-    return executeCharacterSheetCommand(ctx, userId, characterSheetExecuteInputSchema.parse(args))
+    return executeCharacterSheetCommandAcknowledgement(
+      ctx,
+      userId,
+      characterSheetExecuteInputSchema.parse(args)
+    )
   }
 })

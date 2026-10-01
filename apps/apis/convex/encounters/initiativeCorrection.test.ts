@@ -1,3 +1,5 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -248,14 +250,22 @@ describe('native initiative corrections', () => {
     expect(result.projection.currentActorId).toBe(first.id)
     const capture = () =>
       base.t.run(async (ctx) => ({
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         runs: await ctx.db.query('encounterRuns').collect(),
         actors: await ctx.db.query('encounterRunActors').collect(),
         rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
         participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
         sides: await ctx.db.query('encounterInitiativeSides').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect(),
+        commands: await ctx.db
+          .query('encounterRunCommands')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        ruleReceipts: await ctx.db.query('encounterRuleReceipts').collect()
+        ruleReceipts: await ctx.db
+          .query('encounterRuleReceipts')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
       }))
     const beforeCorrection = await capture()
     const correction: EncounterExecuteInput = {
@@ -428,11 +438,13 @@ describe('native initiative corrections', () => {
     if (!correctionReceipt || correctionReceipt.commandType !== 'SET_ROUND')
       throw new Error('Missing correction receipt')
     await base.t.run((ctx) =>
-      ctx.db.patch(correctionReceipt._id, { initiativeStateChecksum: '0'.repeat(64) })
+      replaceReceiptRecord(ctx, 'encounterRunCommands', correctionReceipt._id, {
+        initiativeStateChecksum: '0'.repeat(64)
+      })
     )
     await expect(executeInRoom(base.owner.caller, setRound)).rejects.toThrow(LiveSessionRouteError)
     await base.t.run((ctx) =>
-      ctx.db.patch(correctionReceipt._id, {
+      replaceReceiptRecord(ctx, 'encounterRunCommands', correctionReceipt._id, {
         initiativeStateChecksum: correctionReceipt.initiativeStateChecksum
       })
     )
@@ -457,7 +469,12 @@ describe('native initiative corrections', () => {
       })
     ).rejects.toThrow('Completed Encounters are read-only')
     const stored = await base.t.run(async (ctx) => ({
-      commands: await ctx.db.query('encounterRunCommands').collect(),
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+      commands: await ctx.db
+        .query('encounterRunCommands')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
       rounds: await ctx.db.query('encounterInitiativeRounds').collect()
     }))
     const corrections = stored.commands.filter((command) =>

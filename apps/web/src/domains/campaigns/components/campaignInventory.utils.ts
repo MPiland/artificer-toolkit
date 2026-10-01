@@ -1,3 +1,4 @@
+import type { CharacterSheetInventoryDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import type {
   CampaignDetailDto,
   CampaignContentMaturityDto
@@ -203,7 +204,7 @@ export function getCharacterInventoryCurrencies(
 }
 
 export function getCharacterInventory(
-  sheet: CharacterSheetResponseDto,
+  sheet: CharacterSheetInventoryDto,
   owner: InventoryOwnerRefDto,
   currencyOptions: ReadonlyArray<InventoryCurrency>
 ): { inventory?: InventoryDto; error?: string } {

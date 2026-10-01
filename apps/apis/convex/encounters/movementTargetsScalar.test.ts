@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
@@ -85,7 +86,7 @@ describe('native movement target scalar facts', () => {
       ]
     }
     await fixture.owner.caller.run(async (ctx) => {
-      await createActiveRuleEffectStore(ctx).create({
+      await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
         owner: { kind: 'CHARACTER', characterId: fixture.character.id },
         id: crypto.randomUUID(),
         definition,

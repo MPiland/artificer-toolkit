@@ -1,9 +1,7 @@
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
-import {
-  encodeCharacterRecord,
-  type CharacterDocument
-} from '@artificer-toolkit/schema/projections/characterStoredState'
+import type { CharacterDocument } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { MutationCtx } from '../../convex/_generated/server'
+import { writeCharacterRecord as writeStoredCharacterRecord } from '../../convex/characters/characterWrites'
 import {
   readCharacterRecord,
   readCharacterRow,
@@ -24,31 +22,32 @@ export async function writeCharacterRecord(
     streamVersion?: number
     updatedAt?: string
     maximumHitPoints?: number
+    walkingSpeed?: number
+    status?: 'ACTIVE' | 'DRAFT'
+    portraitAssetId?: string
+    portraitRevision?: number
     /** Reassigns the Character's owner across its document, structure row and play record. */
     userId?: string
   }
 ) {
-  const encoded = encodeCharacterRecord(row, {
-    document: next.userId ? { ...next.document, userId: next.userId } : next.document,
+  const status = next.status ?? next.document.status ?? row.status
+  await writeStoredCharacterRecord(ctx, {
+    current: row,
+    fields: {
+      label: next.document.label,
+      status,
+      userId: next.userId ?? row.userId,
+      ...(next.portraitAssetId === undefined ? {} : { portraitAssetId: next.portraitAssetId }),
+      ...(next.portraitRevision === undefined ? {} : { portraitRevision: next.portraitRevision }),
+      streamVersion: next.streamVersion ?? row.play.streamVersion,
+      updatedAt: next.updatedAt ?? row.updatedAt
+    },
+    document: { ...next.document, status, userId: next.userId ?? next.document.userId },
     sheetState: next.sheetState,
-    streamVersion: next.streamVersion ?? row.play.streamVersion,
-    updatedAt: next.updatedAt ?? row.updatedAt
-  })
-  await ctx.db.patch(row._id, {
-    label: next.document.label,
-    documentJson: encoded.documentJson,
-    checksum: encoded.checksum,
-    sheetState: encoded.sheetState,
-    updatedAt: encoded.updatedAt,
-    userId: next.userId ?? row.userId
-  })
-  await ctx.db.patch(row.play._id, {
-    playJson: encoded.play.playJson,
-    checksum: encoded.play.checksum,
-    streamVersion: encoded.play.streamVersion,
-    updatedAt: encoded.play.updatedAt,
-    maximumHitPoints: next.maximumHitPoints ?? row.play.maximumHitPoints,
-    userId: next.userId ?? row.play.userId
+    stats: {
+      maximumHitPoints: next.maximumHitPoints ?? row.play.maximumHitPoints,
+      walkingSpeed: next.walkingSpeed ?? row.play.walkingSpeed
+    }
   })
 }
 

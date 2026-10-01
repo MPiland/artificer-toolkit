@@ -9,7 +9,10 @@ import {
 import { internalQuery, query } from '../lib/queries'
 import { readLiveScene } from './liveDocuments'
 import { readCurrentEntities } from './currentEntities'
-import { parseGeometryCommand, parseGeometrySave } from './geometryDocuments'
+import {
+  parseGeometryCommand,
+  parseGeometrySave
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { parseFogSave, readFogChunk } from './fogDocuments'
 
 export const commandChunks = query({

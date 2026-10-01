@@ -35,6 +35,31 @@ async function readHead(ctx: QueryCtx, { scope, scopeId }: ContentSnapshotScopeR
   )
 }
 
+/** Builds heads from an already authorized source set; it grants no additional scope. */
+export async function readContentSnapshotManifest(
+  ctx: QueryCtx,
+  systemId: string,
+  access: Awaited<ReturnType<typeof readCharacterSources>>
+): Promise<ContentSnapshotManifestDto> {
+  const sources = await Promise.all(
+    access.sources.map(async (source) => ({
+      contentSourceId: source.id,
+      kind: source.kind,
+      head: await readHead(ctx, { scope: 'SOURCE', scopeId: source.id })
+    }))
+  )
+  const { campaign } = access
+  return contentSnapshotManifestDtoSchema.parse({
+    systemId,
+    sources,
+    campaign: campaign && {
+      id: campaign.id,
+      contentMaturity: campaign.contentMaturity,
+      head: await readHead(ctx, { scope: 'CAMPAIGN', scopeId: campaign.id })
+    }
+  })
+}
+
 /**
  * The snapshot heads a Builder may read, by exactly the Builder's source rules
  * (`readCharacterSources`): the enabled catalogues (the Campaign's, for an assigned Character) and
@@ -61,23 +86,7 @@ export const manifest = query({
         throw new Error('Character content is unavailable for the current user.')
       access = await readCharacterSources(ctx, { id, systemId, userId }, userId)
     }
-    const sources = await Promise.all(
-      access.sources.map(async (source) => ({
-        contentSourceId: source.id,
-        kind: source.kind,
-        head: await readHead(ctx, { scope: 'SOURCE', scopeId: source.id })
-      }))
-    )
-    const { campaign } = access
-    return contentSnapshotManifestDtoSchema.parse({
-      systemId,
-      sources,
-      campaign: campaign && {
-        id: campaign.id,
-        contentMaturity: campaign.contentMaturity,
-        head: await readHead(ctx, { scope: 'CAMPAIGN', scopeId: campaign.id })
-      }
-    })
+    return readContentSnapshotManifest(ctx, systemId, access)
   }
 })
 

@@ -389,4 +389,16 @@ export const characterSheetExecuteInputSchema = lazySchema(() =>
 )
 
 export type CharacterSheetCommandInputDto = z.infer<typeof characterSheetCommandInputDtoSchema>
+export type CharacterSheetNoteCommandInputDto = Extract<
+  CharacterSheetCommandInputDto,
+  {
+    type:
+      | 'CREATE_NOTE'
+      | 'UPDATE_NOTE'
+      | 'DELETE_NOTE'
+      | 'CREATE_NOTE_GROUP'
+      | 'UPDATE_NOTE_GROUP'
+      | 'DELETE_NOTE_GROUP'
+  }
+>
 export type CharacterSheetExecuteInput = z.infer<typeof characterSheetExecuteInputSchema>

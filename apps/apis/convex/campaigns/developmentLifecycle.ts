@@ -19,6 +19,7 @@ import { CHARACTER_DRAFT_PAYLOAD_CHUNK_MAX_BYTES } from '@artificer-toolkit/sche
 import { action, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 
 const identityReference = makeFunctionReference<'query', {}, AuthIdentityDto>('account:identity')
 const MARKER = 'Injected Campaign deletion fixture rollback'
@@ -505,12 +506,16 @@ async function campaignRows(
       8,
       'sceneDefinitions'
     ),
-    encounterRunCommands: await rows(
-      ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', campaignId)),
-      200,
-      'encounterRunCommands'
+    encounterRunCommands: await readReceiptHeaders(
+      ctx,
+      'encounterRunCommands',
+      await rows(
+        ctx.db
+          .query('encounterRunCommands')
+          .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', campaignId)),
+        200,
+        'encounterRunCommands'
+      )
     ),
     encounterRuleOccurrences: await rows(
       ctx.db
@@ -519,12 +524,16 @@ async function campaignRows(
       200,
       'encounterRuleOccurrences'
     ),
-    encounterRuleReceipts: await rows(
-      ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', campaignId)),
-      200,
-      'encounterRuleReceipts'
+    encounterRuleReceipts: await readReceiptHeaders(
+      ctx,
+      'encounterRuleReceipts',
+      await rows(
+        ctx.db
+          .query('encounterRuleReceipts')
+          .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', campaignId)),
+        200,
+        'encounterRuleReceipts'
+      )
     ),
     encounterRunActors: await children(
       descendants.encounterIds,
@@ -933,6 +942,44 @@ async function personalRows(ctx: Ctx, fixture: DevelopmentCampaignFixture) {
       ...characterDrafts.map((row) => row.characterId)
     ])
   ].sort()
+  const characterOperationalRows: Record<string, NativeRow[]> = {
+    characterBuildStates: await children(
+      characterIds,
+      (id) =>
+        rows(
+          ctx.db
+            .query('characterBuildStates')
+            .withIndex('by_characterId', (q) => q.eq('characterId', id)),
+          1,
+          'characterBuildStates'
+        ),
+      32,
+      'characterBuildStates'
+    )
+  }
+  for (const table of [
+    'characterInventoryItems',
+    'characterCurrencyGroups',
+    'characterClassSpellStates',
+    'characterSpellCustomizations',
+    'characterCreatureInstances',
+    'characterVehicleInstances',
+    'characterNotes',
+    'characterNoteGroups',
+    'characterExtraEquipment'
+  ] as const) {
+    characterOperationalRows[table] = await children(
+      characterIds,
+      (id) =>
+        rows(
+          ctx.db.query(table).withIndex('by_characterId_position', (q) => q.eq('characterId', id)),
+          32,
+          table
+        ),
+      128,
+      table
+    )
+  }
   const characterDraftPayloads = await children(
     characterIds,
     (id) =>
@@ -1108,6 +1155,7 @@ async function personalRows(ctx: Ctx, fixture: DevelopmentCampaignFixture) {
     throw new Error('socialBlockInvalidations exceeds its fixture bound.')
   return {
     userProfiles,
+    ...characterOperationalRows,
     characters,
     characterPlayStates: await children(
       characters.map((row) => row.id),
@@ -1141,18 +1189,22 @@ async function personalRows(ctx: Ctx, fixture: DevelopmentCampaignFixture) {
       4,
       'accountEntitlements'
     ),
-    characterCommandReceipts: await children(
-      characterIds,
-      (id) =>
-        rows(
-          ctx.db
-            .query('characterCommandReceipts')
-            .withIndex('by_characterId_commandId', (q) => q.eq('characterId', id)),
-          200,
-          'characterCommandReceipts'
-        ),
-      200,
-      'characterCommandReceipts'
+    characterCommandReceipts: await readReceiptHeaders(
+      ctx,
+      'characterCommandReceipts',
+      await children(
+        characterIds,
+        (id) =>
+          rows(
+            ctx.db
+              .query('characterCommandReceipts')
+              .withIndex('by_characterId_commandId', (q) => q.eq('characterId', id)),
+            200,
+            'characterCommandReceipts'
+          ),
+        200,
+        'characterCommandReceipts'
+      )
     ),
     authoredVersions: await children(
       authoredRoots.map((row) => row.id),

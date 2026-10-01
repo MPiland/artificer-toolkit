@@ -1,6 +1,6 @@
-import type { CharacterSheet } from '../core/CharacterSheet.types'
+import type { CharacterSheetExtrasSliceDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 
-type Extra = CharacterSheet['extras']['items'][number]
+type Extra = CharacterSheetExtrasSliceDto['extras']['items'][number]
 
 export function getExtraTarget(extra: Extra) {
   return extra.kind === 'VEHICLE'

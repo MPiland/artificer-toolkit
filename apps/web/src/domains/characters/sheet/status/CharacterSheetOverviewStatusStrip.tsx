@@ -1,8 +1,9 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Collapse, Text } from '@mantine/core'
 import { CirclePlus } from 'lucide-react'
 import { useState } from 'react'
 import IInspiration from '#assets/icons/IInspiration'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { ConditionsEditor } from './ConditionsEditor'
 import { ExhaustionEditor } from './ExhaustionEditor'
 import * as statusEditorStyles from './statusEditor.css'
@@ -16,7 +17,7 @@ export function CharacterSheetOverviewStatusStrip({
 }: {
   conditionsOnly?: boolean
   pending: boolean
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   submitCommand: SubmitSheetCommand
 }) {
   const [conditionsOpen, setConditionsOpen] = useState(false)

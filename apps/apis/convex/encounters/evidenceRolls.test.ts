@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -97,6 +98,7 @@ async function storedD20Evidence(base: PlayerControlFixture) {
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   )
   // Phase receipts repeat earlier evidence, so each request is reported once.
   const found = new Map<unknown, Record<string, unknown>>()
@@ -236,6 +238,8 @@ describe('Encounter roll prompts', () => {
     await storeRunAutomationMode(base.t, base.run.id, 'MANUAL')
     const stored = () =>
       base.t.run(async (ctx) => ({
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         run: await ctx.db
           .query('encounterRuns')
           .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
@@ -252,6 +256,7 @@ describe('Encounter roll prompts', () => {
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
           .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
       }))
     const before = await stored()
     // Manual mode runs no rules: neither the controlling player nor the GM can start the action.

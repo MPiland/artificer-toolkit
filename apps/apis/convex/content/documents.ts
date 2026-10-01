@@ -14,7 +14,10 @@ import {
 } from '@artificer-toolkit/shared/rules/checksum'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { decodeUtf8PayloadChunks, encodeUtf8PayloadChunks } from '../lib/jsonPayloadChunks'
+import {
+  decodeUtf8PayloadChunks,
+  encodeUtf8PayloadChunks
+} from '@artificer-toolkit/shared/jsonPayloadChunks'
 import { isImportRowVisible } from '../imports/visibility'
 
 function requireChunkHeader(chunkCount: number, totalByteLength: number) {
@@ -232,6 +235,7 @@ export async function readAuthoredVersion(
     version.id !== root.id ||
     version.subjectKind !== root.subjectKind ||
     version.systemId !== root.systemId ||
+    version.versionId !== root.currentVersionPublicId ||
     version.contentSourceId !== root.contentSourceId ||
     version.checksum !== root.checksum
   ) {

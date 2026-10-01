@@ -1,3 +1,8 @@
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { afterEach, expect, it, vi } from 'vitest'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { LiveSessionDomainRejectionError } from '../../../session-worker/src/liveSessionRoutes'
@@ -221,7 +226,7 @@ it('plans the same Character action and target facts in the Worker using private
   )
   await fixture.t.run(async (ctx) => {
     for (const suffix of [4, 3, 2, 1])
-      await createActiveRuleEffectStore(ctx).create({
+      await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
         id: `00000000-0000-4000-8000-${String(suffix).padStart(12, '0')}`,
         owner: effect.owner,
         definition: effect.definition,
@@ -259,7 +264,7 @@ it('plans the same Character action and target facts in the Worker using private
     throw new Error('Missing current normalized initiative capture.')
   expect(initiative.state).toEqual(
     await fixture.t.run((ctx) =>
-      createEncounterInitiativeStore(ctx).lockInitiativeRound({
+      createEncounterInitiativeStore({ db: createConvexEncounterStore(ctx) }).lockInitiativeRound({
         encounterId: fixture.run.id,
         round: 1
       })
@@ -333,7 +338,8 @@ it('plans the same Character action and target facts in the Worker using private
         ctx.db
           .query('encounterRunCommands')
           .withIndex('by_encounterId', (q) => q.eq('encounterId', fixture.run.id))
-          .collect(),
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
         ctx.db
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', fixture.run.id))
@@ -342,6 +348,7 @@ it('plans the same Character action and target facts in the Worker using private
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', fixture.run.id))
           .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
       ])
     )
   const beforePlanning = await storedRecords()
@@ -402,7 +409,10 @@ it('plans the same Character action and target facts in the Worker using private
   if (actual.kind !== 'PLANNED') throw new Error('Expected completed action plan.')
   expect(await storedRecords()).toEqual(beforePlanning)
   await fixture.owner.caller.run(async (ctx) => {
-    const expectedEffects = await listActiveRuleEffects(ctx, effect.owner)
+    const expectedEffects = await listActiveRuleEffects(
+      { db: createConvexEncounterStoreReader(ctx) },
+      effect.owner
+    )
     expect(actual.activeEffectsByActorId.get(target.id)).toEqual(expectedEffects)
     expect(expectedEffects).toHaveLength(5)
     expect(
@@ -419,7 +429,7 @@ it('plans the same Character action and target facts in the Worker using private
     const state = readRunState(row)
     const expectedSceneContext = await readNativeActionSceneContext(ctx, state, command)
     expect(actual.sceneContext).toEqual(expectedSceneContext)
-    const actors = await readRunActors(ctx, state)
+    const actors = await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state)
     const expected = await prepareNativeEncounterActionMechanics(ctx, {
       state,
       actors,
@@ -543,7 +553,7 @@ it('plans the same Character action and target facts in the Worker using private
         ...actor,
         resources: withEncounterRuleUsageUsed(actor, economy.definitionId, used)
       })
-      await writeRunActor(ctx, row._id, next)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, next)
       return row
     })
   const unspent = await spendAllowance(economy.maximum)

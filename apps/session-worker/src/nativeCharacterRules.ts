@@ -9,9 +9,11 @@ import {
   type LiveSessionCharacterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
 import type { CharacterAuthored, ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
+import { toContentSnapshotIndexEntry } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { CharacterSheetCampaignContext } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import {
   collectCharacterRuleSourceSelections,
@@ -29,6 +31,11 @@ import {
   type LiveCaptureReads
 } from './nativeCaptureCache.js'
 
+export type PreparedLiveCharacterSheet = Awaited<ReturnType<typeof prepareLiveCharacterSheetFacts>> & {
+  revisions: LiveSessionRulesRevisions
+  dependencies: Array<{ request: LiveSessionCharacterRulesRequest; readChecksum: string }>
+}
+
 /**
  * Prepare authorized live Character facts; the caller must validate dependencies before commit.
  * The Character's own inputs (sheet, hit points, conditions, Campaign state) are always read fresh,
@@ -40,11 +47,15 @@ export async function prepareNativeLiveCharacterSheet(
   accessToken: string,
   scope: Omit<LiveSessionCharacterRulesInput, 'request'>,
   captures?: LiveCaptureReads
-) {
+): Promise<PreparedLiveCharacterSheet> {
   const initialInput = liveSessionCharacterRulesInputSchema.parse({
     ...scope,
     request: { kind: 'INPUTS' }
   })
+  if (captures?.prepareCharacter) {
+    const { request: _request, ...scope } = initialInput
+    return captures.prepareCharacter(scope)
+  }
   const dependencies: Array<{ request: LiveSessionCharacterRulesRequest; readChecksum: string }> =
     []
   let revisions: LiveSessionRulesRevisions = []
@@ -79,6 +90,21 @@ export async function prepareNativeLiveCharacterSheet(
     return response
   }
 
+  return {
+    ...(await prepareLiveCharacterSheetFacts(initialInput, capture)),
+    revisions,
+    dependencies
+  }
+}
+
+/** Shared preparation over authorized stored inputs, from Convex captures or the room. */
+export async function prepareLiveCharacterSheetFacts(
+  initialInput: LiveSessionCharacterRulesInput,
+  capture: (
+    request: LiveSessionCharacterRulesRequest
+  ) => Promise<LiveSessionCharacterRulesResponse>,
+  spellCatalogueEntries?: readonly ContentSnapshotIndexEntry<'SPELL'>[]
+) {
   const inputs = await capture({ kind: 'INPUTS' })
   if (
     inputs.kind !== 'INPUTS' ||
@@ -375,13 +401,28 @@ export async function prepareNativeLiveCharacterSheet(
       }
       return [...sources.values()]
     },
-    async readSpellCatalogue() {
+    async readSpellCatalogue(referencedSpellIds) {
+      if (spellCatalogueEntries) {
+        await fetchPublications([...referencedSpellIds])
+        const documents = []
+        for (const id of referencedSpellIds) {
+          const publication = await readPublication(id)
+          if (publication?.subjectKind === 'SPELL') documents.push(publication.document)
+        }
+        return { entries: [...spellCatalogueEntries], documents }
+      }
       const catalogue = await readIndexedPublications({ kind: 'SPELL_CATALOGUE' })
-      return catalogue.map((publication) => {
+      const spells = catalogue.map((publication) => {
         if (publication.subjectKind !== 'SPELL')
           throw new Error('Character Spell catalogue mismatch.')
-        return publication.document
+        return publication
       })
+      return {
+        entries: spells.map(toContentSnapshotIndexEntry),
+        documents: spells
+          .filter((publication) => referencedSpellIds.has(publication.document.id))
+          .map((publication) => publication.document)
+      }
     }
   })
   const context = await prepareActiveCharacterBuilderContext(character, ruleContext, async () => {
@@ -431,8 +472,6 @@ export async function prepareNativeLiveCharacterSheet(
     sheetState: inputs.sheetState,
     campaignContext,
     ...preparedSheet,
-    revisions,
-    dependencies,
     sourceIdentities: [...identities.values()],
     sourceVersions: [...identities.values()].flatMap((identity) => {
       const publication = publications.get(identity.subjectId)

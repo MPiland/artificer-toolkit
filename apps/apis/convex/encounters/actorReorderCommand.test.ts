@@ -1,3 +1,5 @@
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import type {
   EncounterCommandInputDto,
@@ -138,12 +140,17 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
   }
   const capture = () =>
     base.t.run(async (ctx) => ({
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       runs: await ctx.db.query('encounterRuns').collect(),
       actors: await ctx.db.query('encounterRunActors').collect(),
       rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       sides: await ctx.db.query('encounterInitiativeSides').collect(),
-      commands: await ctx.db.query('encounterRunCommands').collect(),
+      commands: await ctx.db
+        .query('encounterRunCommands')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect()
     }))
   return { ...base, execute, start, advance, capture, projection: () => projection }
@@ -211,8 +218,11 @@ describe('native Encounter reorder', () => {
           q.eq('campaignId', base.campaign.id).eq('commandId', request.command.commandId)
         )
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
       if (!row || row.commandType !== 'REORDER') throw new Error('Missing reorder receipt')
-      await ctx.db.patch(row._id, { replayReceiptChecksum: 'a'.repeat(64) })
+      await replaceReceiptRecord(ctx, 'encounterRunCommands', row._id, {
+        replayReceiptChecksum: 'a'.repeat(64)
+      })
     })
     const corrupt = await base.capture()
     await expect(executeInRoom(base.owner.caller, request)).rejects.toThrow(LiveSessionRouteError)

@@ -1,4 +1,5 @@
-import type { CharacterSheet, OpenSheetPanel } from '../core/CharacterSheet.types'
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
+import type { OpenSheetPanel } from '../core/CharacterSheet.types'
 import { CharacterSheetSensesPanel } from '../overview/CharacterSheetOverview'
 import { CharacterSheetOverviewAbilities } from '../overview/CharacterSheetOverviewAbilities'
 import { CharacterSheetSavingThrowsPanel } from '../overview/CharacterSheetOverviewProficiencies'
@@ -9,7 +10,7 @@ export function CharacterSheetMobileStats({
   sheet
 }: {
   openPanel?: OpenSheetPanel
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
 }) {
   return (
     <section className={mobileStyles.mobilePageStack} aria-label='Overview'>

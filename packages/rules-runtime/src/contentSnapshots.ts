@@ -10,6 +10,7 @@ import {
   type ContentSnapshotKind,
   type ContentSnapshotListEntry,
   type ContentSnapshotPart,
+  type ContentSnapshotPublicationVersion,
   type ContentSnapshotRoot
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
@@ -30,28 +31,40 @@ export function buildContentSnapshotPart<
   Part extends ContentSnapshotPart
 >(
   header: ContentSnapshotHeader & { kind: Kind; part: Part },
-  roots: readonly ContentSnapshotRoot<Kind, Part>[]
+  roots: readonly ContentSnapshotRoot<Kind, Part>[],
+  versions?: readonly ContentSnapshotPublicationVersion[]
 ): { json: string; sha256: string; byteLength: number; rootCount: number } {
-  const input = { ...contentSnapshotHeaderSchema.parse(header), roots }
+  const orderedRoots = [...roots].sort((left, right) =>
+    left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+  )
+  const pins = versions ? new Map(versions.map((pin) => [pin.identity.subjectId, pin])) : null
+  if (pins && pins.size !== versions!.length)
+    throw new Error('Duplicate content snapshot publication version.')
+  if (header.part === 'documents' && (!versions || versions.length !== roots.length))
+    throw new Error('Content snapshot publication versions are incomplete.')
+  const input = {
+    ...contentSnapshotHeaderSchema.parse(header),
+    roots: orderedRoots,
+    ...(header.part === 'documents'
+      ? { versions: orderedRoots.map((root) => pins?.get(root.id)) }
+      : {})
+  }
   const object =
     input.part === 'index'
       ? contentSnapshotIndexObjectSchema.parse(input)
       : input.part === 'list'
         ? contentSnapshotListObjectSchema.parse(input)
         : contentSnapshotDocumentsObjectSchema.parse(input)
-  const ordered = [...object.roots].sort((left, right) =>
-    left.id < right.id ? -1 : left.id > right.id ? 1 : 0
-  )
-  for (let index = 1; index < ordered.length; index++) {
-    if (ordered[index]!.id === ordered[index - 1]!.id)
-      throw new Error(`Duplicate content snapshot root ${ordered[index]!.id}.`)
+  for (let index = 1; index < object.roots.length; index++) {
+    if (object.roots[index]!.id === object.roots[index - 1]!.id)
+      throw new Error(`Duplicate content snapshot root ${object.roots[index]!.id}.`)
   }
-  const json = canonicalizeJson({ ...object, roots: ordered })
+  const json = canonicalizeJson(object)
   return {
     json,
     sha256: sha256Hex(json),
     byteLength: encoder.encode(json).byteLength,
-    rootCount: ordered.length
+    rootCount: object.roots.length
   }
 }
 
@@ -71,7 +84,8 @@ export function buildContentSnapshotKind(
     ),
     documents: buildContentSnapshotPart(
       { ...header, part: 'documents' },
-      sources.map((source) => source.document)
+      sources.map((source) => source.document),
+      sources.map((source) => source.publicationVersion)
     )
   }
 }
@@ -187,6 +201,7 @@ export function toContentSnapshotIndexEntry(
 export type ContentSnapshotListSource = ContentSnapshotIndexSource & {
   publicId: string
   magicSchoolLabel?: string
+  publicationVersion: ContentSnapshotPublicationVersion
 }
 
 export function toContentSnapshotListEntry<Source extends ContentSnapshotListSource>(

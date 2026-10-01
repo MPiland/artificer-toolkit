@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { v } from 'convex/values'
 import {
   liveSessionEncounterRouteInputSchema,
@@ -45,9 +46,16 @@ export async function routeEncounterDecision(
       ?.occurrenceId !== occurrenceId
   )
     rejectDomain('NOT_ACTOR_CONTROLLER', "This decision isn't yours to answer.")
-  const owner = await readNativeEncounterOccurrenceOwner(ctx, run, occurrenceId)
+  const owner = await readNativeEncounterOccurrenceOwner(
+    { db: createConvexEncounterStoreReader(ctx) },
+    run,
+    occurrenceId
+  )
   if (command.type === 'VOID_RULE_OCCURRENCE') {
-    const snapshot = membership.role === 'OWNER' ? await readPendingSnapshot(ctx, occurrence) : null
+    const snapshot =
+      membership.role === 'OWNER'
+        ? await readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
+        : null
     const voided = snapshot ? classifyRuleOccurrenceVoid(snapshot.applicationContext) : null
     // A GM void that declines a decision settles through the room like the GM's decline (D26);
     // Convex records every other void, refusing a player's.

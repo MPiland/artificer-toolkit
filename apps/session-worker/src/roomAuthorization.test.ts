@@ -41,6 +41,7 @@ function members(...players: string[]) {
 function fullResponse(): Response {
   return {
     revisions: {
+      system: null,
       campaign: id(100),
       play: id(200),
       characters: [
@@ -70,9 +71,9 @@ function fullResponse(): Response {
       }
     ],
     preferences: [
-      { userId: ownerId, autoRollDice: false },
-      { userId: playerId, autoRollDice: true },
-      { userId: otherPlayerId, autoRollDice: false }
+      { userId: ownerId, autoRollDice: false, username: 'TableGm' },
+      { userId: playerId, autoRollDice: true, username: 'TablePlayer' },
+      { userId: otherPlayerId, autoRollDice: false, username: 'OtherPlayer' }
     ],
     play: {
       encounter: {
@@ -189,6 +190,137 @@ describe('room authorization cache', () => {
     expect(cache.current(epoch, later + 1)).not.toBeNull()
     cache.renew(epoch, { ...first.revisions, campaign: id(101) })
     expect(cache.current(epoch)).toBeNull()
+  })
+
+  it('requires a full authorization read for an incomplete checkpoint on an empty epoch cache', () => {
+    const first = fullResponse()
+    const { cache, load } = cacheWith(first)
+    expect(cache.acceptCheckpoint(epoch, unchanged(first))).toBe(false)
+    for (const section of ['campaign', 'preferences', 'play'] as const)
+      expect(cache.acceptCheckpoint(epoch, { ...first, [section]: undefined })).toBe(false)
+    expect(cache.acceptCheckpoint(epoch, { ...first, characters: first.characters.slice(1) })).toBe(
+      false
+    )
+    expect(cache.current(epoch)).toBeNull()
+    expect(cache.acceptCheckpoint(epoch, first)).toBe(true)
+    expect(cache.currentPlay(epoch)).toEqual(first)
+    expect(cache.acceptCheckpoint(id(99), unchanged(first))).toBe(false)
+    expect(() =>
+      cache.acceptCheckpoint(epoch, {
+        ...unchanged(first),
+        revisions: {
+          ...first.revisions,
+          characters: [...first.revisions.characters, { characterId: id(99), revision: id(399) }]
+        }
+      })
+    ).toThrow('incomplete')
+    expect(load).not.toHaveBeenCalled()
+  })
+
+  it('merges checkpoint sections and renews the lease without reading or replacing pending local PLAY', async () => {
+    const first = fullResponse()
+    const checkpoint: Response = {
+      revisions: {
+        ...first.revisions,
+        play: id(201),
+        characters: [
+          { characterId, revision: id(310) },
+          { characterId: otherCharacterId, revision: id(301) }
+        ],
+        preferences: preferencesDigest(2)
+      },
+      characters: [
+        {
+          characterId,
+          ownerUserId: playerId,
+          partyVisibility: { sheet: false, health: 'HIDDEN' }
+        }
+      ],
+      preferences: first.preferences!.map((preference) =>
+        preference.userId === playerId ? { ...preference, autoRollDice: false } : preference
+      ),
+      play: first.play
+    }
+    const { cache, load } = cacheWith(first)
+    await cache.refresh(epoch)
+    const localPlay = {
+      encounter: {
+        ...first.play!.encounter!,
+        actors: first.play!.encounter!.actors.map((actor) =>
+          actor.id === creatureActorId ? { ...actor, controllerUserIds: [playerId] } : actor
+        )
+      }
+    }
+    cache.applyPlay(epoch, localPlay)
+    const acceptedAt = Date.now() + ROOM_LIMITS.authorizationLeaseMs
+    expect(cache.acceptCheckpoint(epoch, checkpoint, acceptedAt)).toBe(true)
+    const current = cache.currentPlay(epoch, acceptedAt)!
+    expect(current.revisions).toEqual(checkpoint.revisions)
+    expect(current.characters[0]).toEqual(checkpoint.characters[0])
+    expect(current.preferences).toEqual(checkpoint.preferences)
+    expect(current.campaign).toEqual(first.campaign)
+    expect(current.play).toEqual(localPlay)
+    expect(roomBoundTokenControl(current, playerId, { sceneId, encounterId })?.[1]).toEqual({
+      tokenId: otherTokenId,
+      controlled: true
+    })
+    expect(cache.current(epoch, acceptedAt + ROOM_LIMITS.authorizationLeaseMs - 1)).not.toBeNull()
+    expect(cache.current(epoch, acceptedAt + ROOM_LIMITS.authorizationLeaseMs)).toBeNull()
+    cache.acknowledgePlay(epoch)
+    expect(
+      cache.acceptCheckpoint(
+        epoch,
+        { ...unchanged(checkpoint), play: checkpoint.play },
+        acceptedAt + 1
+      )
+    ).toBe(true)
+    expect(cache.currentPlay(epoch, acceptedAt + 1)?.play).toEqual(checkpoint.play)
+    expect(load).toHaveBeenCalledOnce()
+  })
+
+  it('keeps invalidated admissions closed through a checkpoint and an older in-flight read', async () => {
+    const first = fullResponse()
+    const checkpoint: Response = {
+      revisions: {
+        ...first.revisions,
+        campaign: id(101),
+        characters: [{ characterId, revision: id(300) }]
+      },
+      campaign: {
+        ownerUserId: ownerId,
+        members: members(playerId),
+        assignments: [{ characterId, userId: playerId }]
+      },
+      characters: []
+    }
+    const { cache, load } = cacheWith(first, checkpoint)
+    await cache.refresh(epoch)
+    cache.invalidate()
+    cache.invalidatePlay()
+    cache.acceptCheckpoint(epoch, checkpoint)
+    expect(cache.current(epoch)).toBeNull()
+    expect(cache.currentPlay(epoch)).toBeNull()
+    expect(load).toHaveBeenCalledOnce()
+    let release: (value: Response) => void = () => undefined
+    load.mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
+    const racing = cache.refresh(epoch)
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2))
+    cache.acceptCheckpoint(epoch, checkpoint)
+    expect(cache.current(epoch)).toBeNull()
+    release(first)
+    await racing
+    expect(cache.current(epoch)).toBeNull()
+    expect(cache.currentPlay(epoch)).toBeNull()
+    const refreshed = await cache.refresh(epoch)
+    expect(cache.currentPlay(epoch)).toBe(refreshed)
+    expect(
+      admitsRoomMember(refreshed, {
+        membershipEpoch,
+        role: 'PLAYER',
+        userId: otherPlayerId
+      })
+    ).toBe(false)
+    expect(load).toHaveBeenCalledTimes(3)
   })
 
   it('drops a removed member and their GM-granted control at the next read', async () => {
@@ -356,6 +488,105 @@ describe('room authorization cache', () => {
     expect(roomBoundTokenControl(current, playerId, { sceneId, encounterId: id(98) })).toBeNull()
   })
 
+  it('keeps local token control through a concurrent read and later stale PLAY refresh', async () => {
+    const first = fullResponse()
+    const stale: Response = {
+      revisions: { ...first.revisions, play: id(201) },
+      characters: [],
+      play: first.play
+    }
+    let release: (value: Response) => void = () => undefined
+    const load = vi
+      .fn<(input: { known: Known }) => Promise<Response>>()
+      .mockResolvedValueOnce(first)
+      .mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
+      .mockResolvedValueOnce({ ...stale, revisions: { ...stale.revisions, play: id(202) } })
+    const cache = new RoomAuthorization(load)
+    await cache.refresh(epoch)
+    const racing = cache.refresh(epoch)
+    expect(cache.refresh(epoch)).toBe(racing)
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2))
+    const localPlay = {
+      encounter: {
+        ...first.play!.encounter!,
+        actors: first.play!.encounter!.actors.map((actor) =>
+          actor.id === creatureActorId ? { ...actor, controllerUserIds: [playerId] } : actor
+        )
+      }
+    }
+    cache.applyPlay(epoch, localPlay)
+    expect(
+      roomBoundTokenControl(cache.currentPlay(epoch)!, playerId, { sceneId, encounterId })?.[1]
+    ).toEqual({
+      tokenId: otherTokenId,
+      controlled: true
+    })
+    release(stale)
+    expect((await racing).play).toEqual(localPlay)
+    const refreshed = await cache.refresh(epoch)
+    expect(refreshed.revisions.play).toBe(id(202))
+    expect(cache.currentPlay(epoch)?.play).toEqual(localPlay)
+    expect(roomBoundTokenControl(refreshed, playerId, { sceneId, encounterId })?.[1]).toEqual({
+      tokenId: otherTokenId,
+      controlled: true
+    })
+  })
+
+  it('exposes persisted PLAY after acknowledgement and a changed checkpoint revision', async () => {
+    const first = fullResponse()
+    const persisted: Response = {
+      revisions: { ...first.revisions, play: id(201) },
+      characters: [],
+      play: first.play
+    }
+    const { cache, known } = cacheWith(first, persisted)
+    await cache.refresh(epoch)
+    cache.applyPlay(epoch, {
+      encounter: {
+        ...first.play!.encounter!,
+        actors: first.play!.encounter!.actors.map((actor) =>
+          actor.id === creatureActorId ? { ...actor, controllerUserIds: [playerId] } : actor
+        )
+      }
+    })
+    cache.acknowledgePlay(epoch)
+    cache.renew(epoch, persisted.revisions)
+    expect(cache.currentPlay(epoch)).toBeNull()
+    const current = await cache.refresh(epoch)
+    expect(known[1]?.play).toBe(first.revisions.play)
+    expect(cache.currentPlay(epoch)?.play).toEqual(persisted.play)
+    expect(roomBoundTokenControl(current, playerId, { sceneId, encounterId })?.[1]).toEqual({
+      tokenId: otherTokenId,
+      controlled: false
+    })
+  })
+
+  it('refuses a foreign epoch apply and clears the local PLAY overlay on invalidation', async () => {
+    const first = fullResponse()
+    const { cache, known } = cacheWith(first, { ...unchanged(first), play: first.play })
+    await cache.refresh(epoch)
+    const localPlay = {
+      encounter: {
+        ...first.play!.encounter!,
+        actors: first.play!.encounter!.actors.map((actor) =>
+          actor.id === creatureActorId ? { ...actor, controllerUserIds: [playerId] } : actor
+        )
+      }
+    }
+    cache.applyPlay(epoch, localPlay)
+    expect(() => cache.applyPlay(id(99), first.play!)).toThrow('epoch changed')
+    expect(cache.currentPlay(epoch)?.play).toEqual(localPlay)
+    cache.invalidatePlay()
+    expect(cache.currentPlay(epoch)).toBeNull()
+    const current = await cache.refresh(epoch)
+    expect(known[1]?.play).toBeNull()
+    expect(cache.currentPlay(epoch)?.play).toEqual(first.play)
+    expect(roomBoundTokenControl(current, playerId, { sceneId, encounterId })?.[1]).toEqual({
+      tokenId: otherTokenId,
+      controlled: false
+    })
+  })
+
   it('holds auto-roll preferences until their digest changes', async () => {
     const first = fullResponse()
     const changed: Response = {
@@ -369,7 +600,7 @@ describe('room authorization cache', () => {
     await cache.refresh(epoch)
     cache.invalidate()
     const current = await cache.refresh(epoch)
-    expect(current.preferences).toContainEqual({ userId: otherPlayerId, autoRollDice: true })
+    expect(current.preferences).toContainEqual({ userId: otherPlayerId, autoRollDice: true, username: 'OtherPlayer' })
   })
 
   it('fails closed on a read that omits a section it never loaded', async () => {

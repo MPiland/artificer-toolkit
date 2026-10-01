@@ -56,6 +56,11 @@ export async function verifyCharacterBrowser(
     if (error && typeof error === 'object') {
       if ('stdout' in error && typeof error.stdout === 'string') output += error.stdout
       if ('stderr' in error && typeof error.stderr === 'string') output += error.stderr
+      output += `\nBrowser process failed: ${JSON.stringify({
+        code: 'code' in error ? error.code : null,
+        signal: 'signal' in error ? error.signal : null,
+        killed: 'killed' in error ? error.killed : null
+      })}\n`
     }
   } finally {
     for (const secret of [input.email, input.password, input.session])

@@ -1,5 +1,14 @@
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import { LIVE_SESSION_TICKET_TTL_SECONDS } from '@artificer-toolkit/schema/api/liveSessionIdentity'
+import {
+  liveSessionAuthorityDtoSchema,
+  liveSessionStorageRecoveryInputSchema
+} from '@artificer-toolkit/schema/api/liveSessionState'
+import {
+  liveSessionCheckpointFenceInputSchema,
+  liveSessionStoredCheckpointFenceSchema,
+  type LiveSessionCheckpointFenceInput
+} from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
 import { v } from 'convex/values'
 import { projectionChecksumSchema } from '@artificer-toolkit/schema/projections/identity'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
@@ -10,6 +19,7 @@ import { internalMutation } from '../lib/mutations'
 import { internalQuery } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
+import { reconcileCharacterHolds, releaseCharacterHolds } from './characterHolds'
 import {
   isExpiredActivatingAuthority,
   readCampaignLiveAuthority,
@@ -25,6 +35,8 @@ const authorityValue = v.object({
   activationExpiresAt: v.optional(v.number()),
   persistedSequence: v.number(),
   persistedStateChecksum: v.string(),
+  lastCheckpoint: v.optional(zodToConvex(liveSessionStoredCheckpointFenceSchema)),
+  checkpointedAt: v.optional(v.string()),
   finalSequence: v.optional(v.number()),
   finalStateChecksum: v.optional(v.string()),
   createdAt: v.string(),
@@ -160,15 +172,90 @@ export async function advanceCampaignLiveAuthorityPersisted(
     ...authority,
     persistedSequence: args.sequence,
     persistedStateChecksum: args.stateChecksum,
+    lastCheckpoint: undefined,
+    checkpointedAt: updatedAt,
     updatedAt
   }
   await ctx.db.patch(authority._id, {
     persistedSequence: args.sequence,
     persistedStateChecksum: args.stateChecksum,
+    lastCheckpoint: undefined,
+    checkpointedAt: updatedAt,
     updatedAt
   })
   return advanced
 }
+/** Staging and publication use the same epoch, contiguous-prefix, retry and drain checks. */
+export async function inspectCampaignLiveCheckpoint(
+  ctx: MutationCtx,
+  rawInput: LiveSessionCheckpointFenceInput
+) {
+  const { campaignId, epoch, ...checkpoint } = liveSessionCheckpointFenceInputSchema.parse(rawInput)
+  if (checkpoint.sequence <= checkpoint.fromSequence)
+    throw new Error('Live Session checkpoint range is empty or reversed.')
+  const authority = await requireCampaignLiveAuthority(ctx, { campaignId, epoch })
+  if (authority.phase === 'ACTIVATING') throw new Error('Live Session authority is not active.')
+  if (checkpoint.sequence === authority.persistedSequence) {
+    if (
+      checkpoint.checksum !== authority.persistedStateChecksum ||
+      !authority.lastCheckpoint ||
+      checksumCanonicalJson(authority.lastCheckpoint) !== checksumCanonicalJson(checkpoint)
+    )
+      throw new Error('Live Session checkpoint retry differs from the acknowledged payload.')
+    return { status: 'REPLAYED' as const, authority }
+  }
+  if (
+    checkpoint.fromSequence !== authority.persistedSequence ||
+    checkpoint.fromChecksum !== authority.persistedStateChecksum
+  )
+    throw new Error('Live Session checkpoint is not contiguous.')
+  if (
+    authority.phase === 'DRAINING' &&
+    (authority.finalSequence === undefined ||
+      checkpoint.sequence > authority.finalSequence ||
+      (checkpoint.sequence === authority.finalSequence &&
+        checkpoint.checksum !== authority.finalStateChecksum))
+  )
+    throw new Error('Live Session checkpoint exceeds its drain fence.')
+  return { status: 'PENDING' as const, authority }
+}
+
+/** Publishes a contiguous batch and its replay fence in the caller's single mutation. */
+export async function commitCampaignLiveCheckpoint(
+  ctx: MutationCtx,
+  rawInput: LiveSessionCheckpointFenceInput,
+  apply: () => Promise<void>
+) {
+  const inspected = await inspectCampaignLiveCheckpoint(ctx, rawInput)
+  if (inspected.status === 'REPLAYED') return inspected
+  const { authority } = inspected
+  const {
+    campaignId: _campaignId,
+    epoch: _epoch,
+    ...checkpoint
+  } = liveSessionCheckpointFenceInputSchema.parse(rawInput)
+  await apply()
+  const updatedAt = new Date().toISOString()
+  await ctx.db.patch(authority._id, {
+    persistedSequence: checkpoint.sequence,
+    persistedStateChecksum: checkpoint.checksum,
+    lastCheckpoint: checkpoint,
+    checkpointedAt: updatedAt,
+    updatedAt
+  })
+  return {
+    status: 'COMMITTED' as const,
+    authority: {
+      ...authority,
+      persistedSequence: checkpoint.sequence,
+      persistedStateChecksum: checkpoint.checksum,
+      lastCheckpoint: checkpoint,
+      checkpointedAt: updatedAt,
+      updatedAt
+    }
+  }
+}
+
 export async function claimCampaignLiveAuthority(
   ctx: MutationCtx,
   input: { campaignId: string; userId: string; expiresAt: number }
@@ -222,6 +309,7 @@ export async function claimCampaignLiveAuthority(
   })
   const authority = await ctx.db.get(id)
   if (!authority) throw new Error('Live Session authority claim failed.')
+  await reconcileCharacterHolds(ctx, authority.campaignId, authority.epoch)
   return { authority, campaign, membership }
 }
 
@@ -235,6 +323,51 @@ export const claim = internalMutation({
       userId,
       expiresAt: (Math.floor(Date.now() / 1_000) + LIVE_SESSION_TICKET_TTL_SECONDS) * 1_000
     })
+    return presentCampaignLiveAuthority(authority)
+  }
+})
+
+/** The Worker alone replaces lost storage authority; retries cannot rotate a newer epoch. */
+export const recoverStorage = internalMutation({
+  args: zodToConvex(liveSessionStorageRecoveryInputSchema),
+  returns: zodToConvex(liveSessionAuthorityDtoSchema),
+  handler: async (ctx, args) => {
+    const input = liveSessionStorageRecoveryInputSchema.parse(args)
+    const campaignId = input.campaignId.toLowerCase()
+    const [campaign, deletion, current] = await Promise.all([
+      ctx.db
+        .query('campaigns')
+        .withIndex('by_publicId', (q) => q.eq('id', campaignId))
+        .unique(),
+      ctx.db
+        .query('campaignDeletionJobs')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+        .unique(),
+      readCampaignLiveAuthority(ctx, campaignId)
+    ])
+    if (!campaign || deletion) throw new Error('Campaign not found.')
+    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    if (current && current.epoch !== input.epoch.toLowerCase())
+      return presentCampaignLiveAuthority(current)
+    const fingerprint = await activationFingerprint(ctx, campaign)
+    const now = Date.now()
+    const timestamp = new Date(now).toISOString()
+    const activation = {
+      campaignId,
+      epoch: crypto.randomUUID(),
+      phase: 'ACTIVATING' as const,
+      activationFingerprint: fingerprint,
+      activationExpiresAt: now + LIVE_SESSION_TICKET_TTL_SECONDS * 1_000,
+      persistedSequence: 0,
+      persistedStateChecksum: fingerprint,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    }
+    const id = current?._id ?? (await ctx.db.insert('campaignLiveAuthorities', activation))
+    if (current) await ctx.db.replace(id, activation)
+    const authority = await ctx.db.get(id)
+    if (!authority) throw new Error('Live Session storage recovery failed.')
+    await reconcileCharacterHolds(ctx, authority.campaignId, authority.epoch)
     return presentCampaignLiveAuthority(authority)
   }
 })
@@ -325,6 +458,7 @@ export const release = internalMutation({
       authority.persistedStateChecksum !== args.finalStateChecksum
     )
       throw new Error('Live Session final publication is incomplete.')
+    await releaseCharacterHolds(ctx, authority.campaignId, authority.epoch)
     await ctx.db.delete(authority._id)
     return null
   }

@@ -36,7 +36,7 @@ const creatureScopeId = '99999999-9999-4999-8999-999999999905'
 const creatureListSha = 'b'.repeat(64)
 const objectRef = (sha256: string) => ({ sha256, byteLength: 100, rootCount: 1 })
 
-// The creature list is read from a PLATFORM `list` part named by the catalogue manifest.
+// The creature list is read from a SOURCE `list` part named by the catalogue manifest.
 const catalogueManifest = {
   userId: authoredRouteStoryUser.id,
   sources: [
@@ -45,7 +45,7 @@ const catalogueManifest = {
       systemId: campaign.gameSystemId,
       kind: 'PLATFORM',
       head: {
-        scope: 'PLATFORM',
+        scope: 'SOURCE',
         scopeId: creatureScopeId,
         revision: 1,
         builtRevision: 1,
@@ -62,8 +62,8 @@ const catalogueManifest = {
 } satisfies ContentSnapshotCatalogueManifestDto
 
 const creatureListObject = {
-  format: 1,
-  scope: 'PLATFORM',
+  format: 2,
+  scope: 'SOURCE',
   scopeId: creatureScopeId,
   kind: 'CREATURE',
   part: 'list',

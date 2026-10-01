@@ -416,9 +416,24 @@ describe('native current Character rule context', () => {
     ]
     const context = await t.run((ctx) => serializableContext(ctx, character, owner.userId))
     expect(context.catalog.spells.map((row) => row.id).sort()).toEqual([light.id, own.id].sort())
-    expect(Object.keys(context.spellDocumentsById).sort()).toEqual([light.id, own.id].sort())
+    expect(Object.keys(context.spellDocumentsById)).toEqual([light.id])
+    expect(context.spellCatalogueEntries.map((row) => row.id).sort()).toEqual(
+      [light.id, own.id].sort()
+    )
     expect(context.spellDocumentsById[foreign.id]).toBeUndefined()
     expect(context.spellDocumentsById[light.id]?.classIds).toEqual(light.classIds)
+    expect(context.sourceIdentities[own.id]?.checksum).toBeDefined()
+    await t.run((ctx) => corruptPublishedVersionPayload(ctx, own.id))
+    // Unused mechanics are not parsed; complete checksum-bound selection facts remain available.
+    expect(
+      (await t.run((ctx) => serializableContext(ctx, character, owner.userId))).catalog.spells
+        .map((row) => row.id)
+        .sort()
+    ).toEqual([light.id, own.id].sort())
+    character.intent.spellSelections[0]!.spells.push(own.id)
+    await expect(
+      t.run((ctx) => serializableContext(ctx, character, owner.userId))
+    ).rejects.toThrow()
   })
 
   it('uses exact same-System platform and owned source choices, excluding foreign publications', async () => {

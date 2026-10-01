@@ -1,11 +1,11 @@
-import type { CharacterSheet } from '../core/CharacterSheet.types'
+import type { CharacterSheetActionsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import {
   summarizeCharacterSheetMechanics,
   type CharacterSheetMechanic
 } from '../shared/characterSheetMechanics.utils'
 
-type SheetAction = CharacterSheet['actions']['items'][number]
-type SheetResource = CharacterSheet['resources']['items'][number]
+type SheetAction = CharacterSheetActionsDto['actions']['items'][number]
+type SheetResource = CharacterSheetActionsDto['resources']['items'][number]
 
 export type CharacterSheetPlayableAction = {
   id: string
@@ -19,7 +19,7 @@ export type CharacterSheetPlayableAction = {
     hitOrDc?: string
     effect?: string
   }
-  target?: CharacterSheet['spells']['activeGroups'][number]['entries'][number]['target']
+  target?: CharacterSheetActionsDto['spells']['activeGroups'][number]['entries'][number]['target']
   description?: string
   resource?: {
     cost: number
@@ -45,7 +45,9 @@ export const CHARACTER_SHEET_ACTION_FILTERS = [
 
 export type CharacterSheetActionFilter = (typeof CHARACTER_SHEET_ACTION_FILTERS)[number]['id']
 
-export function getPlayableActions(sheet: CharacterSheet): CharacterSheetPlayableAction[] {
+export function getPlayableActions(
+  sheet: CharacterSheetActionsDto
+): CharacterSheetPlayableAction[] {
   const resourcesById = new Map(
     sheet.resources.items.map((resource) => [resource.id, resource] as const)
   )
@@ -100,10 +102,6 @@ export function getPlayableActions(sheet: CharacterSheet): CharacterSheetPlayabl
     .map(toResourceAction)
 
   return [...explicitActions, ...spellActions, ...resourceActions]
-}
-
-export function getFeatureSummaryItems(sheet: CharacterSheet, limit: number) {
-  return sheet.reference.features.slice(0, limit)
 }
 
 export function formatPlayableActionSummary(

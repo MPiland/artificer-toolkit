@@ -11,6 +11,7 @@ import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence
 import { internalMutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { encounterWriteTransaction } from './encounterPorts'
+import { readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
 
 const resultValidator: Validator<EncounterCommandResultDto, 'required', string> = zodToConvex<
   z.core.$ZodType<EncounterCommandResultDto>
@@ -19,19 +20,21 @@ const inputValidator: Validator<EncounterExecuteInput, 'required', string> = zod
   z.core.$ZodType<EncounterExecuteInput>
 >(encounterExecuteInputSchema)
 
-/** Internal: a GM tool the room forwards for Convex to record (D41). */
+/** Outside-live commands; epoch-authorized transitional Worker writes use liveSessions endpoints. */
 export const execute = internalMutation({
   args: inputValidator,
   returns: resultValidator,
   handler: async (ctx, args): Promise<EncounterCommandResultDto> => {
     const { userId } = await requireIdentity(ctx)
-    return recordEncounterCommand(
-      encounterWriteTransaction(ctx),
-      encounterExecuteInputSchema.parse(args).command,
-      userId,
-      () => {
-        throw new Error('Encounter dice are rolled in the Session room.')
-      }
-    )
+    const { command } = encounterExecuteInputSchema.parse(args)
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', command.encounterId.toLowerCase()))
+      .unique()
+    if (run && (await readLiveCampaignAuthority(ctx, run.campaignId)))
+      throw new Error('This Encounter is currently owned by its Campaign live table.')
+    return recordEncounterCommand(encounterWriteTransaction(ctx), command, userId, () => {
+      throw new Error('Encounter dice are rolled in the Session room.')
+    })
   }
 })

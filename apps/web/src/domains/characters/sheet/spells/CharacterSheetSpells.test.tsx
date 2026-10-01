@@ -1,7 +1,8 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { vi } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import { characterSheetFixture } from '../fixtures/characterSheet.fixtures'
 import { CharacterSheetSpellsPanelContent } from '../inspector/CharacterSheetSpellsPanelContent'
 import { spellsPanelFixture } from '../inspector/inspector.fixtures'
@@ -9,6 +10,11 @@ import { createSheet } from '../tests/sheetTestHarness'
 import { CharacterSheetSpells } from './CharacterSheetSpells'
 
 describe('Character Sheet spells', () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(320)
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(400)
+  })
+  afterEach(() => vi.restoreAllMocks())
   it('keeps preparation disabled until a spellbook spell is learned', async () => {
     const submitCommand = vi.fn()
     const group = spellsPanelFixture.groups[0]!
@@ -37,7 +43,8 @@ describe('Character Sheet spells', () => {
         preparationOptions={{
           characterId: spellsPanelFixture.characterId,
           streamVersion: 4,
-          classes: []
+          classes: [],
+          catalogue: { kind: 'INLINE', spells: [] }
         }}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
@@ -70,12 +77,30 @@ describe('Character Sheet spells', () => {
       ]
     }
     const source = panel.groups[0]!.sources[0]
+    const preparationOptions: CharacterPreparationOptionsResponseDto = {
+      characterId: panel.characterId,
+      streamVersion: 4,
+      classes: [
+        {
+          classId: source.preparationClassId!,
+          label: 'Wizard',
+          preparedSpellLimit: 20,
+          eligibleSpellIds: [source.spellId],
+          preparedSpellIds: []
+        }
+      ],
+      catalogue: {
+        kind: 'INLINE',
+        spells: [{ spellId: source.spellId, label: source.label, level: panel.groups[0]!.level }]
+      }
+    }
 
     renderWithAppProviders(
       <CharacterSheetSpellsPanelContent
         expectedVersion={4}
         panel={panel}
         pending={false}
+        preparationOptions={preparationOptions}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
       />
@@ -107,6 +132,10 @@ describe('Character Sheet spells', () => {
           ]
         }}
         pending={false}
+        preparationOptions={{
+          ...preparationOptions,
+          classes: [{ ...preparationOptions.classes[0]!, preparedSpellIds: [source.spellId] }]
+        }}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
       />

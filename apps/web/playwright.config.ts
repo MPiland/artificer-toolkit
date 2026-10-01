@@ -7,7 +7,7 @@ const appPort = appUrl.port || (appUrl.protocol === 'https:' ? '443' : '80')
 const appWebServer = {
   name: 'app',
   command: `yarn exec vite dev --host ${appUrl.hostname} --port ${appPort}`,
-  url: appBaseURL,
+  url: new URL('/zod-csp-bootstrap.js', appBaseURL).toString(),
   reuseExistingServer: !process.env.CI,
   timeout: 120_000,
   cwd: '.'

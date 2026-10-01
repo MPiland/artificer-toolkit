@@ -1,6 +1,10 @@
 # Phase 8.2 local validation record
 
-**Status:** stopped at the user's request. Declaration code is applied but its two private tests fail; current-tree verification is incomplete. The [living handoff](../../handoffs/phase-08-2-convex-cutover.md) states the exact stopped state and authority limits. The fixed [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.md) is 53/75 as of 2026-09-25 (run `node scripts/acceptanceProgress.mjs` for live counts). None of the checks below is the complete R08 local release lifecycle.
+**Current status — 2026-09-30:** local Phase 8.2 implementation is active; complete current-tree
+release verification remains pending. The [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.md)
+is the status authority: 51/75 accepted, with 24 open (run `node scripts/acceptanceProgress.mjs` for
+live counts). Earlier stopped checkpoints below are historical evidence. None of the focused checks
+is the complete R08 local release lifecycle.
 
 ## Acceptance evidence by gate
 
@@ -26,6 +30,24 @@ One summary per gate gives each case's status, acceptance date, proof tier, crit
 ## ADR 0035
 
 - [S0 measurements, 2026-09-27](adr-0035-s0-2026-09-27.md): room CPU in workerd, the Durable Object cost model for V15, checkpoint delta sizes against the Convex free plan, the token lifetime and Convex transaction limits; recommends N = 120 s, a 240 s lease and memory-only previews
+- [Private receipt retirement, 2026-09-30](private-receipt-retirement-2026-09-30.md): D71 attribution,
+  54 focused tests, native three-ledger deletion/rollback/retry/privacy proof, source identity and
+  retained failures; checkpoint integration, the final lifecycle and Q16 remain pending
+- [Acknowledged checkpoint prefix, 2026-09-30](checkpoint-prefix-2026-09-30.md): 58 focused checks,
+  10 native SQLite checks, prefix compaction, retained suffix recovery and rollback; S3 publication
+  remains pending
+- [Inline S3 checkpoint application, 2026-09-30](checkpoint-application-2026-09-30.md): typed delta
+  application and native rollback/replay/ledger/privacy proof passed against local Convex; no gate
+  accepted, and Scene/fog publication, integrated room coordination and S5/S6/S7 remain pending
+- [Oversized checkpoint staging, 2026-09-30](checkpoint-staging-2026-09-30.md): staged 240 KiB
+  chunk upload and retry after uploaded-byte deletion passed native local proofs; 4 MiB ceiling,
+  Scene/fog publication, integrated room coordination, S5/S6/S7 and full lifecycle remain open
+
+## Character access
+
+- [Compact Spell preparation, 2026-09-30](compact-spell-picker-2026-09-30.md): snapshot metadata,
+  virtualization, focused checks, all three frozen native Builder-to-Sheet journeys, fixture
+  restoration and before/after access maxima; broad authored-input reads and Q16 remain open
 
 ## Local checkpoints
 

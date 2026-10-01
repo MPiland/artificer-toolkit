@@ -40,6 +40,8 @@ async function mechanics(value: Awaited<ReturnType<typeof setupAutomaticSceneMov
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     receipts: await ctx.db.query('encounterRuleReceipts').collect(),
     commands: await ctx.db.query('encounterRunCommands').collect(),
     sceneCommands: await ctx.db.query('sceneLiveCommands').collect()

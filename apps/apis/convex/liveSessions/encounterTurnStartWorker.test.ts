@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -180,6 +181,8 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
   })
   const state = () =>
     base.t.run(async (ctx) => ({
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run: await ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
@@ -201,7 +204,8 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
         .withIndex('by_campaignId_commandId', (q) =>
           q.eq('campaignId', campaign.id).eq('commandId', command.commandId)
         )
-        .collect(),
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
       occurrences: await ctx.db
         .query('encounterRuleOccurrences')
         .withIndex('by_campaignId_rootCommandId', (q) =>
@@ -214,6 +218,7 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
           q.eq('encounterId', run.id).eq('commandId', command.commandId)
         )
         .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
     }))
   return { base, scope, command, runtime, state }
 }

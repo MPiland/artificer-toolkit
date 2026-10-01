@@ -117,15 +117,15 @@ describe('native personal Character list', () => {
     )
   })
 
-  it('fails closed for corrupted active checksums, route ownership, and draft ownership', async () => {
+  it('fails closed for corrupted active play ownership, route ownership, and draft ownership', async () => {
     const first = await fixture()
     await first.t.run(async (ctx) => {
       const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', first.active[0]!.character.id))
+        .query('characterPlayStates')
+        .withIndex('by_characterId', (q) => q.eq('characterId', first.active[0]!.character.id))
         .unique()
       if (!row) throw new Error('Missing active Character fixture.')
-      await ctx.db.patch(row._id, { checksum: '0'.repeat(64) })
+      await ctx.db.patch(row._id, { userId: first.other.userId })
     })
     await expect(first.owner.caller.query(list, pageInput())).rejects.toThrow()
 

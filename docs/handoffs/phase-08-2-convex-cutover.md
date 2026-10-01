@@ -1,10 +1,135 @@
 # Phase 8.2 Convex cutover handoff
 
-**Status:** active; S0–S3, S4A and the S5 Convex half committed locally; S4–S7 remainder in progress (see Current progress).  
-**Updated:** 2026-09-24 (later session).  
+**Status:** active; acceptance authority and current remaining work are summarized below.
+**Updated:** 2026-09-30.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup. The relocation is committed (`85443906`); later slices are separate commits. No phase completion is claimed.
 
-## Current progress (2026-09-24, later session)
+## Current authority and remaining work (2026-09-30)
+
+The [acceptance JSON](../roadmap/08-2-convex-cutover-acceptance.json) is the status authority: **51/75 cases accepted; 24 open** — F12, P02, P06, P15, V03, V05, V07–V15, R01–R06 and R08–R10. Counts and implementation results elsewhere in this handoff are dated historical checkpoints and do not establish current integrated acceptance.
+
+Convex remains the backend. Cloudflare remains responsible for web hosting, room execution and R2. Remaining scope includes Character typed persistence and narrow Sheet queries; snapshot local-bridge and room integration; ADR 0035 S3 checkpoints, S5 shadow parity and S6 authority switch, followed by S7 held Sheet and S8 live-view/chat work. Run the full final-source local lifecycle before separately approved managed promotions. See [ADR 0029](../adr/0029-convex-backend-cutover.md), [ADR 0035](../adr/0035-room-authoritative-live-encounters.md), [persistence](../architecture/persistence.md), [Character](../architecture/character.md), [live-session coordination](../architecture/live-sessions.md), and the [release runbook](../runbooks/phase-8-2-release.md).
+
+**Foundation progress:** Character typed play-state persistence, removal of the full Builder-draft query from the active Sheet path, and the local R2 snapshot fixture bridge have focused local checks recorded. The local codegen and affected typechecks passed; the guarded reset left local data requiring reseed. These checks accept no ledger case and do not certify final-source lifecycle or promotion. See the [foundation validation note](../validation/phase82-foundation-2026-09-29.md).
+
+**Current local checkpoint:** compact Spell preparation uses authorized snapshot metadata, browser pages of 40 and virtualization. Full mechanics load for selected or inspected Spells. The three frozen native Builder-to-Sheet journeys pass, and observed maximum Sheet/preparation reads fell from about 6.64 MB/1,101 documents to about 5.01 MB/492 documents. Other authored-input reads remain broad; this is no Q16 or latency gate pass. The native source, failed fixture attempt, restored object hashes and focused checks are retained in the [compact Spell validation record](../validation/phase-08-2/compact-spell-picker-2026-09-30.md). Packed receipt storage and bounded private payload retirement have separate [native evidence](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md). The full final-source lifecycle remains pending.
+
+**Checkpoint foundation:** room-store compaction now requires an acknowledged epoch/sequence/checksum
+prefix and retains commands committed after it, including across eviction. The [prefix validation
+record](../validation/phase-08-2/checkpoint-prefix-2026-09-30.md) records 58 focused checks, 10 native
+SQLite checks and the Worker typecheck. The subsequent source integration is described below;
+this foundation does not complete S3 or prove the integrated command lifecycle.
+
+**Integrated Scene/checkpoint source (execution proof pending):** raw `SCENE` hydration now reads
+all seven native families with definition/presentation and Scene-version fences, preserving
+tombstones, counters, published saves/chunks and receipt evidence. Shared pure Scene geometry
+parsers, values and live-state helpers live in `packages/encounter-persistence`, independent of
+Convex. Standalone move/door/undo stage native records in `RoomEncounterStore.transact` and commit
+the `DurableCommandJournal` head/receipt in the same SQLite transaction. The authority checksum is
+the cumulative write-set chain; stored display Scene JSON has its own shared-schema content hash.
+
+[RoomCheckpoints](../../apps/session-worker/src/roomCheckpoints.ts) retains a fixed prefix input in
+bounded SQLite chunks and retries its exact ID and pins through the existing inline/staged publisher.
+Acknowledgement and snapshot compaction share one SQLite transaction, retaining concurrent suffix
+commands. The earliest unpublished receipt timestamp drives the unchanged 120-second alarm;
+checkpoint responses renew the existing 240-second authorization lease. Admission, presentation and
+drain boundaries flush checkpoints. See [live-session coordination](../architecture/live-sessions.md)
+and the [Worker README](../../apps/session-worker/README.md).
+
+**Authority/Character/reducer source (validation pending):** `AUTHORITY` pages now hydrate the
+native Campaign, all membership statuses, assignments and actual account-profile presence.
+Room authorization carries the canonical SYSTEM revision; held System reads remain revision-bound.
+Cached Character Builder structure joins local typed head/play/effects, and a Builder refresh
+preserves existing room play/effects. Authorized input `RESTORE` establishes or rebases an already
+durable Convex base, rejects dirty mutable/history replacement and emits no false `INSERT` history.
+[Room Encounter commands](../../apps/session-worker/src/roomEncounterCommands.ts) now execute
+the deterministic tools in [the shared `ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES` list](../../packages/schema/src/api/liveSessionEncounterCommand.ts)
+with existing reducers and blueprint enemy builder, atomic room journal receipts and per-recipient
+projections, including action undo through the existing shared action-revert reducer. The shared
+predicate includes `UPDATE_ACTOR` only without `characterCommand`; embedded Character Sheet and
+other rules commands remain transitional. `roomCharacterRules` now passes compact snapshot Spell
+index entries into `nativeCharacterRules`; only requested documents are serialized, and only
+referenced Spell documents are captured and parsed
+for mechanics, with the protected capture comparator retained as fallback.
+Initiative rolls now use secure room RNG and the native transaction. Only the initiator receives
+roll evidence; other recipients receive privacy-filtered projections with `roll: null`. Replay
+retains evidence without another draw. PRIVATE `ROLL_ENEMY_ACTION` now follows the same local
+transaction and private replay-evidence path; TABLE rolls remain transitional until native chat
+ports are integrated.
+These current source changes await validation and do not complete S6/S7, chat or the
+Character hold lifecycle.
+
+**Receipt/publication safeguards (current source; evidence pending):** Character actor removal,
+`COMPLETE` and any actual Run round change persist a receipt barrier that checkpoints before
+acknowledgement on both commit and recovered replay. Local reducer retries recheck current
+admission/privacy and return the original projection
+at its version or the current Run projection after later work. Checkpoint responses apply changed
+authorization sections and renew the lease without another warm read. After eviction, a retry response
+that omits required sections falls back to a complete authorization read. An unpublished native
+suffix rebuilds actor control and health-display permissions from SQLite rather than older Convex
+play state. Unchanged Scene fog chunks reuse
+their published references and payloads. Direct Convex execution of every command accepted by the shared predicate
+is refused under held Campaign authority. Their protected Convex comparator remains for
+S5 shadow parity and backend fixtures, outside steady-state room dispatch, and retires in step 6 after S5.
+No integrated execution or gate acceptance is claimed for these safeguards.
+
+**Current source batch (Codex, execution pending):** Builder reload now reconciles against the
+native play record inside the caller's transaction, preserving play and effects, clamping only
+a reduced Character maximum and removing orphan resource usage. Storage corruption/loss now
+requests an idempotent new authority epoch through the protected Worker route and clears abandoned
+local authority/checkpoint state atomically. Failed recovery keeps the prior evidence for retry.
+Room mechanics apply the existing shared planner and typed play writer to current native play;
+native START/ADVANCE and stored turn-owned resolution now bind that callback to the existing
+planner and shared pending/terminal writers in SQLite. Native basic actions use the existing planner
+and extracted persistence reducer. Scene and local Encounter journal commits recheck the caller's
+admission, current authorization and matching lease revisions immediately before SQLite commit.
+Replay uses the canonical current-member presenter for player projections and occurrences.
+
+Turn admission, pending/terminal persistence, initiative settlement, effect/resource writes,
+maintenance reads and concentration child/cleanup/owner persistence now use shared algorithms.
+Existing Convex handlers use actual transaction adapters and owning callbacks. Immutable
+`SCENE_DEFINITION` hydration retains source-pinned header/entities; native reads reuse the canonical
+current-entity algorithm over the base and live overrides. `DEFINITION` hydration carries
+`sourceKind: PLATFORM | USER | null`, preserving platform basic actions independently of Campaign
+catalogue membership. Shared Concentration logging stages paired chat or native private roll records;
+checkpoints append immutable evidence into the owner's global twenty-roll history without
+cross-Campaign replacement. Ordinary action pending/terminal/evidence responses, Concentration,
+Cleaving and Disarm now bind shared planners and writers to native production dispatch in source.
+Retained occurrence/receipt ownership selects a response planner before canonical admission runs
+again. GM cancellation/refusal uses the existing void classifier; TURN/CLEAVING declining voids
+use their real response paths. State, Character play, effects, paired rules chat, private rolls and
+receipts share the SQLite command/journal transaction. Convex adapters retain real callbacks and
+logical receipt inserts through the packed ledger writer. Movement/bound fog, general
+chat/public/evidence rolls, held Sheets/lifecycle and cold definition hydration remain open;
+cold `DEFINITION` misses still reach Convex after hydration. Runnable source checks
+cover reload, recovery, mechanics and admission rollback, but were not executed in this batch,
+following the user's instruction to finish known source work first. See the
+[source batch record](../validation/phase-08-2/room-command-source-batch-2026-09-30.md).
+
+These are source implementation claims only. Integrated execution proof, Scene receipt payload
+packing, S5 parity, complete S6/S7, chat, budgets and the final-source local lifecycle remain open.
+Bound/fog/movement-decision paths remain Convex-first transitional. Focused HP/Common reads remain
+open. Acceptance remains **51/75**, with the frozen 190-criteria scope unchanged; no S3/S6 completion
+or new native proof is claimed.
+The note-write aggregate-checksum proposal awaits the user's decision; current integrity checks
+remain in place. Final-source execution remains deferred under the user's source-first steering.
+
+**Inline checkpoint application (focused proof, 2026-09-30):** typed record deltas, actor mutable
+keys scoped by `[encounterId, id]`, a Character-scoped ledger, one play-clock advance per checkpoint
+outside the canonical digest, and atomic state/history/fence rollback passed focused tests and a
+native local Convex proof. The response renews authorization; checkpoint-originated writes suppress
+self input invalidation. Native source
+parity matched 5,382 entries. The later staged-upload and inline-retry native proofs both matched
+5,392 source entries and passed; their fixture performance sample is not a gate and the near-4 MiB
+ceiling remains unproven. See the [checkpoint staging validation record](../validation/phase-08-2/checkpoint-staging-2026-09-30.md).
+The initial
+public-HTTP transport attempt failed and remains recorded, while the corrected internal Convex call
+passed. Authorization response and no self-invalidation also passed. This is not a gate acceptance:
+the ledger remains 51/75. Integrated proof of Scene/fog publication, room alarms/final drain/unified
+global sequence, S5/S6/S7, Q16 and the final-source lifecycle remain open. See the [checkpoint
+application validation record](../validation/phase-08-2/checkpoint-application-2026-09-30.md).
+
+## Historical checkpoint (2026-09-24, later session)
 
 The approved completion plan runs S0–S7: checkpoint, code-quality groundwork, continuation secret, Campaign-owned play (ADR 0033), R06 room dispatch, security hardening, gameplay rules, final proof. Done and committed locally on this branch:
 
@@ -79,10 +204,9 @@ Next (8.2 core, in order):
      - Encounter Run creation fails at the 100-actor cap (reads over 16 MiB).
      - A profiling and fix slice is running.
      - If contract-preserving fixes aren't enough, the next lever is a warm path: the room plans from the volatile state returned by its last commit, and a fence refusal forces a recapture.
-   - Test-suite speed (user-approved 2026-09-26, safest steps first). Each step must show identical coverage and results before the next begins.
-     0. Upgrade convex-test 0.0.56 → 0.0.60 as its own change. Skip 0.0.58, which lets Vitest stubs bypass the transaction guards.
-        - **Why:** accuracy, not speed. It adds real-backend guards (timers and `fetch` in transactions, args-validator shape), real request metadata (drop the `authJwks.test.ts` stub and test the 503 fallback), and fixes false scheduled-function hang errors.
-        - **Proof:** three suite runs per version (unshuffled, seeds 101 and 202) with identical test IDs and statuses; per-file counts of scheduled-function errors, "not supported in Convex queries or mutations", timer-restore and args-validator messages; and a per-file timing comparison.
+   - Test-suite speed (user-approved 2026-09-26, safest steps first). Each step must show identical coverage and results before the next begins. 0. Upgrade convex-test 0.0.56 → 0.0.60 as its own change. Skip 0.0.58, which lets Vitest stubs bypass the transaction guards.
+     - **Why:** accuracy, not speed. It adds real-backend guards (timers and `fetch` in transactions, args-validator shape), real request metadata (drop the `authJwks.test.ts` stub and test the 503 fallback), and fixes false scheduled-function hang errors.
+     - **Proof:** three suite runs per version (unshuffled, seeds 101 and 202) with identical test IDs and statuses; per-file counts of scheduled-function errors, "not supported in Convex queries or mutations", timer-restore and args-validator messages; and a per-file timing comparison.
      1. Measure per-file Convex suite timings (no code change). The suite is ~30 minutes because `apps/apis/vitest.config.ts` runs it serially: ~21 minutes of tests, ~8 minutes of per-file imports.
      2. Validation cadence: affected tests per slice; reset and reseed only when schema or seed data changes; full integration at checkpoints and the final R08 run.
      3. Parallelism.
@@ -97,6 +221,7 @@ Next (8.2 core, in order):
      - **Never:** share database state across tests, replay seeded snapshots, or set `isolate: false`. convex-test 0.0.56 has no snapshot or clone, and tests assert whole tables and use global mocks (read-only analysis, 2026-09-26).
      - Remove the dead fixture `apps/apis/tests/fixtures/movementPassageFixture.ts` (imported nowhere).
      - Move the 12 already-pure test files out of the Convex suite (for example `encounters/actionExecution`, `actionEffectBaseline`, `wieldConflict` → `packages/rules-runtime/src/__tests__`). The test IDs and results must stay identical.
+
    - Rules test coverage, a quality project (read-only audit, 2026-09-26):
      - **The gap:** `packages/rules-runtime` has 7 test files for about 270 source files. The largest planners have no fast tests: the effect compiler, initiative lifecycle, ties and order, turn effects, Legendary Actions, Recharge, Concentration, Disarm preparation, and the spatial movement service. Most rules coverage is end-to-end through Convex tests, and many of those assertions are loose ("HP decreased").
      - **Plan:** build strict pure tests family by family, in this order:
@@ -107,6 +232,7 @@ Next (8.2 core, in order):
        5. movement.
 
        Use `createPlatformRulesRuntime`, `inMemoryInitiativeRepository` and `dnd5eSrdCharacter.ts`, and inject `random`. Prove each new test fails when the logic is deliberately broken. Only then slim the matching Convex test.
+
      - **Never remove the last proof of a Convex guarantee:**
        - tampered receipt refusal;
        - stale source-identity refusal;
@@ -164,6 +290,7 @@ Next (8.2 core, in order):
        - revision stamps (CAMPAIGN, and SYSTEM via import jobs);
        - external-commit resolve;
        - `characterRulesCapture` privacy and no-hydration checks.
+
    - Observability: room planner failures surface only as a generic "UNAVAILABLE" and aren't logged. Add structured, secret-free error logging.
    - R08 prep: the development proof drivers can't load under `yarn tsx`. Test-only fixtures import convex-test, which uses `import.meta.glob`.
    - R08 prep: the local R2 fixture (`apps/apis/tests/localR2.ts`, served from the Convex container on 127.0.0.1:8026) was started by hand and stops when the container restarts. Its start command is undocumented. Script its start in the local proof tooling, checking health first, and document it in `apps/apis/README.md`. Map uploads, and so bound-move timing and browser proofs, need it.
@@ -176,8 +303,9 @@ Next (8.2 core, in order):
      - vehicles, including crewed vehicle combat;
      - traps;
      - hazards.
-     Compare each with Foundry's actor types.
+       Compare each with Foundry's actor types.
    - Follow-ups from S6g: `REACTION_COUNT SET_VALUE` with APPLY_GRANT (Shocking Grasp); Barbarian Fast Movement mechanics.
+
 3. **Live Character state:** remove the Run's Character HP and stream-version mirror; Encounter reads use the current Character fenced by captured revisions.
 4. **Modes and enforcement:** remove `AUTOMATIC` and add a per-person "Auto-roll my dice" preference. Assisted rule checks become warnings with a logged "Do it anyway"; GM undo or void of results and stuck prompts.
 5. **Player control:** one actor-control predicate with GM-set controllers; player actions, turn end, initiative and rolls; roll prompts ("Roll dice" or typed, rerolls logged, roll-mode override); redaction; action-economy and movement display; one in-flight player Encounter command per user. Spec: `local-validation/s6/spec-player-actions.md` (local).
@@ -215,6 +343,14 @@ Open follow-up: Scene fog save retention (derived fog saves keep `geometrySaveId
 
 The user delegated decisions on 2026-09-24 (night): use Foundry as the baseline, extend it for versatility and quality of life, "same but better" at minimum. Each entry gives the decision, the Foundry baseline (with Roll20 as a second reference where useful) and the reasoning.
 
+- **D70: packed history with indexed receipt headers (2026-09-29). Decision maker: Codex; approved
+  by the user on the same date.** Codex decided that checkpoint ledgers hold immutable history
+  payloads once, while small indexed per-command receipt headers point to their checksummed entries.
+  This preserves existing UUID replay, duplicate-command refusal, privacy and complete timeline paging
+  through Convex indexes, without duplicating history bodies. Headers count toward the Q16 workload.
+  The ledger/header writers, readers and cleanup are still required; the record builder alone does
+  not complete S3. See [ADR 0035 D70](../adr/0035-room-authoritative-live-encounters.md#d70-packed-history-with-indexed-receipt-headers--2026-09-29).
+
 - **Development proof drivers go through the Session room (2026-09-24).** Since S4A, browsers can't call Encounter command functions, so the real-backend drivers (`apps/apis/tests/development*.ts`, used by the R08 proofs) can no longer run Encounter commands. The drivers will send Encounter commands over a real Session-room WebSocket with a ticket, as the browser does, and their `.codex/validation` output paths move to `local-validation/`. Rejected alternative: admin-key calls that impersonate a user, which would prove a path production never uses. Foundry and Roll20 have no equivalent; this is a testing-integrity choice.
 - **Local deploys are part of local validation (2026-09-24).** `convex codegen` uploads functions only to generate types; it doesn't activate them, so the local backend kept running pre-ADR-0033 functions. Pushing functions to the local Docker deployment is covered by the same local-only authority as resets. Staging and production still need explicit approval.
 - **Domain rejections carry a code and a user-safe message (2026-09-24, in the modes and enforcement slice).** The room currently reduces every Encounter failure to a generic message ("The Encounter command could not be completed."). Foundry and Roll20 show players specific warnings. Expected domain rejections, such as "This Campaign already has an active Encounter" or a stale version, become `ConvexError` data `{ code, message }`, following the `RATE_LIMITED` pattern. The room forwards those messages; unexpected errors stay generic, so internals never leak. Drivers assert on codes.
@@ -235,6 +371,7 @@ The user delegated decisions on 2026-09-24 (night): use Foundry as the baseline,
   - rejected: evaluating the full Sheet on every reactive Encounter read (too costly) and a publish-time recompute job for now (infrastructure for a rare case; follow-up).
 
   Copied Character conditions are also removed from Run actors.
+
 - **Displayed maximum HP includes active reductions (2026-09-25, player-control slice).** Foundry shows the effective maximum with active effects applied, so projections subtract active maximum-HP reductions (such as a vampire's bite) from the stored maximum. Watch item: every Character write now runs a full Sheet evaluation, and some writers reload the catalogue; measure it under the V15 workload before optimizing.
 
 - **"Auto-roll my dice" defaults on and is stored server-side (2026-09-25).** Foundry rolls immediately when you click (manual dice entry is an opt-in configuration), and so does Roll20. So the fast path is the default, and players who roll physical dice turn it off to get the per-roll prompt. It is a profile preference read by the server when a roll is needed:
@@ -243,6 +380,7 @@ The user delegated decisions on 2026-09-24 (night): use Foundry as the baseline,
   - applies on every device.
 
   It only rolls dice and never chooses anything; see the Assisted rule below.
+
 - **GM void resolves a stuck decision by kind (2026-09-25).** Foundry and Roll20 have no rules prompts to get stuck; any table tool with prompts needs an escape hatch, especially once players drive actions and can disconnect. GM-only, with the outcome depending on the kind of decision:
   - a paused action is cancelled whole;
   - declinable responses resolve as a decline;
@@ -253,15 +391,15 @@ The user delegated decisions on 2026-09-24 (night): use Foundry as the baseline,
 - **Actor disposition follows Foundry (2026-09-25, player-control slice).** Hostile-only targeting warned on every attack because actors had no disposition. Every Run actor now gets a GM-editable Friendly, Neutral or Hostile disposition (default Friendly for Characters, Hostile for Creatures), like Foundry's token disposition. Flanking's ally and enemy relationships read the same field. The action drawer marks already-unavailable actions with their reason before selection.
 - **Local Worker configuration (2026-09-24).** `apps/session-worker/.dev.vars` was rebuilt from the local Convex secrets to match `.dev.vars.example`. The retired executor variables are removed from it, from the local Convex env and from the generated Worker types. `RULES_CONTINUATION_SECRET` is now provisioned locally.
 
-## Authority and present state
+## Historical authority snapshot (2026-09-27)
 
-The fixed [75-case acceptance ledger](../roadmap/08-2-convex-cutover-acceptance.md) is **53/75** cases and **195/276** criteria (2026-09-27; `node scripts/acceptanceProgress.mjs`). A further 64 criteria and 12 cases (F12, P06, V03, V05, V07, V08, V09, V10, V11, V12, V14, R06) are READY_FOR_ACCEPTANCE (checked against `aa68fd681` in the fifth pass, which moved V07.5, R06.1 and the removal halves R01.1, R02.1, R04.1 and R05.1; still open are P15.3 (managed run), V15.1–V15.4 (thresholds missed), R03.1 (its corpus-hash clause needs an architect ruling after the approved SRD corrections) and the R08-dependent `.2` halves); see the [readiness review](../validation/phase-08-2/gate-readiness-2026-09-25.md) for their evidence and for the missing clause of every criterion still open. Open cases are **P15, V05, V08, V09, V14, F12 (reopened by the ADR 0033 amendment), P06, V03, V07, V10, V11, V12 (reopened 2026-09-25 for ADR 0034 player agency criteria), V15, R01–R06 and R08–R10**; R07 is accepted. The [acceptance JSON](../roadmap/08-2-convex-cutover-acceptance.json) controls exact case and criterion status. Scoped V13 acceptance and the earlier ACCEPTED criteria of V07 and V10 remain intact; combined final-system proof belongs to R08 and V15. Portable helpers, focused tests and typechecks do not accept R06.
+At this historical checkpoint, the fixed ledger was **53/75** cases and **195/276** criteria (2026-09-27; `node scripts/acceptanceProgress.mjs`). The readiness and open-case details in this paragraph describe that checkpoint only. Current status is in the authority section above and the [acceptance JSON](../roadmap/08-2-convex-cutover-acceptance.json).
 
 The cutover keeps heavy live rules **and heavy fact preparation** in the Session Durable Object (DO). Convex owns atomic Character Sheet and Encounter writes and their receipts; Scene publication uses per-entity deltas. Every Encounter command's rules and dice run in the DO (D41). Convex records the listed GM tools and commits room plans through Worker-secret routes, with ordered dispatch and write-ahead crash recovery (D27). V15 is measured, but not yet claimed: see docs/validation/phase-08-2/. No staging, production, retirement, deployment, database reset, journal deletion or real continuation-key transfer is authorized by this handoff.
 
 Current architecture is defined by [ADR 0029](../adr/0029-convex-backend-cutover.md), [live-session coordination](../architecture/live-sessions.md) and [shared rules runtime](../architecture/rules-runtime.md). [ADR 0024](../adr/0024-current-published-authored-content.md) governs current published sources and frozen issued occurrences; its policy supersedes older whole-Character source-vector claims. [ADR 0032](../adr/0032-campaign-deletion-lifecycle.md) governs Campaign deletion. The [release runbook](../runbooks/phase-8-2-release.md) and [remaining-work plan](../roadmap/08-2-convex-cutover-remaining.md) govern promotion order.
 
-## Verified local checkpoints
+## Historical local checkpoints
 
 The latest _completed_ movement-response checkpoint passed **31 focused cases in 8 files**, serial API/Convex/Worker types **10/10**, formatter/lint on **39 TypeScript files**, and an 8-root private import check with no heavy preparation or emitted Kernel/compiler imports. It includes actual private final Passage rollback, one allowance consumption and replay; PLAYER movement Concentration response, child receipt and revoked-assignment refusal; and initial/response movement admission. The source manifest is SHA-256 `27047BE566B2B6180396F7B024054B4D9B03A6ED396C2C4F554C2FC12C373F90` **before** the declaration edits and checkout relocation. The ordered commands, failures corrected before that checkpoint and limits are in [the durable movement summary](../validation/phase-08-2/README.md). They do **not** certify the current working tree.
 
@@ -269,7 +407,7 @@ Initial START and initiative evidence/order responses had separately passed: fre
 
 The approved relocation copied **3,376 files**, left **1,526 unchanged**, and removed **1,283 tracked obsolete files** in the regular checkout. The regular checkout's `AGENTS.md` and spell mapper edits were preserved. Transfer evidence is under `local-validation/phase82-relocation-20260924/`. The raw evidence copy from the detached worktree to ignored `local-validation/phase82-goal-20260923/` completed successfully (robocopy exit 3: copied files and extra destination files). The durable summary is under `docs/validation/phase-08-2/`. Immutable Yarn install in the regular checkout passed with existing peer and optional `unix-dgram` warnings; it is not a current-source compiler or test pass.
 
-## Work in progress and immediate continuation
+## Historical work in progress and continuation notes
 
 The user explicitly approved **local implementation and testing** of initiative declaration response integration (`call_HBBV88caQZPGSp4hPmkMTYRX`). An earlier automatic review refusal was resolved by that specific approval. The durable [declaration checkpoint](../validation/phase-08-2/initiative-declarations.md) records the bounded scope and exact stopped state. The user then clarified that work should stop at this patch. All implementation and validation processes started for this patch have ended; do not resume fixes or start another feature without the user's direction.
 

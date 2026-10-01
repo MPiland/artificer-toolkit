@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -225,7 +226,7 @@ describe('applyEncounterMechanicsBatch', () => {
           ...actor,
           conditions: [{ conditionTypeId: oldCondition, label: 'Retained metadata' }]
         }
-        await writeRunActor(ctx, row._id, updated)
+        await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, updated)
       })
       const trace = {
         sourceNodeId: 'condition',

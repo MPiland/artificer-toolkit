@@ -1,3 +1,5 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -35,6 +37,7 @@ async function storedState(
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', fixture.character.id))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
   ])
   if (!run || !actor || !character) throw new Error('Fixture state is unavailable.')
   return {
@@ -105,7 +108,7 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
 
       if (changed === 'actor') {
         const next = { ...target.actor, gmNotes: 'Changed before settlement' }
-        await writeRunActor(ctx, target.actorRow._id, next)
+        await writeRunActor({ db: createConvexEncounterStore(ctx) }, target.actorRow._id, next)
       } else if (changed === 'character') {
         await ctx.db.patch(loaded.active.play._id, {
           streamVersion: loaded.active.play.streamVersion + 1

@@ -10,17 +10,14 @@ const response = {
       classId: '00000000-0000-0000-0000-000000000002',
       label: 'Cleric',
       preparedSpellLimit: 2,
-      options: [
-        {
-          spellId: '00000000-0000-0000-0000-000000000003',
-          label: 'Healing Word',
-          level: 1,
-          prepared: false,
-          committed: false
-        }
-      ]
+      eligibleSpellIds: ['00000000-0000-0000-0000-000000000003'],
+      preparedSpellIds: []
     }
-  ]
+  ],
+  catalogue: {
+    kind: 'INLINE',
+    spells: [{ spellId: '00000000-0000-0000-0000-000000000003', label: 'Healing Word', level: 1 }]
+  }
 }
 
 describe('Character preparation-options contract', () => {
@@ -35,7 +32,7 @@ describe('Character preparation-options contract', () => {
         classes: [
           {
             ...response.classes[0],
-            options: [{ ...response.classes[0]!.options[0], description: 'Exact document data' }]
+            description: 'Exact document data'
           }
         ]
       })

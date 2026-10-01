@@ -9,5 +9,11 @@ export const authComponent = createClient<DataModel, typeof authSchema>(componen
   local: { schema: authSchema },
   authFunctions,
   // The adapter uses these keys to forward lifecycle events to auth.ts.
-  triggers: { user: { onCreate: async () => undefined, onDelete: async () => undefined } }
+  triggers: {
+    user: {
+      onCreate: async () => undefined,
+      onUpdate: async () => undefined,
+      onDelete: async () => undefined
+    }
+  }
 })

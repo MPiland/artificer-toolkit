@@ -1,3 +1,5 @@
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
 import type { z } from 'zod'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
@@ -140,8 +142,9 @@ async function replaceBindingReceiptWithMovement(base: Awaited<ReturnType<typeof
         q.eq('campaignId', base.campaign.id).eq('commandId', base.input.commandId)
       )
       .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
     if (!command) throw new Error('Missing binding receipt')
-    await ctx.db.patch(command._id, {
+    await replaceReceiptRecord(ctx, 'encounterRunCommands', command._id, {
       commandType: input.type,
       commandJson: JSON.stringify(input),
       commandFingerprint: checksumCanonicalJson(input),
@@ -199,13 +202,18 @@ async function publishFixtureSceneSource(base: Awaited<ReturnType<typeof boundFi
 
 async function snapshot(base: Awaited<ReturnType<typeof boundFixture>>) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     scenes: await ctx.db.query('campaignScenes').collect(),
     tokens: await ctx.db.query('sceneDefinitionEntities').collect(),
     liveStates: await ctx.db.query('sceneLiveStates').collect(),
     liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
-    commands: await ctx.db.query('encounterRunCommands').collect()
+    commands: await ctx.db
+      .query('encounterRunCommands')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
   }))
 }
 
@@ -461,10 +469,15 @@ it('rejects a Scene movement receipt with a bad fingerprint or expected Encounte
         q.eq('campaignId', base.campaign.id).eq('commandId', base.input.commandId)
       )
       .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
   )
   if (!command || command.commandType !== 'MOVE_SCENE_TOKEN')
     throw new Error('Missing movement receipt')
-  await base.t.run((ctx) => ctx.db.patch(command._id, { commandFingerprint: '0'.repeat(64) }))
+  await base.t.run((ctx) =>
+    replaceReceiptRecord(ctx, 'encounterRunCommands', command._id, {
+      commandFingerprint: '0'.repeat(64)
+    })
+  )
   await expect(
     base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
   ).rejects.toThrow('Stored Encounter command receipt mismatch.')
@@ -476,7 +489,7 @@ it('rejects a Scene movement receipt with a bad fingerprint or expected Encounte
     expectedEncounterVersion: input.expectedEncounterVersion + 1
   }
   await base.t.run((ctx) =>
-    ctx.db.patch(command._id, {
+    replaceReceiptRecord(ctx, 'encounterRunCommands', command._id, {
       commandFingerprint: checksumCanonicalJson(mismatchedVersion),
       commandJson: JSON.stringify(mismatchedVersion)
     })
@@ -573,7 +586,11 @@ it('rejects stale, divergent, missing and corrupt inputs and atomically rolls ba
   const receipt = (await snapshot(base)).commands.find(
     (row) => row.commandId === base.input.commandId
   )!
-  await base.t.run((ctx) => ctx.db.patch(receipt._id, { replayReceiptChecksum: '0'.repeat(64) }))
+  await base.t.run((ctx) =>
+    replaceReceiptRecord(ctx, 'encounterRunCommands', receipt._id, {
+      replayReceiptChecksum: '0'.repeat(64)
+    })
+  )
   await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
     'receipt mismatch'
   )

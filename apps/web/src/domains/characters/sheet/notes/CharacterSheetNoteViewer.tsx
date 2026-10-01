@@ -1,12 +1,13 @@
+import type { CharacterSheetNotesSliceDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { ActionIcon, Badge, Button, Text, Title } from '@mantine/core'
 import { IconEdit, IconFilePlus, IconPin, IconPinnedOff, IconTrash } from '@tabler/icons-react'
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as detailStyles from '../shared/detail.css'
 import * as panelStyles from '../shared/panel.css'
 import * as rowStyles from '../shared/rows.css'
 
-type SheetNote = NonNullable<CharacterSheet['notes']['items']>[number]
+type SheetNote = NonNullable<CharacterSheetNotesSliceDto['notes']['items']>[number]
 
 function formatNoteDate(value: string) {
   const date = new Date(value)

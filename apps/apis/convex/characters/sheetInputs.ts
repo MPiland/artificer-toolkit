@@ -1,4 +1,4 @@
-import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetCampaignContext } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import type { prepareCharacterRuleSources } from '@artificer-toolkit/rules-runtime/character/characterRuleSnapshot'
 import type { QueryCtx } from '../_generated/server'
@@ -16,6 +16,8 @@ import {
 } from './documents'
 import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
 import { loadCharacterBuilderContext } from './builderContext'
+import { collectCharacterReferencedSpellIds } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
+import { readCharacterPublication, readReferencedRoot } from './context'
 
 /** Reuse only within one transaction while source-backed record membership is unchanged. */
 export type CharacterSheetSourceContext = {
@@ -35,7 +37,8 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
   catalogScope: 'active' | 'resolution' = 'active',
   authorityScope?: import('../campaigns/authority').CampaignInternalScope,
   /** The row this transaction just wrote, evaluated without reading it back. */
-  written?: TRow
+  written?: TRow,
+  referenceSpellIds: readonly string[] = []
 ) {
   const id = await resolveCharacterId(ctx, lookupId)
   if (!id) return null
@@ -74,14 +77,63 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
   if (active.status !== 'ACTIVE')
     throw new Error('Character requires Builder repair before the Sheet can be read.')
   const sheetState = readCharacterSheetState(active)
+  let reusableSources = sourceContext
+  if (sourceContext) {
+    const requiredSpellIds = new Set([
+      ...collectCharacterReferencedSpellIds(character, sourceContext.context),
+      ...referenceSpellIds
+    ])
+    const missingSpellIds = [...requiredSpellIds].filter(
+      (spellId) =>
+        sourceContext.context.spellCatalogueEntries.some((entry) => entry.id === spellId) &&
+        !sourceContext.context.currentSpellDocumentsById.has(spellId)
+    )
+    if (missingSpellIds.length > 0) {
+      const context = sourceContext.context
+      const currentSpellDocumentsById = new Map(context.currentSpellDocumentsById)
+      const spellDocumentsById = new Map(context.spellDocumentsById)
+      const publications = new Map(context.publications)
+      const sourceIdentities = new Map(context.sourceIdentities)
+      for (const spellId of missingSpellIds) {
+        const root = await readReferencedRoot(ctx, spellId)
+        if (!root) throw new Error('Referenced Character Spell root is missing.')
+        const published = await readCharacterPublication(
+          ctx,
+          root,
+          character.systemId,
+          character.userId,
+          context.sourceAccess,
+          sourceIdentities
+        )
+        if (published?.subjectKind !== 'SPELL')
+          throw new Error('Referenced Character Spell is unavailable.')
+        const spell = published.document as SpellAuthored
+        currentSpellDocumentsById.set(spellId, spell)
+        spellDocumentsById.set(spellId, spell)
+        publications.set(spellId, published)
+      }
+      reusableSources = {
+        ...sourceContext,
+        sourcePreparation: undefined,
+        context: {
+          ...context,
+          currentSpellDocumentsById,
+          spellDocumentsById,
+          publications,
+          sourceIdentities
+        }
+      }
+    }
+  }
   const context =
-    sourceContext?.context ??
+    reusableSources?.context ??
     (await loadCharacterBuilderContext(
       ctx,
       character,
       character.userId,
       catalogScope,
-      authorityScope
+      authorityScope,
+      referenceSpellIds
     ))
   const campaign = context.sourceAccess.campaign
   const campaignState = campaign
@@ -115,7 +167,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
     draft,
     route,
     character,
-    sourceContext: sourceContext ?? { characterId: id, ownerUserId: active.userId, context },
+    sourceContext: reusableSources ?? { characterId: id, ownerUserId: active.userId, context },
     sheetState,
     campaignContext
   }

@@ -1,3 +1,6 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -296,12 +299,15 @@ async function records(fixture: Awaited<ReturnType<typeof setup>>) {
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', fixture.run.id))
         .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     ])
   )
 }
 
 async function maintenanceRecords(fixture: Awaited<ReturnType<typeof setup>>) {
   return fixture.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     character: await readCharacterRow(ctx, fixture.character.id),
     actors: await ctx.db
       .query('encounterRunActors')
@@ -324,11 +330,13 @@ async function maintenanceRecords(fixture: Awaited<ReturnType<typeof setup>>) {
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', fixture.run.id))
-      .take(32),
+      .take(32)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', fixture.run.id))
-      .take(32),
+      .take(32)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     pendingOccurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) =>
@@ -370,7 +378,7 @@ async function resetActionAllowance(fixture: Awaited<ReturnType<typeof setup>>) 
       ...actor,
       resources: withEncounterRuleUsageUsed(actor, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 0)
     })
-    await writeRunActor(ctx, row._id, reset)
+    await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, reset)
   })
 }
 
@@ -492,6 +500,7 @@ describe('native Character action sources', () => {
           q.eq('encounterId', fixture.run.id).eq('commandId', command.commandId)
         )
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     )
     if (!receipt) throw new Error('Missing native action receipt.')
     const storedExecution = JSON.parse(receipt.resultJson)
@@ -510,7 +519,7 @@ describe('native Character action sources', () => {
     expect(await records(fixture)).toEqual(after)
     await fixture.t.run(async (ctx) => {
       const metadata = JSON.parse(receipt.commandMetadataJson)
-      await ctx.db.patch(receipt._id, {
+      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
         commandMetadataJson: JSON.stringify({ ...metadata, factsChecksum: '0'.repeat(64) })
       })
     })
@@ -771,7 +780,7 @@ describe('native Character action sources', () => {
     expectLiveCharacterProjection(fixture, firstComplete, firstSettled.projection)
 
     const seededCharacterEffectId = await fixture.t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore(ctx)
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       const current = await store.list({
         kind: 'ENCOUNTER_ACTOR',
         encounterId: fixture.run.id,

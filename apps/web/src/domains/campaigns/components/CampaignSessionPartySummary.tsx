@@ -3,7 +3,7 @@ import { useQueries } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useState } from 'react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import { getCharacterSheet } from '#app/data/characters/queries'
+import { getCharacterSheetSlice } from '#app/data/characters/queries'
 import { usePaginatedQuery } from 'convex/react'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
 import * as sessionsStyles from '../campaignSessions.css'
@@ -27,7 +27,9 @@ export function CampaignSessionPartySummary({
     membership.assignedCharacter ? [{ membership, character: membership.assignedCharacter }] : []
   )
   const sheets = useQueries({
-    queries: assigned.map(({ character }) => getCharacterSheet(character.id))
+    queries: assigned.map(({ character }) =>
+      getCharacterSheetSlice(character.id, 'COMMON', campaign.id)
+    )
   })
   const selectedIndex = assigned.findIndex(({ character }) => character.id === selectedCharacterId)
   const selected = selectedIndex >= 0 ? assigned[selectedIndex] : null

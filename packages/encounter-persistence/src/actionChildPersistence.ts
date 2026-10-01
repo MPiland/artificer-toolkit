@@ -17,13 +17,15 @@ import type {
 } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
-import type { EncounterDocument } from './store.js'
+import type { EncounterDocument, EncounterWriteContext } from './store.js'
 import { changedFields } from './documents.js'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
-import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterWritePorts } from './ports.js'
 
 export async function persistNativeConcentrationResult(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterWriteContext & {
+    ports: Pick<EncounterWritePorts, 'recordConcentrationCheckRoll'>
+  },
   input: {
     state: EncounterRunState
     result: ReturnType<typeof completeNativeConcentrationResult>
@@ -88,7 +90,7 @@ export async function persistNativeConcentrationResult(
 }
 
 export async function persistNativeConcentrationPending(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterWriteContext,
   input: {
     state: EncounterRunState
     context: NativeConcentrationContext
@@ -132,7 +134,7 @@ export async function persistNativeConcentrationPending(
 }
 
 export async function insertNativeCleavingChoice(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterWriteContext,
   state: EncounterRunState,
   snapshot: ServerAggregateChoicePendingSnapshotDto,
   now: string

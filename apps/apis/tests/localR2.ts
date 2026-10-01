@@ -58,6 +58,7 @@ export async function startLocalR2(
   type StoredObject = {
     body: Buffer
     contentType: string
+    contentEncoding?: string
     // S3 user metadata (`x-amz-meta-*`), which R2 exposes as custom metadata.
     metadata?: Record<string, string>
     modified: Date
@@ -133,6 +134,7 @@ export async function startLocalR2(
         bucket.set(key, {
           body,
           contentType: request.headers['content-type'] ?? 'application/octet-stream',
+          contentEncoding: request.headers['content-encoding'],
           metadata: Object.fromEntries(
             Object.entries(request.headers).flatMap(([name, value]) =>
               name.startsWith('x-amz-meta-') && typeof value === 'string'
@@ -170,6 +172,18 @@ export async function startLocalR2(
       }
       response.setHeader('Content-Length', object.body.byteLength)
       response.setHeader('Content-Type', object.contentType)
+      response.setHeader('ETag', `"${createHash('md5').update(object.body).digest('hex')}"`)
+      for (const [name, value] of Object.entries(object.metadata ?? {}))
+        response.setHeader(`x-amz-meta-${name}`, value)
+      if (object.contentEncoding) {
+        const rawSnapshot =
+          prefix === '/artificer-local-content-snapshots/' &&
+          request.headers['x-artificer-local-raw-body'] === '1'
+        response.setHeader(
+          rawSnapshot ? 'x-artificer-content-encoding' : 'Content-Encoding',
+          object.contentEncoding
+        )
+      }
       response.setHeader('Last-Modified', object.modified.toUTCString())
       response.writeHead(200).end(request.method === 'HEAD' ? undefined : object.body)
     })().catch(() => {

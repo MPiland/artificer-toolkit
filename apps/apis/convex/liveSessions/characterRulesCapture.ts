@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { v } from 'convex/values'
 import { authoredSourceKindsByTable } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
 import type { AuthoredCurrentSourceIdentity } from '@artificer-toolkit/schema/api/authoredPublication'
@@ -40,7 +41,7 @@ import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
 import { readLiveMovementAdmission } from './encounterMovementAdmission'
 import { readRunActor, readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
-import { readLiveEncounterTurnAdmission } from './encounterTurnAdmission'
+import { readLiveEncounterTurnAdmission } from '@artificer-toolkit/encounter-persistence/turnCommandAdmission'
 import { readLiveEncounterActionScope } from './encounterActionAdmission'
 
 /** Raw stored inputs only; the Session DO owns Character rule preparation and evaluation. */
@@ -102,7 +103,11 @@ async function admitCharacterCaptureScope(
   if (movementAdmission && input.movement)
     characters = {
       sourceIds: characterSources([
-        await readRunActor(ctx, movementAdmission.state, input.movement.actorId)
+        await readRunActor(
+          { db: createConvexEncounterStoreReader(ctx) },
+          movementAdmission.state,
+          input.movement.actorId
+        )
       ]),
       refusal: 'Movement Character source is unavailable.'
     }
@@ -127,7 +132,7 @@ async function admitCharacterCaptureScope(
   }
   const turnAdmission = input.turnCommand
     ? await readLiveEncounterTurnAdmission(
-        ctx,
+        encounterReadTransaction(ctx),
         {
           ...input,
           encounterId: input.turnCommand.encounterId.toLowerCase(),
@@ -144,7 +149,9 @@ async function admitCharacterCaptureScope(
     )
       throw new Error('Turn Character source is unavailable.')
     characters = {
-      sourceIds: characterSources(await readRunActors(ctx, turnAdmission.state)),
+      sourceIds: characterSources(
+        await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, turnAdmission.state)
+      ),
       refusal: 'Turn Character source is unavailable.'
     }
   }
@@ -161,7 +168,9 @@ async function admitCharacterCaptureScope(
       : null
   if (actionAdmission)
     characters = {
-      sourceIds: characterSources(await readRunActors(ctx, actionAdmission.state)),
+      sourceIds: characterSources(
+        await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, actionAdmission.state)
+      ),
       refusal: 'Action Character source is unavailable.'
     }
   const { campaign, membership } =

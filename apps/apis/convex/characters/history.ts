@@ -6,6 +6,7 @@ import {
 import { query } from '../lib/queries'
 import { presentCampaignCharacterHistory } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
 import { requireIdentity } from '../lib/identity'
+import { readCharacterHistoryHeaders } from '../lib/receiptPagination'
 import { readCharacterReceiptHistory, readCharacterRecord, resolveCharacterId } from './documents'
 import { readCharacterCampaign } from './context'
 import { readCharacterRow } from './stateDocuments'
@@ -23,13 +24,12 @@ export const list = query({
       throw new Error('Character history is unavailable for the current user.')
     const character = readCharacterRecord(active)
     const campaign = await readCharacterCampaign(ctx, character, userId)
-    const result = await ctx.db
-      .query('characterCommandReceipts')
-      .withIndex('by_characterId_actorId_occurredAt_id', (q) =>
-        q.eq('characterId', character.id).eq('actorId', userId)
-      )
-      .order('asc')
-      .paginate({ ...input.paginationOpts, maximumRowsRead: 48, maximumBytesRead: 1024 * 1024 })
+    const result = await readCharacterHistoryHeaders(
+      ctx,
+      character.id,
+      userId,
+      input.paginationOpts
+    )
     return characterHistoryPageSchema.parse({
       ...result,
       characterId: character.id,

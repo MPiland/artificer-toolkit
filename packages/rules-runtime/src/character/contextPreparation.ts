@@ -67,14 +67,17 @@ export type CharacterRuleContextReaders = {
     missingFeatureIds: ReadonlySet<string>
   ): Promise<readonly AuthoredPublicationDocument[]>
   /**
-   * Readable Spells, including every readable referenced id. Pool readers return the whole Spell
-   * catalogue; commit reads only `referencedSpellIds`, whose ids may also name non-Spell targets.
+   * Complete authorized picker facts and only readable referenced mechanics. Referenced ids may
+   * also name non-Spell targets.
    */
-  readSpellCatalogue(referencedSpellIds: ReadonlySet<string>): Promise<readonly SpellAuthoredDto[]>
+  readSpellCatalogue(referencedSpellIds: ReadonlySet<string>): Promise<{
+    entries: readonly ContentSnapshotIndexEntry<'SPELL'>[]
+    documents: readonly SpellAuthoredDto[]
+  }>
 }
 
 /** Spells the Character's selections, state, chosen grants and granted features name. */
-function collectCharacterReferencedSpellIds(
+export function collectCharacterReferencedSpellIds(
   character: CharacterAuthored,
   context: CharacterRuleContext
 ): ReadonlySet<string> {
@@ -138,11 +141,16 @@ export function collectCharacterRuleSourceSelections(character: CharacterAuthore
   return selected
 }
 
-/** Prepare Character mechanics from already-authorized current publications. */
+/** Prepare current mechanics; catalogue reuse is limited to the same authorized transaction. */
 export async function prepareCharacterRuleContext(
   character: CharacterAuthored,
   system: SystemAuthoredDto,
-  previousSpellDocumentsById: ReadonlyMap<string, SpellAuthored> | undefined,
+  previousSpellCatalogue:
+    | {
+        spellCatalogueEntries: readonly ContentSnapshotIndexEntry<'SPELL'>[]
+        currentSpellDocumentsById: ReadonlyMap<string, SpellAuthored>
+      }
+    | undefined,
   readers: CharacterRuleContextReaders
 ) {
   const selected = collectCharacterRuleSourceSelections(character)
@@ -291,17 +299,25 @@ export async function prepareCharacterRuleContext(
   } satisfies CharacterRuleContext
   const needsSpellCatalog = needsCharacterSpellCatalog(character, context.registry)
   const spellDocumentsById =
-    needsSpellCatalog && previousSpellDocumentsById
-      ? new Map(previousSpellDocumentsById)
+    needsSpellCatalog && previousSpellCatalogue
+      ? new Map(previousSpellCatalogue.currentSpellDocumentsById)
       : new Map<string, SpellAuthored>()
+  let spellCatalogueEntries: readonly ContentSnapshotIndexEntry<'SPELL'>[] = []
   if (needsSpellCatalog) {
-    if (!previousSpellDocumentsById) {
-      for (const spell of await readers.readSpellCatalogue(
-        collectCharacterReferencedSpellIds(character, context)
-      ))
+    if (previousSpellCatalogue) spellCatalogueEntries = previousSpellCatalogue.spellCatalogueEntries
+    const referencedSpellIds = collectCharacterReferencedSpellIds(character, context)
+    if (
+      !previousSpellCatalogue ||
+      spellCatalogueEntries.some(
+        (entry) => referencedSpellIds.has(entry.id) && !spellDocumentsById.has(entry.id)
+      )
+    ) {
+      const catalogue = await readers.readSpellCatalogue(referencedSpellIds)
+      spellCatalogueEntries = catalogue.entries
+      for (const spell of catalogue.documents)
         spellDocumentsById.set(spell.id, spell as SpellAuthored)
     }
-    context.catalog.spells = [...spellDocumentsById.values()]
+    context.catalog.spells = [...spellCatalogueEntries]
       .map(({ id, label, level, classIds }) => ({ id, label, level, classIds }))
       .sort(
         (left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id)
@@ -314,6 +330,7 @@ export async function prepareCharacterRuleContext(
     ...context,
     spellDocumentsById,
     currentSpellDocumentsById,
+    spellCatalogueEntries,
     creaturesById,
     vehiclesById
   }
@@ -375,9 +392,7 @@ function requireSubclassParents(classes: ReadonlyMap<string, CharacterBuilderCla
 }
 
 function toSpellCatalogRecords(context: PreparedCharacterRuleContext) {
-  return [...context.currentSpellDocumentsById.values()]
-    .sort(byLabel)
-    .map(toCharacterBuilderSpellCatalogRecord)
+  return [...context.spellCatalogueEntries].sort(byLabel).map(toCharacterBuilderSpellCatalogRecord)
 }
 
 type CharacterEquipmentPool = Awaited<
@@ -592,12 +607,10 @@ export async function assembleCharacterReferencedBuilderContext<
         )
         break
       case 'SPELL': {
-        // Publication-validated DTOs bridge to the authored type as the registry does.
         const witness = await readers.findSpell(question.candidateIds, (spell) =>
-          question.matches(toCharacterBuilderSpellCatalogRecord(spell as SpellAuthored))
+          question.matches(toCharacterBuilderSpellCatalogRecord(spell))
         )
-        if (witness)
-          spells.set(witness.id, toCharacterBuilderSpellCatalogRecord(witness as SpellAuthored))
+        if (witness) spells.set(witness.id, toCharacterBuilderSpellCatalogRecord(witness))
         break
       }
       case 'FEAT': {

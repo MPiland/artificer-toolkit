@@ -5,6 +5,8 @@ import type { DevelopmentCampaignInspection } from '@artificer-toolkit/schema/ap
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { verifyCampaignGmState } from '../../tests/developmentCampaignGmState'
+import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
+import { readCharacterSheetState } from '../characters/sheetStateDocuments'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
@@ -47,14 +49,21 @@ it('proves native GM overlays through public Campaign handlers', async () => {
   const unrelatedCharacterId = await base.t.run(async (ctx) => {
     const current = await readCharacterRow(ctx, base.character.id)
     if (!current) throw new Error('Missing committed Character fixture.')
-    const { _id: _storedId, _creationTime: _storedCreationTime, play, ...structure } = current
-    const { _id: _playId, _creationTime: _playCreationTime, ...playRecord } = play
     const id = crypto.randomUUID()
-    await ctx.db.insert('characters', { ...structure, id })
-    await ctx.db.insert('characterPlayStates', { ...playRecord, characterId: id })
+    await insertActiveCharacterRecord(ctx, {
+      ...readCharacterRecord(current), status: current.status, id, userId: player.userId
+    }, {
+      createdAt: current.createdAt, updatedAt: current.updatedAt,
+      streamVersion: current.play.streamVersion,
+      maximumHitPoints: current.play.maximumHitPoints, walkingSpeed: current.play.walkingSpeed
+    })
     const clone = await readCharacterRow(ctx, id)
     if (!clone) throw new Error('Missing cloned Character fixture.')
-    await writeCharacterRecord(ctx, clone, { document: { ...readCharacterRecord(current), id } })
+    await writeCharacterRecord(ctx, clone, {
+      document: readCharacterRecord(clone), sheetState: readCharacterSheetState(current),
+      portraitAssetId: current.portraitAssetId, portraitRevision: current.portraitRevision
+    })
+    await ctx.db.patch(clone.play._id, { updatedAt: current.play.updatedAt })
     await ensureAuthoredRouteId(ctx, 'CHARACTER', id, false, player.userId)
     return id
   })

@@ -1,3 +1,4 @@
+import { readReceiptHeader } from '../lib/receiptLedgers'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import type { Validator } from 'convex/values'
@@ -28,7 +29,7 @@ import {
   readEncounterReplayReceipt,
   replayEncounterCommandResult
 } from '@artificer-toolkit/encounter-persistence/replayReceipts'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 import { parseLiveEntity } from '../scenes/liveDocuments'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 
@@ -67,19 +68,21 @@ export const execute = mutation({
       throw new Error('Encounter does not match the Campaign Game System.')
     const state = readRunState(run)
     const fingerprint = checksumCanonicalJson(input)
-    const prior = await ctx.db
+    const priorHeader = await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_campaignId_commandId', (q) =>
         q.eq('campaignId', campaign.id).eq('commandId', input.commandId)
       )
       .unique()
-    if (prior) {
+    if (priorHeader) {
       if (
-        prior.commandType !== input.type ||
-        prior.encounterId !== run.id ||
-        prior.commandFingerprint !== fingerprint
+        priorHeader.commandType !== input.type ||
+        priorHeader.encounterId !== run.id ||
+        priorHeader.commandFingerprint !== fingerprint
       )
         rejectDomain('COMMAND_ID_REUSED')
+      const prior = await readReceiptHeader(ctx, 'encounterRunCommands', priorHeader)
+      if (prior.commandType !== input.type) rejectDomain('COMMAND_ID_REUSED')
       const storedInput = encounterActorTokenBindingCommandInputDtoSchema.parse(
         JSON.parse(prior.commandJson)
       )
@@ -115,7 +118,7 @@ export const execute = mutation({
       .unique()
     if (!scene || scene.campaignId !== campaign.id)
       throw new Error('Campaign live Scene was not found.')
-    const actors = await readRunActors(ctx, state)
+    const actors = await readRunActors(encounterReadTransaction(ctx), state)
     if (!actors.some((actor) => actor.id === input.actorId))
       throw new Error('Encounter actor was not found.')
     const actorBinding = await ctx.db
@@ -203,7 +206,7 @@ export const execute = mutation({
       roll: null
     })
     await insertRunCommand(
-      ctx,
+      encounterWriteTransaction(ctx),
       encounterStoredRunCommandSchema.parse({
         id: crypto.randomUUID(),
         campaignId: campaign.id,

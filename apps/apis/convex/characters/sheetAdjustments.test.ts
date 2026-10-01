@@ -8,16 +8,14 @@ import type {
   CharacterSheetReadInput,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import {
-  encodeCharacterRecord,
-  readCharacterSheetState
-} from '@artificer-toolkit/schema/projections/characterStoredState'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { api } from '../_generated/api'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { input } from '../../tests/fixtures/characters'
 import * as builderContext from './builderContext'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readCharacterRecord } from './stateDocuments'
 
 const execute = makeFunctionReference<
@@ -54,8 +52,12 @@ describe('native Character Sheet adjustment storage', () => {
         }
       }
     })
+    expect(first).not.toHaveProperty('sheet')
+    const firstSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: first.characterId
+    }))!
     expect(
-      first.sheet.overview.abilities.find((ability) => ability.ability === 'STRENGTH')?.score
+      firstSheet.overview.abilities.find((ability) => ability.ability === 'STRENGTH')?.score
     ).toBe(20)
     const firstStored = await readState()
     const firstState = readCharacterSheetState(firstStored.character!)
@@ -136,7 +138,11 @@ describe('native Character Sheet adjustment storage', () => {
         target: { kind: 'ABILITY', ability: 'STRENGTH' }
       }
     })
-    expect(reset.sheet.overview.abilities).toEqual(before!.overview.abilities)
+    expect(reset).not.toHaveProperty('sheet')
+    const resetSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: reset.characterId
+    }))!
+    expect(resetSheet.overview.abilities).toEqual(before!.overview.abilities)
     expect(readCharacterSheetState((await readState()).character!).adjustments).toEqual([])
   })
 
@@ -153,7 +159,11 @@ describe('native Character Sheet adjustment storage', () => {
         maxOverride: 20
       }
     })
-    expect(overridden.sheet.overview).toMatchObject({
+    expect(overridden).not.toHaveProperty('sheet')
+    const overriddenSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: overridden.characterId
+    }))!
+    expect(overriddenSheet.overview).toMatchObject({
       currentHitPoints: 20,
       maxHitPoints: 20,
       tempHitPoints: 4,
@@ -181,7 +191,11 @@ describe('native Character Sheet adjustment storage', () => {
       }
     })
     expect(sourceLoads).toHaveBeenCalledTimes(1)
-    expect(reset.sheet.overview).toMatchObject({
+    expect(reset).not.toHaveProperty('sheet')
+    const resetSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: reset.characterId
+    }))!
+    expect(resetSheet.overview).toMatchObject({
       currentHitPoints: 20,
       maxHitPoints: 20,
       maxHitPointsOverride: 20,
@@ -196,7 +210,11 @@ describe('native Character Sheet adjustment storage', () => {
         maxOverride: null
       }
     })
-    expect(cleared.sheet.overview).toMatchObject({
+    expect(cleared).not.toHaveProperty('sheet')
+    const clearedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: cleared.characterId
+    }))!
+    expect(clearedSheet.overview).toMatchObject({
       currentHitPoints: 11,
       maxHitPoints: 11,
       tempHitPoints: 4,
@@ -215,7 +233,11 @@ describe('native Character Sheet adjustment storage', () => {
       }
     })
     expect(sourceLoads).toHaveBeenCalledTimes(1)
-    expect(reduced.sheet.overview).toMatchObject({ currentHitPoints: 0, maxHitPoints: 0 })
+    expect(reduced).not.toHaveProperty('sheet')
+    const reducedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: reduced.characterId
+    }))!
+    expect(reducedSheet.overview).toMatchObject({ currentHitPoints: 0, maxHitPoints: 0 })
     stored = await readState()
     expect(readCharacterRecord(stored.character!).state.hitpoints.current).toBe(0)
     const adjustmentId = readCharacterSheetState(stored.character!).adjustments[0]!.id
@@ -232,7 +254,11 @@ describe('native Character Sheet adjustment storage', () => {
       }
     })
     expect(sourceLoads).toHaveBeenCalledTimes(1)
-    expect(removed.sheet.overview).toMatchObject({ currentHitPoints: 0, maxHitPoints: 11 })
+    expect(removed).not.toHaveProperty('sheet')
+    const removedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: removed.characterId
+    }))!
+    expect(removedSheet.overview).toMatchObject({ currentHitPoints: 0, maxHitPoints: 11 })
   })
 
   it('hydrates current movement settings into policy and rejects foreign System targets', async () => {
@@ -335,13 +361,12 @@ describe('native Character Sheet adjustment storage', () => {
     ).toBe(20)
     const invalid = readCharacterSheetState(after.character!)
     invalid.adjustments[0]!.characterId = crypto.randomUUID()
-    const encoded = encodeCharacterRecord(after.character!, {
-      document: readCharacterRecord(after.character!),
-      sheetState: invalid,
-      streamVersion: after.character!.play.streamVersion,
-      updatedAt: after.character!.updatedAt
-    })
-    await t.run((ctx) => ctx.db.patch(after.character!._id, { sheetState: encoded.sheetState }))
+    await t.run((ctx) =>
+      writeCharacterRecord(ctx, after.character!, {
+        document: readCharacterRecord(after.character!),
+        sheetState: invalid
+      })
+    )
     const corrupted = await readState()
     await expect(
       owner.caller.mutation(execute, {

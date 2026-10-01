@@ -1,6 +1,7 @@
 import {
   liveSessionCharacterRulesInputSchema,
-  type LiveSessionCharacterRulesResponse
+  type LiveSessionCharacterRulesResponse,
+  type LiveSessionCharacterRulesInput
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
 import {
   isLiveSessionCaptureBundleAdmission,
@@ -28,6 +29,7 @@ import {
 } from './liveSessionRoutes.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { ROOM_LIMITS } from './roomLimits.js'
+import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 
 /** One rules capture response, tagged with its route. */
 export type LiveRulesCapture =
@@ -39,6 +41,11 @@ export type LiveRulesCapture =
  * capture bundle already made, each taken once.
  */
 export interface LiveCaptureReads {
+  /** An admitted native transaction answers the same planner contracts without transport reads. */
+  encounterRules?(input: LiveSessionEncounterRulesInput): Promise<LiveSessionEncounterRulesResponse>
+  prepareCharacter?(
+    scope: Omit<LiveSessionCharacterRulesInput, 'request'>
+  ): Promise<PreparedLiveCharacterSheet>
   read(key: string): LiveRulesCapture | undefined
   write(key: string, capture: LiveRulesCapture): void
   bundle(key: string, capture: LiveRulesCapture): void
@@ -207,6 +214,10 @@ export async function captureEncounterRules(
   observed: LiveSessionRulesRevisions,
   captures: LiveCaptureReads | undefined
 ): Promise<{ response: LiveSessionEncounterRulesResponse; revisions: LiveSessionRulesRevisions }> {
+  if (captures?.encounterRules) {
+    const response = await captures.encounterRules(input)
+    return { response, revisions: response.revisions }
+  }
   const key = bundledCaptureKey('encounterRules', input)
   // An admission the command's stage already bundled (a move, D52) takes its part without a read.
   let bundled = captures?.takeBundled(key)

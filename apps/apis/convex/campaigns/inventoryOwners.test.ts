@@ -300,14 +300,14 @@ describe('native Campaign inventory owner versions', () => {
     ).rejects.toThrow('read-only')
     await base.t.run(async (ctx) => {
       const record = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
+        .query('characterBuildStates')
+        .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
         .unique()
       if (!record) throw new Error('Missing Character')
-      await ctx.db.patch(record._id, { checksum: 'corrupt' })
+      await ctx.db.patch(record._id, { checksum: '0'.repeat(64) })
     })
     await expect(
       base.other.caller.query(version, { input: { campaignId: base.campaign.id, owner: own } })
-    ).rejects.toThrow('checksum mismatch')
+    ).rejects.toThrow('build integrity mismatch')
   })
 })

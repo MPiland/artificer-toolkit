@@ -41,6 +41,11 @@ import {
   planMovementDecisionInRoom,
   planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
+import {
+  createConvexEncounterStoreReader,
+  createConvexEncounterStore
+} from '../lib/convexEncounterStore'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn() }))
 afterEach(() => {
@@ -130,10 +135,12 @@ async function seedMovingSpatialEffect(
     { x: 900, y: 900 }
   )
   return value.base.t.run(async (ctx) => {
-    const scope = await createSpatialRuleEffectStore(ctx).scope({
-      encounterId: value.base.run.id,
-      sceneId: value.sceneId
-    })
+    const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(
+      {
+        encounterId: value.base.run.id,
+        sceneId: value.sceneId
+      }
+    )
     const current = await scope?.get(seeded.id)
     if (!scope || !current) throw new Error('Movement Concentration spatial effect is unavailable.')
     await scope.deleteCas({ id: current.id, expectedVersion: current.version })
@@ -183,10 +190,17 @@ async function records(value: MovementFixture) {
       )
       .collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-      .collect(),
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+    receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
+    receipts: await readReceiptHeaders(
+      ctx,
+      'encounterRuleReceipts',
+      await ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
+        .collect()
+    ),
     sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
     sceneStates: await ctx.db.query('sceneLiveStates').collect()
   }))
@@ -430,7 +444,9 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
       const staged = await records(value)
       const root = staged.occurrences.find((occurrence) => occurrence.id === next.occurrenceId)
       if (!root) throw new Error('Expected retained E/H pending snapshot.')
-      const snapshot = await value.base.t.run((ctx) => readPendingSnapshot(ctx, root))
+      const snapshot = await value.base.t.run((ctx) =>
+        readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, root)
+      )
       if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
         throw new Error('Expected retained E/H pending snapshot.')
       const context = snapshot.applicationContext
@@ -487,7 +503,9 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
     const nextAnswer = response({ encounterId: value.base.run.id, pending: next, resolution })
     if (respondingToHazard) {
       await value.base.t.run(async (ctx) => {
-        const scope = await createSpatialRuleEffectStore(ctx).scope({
+        const scope = await createSpatialRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).scope({
           encounterId: value.base.run.id,
           sceneId: value.sceneId
         })
@@ -504,7 +522,9 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
       await expect(planMovementDecisionInRoom(value.owner.caller, nextAnswer)).rejects.toThrow()
       expect(await records(value)).toEqual(beforeRejectedPreparation)
       await value.base.t.run(async (ctx) => {
-        const scope = await createSpatialRuleEffectStore(ctx).scope({
+        const scope = await createSpatialRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).scope({
           encounterId: value.base.run.id,
           sceneId: value.sceneId
         })
@@ -663,7 +683,9 @@ it.each(['room', 'private'] as const)(
     expect(staged.occurrences).toHaveLength(1)
     const root = staged.occurrences[0]
     if (!root) throw new Error('Movement Concentration root is unavailable.')
-    const snapshot = await value.base.t.run((ctx) => readPendingSnapshot(ctx, root))
+    const snapshot = await value.base.t.run((ctx) =>
+      readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, root)
+    )
     if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
       throw new Error('Movement Concentration root is unavailable.')
     const context = snapshot.applicationContext

@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -185,7 +186,14 @@ describe('native Encounter Run creation', () => {
     await expect(
       other.caller.mutation(createRun, { ...input, blueprintId: crypto.randomUUID() })
     ).rejects.toThrow('different input')
-    expect(await t.run((ctx) => ctx.db.query('encounterRunCommands').collect())).toHaveLength(1)
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('encounterRunCommands')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
+      )
+    ).toHaveLength(1)
   }, 30000)
 
   it('rejects anonymous and non-GM commands without creating state', async () => {
@@ -194,7 +202,14 @@ describe('native Encounter Run creation', () => {
     await expect(owner.caller.mutation(createRun, input)).rejects.toThrow('Campaign not found')
     expect(await t.run((ctx) => ctx.db.query('encounterRuns').collect())).toEqual([])
     expect(await t.run((ctx) => ctx.db.query('encounterRunActors').collect())).toEqual([])
-    expect(await t.run((ctx) => ctx.db.query('encounterRunCommands').collect())).toEqual([])
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('encounterRunCommands')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
+      )
+    ).toEqual([])
   }, 30000)
 
   it('excludes unassigned Characters from the party', async () => {
@@ -231,7 +246,14 @@ describe('native Encounter Run creation', () => {
       await expect(other.caller.mutation(createRun, input)).rejects.toThrow(
         'Encounter is unavailable.'
       )
-      expect(await t.run((ctx) => ctx.db.query('encounterRunCommands').collect())).toHaveLength(1)
+      expect(
+        await t.run((ctx) =>
+          ctx.db
+            .query('encounterRunCommands')
+            .collect()
+            .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
+        )
+      ).toHaveLength(1)
     },
     30000
   )

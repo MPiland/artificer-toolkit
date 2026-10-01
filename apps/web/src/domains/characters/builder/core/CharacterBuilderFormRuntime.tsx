@@ -94,8 +94,10 @@ export function CharacterBuilderFormRuntime({
       onStatus: (draftSaveStatus) => updateAuthoringFormState({ draftSaveStatus })
     })
   )
+  const autosaveEffectGeneration = useRef(0)
 
   useEffect(() => {
+    const generation = ++autosaveEffectGeneration.current
     let queued = form.state.values
     const subscription = form.store.subscribe(() => {
       const values = form.state.values
@@ -109,7 +111,10 @@ export function CharacterBuilderFormRuntime({
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('pagehide', flushOnHide)
-      void autosave.flush().finally(autosave.cancel)
+      void autosave.flush().finally(() => {
+        // Effect replay reuses this draft's autosave; only a final unmount cancels it.
+        if (autosaveEffectGeneration.current === generation) autosave.cancel()
+      })
     }
   }, [autosave, form])
 

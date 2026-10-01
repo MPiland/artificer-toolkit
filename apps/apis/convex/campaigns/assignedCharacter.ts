@@ -1,9 +1,8 @@
 import type { CampaignSummaryDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
+import { readCharacterHead } from '../characters/stateDocuments'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
-import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 
 export async function readCampaignAssignedCharacter(
   ctx: QueryCtx,
@@ -18,7 +17,7 @@ export async function readCampaignAssignedCharacter(
     .unique()
   if (!assignment) return null
   const [record, route, uniqueAssignment] = await Promise.all([
-    readCharacterRow(ctx, assignment.characterId),
+    readCharacterHead(ctx, assignment.characterId),
     readVisibleAuthoredRouteId(ctx, { subjectId: assignment.characterId }),
     ctx.db
       .query('campaignCharacterAssignments')
@@ -36,11 +35,10 @@ export async function readCampaignAssignedCharacter(
     record.systemId !== campaign.gameSystemId
   )
     throw new Error('Stored Campaign Character assignment mismatch.')
-  const character = deriveOnce(record, readCharacterRecord)
   return {
-    id: character.id,
+    id: record.id,
     publicId: route.publicId,
-    label: character.label,
-    systemId: character.systemId
+    label: record.label,
+    systemId: record.systemId
   }
 }

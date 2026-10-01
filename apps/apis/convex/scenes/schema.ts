@@ -35,10 +35,9 @@ export const sceneTables = {
     'by_saveId_ordinal',
     ['saveId', 'ordinal']
   ),
-  sceneFogLayers: defineTable(zodToConvexFields(sceneStoredFogLayerSchema.shape)).index(
-    'by_sceneId_ownerUserId',
-    ['sceneId', 'ownerUserId']
-  ),
+  sceneFogLayers: defineTable(zodToConvexFields(sceneStoredFogLayerSchema.shape))
+    .index('by_sceneId_ownerUserId', ['sceneId', 'ownerUserId'])
+    .index('by_sceneId_ordinal', ['sceneId', 'ordinal']),
   sceneLiveStates: defineTable(zodToConvexFields(sceneStoredLiveStateSchema.shape)).index(
     'by_sceneId',
     ['sceneId']

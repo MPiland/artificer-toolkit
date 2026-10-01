@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import {
@@ -10,7 +11,8 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import type { MutationCtx } from '../../convex/_generated/server'
 import { createEncounterSceneFixture } from './encounterScene'
 import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
-import { readGeometrySave, readSpatialPreparation } from '../../convex/scenes/geometryDocuments'
+import { readGeometrySave } from '../../convex/scenes/geometryDocuments'
+import { readSpatialPreparation } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { internal } from '../../convex/_generated/api'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { seedSpatialEffect } from './spatialEffect'
@@ -148,7 +150,7 @@ export async function grantFixtureActorControl(
     ...JSON.parse(actorRow.stateJson),
     controllerUserIds: input.controllerUserIds
   })
-  await writeRunActor(ctx, actorRow._id, actor)
+  await writeRunActor({ db: createConvexEncounterStore(ctx) }, actorRow._id, actor)
 }
 
 /**

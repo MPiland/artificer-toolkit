@@ -42,6 +42,13 @@ it('preserves source identity and ownership checks when reusing a transaction-lo
       .withIndex('by_publicId', (q) => q.eq('id', backpack.id))
       .unique()
     if (!root) throw new Error('Missing Equipment fixture.')
+    expect((await readAuthoredVersion(ctx, root)).versionId).toBe(root.currentVersionPublicId)
+    await expect(
+      readAuthoredVersion(ctx, {
+        ...root,
+        currentVersionPublicId: crypto.randomUUID()
+      })
+    ).rejects.toThrow('Stored authored content identity mismatch.')
     const source = await ctx.db
       .query('contentSources')
       .withIndex('by_publicId', (q) => q.eq('id', root.contentSourceId))

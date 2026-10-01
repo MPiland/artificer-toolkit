@@ -14,7 +14,7 @@ import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import { mockSheetRestPreview } from './characterSheetNativeStory.fixture'
 import { characterSheetFixture } from './characterSheet.fixtures'
-import { CharacterSheetView } from '../core/CharacterSheetView'
+import { CharacterSheetFixtureView as CharacterSheetView } from './CharacterSheetFixtureView'
 import { companionPanelFixture, vehiclePanelFixture } from '../inspector/inspector.fixtures'
 
 export function withSheetPanel(panel: CharacterSheetPanelDto): Decorator {
@@ -33,7 +33,47 @@ export function withSheetPanel(panel: CharacterSheetPanelDto): Decorator {
           ({
             characterId: panel.characterId,
             streamVersion: characterSheetFixture.meta.streamVersion,
-            classes: []
+            classes:
+              panel.kind === 'SPELLS'
+                ? [
+                    ...new Set(
+                      panel.groups.flatMap((group) =>
+                        group.sources.flatMap((source) =>
+                          source.preparationClassId ? [source.preparationClassId] : []
+                        )
+                      )
+                    )
+                  ].map((classId) => ({
+                    classId,
+                    label: 'Class spells',
+                    preparedSpellLimit: 20,
+                    eligibleSpellIds: panel.groups.flatMap((group) =>
+                      group.sources
+                        .filter((source) => source.preparationClassId === classId)
+                        .map((source) => source.spellId)
+                    ),
+                    preparedSpellIds: panel.groups.flatMap((group) =>
+                      group.sources
+                        .filter(
+                          (source) => source.preparationClassId === classId && source.prepared
+                        )
+                        .map((source) => source.spellId)
+                    )
+                  }))
+                : [],
+            catalogue: {
+              kind: 'INLINE',
+              spells:
+                panel.kind === 'SPELLS'
+                  ? panel.groups.flatMap((group) =>
+                      group.sources.map((source) => ({
+                        spellId: source.spellId,
+                        label: source.label,
+                        level: group.level
+                      }))
+                    )
+                  : []
+            }
           }) satisfies CharacterPreparationOptionsResponseDto
       }
     )
@@ -119,14 +159,7 @@ export function mockExtraCommands(fail = false) {
         }
         return {
           characterId: characterSheetFixture.meta.characterId,
-          streamVersion: characterSheetFixture.meta.streamVersion + 1,
-          sheet: {
-            ...characterSheetFixture,
-            meta: {
-              ...characterSheetFixture.meta,
-              streamVersion: characterSheetFixture.meta.streamVersion + 1
-            }
-          }
+          streamVersion: characterSheetFixture.meta.streamVersion + 1
         }
       },
       { withOptimisticUpdate: () => mutate }

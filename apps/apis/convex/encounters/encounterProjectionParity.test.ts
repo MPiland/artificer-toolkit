@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { api } from '../_generated/api'
@@ -102,7 +103,7 @@ async function expectProjectionFactsCurrent(base: PlayerControlFixture) {
       .unique()
     if (!run) throw new Error('Missing parity Run.')
     const state = readRunState(run)
-    const actors = await readRunActors(ctx, state)
+    const actors = await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state)
     const facts = buildEncounterActorRuleFacts({ actors })
     const rules = reconcileEncounterActorRuleOutput(
       evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),

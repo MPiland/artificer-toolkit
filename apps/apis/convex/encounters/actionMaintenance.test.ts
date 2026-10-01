@@ -1,3 +1,8 @@
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -378,6 +383,8 @@ function diceResponse(input: unknown, face = 1): EncounterExecuteInput {
 
 async function records(base: Awaited<ReturnType<typeof setup>>) {
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
@@ -401,11 +408,13 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .take(32),
+      .take(32)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-      .take(32),
+      .take(32)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     pendingOccurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) =>
@@ -422,7 +431,8 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
-      .take(32),
+      .take(32)
+      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers)),
     campaignCharacterState: await ctx.db
       .query('campaignCharacterStates')
       .withIndex('by_campaignId_characterId', (q) =>
@@ -454,7 +464,7 @@ async function resetActionAllowance(base: Awaited<ReturnType<typeof setup>>) {
       ...actor,
       resources: withEncounterRuleUsageUsed(actor, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 0)
     })
-    await writeRunActor(ctx, row._id, reset)
+    await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, reset)
   })
 }
 
@@ -508,7 +518,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   if (!blinded || !frightened || !poisoned)
     throw new Error('Maintained condition fixture requires three System conditions.')
   const seeded = await base.t.run(async (ctx) => {
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const owner = {
       kind: 'ENCOUNTER_ACTOR' as const,
       encounterId: base.run.id,
@@ -565,7 +575,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
       ...JSON.parse(row.stateJson),
       conditions: [frightened.id, poisoned.id, blinded.id]
     })
-    await writeRunActor(ctx, row._id, actor)
+    await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
     return {
       priorStateId: maintained.id,
       priorEffectIds: [dependent.id, conditionDependent.id],
@@ -631,7 +641,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
       descriptorJson: JSON.stringify(descriptor),
       descriptorChecksum: checksumCanonicalJson(descriptor)
     })
-    await createActiveRuleEffectStore(ctx).deleteCas({
+    await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).deleteCas({
       id: replacementDependent.id,
       owner: {
         kind: 'ENCOUNTER_ACTOR',
@@ -950,7 +960,7 @@ async function setupMaintenanceCapture(
   })
   expect(created.occurrence?.status).toBe('COMPLETE')
   const state = await base.t.run(async (ctx) => {
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const state = await store.findMaintainedState({
       encounterId: base.run.id,
       ownerActorId: base.actor.id,
@@ -1121,7 +1131,7 @@ it('captures five real maintained dependents and matches the Convex action prefl
       .unique()
     if (!row) throw new Error('Missing maintained Run.')
     const current = readRunState(row)
-    const actors = await readRunActors(ctx, current)
+    const actors = await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, current)
     const source = actors.find((actor) => actor.id === base.actor.id)
     if (!source) throw new Error('Missing maintained actor.')
     const prepared = await prepareNativeEncounterActionMechanics(ctx, {
@@ -1203,7 +1213,7 @@ it('commits the post-mechanics maintenance settlement the Worker projects', asyn
     throw new Error('Projected maintenance fixture requires three System conditions.')
   const seeded = await base.t.run(async (rawCtx) => {
     const ctx = withSceneVisionTracking(rawCtx)
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const dependents = await store.listDependentEffects({
       encounterId: base.run.id,
       stateId: state.id
@@ -1254,7 +1264,7 @@ it('commits the post-mechanics maintenance settlement the Worker projects', asyn
       ...JSON.parse(row.stateJson),
       conditions: [frightened.id, poisoned.id, blinded.id]
     })
-    await writeRunActor(ctx, row._id, actor)
+    await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
     return { characterDependent, actorDependent, independent }
   })
   const command = action(base, scope.expectedVersion, base.characterTarget.id)
@@ -1282,7 +1292,7 @@ it('commits the post-mechanics maintenance settlement the Worker projects', asyn
   )
   const committed = await records(base)
   await base.owner.caller.run(async (ctx) => {
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     expect(
       await store.list({
         kind: 'ENCOUNTER_ACTOR',

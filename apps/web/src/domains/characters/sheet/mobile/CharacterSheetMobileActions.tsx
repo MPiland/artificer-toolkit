@@ -1,5 +1,6 @@
+import type { CharacterSheetActionsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { CharacterSheetActions } from '../actions/CharacterSheetActions'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as mobileStyles from './mobile.css'
 
 export function CharacterSheetMobileActions({
@@ -8,7 +9,7 @@ export function CharacterSheetMobileActions({
   submitCommand
 }: {
   pending: boolean
-  sheet: CharacterSheet
+  sheet: CharacterSheetActionsDto
   submitCommand: SubmitSheetCommand
 }) {
   return (

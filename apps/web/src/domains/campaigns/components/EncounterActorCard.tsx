@@ -24,7 +24,7 @@ import {
 import { useEffect, useState } from 'react'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import { getCharacterSheet } from '#app/data/characters/queries'
+import { getCharacterSheetSlice } from '#app/data/characters/queries'
 import { AppSelect } from '#app/ui/primitives/Select'
 import { AuthoredDetailProse } from '#components/AuthoredDetail'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
@@ -69,8 +69,10 @@ export function EncounterActorCard({
       notifications.show({ color: 'orange', title: 'Shared with the table', message: entry.body })
   })
   const sheet = useQuery(
-    getCharacterSheet(
-      actor.kind === 'CHARACTER' && sheetOpened ? (actor.sourceId ?? undefined) : undefined
+    getCharacterSheetSlice(
+      actor.kind === 'CHARACTER' && sheetOpened ? (actor.sourceId ?? undefined) : undefined,
+      'COMMON',
+      campaign.id
     )
   )
 

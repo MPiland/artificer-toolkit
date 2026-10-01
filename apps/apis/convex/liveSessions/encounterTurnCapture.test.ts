@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
 import type {
@@ -136,7 +137,7 @@ it('reads only this Run’s maintained state and rejects its damaged stored chec
   })
   expect(missing).toMatchObject({ kind: 'MAINTENANCE_STATE', state: null })
   const state = await base.t.run((ctx) =>
-    createActiveRuleEffectStore(ctx).createMaintainedState({
+    createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).createMaintainedState({
       id: stateId,
       encounterId: base.run.id,
       ownerActorId: base.actorIds[0]!,

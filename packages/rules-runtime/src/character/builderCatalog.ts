@@ -143,7 +143,7 @@ export type CharacterBuilderSpellCatalogRecord = Pick<
 >
 
 export function toCharacterBuilderSpellCatalogRecord(
-  spell: SpellAuthored
+  spell: CharacterBuilderSpellCatalogRecord | ContentSnapshotIndexEntry<'SPELL'>
 ): CharacterBuilderSpellCatalogRecord {
   return {
     id: spell.id,

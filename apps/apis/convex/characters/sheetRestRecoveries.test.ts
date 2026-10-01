@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -120,10 +121,14 @@ async function fixture(spellcasting?: typeof wizard.spellcasting) {
         character: stored,
         authored: stored ? readCharacterRecord(stored) : null,
         sheetState: stored ? readCharacterSheetState(stored) : null,
-        receipts: await ctx.db
-          .query('characterCommandReceipts')
-          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
-          .collect()
+        receipts: await readReceiptHeaders(
+          ctx,
+          'characterCommandReceipts',
+          await ctx.db
+            .query('characterCommandReceipts')
+            .withIndex('by_characterId_commandId', (q) => q.eq('characterId', character.id))
+            .collect()
+        )
       }
     })
   return { ...base, character, creature, longEquipment, readState }
@@ -157,13 +162,21 @@ describe('native Character Sheet rest recovery', () => {
         execute,
         command(character.id, 1, { type: 'USE_SPELL_SLOT', slotKey })
       )
-      const resource = response.sheet.resources.items.find(
+      expect(response).not.toHaveProperty('sheet')
+      let responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
+      const resource = responseSheet.resources.items.find(
         (entry) => entry.label === 'Short Resource'
       )!
       response = await owner.caller.mutation(
         execute,
         command(character.id, 2, { type: 'USE_SHEET_RESOURCE', owner: resource.owner, amount: 1 })
       )
+      expect(response).not.toHaveProperty('sheet')
+      responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+        id: response.characterId
+      }))!
       for (const restKind of ['SHORT', 'LONG'] as const) {
         const before = await readState()
         const input = restInput(restKind, response.streamVersion)
@@ -185,8 +198,12 @@ describe('native Character Sheet rest recovery', () => {
             selectedCompanionInstanceIds: []
           })
         )
+        expect(response).not.toHaveProperty('sheet')
+        responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+          id: response.characterId
+        }))!
         const expectedUsed = restKind === 'SHORT' ? shortUsed : 0
-        expect(response.sheet.spells.slots.find((slot) => slot.slotKey === slotKey)?.used).toBe(
+        expect(responseSheet.spells.slots.find((slot) => slot.slotKey === slotKey)?.used).toBe(
           expectedUsed
         )
         expect((await readState()).authored!.state.spellSlots ?? []).toEqual(
@@ -197,6 +214,10 @@ describe('native Character Sheet rest recovery', () => {
             execute,
             command(character.id, response.streamVersion, { type: 'USE_SPELL_SLOT', slotKey })
           )
+          expect(response).not.toHaveProperty('sheet')
+          responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+            id: response.characterId
+          }))!
         }
       }
     }
@@ -212,10 +233,14 @@ describe('native Character Sheet rest recovery', () => {
         quantity: 1
       })
     )
-    const longResource = response.sheet.resources.items.find(
+    expect(response).not.toHaveProperty('sheet')
+    let responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const longResource = responseSheet.resources.items.find(
       (resource) => resource.owner.kind === 'ITEM_INSTANCE'
     )!
-    const shortResource = response.sheet.resources.items.find(
+    const shortResource = responseSheet.resources.items.find(
       (resource) => resource.label === 'Short Resource'
     )!
     response = await owner.caller.mutation(
@@ -226,10 +251,18 @@ describe('native Character Sheet rest recovery', () => {
         amount: 1
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     response = await owner.caller.mutation(
       execute,
       command(character.id, 3, { type: 'USE_SHEET_RESOURCE', owner: longResource.owner, amount: 1 })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     await owner.caller.mutation(
       execute,
       command(character.id, 4, {
@@ -260,6 +293,10 @@ describe('native Character Sheet rest recovery', () => {
         selectedCompanionInstanceIds: []
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     let state = (await readState()).sheetState!
     expect(
       state.resourceUsage.some(
@@ -284,6 +321,10 @@ describe('native Character Sheet rest recovery', () => {
         amount: 1
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     const beforeLong = await readState()
     const long = await owner.caller.query(preview, {
       id: character.id,
@@ -305,6 +346,10 @@ describe('native Character Sheet rest recovery', () => {
         selectedCompanionInstanceIds: []
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     state = (await readState()).sheetState!
     expect(state.resourceUsage).toEqual([])
     expect(state.adjustments).toEqual(beforeLong.sheetState!.adjustments)
@@ -320,7 +365,11 @@ describe('native Character Sheet rest recovery', () => {
         extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'WORLD' }
       })
     )
-    const firstId = response.sheet.extras.items.find((item) => item.kind === 'COMPANION')!.id
+    expect(response).not.toHaveProperty('sheet')
+    let responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const firstId = responseSheet.extras.items.find((item) => item.kind === 'COMPANION')!.id
     response = await owner.caller.mutation(
       execute,
       command(character.id, 2, {
@@ -328,7 +377,11 @@ describe('native Character Sheet rest recovery', () => {
         extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'SUMMONED' }
       })
     )
-    const secondId = response.sheet.extras.items.find(
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const secondId = responseSheet.extras.items.find(
       (item) => item.kind === 'COMPANION' && item.id !== firstId
     )!.id
     response = await owner.caller.mutation(
@@ -338,6 +391,10 @@ describe('native Character Sheet rest recovery', () => {
         extra: { kind: 'COMPANION', extraId: firstId, hitDice: [{ die: 4, total: 1, used: 1 }] }
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     response = await owner.caller.mutation(
       execute,
       command(character.id, 4, {
@@ -345,12 +402,16 @@ describe('native Character Sheet rest recovery', () => {
         extra: { kind: 'COMPANION', extraId: secondId, hitDice: [{ die: 4, total: 1, used: 1 }] }
       })
     )
-    const firstResource = response.sheet.resources.items.find(
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
+    const firstResource = responseSheet.resources.items.find(
       (resource) =>
         resource.owner.kind === 'COMPANION_FEATURE' &&
         resource.owner.companionInstanceId === firstId
     )!
-    const secondResource = response.sheet.resources.items.find(
+    const secondResource = responseSheet.resources.items.find(
       (resource) =>
         resource.owner.kind === 'COMPANION_FEATURE' &&
         resource.owner.companionInstanceId === secondId
@@ -363,6 +424,10 @@ describe('native Character Sheet rest recovery', () => {
         amount: 1
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     response = await owner.caller.mutation(
       execute,
       command(character.id, 6, {
@@ -371,6 +436,10 @@ describe('native Character Sheet rest recovery', () => {
         amount: 1
       })
     )
+    expect(response).not.toHaveProperty('sheet')
+    responseSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: response.characterId
+    }))!
     const beforePreview = await readState()
     const rest = await owner.caller.query(preview, {
       id: character.id,

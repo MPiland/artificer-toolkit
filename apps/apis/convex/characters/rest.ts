@@ -26,6 +26,7 @@ import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
+import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
 
 /**
  * Reads a hit-die roll's one stored record by id. Campaign rests settle only from rolls the GM can
@@ -76,6 +77,7 @@ export async function prepareCharacterRest(
   request: CharacterRestPreviewRequestDto
 ) {
   const input = characterRestPreviewRequestDtoSchema.parse(request)
+  await assertConvexOwnsCharacterPlay(ctx, current.active.id)
   if (current.campaignContext.viewer === 'CAMPAIGN_OWNER' && input.resetMaximumHitPointModifier)
     throw new CharacterSheetCommandError(
       'Campaign owners cannot reset a player maximum-HP modifier.'

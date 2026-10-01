@@ -1,3 +1,4 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { v } from 'convex/values'
 import {
   liveSessionEncounterRulesInputSchema,
@@ -27,7 +28,6 @@ import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter
 import { readNativeEncounterActionResponseAdmission } from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { requireIdentity } from '../lib/identity'
-import { readAutoRollDice } from '../lib/rollPreferences'
 import {
   readCharacterEffect,
   readEncounterEffect
@@ -35,19 +35,18 @@ import {
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
-import { readEncounterTurnCapture } from './encounterTurnCapture'
+import { readEncounterTurnCapture } from '@artificer-toolkit/encounter-persistence/turnCapture'
+import { readLiveScene } from '../scenes/liveDocuments'
+import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
-import { readLiveEncounterTurnAdmission } from './encounterTurnAdmission'
+import { readLiveEncounterTurnAdmission } from '@artificer-toolkit/encounter-persistence/turnCommandAdmission'
+import { readEncounterTurnCommandCapture } from '@artificer-toolkit/encounter-persistence/turnCommandCapture'
 import { readLiveMovementAdmission } from './encounterMovementAdmission'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
-import {
-  readEncounterAutoRollByActorId,
-  readEncounterControlledActorIds
-} from '@artificer-toolkit/encounter-persistence/actorController'
-import { readMovementResolution } from '../scenes/geometryDocuments'
+import { readEncounterAutoRollByActorId } from '@artificer-toolkit/encounter-persistence/actorController'
+import { readMovementResolution } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { readLiveEncounterActionScope } from './encounterActionAdmission'
-import { readEncounterSettledAppRoll } from '@artificer-toolkit/encounter-persistence/evidenceRolls'
 import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
 import { readDisarmAdmission } from '@artificer-toolkit/encounter-persistence/disarmAdmission'
 import { readBasicActionAdmission } from '@artificer-toolkit/encounter-persistence/basicActionAdmission'
@@ -73,50 +72,14 @@ export async function readEncounterRulesCapture(
   )
     throw new Error('Live Session capture scopes cannot be combined.')
   if (input.request.kind === 'TURN_COMMAND') {
-    if (input.movement) throw new Error('Turn commands cannot use movement capture scope.')
-    const admission = await readLiveEncounterTurnAdmission(ctx, input, input.request.command)
-    const actors = await readRunActors(ctx, admission.state)
-    const response = {
-      kind: 'TURN_COMMAND' as const,
-      campaignOwnerUserId: admission.campaign.ownerUserId,
-      autoRollDice: await readAutoRollDice(ctx, admission.campaign.ownerUserId),
-      // The GM initiates every turn, so each actor's saves go to its controllers.
-      autoRollByActorId: await readEncounterAutoRollByActorId(encounterReadTransaction(ctx), {
-        campaign: admission.campaign,
-        initiatorUserId: admission.campaign.ownerUserId,
-        actors
-      }),
-      responderControlledActorIds: [
-        ...(await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
-          campaign: admission.campaign,
-          membership: admission.membership,
-          actors
-        }))
-      ].sort(),
-      appRoll:
-        admission.resume && admission.input.type === 'RESOLVE_RULE_OCCURRENCE'
-          ? await readEncounterSettledAppRoll(encounterReadTransaction(ctx), {
-              occurrence: admission.pending.occurrence,
-              response: admission.input,
-              userId: input.expectedUserId
-            })
-          : null,
-      command: admission.input,
-      fingerprint: admission.fingerprint,
-      occurrenceVersion: admission.pending?.occurrence.version ?? null,
-      snapshot: admission.pending?.snapshot ?? null,
-      result:
-        admission.result &&
-        (await presentEncounterResultForMember(encounterReadTransaction(ctx), {
-          campaign: admission.campaign,
-          membership: admission.membership,
-          result: admission.result
-        }))
-    }
+    const { response, state } = await readEncounterTurnCommandCapture(
+      encounterReadTransaction(ctx),
+      input
+    )
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
       revisions: await readLiveSessionRulesRevisions(ctx, {
-        systemId: admission.state.gameSystemId,
+        systemId: state.gameSystemId,
         campaignId: input.campaignId
       }),
       readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
@@ -334,7 +297,10 @@ export async function readEncounterRulesCapture(
           ? await readEncounterAutoRollByActorId(encounterReadTransaction(ctx), {
               campaign: admission.campaign,
               initiatorUserId: admission.initiatorUserId,
-              actors: await readRunActors(ctx, admission.state)
+              actors: await readRunActors(
+                { db: createConvexEncounterStoreReader(ctx) },
+                admission.state
+              )
             })
           : {},
       command: admission.input,
@@ -450,7 +416,7 @@ async function admitEncounterCaptureScope(
       })
     : null
   const turnAdmission = input.turnCommand
-    ? await readLiveEncounterTurnAdmission(ctx, input, input.turnCommand)
+    ? await readLiveEncounterTurnAdmission(encounterReadTransaction(ctx), input, input.turnCommand)
     : null
   if (
     turnAdmission &&
@@ -535,26 +501,36 @@ async function readOrdinaryEncounterCapture(
         initiatorUserId: movementAdmission.save.movementResolution
           ? readMovementResolution(movementAdmission.save)!.root.initiatorUserId
           : movementAdmission.save.actorUserId,
-        actors: await readRunActors(ctx, state)
+        actors: await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state)
       }),
       appRoll: movementAdmission.appRoll,
       save: movementAdmission.save,
       header: movementAdmission.header,
-      bindings: await readEncounterCleavingBindings(ctx, state, movementAdmission.header.id)
+      bindings: await readEncounterCleavingBindings(
+        { db: createConvexEncounterStoreReader(ctx) },
+        state,
+        movementAdmission.header.id
+      )
     }
   } else if (input.request.kind === 'INPUTS') {
     response = { kind: 'INPUTS', state, system: await requireSystem(ctx, state.gameSystemId) }
   } else if (input.request.kind === 'CLEAVING_BINDINGS') {
     response = {
       kind: 'CLEAVING_BINDINGS',
-      bindings: await readEncounterCleavingBindings(ctx, state)
+      bindings: await readEncounterCleavingBindings(
+        { db: createConvexEncounterStoreReader(ctx) },
+        state
+      )
     }
   } else if (input.request.kind === 'INITIATIVE_ROUND') {
     response = {
       kind: 'INITIATIVE_ROUND',
       state:
         state.status === 'ACTIVE'
-          ? await readEncounterInitiativeRound(ctx, { encounterId: state.id, round: state.round })
+          ? await readEncounterInitiativeRound(
+              { db: createConvexEncounterStoreReader(ctx) },
+              { encounterId: state.id, round: state.round }
+            )
           : null
     }
   } else if (input.request.kind === 'SYSTEM_VOCABULARY') {
@@ -605,7 +581,15 @@ async function readOrdinaryEncounterCapture(
     input.request.kind === 'SCENE_PERCEPTION_ENTITIES' ||
     input.request.kind === 'SCENE_SPATIAL_EFFECTS'
   ) {
-    response = await readEncounterTurnCapture(ctx, state, input.request)
+    response = await readEncounterTurnCapture(
+      { db: createConvexEncounterStoreReader(ctx) },
+      state,
+      input.request,
+      {
+        readSceneHeader: async (sceneId) => (await readLiveScene(ctx, sceneId, 'MEMBER')).header,
+        readSceneEntities: (page) => readCurrentEntities(ctx, page, 'MEMBER')
+      }
+    )
   } else if (input.request.kind === 'DEFINITION') {
     // Encounter rules resolve the Campaign's definitions as its owner, for players too.
     const root = await readDefinitionRoot(ctx, input.request.definitionId, campaign.ownerUserId)
@@ -613,7 +597,11 @@ async function readOrdinaryEncounterCapture(
       throw new Error('Reusable definition System mismatch.')
     response = { kind: 'DEFINITION', definition: root?.current ?? null }
   } else {
-    const actor = await readRunActor(ctx, state, input.request.actorId)
+    const actor = await readRunActor(
+      { db: createConvexEncounterStoreReader(ctx) },
+      state,
+      input.request.actorId
+    )
     if (actor.kind === 'CHARACTER') {
       characterId = actor.sourceId
       const { assignment } = await requireCampaignCharacterAuthority(

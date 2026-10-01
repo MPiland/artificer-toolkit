@@ -1,11 +1,8 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button, CloseButton, Drawer, Popover, Text } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
-import type {
-  CharacterSheet,
-  OpenSheetPanel,
-  SubmitSheetCommand
-} from '../core/CharacterSheet.types'
+import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { formatHitDiceSummary } from '../overview/characterSheetOverview.utils'
 import { CharacterSheetRestControl } from '../rest/CharacterSheetRestControl'
@@ -32,7 +29,7 @@ export function CharacterSheetOverviewVitals({
   openPanel?: OpenSheetPanel
   overlayEpoch?: number
   pending: boolean
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   showDefenses?: boolean
   submitCommand: SubmitSheetCommand
 }) {

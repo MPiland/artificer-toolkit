@@ -1,11 +1,8 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Drawer, Text } from '@mantine/core'
 import { useState } from 'react'
 import IInspiration from '#assets/icons/IInspiration'
-import type {
-  CharacterSheet,
-  OpenSheetPanel,
-  SubmitSheetCommand
-} from '../core/CharacterSheet.types'
+import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as coreStyles from '../core/sheetShell.css'
 import * as overviewStyles from '../overview/overview.css'
 import * as sheetOverlayStyles from '../shared/sheetOverlay.css'
@@ -21,7 +18,7 @@ export function CharacterSheetMobileStatusBar({
 }: {
   openPanel?: OpenSheetPanel
   pending: boolean
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   submitCommand: SubmitSheetCommand
 }) {
   const [conditionsOpen, setConditionsOpen] = useState(false)

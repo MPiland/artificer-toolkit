@@ -19,6 +19,7 @@ import {
   replaceRunActor
 } from '@artificer-toolkit/encounter-persistence/documents'
 import { createEncounterInitiativeStore } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 
 export async function seedActiveInitiative(
   ctx: MutationCtx,
@@ -27,7 +28,8 @@ export async function seedActiveInitiative(
 ): Promise<void> {
   if (state.status !== 'ACTIVE' || actorIds[0] !== state.currentActorId)
     throw new Error('Active fixture initiative must begin with the current Encounter actor.')
-  const actors = await readRunActors(ctx, state)
+  const encounterContext = { db: createConvexEncounterStore(ctx) }
+  const actors = await readRunActors(encounterContext, state)
   const expectedActorIds = actors.map((actor) => actor.id).sort()
   const orderedActorIds = [...actorIds]
   if (
@@ -52,7 +54,7 @@ export async function seedActiveInitiative(
     state: staged.read(),
     orderedActorIds
   })
-  await createEncounterInitiativeStore(ctx).persistStagedInitiativeRound(
+  await createEncounterInitiativeStore(encounterContext).persistStagedInitiativeRound(
     serializeStagedInitiativeRoundState(settled)
   )
 }
@@ -106,10 +108,11 @@ export async function updateFixtureRunActors(
   update: (actor: EncounterRunActorState) => EncounterRunActorState
 ): Promise<EncounterRunActorState[]> {
   const { state } = await readFixtureRun(ctx, runId)
-  const actors = await readRunActors(ctx, state)
+  const encounterContext = { db: createConvexEncounterStore(ctx) }
+  const actors = await readRunActors(encounterContext, state)
   const updated = actors.map((actor) => encounterRunActorStateSchema.parse(update(actor)))
   for (const [index, actor] of actors.entries())
     if (checksumCanonicalJson(updated[index]) !== checksumCanonicalJson(actor))
-      await replaceRunActor(ctx, actor, updated[index]!)
+      await replaceRunActor(encounterContext, actor, updated[index]!)
   return updated
 }

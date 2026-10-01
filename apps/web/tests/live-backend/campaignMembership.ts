@@ -365,11 +365,19 @@ export async function verifyCampaignMembershipBrowser<T>(
     for (const account of input.accounts) {
       const sheets = []
       for (const id of account.characterIds) {
-        const sheet = await retryNativeQuery(() =>
-          account.client.query(api.characters.sheet.get, { id })
+        const slices = await Promise.all(
+          (
+            ['COMMON', 'ACTIONS', 'SPELLS', 'INVENTORY', 'EXTRAS', 'FEATURES', 'NOTES'] as const
+          ).map(async (slice) => {
+            const response = await retryNativeQuery(() =>
+              account.client.query(api.characters.sheetSlices.get, { id, slice })
+            )
+            assert.ok(response, `Known owned Character ${id} ${slice} must remain readable`)
+            assert.equal(response.slice, slice)
+            return response
+          })
         )
-        assert.ok(sheet, `Known owned Character ${id} must remain readable`)
-        sheets.push({ id, sheet })
+        sheets.push({ id, slices })
       }
       characterSheets.push(sheets)
     }

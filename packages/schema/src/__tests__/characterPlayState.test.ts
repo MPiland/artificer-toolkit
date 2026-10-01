@@ -6,6 +6,9 @@ import {
   splitCharacterPlayState,
   type CharacterPersistedState
 } from '../projections/characterPlayState.js'
+import { characterStoredPlayStateSchema } from '../projections/characterPersistence.js'
+import { readCharacterPlay } from '../projections/characterStoredState.js'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 const text = fc.string({ maxLength: 12 })
 const uuid = fc.uuid().map((value) => value.toLowerCase())
@@ -88,6 +91,35 @@ const sheetState = fc.record({
 const persisted: fc.Arbitrary<CharacterPersistedState> = fc.record({ state, sheetState })
 
 describe('Character play state split', () => {
+  it('validates typed persisted state and rejects changed state with a stale checksum', () => {
+    const state = {
+      hitpoints: { current: 5, hitDice: [] },
+      equipped: [],
+      attuned: [],
+      partyVisibility: { sheet: false, health: 'HIDDEN' as const },
+      resourceUsage: []
+    }
+    const stored = characterStoredPlayStateSchema.parse({
+      characterId: '00000000-0000-4000-8000-000000000001',
+      userId: '00000000-0000-4000-8000-000000000002',
+      streamVersion: 1,
+      maximumHitPoints: 10,
+      walkingSpeed: 30,
+      state,
+      checksum: checksumRuleDocument(state),
+      updatedAt: '2026-09-29T00:00:00.000Z'
+    })
+    expect(readCharacterPlay(stored)).toEqual(state)
+    expect(() => readCharacterPlay({
+      ...stored,
+      state: { ...state, hitpoints: { current: 4, hitDice: [] } }
+    })).toThrow('checksum mismatch')
+    expect(characterStoredPlayStateSchema.safeParse({
+      ...stored,
+      state: { ...state, hitpoints: { current: '5', hitDice: [] } }
+    }).success).toBe(false)
+  })
+
   it('merges back exactly what it split', () => {
     fc.assert(
       fc.property(persisted, (input) => {

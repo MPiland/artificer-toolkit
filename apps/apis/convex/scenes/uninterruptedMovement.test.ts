@@ -94,6 +94,8 @@ async function current(value: Awaited<ReturnType<typeof setup>>) {
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
       .collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     receipts: await ctx.db.query('encounterRuleReceipts').collect(),
     effects: await ctx.db.query('encounterSpatialRuleEffects').collect(),
     saves: await ctx.db.query('sceneGeometrySaves').collect(),

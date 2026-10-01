@@ -6,9 +6,28 @@ import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
 import { characterSheetCurrencyOptionDtoSchema } from './characterSheetData.js'
 import { liveSessionCharacterInputsResponseSchema } from './liveSessionCharacterRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
+import { sceneVisionRevisionSchema } from '../projections/sceneVisionRevisions.js'
 import { MAX_ROOM_INPUT_RESPONSE_DOCUMENTS } from './liveRoomInputsBatch.js'
+import { contentSnapshotManifestDtoSchema } from './contentSnapshots.js'
+import { liveSessionCheckpointSceneSourceSchema } from './liveSessionCheckpointScenes.js'
+import { sceneLiveStateHeaderSchema } from './sceneLiveState.js'
+import { sceneStoredDefinitionEntitySchema } from '../projections/sceneDefinitionPersistence.js'
 
 const nonNegativeInt = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
+/** Campaign authority does not depend on the room-owned PLAY revision. */
+export const liveRoomAuthorityRevisionsSchema = lazySchema(() =>
+  z
+    .array(z.extend(sceneVisionRevisionSchema, { revision: z.nullable(postgresUuidSchema) }))
+    .check(z.minLength(2))
+    .check(z.maxLength(2))
+    .check(
+      z.refine(
+        (revisions) =>
+          revisions.some((revision) => revision.scope === 'SYSTEM') &&
+          revisions.some((revision) => revision.scope === 'CAMPAIGN')
+      )
+    )
+)
 export const MAX_ROOM_INPUT_CHARACTERS = 128
 
 /**
@@ -24,16 +43,45 @@ const roomInputsCursorSchema = lazySchema(() =>
   )
 )
 
+/** The seven Scene families, with a saved fog body's native chunk cursor when needed. */
+export const liveRoomSceneInputsCursorSchema = lazySchema(() =>
+  z.nullable(
+    z.strictObject({
+      position: z.number().check(z.int()).check(z.nonnegative()).check(z.max(6)),
+      paginationCursor: z.nullable(z.string().check(z.maxLength(8192))),
+      fogSave: z.nullable(
+        z.strictObject({
+          id: postgresUuidSchema,
+          nextCursor: z.nullable(z.string().check(z.maxLength(8192))),
+          isLast: z.boolean()
+        })
+      )
+    })
+  )
+)
+
 /**
- * One scope of the inputs the room's rules engine reads (ADR 0035, Amendment 11). RUN and CHARACTERS
- * page; the others are single documents. The room caches each scope by its revision.
+ * One scope of the inputs the room's rules engine reads (ADR 0035, Amendment 11). AUTHORITY, RUN,
+ * SCENE, CHARACTERS and DEFINITIONS page; other scopes are cached single documents.
  */
 export const liveRoomInputsScopeSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('CAMPAIGN_PLAY') }),
+    z.strictObject({ kind: z.literal('AUTHORITY'), cursor: roomInputsCursorSchema }),
+    z.strictObject({ kind: z.literal('CHAT_METADATA'), cursor: roomInputsCursorSchema }),
     z.strictObject({
       kind: z.literal('RUN'),
       encounterId: postgresUuidSchema,
+      cursor: roomInputsCursorSchema
+    }),
+    z.strictObject({
+      kind: z.literal('SCENE'),
+      sceneId: postgresUuidSchema,
+      cursor: liveRoomSceneInputsCursorSchema
+    }),
+    z.strictObject({
+      kind: z.literal('SCENE_DEFINITION'),
+      sceneId: postgresUuidSchema,
       cursor: roomInputsCursorSchema
     }),
     z.strictObject({
@@ -44,7 +92,7 @@ export const liveRoomInputsScopeSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ROOM_INPUT_CHARACTERS)),
       cursor: roomInputsCursorSchema
     }),
-    z.strictObject({ kind: z.literal('DEFINITION'), definitionId: postgresUuidSchema }),
+    z.strictObject({ kind: z.literal('DEFINITIONS'), cursor: roomInputsCursorSchema }),
     z.strictObject({ kind: z.literal('SYSTEM'), part: z.enum(['SYSTEM', 'VOCABULARY']) })
   ])
 )
@@ -113,16 +161,42 @@ export const liveRoomCharacterPartSchema = lazySchema(() =>
           system: true
         })
       ),
+      /** Authorized SOURCE and CAMPAIGN heads on the first Character part only. */
+      contentSnapshots: z.nullable(contentSnapshotManifestDtoSchema),
       documents: pagedDocuments
     })
   ])
 )
 
+/** All definitions readable as the Campaign owner, including unpublished owned roots. */
+export const liveRoomDefinitionSchema = lazySchema(() =>
+  z.strictObject({
+    id: postgresUuidSchema,
+    sourceKind: z.enum(['PLATFORM', 'USER']),
+    definition: z.nullable(reusableDefinitionCurrentDtoSchema)
+  })
+)
+
 export const liveRoomInputsResponseSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
+      kind: z.literal('CHAT_METADATA'),
+      /** Conversations, access cutoffs and nonce headers; excludes historical text and rolls. */
+      documents: pagedDocuments,
+      continueCursor: roomInputsCursorSchema
+    }),
+    z.strictObject({
+      kind: z.literal('AUTHORITY'),
+      revisions: liveRoomAuthorityRevisionsSchema,
+      /** Account profiles still present for the members in this page, including LEFT members. */
+      accountUserIds: z.array(postgresUuidSchema).check(z.maxLength(10_000)),
+      documents: pagedDocuments,
+      continueCursor: roomInputsCursorSchema
+    }),
+    z.strictObject({
       kind: z.literal('CAMPAIGN_PLAY'),
       revisions: liveSessionRulesRevisionsSchema,
+      contentSnapshots: contentSnapshotManifestDtoSchema,
       campaign: z.strictObject({
         id: postgresUuidSchema,
         gameSystemId: postgresUuidSchema,
@@ -140,14 +214,33 @@ export const liveRoomInputsResponseSchema = lazySchema(() =>
       continueCursor: roomInputsCursorSchema
     }),
     z.strictObject({
+      kind: z.literal('SCENE'),
+      source: liveSessionCheckpointSceneSourceSchema,
+      /** Includes raw counters, tombstones, save references and receipts; no composed token vision. */
+      sceneVersion: nonNegativeInt,
+      documents: pagedDocuments,
+      continueCursor: liveRoomSceneInputsCursorSchema
+    }),
+    z.strictObject({
+      kind: z.literal('SCENE_DEFINITION'),
+      source: liveSessionCheckpointSceneSourceSchema,
+      header: sceneLiveStateHeaderSchema,
+      entities: z.array(sceneStoredDefinitionEntitySchema)
+        .check(z.maxLength(MAX_ROOM_INPUT_RESPONSE_DOCUMENTS)),
+      continueCursor: roomInputsCursorSchema
+    }),
+    z.strictObject({
       kind: z.literal('CHARACTERS'),
       parts: z.array(liveRoomCharacterPartSchema),
       continueCursor: roomInputsCursorSchema
     }),
     z.strictObject({
-      kind: z.literal('DEFINITION'),
-      revisions: liveSessionRulesRevisionsSchema,
-      definition: z.nullable(reusableDefinitionCurrentDtoSchema)
+      kind: z.literal('DEFINITIONS'),
+      /** Content and owner access change independently of room-owned PLAY. */
+      revisions: liveRoomAuthorityRevisionsSchema,
+      definitions: z.array(liveRoomDefinitionSchema)
+        .check(z.maxLength(MAX_ROOM_INPUT_RESPONSE_DOCUMENTS)),
+      continueCursor: roomInputsCursorSchema
     }),
     z.strictObject({
       kind: z.literal('SYSTEM'),
@@ -160,7 +253,9 @@ export const liveRoomInputsResponseSchema = lazySchema(() =>
 
 export type LiveRoomInputsScope = z.infer<typeof liveRoomInputsScopeSchema>
 export type LiveRoomInputsCursor = z.infer<typeof roomInputsCursorSchema>
+export type LiveRoomSceneInputsCursor = z.infer<typeof liveRoomSceneInputsCursorSchema>
 export type LiveRoomInputsInput = z.infer<typeof liveRoomInputsInputSchema>
 export type LiveRoomInputsDocument = z.infer<typeof liveRoomInputsDocumentSchema>
 export type LiveRoomInputsResponse = z.infer<typeof liveRoomInputsResponseSchema>
 export type LiveRoomCharacterPart = z.infer<typeof liveRoomCharacterPartSchema>
+export type LiveRoomDefinition = z.infer<typeof liveRoomDefinitionSchema>

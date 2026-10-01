@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
@@ -32,6 +33,8 @@ type Fixture = Awaited<ReturnType<typeof turnConcentrationFixture>>
 async function records(base: Fixture) {
   const characterIds = [base.character.id, base.targetCharacter.id]
   return base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (query) => query.eq('id', base.run.id))
@@ -65,6 +68,7 @@ async function records(base: Fixture) {
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (query) => query.eq('encounterId', base.run.id))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
 }
 

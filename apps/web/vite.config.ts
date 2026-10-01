@@ -41,8 +41,10 @@ function bundleVanillaExtractRuntime(): Plugin {
   }
 }
 
-// The Node Sentry SDK does not run on workerd (ADR 0037); fail the Worker build if any path pulls it in.
+// Worker SSR cannot load the Node Sentry SDK (ADR 0037) or a parser requiring browser DOM APIs.
 const nodeOnlySentryModule = /[\\/]node_modules[\\/]@sentry[\\/]node(-core)?[\\/]/
+const browserOnlyHtmlParserModule =
+  /[\\/]node_modules[\\/]html-dom-parser[\\/](?:esm|lib)[\\/]client[\\/]/
 
 function workerBundleGuard(): Plugin {
   return {
@@ -52,12 +54,14 @@ function workerBundleGuard(): Plugin {
       const offenders = Object.values(bundle).flatMap((output) =>
         output.type === 'chunk'
           ? output.moduleIds
-              .filter((id) => nodeOnlySentryModule.test(id))
+              .filter((id) => nodeOnlySentryModule.test(id) || browserOnlyHtmlParserModule.test(id))
               .map((id) => `${output.fileName}: ${id}`)
           : []
       )
       if (offenders.length > 0) {
-        this.error(`The Worker bundle includes the Node Sentry SDK:\n${offenders.join('\n')}`)
+        this.error(
+          `The Worker bundle includes a Node SDK or browser DOM parser:\n${offenders.join('\n')}`
+        )
       }
     }
   }
@@ -95,7 +99,14 @@ export default defineConfig(({ mode }) => {
       ]
     },
     resolve: {
-      tsconfigPaths: true
+      tsconfigPaths: true,
+      // Worker SSR has no DOM. Use the installed pure-JS parser on both sides for matching markup.
+      alias: [
+        {
+          find: /^html-dom-parser$/,
+          replacement: fileURLToPath(import.meta.resolve('html-dom-parser/lib/server/html-to-dom'))
+        }
+      ]
     },
     ssr: {
       optimizeDeps: {

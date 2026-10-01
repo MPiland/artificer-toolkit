@@ -1,3 +1,5 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { readReceiptHeader } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import { characterSheetCommandInputDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
@@ -114,7 +116,7 @@ async function setup(input: {
           : { currentHitPoints: input.creatureHitPoints }),
         public: !input.hidden
       }
-      await writeRunActor(ctx, actorRow._id, adjusted)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, actorRow._id, adjusted)
     }
     return discoverEncounterFeatureActionCapabilities({
       actor: actorState,
@@ -157,6 +159,7 @@ async function settledBatch(base: Fixture) {
         q.eq('encounterId', base.run.id).eq('commandId', base.command.commandId)
       )
       .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
   )
   if (!receipt) throw new Error('The SRD attack receipt is missing.')
   const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
@@ -507,7 +510,7 @@ describe('seeded SRD Creature hit riders in the room', () => {
     )
     const reductions = () =>
       base.t.run((ctx) =>
-        createActiveRuleEffectStore(ctx).list({
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
           kind: 'CHARACTER',
           characterId: base.character.id
         })
@@ -587,8 +590,12 @@ describe('seeded SRD Creature hit riders in the room', () => {
         previewFingerprint: preview.previewFingerprint
       })
     })
+    expect(rested).not.toHaveProperty('sheet')
+    const restedSheet = (await base.player.caller.query(api.characters.sheet.get, {
+      id: rested.characterId
+    }))!
     expect(await reductions()).toEqual([])
-    expect(rested.sheet.overview).toMatchObject({
+    expect(restedSheet.overview).toMatchObject({
       currentHitPoints: maximum,
       maxHitPoints: maximum
     })

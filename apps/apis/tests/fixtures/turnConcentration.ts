@@ -10,14 +10,14 @@ import type {
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_CONCENTRATION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { createEncounterInitiativeDefinitions } from './encounterInitiative'
 import { turnCharacterEffectFixture } from './turnActiveEffectFixtures'
 import { api, components, internal } from '../../convex/_generated/api'
-import { readCharacterRow } from '../../convex/characters/stateDocuments'
+import { readCharacterRecord, readCharacterRow } from '../../convex/characters/stateDocuments'
+import { writeCharacterRecord } from './characterRecords'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import { executeInRoom } from './liveSessionWorker'
 
@@ -92,17 +92,10 @@ export async function turnConcentrationFixture(rolls: FixtureRolls) {
       .withIndex('by_subjectId', (query) => query.eq('subjectId', target.character.id))
       .unique()
     if (!row || !route) throw new Error('Missing second Character ownership rows.')
-    // The stored document holds the Builder-owned structure only, so it is not a full Character.
-    const document: Record<string, unknown> = {
-      ...JSON.parse(row.documentJson),
+    await writeCharacterRecord(ctx, row, {
+      document: readCharacterRecord(row),
       userId: targetIdentity.userId
-    }
-    await ctx.db.patch(row._id, {
-      userId: targetIdentity.userId,
-      documentJson: canonicalizeRuleDocument(document),
-      checksum: checksumRuleDocument(document)
     })
-    await ctx.db.patch(row.play._id, { userId: targetIdentity.userId })
     await ctx.db.patch(route._id, { ownerUserId: targetIdentity.userId })
   })
   await base.t.run((ctx) =>

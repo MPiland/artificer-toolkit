@@ -105,7 +105,19 @@ export const backfill = internalMutation({
                   selectionMode: existing.selectionMode ?? metadata.selectionMode
                 }
               : {}),
-            ...(metadata.spell !== undefined ? { spell: existing.spell ?? metadata.spell } : {})
+            ...(metadata.spell !== undefined
+              ? {
+                  spell: existing.spell
+                    ? existing.spell.selectionVersion === 1
+                      ? {
+                          ...existing.spell,
+                          publishedActive:
+                            existing.spell.publishedActive ?? metadata.spell.publishedActive
+                        }
+                      : { ...metadata.spell, ...existing.spell }
+                    : metadata.spell
+                }
+              : {})
           }) !==
           canonicalizeRuleDocument({
             ...metadata,
@@ -118,6 +130,8 @@ export const backfill = internalMutation({
           existing.countsVersion === undefined ||
           (metadata.selectionMode !== undefined && existing.selectionMode === undefined) ||
           (metadata.spell !== undefined && existing.spell === undefined) ||
+          (metadata.spell !== undefined && existing.spell?.selectionVersion !== 1) ||
+          (metadata.spell !== undefined && existing.spell?.publishedActive === undefined) ||
           (root.subjectKind === 'SPELL' && root.spellClassesIndexed !== true)
         )
           await syncCatalogueMetadata(ctx, root._id, metadata)

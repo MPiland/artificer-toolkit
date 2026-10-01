@@ -28,6 +28,87 @@ erDiagram
 authentication identifiers. `campaigns.ownerUserId` and `campaignMemberships` are the Campaign authority
 records; downstream documents do not widen access merely because they contain a public UUID.
 
+## Character operational records — approved completion target
+
+Convex remains the application backend. Mutable Character data is split by the reads and writes that
+use it; a complete Character is assembled at Builder, rules, import/export and capture boundaries.
+The typed operational storage is implemented locally; focused Sheet queries and integrated proof
+remain in progress. The head stores identity, clocks and complete structure checksums. Build and play
+values are typed, and each owned collection has one checksummed row per instance with its array position.
+`characterOperationalState.ts` centrally splits and reconstructs complete captures. Mutable heads no
+longer store `documentJson` or a Sheet JSON envelope. Missing final rows fail the complete head checksum.
+Checksummed per-family counts on Build also prove completeness for selected collection reads;
+the central structural writer changes counts and rows atomically under the existing structure clock.
+
+| Record family          | Contents                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Head                   | UUID, owner, System, status, label, portrait metadata, structure clock and complete structure checksums               |
+| Build                  | Profile and Builder intent, with bounded typed value objects                                                          |
+| Play                   | HP, hit dice, inspiration, resources, slots, conditions, exhaustion, equipped/attuned IDs, usage and party visibility |
+| Inventory and currency | One record per item or currency group; containers use IDs                                                             |
+| Spells                 | Class selections and source-specific customizations, preserving current ownership and conflicts                       |
+| Extras                 | One Creature or Vehicle instance, its state and equipment relationships                                               |
+| Notes                  | One note or group, preserving owner privacy and ordering                                                              |
+
+Campaign adjustments and conditions stay Campaign-scoped. Storage changes preserve the structure and
+play clocks, public UUIDs, transaction boundaries, current source access, replay and cleanup. Inventory
+and other existing structural changes continue to invalidate stale Builder drafts. Validation lives in
+`packages/schema`; database-schema evaluation must remain independent of the full mechanics graph.
+
+Canonical authored versions, working drafts, immutable snapshots and complete replay/capture artifacts
+may retain validated, checksummed JSON. Operational normalization does not normalize authored mechanics.
+
+Public Sheet command responses contain compact acknowledgements; subscribed queries own state delivery.
+The private Encounter command result still carries a Sheet within its transaction. Note/group mutations
+use complete Character assembly for integrity and the canonical writer with unchanged mechanical values,
+so they do not hydrate sources or evaluate rules. The NOTES query reads only head, play, Build and
+note/group records and verifies their counts; narrowing note mutation reads remains completion work.
+Development data uses the guarded local reset/seed lifecycle; retired columns and compatibility readers
+are removed from the final model. The existing Docker container and volume are retained.
+
+**Held Character authority (current source, unverified S7).**
+[liveCharacterHolds](../../packages/schema/src/projections/liveCharacterHold.ts) stores Character,
+Campaign, active Run and room epoch. [characterHolds](../../apps/apis/convex/liveSessions/characterHolds.ts)
+reconciles unfrozen Character actors at claim/recovery and when a checkpoint changes Runs/actors;
+final acknowledged authority release deletes that epoch's holds. Direct Convex play, preference and
+rest writers reject a current hold. The central Character writer preserves the complete checkpoint
+play row, including its checksum, stream/updated clock and derived stats, during outside structural
+edits, and refuses a pure play change. Builder commit returns persisted play and stream version.
+The room reconciles fresh Builder inputs against native play at its next command boundary.
+
+The native `CHARACTER_SHEET` lane joins the typed play write, shared private Character receipt and
+journal receipt/head in one SQLite transaction before acknowledgement. Compact acknowledgements
+do not carry a Sheet projection; only the initiating member receives private history, while every
+admitted member advances the same sequence with `delta: null`; pending Sheet commands settle only
+on their own CHARACTER_SHEET delta. Socket replay revalidates checksummed ACTIVE Run/unfrozen actor
+and current Campaign/System/play ownership. Room party visibility is restored from an unpublished
+suffix before current authorization is used. Frontend live routing/projection subscriptions and
+membership/controller/account-deletion integration remain open; Campaign deletion now includes hold
+rows. The hold schema requires local reset/seed/codegen and lifecycle/replay/rollback/privacy proof.
+No generated or integrated runtime gate has run on this source.
+
+The focused `sheetSlices.liveAuthority` routing read uses head, holds and typed play only, exposes
+metadata to the owner/GM and returns null for party readers. Optional authority `checkpointedAt`
+records only actual acknowledged delta-checkpoint or retained per-command publication; exact retry
+and drain leave it unchanged. Activation/new recovery omits it, and routing metadata returns null
+before the epoch's first acknowledgement. Web freshness UI remains open. Direct
+`encounters/commands.execute` now fences every command type while live authority
+exists. Separate epoch-fenced `liveSessions` endpoints retain transitional Worker commits; this does
+not retire those paths or establish lifecycle acceptance.
+
+```mermaid
+flowchart LR
+  Records["Convex Character records"] --> Assemble["Shared validated Character assembly"]
+  Assemble --> Builder["Builder commit and import/export"]
+  Assemble --> Rules["Rules and complete room captures"]
+  Records --> Slices["Authorized common Sheet state and active feature slices"]
+```
+
+**Target access:** common visible state subscribes independently; actions, spells, inventory, extras, notes and inspectors
+load for their active surfaces. Command acknowledgements carry receipts/results while subscriptions or
+room messages deliver state. HP writes must avoid inventory/notes reads, and note edits must avoid rules
+evaluation. Those access properties require integration and measured proof before acceptance.
+
 Convex has no SQL foreign-key or cascade layer. Each mutation validates the complete relationship it
 uses and commits its writes atomically. Ordinary departure, custody transfer, and source-loss cleanup
 therefore either commit a complete valid result or leave prior state unchanged. Campaign deletion uses
@@ -73,7 +154,10 @@ An exactly-once scheduled mutation checks for a stalled Deleting revision and re
 at-most-once cleanup action, including after the initiating account disappears.
 
 Account deletion validates identity, credentials, owned-Campaign restrictions, and all immediate
-private-state cleanup in the Better Auth deletion transaction. Shared Campaign messages, rolls,
+private-state cleanup in the Better Auth deletion transaction. Under the locally integrated D71 implementation,
+account/Character state and private receipt headers are deleted atomically with durable purge intent;
+unreachable private Character ledger payloads are removed in bounded, retryable native mutations.
+Shared Campaign messages, rolls,
 Sessions, and completed history remain with deleted-user presentation. After the app profile is gone,
 bounded scheduled purges remove private delivery, usage, media, invitation, block, and copy-job residue;
 they cannot restore authority or expose a partial account.
@@ -141,10 +225,12 @@ so the Session room can later run the same code against its own store. It depend
   names. `storeTables.ts` lists its tables with their `packages/schema` stored schemas and indexes:
   the Encounter Run tables, the active, maintained and spatial rule-effect tables, `campaigns`,
   `campaignMemberships`, `campaignCharacterAssignments`, `characters` and
-  `characterCommandReceipts`. Methods are typed per table and index, so Convex's `ctx.db` satisfies
-  the interface without a cast and any drift from the Convex schema is a compile error.
+  `characterCommandReceipts`. Methods are typed per table and index. Convex enters this logical
+  store through `lib/convexEncounterStore`: the four history families hydrate scalar headers from
+  their ledgers, while other tables retain their native rows and indexes.
 - **Contexts.** Pure store code takes `{ db }` (`EncounterReadContext`, `EncounterWriteContext`),
-  which a Convex `QueryCtx` or `MutationCtx` already is. Code that also needs something outside the
+  supplied by the explicit native reader or writer. Application queries keep their physical
+  `ctx.db` and hydrate only authorized selected headers. Code that also needs something outside the
   store takes a transaction with `ports` (`EncounterReadTransaction`, `EncounterWriteTransaction`).
 - **Ports** (`ports.ts`) name everything the Encounter code needs from other domains: identity, live
   authority, Campaign and Character authority, System and definition content, content labels and
@@ -183,6 +269,58 @@ so the Session room can later run the same code against its own store. It depend
 > Status: current local implementation of the Encounter and Character parts of Amendment 12.
 > Packed history per checkpoint (S3) is not done yet.
 
+**Approved target (D70, clarified 2026-09-30).** Codex made the decision to pack immutable history payloads
+once per checkpoint and retain small indexed per-command receipt headers with ledger-entry pointers;
+the user approved it. Headers preserve current command-ID collision checks, public UUID cursors,
+visibility and D68 replay without repeating history bodies. Payloads and pointers are checksummed
+and published atomically. Cleanup tombstones only the selected entries and preserves surviving
+indexes; selective retained-history cleanup deletes the payload and parts when the last header is removed. Campaign deletion retains
+personal Character receipts, and personal deletion retains shared Encounter history. Following the
+2026-09-30 approved clarification, each Character's private command receipts are packed separately
+from shared Encounter receipts; shared Campaign/Encounter ledgers contain no private Character
+command payloads. This avoids account cleanup reading unrelated shared history. Ledger scope is
+creation provenance; current Character ownership authorizes personal history even after its Campaign
+is deleted. **D71, approved 2026-09-30:** Codex recommended and the user approved atomically deleting
+account/Character state and private receipt headers together with durable purge intent. Unreachable
+private Character ledger payloads are then physically purged in bounded, retryable native mutations
+through the existing deferred-cleanup lifecycle. Each purge verifies private Character ownership scope
+and the absence of live receipt headers before removing storage; shared Encounter history remains.
+Private history becomes inaccessible at the state/reference commit, with no lifetime retention cap.
+Full payload validation remains required for publication, reads and selective cleanup of retained history.
+D71 source is integrated. The 2026-09-30 focused local proof passed 54 API storage/private-purge/account
+deletion tests, dependency builds and Convex TypeScript checks, and local Docker codegen/deploy.
+Native proof `phase82-receipt-max-v8-20260930` passed with three 4,194,304-byte ledgers: creation and
+private-retirement rollback markers, complete paging/replay, real `auth:onDelete` logical removal,
+bounded physical purge, duplicate purge retries, SDK cleanup and stale-JWT denial. See the
+[private receipt retirement evidence](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+Final integration and the complete local lifecycle, F12/R08 acceptance, checkpoint publication and Q16
+remain pending. No acceptance cases have advanced; the ledger remains 51/75 with 24 open.
+See [ADR 0035 D70](../adr/0035-room-authoritative-live-encounters.md#d70-packed-history-with-indexed-receipt-headers--2026-09-29).
+The changed private-payload transaction boundary is recorded in
+[ADR 0035 D71](../adr/0035-room-authoritative-live-encounters.md#d71-bounded-deferred-private-payload-purge--2026-09-30);
+it establishes neither acceptance nor a Q16 budget pass.
+
+**Current local foundation:** Schema owns scalar ledger metadata, binary storage types, indexed
+entry-pointer contracts and all four scalar header families. The Encounter persistence codec checks
+canonical UTF-8, hashes, complete
+stored row shapes and public identities. Small payloads stay inline; oversized payloads use bounded
+binary parts, bounded to 4 MiB, 16,000 slots and 18 parts before decoding or allocation. Cleanup can
+tombstone a slot without renumbering surviving pointers. Native `receiptLedgers` heads and
+`receiptLedgerParts` hold bodies; the four indexed receipt tables hold scalar fields and stable
+entry pointers. Ordinary non-live writes seal one receipt in their existing mutation. Selective retained-history cleanup
+coalesces selected families by ledger, validates every live header/slot, and removes empty bodies
+atomically within the approved ledger scopes. Character history uses a Schema-owned application cursor
+over the owner/Character chronological `(occurredAt, id)` index, reads at most two lookahead headers,
+and hydrates one entry. It does not accept native pagination `endCursor` or `id` and is not a
+`usePaginatedQuery` contract; restarting from a null cursor includes insertions before a consumed key.
+Stateless room hydration retains complete native pages and their opaque cursor/status metadata.
+Before body hydration, native receipt pages validate the summed bytes of distinct ledgers against
+the 4 MiB read budget; an oversized window fails without truncating its cursor. Native end-cursor
+windows can ignore requested row and byte limits, so those limits alone do not establish safety.
+The focused storage suite passed 33 checks before this integration. Native transaction limits, complete room
+hydration and Q16 remain verification gates. Prelaunch development data resets with this schema;
+the old timeline body-row backfill is retired, and new commands seal derived timeline metadata.
+
 - **Character play state.** A Character is a `characters` row (Builder-owned structure and the
   Sheet's structure envelope, clocked by `updatedAt`) and a `characterPlayStates` row (hit points,
   resources, slots, conditions, exhaustion, inspiration, item-use state, resource usage, party
@@ -193,6 +331,11 @@ so the Session room can later run the same code against its own store. It depend
   stay per Campaign. See [Character play state](character.md#character-play-state-adr-0035-amendment-12--local-implementation)
   for the concurrency rule. The contract is `schema/projections/characterPlayState`; the room store
   takes its record shape from it.
+
+  Current held-Character source preserves that entire play row across outside structural edits;
+  native Sheet commands use the caller's room transaction and the same typed writer. The nineteen
+  permitted commands exclude maximum overrides, rests, notes and structural/customization changes.
+  Hold lifecycle and frontend integration remain unverified completion work, as described above.
 
 - **No stored projection.** `encounterRuns` holds the Run state only. Every projection is built on
   read by `readEncounterGmProjection` (`nativeProjection.ts`) from the Run state, its actors'
@@ -223,7 +366,7 @@ so the Session room can later run the same code against its own store. It depend
   conditions) for the times the Run stops reading it: the COMPLETE command freezes every Character,
   and `removeCampaignCharacterAssignment` freezes the departing Character in the Campaign's open
   Runs. A Character that returns is read live again.
-- **Replay receipts, not results.** `encounterRunCommands` stores `replayReceiptJson`: the
+- **Replay receipts, not results.** The Run command's sealed ledger entry stores `replayReceiptJson`: the
   command's roll and occurrence summary (`encounterStoredReplayReceiptSchema`), a few hundred bytes.
   The timeline reads its roll. Exact replay (`replayEncounterCommandResult`, `replayReceipts.ts`)
   rebuilds the projection from the current records and adds the receipt. While the Run is still at
@@ -389,6 +532,11 @@ become withdrawn with retained terminal history; reports/audits keep existing au
 
 Private Character cleanup follows Campaign departure, deletes strictly validated private targets through
 the existing effect CAS store, and preserves retained Encounter actors/receipts/state and foreign effects.
+The locally integrated D71 change removes private receipt headers with account/Character state and durable purge
+intent in that transaction, then purges unreachable private ledger payloads in bounded, retryable native
+mutations after verifying private ownership scope and no live headers. Focused local native deletion,
+rollback, bounded purge, duplicate retry and stale-JWT denial proof passed on 2026-09-30; final
+integration, lifecycle and F12 acceptance remain pending.
 FINISHED Sessions never require live private Character sources. Current authored deletion retains dependent
 documents, compilation and drafts, adding server-only exact source-kind/UUID/label catalogue provenance.
 Same-document backfill preserves these labels; republishing still requires a live valid chosen source.
@@ -507,6 +655,13 @@ The head no longer holds inline payload JSON, and every head has exactly one pay
 [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md) publishes content as
 immutable R2 objects; Convex owns only their bookkeeping (`apps/apis/convex/contentSnapshots`).
 
+Current SOURCE/CAMPAIGN objects use format 2 and `v2/` keys. The document part retains ordered
+original publication identities, numeric versions and stored parent metadata beside its normalized
+DTO roots. Original storage checksums remain source pins; object hashes do not substitute for them.
+The builder and readers reject incomplete or mismatched pins. Format 1 development heads/objects
+are reset and rebuilt in the pre-launch migration; no compatibility reader is retained. System and
+vocabulary keep their revision-bound room-input path.
+
 - **Scopes.** Each content source, PLATFORM or USER, is one `SOURCE` scope: its readable roots by
   the Builder's source rules (`readCharacterSourceRoots` plus `canReadAuthoredRoot`, so hidden
   import rows are excluded). A `CAMPAIGN` scope holds the shares that pass
@@ -549,6 +704,20 @@ immutable R2 objects; Convex owns only their bookkeeping (`apps/apis/convex/cont
   source objects public for [delivery](media.md#content-snapshot-delivery-adr-0036-s3--local-implementation).
 
 ### Content snapshot manifest (ADR 0036 S4) — local implementation
+
+Character preparation options reuse these authorized heads for owner pickers. The current public
+contract carries complete class eligibility and prepared IDs; scrolling pages compact snapshot rows
+in the browser without further Convex calls. Campaign GM preparation keeps compact inline Character
+rows because a Character projection grants no access to the owner's private USER snapshot scope.
+
+Mutable source discovery reads checksum-bound `authoredRoots.catalogue.spell` selector facts, including
+attributes, components and material description. `selectionVersion: 1` witnesses complete materialization;
+`publishedActive` seals publication status with the same document checksum, so Campaign share discovery
+does not load unused Spell documents to check status. Publication updates these facts atomically.
+The bounded exact catalogue backfill compares existing facts against the canonical document before
+patching missing fields. Current readers reject an absent marker or stale checksum. This transitional
+backfill admission does not allow mechanics to execute metadata: full authored versions still validate
+at the referenced mechanics and individual inspector boundaries.
 
 `contentSnapshots/manifest:manifest({systemId, characterId?})` is the reactive query a Builder uses
 to find its snapshots. It calls `readCharacterSources` itself, so the manifest's scopes are exactly
@@ -1623,7 +1792,7 @@ the unmigrated transport.
 ```mermaid
 flowchart LR
     open["conversations:open mutation"] --> rooms["campaignConversations + campaignConversationMembers"]
-    send["chat:send / rolls:execute mutations"] --> headers["campaignConversationEntries: compact identity/time/nonce"]
+    send["chat:send / rolls:execute mutations"] --> headers["campaignConversationEntries: identity/time/kind/nonce evidence"]
     send --> payloads["campaignConversationEntryPayloads: text/roll + identity snapshots"]
     rooms --> reads["conversations:list / chat:list reactive queries"]
     headers --> reads
@@ -1645,6 +1814,21 @@ Conversation lists derive possible DIRECT pairs from the bounded active roster r
 historical peer memberships. The two row parts are authoritative halves of one entry, not a cache:
 they are inserted together. Every CHAT/ROLL/tombstone entry is kept; there is no per-room retention
 cap (D69), so history grows with play and is paged.
+
+**Current source, execution proof pending (2026-09-30):** entry headers also store `kind` and a
+nullable `rollNonceFingerprint`. The central paired writer validates the payload and derives this
+metadata atomically. A ROLL fingerprint covers exactly the existing strict Encounter retry fields;
+reveal and rest consumption do not change it. CHAT headers retain a null fingerprint, preserving
+the existing same-conversation/kind retry without comparing submitted text. Prelaunch fixture rows
+reset before the new schema push; seed and fixture writers use the same paired insertion path.
+
+`CHAT_METADATA` room inputs page conversations, member access cutoffs and entry nonce headers through
+Campaign indexes, without reading historical message/roll bodies. Epoch hydration validates Campaign
+scope, public identities, conversation references and author nonce uniqueness before replacing the
+SQLite snapshot. Shared conversation opening and rules-chat persistence now serve both hosts.
+Checkpoints carry typed conversation/member/header/payload deltas together; paired metadata,
+retained history and Campaign scope remain publication invariants. General live chat, TABLE roll
+ports, recipient fan-out and their complete lifecycle remain unfinished.
 
 `chat:list` reads one page through `by_conversationId_createdAt_id`, newest first by timestamp then
 UUID. The cursor is the previous page's last entry UUID: the page takes entries tied with the
@@ -3726,6 +3910,9 @@ Revisit this migration when direct Data API use expands, an external integration
 
 Character receipt ownership follows the validated Character aggregate. `characterCommandReceipts.actorId`
 is the audited command caller and can be the Campaign DM for outcomes applied to a player's Character.
-Owner deletion validates each receipt's checksum and event/actor/time agreement; a different audit
-actor never supplies another owner with a deletion veto. This local repair is pending completed Native
-and actual-backend lifecycle verification.
+An audited caller never supplies another owner with a deletion veto. Under the locally integrated D71 implementation,
+owner deletion removes private headers atomically with Character state and durable purge intent;
+deferred purge verifies private ownership scope and no live headers without hydrating retired payloads.
+Publication, reads and selective retained-history cleanup still validate payload checksums and
+event/actor/time agreement. Focused D71 local native proof passed; final integration, the complete
+local lifecycle and F12/R08 acceptance remain pending.

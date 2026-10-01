@@ -118,15 +118,15 @@ export function buildCharacterPreparationOptions(input: {
   streamVersion: number
   eligibility: readonly CharacterSpellPreparationEligibility[]
   summaries: readonly Pick<SpellAuthored, 'id' | 'label' | 'level'>[]
-  committedSpells: readonly Pick<SpellAuthored, 'id' | 'label' | 'level'>[]
   classes: readonly Pick<ClassAuthored, 'id' | 'label'>[]
+  catalogue: CharacterPreparationOptionsResponseDto['catalogue']
 }): CharacterPreparationOptionsResponseDto {
-  const summariesById = new Map(input.summaries.map((spell) => [spell.id, spell]))
-  const committedSpellsById = new Map(input.committedSpells.map((spell) => [spell.id, spell]))
+  const readableSpellIds = new Set(input.summaries.map((spell) => spell.id))
   const classLabelsById = new Map(input.classes.map((record) => [record.id, record.label]))
   return {
     characterId: input.characterId,
     streamVersion: input.streamVersion,
+    catalogue: input.catalogue,
     classes: input.eligibility.map((source) => {
       const label = classLabelsById.get(source.classId)
       if (!label) {
@@ -138,27 +138,10 @@ export function buildCharacterPreparationOptions(input: {
         classId: source.classId,
         label,
         preparedSpellLimit: source.preparedSpellLimit,
-        options: source.eligibleSpellIds
-          .flatMap((spellId) => {
-            const summary = summariesById.get(spellId)
-            if (!summary) return []
-            const committed = committedSpellsById.get(spellId)
-            return [
-              {
-                spellId,
-                label: committed?.label ?? summary.label,
-                level: committed?.level ?? summary.level,
-                prepared: source.preparedSpellIds.includes(spellId),
-                committed: committed !== undefined
-              }
-            ]
-          })
-          .sort(
-            (left, right) =>
-              left.level - right.level ||
-              left.label.localeCompare(right.label) ||
-              left.spellId.localeCompare(right.spellId)
-          )
+        eligibleSpellIds: source.eligibleSpellIds.filter((spellId) =>
+          readableSpellIds.has(spellId)
+        ),
+        preparedSpellIds: [...source.preparedSpellIds]
       }
     })
   }

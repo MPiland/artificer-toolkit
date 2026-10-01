@@ -23,7 +23,12 @@ import { insertRunCommand } from './timelineEntries.js'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument } from './store.js'
-import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
+
+type VoidChatTransaction = EncounterPersistenceTransaction & {
+  readonly ports: EncounterPersistenceTransaction['ports'] &
+    Pick<EncounterWritePorts, 'postRulesChatMessage'>
+}
 
 type Resolution = ResolveRuleOccurrenceInputDto['resolution']
 type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext']
@@ -123,7 +128,10 @@ type VoidAdmission =
   | ({ kind: 'READY' } & VoidScope)
 
 /** GM-only; the stored VOID receipt replays before any currentness check. */
-async function admitVoid(ctx: EncounterWriteTransaction, args: unknown): Promise<VoidAdmission> {
+async function admitVoid(
+  ctx: EncounterPersistenceTransaction,
+  args: unknown
+): Promise<VoidAdmission> {
   const { userId } = await ctx.ports.requireIdentity()
   const parsed = voidRuleOccurrenceInputDtoSchema.parse(args)
   const input = {
@@ -170,7 +178,7 @@ async function admitVoid(ctx: EncounterWriteTransaction, args: unknown): Promise
 
 /** Publishes the "Voided by the GM" timeline entry; the Run version advances with it. */
 async function recordVoid(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   scope: VoidScope,
   status: 'COMPLETE' | 'VOIDED'
 ) {
@@ -216,7 +224,7 @@ async function recordVoid(
 }
 
 async function hasDeclineReceipt(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   campaignId: string,
   voidCommandId: string
 ) {
@@ -246,7 +254,7 @@ type RuleOccurrenceVoidPlan =
 
 /** Decides a void without writing: its replay, a pending decline, a record, or a cancel. */
 async function planRuleOccurrenceVoid(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   args: unknown
 ): Promise<RuleOccurrenceVoidPlan> {
   const admission = await admitVoid(ctx, args)
@@ -273,7 +281,7 @@ async function planRuleOccurrenceVoid(
 
 /** The decline a room movement commit settles for a GM void (D26); anything else is refused. */
 export async function readRuleOccurrenceVoidDecline(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   args: unknown
 ): Promise<ResolveRuleOccurrenceInputDto> {
   const plan = await planRuleOccurrenceVoid(ctx, args)
@@ -286,7 +294,7 @@ export async function readRuleOccurrenceVoidDecline(
  * a GM answer takes. A void whose decline already committed only records its timeline entry.
  */
 export async function prepareRuleOccurrenceVoid(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   args: unknown
 ): Promise<Exclude<RuleOccurrenceVoidPlan, { kind: 'CANCEL' }>> {
   const plan = await planRuleOccurrenceVoid(ctx, args)
@@ -320,7 +328,7 @@ export async function prepareRuleOccurrenceVoid(
  * current Run version, so it returns the next decision instead of a separate timeline entry.
  */
 export async function recordRuleOccurrenceVoid(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   args: unknown
 ): Promise<EncounterCommandResultDto> {
   const admission = await admitVoid(ctx, args)
@@ -350,7 +358,7 @@ export async function recordRuleOccurrenceVoid(
  * writes, so a replay or retry adds nothing; like other rules entries it spends no chat rate limit.
  */
 export async function postMovementDecisionSkipped(
-  ctx: EncounterWriteTransaction,
+  ctx: VoidChatTransaction,
   input: { campaignId: string; gmUserId: string; voidCommand: VoidRuleOccurrenceInputDto }
 ) {
   const authority = await ctx.ports.requireCampaignAuthority(input.campaignId, input.gmUserId)
@@ -384,7 +392,7 @@ export async function postMovementDecisionSkipped(
  * decline and the void record reaches the same answer.
  */
 async function declinedMovementDecision(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction,
   run: EncounterDocument<'encounterRuns'>,
   voidCommand: VoidRuleOccurrenceInputDto
 ) {
@@ -410,7 +418,7 @@ async function declinedMovementDecision(
  * the room does not own (D29) exactly as the room does (D26, D39).
  */
 export async function recordDeclinedRuleOccurrenceVoid(
-  ctx: EncounterWriteTransaction,
+  ctx: VoidChatTransaction,
   args: unknown
 ): Promise<EncounterCommandResultDto> {
   const result = await recordRuleOccurrenceVoid(ctx, args)

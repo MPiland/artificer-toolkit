@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -13,6 +14,7 @@ import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/r
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal } from '../../convex/_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../../convex/characters/stateDocuments'
+import { readReceiptHeaders } from '../../convex/lib/receiptLedgers'
 import { sourceImportBatches } from '../../convex/content/importBatches'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { setupCharacterRun } from './encounterCharacter'
@@ -175,7 +177,7 @@ export async function seedConcentration(fixture: {
   if (!maintenanceDefinition)
     throw new Error('Concentration maintenance definition is unavailable.')
   return fixture.t.run(async (ctx) => {
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const state = await store.createMaintainedState({
       id: crypto.randomUUID(),
       encounterId: fixture.run.id,
@@ -294,7 +296,7 @@ export async function seedConcentration(fixture: {
       updatedAt: characterRow.updatedAt
     })
     await ctx.db.patch(characterRow.play._id, {
-      playJson: encoded.play.playJson,
+      state: encoded.play.state,
       checksum: encoded.play.checksum
     })
     return { state, dependent, independent, blinded, poisoned }
@@ -326,16 +328,24 @@ export async function concentrationRecords(
       )
       .collect(),
     character: await readCharacterRow(ctx, fixture.character.id),
-    receipts: await ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (query) => query.eq('encounterId', fixture.run.id))
-      .collect(),
-    characterReceipts: await ctx.db
-      .query('characterCommandReceipts')
-      .withIndex('by_characterId_commandId', (query) =>
-        query.eq('characterId', fixture.character.id)
-      )
-      .collect(),
+    receipts: await readReceiptHeaders(
+      ctx,
+      'encounterRuleReceipts',
+      await ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (query) => query.eq('encounterId', fixture.run.id))
+        .collect()
+    ),
+    characterReceipts: await readReceiptHeaders(
+      ctx,
+      'characterCommandReceipts',
+      await ctx.db
+        .query('characterCommandReceipts')
+        .withIndex('by_characterId_commandId', (query) =>
+          query.eq('characterId', fixture.character.id)
+        )
+        .collect()
+    ),
     pending: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (query) =>

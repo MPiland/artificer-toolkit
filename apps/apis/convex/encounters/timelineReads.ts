@@ -1,3 +1,11 @@
+import {
+  readReceiptHeader,
+  readReceiptLedger,
+  readReceiptLedgerMetadata,
+  type DecodedReceiptLedger,
+  type ReceiptLedgerLoader
+} from '../lib/receiptLedgers'
+import { RECEIPT_LEDGER_MAX_BYTES } from '@artificer-toolkit/schema/projections/receiptLedgerPersistence'
 import type { z } from 'zod'
 import type { Validator } from 'convex/values'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
@@ -47,10 +55,19 @@ export const timeline = query({
       : null
     if (input.cursor && (!cursor || (player && cursor.visibility !== 'TABLE')))
       return { entries: [], nextCursor: null }
+    const ledgers = new Map<string, Promise<DecodedReceiptLedger>>()
+    const loadLedger: ReceiptLedgerLoader = (ledgerCtx, ledgerId) => {
+      let ledger = ledgers.get(ledgerId)
+      if (!ledger) {
+        ledger = readReceiptLedger(ledgerCtx, ledgerId)
+        ledgers.set(ledgerId, ledger)
+      }
+      return ledger
+    }
     if (cursor) {
       if (cursor.campaignId !== campaign.id)
         throw new Error('Stored Encounter command ownership mismatch.')
-      presentTimelineEntry(cursor)
+      presentTimelineEntry(await readReceiptHeader(ctx, 'encounterRunCommands', cursor, loadLedger))
     }
     // Each committed Run version has exactly one receipt, including CREATE at version zero.
     const beforeVersion = cursor?.version ?? row.version + 1
@@ -66,18 +83,31 @@ export const timeline = query({
             q.eq('encounterId', row.id).lt('version', beforeVersion)
           )
     const entries: EncounterTimelineDto['entries'] = []
+    const outputLedgers = new Set<string>()
+    let ledgerBytesRead = 0
     let bytesRead = 0
     let hasMore = false
-    // Leave room for authority, Run and cursor reads plus one receipt of lookahead.
+    // The cursor ledger has its own allowance; output ledgers share one 4 MiB budget.
+    // Reusing the loader keeps cursor and output reads of the same ledger together.
     // Short pages preserve the UUID cursor and never cap the Run's history or creative content.
-    for await (const command of commands.order('desc')) {
+    for await (const header of commands.order('desc')) {
       if (entries.length >= input.limit || (entries.length > 0 && bytesRead >= 4 * 1024 * 1024)) {
         hasMore = true
         break
       }
-      bytesRead += new TextEncoder().encode(JSON.stringify(command)).byteLength
-      if (command.campaignId !== campaign.id)
+      if (header.campaignId !== campaign.id)
         throw new Error('Stored Encounter command ownership mismatch.')
+      if (!outputLedgers.has(header.ledgerId)) {
+        const metadata = await readReceiptLedgerMetadata(ctx, header.ledgerId)
+        if (entries.length > 0 && ledgerBytesRead + metadata.byteLength > RECEIPT_LEDGER_MAX_BYTES) {
+          hasMore = true
+          break
+        }
+        ledgerBytesRead += metadata.byteLength
+        outputLedgers.add(header.ledgerId)
+      }
+      const command = await readReceiptHeader(ctx, 'encounterRunCommands', header, loadLedger)
+      bytesRead += new TextEncoder().encode(JSON.stringify(command)).byteLength
       const entry = presentTimelineEntry(command)
       if (player && entry.visibility !== 'TABLE')
         throw new Error('Stored Encounter timeline metadata mismatch.')

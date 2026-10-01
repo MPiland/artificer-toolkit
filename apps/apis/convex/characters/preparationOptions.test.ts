@@ -137,7 +137,8 @@ describe('native personal Character Sheet preparation options', () => {
     expect(await owner.caller.query(getOptions, { id: character.id })).toMatchObject({
       characterId: character.id,
       streamVersion: 1,
-      classes: [{ classId: baseClass.id, options: [] }]
+      classes: [{ classId: baseClass.id, eligibleSpellIds: [], preparedSpellIds: [] }],
+      catalogue: { kind: 'SNAPSHOTS' }
     })
 
     const known = await owner.caller.mutation(
@@ -157,18 +158,10 @@ describe('native personal Character Sheet preparation options', () => {
       label: baseClass.label,
       preparedSpellLimit: 2
     })
-    expect(learned!.classes[0]!.options.map(({ spellId }) => spellId)).toEqual(
-      [detectMagic, magicMissile, shield]
-        .sort((left, right) => left.level - right.level || left.label.localeCompare(right.label))
-        .map(({ id }) => id)
+    expect(learned!.classes[0]!.eligibleSpellIds.sort()).toEqual(
+      [detectMagic.id, magicMissile.id, shield.id].sort()
     )
-    expect(learned!.classes[0]!.options).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ spellId: magicMissile.id, prepared: false, committed: true }),
-        expect.objectContaining({ spellId: shield.id, prepared: false, committed: true }),
-        expect.objectContaining({ spellId: detectMagic.id, prepared: false, committed: true })
-      ])
-    )
+    expect(learned!.classes[0]!.preparedSpellIds).toEqual([])
 
     const prepared = await owner.caller.mutation(
       execute,
@@ -177,27 +170,20 @@ describe('native personal Character Sheet preparation options', () => {
     expect(prepared.streamVersion).toBe(3)
     const selected = await owner.caller.query(getOptions, { id: character.id })
     expect(selected).toMatchObject({ characterId: character.id, streamVersion: 3 })
-    expect(selected!.classes[0]!.options).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ spellId: magicMissile.id, prepared: true, committed: true }),
-        expect.objectContaining({ spellId: shield.id, prepared: false, committed: true }),
-        expect.objectContaining({ spellId: detectMagic.id, prepared: false, committed: true })
-      ])
+    expect(selected!.classes[0]!.preparedSpellIds).toEqual([magicMissile.id])
+    expect(selected!.classes[0]!.eligibleSpellIds.sort()).toEqual(
+      [detectMagic.id, magicMissile.id, shield.id].sort()
     )
   })
 
   it('returns every eligible current spell for full-list preparers and excludes wrong-class spells', async () => {
     const { owner, character, baseClass } = await fixture(false)
     const initial = await owner.caller.query(getOptions, { id: character.id })
-    expect(initial!.classes[0]!.options.map(({ spellId }) => spellId).sort()).toEqual(
+    expect(initial!.classes[0]!.eligibleSpellIds.sort()).toEqual(
       [detectMagic.id, magicMissile.id, shield.id].sort()
     )
-    expect(initial!.classes[0]!.options.map(({ spellId }) => spellId)).not.toContain(
-      shieldOfFaith.id
-    )
-    expect(
-      initial!.classes[0]!.options.every(({ prepared, committed }) => !prepared && committed)
-    ).toBe(true)
+    expect(initial!.classes[0]!.eligibleSpellIds).not.toContain(shieldOfFaith.id)
+    expect(initial!.classes[0]!.preparedSpellIds).toEqual([])
 
     const prepared = await owner.caller.mutation(
       execute,
@@ -205,13 +191,7 @@ describe('native personal Character Sheet preparation options', () => {
     )
     expect(prepared.streamVersion).toBe(2)
     const selected = await owner.caller.query(getOptions, { id: character.id })
-    expect(selected!.classes[0]!.options).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ spellId: magicMissile.id, prepared: true, committed: true }),
-        expect.objectContaining({ spellId: shield.id, prepared: false, committed: true }),
-        expect.objectContaining({ spellId: detectMagic.id, prepared: false, committed: true })
-      ])
-    )
+    expect(selected!.classes[0]!.preparedSpellIds).toEqual([magicMissile.id])
   })
 
   it('returns no options for a noncaster and null for missing or foreign characters without writes', async () => {

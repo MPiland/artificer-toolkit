@@ -19,28 +19,20 @@ import {
   type SceneCommandInputDto,
   type SceneCommandResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import {
-  sceneStoredFogLayerSchema,
-  sceneStoredFogSaveSchema
-} from '@artificer-toolkit/schema/projections/sceneFogPersistence'
 import { sceneStoredUndoCommandSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { action, type MutationCtx } from '../_generated/server'
+import type { Id } from '../_generated/dataModel'
+import { publishSceneUndo } from '@artificer-toolkit/encounter-persistence/sceneUndoPublication'
 import { internalQuery } from '../lib/queries'
 import { internalMutation, mutation } from '../lib/mutations'
 import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
-import { parseFogLayer, parseFogSave } from './fogDocuments'
+import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import {
   parseGeometryCommand,
-  parseGeometrySave,
-  readMovementResolution
-} from './geometryDocuments'
-import {
-  advanceLiveState,
-  parseLiveEntity,
-  readLiveScene,
-  readLiveSceneForUser
-} from './liveDocuments'
+  parseGeometrySave
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
+import { parseLiveEntity, readLiveScene, readLiveSceneForUser } from './liveDocuments'
 import { readPresentedVisionScene } from './sessionVisionDocuments'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 
@@ -109,29 +101,6 @@ function assertNewWrite(
     presented.presentation.version !== input.presentation.expectedPresentationVersion
   )
     throw new Error('Scene vision presentation is stale.')
-}
-
-function assertPreviousLayer(
-  layer: NonNullable<ReturnType<typeof sceneStoredFogSaveSchema.parse>['previousLayer']>,
-  parent: ReturnType<typeof parseGeometrySave>,
-  sceneId: string,
-  ownerUserId: string | null,
-  width: number,
-  height: number
-) {
-  const parsed = sceneStoredFogLayerSchema.parse(layer)
-  const { checksum, ...content } = parsed
-  if (
-    checksum !== checksumCanonicalJson(content) ||
-    parsed.sceneId !== sceneId ||
-    parsed.ownerUserId !== ownerUserId ||
-    parsed.width !== width ||
-    parsed.height !== height ||
-    parsed.version > parent.snapshotVersion ||
-    new Set(parsed.chunks.map((reference) => reference.index)).size !== parsed.chunks.length
-  )
-    throw new Error('Stored Scene fog snapshot is inconsistent.')
-  return parsed
 }
 
 async function replay(
@@ -274,172 +243,92 @@ async function finishUndo(
     targetCommandId = request.targetCommandId
   }
 
-  const targetRow = await ctx.db
-    .query('sceneLiveCommands')
-    .withIndex('by_sceneId_commandId', (q) =>
-      q.eq('sceneId', header.id).eq('commandId', targetCommandId)
-    )
-    .unique()
-  if (!targetRow || targetRow.encoding !== 'GEOMETRY')
-    throw new Error('The latest token move is unavailable.')
-  const target = parseGeometryCommand(targetRow, header.version)
-  if (target.input.type !== 'MOVE_SCENE_TOKEN' || target.result.delta?.kind !== 'TOKEN_MOVED')
-    throw new Error('The latest token move is invalid.')
-  const tokenId = target.input.tokenId
-  const alreadyUndone = await ctx.db
-    .query('sceneLiveCommands')
-    .withIndex('by_sceneId_undoneCommandId', (q) =>
-      q.eq('sceneId', header.id).eq('undoneCommandId', target.commandId)
-    )
-    .unique()
-  if (alreadyUndone) throw new Error('The latest token move was already undone.')
-
-  const parentRow = await ctx.db
-    .query('sceneGeometrySaves')
-    .withIndex('by_sceneId_commandId', (q) =>
-      q.eq('sceneId', header.id).eq('commandId', target.commandId)
-    )
-    .unique()
-  if (!parentRow) throw new Error('Stored Scene geometry save is inconsistent.')
-  const parent = parseGeometrySave(parentRow)
-  if (
-    parent.status !== 'PUBLISHED' ||
-    parent.inputChecksum !== target.inputChecksum ||
-    parent.input.type !== 'MOVE_SCENE_TOKEN'
-  )
-    throw new Error('Stored Scene geometry save is inconsistent.')
-  if (
-    parent.fogSaves.length !== target.result.fogPatches.length ||
-    new Set(parent.fogSaves.map((reference) => reference.saveId)).size !== parent.fogSaves.length
-  )
-    throw new Error('Stored Scene geometry fog history is inconsistent.')
-  if (
-    fastOnly &&
-    (parent.fogSaves.length > 0 ||
-      parent.movementResolution !== undefined ||
-      parent.spatialPreparationJson !== undefined ||
-      parent.spatialPreparationChecksum !== undefined ||
-      parent.sessionVision !== undefined ||
-      parent.characterRevisions !== undefined)
-  )
-    stagedRequired()
-
-  const tokenRow = await ctx.db
-    .query('sceneLiveEntities')
-    .withIndex('by_sceneId_collection_entityId', (q) =>
-      q.eq('sceneId', header.id).eq('collection', 'tokens').eq('entityId', tokenId)
-    )
-    .unique()
-  if (!tokenRow) throw new Error('The latest token move can no longer be safely undone.')
-  const token = parseLiveEntity(tokenRow, header.version)
-  if (token.version !== target.result.version || token.value?.collection !== 'tokens')
-    throw new Error('The latest token move can no longer be safely undone.')
-
-  const state = advanceLiveState(header, live)
-  const restoredFogOwners: (string | null)[] = []
-  for (const patch of target.result.fogPatches) {
-    const childRow = await ctx.db
-      .query('sceneFogSaves')
-      .withIndex('by_publicId', (q) => q.eq('id', patch.saveId))
-      .unique()
-    if (!childRow) throw new Error('Stored Scene fog save is inconsistent.')
-    const child = parseFogSave(childRow)
-    const parentReference = parent.fogSaves.find((reference) => reference.saveId === patch.saveId)
-    if (
-      child.id !== patch.saveId ||
-      child.geometrySaveId !== parent.id ||
-      child.sceneId !== header.id ||
-      child.actorUserId !== target.actorUserId ||
-      child.status !== 'PUBLISHED' ||
-      child.chunksRemoved ||
-      child.input.layer.ownerUserId !== patch.ownerUserId ||
-      child.input.layer.width !== patch.width ||
-      child.input.layer.height !== patch.height ||
-      child.input.chunkManifest.length !== patch.chunkCount ||
-      parentReference?.ownerUserId !== patch.ownerUserId ||
-      child.previousLayer === undefined
-    )
-      throw new Error('Stored Scene fog save is inconsistent.')
-    const currentRow = await ctx.db
-      .query('sceneFogLayers')
-      .withIndex('by_sceneId_ownerUserId', (q) =>
-        q.eq('sceneId', header.id).eq('ownerUserId', patch.ownerUserId)
-      )
-      .unique()
-    if (!currentRow) throw new Error('The latest token move can no longer be safely undone.')
-    const current = parseFogLayer(currentRow, header.version)
-    if (current.version !== target.result.version)
-      throw new Error('The latest token move can no longer be safely undone.')
-    const previous = child.previousLayer
-    if (previous !== null) {
-      const validated = assertPreviousLayer(
-        previous,
-        parent,
-        header.id,
-        patch.ownerUserId,
-        patch.width,
-        patch.height
-      )
-      const { checksum: _checksum, ...content } = validated
-      const restored = sceneStoredFogLayerSchema.parse({
-        ...content,
-        version: state.version,
-        checksum: checksumCanonicalJson({ ...content, version: state.version })
-      })
-      await ctx.db.replace(currentRow._id, restored)
-    } else {
-      if (state.fogLayerCount <= 0) throw new Error('Stored Scene fog state is inconsistent.')
-      state.fogLayerCount -= 1
-      await ctx.db.delete(currentRow._id)
+  const liveTokenIds = new Map<string, Id<'sceneLiveEntities'>>()
+  const fogLayerIds = new Map<string, Id<'sceneFogLayers'>>()
+  return publishSceneUndo(
+    { header, live, userId, input, targetCommandId, fastOnly },
+    {
+      readSceneCommand: async (sceneId, commandId) => {
+        const row = await ctx.db
+          .query('sceneLiveCommands')
+          .withIndex('by_sceneId_commandId', (q) =>
+            q.eq('sceneId', sceneId).eq('commandId', commandId)
+          )
+          .unique()
+        return row ? stored(row) : null
+      },
+      readUndoForMove: async (sceneId, commandId) => {
+        const row = await ctx.db
+          .query('sceneLiveCommands')
+          .withIndex('by_sceneId_undoneCommandId', (q) =>
+            q.eq('sceneId', sceneId).eq('undoneCommandId', commandId)
+          )
+          .unique()
+        return row ? stored(row) : null
+      },
+      readGeometrySave: async (sceneId, commandId) => {
+        const row = await ctx.db
+          .query('sceneGeometrySaves')
+          .withIndex('by_sceneId_commandId', (q) =>
+            q.eq('sceneId', sceneId).eq('commandId', commandId)
+          )
+          .unique()
+        return row ? stored(row) : null
+      },
+      readLiveToken: async (sceneId, tokenId) => {
+        const row = await ctx.db
+          .query('sceneLiveEntities')
+          .withIndex('by_sceneId_collection_entityId', (q) =>
+            q.eq('sceneId', sceneId).eq('collection', 'tokens').eq('entityId', tokenId)
+          )
+          .unique()
+        if (!row) return null
+        liveTokenIds.set(sceneId + ':' + tokenId, row._id)
+        return stored(row)
+      },
+      readFogSave: async (saveId) => {
+        const row = await ctx.db
+          .query('sceneFogSaves')
+          .withIndex('by_publicId', (q) => q.eq('id', saveId))
+          .unique()
+        return row ? stored(row) : null
+      },
+      readFogLayer: async (sceneId, ownerUserId) => {
+        const row = await ctx.db
+          .query('sceneFogLayers')
+          .withIndex('by_sceneId_ownerUserId', (q) =>
+            q.eq('sceneId', sceneId).eq('ownerUserId', ownerUserId)
+          )
+          .unique()
+        if (!row) return null
+        fogLayerIds.set(sceneId + ':' + (ownerUserId ?? ''), row._id)
+        return stored(row)
+      },
+      writeFogLayer: async (value) => {
+        const id = fogLayerIds.get(value.sceneId + ':' + (value.ownerUserId ?? ''))
+        if (!id) throw new Error('Scene undo fog write has no captured row.')
+        await ctx.db.replace(id, value)
+      },
+      deleteFogLayer: async (sceneId, ownerUserId) => {
+        const id = fogLayerIds.get(sceneId + ':' + (ownerUserId ?? ''))
+        if (!id) throw new Error('Scene undo fog deletion has no captured row.')
+        await ctx.db.delete(id)
+      },
+      writeLiveToken: async (value) => {
+        const id = liveTokenIds.get(value.sceneId + ':' + value.entityId)
+        if (!id) throw new Error('Scene undo token write has no captured row.')
+        await ctx.db.replace(id, value)
+      },
+      writeLiveState: async (value) => {
+        if (liveRow) await ctx.db.replace(liveRow._id, value)
+        else await ctx.db.insert('sceneLiveStates', value)
+      },
+      insertUndoCommand: async (value) => {
+        await ctx.db.insert('sceneLiveCommands', value)
+      },
+      stagedRequired
     }
-    restoredFogOwners.push(patch.ownerUserId)
-  }
-  const position = readMovementResolution(parent)?.root.currentPosition ?? target.input.path[0]!
-  const value = { ...token.value, entity: { ...token.value.entity, position } }
-  const restoredToken = {
-    sceneId: header.id,
-    collection: token.collection,
-    entityId: token.entityId,
-    value,
-    doorState: token.doorState,
-    ordinal: token.ordinal,
-    version: state.version
-  }
-  await ctx.db.replace(tokenRow._id, {
-    ...restoredToken,
-    checksum: checksumCanonicalJson(restoredToken)
-  })
-  const result = sceneUndoCommandResultSchema.parse({
-    sceneId: header.id,
-    commandId: input.input.commandId,
-    version: state.version,
-    replayed: false,
-    occurrence: null,
-    delta: {
-      kind: 'TOKEN_MOVE_UNDONE',
-      tokenId: target.input.tokenId,
-      position,
-      undoneCommandId: target.commandId
-    },
-    restoredFogOwners
-  })
-  if (liveRow) await ctx.db.replace(liveRow._id, state)
-  else await ctx.db.insert('sceneLiveStates', state)
-  await ctx.db.insert(
-    'sceneLiveCommands',
-    sceneStoredUndoCommandSchema.parse({
-      encoding: 'UNDO',
-      sceneId: header.id,
-      commandId: input.input.commandId,
-      actorUserId: userId,
-      input: input.input,
-      inputChecksum,
-      result,
-      resultChecksum: checksumCanonicalJson(result),
-      undoneCommandId: target.commandId
-    })
   )
-  return result
 }
 
 type ResolvedUndoCommand = Extract<SceneCommandInputDto, { type: 'UNDO_LAST_SCENE_MOVE' }>

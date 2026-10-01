@@ -5,6 +5,7 @@ import {
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -127,14 +128,21 @@ it('settles a crossed spatial prefix before its used automatic reaction, with re
           q.eq('encounterId', value.base.run.id).eq('sceneId', value.sceneId)
         )
         .collect(),
-      receipts: await ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) =>
-          q
-            .eq('encounterId', value.base.run.id)
-            .eq('commandId', responseCommandId ?? value.rootInput.commandId)
-        )
-        .collect()
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+      receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
+      receipts: await readReceiptHeaders(
+        ctx,
+        'encounterRuleReceipts',
+        await ctx.db
+          .query('encounterRuleReceipts')
+          .withIndex('by_encounterId_commandId', (q) =>
+            q
+              .eq('encounterId', value.base.run.id)
+              .eq('commandId', responseCommandId ?? value.rootInput.commandId)
+          )
+          .collect()
+      )
     }))
   const before = await snapshot()
   expect(prepared.outcome.kind).toBe('TERMINAL')

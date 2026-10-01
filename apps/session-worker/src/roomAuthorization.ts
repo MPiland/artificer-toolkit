@@ -118,6 +118,7 @@ export class RoomAuthorization {
   #stale = false
   /** The room changed Encounter state itself, so the PLAY section reloads before previews use it. */
   #playStale = false
+  #localPlay: { epoch: string; value: LiveSessionRoomAuthorization['play'] } | null = null
   /** Count invalidations, so a read that started before one does not clear it. */
   #changes = 0
   #playChanges = 0
@@ -150,8 +151,55 @@ export class RoomAuthorization {
   }
 
   invalidatePlay(): void {
+    this.#localPlay = null
     this.#playStale = true
     this.#playChanges += 1
+  }
+
+  /** Room-owned control changes stay visible while their checkpoint is still pending. */
+  applyPlay(epoch: string, play: LiveSessionRoomAuthorization['play']): void {
+    if (this.#held?.epoch !== epoch) throw new Error('Room authorization epoch changed.')
+    this.#localPlay = { epoch, value: play }
+    this.#held.value = { ...this.#held.value, play }
+    this.#playStale = false
+    this.#playChanges += 1
+  }
+
+  /** Party visibility follows native play immediately, including an unpublished checkpoint suffix. */
+  applyCharacters(epoch: string, characters: LiveSessionRoomAuthorization['characters']): void {
+    if (this.#held?.epoch !== epoch) throw new Error('Room authorization epoch changed.')
+    this.#held.value = { ...this.#held.value, characters }
+  }
+
+  acknowledgePlay(epoch: string): void {
+    if (this.#localPlay?.epoch === epoch) this.#localPlay = null
+  }
+
+  /** Returns false when an evicted cache needs a full read to fill sections omitted by a retry. */
+  acceptCheckpoint(
+    epoch: string,
+    response: LiveSessionRoomAuthorizationResponse,
+    now = Date.now()
+  ): boolean {
+    const held = this.#held?.epoch === epoch ? this.#held.value : null
+    if (held === null) {
+      if (
+        response.campaign === undefined ||
+        response.preferences === undefined ||
+        response.play === undefined
+      )
+        return false
+      const characterIds = new Set(response.characters.map(({ characterId }) => characterId))
+      if (response.revisions.characters.some(({ characterId }) => !characterIds.has(characterId)))
+        return false
+    }
+    const value = mergeRoomAuthorization(held, response)
+    if (this.#localPlay?.epoch === epoch) value.play = this.#localPlay.value
+    this.#held = { epoch, value }
+    this.#leaseExpiresAt = now + ROOM_LIMITS.authorizationLeaseMs
+    // A request already reading older revisions must not erase this newer observation's lease fence.
+    if (this.#reading) this.invalidate()
+    return true
   }
 
   /**
@@ -195,7 +243,11 @@ export class RoomAuthorization {
       epoch,
       known: held ? { ...held.revisions, play: this.#playStale ? null : held.revisions.play } : null
     })
-    const value = mergeRoomAuthorization(held, response)
+    const value = mergeRoomAuthorization(
+      this.#held?.epoch === epoch ? this.#held.value : null,
+      response
+    )
+    if (this.#localPlay?.epoch === epoch) value.play = this.#localPlay.value
     this.#held = { epoch, value }
     this.#leaseExpiresAt = startedAt + ROOM_LIMITS.authorizationLeaseMs
     if (changes === this.#changes) this.#stale = false

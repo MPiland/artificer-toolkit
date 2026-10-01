@@ -29,7 +29,7 @@ import { insertReinforcementInitiative } from './actorReinforcementInitiative.js
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
-import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
 
 type ReinforceCommand = Extract<EncounterExecuteInput['command'], { type: 'REINFORCE' }>
 
@@ -74,7 +74,9 @@ function requireHistoricalActor(input: {
 }
 
 export async function reinforceEncounterActors(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterPersistenceTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'snapshotBlueprintEnemies'>
+  },
   command: ReinforceCommand,
   userId: string
 ) {

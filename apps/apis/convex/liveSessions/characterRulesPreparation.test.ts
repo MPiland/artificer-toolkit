@@ -1,7 +1,32 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import { gzipSync } from 'node:zlib'
+import {
+  contentSnapshotObjectKey,
+  type ContentSnapshotHead,
+  type ContentSnapshotHeader,
+  type ContentSnapshotManifestDto
+} from '@artificer-toolkit/schema/api/contentSnapshots'
+import type { LiveRoomInputsScope } from '@artificer-toolkit/schema/api/liveRoomInputs'
+import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
+import { sha256Hex } from '@artificer-toolkit/shared/sha256'
+import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
+import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { liveSessionCharacterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
-import { prepareNativeLiveCharacterSheet } from '../../../session-worker/src/nativeCharacterRules'
+import {
+  prepareNativeLiveCharacterSheet,
+  prepareLiveCharacterSheetFacts
+} from '../../../session-worker/src/nativeCharacterRules'
+import { prepareRoomLiveCharacterSheet } from '../../../session-worker/src/roomCharacterRules'
+import { loadRoomContentSnapshots } from '../../../session-worker/src/roomContentSnapshots'
+import { RoomInputs } from '../../../session-worker/src/roomInputs'
+import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
+import { createNodeSqliteRoomStorage } from '../../../session-worker/src/testing/nodeSqliteRoomStorage'
+import type { ContentSnapshotObjectBody } from '../../../session-worker/src/contentSnapshotStorage'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { readScopeObjects } from '../../tests/fixtures/contentSnapshotReaders'
+import { makePublishedRootOwned } from '../../tests/fixtures/publication'
+import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRulesCapture } from './characterRulesCapture'
 import { withSceneVisionTracking } from '../lib/mutations'
@@ -14,6 +39,195 @@ import {
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.unstubAllEnvs()
+})
+
+it('prepares capture-equivalent facts from verified v2 snapshots and warmed SQLite room inputs', async () => {
+  const fixture = await setupCharacterRun()
+  await fixture.t.run((ctx) => makePublishedRootOwned(ctx, acolyte.id, fixture.player.userId))
+  await fixture.t.run((ctx) => makePublishedRootOwned(ctx, human.id, fixture.owner.userId))
+  await fixture.owner.caller.mutation(api.campaigns.contentShares.share, {
+    campaignId: fixture.campaign.id,
+    subjectKind: 'RACE',
+    subjectId: human.id
+  })
+  const epoch = crypto.randomUUID()
+  await fixture.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: fixture.campaign.id,
+      epoch,
+      createdAt: fixture.campaign.createdAt
+    })
+  )
+  const scopes = await fixture.t.run(async (ctx) => {
+    const sources = await ctx.db
+      .query('contentSources')
+      .withIndex('by_gameSystemId', (q) => q.eq('gameSystemId', fixture.campaign.gameSystemId))
+      .collect()
+    return [
+      ...sources.map((source) => ({ scope: 'SOURCE' as const, scopeId: source.id })),
+      { scope: 'CAMPAIGN' as const, scopeId: fixture.campaign.id }
+    ]
+  })
+  const objects = new Map<string, Uint8Array>()
+  for (const scope of scopes) {
+    const kinds: ContentSnapshotHead['kinds'] = {}
+    for (const object of await readScopeObjects(fixture.t, scope)) {
+      const json = canonicalizeJson(object)
+      const ref = {
+        sha256: sha256Hex(json),
+        byteLength: new TextEncoder().encode(json).byteLength,
+        rootCount: object.roots.length
+      }
+      const header: ContentSnapshotHeader = {
+        format: object.format,
+        scope: object.scope,
+        scopeId: object.scopeId,
+        kind: object.kind,
+        part: object.part
+      }
+      objects.set(contentSnapshotObjectKey(header, ref.sha256), gzipSync(json))
+      const refs = kinds[object.kind] ?? { index: ref, list: ref, documents: ref }
+      refs[object.part] = ref
+      kinds[object.kind] = refs
+    }
+    if (!Object.keys(kinds).length) continue
+    await fixture.t.run(async (ctx) => {
+      const existing = await ctx.db
+        .query('contentSnapshotHeads')
+        .withIndex('by_scope_scopeId', (q) =>
+          q.eq('scope', scope.scope).eq('scopeId', scope.scopeId)
+        )
+        .unique()
+      if (existing) await ctx.db.patch(existing._id, { kinds, builtRevision: existing.revision })
+      else
+        await ctx.db.insert('contentSnapshotHeads', {
+          ...scope,
+          revision: 1,
+          builtRevision: 1,
+          kinds
+        })
+    })
+  }
+  const get = vi.fn(async (key: string): Promise<ContentSnapshotObjectBody | null> => {
+    const bytes = objects.get(key)
+    return bytes
+      ? {
+          body: new Blob([new Uint8Array(bytes).buffer]).stream(),
+          httpEtag: 'private-fixture',
+          customMetadata: {},
+          httpMetadata: { contentType: 'application/json', contentEncoding: 'gzip' }
+        }
+      : null
+  })
+  const environment = { CONTENT_SNAPSHOTS: { get }, CONVEX_SITE_URL: 'http://127.0.0.1:3211' }
+  const read = vi.fn((authorityEpoch: string, scope: LiveRoomInputsScope) =>
+    fixture.t.query(internal.liveSessions.roomInputs.read, {
+      campaignId: fixture.campaign.id,
+      epoch: authorityEpoch,
+      scope
+    })
+  )
+  const load = vi.fn((manifest: ContentSnapshotManifestDto) =>
+    loadRoomContentSnapshots(environment, manifest, fixture.campaign.id)
+  )
+  const { storage, database } = createNodeSqliteRoomStorage()
+  try {
+    const room = new RoomInputs(new RoomEncounterStore(storage), read, load)
+    await room.hydrate({ epoch, encounterId: fixture.run.id })
+    const scope = {
+      campaignId: fixture.campaign.id,
+      authorityEpoch: epoch,
+      expectedUserId: fixture.owner.userId,
+      expectedRole: 'OWNER' as const,
+      characterId: fixture.character.id
+    }
+    const captured = await fixture.owner.caller.run((ctx) =>
+      readCharacterRulesCapture(ctx, {
+        ...scope,
+        request: { kind: 'INPUTS' }
+      })
+    )
+    let expected: Awaited<ReturnType<typeof prepareLiveCharacterSheetFacts>> | undefined
+    await fixture.owner.caller.run(async (ctx) => {
+      expected = await prepareLiveCharacterSheetFacts(
+        { ...scope, request: { kind: 'INPUTS' } },
+        (request) => readCharacterRulesCapture(ctx, { ...scope, request })
+      )
+    })
+    if (!expected) throw new Error('Missing expected Character facts.')
+    const privatePin = expected.sourceIdentities.find(
+      (identity) => identity.subjectId === acolyte.id
+    )
+    if (!privatePin) throw new Error('Missing private Background publication.')
+    expect(privatePin.contentSourceId).not.toBe(SRD_CONTENT_SOURCE.id)
+    expect(
+      expected.sourceVersions.every(
+        (source) => Number.isInteger(source.version) && source.version > 0
+      )
+    ).toBe(true)
+    const reads = read.mock.calls.length
+    const loads = load.mock.calls.length
+    const objectReads = get.mock.calls.length
+    const captureHttp = vi.fn(() => {
+      throw new Error('Warm room preparation attempted HTTP capture.')
+    })
+    vi.stubGlobal('fetch', captureHttp)
+    await expect(
+      prepareRoomLiveCharacterSheet(
+        room,
+        { ...scope, authorityEpoch: crypto.randomUUID() },
+        captured.revisions
+      )
+    ).rejects.toThrow(/epoch/i)
+    for (let repetition = 0; repetition < 3; repetition++) {
+      const actual = await prepareRoomLiveCharacterSheet(room, scope, captured.revisions)
+      expect(actual.prepared.character).toEqual(expected.prepared.character)
+      expect(actual.prepared.resolution).toEqual(expected.prepared.resolution)
+      expect(actual.ruleEvaluation).toEqual(expected.ruleEvaluation)
+      expect(actual.adjustments).toEqual(expected.adjustments)
+      expect(actual.sheetState).toEqual(expected.sheetState)
+      expect(actual.sourceIdentities).toEqual(expected.sourceIdentities)
+      expect(actual.sourceVersions).toEqual(expected.sourceVersions)
+    }
+    expect(read.mock.calls.length).toBe(reads)
+    expect(load.mock.calls.length).toBe(loads)
+    expect(get.mock.calls.length).toBe(objectReads)
+    expect(captureHttp).not.toHaveBeenCalled()
+
+    await fixture.t.run(async (rawCtx) => {
+      const ctx = withSceneVisionTracking(rawCtx)
+      const source = await ctx.db
+        .query('contentSources')
+        .withIndex('by_publicId', (q) => q.eq('id', privatePin.contentSourceId))
+        .unique()
+      const campaign = await ctx.db
+        .query('campaigns')
+        .withIndex('by_publicId', (q) => q.eq('id', fixture.campaign.id))
+        .unique()
+      if (!source || !campaign) throw new Error('Missing source invalidation fixture.')
+      await ctx.db.delete(source._id)
+      await ctx.db.patch(campaign._id, { attunementSlotOverride: 4 })
+    })
+    const fresh = await read(epoch, {
+      kind: 'CHARACTERS',
+      characterIds: [fixture.character.id],
+      cursor: null
+    })
+    if (fresh.kind !== 'CHARACTERS' || fresh.parts[0]?.status !== 'ASSIGNED')
+      throw new Error('Missing fresh Character input.')
+    const reloaded = await room.contentObjects(fixture.character.id, fresh.parts[0].revisions)
+    expect(
+      reloaded.some(
+        (object) => object.scope === 'SOURCE' && object.scopeId === privatePin.contentSourceId
+      )
+    ).toBe(false)
+    expect(reloaded.some((object) => object.roots.some((root) => root.id === acolyte.id))).toBe(
+      false
+    )
+    expect(load.mock.calls.length).toBeGreaterThan(loads)
+  } finally {
+    database.close()
+  }
 })
 
 it('prepares the same Character facts in the Worker through authenticated capture HTTP', async () => {

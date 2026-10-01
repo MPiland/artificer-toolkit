@@ -19,6 +19,7 @@ import {
   planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { internal } from '../_generated/api'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
@@ -155,7 +156,7 @@ it('a defeated reactor takes no opportunity attack (D63)', async () => {
       currentHitPoints: 0,
       defeated: true
     })
-    await writeRunActor(ctx, row._id, defeated)
+    await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, defeated)
   })
   expect((await moveAwayFromReactor(base)).outcome.kind).not.toBe('PENDING')
 })

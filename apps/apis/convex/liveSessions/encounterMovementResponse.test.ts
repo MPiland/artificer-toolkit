@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
@@ -72,11 +73,19 @@ it('stages a current movement choice only for its live authority and actor, with
   }
   const gameplay = () =>
     value.base.t.run(async (ctx) => ({
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       runs: await ctx.db.query('encounterRuns').collect(),
       actors: await ctx.db.query('encounterRunActors').collect(),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-      commands: await ctx.db.query('encounterRunCommands').collect(),
+      receipts: await ctx.db
+        .query('encounterRuleReceipts')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+      commands: await ctx.db
+        .query('encounterRunCommands')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
       scenes: await ctx.db.query('campaignScenes').collect(),
       entities: await ctx.db.query('sceneLiveEntities').collect(),
       sceneCommands: await ctx.db.query('sceneLiveCommands').collect()

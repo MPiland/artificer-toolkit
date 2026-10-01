@@ -150,7 +150,7 @@ it('reuses the complete Spell catalogue during spell-enabled first activation', 
     }
   })
 
-  expect(result.spellReads).toBe(result.preparedSpellIds.length)
+  expect(result.spellReads).toBe(0)
   expect(result.preparedSpellIds).toEqual([light.id])
   expect(result.preparedSpellIds).toEqual(result.uncachedSpellIds)
   expect(result.preparedSpellIdentity).toEqual(result.uncachedSpellIdentity)

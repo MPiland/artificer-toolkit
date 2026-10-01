@@ -48,10 +48,7 @@ it('reconciles Equipment loss through public authoring, Builder and Sheet comman
     characterId
   })
   await t.run(async (ctx) => {
-    const record = await ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterId))
-      .unique()
+    const record = await readCharacterRow(ctx, characterId)
     expect(record?.status).toBe('ACTIVE')
     expect(record?.sheetState).toBeDefined()
     expect(await ctx.db.query('characterCommandReceipts').collect()).toHaveLength(6)

@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
+import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
+import { readCharacterSheetState } from './sheetStateDocuments'
 import type { TableNames } from '../_generated/dataModel'
 import { api } from '../_generated/api'
 import schema from '../schema'
@@ -10,11 +13,14 @@ import {
   seedTurnSaveEffect,
   turnCharacterEffectFixture
 } from '../../tests/fixtures/turnActiveEffectFixtures'
-import { readCharacterRow } from './stateDocuments'
+import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 import { removeAccountPrivateCharacters } from './accountDeletion'
 
 const tableNames = Object.keys(schema.tables) as TableNames[]
 const encounterTables = tableNames.filter((name) => name.startsWith('encounter'))
+
+beforeEach(() => vi.useFakeTimers())
+afterEach(() => vi.useRealTimers())
 
 async function fullSnapshot(t: Awaited<ReturnType<typeof turnCharacterEffectFixture>>['t']) {
   return t.run(async (ctx) => ({
@@ -69,29 +75,34 @@ async function prepare() {
   await base.t.run(async (ctx) => {
     const current = await readCharacterRow(ctx, base.character.id)
     if (!current) throw new Error('Missing current deleting Character.')
-    const structure = {
-      ...(JSON.parse(current.documentJson) as Record<string, unknown>),
-      id: foreignCharacterId,
-      userId: base.owner.userId,
-      label: 'Unrelated Character'
-    }
-    const { _id: _currentId, _creationTime, play, ...fields } = current
-    const { _id: _playId, _creationTime: _playCreated, ...playFields } = play
-    await ctx.db.insert('characters', {
-      ...fields,
-      id: foreignCharacterId,
-      userId: base.owner.userId,
-      label: 'Unrelated Character',
-      documentJson: canonicalizeRuleDocument(structure),
-      checksum: checksumRuleDocument(structure)
+    await insertActiveCharacterRecord(
+      ctx,
+      {
+        ...readCharacterRecord(current),
+        status: current.status,
+        id: foreignCharacterId,
+        userId: base.owner.userId,
+        label: 'Unrelated Character'
+      },
+      {
+        createdAt: current.createdAt,
+        updatedAt: current.updatedAt,
+        streamVersion: current.play.streamVersion,
+        maximumHitPoints: current.play.maximumHitPoints,
+        walkingSpeed: current.play.walkingSpeed
+      }
+    )
+    const clone = await readCharacterRow(ctx, foreignCharacterId)
+    if (!clone) throw new Error('Missing unrelated Character fixture.')
+    await writeCharacterRecord(ctx, clone, {
+      document: readCharacterRecord(clone),
+      sheetState: readCharacterSheetState(current),
+      portraitAssetId: current.portraitAssetId,
+      portraitRevision: current.portraitRevision
     })
-    await ctx.db.insert('characterPlayStates', {
-      ...playFields,
-      characterId: foreignCharacterId,
-      userId: base.owner.userId
-    })
+    await ctx.db.patch(clone.play._id, { updatedAt: current.play.updatedAt })
     await ensureAuthoredRouteId(ctx, 'CHARACTER', foreignCharacterId, false, base.owner.userId)
-    await createActiveRuleEffectStore(ctx).create({
+    await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
       id: foreignEffectId,
       owner: { kind: 'CHARACTER', characterId: foreignCharacterId },
       definition: deletingEffect.definition,
@@ -142,7 +153,7 @@ describe('trusted private Character account cleanup', () => {
             )
             .unique()
           if (!stored) throw new Error('Missing Character receipt fixture.')
-          await ctx.db.patch(stored._id, { actorId: base.owner.userId })
+          await ctx.db.patch(stored._id, { actorId: 'malformed-actor-uuid' })
         })
 
       const before = await fullSnapshot(base.t)
@@ -158,12 +169,32 @@ describe('trusted private Character account cleanup', () => {
         return
       }
       if (outcome === 'MALFORMED_RECEIPT') {
-        await expect(remove()).rejects.toThrow('receipt history identity mismatch')
+        await expect(remove()).rejects.toThrow('actorId')
         expect(await fullSnapshot(base.t)).toEqual(before)
         return
       }
 
       await remove()
+      expect(
+        await base.t.run((ctx) =>
+          ctx.db
+            .query('characterReceiptPurgeJobs')
+            .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
+            .unique()
+        )
+      ).not.toBeNull()
+      await expect(
+        base.player.caller.query(api.characters.history.list, {
+          id: base.character.id,
+          paginationOpts: { numItems: 10, cursor: null }
+        })
+      ).rejects.toThrow('Character history is unavailable for the current user.')
+      await expect(
+        base.player.caller.mutation(api.characters.drafts.create, {
+          id: base.character.id,
+          systemId: base.character.systemId
+        })
+      ).rejects.toThrow('This Character identity is still being deleted.')
       const after = await fullSnapshot(base.t)
       expect(Object.fromEntries(encounterTables.map((name) => [name, after.app[name]]))).toEqual(
         fixture.history

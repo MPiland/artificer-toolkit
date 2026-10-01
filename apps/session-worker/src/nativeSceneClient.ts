@@ -370,11 +370,19 @@ export async function hydrateNativeTransientScene(
   capture: LiveSessionTransientCapture
 ): Promise<{
   scene: CampaignSceneStateDto | null
+  uncomposedScene: CampaignSceneStateDto | null
   baseOrdinals: SceneBaseOrdinals
   characterRevisions: SceneSessionVisionComposition['characterRevisions']
+  visionEncounterIds: string[]
 }> {
   if (!capture.sceneHeader)
-    return { baseOrdinals: { tokens: [], barriers: [] }, characterRevisions: [], scene: null }
+    return {
+      baseOrdinals: { tokens: [], barriers: [] },
+      characterRevisions: [],
+      scene: null,
+      uncomposedScene: null,
+      visionEncounterIds: []
+    }
   let uncomposedScene: CampaignSceneStateDto
   let baseOrdinals: SceneBaseOrdinals
   if (capture.sceneSnapshot) {
@@ -434,6 +442,12 @@ export async function hydrateNativeTransientScene(
   return {
     baseOrdinals,
     characterRevisions: composition.characterRevisions,
+    visionEncounterIds: [
+      ...new Set(
+        composition.context.encounterCharacterBindings.map((binding) => binding.encounterId)
+      )
+    ],
+    uncomposedScene,
     scene: resolveSceneCharacterVision(
       uncomposedScene,
       composition.context.encounterCharacterBindings,

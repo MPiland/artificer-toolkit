@@ -1,3 +1,5 @@
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { writeReceiptRecord, readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference, type FunctionArgs } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { CreateEncounterInputDto } from '@artificer-toolkit/schema/api/encounters'
@@ -243,7 +245,8 @@ async function seedRuleReceipt(base: Awaited<ReturnType<typeof setup>>, actorUse
       updatedAt: now
     })
     await ctx.db.insert('encounterRuleOccurrences', occurrence)
-    await ctx.db.insert(
+    await writeReceiptRecord(
+      ctx,
       'encounterRuleReceipts',
       encounterStoredRuleReceiptSchema.parse({
         id: crypto.randomUUID(),
@@ -333,7 +336,8 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
         commands: await ctx.db
           .query('encounterRunCommands')
           .withIndex('by_encounterId', (q) => q.eq('encounterId', runId))
-          .collect(),
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
         occurrences: await ctx.db
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', runId))
@@ -341,7 +345,8 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
         receipts: await ctx.db
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', runId))
-          .collect(),
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
         rounds: await ctx.db
           .query('encounterInitiativeRounds')
           .withIndex('by_encounterId_round', (q) => q.eq('encounterId', runId))
@@ -369,6 +374,8 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
       .withIndex('by_publicId', (q) => q.eq('id', base.sceneId))
       .unique()
     return {
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       campaign: await ctx.db
         .query('campaigns')
         .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
@@ -418,6 +425,7 @@ async function settleNativeMovementFixture() {
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
         .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
     )
   )
     .map((receipt) => ({
@@ -457,6 +465,9 @@ async function settleNativeMovementFixture() {
         q.eq('characterId', value.base.character.id).eq('commandId', commandId)
       )
       .unique()
+      .then((header) =>
+        header ? readReceiptHeader(ctx, 'characterCommandReceipts', header) : null
+      )
   )
   if (!characterReceipt) throw new Error('Missing native Character reaction receipt.')
   return {
@@ -476,22 +487,33 @@ async function nativeMovementCleanupState(
   value: Awaited<ReturnType<typeof settleNativeMovementFixture>>['value']
 ) {
   return value.base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     runs: await ctx.db
       .query('encounterRuns')
       .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', value.base.campaign.id))
       .collect(),
-    commands: await ctx.db.query('encounterRunCommands').collect(),
+    commands: await ctx.db
+      .query('encounterRunCommands')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+    receipts: await ctx.db
+      .query('encounterRuleReceipts')
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', value.base.character.id))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
   }))
 }
 
 function expectRunChildrenRemoved(state: Awaited<ReturnType<typeof fixtureState>>) {
   expect(state.runs).toEqual([])
+  expect(state.receiptLedgers.filter((ledger) => ledger.scope === 'CAMPAIGN')).toEqual([])
+  expect(state.receiptLedgerParts).toEqual([])
   for (const child of state.children) {
     expect(child.actors).toEqual([])
     expect(child.commands).toEqual([])
@@ -679,7 +701,8 @@ describe('development Encounter Run cleanup', () => {
     const { _id: _receiptId, _creationTime: _receiptTime, ...stored } = fixture.characterReceipt
     const playerReceiptId = crypto.randomUUID()
     await fixture.value.base.t.run((ctx) =>
-      ctx.db.insert(
+      writeReceiptRecord(
+        ctx,
         'characterCommandReceipts',
         characterStoredCommandReceiptSchema.parse({
           ...stored,
@@ -696,6 +719,8 @@ describe('development Encounter Run cleanup', () => {
     expect(after.occurrences).toEqual([])
     expect(after.receipts).toEqual([])
     expect(after.characterReceipts.map((receipt) => receipt.id)).toEqual([playerReceiptId])
+    expect(after.receiptLedgers.filter((ledger) => ledger.scope === 'CAMPAIGN')).toEqual([])
+    expect(after.receiptLedgerParts).toEqual([])
   }, 30_000)
 
   it.each(['checksum', 'identity'] as const)(
@@ -704,7 +729,7 @@ describe('development Encounter Run cleanup', () => {
       const fixture = await settleNativeMovementFixture()
       await fixture.value.base.t.run(async (ctx) => {
         if (corruption === 'checksum') {
-          await ctx.db.patch(fixture.receipt._id, {
+          await replaceReceiptRecord(ctx, 'encounterRuleReceipts', fixture.receipt._id, {
             resultChecksum: '0'.repeat(64)
           })
           return
@@ -713,7 +738,7 @@ describe('development Encounter Run cleanup', () => {
           JSON.parse(fixture.receipt.resultJson)
         )
         const altered = { ...result, occurrenceId: crypto.randomUUID() }
-        await ctx.db.patch(fixture.receipt._id, {
+        await replaceReceiptRecord(ctx, 'encounterRuleReceipts', fixture.receipt._id, {
           resultJson: JSON.stringify(altered),
           resultChecksum: checksumCanonicalJson(altered)
         })
@@ -731,7 +756,8 @@ describe('development Encounter Run cleanup', () => {
     const fixture = await settleNativeMovementFixture()
     const { _id: _receiptId, _creationTime: _receiptTime, ...stored } = fixture.characterReceipt
     await fixture.value.base.t.run((ctx) =>
-      ctx.db.insert(
+      writeReceiptRecord(
+        ctx,
         'characterCommandReceipts',
         characterStoredCommandReceiptSchema.parse({
           ...stored,

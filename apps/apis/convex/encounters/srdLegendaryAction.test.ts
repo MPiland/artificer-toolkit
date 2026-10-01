@@ -1,3 +1,4 @@
+import { readReceiptHeader } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import type {
   EncounterCommandResultDto,
@@ -133,6 +134,7 @@ async function executedLegendaryAction(base: Fixture, commandId: string) {
         q.eq('encounterId', base.run.id).eq('commandId', commandId)
       )
       .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
   )
   if (!receipt) throw new Error('The terminal turn receipt is missing.')
   const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

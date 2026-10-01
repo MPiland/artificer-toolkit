@@ -35,7 +35,8 @@ export async function loadCharacterBuilderContext(
   character: CharacterAuthored,
   userId: string,
   catalogScope: 'resolution' | 'active',
-  authorityScope?: import('../campaigns/authority').CampaignInternalScope
+  authorityScope?: import('../campaigns/authority').CampaignInternalScope,
+  referenceSpellIds: readonly string[] = []
 ): Promise<
   CharacterBuilderContext & {
     creaturesById: ReadonlyMap<string, CreatureAuthored>
@@ -43,9 +44,23 @@ export async function loadCharacterBuilderContext(
     sourceAccess: Awaited<ReturnType<typeof readCharacterSources>>
     publications: Awaited<ReturnType<typeof loadCharacterRuleContext>>['publications']
     sourceIdentities: Awaited<ReturnType<typeof loadCharacterRuleContext>>['sourceIdentities']
+    spellCatalogueEntries: Awaited<
+      ReturnType<typeof loadCharacterRuleContext>
+    >['spellCatalogueEntries']
+    currentSpellDocumentsById: Awaited<
+      ReturnType<typeof loadCharacterRuleContext>
+    >['currentSpellDocumentsById']
   }
 > {
-  const context = await loadCharacterRuleContext(ctx, character, userId, undefined, authorityScope)
+  const context = await loadCharacterRuleContext(
+    ctx,
+    character,
+    userId,
+    undefined,
+    authorityScope,
+    undefined,
+    referenceSpellIds
+  )
   const sources = context.sourceAccess
   if (catalogScope === 'active') {
     return prepareActiveCharacterBuilderContext(character, context, async () => {

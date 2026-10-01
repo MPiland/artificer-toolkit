@@ -255,12 +255,14 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     }
   )
 
-  it('autosaves after edits, at once on a step change, and shows the save state quietly', async () => {
+  it('autosaves through effect replay, saves on a step change, and shows the save state quietly', async () => {
     const user = userEvent.setup()
     const saving = deferred<CharacterBuilderDraftDto>()
     mocks.saveDraft.mockReturnValueOnce(saving.promise)
     const data = editData(characterBuilderPayloadFixture)
-    renderWithAppProviders(<AuthoringLayout data={data} kind='character-builder' mode='edit' />)
+    renderWithAppProviders(<AuthoringLayout data={data} kind='character-builder' mode='edit' />, {
+      reactStrictMode: true
+    })
     await user.click(screen.getByRole('link', { name: 'Basics' }))
     const name = await screen.findByRole('textbox', { name: /character name/i })
     await user.clear(name)

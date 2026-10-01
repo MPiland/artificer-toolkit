@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { describe, expect, it } from 'vitest'
 import { characterSheetCommandInputDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -81,7 +82,7 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
 
     const drainId = crypto.randomUUID()
     await fixture.owner.caller.run((ctx) =>
-      createActiveRuleEffectStore(ctx).create({
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
         id: drainId,
         owner: { kind: 'CHARACTER', characterId: fixture.character.id },
         definition: reductionDefinition(fixture.character.id, 4, [
@@ -139,7 +140,11 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
         commandId: crypto.randomUUID()
       }
     })
-    expect(healed.sheet.overview.currentHitPoints).toBe(baseMaximum - 4)
+    expect(healed).not.toHaveProperty('sheet')
+    const healedSheet = (await fixture.player.caller.query(api.characters.sheet.get, {
+      id: healed.characterId
+    }))!
+    expect(healedSheet.overview.currentHitPoints).toBe(baseMaximum - 4)
 
     const input = {
       restKind: 'LONG' as const,
@@ -165,7 +170,11 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
         previewFingerprint: preview.previewFingerprint
       })
     })
-    expect(rested.sheet.overview).toMatchObject({
+    expect(rested).not.toHaveProperty('sheet')
+    const restedSheet = (await fixture.player.caller.query(api.characters.sheet.get, {
+      id: rested.characterId
+    }))!
+    expect(restedSheet.overview).toMatchObject({
       maxHitPoints: baseMaximum,
       currentHitPoints: baseMaximum,
       maxHitPointsReductions: []

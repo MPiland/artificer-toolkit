@@ -13,21 +13,51 @@ import {
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
+import { readContentSnapshotManifest } from '../contentSnapshots/manifest'
+import type { QueryCtx } from '../_generated/server'
 
-export function projectCharacterPreparationOptions(
+export async function projectCharacterPreparationOptions(
+  ctx: QueryCtx,
   current: NonNullable<Awaited<ReturnType<typeof loadCharacterSheet>>>
 ) {
+  const summaries = current.evaluationInput.context.catalog.spells
+  const eligibility = collectCharacterSpellPreparationEligibility({
+    rulePolicyInput: current.ruleEvaluation.facts,
+    rulePolicyOutput: current.ruleEvaluation.output
+  })
+  const eligibleIds = new Set(eligibility.flatMap((source) => source.eligibleSpellIds))
+  const committedById = new Map(current.sheet.spells.spells.map((spell) => [spell.id, spell]))
+  const catalogue: CharacterPreparationOptionsResponseDto['catalogue'] =
+    current.campaignContext.viewer === 'CHARACTER_OWNER'
+      ? {
+          kind: 'SNAPSHOTS',
+          manifest: await readContentSnapshotManifest(
+            ctx,
+            current.character.systemId,
+            current.sourceContext.context.sourceAccess
+          )
+        }
+      : {
+          kind: 'INLINE',
+          spells: summaries
+            .filter((spell) => eligibleIds.has(spell.id))
+            .map((spell) => {
+              const committed = committedById.get(spell.id)
+              return {
+                spellId: spell.id,
+                label: committed?.label ?? spell.label,
+                level: committed?.level ?? spell.level
+              }
+            })
+        }
   return characterPreparationOptionsResponseDtoSchema.parse(
     presentCampaignCharacterText(
       buildCharacterPreparationOptions({
         characterId: current.character.id,
         streamVersion: current.sheet.meta.streamVersion,
-        eligibility: collectCharacterSpellPreparationEligibility({
-          rulePolicyInput: current.ruleEvaluation.facts,
-          rulePolicyOutput: current.ruleEvaluation.output
-        }),
-        summaries: current.evaluationInput.context.catalog.spells,
-        committedSpells: current.sheet.spells.spells,
+        eligibility,
+        summaries,
+        catalogue,
         classes: current.resolution.registry.classes
       }),
       current.contentMaturity,
@@ -44,6 +74,6 @@ export const get = query({
     const { id } = characterSheetReadInputSchema.parse(args)
     const current = await loadCharacterSheet(ctx, userId, id)
     if (!current) return null
-    return projectCharacterPreparationOptions(current)
+    return projectCharacterPreparationOptions(ctx, current)
   }
 })

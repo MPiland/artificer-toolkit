@@ -1,11 +1,12 @@
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { syncAccountUsage } from '../lib/accountUsage'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { retireCharacterReceipts } from './receiptCleanup'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   deleteCharacterDraftPayload,
   readCharacterDraft,
-  readCharacterReceiptHistory,
   readCharacterRecord,
   readCharacterSheetState
 } from './documents'
@@ -46,7 +47,7 @@ export async function removeAccountPrivateCharacters(ctx: MutationCtx, userId: s
     states.set(draft.characterId, state)
   }
 
-  const effects = createActiveRuleEffectStore(ctx)
+  const effects = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
   for (const [characterId, state] of [...states].sort(([left], [right]) =>
     left.localeCompare(right)
   )) {
@@ -93,9 +94,7 @@ export async function removeAccountPrivateCharacters(ctx: MutationCtx, userId: s
     for (const receipt of receipts) {
       if (receipt.characterId !== characterId)
         throw new Error('Stored Sheet command receipt Character mismatch.')
-      readCharacterReceiptHistory(receipt)
     }
-
     if (active) {
       for (const effect of await effects.list({ kind: 'CHARACTER', characterId })) {
         if (effect.owner.kind !== 'CHARACTER' || effect.owner.characterId !== characterId)
@@ -114,11 +113,32 @@ export async function removeAccountPrivateCharacters(ctx: MutationCtx, userId: s
       if (activeEffects.length) throw new Error('Draft-only Character has active rule effects.')
     }
 
-    for (const receipt of receipts) await ctx.db.delete(receipt._id)
+    await retireCharacterReceipts(ctx, characterId, userId, receipts)
     if (draft) {
       await deleteCharacterDraftPayload(ctx, draft)
       await ctx.db.delete(draft._id)
     }
+    for (const table of [
+      'characterInventoryItems',
+      'characterCurrencyGroups',
+      'characterClassSpellStates',
+      'characterSpellCustomizations',
+      'characterCreatureInstances',
+      'characterVehicleInstances',
+      'characterNotes',
+      'characterNoteGroups',
+      'characterExtraEquipment'
+    ] as const) {
+      for await (const row of ctx.db
+        .query(table)
+        .withIndex('by_characterId_position', (q) => q.eq('characterId', characterId)))
+        await ctx.db.delete(row._id)
+    }
+    const build = await ctx.db
+      .query('characterBuildStates')
+      .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+      .unique()
+    if (build) await ctx.db.delete(build._id)
     if (active) {
       await ctx.db.delete(active.play._id)
       await ctx.db.delete(active._id)

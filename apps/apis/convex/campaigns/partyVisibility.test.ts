@@ -165,7 +165,7 @@ describe('Party can view (ADR 0034 decision 5)', () => {
   }, 60_000)
 
   it('lets only the Character’s player set it, and never lets another player act', async () => {
-    const { gm, party, input, setVisibility } = await setup()
+    const { player, gm, party, input, setVisibility } = await setup()
     const current = await gm.caller.query(get, input)
     await expect(
       gm.caller.mutation(execute, {
@@ -180,7 +180,9 @@ describe('Party can view (ADR 0034 decision 5)', () => {
     ).rejects.toThrow()
 
     const updated = await setVisibility({ sheet: true, health: 'BAR' })
-    expect(updated.sheet.meta.partyVisibility).toEqual({ sheet: true, health: 'BAR' })
+    expect(updated).not.toHaveProperty('sheet')
+    const updatedSheet = await player.caller.query(get, input)
+    expect(updatedSheet.meta.partyVisibility).toEqual({ sheet: true, health: 'BAR' })
     await expect(
       party.caller.mutation(execute, {
         ...input,

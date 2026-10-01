@@ -340,7 +340,7 @@ describe('native Character action resource persistence', () => {
         updatedAt: row.updatedAt
       })
       await ctx.db.patch(row.play._id, {
-        playJson: encoded.play.playJson,
+        state: encoded.play.state,
         checksum: encoded.play.checksum
       })
     })

@@ -14,21 +14,24 @@ import {
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import {
+  liveSessionBootstrapInputSchema,
+  liveSessionActivationInputSchema,
   liveSessionDrainReleaseInputSchema,
-  liveSessionPublishInputSchema
+  liveSessionStorageRecoveryInputSchema,
+  liveSessionAuthorityDtoSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
+import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
+import { liveSessionCheckpointInputSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { liveSessionMovementStageInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
-import {
-  liveSessionEncounterBindingCommitInputSchema,
-  liveSessionSceneGeometryCommitInputSchema
-} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import { liveSessionSceneGeometryCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   liveSessionTransientCaptureInputSchema,
   type LiveSessionTransientCapture
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { createUniformSceneFogLayer } from '@artificer-toolkit/shared/vtt'
+import { createUniformSceneFogLayer, projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 
 import { DurableCommandJournal } from '../src/durableCommandJournal.js'
 import { planLiveSceneCommand } from '../src/nativeRoomSceneCommand.js'
@@ -39,9 +42,160 @@ import {
 } from '../src/nativeLiveSessionState.js'
 import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
+import {
+  liveRoomInputsInputSchema,
+  type LiveRoomInputsResponse
+} from '@artificer-toolkit/schema/api/liveRoomInputs'
+import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
+import {
+  sceneStoredLiveCommandSchema,
+  sceneStoredLiveEntitySchema,
+  sceneStoredLiveStateSchema
+} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import {
+  sceneStoredFogLayerSchema,
+  sceneStoredFogSaveSchema,
+  sceneStoredFogChunkSchema
+} from '@artificer-toolkit/schema/projections/sceneFogPersistence'
+import {
+  parseGeometryCommand,
+  parseGeometrySave
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterStoredRunSchema,
+  encounterStoredReplayReceiptSchema,
+  encounterSceneBindingSchema
+} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { encounterCommandInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
+import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
+import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
+import { insertRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const sockets: WebSocket[] = []
+
+function checkpointResponse(
+  body: ReturnType<typeof liveSessionCheckpointInputSchema.parse>,
+  members: Parameters<typeof roomAuthorizationResponse>[0]['members']
+) {
+  const now = new Date().toISOString()
+  return {
+    status: 'COMMITTED',
+    authority: {
+      activationFingerprint: 'a'.repeat(64),
+      campaignId: body.campaignId,
+      createdAt: now,
+      epoch: body.epoch,
+      persistedSequence: body.sequence,
+      persistedStateChecksum: body.checksum,
+      phase: 'DO_ACTIVE',
+      updatedAt: now
+    },
+    authorization: roomAuthorizationResponse({ members })
+  }
+}
+
+function rawSceneInputs(capture: LiveSessionTransientCapture): LiveRoomInputsResponse {
+  const header = capture.sceneHeader
+  const scene = capture.sceneSnapshot?.scene
+  if (!header || !scene) throw new Error('Missing raw Scene fixture.')
+  if (scene.fogLayers.length) throw new Error('Raw fog fixtures require saved chunk evidence.')
+  const documents: Extract<LiveRoomInputsResponse, { kind: 'SCENE' }>['documents'] = []
+  if (scene.version > 0) {
+    const counts = {
+      annotations: scene.annotations.length,
+      barriers: scene.barriers.length,
+      darknessZones: scene.darknessZones.length,
+      lights: scene.lights.length,
+      measurements: scene.measurements.length,
+      tokens: scene.tokens.length
+    }
+    documents.push({
+      table: 'sceneLiveStates',
+      id: `scene:${scene.id}:head`,
+      creationTime: 0,
+      fields: {
+        sceneId: scene.id,
+        version: scene.version,
+        counts,
+        nextOrdinals: counts,
+        fogLayerCount: 0,
+        nextFogOrdinal: 0,
+        settings: {
+          ambientIllumination: { value: scene.ambientIllumination, version: 0 },
+          visionRevealMode: { value: scene.visionRevealMode, version: 0 },
+          fogMode: { value: scene.fogMode, version: 0 }
+        }
+      }
+    })
+    for (const collection of ['tokens', 'barriers'] as const) {
+      scene[collection].forEach((entity, ordinal) => {
+        const fields = {
+          sceneId: scene.id,
+          collection,
+          entityId: entity.id,
+          value: { collection, entity },
+          ordinal,
+          version: scene.version,
+          ...(collection === 'barriers' && 'kind' in entity && entity.kind === 'DOOR'
+            ? { doorState: scene.doorStates[entity.id] }
+            : {})
+        }
+        documents.push({
+          table: 'sceneLiveEntities',
+          id: `scene:${scene.id}:${entity.id}`,
+          creationTime: 0,
+          fields: { ...fields, checksum: checksumCanonicalJson(fields) }
+        })
+      })
+    }
+  }
+  return {
+    kind: 'SCENE',
+    source: {
+      sceneId: scene.id,
+      definitionSaveId: header.definitionSaveId,
+      definitionVersion: header.definitionVersion,
+      presentationVersion: capture.presentation?.version ?? 0
+    },
+    sceneVersion: scene.version,
+    documents,
+    continueCursor: null
+  }
+}
+
+function fireCheckpointAlarm(stub: Awaited<ReturnType<typeof fixture>>['stub']) {
+  return runInDurableObject(stub, async (instance) => {
+    const clock = vi
+      .spyOn(Date, 'now')
+      .mockReturnValue(Date.now() + ROOM_LIMITS.checkpointDeadlineMs + 1)
+    try {
+      await instance.alarm()
+    } finally {
+      clock.mockRestore()
+    }
+  })
+}
+
+function checkpointReceipt(
+  checkpoint: ReturnType<typeof liveSessionCheckpointInputSchema.parse>,
+  commandId: string
+) {
+  const change = checkpoint.records.scenes
+    .flatMap((scene) => scene.changes)
+    .find((entry) => entry.table === 'sceneLiveCommands' && entry.key[1] === commandId)
+  if (!change?.delta || !('set' in change.delta)) throw new Error('Missing checkpoint receipt.')
+  return sceneStoredLiveCommandSchema.parse(change.delta.set)
+}
 
 function doorScene(campaignId: string) {
   const doorId = crypto.randomUUID()
@@ -276,6 +430,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
   const captureModes: Array<'AUTHORITY' | 'FULL' | undefined> = []
   const authorityLifecycleCalls: string[] = []
+  let currentAuthorityEpoch = authorityEpoch
   /** Convex's authorization state for the room; tests change it to model departures. */
   const authorization = {
     members: [
@@ -289,6 +444,25 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
       expect(request.headers.get('x-artificer-live-session-secret')).toBe(secret)
+      if (pathname === ROOM_INPUTS_PATH) {
+        expect(request.headers.get('authorization')).toBeNull()
+        const inputs = liveRoomInputsInputSchema.parse(await request.json())
+        expect(inputs).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
+        return Response.json(
+          inputs.scope.kind === 'SCENE'
+            ? rawSceneInputs(capture)
+            : roomInputsResponse(inputs.scope, {
+                campaignId,
+                systemId: capture.systemId,
+                ownerUserId: userId,
+                members: authorization.members
+              })
+        )
+      }
+      if (pathname === '/live-sessions/checkpoint') {
+        const body = liveSessionCheckpointInputSchema.parse(await request.json())
+        return Response.json(checkpointResponse(body, authorization.members))
+      }
       if (pathname === ROOM_AUTHORIZATION_PATH) {
         expect(request.headers.get('authorization')).toBeNull()
         expect(await request.json()).toMatchObject({ campaignId })
@@ -324,6 +498,9 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
       }
       if (pathname === '/live-sessions/bootstrap') {
         expect(request.headers.get('authorization')).toBe(`Bearer ${accessToken}`)
+        const body = liveSessionBootstrapInputSchema.parse(await request.json())
+        expect(body).toMatchObject({ campaignId, expectedUserId: userId })
+        currentAuthorityEpoch = body.authorityEpoch
         return Response.json({
           activationFingerprint,
           persistedSequence: 0,
@@ -332,13 +509,14 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
       }
       if (pathname === '/live-sessions/activate') {
         expect(request.headers.get('authorization')).toBeNull()
-        const body = (await request.json()) as { stateChecksum: string }
+        const body = liveSessionActivationInputSchema.parse(await request.json())
+        expect(body).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
         const now = new Date().toISOString()
         return Response.json({
           activationFingerprint,
           campaignId,
           createdAt: now,
-          epoch: authorityEpoch,
+          epoch: currentAuthorityEpoch,
           persistedSequence: 0,
           persistedStateChecksum: body.stateChecksum,
           phase: 'DO_ACTIVE',
@@ -347,13 +525,14 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
       }
       if (pathname === '/live-sessions/begin-drain') {
         const body = liveSessionDrainReleaseInputSchema.parse(await request.json())
+        expect(body).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
         authorityLifecycleCalls.push(pathname)
         const now = new Date().toISOString()
         return Response.json({
           activationFingerprint,
           campaignId,
           createdAt: now,
-          epoch: authorityEpoch,
+          epoch: currentAuthorityEpoch,
           finalSequence: body.finalSequence,
           finalStateChecksum: body.finalStateChecksum,
           persistedSequence: body.finalSequence,
@@ -363,7 +542,8 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
         })
       }
       if (pathname === '/live-sessions/release') {
-        liveSessionDrainReleaseInputSchema.parse(await request.json())
+        const body = liveSessionDrainReleaseInputSchema.parse(await request.json())
+        expect(body).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
         authorityLifecycleCalls.push(pathname)
         return Response.json(null)
       }
@@ -540,9 +720,9 @@ it.each([0, 600])(
         2 * 1024 * 1024
       )
     const base = await fixture(value.scene)
-    await synchronizeScene(base, value.scene)
     if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
     base.capture.presentation.version = 2
+    await synchronizeScene(base, value.scene)
     const player = await connectPlayer(base)
     base.messages.length = 0
     player.messages.length = 0
@@ -564,53 +744,51 @@ it.each([0, 600])(
 
     let publishStarted = false
     let publishFinished = false
-    let publication: ReturnType<typeof liveSessionPublishInputSchema.parse> | null = null
+    const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
     let heldEvidence: {
       authority: { published_sequence: number; sequence: number }
-      outboxCount: number
+      pendingWriteCount: number
     } | null = null
     await runInDurableObject(base.stub, (_instance, state) => {
       vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
         const request = new Request(input, init)
-        expect(new URL(request.url).pathname).toBe('/live-sessions/publish')
-        const body = liveSessionPublishInputSchema.parse(await request.json())
-        if (!('expectedSceneResult' in body)) throw new Error('Expected Scene publication.')
-        publication = body
+        expect(new URL(request.url).pathname).toBe('/live-sessions/checkpoint')
+        const body = liveSessionCheckpointInputSchema.parse(await request.json())
+        publications.push(body)
+        const chain = state.storage.sql
+          .exec<{ chain: string }>(
+            'SELECT chain FROM room_writeset_log WHERE sequence = ?',
+            body.sequence
+          )
+          .one()
+        const head = state.storage.sql
+          .exec<{ state_checksum: string; published_checksum: string }>(
+            'SELECT state_checksum, published_checksum FROM durable_session_authority WHERE id = 1'
+          )
+          .one()
+        expect(body.checksum).toBe(chain.chain)
+        expect(body.checksum).toBe(head.state_checksum)
+        expect(body.fromChecksum).toBe(head.published_checksum)
         heldEvidence = {
           authority: state.storage.sql
             .exec<{ published_sequence: number; sequence: number }>(
               'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
             )
             .one(),
-          outboxCount: state.storage.sql
-            .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+          pendingWriteCount: state.storage.sql
+            .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
             .one().count
         }
         publishStarted = true
         await new Promise((resolve) => setTimeout(resolve, 250))
         publishFinished = true
-        const now = new Date().toISOString()
-        return Response.json({
-          authority: {
-            activationFingerprint: 'a'.repeat(64),
-            campaignId: body.campaignId,
-            createdAt: now,
-            epoch: body.epoch,
-            persistedSequence: body.sequence,
-            persistedStateChecksum: body.stateChecksum,
-            phase: 'DO_ACTIVE',
-            updatedAt: now
-          },
-          sceneResult: body.expectedSceneResult,
-          scope: 'SCENE'
-        })
+        return Response.json(checkpointResponse(body, base.authorization.members))
       })
     })
 
     const commandId = crypto.randomUUID()
     const command = doorCommand(value.scene, value.doorId, commandId)
     base.socket.send(JSON.stringify(command))
-    await vi.waitFor(() => expect(publishStarted).toBe(true))
     await vi.waitFor(() => {
       expect(
         base.messages.some(
@@ -627,13 +805,34 @@ it.each([0, 600])(
         type: 'COMMAND_COMMITTED'
       })
     })
+    expect(publishStarted).toBe(false)
+    const pending = await journalEvidence(base)
+    expect(pending).toMatchObject({
+      authority: { published_sequence: 0, sequence: 1 },
+      pendingWriteCount: 1
+    })
+    await runInDurableObject(base.stub, async (_instance, state) => {
+      const receipt = state.storage.sql
+        .exec<{ command_id: string; created_at: number }>(
+          'SELECT command_id, created_at FROM durable_command_receipts WHERE command_id = ?',
+          commandId
+        )
+        .one()
+      expect(receipt.command_id).toBe(commandId)
+      expect(await state.storage.getAlarm()).toBe(
+        receipt.created_at + ROOM_LIMITS.checkpointDeadlineMs
+      )
+    })
+    const alarm = fireCheckpointAlarm(base.stub)
+    await vi.waitFor(() => expect(publishStarted).toBe(true))
     expect(heldEvidence).toEqual({
       authority: { published_sequence: 0, sequence: 1 },
-      outboxCount: 1
+      pendingWriteCount: 1
     })
     expect(publishFinished).toBe(false)
 
-    await vi.waitFor(() => expect(publishFinished).toBe(true))
+    await alarm
+    expect(publishFinished).toBe(true)
     await vi.waitFor(async () => {
       const evidence = await runInDurableObject(base.stub, (_instance, state) => ({
         authority: state.storage.sql
@@ -641,13 +840,13 @@ it.each([0, 600])(
             'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
           )
           .one(),
-        outboxCount: state.storage.sql
-          .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+        pendingWriteCount: state.storage.sql
+          .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
           .one().count
       }))
       expect(evidence).toEqual({
         authority: { published_sequence: 1, sequence: 1 },
-        outboxCount: 0
+        pendingWriteCount: 0
       })
     })
 
@@ -685,15 +884,14 @@ it.each([0, 600])(
         expect.objectContaining({ code: 'INVALID_COMMAND', commandId, type: 'COMMAND_REJECTED' })
       )
     )
-    expect(publication).toMatchObject({
-      command: {
-        command: command.command.command,
-        scope: 'SCENE',
-        presentation: {
-          expectedPresentationVersion: 2
-        }
-      },
-      expectedSceneResult: {
+    expect(publications).toHaveLength(1)
+    const publication = publications[0]
+    if (!publication) throw new Error('Missing Scene checkpoint.')
+    expect(publication).toMatchObject({ fromSequence: 0, sequence: 1 })
+    expect(checkpointReceipt(publication, commandId)).toMatchObject({
+      actorUserId: base.userId,
+      input: command.command.command,
+      result: {
         commandId,
         delta: { barrierId: value.doorId, kind: 'DOOR_STATE_SET', state: 'OPEN' },
         replayed: false,
@@ -701,6 +899,20 @@ it.each([0, 600])(
         version: 1
       }
     })
+    expect(publication.records.scenes).toContainEqual(
+      expect.objectContaining({
+        sceneId: value.scene.id,
+        fromVersion: 0,
+        toVersion: 1,
+        changes: expect.arrayContaining([
+          expect.objectContaining({ table: 'sceneLiveStates', key: [value.scene.id] }),
+          expect.objectContaining({
+            table: 'sceneLiveEntities',
+            key: [value.scene.id, 'barriers', value.doorId]
+          })
+        ])
+      })
+    )
   }
 )
 
@@ -735,7 +947,7 @@ it.each([false, true])(
     const heldPublication = new Promise<void>((resolve) => {
       releasePublication = resolve
     })
-    const publications: Array<ReturnType<typeof liveSessionPublishInputSchema.parse>> = []
+    const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
     const presentations: Array<ReturnType<typeof liveSessionPresentationCommitInputSchema.parse>> =
       []
     await runInDurableObject(base.stub, (_instance, state) => {
@@ -744,17 +956,22 @@ it.each([false, true])(
       vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
         const request = new Request(input, init)
         const pathname = new URL(request.url).pathname
-        if (pathname === '/live-sessions/publish') {
-          const body = liveSessionPublishInputSchema.parse(await request.json())
-          if (!('expectedSceneResult' in body)) throw new Error('Expected Scene publication.')
+        if (pathname === '/live-sessions/checkpoint') {
+          const body = liveSessionCheckpointInputSchema.parse(await request.json())
           publications.push(body)
           if (publications.length === 1) await heldPublication
           if (publicationFails) return new Response('Publication unavailable.', { status: 409 })
-          expect(base.capture.presentation?.sceneId).toBe(body.command.command.sceneId)
-          expect(base.capture.presentation?.version).toBe(
-            body.command.presentation.expectedPresentationVersion
+          expect(body.records.scenes).toHaveLength(1)
+          const publishedScene = body.records.scenes[0]!
+          expect(base.capture.presentation?.sceneId).toBe(publishedScene.sceneId)
+          expect(base.capture.presentation?.version).toBe(publishedScene.presentationVersion)
+          const receiptChange = publishedScene.changes.find(
+            (change) => change.table === 'sceneLiveCommands'
           )
-          const result = body.expectedSceneResult
+          if (!receiptChange?.delta || !('set' in receiptChange.delta))
+            throw new Error('Missing Scene receipt.')
+          const receipt = sceneStoredLiveCommandSchema.parse(receiptChange.delta.set)
+          const result = receipt.result
           if (result.delta?.kind !== 'DOOR_STATE_SET')
             throw new Error('Expected Scene door publication.')
           const stored = storedScenes.get(result.sceneId)
@@ -766,21 +983,7 @@ it.each([false, true])(
           }
           storedScenes.set(result.sceneId, next)
           if (base.capture.presentation?.sceneId === result.sceneId) setCapturedScene(next)
-          const now = new Date().toISOString()
-          return Response.json({
-            authority: {
-              activationFingerprint: 'a'.repeat(64),
-              campaignId: body.campaignId,
-              createdAt: now,
-              epoch: body.epoch,
-              persistedSequence: body.sequence,
-              persistedStateChecksum: body.stateChecksum,
-              phase: 'DO_ACTIVE',
-              updatedAt: now
-            },
-            sceneResult: result,
-            scope: 'SCENE'
-          })
+          return Response.json(checkpointResponse(body, base.authorization.members))
         }
         if (pathname === '/live-sessions/present') {
           const body = liveSessionPresentationCommitInputSchema.parse(await request.json())
@@ -827,7 +1030,6 @@ it.each([false, true])(
     const firstCommandId = crypto.randomUUID()
     const firstCommand = doorCommand(first.scene, first.doorId, firstCommandId)
     base.socket.send(JSON.stringify(firstCommand))
-    await vi.waitFor(() => expect(publications).toHaveLength(1))
     await vi.waitFor(() =>
       expect(base.messages).toContainEqual(
         expect.objectContaining({
@@ -854,6 +1056,7 @@ it.each([false, true])(
         type: 'SET_SCENE_PRESENTATION'
       }
     })
+    await vi.waitFor(() => expect(publications).toHaveLength(1))
     let switchSettled = false
     void switchToSecond.then(() => {
       switchSettled = true
@@ -877,7 +1080,7 @@ it.each([false, true])(
         ).toEqual({ published_sequence: 0, sequence: 1 })
         expect(
           state.storage.sql
-            .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+            .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
             .one().count
         ).toBe(1)
         expect(
@@ -946,6 +1149,7 @@ it.each([false, true])(
         })
       )
     )
+    await fireCheckpointAlarm(base.stub)
     await vi.waitFor(async () => {
       const published = await runInDurableObject(base.stub, (_instance, state) =>
         state.storage.sql
@@ -1018,6 +1222,7 @@ it.each([false, true])(
         })
       )
     )
+    await fireCheckpointAlarm(base.stub)
     await vi.waitFor(async () => {
       const final = await runInDurableObject(base.stub, (_instance, state) => ({
         authority: state.storage.sql
@@ -1025,13 +1230,13 @@ it.each([false, true])(
             'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
           )
           .one(),
-        outboxCount: state.storage.sql
-          .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+        pendingWriteCount: state.storage.sql
+          .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
           .one().count
       }))
       expect(final).toEqual({
         authority: { published_sequence: 3, sequence: 3 },
-        outboxCount: 0
+        pendingWriteCount: 0
       })
     })
     expect(presentations.map((entry) => entry.expectedSequence)).toEqual([1, 2])
@@ -1054,7 +1259,7 @@ it('keeps the new presentation fence when an older authentication capture finish
   })
   let holdNextCapture = true
   let delayedAuthentication: Promise<void> | undefined
-  const publications: Array<ReturnType<typeof liveSessionPublishInputSchema.parse>> = []
+  const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
   await runInDurableObject(base.stub, (instance, state) => {
     const originalFetch = vi.mocked(globalThis.fetch).getMockImplementation()
     if (!originalFetch) throw new Error('Missing native request fixture.')
@@ -1085,27 +1290,12 @@ it('keeps the new presentation fence when an older authentication capture finish
           version: 2
         })
       }
-      if (pathname === '/live-sessions/publish') {
-        const body = liveSessionPublishInputSchema.parse(await request.json())
-        if (!('expectedSceneResult' in body)) throw new Error('Expected Scene publication.')
+      if (pathname === '/live-sessions/checkpoint') {
+        const body = liveSessionCheckpointInputSchema.parse(await request.json())
         publications.push(body)
         expect(base.capture.presentation?.version).toBe(2)
-        expect(body.command.presentation.expectedPresentationVersion).toBe(2)
-        const now = new Date().toISOString()
-        return Response.json({
-          authority: {
-            activationFingerprint: 'a'.repeat(64),
-            campaignId: body.campaignId,
-            createdAt: now,
-            epoch: body.epoch,
-            persistedSequence: body.sequence,
-            persistedStateChecksum: body.stateChecksum,
-            phase: 'DO_ACTIVE',
-            updatedAt: now
-          },
-          sceneResult: body.expectedSceneResult,
-          scope: 'SCENE'
-        })
+        expect(body.records.scenes[0]?.presentationVersion).toBe(2)
+        return Response.json(checkpointResponse(body, base.authorization.members))
       }
       return originalFetch(input, init)
     })
@@ -1176,7 +1366,9 @@ it('keeps the new presentation fence when an older authentication capture finish
       expect.objectContaining({ commandId, sequence: 1, type: 'COMMAND_COMMITTED' })
     )
   )
-  await vi.waitFor(() => expect(publications).toHaveLength(1))
+  expect(publications).toHaveLength(0)
+  await fireCheckpointAlarm(base.stub)
+  expect(publications).toHaveLength(1)
 })
 
 it.each([false, true])(
@@ -1184,9 +1376,9 @@ it.each([false, true])(
   async (legacyUndo) => {
     const value = movementScene(crypto.randomUUID())
     const base = await fixture(value.scene)
-    await synchronizeScene(base, value.scene)
     if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
     base.capture.presentation.version = 2
+    await synchronizeScene(base, value.scene)
     const player = await connectPlayer(base)
     base.messages.length = 0
     player.messages.length = 0
@@ -1208,18 +1400,17 @@ it.each([false, true])(
     )
     player.messages.length = 0
 
-    const publications: Array<ReturnType<typeof liveSessionPublishInputSchema.parse>> = []
+    const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
     const heldEvidence: Array<{
       authority: { published_sequence: number; sequence: number }
-      outboxCount: number
+      pendingWriteCount: number
     }> = []
     let publishFinished = 0
     await runInDurableObject(base.stub, (_instance, state) => {
       vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
         const request = new Request(input, init)
-        expect(new URL(request.url).pathname).toBe('/live-sessions/publish')
-        const body = liveSessionPublishInputSchema.parse(await request.json())
-        if (!('expectedSceneResult' in body)) throw new Error('Expected Scene publication.')
+        expect(new URL(request.url).pathname).toBe('/live-sessions/checkpoint')
+        const body = liveSessionCheckpointInputSchema.parse(await request.json())
         publications.push(body)
         heldEvidence.push({
           authority: state.storage.sql
@@ -1227,27 +1418,13 @@ it.each([false, true])(
               'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
             )
             .one(),
-          outboxCount: state.storage.sql
-            .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+          pendingWriteCount: state.storage.sql
+            .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
             .one().count
         })
         await new Promise((resolve) => setTimeout(resolve, 250))
         publishFinished += 1
-        const now = new Date().toISOString()
-        return Response.json({
-          authority: {
-            activationFingerprint: 'a'.repeat(64),
-            campaignId: body.campaignId,
-            createdAt: now,
-            epoch: body.epoch,
-            persistedSequence: body.sequence,
-            persistedStateChecksum: body.stateChecksum,
-            phase: 'DO_ACTIVE',
-            updatedAt: now
-          },
-          sceneResult: body.expectedSceneResult,
-          scope: 'SCENE'
-        })
+        return Response.json(checkpointResponse(body, base.authorization.members))
       })
     })
 
@@ -1255,7 +1432,6 @@ it.each([false, true])(
     const moveCommandId = crypto.randomUUID()
     const move = tokenMoveCommand(value.scene, value.tokenId, moveCommandId, movedPosition)
     base.socket.send(JSON.stringify(move))
-    await vi.waitFor(() => expect(publications).toHaveLength(1))
     const moveCommitted = {
       commandId: moveCommandId,
       delta: {
@@ -1281,13 +1457,21 @@ it.each([false, true])(
         type: 'COMMAND_COMMITTED'
       })
     })
+    expect(publications).toHaveLength(0)
+    expect(await journalEvidence(base)).toMatchObject({
+      authority: { published_sequence: 0, sequence: 1 },
+      pendingWriteCount: 1
+    })
+    const moveAlarm = fireCheckpointAlarm(base.stub)
+    await vi.waitFor(() => expect(publications).toHaveLength(1))
     expect(heldEvidence[0]).toEqual({
       authority: { published_sequence: 0, sequence: 1 },
-      outboxCount: 1
+      pendingWriteCount: 1
     })
     expect(publishFinished).toBe(0)
 
-    await vi.waitFor(() => expect(publishFinished).toBe(1))
+    await moveAlarm
+    expect(publishFinished).toBe(1)
     await vi.waitFor(async () => {
       const state = await runInDurableObject(base.stub, (_instance, durableState) =>
         durableState.storage.sql
@@ -1339,7 +1523,6 @@ it.each([false, true])(
     const undoCommandId = crypto.randomUUID()
     const undo = undoMoveCommand(value.scene.id, undoCommandId, 1, 1)
     base.socket.send(JSON.stringify(undo))
-    await vi.waitFor(() => expect(publications).toHaveLength(2))
     const undoCommitted = {
       commandId: undoCommandId,
       delta: {
@@ -1370,13 +1553,17 @@ it.each([false, true])(
         type: 'COMMAND_COMMITTED'
       })
     })
+    expect(publications).toHaveLength(1)
+    const undoAlarm = fireCheckpointAlarm(base.stub)
+    await vi.waitFor(() => expect(publications).toHaveLength(2))
     expect(heldEvidence[1]).toEqual({
       authority: { published_sequence: 1, sequence: 2 },
-      outboxCount: 1
+      pendingWriteCount: 1
     })
     expect(publishFinished).toBe(1)
 
-    await vi.waitFor(() => expect(publishFinished).toBe(2))
+    await undoAlarm
+    expect(publishFinished).toBe(2)
     base.socket.send(JSON.stringify(undo))
     await vi.waitFor(() =>
       expect(
@@ -1421,45 +1608,29 @@ it.each([false, true])(
 
     const movePublication = publications[0]!
     const undoPublication = publications[1]!
-    if (!('expectedSceneResult' in movePublication) || !('expectedSceneResult' in undoPublication))
-      throw new Error('Missing Scene publication evidence.')
-    expect(movePublication).toEqual({
-      actorRole: 'OWNER',
-      actorUserId: base.userId,
+    expect(movePublication).toMatchObject({
       campaignId: base.capture.campaignId,
-      command: {
-        command: move.command.command,
-        scope: 'SCENE',
-        presentation: {
-          expectedPresentationVersion: 2
-        }
-      },
       epoch: base.authorityEpoch,
-      expectedSceneResult: moveCommitted.delta.result,
-      expectedStateChecksum: expect.any(String),
-      occurredAt: expect.any(String),
-      receiptId: moveCommandId,
+      fromSequence: 0,
       sequence: 1,
-      stateChecksum: expect.any(String)
+      checksum: expect.any(String)
     })
-    expect(undoPublication).toEqual({
-      actorRole: 'OWNER',
+    expect(checkpointReceipt(movePublication, moveCommandId)).toMatchObject({
       actorUserId: base.userId,
+      input: move.command.command,
+      result: moveCommitted.delta.result
+    })
+    expect(undoPublication).toMatchObject({
       campaignId: base.capture.campaignId,
-      command: {
-        command: undo.command.command,
-        scope: 'SCENE',
-        presentation: {
-          expectedPresentationVersion: 2
-        }
-      },
       epoch: base.authorityEpoch,
-      expectedSceneResult: undoCommitted.delta.result,
-      expectedStateChecksum: movePublication.stateChecksum,
-      occurredAt: expect.any(String),
-      receiptId: undoCommandId,
-      sequence: 2,
-      stateChecksum: expect.any(String)
+      fromSequence: 1,
+      fromChecksum: movePublication.checksum,
+      sequence: 2
+    })
+    expect(checkpointReceipt(undoPublication, undoCommandId)).toMatchObject({
+      actorUserId: base.userId,
+      input: undo.command.command,
+      result: undoCommitted.delta.result
     })
 
     await vi.waitFor(async () => {
@@ -1476,7 +1647,7 @@ it.each([false, true])(
           )
           .one()
       )
-      const restored = hydrateNativeLiveSessionState(current.state_json, current.state_checksum)
+      const restored = hydrateNativeLiveSessionState(current.state_json)
       expect(current).toMatchObject({ published_sequence: 2, sequence: 2 })
       expect(restored.scene?.tokens[0]?.position).toEqual({ x: 10, y: 10 })
     })
@@ -1535,6 +1706,27 @@ async function installExternalConvex(base: Awaited<ReturnType<typeof fixture>>) 
       if (convex.commit === 'REFUSE')
         return new Response('Live Session Scene commit unavailable.', { status: 409 })
       const stage = convex.stages.at(-1)!
+      const snapshot = base.capture.sceneSnapshot
+      const header = base.capture.sceneHeader
+      if (snapshot && header) {
+        const delta = body.expectedScene.delta
+        const scene = {
+          ...snapshot.scene,
+          version: body.expectedScene.version,
+          ...(delta?.kind === 'TOKEN_MOVED'
+            ? {
+                tokens: snapshot.scene.tokens.map((token) =>
+                  token.id === delta.tokenId ? { ...token, position: delta.position } : token
+                )
+              }
+            : {}),
+          ...(delta?.kind === 'DOOR_STATE_SET'
+            ? { doorStates: { ...snapshot.scene.doorStates, [delta.barrierId]: delta.state } }
+            : {})
+        }
+        base.capture.sceneSnapshot = { ...snapshot, scene }
+        base.capture.sceneHeader = { ...header, version: scene.version }
+      }
       return Response.json({
         sceneId: body.expectedScene.sceneId,
         commandId: stage.command.commandId,
@@ -1563,8 +1755,8 @@ async function journalEvidence(base: Awaited<ReturnType<typeof fixture>>) {
         'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
       )
       .one(),
-    outboxCount: state.storage.sql
-      .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+    pendingWriteCount: state.storage.sql
+      .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
       .one().count,
     records: state.storage.sql
       .exec<{ command_id: string }>('SELECT command_id FROM durable_external_commit')
@@ -1573,76 +1765,181 @@ async function journalEvidence(base: Awaited<ReturnType<typeof fixture>>) {
   }))
 }
 
-it('commits a move on an Encounter-bound Scene Convex-first with the authority advance (D27)', async () => {
-  const value = movementScene(crypto.randomUUID())
-  // Fog OFF lets the player see the moved token.
-  value.scene.fogMode = 'OFF'
-  const base = await fixture(value.scene)
-  base.capture.sceneEncounterId = crypto.randomUUID()
-  await synchronizeScene(base, value.scene)
-  const player = await connectPlayer(base)
-  const convex = await installExternalConvex(base)
-  // The journal holds no Scene until its first committed command.
-  const initial = createNativeLiveSessionState()
+it('commits an unbound token move on an Encounter-bound Scene in SQLite before acknowledgement (D27)', async () => {
+  const { base, player, state, scene, tokenId } = await localEncounterFixture([], {
+    unboundSceneToken: true
+  })
   base.messages.length = 0
   player.messages.length = 0
-
   const commandId = crypto.randomUUID()
-  const command = tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 })
-  base.socket.send(JSON.stringify(command))
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({ commandId, sequence: 1, type: 'COMMAND_COMMITTED' })
-    )
-  )
-  // One stage (begin and observe the Scene vision) and one commit; fog is OFF, so no layer (D52).
-  expect(convex.calls).toEqual(['stage', 'commit'])
-  const moved = {
-    ...value.scene,
-    tokens: value.scene.tokens.map((token) => ({ ...token, position: { x: 20, y: 10 } })),
-    version: 1
-  }
-  expect(convex.commits).toEqual([
-    {
-      campaignId: base.capture.campaignId,
-      authorityEpoch: base.authorityEpoch,
-      expectedUserId: base.userId,
-      expectedRole: 'OWNER',
-      finish: { saveId: expect.any(String), baseOrdinal: 0 },
-      fogLayers: [],
-      authority: {
-        sequence: 1,
-        expectedStateChecksum: initial.stateChecksum,
-        stateChecksum: createNativeLiveSessionState(moved).stateChecksum
-      },
-      expectedScene: {
-        sceneId: value.scene.id,
-        version: 1,
-        delta: { kind: 'TOKEN_MOVED', tokenId: value.tokenId, position: { x: 20, y: 10 } }
+  const command = tokenMoveCommand(scene, tokenId, commandId, { x: 20, y: 10 })
+  const committed = await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const originalSend = socket.send.bind(socket)
+    let checkedBeforeAck = false
+    const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+      const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+        expect(message).toMatchObject({
+          sequence: 1,
+          delta: {
+            scope: 'SCENE',
+            result: {
+              sceneId: scene.id,
+              version: 1,
+              occurrence: null,
+              delta: { kind: 'TOKEN_MOVED', tokenId, position: { x: 20, y: 10 } }
+            }
+          }
+        })
+        const evidence = localEncounterEvidence(context.storage)
+        expect(evidence.state).toEqual(state)
+        expect(evidence.bindings).toEqual([])
+        expect(evidence.commands).toEqual([])
+        expect(evidence.sequence).toBe(1)
+        expect(evidence.writes).toHaveLength(1)
+        expect(evidence.receipts).toHaveLength(1)
+        expect(evidence.receipts[0]).toMatchObject({
+          command_id: commandId,
+          sequence: 1,
+          state_checksum: evidence.checksum
+        })
+        const storedReceipt = evidence.receipts[0]?.receipt_json
+        if (typeof storedReceipt !== 'string') throw new Error('Missing durable Scene receipt.')
+        expect(liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(storedReceipt))).toEqual(
+          message
+        )
+        expect(evidence.authority).toEqual({
+          sequence: 1,
+          state_checksum: evidence.checksum,
+          published_sequence: 0
+        })
+        const room = new RoomEncounterStore(context.storage)
+        expect(room.documents('encounterSceneBindings')).toHaveLength(1)
+        expect(room.documents('encounterSceneBindings')[0]).toMatchObject({
+          encounterId: state.id,
+          sceneId: scene.id,
+          campaignId: scene.campaignId
+        })
+        const rows = room.records('SCENE_CHECKPOINT_ROW')
+        const headRow = rows.find(
+          ({ key }) => key === JSON.stringify(['sceneLiveStates', scene.id])
+        )
+        const entityRow = rows.find(
+          ({ key }) => key === JSON.stringify(['sceneLiveEntities', scene.id, 'tokens', tokenId])
+        )
+        const receiptRow = rows.find(
+          ({ key }) => key === JSON.stringify(['sceneLiveCommands', scene.id, commandId])
+        )
+        const saveRow = rows.find(({ key }) => JSON.parse(key)[0] === 'sceneGeometrySaves')
+        const sourceRow = room
+          .records('SCENE_CHECKPOINT_SOURCE')
+          .find(({ key }) => key === scene.id)
+        if (!headRow || !entityRow || !receiptRow || !saveRow || !sourceRow)
+          throw new Error('Missing committed native Scene evidence.')
+        const head = sceneStoredLiveStateSchema.parse(JSON.parse(headRow.json))
+        expect(head).toMatchObject({
+          sceneId: scene.id,
+          version: 1,
+          counts: { tokens: 1 },
+          nextOrdinals: { tokens: 1 },
+          fogLayerCount: 0,
+          nextFogOrdinal: 0
+        })
+        const entity = sceneStoredLiveEntitySchema.parse(JSON.parse(entityRow.json))
+        const { checksum, ...fields } = entity
+        expect(checksum).toBe(checksumCanonicalJson(fields))
+        expect(entity).toMatchObject({
+          sceneId: scene.id,
+          collection: 'tokens',
+          entityId: tokenId,
+          ordinal: 0,
+          version: 1,
+          value: { collection: 'tokens', entity: { id: tokenId, position: { x: 20, y: 10 } } }
+        })
+        const receipt = parseGeometryCommand(JSON.parse(receiptRow.json), head.version)
+        expect(receipt).toMatchObject({
+          sceneId: scene.id,
+          commandId,
+          actorUserId: base.userId,
+          encoding: 'GEOMETRY',
+          input: { type: 'MOVE_SCENE_TOKEN', expectedEncounterVersion: null, tokenId },
+          result: { version: 1, replayed: false, occurrence: null, fogPatches: [] }
+        })
+        const save = parseGeometrySave(JSON.parse(saveRow.json))
+        expect(save).toMatchObject({
+          sceneId: scene.id,
+          commandId,
+          actorUserId: base.userId,
+          status: 'PUBLISHED',
+          snapshotVersion: 0,
+          fogSaves: [],
+          input: receipt.input
+        })
+        expect(rows.some(({ key }) => JSON.parse(key)[0] === 'sceneFogSaves')).toBe(false)
+        expect(liveSessionCheckpointSceneSourceSchema.parse(JSON.parse(sourceRow.json))).toEqual({
+          sceneId: scene.id,
+          definitionSaveId: base.capture.sceneHeader!.definitionSaveId,
+          definitionVersion: base.capture.sceneHeader!.definitionVersion,
+          presentationVersion: base.capture.presentation!.version
+        })
+        const writeSet = evidence.writes[0]
+        if (typeof writeSet?.json !== 'string') throw new Error('Missing native Scene write set.')
+        expect(JSON.parse(writeSet.json)).toEqual(
+          expect.arrayContaining(
+            [headRow, entityRow, receiptRow, saveRow].map((record) => ({
+              op: 'RECORD_SET',
+              record
+            }))
+          )
+        )
+        expect(writeSet.chain).toBe(evidence.checksum)
+        checkedBeforeAck = true
       }
+      originalSend(data)
+    })
+    try {
+      await instance.webSocketMessage(socket, JSON.stringify(command))
+      expect(checkedBeforeAck).toBe(true)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      return localEncounterEvidence(context.storage)
+    } finally {
+      sent.mockRestore()
     }
-  ])
+  })
   await vi.waitFor(() =>
     expect(player.messages).toContainEqual(
       expect.objectContaining({
+        type: 'COMMAND_COMMITTED',
         commandId,
-        delta: { scope: 'SCENE', result: expect.objectContaining({ occurrence: null }) },
-        sequence: 1
+        sequence: 1,
+        delta: {
+          scope: 'SCENE',
+          result: expect.objectContaining({
+            occurrence: null,
+            delta: { kind: 'TOKEN_MOVED', tokenId, position: { x: 20, y: 10 } }
+          })
+        }
       })
     )
   )
-  // Convex persisted the sequence itself: the journal advances with nothing left to publish.
+  expect(JSON.stringify(player.messages)).not.toContain('Private notes')
   expect(await journalEvidence(base)).toEqual({
-    authority: { published_sequence: 1, sequence: 1 },
-    outboxCount: 0,
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1,
     records: []
   })
-
   const first = base.messages.find(
     (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
   )
   base.socket.send(JSON.stringify(command))
-  // An exact retry returns the stored receipt, reporting the replay as Convex does (D47).
   await vi.waitFor(() =>
     expect(
       base.messages.filter(
@@ -1650,145 +1947,437 @@ it('commits a move on an Encounter-bound Scene Convex-first with the authority a
       )
     ).toEqual([first, asReplay(first)])
   )
-  const reused = tokenMoveCommand(moved, value.tokenId, commandId, { x: 30, y: 10 }, 1)
-  base.socket.send(JSON.stringify(reused))
+  const moved = {
+    ...scene,
+    tokens: scene.tokens.map((token) => ({ ...token, position: { x: 20, y: 10 } })),
+    version: 1
+  }
+  base.socket.send(JSON.stringify(tokenMoveCommand(moved, tokenId, commandId, { x: 30, y: 10 }, 1)))
   await vi.waitFor(() =>
     expect(base.messages).toContainEqual(
-      expect.objectContaining({ code: 'INVALID_COMMAND', commandId, type: 'COMMAND_REJECTED' })
+      expect.objectContaining({
+        code: 'INVALID_COMMAND',
+        commandId,
+        type: 'COMMAND_REJECTED'
+      })
     )
   )
-  expect(convex.calls).toEqual(['stage', 'commit'])
+  await runInDurableObject(base.stub, (_instance, context) => {
+    expect(localEncounterEvidence(context.storage)).toEqual(committed)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+  expect(await journalEvidence(base)).toEqual({
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1,
+    records: []
+  })
 })
 
-it('stages each fog owner on a fog-deriving move and resynchronizes the table', async () => {
-  const value = movementScene(crypto.randomUUID())
-  const [first, second] = [crypto.randomUUID(), crypto.randomUUID()]
-  const scene: CampaignSceneStateDto = {
-    ...value.scene,
-    fogMode: 'PER_PLAYER',
-    tokens: value.scene.tokens.map((token) => ({
-      ...token,
-      controlledByUserIds: [first, second].sort(),
-      vision: { ...token.vision!, dimRange: 30, enabled: true }
-    }))
-  }
-  const base = await fixture(scene)
-  await synchronizeScene(base, scene)
-  const convex = await installExternalConvex(base)
-  base.messages.length = 0
-
+it('rolls back native bound-Scene geometry and journal writes when SQLite receipt insertion fails', async () => {
+  const { base, scene, tokenId } = await localEncounterFixture([], { unboundSceneToken: true })
   const commandId = crypto.randomUUID()
-  base.socket.send(
-    JSON.stringify(tokenMoveCommand(scene, value.tokenId, commandId, { x: 20, y: 10 }))
-  )
+  const command = tokenMoveCommand(scene, tokenId, commandId, { x: 20, y: 10 })
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const before = localEncounterEvidence(context.storage)
+    const room = new RoomEncounterStore(context.storage)
+    const beforeRows = room.records('SCENE_CHECKPOINT_ROW')
+    const beforeSources = room.records('SCENE_CHECKPOINT_SOURCE')
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    // The receipt is inserted after the complete Scene write set in the same SQLite transaction.
+    context.storage.sql.exec(
+      "CREATE TRIGGER abort_scene_receipt AFTER INSERT ON durable_command_receipts WHEN EXISTS (SELECT 1 FROM room_writeset_log WHERE sequence = NEW.sequence AND json LIKE '%sceneLiveCommands%' AND json LIKE '%sceneGeometrySaves%' AND json LIKE '%sceneLiveEntities%' AND json LIKE '%sceneLiveStates%') BEGIN SELECT RAISE(ABORT, 'Injected Scene SQLite failure'); END"
+    )
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(socket, 'send')
+    let triggerInstalled = true
+    try {
+      await instance.webSocketMessage(socket, JSON.stringify(command))
+      const messages = sent.mock.calls.map(([data]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      )
+      expect(messages).toContainEqual(
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId
+        })
+      )
+      expect(messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+      const recovered = new RoomEncounterStore(context.storage)
+      expect(recovered.records('SCENE_CHECKPOINT_ROW')).toEqual(beforeRows)
+      expect(recovered.records('SCENE_CHECKPOINT_SOURCE')).toEqual(beforeSources)
+      expect(
+        context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
+      ).toEqual([])
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      context.storage.sql.exec('DROP TRIGGER abort_scene_receipt')
+      triggerInstalled = false
+      await instance.webSocketMessage(socket, JSON.stringify(command))
+      const retry = localEncounterEvidence(context.storage)
+      expect(retry.sequence).toBe(1)
+      expect(retry.writes).toHaveLength(1)
+      expect(retry.receipts).toHaveLength(1)
+      const receiptRow = new RoomEncounterStore(context.storage)
+        .records('SCENE_CHECKPOINT_ROW')
+        .find(({ key }) => key === JSON.stringify(['sceneLiveCommands', scene.id, commandId]))
+      if (!receiptRow) throw new Error('Missing retried native Scene receipt.')
+      expect(parseGeometryCommand(JSON.parse(receiptRow.json), 1).result).toMatchObject({
+        version: 1,
+        replayed: false,
+        occurrence: null
+      })
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    } finally {
+      if (triggerInstalled) context.storage.sql.exec('DROP TRIGGER abort_scene_receipt')
+      sent.mockRestore()
+    }
+  })
+})
+
+it('commits each fog owner with native geometry before acknowledgement and resynchronizes the table (D52)', async () => {
+  const value = movementScene(crypto.randomUUID())
+  value.scene.fogMode = 'PER_PLAYER'
+  value.scene.tokens[0]!.vision = { ...value.scene.tokens[0]!.vision!, dimRange: 30, enabled: true }
+  const base = await fixture(value.scene)
+  const owners = [base.userId, base.playerId].sort()
+  value.scene.tokens[0]!.controlledByUserIds = owners
+  await synchronizeScene(base, value.scene)
+  const player = await connectPlayer(base)
+  base.messages.length = 0
+  const commandId = crypto.randomUUID()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing native fog owner socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const originalSend = socket.send.bind(socket)
+    let checkedBeforeAck = false
+    const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+      const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+        const room = new RoomEncounterStore(context.storage)
+        const rows = room.records('SCENE_CHECKPOINT_ROW')
+        const layers = rows
+          .filter(({ key }) => JSON.parse(key)[0] === 'sceneFogLayers')
+          .map(({ json }) => sceneStoredFogLayerSchema.parse(JSON.parse(json)))
+        const saves = rows
+          .filter(({ key }) => JSON.parse(key)[0] === 'sceneFogSaves')
+          .map(({ json }) => sceneStoredFogSaveSchema.parse(JSON.parse(json)))
+        const chunks = rows
+          .filter(({ key }) => JSON.parse(key)[0] === 'sceneFogChunks')
+          .map(({ json }) => sceneStoredFogChunkSchema.parse(JSON.parse(json)))
+        expect(layers.map(({ ownerUserId }) => ownerUserId).sort()).toEqual(owners)
+        expect(saves.map(({ input }) => input.layer.ownerUserId).sort()).toEqual(owners)
+        expect(
+          saves.every(
+            ({ status, geometrySaveId }) => status === 'PUBLISHED' && geometrySaveId !== undefined
+          )
+        ).toBe(true)
+        expect(chunks.length).toBeGreaterThan(0)
+        expect(chunks.every(({ saveId }) => saves.some(({ id }) => id === saveId))).toBe(true)
+        const head = rows.find(
+          ({ key }) => key === JSON.stringify(['sceneLiveStates', value.scene.id])
+        )
+        if (!head) throw new Error('Missing native fog Scene head.')
+        expect(sceneStoredLiveStateSchema.parse(JSON.parse(head.json))).toMatchObject({
+          version: 1,
+          fogLayerCount: 2
+        })
+        expect(
+          context.storage.sql
+            .exec('SELECT command_id, sequence FROM durable_command_receipts')
+            .toArray()
+        ).toEqual([{ command_id: commandId, sequence: 1 }])
+        expect(
+          context.storage.sql.exec('SELECT sequence FROM room_writeset_log').toArray()
+        ).toEqual([{ sequence: 1 }])
+        expect(
+          context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
+        ).toEqual([])
+        expect(globalThis.fetch).not.toHaveBeenCalled()
+        checkedBeforeAck = true
+      }
+      originalSend(data)
+    })
+    try {
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
+      )
+      expect(checkedBeforeAck).toBe(true)
+    } finally {
+      sent.mockRestore()
+    }
+  })
   await vi.waitFor(() =>
     expect(base.messages).toContainEqual(
       expect.objectContaining({
         sequence: 1,
         state: expect.objectContaining({
           scene: expect.objectContaining({
-            fogLayers: expect.arrayContaining([
-              expect.objectContaining({ ownerUserId: first }),
-              expect.objectContaining({ ownerUserId: second })
-            ])
+            fogLayers: expect.arrayContaining(
+              owners.map((ownerUserId) => expect.objectContaining({ ownerUserId }))
+            )
           })
         }),
         type: 'STATE_SYNC'
       })
     )
   )
-  // Each owner's complete layer travels with the commit, which stages it in its transaction (D52).
-  expect(convex.calls).toEqual(['stage', 'commit'])
-  expect(convex.stagedOwners.sort()).toEqual([first, second].sort())
-})
-
-it('keeps the record of a commit that timed out, and the next command settles it', async () => {
-  for (const outcome of ['COMMITTED', 'ABANDONED'] as const) {
-    const value = movementScene(crypto.randomUUID())
-    const base = await fixture(value.scene)
-    base.capture.sceneEncounterId = crypto.randomUUID()
-    await synchronizeScene(base, value.scene)
-    const convex = await installExternalConvex(base)
-    convex.commit = 'TIMEOUT'
-    convex.resolve = outcome
-    base.messages.length = 0
-
-    const commandId = crypto.randomUUID()
-    base.socket.send(
-      JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
-    )
-    await vi.waitFor(() =>
-      expect(base.messages).toContainEqual(
-        expect.objectContaining({ code: 'UNAVAILABLE', commandId, type: 'COMMAND_REJECTED' })
-      )
-    )
-    expect(await journalEvidence(base)).toEqual({
-      authority: { published_sequence: 0, sequence: 0 },
-      outboxCount: 0,
-      records: [commandId]
-    })
-
-    convex.commit = 'COMMIT'
-    const nextId = crypto.randomUUID()
-    base.socket.send(
-      JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, nextId, { x: 30, y: 10 }))
-    )
-    await vi.waitFor(() => expect(convex.calls).toContain('resolve'))
-    // A recovered commit takes sequence 1; after an abandoned one the next command does.
-    await vi.waitFor(async () =>
-      expect(await journalEvidence(base)).toEqual({
-        authority: { published_sequence: 1, sequence: 1 },
-        outboxCount: 0,
-        records: []
-      })
-    )
-    if (outcome === 'COMMITTED')
-      // Members never saw the recovered commit, so every socket resynchronizes.
-      await vi.waitFor(() =>
-        expect(base.messages.some((message) => message.type === 'AUTHENTICATION_REQUIRED')).toBe(
-          true
-        )
-      )
-    else
-      await vi.waitFor(() =>
-        expect(base.messages).toContainEqual(
-          expect.objectContaining({ commandId: nextId, sequence: 1, type: 'COMMAND_COMMITTED' })
-        )
-      )
-  }
-})
-
-it('surfaces a refused commit and leaves the room unchanged', async () => {
-  const value = movementScene(crypto.randomUUID())
-  const base = await fixture(value.scene)
-  base.capture.sceneEncounterId = crypto.randomUUID()
-  await synchronizeScene(base, value.scene)
-  const convex = await installExternalConvex(base)
-  convex.commit = 'REFUSE'
-  base.messages.length = 0
-  const commandId = crypto.randomUUID()
-  base.socket.send(
-    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
-  )
   await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
+    expect(player.messages).toContainEqual(
       expect.objectContaining({
-        code: 'STALE_STATE',
-        commandId,
-        correction: expect.objectContaining({ scope: 'SCENE' }),
-        type: 'COMMAND_REJECTED'
+        sequence: 1,
+        state: expect.objectContaining({
+          scene: expect.objectContaining({
+            fogLayers: [expect.objectContaining({ ownerUserId: base.playerId })]
+          })
+        }),
+        type: 'STATE_SYNC'
       })
     )
   )
-  // A response means Convex rolled back, so the record is forgotten without a resolve call.
   expect(await journalEvidence(base)).toEqual({
-    authority: { published_sequence: 0, sequence: 0 },
-    outboxCount: 0,
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1,
     records: []
   })
-  expect(convex.calls).not.toContain('resolve')
 })
 
+it('recovers a native Scene commit whose acknowledgement was lost and retries without a duplicate write (D27)', async () => {
+  const { base, scene, tokenId } = await localEncounterFixture([], { unboundSceneToken: true })
+  const commandId = crypto.randomUUID()
+  const command = tokenMoveCommand(scene, tokenId, commandId, { x: 20, y: 10 })
+  base.messages.length = 0
+  const durable = await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing native lost-ack socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const originalSend = socket.send.bind(socket)
+    let lostAck = false
+    const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+      const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+        lostAck = true
+        return
+      }
+      originalSend(data)
+    })
+    try {
+      await instance.webSocketMessage(socket, JSON.stringify(command))
+      expect(lostAck).toBe(true)
+      const evidence = localEncounterEvidence(context.storage)
+      expect(evidence.sequence).toBe(1)
+      expect(evidence.receipts).toHaveLength(1)
+      expect(evidence.writes).toHaveLength(1)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      return {
+        evidence,
+        sceneRows: new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')
+      }
+    } finally {
+      sent.mockRestore()
+    }
+  })
+  expect(
+    base.messages.some(
+      (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+    )
+  ).toBe(false)
+  await evictDurableObject(base.stub)
+  const moved: CampaignSceneStateDto = {
+    ...scene,
+    version: 1,
+    tokens: scene.tokens.map((token) => ({ ...token, position: { x: 20, y: 10 } }))
+  }
+  await runInDurableObject(base.stub, (_instance, context) => {
+    expect(localEncounterEvidence(context.storage)).toEqual(durable.evidence)
+    expect(new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')).toEqual(
+      durable.sceneRows
+    )
+  })
+  let publishedSequence = 0
+  let publishedChecksum = 'a'.repeat(64)
+  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === '/live-sessions/checkpoint') {
+      const checkpoint = liveSessionCheckpointInputSchema.parse(await request.json())
+      expect(checkpoint.sequence).toBe(1)
+      expect(checkpoint.checksum).toBe(durable.evidence.checksum)
+      checkpoints.push(checkpoint)
+      publishedSequence = checkpoint.sequence
+      publishedChecksum = checkpoint.checksum
+      base.capture.sceneSnapshot = { scene: moved, baseOrdinals: baseOrdinals(moved) }
+      if (!base.capture.sceneHeader) throw new Error('Missing published recovery Scene header.')
+      base.capture.sceneHeader = { ...base.capture.sceneHeader, version: moved.version }
+      return Response.json(checkpointResponse(checkpoint, base.authorization.members))
+    }
+    if (pathname === '/live-sessions/bootstrap')
+      return Response.json({
+        activationFingerprint: 'a'.repeat(64),
+        persistedSequence: publishedSequence,
+        persistedStateChecksum: publishedChecksum
+      })
+    return undefined
+  })
+  base.messages.length = 0
+  await synchronizeScene(base, moved)
+  expect(checkpoints).toHaveLength(1)
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const recovered = localEncounterEvidence(context.storage)
+    expect(recovered).toEqual({
+      ...durable.evidence,
+      writes: [],
+      authority: { ...durable.evidence.authority, published_sequence: 1 }
+    })
+    expect(new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')).toEqual(
+      durable.sceneRows
+    )
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing recovered native Scene socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      await instance.webSocketMessage(socket, JSON.stringify(command))
+      const messages = sent.mock.calls.map(([data]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      )
+      expect(messages).toContainEqual(
+        expect.objectContaining({
+          type: 'COMMAND_COMMITTED',
+          commandId,
+          sequence: 1,
+          delta: expect.objectContaining({
+            scope: 'SCENE',
+            result: expect.objectContaining({ replayed: true, version: 1 })
+          })
+        })
+      )
+      expect(localEncounterEvidence(context.storage)).toEqual(recovered)
+      expect(new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')).toEqual(
+        durable.sceneRows
+      )
+      const staleId = crypto.randomUUID()
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify(tokenMoveCommand(moved, tokenId, staleId, { x: 30, y: 10 }))
+      )
+      expect(
+        sent.mock.calls.map(([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        )
+      ).toContainEqual(
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId: staleId,
+          code: 'STALE_SEQUENCE',
+          correction: expect.objectContaining({
+            scope: 'SCENE',
+            state: expect.objectContaining({ version: 1 })
+          })
+        })
+      )
+      expect(localEncounterEvidence(context.storage)).toEqual(recovered)
+      const nextId = crypto.randomUUID()
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify(tokenMoveCommand(moved, tokenId, nextId, { x: 30, y: 10 }, 1))
+      )
+      const next = localEncounterEvidence(context.storage)
+      expect(next.sequence).toBe(2)
+      expect(next.receipts).toHaveLength(2)
+      expect(next.writes).toHaveLength(1)
+      expect(
+        context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
+      ).toEqual([])
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    } finally {
+      sent.mockRestore()
+    }
+  })
+})
+
+it.each(['VERSION', 'SCENE_SOURCE'] as const)(
+  'refuses native Scene %s changes with the current correction and no SQLite effect',
+  async (failure) => {
+    const { base, scene, tokenId } = await localEncounterFixture([], { unboundSceneToken: true })
+    const commandId = crypto.randomUUID()
+    const command = tokenMoveCommand(scene, tokenId, commandId, { x: 20, y: 10 })
+    await runInDurableObject(base.stub, async (instance, context) => {
+      const before = localEncounterEvidence(context.storage)
+      const beforeRows = new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')
+      const socket = context
+        .getWebSockets()
+        .find(
+          (candidate) =>
+            (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+        )
+      if (!socket) throw new Error('Missing native stale Scene socket.')
+      vi.mocked(globalThis.fetch).mockClear()
+      const sent = vi.spyOn(socket, 'send')
+      try {
+        await instance.webSocketMessage(
+          socket,
+          JSON.stringify({
+            ...command,
+            command: {
+              ...command.command,
+              command: {
+                ...command.command.command,
+                ...(failure === 'VERSION'
+                  ? { expectedSceneVersion: 1 }
+                  : { sceneId: crypto.randomUUID() })
+              }
+            }
+          })
+        )
+        expect(
+          sent.mock.calls.map(([data]) =>
+            liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+          )
+        ).toContainEqual(
+          expect.objectContaining({
+            code: 'STALE_STATE',
+            commandId,
+            currentSequence: 0,
+            correction: { scope: 'SCENE', state: scene },
+            type: 'COMMAND_REJECTED'
+          })
+        )
+        expect(localEncounterEvidence(context.storage)).toEqual(before)
+        expect(new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')).toEqual(
+          beforeRows
+        )
+        expect(
+          context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
+        ).toEqual([])
+        expect(globalThis.fetch).not.toHaveBeenCalled()
+      } finally {
+        sent.mockRestore()
+      }
+    })
+  }
+)
 function bindCommand(encounterId: string, commandId: string) {
   return {
     command: {
@@ -1800,219 +2389,409 @@ function bindCommand(encounterId: string, commandId: string) {
   } as const
 }
 
-/** Serves the room's binding commit like Convex, recording each request body. */
-async function installBindingConvex(
-  base: Awaited<ReturnType<typeof fixture>>,
-  outcome: () => 'COMMIT' | 'TIMEOUT' = () => 'COMMIT'
-) {
-  const commits: Array<ReturnType<typeof liveSessionEncounterBindingCommitInputSchema.parse>> = []
-  const resolves: unknown[] = []
-  await routeEncounterRequests(base, async (pathname, request) => {
-    if (pathname === '/live-sessions/external-commit-resolve') {
-      resolves.push(await request.clone().json())
-      return undefined
-    }
-    if (pathname !== '/live-sessions/encounter-binding') return undefined
-    const body = liveSessionEncounterBindingCommitInputSchema.parse(await request.json())
-    commits.push(body)
-    if (outcome() === 'TIMEOUT') throw new TypeError('The Convex request timed out.')
-    return Response.json({
-      commandId: body.command.commandId,
-      encounterId: body.command.encounterId,
-      replayed: false,
-      sceneId: body.sceneId
-    })
+it('binds an Encounter to the presented Scene in SQLite before acknowledgement, GM only (D47)', async () => {
+  const { base, player, state, actors, scene, tokenId } = await localEncounterFixture([], {
+    unboundEncounterScene: true
   })
-  return { commits, resolves }
-}
-
-it('binds an Encounter to the presented Scene through the room, GM only, then moves run Convex-first (D47)', async () => {
-  const value = movementScene(crypto.randomUUID())
-  value.scene.fogMode = 'OFF'
-  const base = await fixture(value.scene)
-  await synchronizeScene(base, value.scene)
-  const player = await connectPlayer(base)
-  const convex = await installExternalConvex(base)
-  const binding = await installBindingConvex(base)
-  const encounterId = crypto.randomUUID()
-  const initial = createNativeLiveSessionState()
   base.messages.length = 0
   player.messages.length = 0
-
-  // A player may not bind: the refusal says it is the GM's.
-  const refusedId = crypto.randomUUID()
-  player.socket.send(JSON.stringify(bindCommand(encounterId, refusedId)))
-  await vi.waitFor(() =>
-    expect(player.messages).toContainEqual(
-      expect.objectContaining({
-        code: 'DOMAIN_REJECTED',
-        commandId: refusedId,
-        reason: 'GM_ONLY',
-        type: 'COMMAND_REJECTED'
-      })
-    )
-  )
-  expect(binding.commits).toEqual([])
-
   const commandId = crypto.randomUUID()
-  base.socket.send(JSON.stringify(bindCommand(encounterId, commandId)))
+  const command = bindCommand(state.id, commandId)
   const committed = {
     commandId,
     delta: {
       scope: 'ENCOUNTER_BINDING',
-      result: { commandId, encounterId, replayed: false, sceneId: value.scene.id }
+      result: { commandId, encounterId: state.id, replayed: false, sceneId: scene.id }
     },
     sequence: 1,
     type: 'COMMAND_COMMITTED'
   }
-  // Every member gets the binding with the new sequence.
-  await vi.waitFor(() => expect(base.messages).toContainEqual(committed))
-  await vi.waitFor(() => expect(player.messages).toContainEqual(committed))
-  expect(binding.commits).toEqual([
-    {
-      campaignId: base.capture.campaignId,
-      authorityEpoch: base.authorityEpoch,
-      expectedUserId: base.userId,
-      expectedRole: 'OWNER',
-      command: { commandId, encounterId, type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE' },
-      sceneId: value.scene.id,
-      presentation: { expectedPresentationVersion: 1 },
-      // A binding advances the sequence and leaves the room's state unchanged.
-      authority: {
-        sequence: 1,
-        expectedStateChecksum: initial.stateChecksum,
-        stateChecksum: initial.stateChecksum
-      },
-      expiresAt: expect.any(Number)
+  const evidence = await runInDurableObject(base.stub, async (instance, context) => {
+    const socketFor = (userId: string) =>
+      context
+        .getWebSockets()
+        .find(
+          (candidate) => (candidate.deserializeAttachment() as { userId: string }).userId === userId
+        )
+    const ownerSocket = socketFor(base.userId)
+    const playerSocket = socketFor(base.playerId)
+    if (!ownerSocket || !playerSocket) throw new Error('Missing native binding sockets.')
+    const before = localEncounterEvidence(context.storage)
+    expect(new RoomEncounterStore(context.storage).documents('encounterSceneBindings')).toEqual([])
+    expect(before.bindings).toMatchObject([{ actorId: actors[0]!.id, tokenId, sceneId: scene.id }])
+    const refusedId = crypto.randomUUID()
+    const playerSent = vi.spyOn(playerSocket, 'send')
+    vi.mocked(globalThis.fetch).mockClear()
+    const originalSend = ownerSocket.send.bind(ownerSocket)
+    let checkedBeforeAck = false
+    const ownerSent = vi.spyOn(ownerSocket, 'send').mockImplementation((data) => {
+      const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+        expect(message).toEqual(committed)
+        const room = new RoomEncounterStore(context.storage)
+        const bindings = room.documents('encounterSceneBindings')
+        expect(bindings).toHaveLength(1)
+        const { _id, _creationTime, ...binding } = bindings[0]!
+        expect(encounterSceneBindingSchema.parse(binding)).toEqual({
+          encounterId: state.id,
+          campaignId: scene.campaignId,
+          sceneId: scene.id,
+          commandId,
+          commandFingerprint: checksumCanonicalJson(command.command.command),
+          createdAt: expect.any(String)
+        })
+        const durable = localEncounterEvidence(context.storage)
+        expect(durable.state).toEqual(state)
+        expect(durable.actors).toEqual(before.actors)
+        expect(durable.bindings).toEqual(before.bindings)
+        expect(durable.sequence).toBe(1)
+        expect(durable.writes).toHaveLength(1)
+        expect(JSON.parse(String(durable.writes[0]!.json))).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ op: 'INSERT', table: 'encounterSceneBindings' })
+          ])
+        )
+        expect(durable.receipts).toHaveLength(1)
+        expect(durable.receipts[0]).toMatchObject({
+          command_id: commandId,
+          sequence: 1,
+          state_checksum: durable.checksum
+        })
+        expect(JSON.parse(String(durable.receipts[0]!.receipt_json))).toEqual(message)
+        expect(durable.authority).toEqual({
+          sequence: 1,
+          state_checksum: durable.checksum,
+          published_sequence: 0
+        })
+        expect(
+          context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
+        ).toEqual([])
+        expect(globalThis.fetch).not.toHaveBeenCalled()
+        checkedBeforeAck = true
+      }
+      originalSend(data)
+    })
+    try {
+      await instance.webSocketMessage(
+        playerSocket,
+        JSON.stringify(bindCommand(state.id, refusedId))
+      )
+      expect(
+        playerSent.mock.calls.map(([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        )
+      ).toContainEqual(
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId: refusedId,
+          code: 'DOMAIN_REJECTED',
+          reason: 'GM_ONLY'
+        })
+      )
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+      await instance.webSocketMessage(ownerSocket, JSON.stringify(command))
+      expect(checkedBeforeAck).toBe(true)
+      expect(
+        playerSent.mock.calls.map(([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        )
+      ).toContainEqual(committed)
+      const durable = localEncounterEvidence(context.storage)
+      // The fixture has no cached token grants; binding rebuilds them from the actual actor.
+      ownerSent.mockRestore()
+      const previewSent = vi.spyOn(ownerSocket, 'send')
+      try {
+        await instance.webSocketMessage(
+          playerSocket,
+          JSON.stringify({
+            type: 'TRANSIENT',
+            envelope: {
+              baselineVersion: scene.version,
+              audience: 'TABLE',
+              kind: 'TOKEN_DRAG_PREVIEW',
+              sceneId: scene.id,
+              tokenId,
+              sequence: 1,
+              position: { x: 15, y: 15 }
+            }
+          })
+        )
+        expect(
+          previewSent.mock.calls.map(([data]) =>
+            liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+          )
+        ).toContainEqual(expect.objectContaining({ type: 'TRANSIENT' }))
+        await instance.webSocketMessage(ownerSocket, JSON.stringify(command))
+        expect(
+          previewSent.mock.calls.map(([data]) =>
+            liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+          )
+        ).toContainEqual({
+          ...committed,
+          delta: { ...committed.delta, result: { ...committed.delta.result, replayed: true } }
+        })
+        expect(localEncounterEvidence(context.storage)).toEqual(durable)
+        expect(
+          new RoomEncounterStore(context.storage).documents('encounterSceneBindings')
+        ).toHaveLength(1)
+        expect(globalThis.fetch).not.toHaveBeenCalled()
+      } finally {
+        previewSent.mockRestore()
+      }
+      return durable
+    } finally {
+      ownerSent.mockRestore()
+      playerSent.mockRestore()
     }
-  ])
+  })
+  await vi.waitFor(() => {
+    expect(base.messages).toContainEqual(committed)
+    expect(player.messages).toContainEqual(committed)
+  })
   expect(await journalEvidence(base)).toEqual({
-    authority: { published_sequence: 1, sequence: 1 },
-    outboxCount: 0,
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1,
     records: []
   })
-
-  // An exact retry replays the stored receipt without another commit.
-  base.socket.send(JSON.stringify(bindCommand(encounterId, commandId)))
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual({
-      ...committed,
-      delta: { ...committed.delta, result: { ...committed.delta.result, replayed: true } }
-    })
-  )
-  expect(binding.commits).toHaveLength(1)
-
-  // The Scene is now Encounter-bound, so a move on it commits to Convex first.
-  const moveId = crypto.randomUUID()
-  base.socket.send(
-    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, moveId, { x: 20, y: 10 }, 1))
-  )
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({ commandId: moveId, sequence: 2, type: 'COMMAND_COMMITTED' })
-    )
-  )
-  expect(convex.calls).toEqual(['stage', 'commit'])
+  await evictDurableObject(base.stub)
+  await runInDurableObject(base.stub, (_instance, context) => {
+    expect(localEncounterEvidence(context.storage)).toEqual(evidence)
+    expect(
+      new RoomEncounterStore(context.storage).documents('encounterSceneBindings')
+    ).toHaveLength(1)
+  })
 })
 
-it('keeps the record of a binding whose commit timed out and settles it by its binding subject', async () => {
-  const value = movementScene(crypto.randomUUID())
-  const base = await fixture(value.scene)
-  await synchronizeScene(base, value.scene)
-  const convex = await installExternalConvex(base)
-  convex.resolve = 'ABANDONED'
-  let timeout = true
-  const binding = await installBindingConvex(base, () => (timeout ? 'TIMEOUT' : 'COMMIT'))
-  const encounterId = crypto.randomUUID()
-  base.messages.length = 0
-
-  const lostId = crypto.randomUUID()
-  base.socket.send(JSON.stringify(bindCommand(encounterId, lostId)))
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({ code: 'UNAVAILABLE', commandId: lostId, type: 'COMMAND_REJECTED' })
-    )
-  )
-  expect(await journalEvidence(base)).toMatchObject({ records: [lostId] })
-
-  timeout = false
-  const nextId = crypto.randomUUID()
-  base.socket.send(JSON.stringify(bindCommand(encounterId, nextId)))
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({ commandId: nextId, sequence: 1, type: 'COMMAND_COMMITTED' })
-    )
-  )
-  expect(binding.resolves).toEqual([
-    expect.objectContaining({
-      subject: {
-        kind: 'ENCOUNTER_BINDING',
-        encounterId,
-        commandId: lostId,
-        expiresAt: binding.commits[0]!.expiresAt
-      }
-    })
-  ])
-})
-
-it('surfaces a player domain rejection from Convex with the Scene correction', async () => {
-  const value = movementScene(crypto.randomUUID())
-  const base = await fixture(value.scene)
-  base.capture.sceneEncounterId = crypto.randomUUID()
-  await synchronizeScene(base, value.scene)
-  const player = await connectPlayer(base)
-  player.socket.send(
-    JSON.stringify({
-      expectedPresentationVersion: base.capture.presentation!.version,
-      sceneId: value.scene.id,
-      type: 'SYNCHRONIZE_SCENE',
-      version: value.scene.version
-    })
-  )
-  await vi.waitFor(() =>
-    expect(player.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
-  )
-  const convex = await installExternalConvex(base)
-  convex.stage = () =>
-    Response.json(
-      {
-        code: 'DOMAIN_REJECTED',
-        reason: 'NOT_ACTOR_CONTROLLER',
-        message: "You don't control this actor."
-      },
-      { status: 422 }
-    )
+it('rolls back native Encounter binding and controls when late SQLite receipt insertion fails', async () => {
+  const { base, state, scene, tokenId } = await localEncounterFixture([], {
+    unboundEncounterScene: true
+  })
   const commandId = crypto.randomUUID()
-  const bound = tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 })
-  player.socket.send(
+  const command = bindCommand(state.id, commandId)
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socketFor = (userId: string) =>
+      context
+        .getWebSockets()
+        .find(
+          (candidate) => (candidate.deserializeAttachment() as { userId: string }).userId === userId
+        )
+    const ownerSocket = socketFor(base.userId)
+    const playerSocket = socketFor(base.playerId)
+    if (!ownerSocket || !playerSocket) throw new Error('Missing native binding rollback sockets.')
+    const evidence = () => {
+      const room = new RoomEncounterStore(context.storage)
+      return {
+        ...localEncounterEvidence(context.storage),
+        sceneBindings: room.documents('encounterSceneBindings'),
+        sceneRows: room.records('SCENE_CHECKPOINT_ROW'),
+        sceneSources: room.records('SCENE_CHECKPOINT_SOURCE'),
+        inputs: room.records('ROOM_INPUT'),
+        authorityState: context.storage.sql
+          .exec('SELECT state_json FROM durable_session_authority WHERE id = 1')
+          .one(),
+        external: context.storage.sql
+          .exec('SELECT command_id FROM durable_external_commit')
+          .toArray(),
+        outbox: context.storage.sql.exec('SELECT sequence FROM durable_command_outbox').toArray()
+      }
+    }
+    const before = evidence()
+    context.storage.sql.exec(
+      "CREATE TRIGGER abort_binding_receipt AFTER INSERT ON durable_command_receipts WHEN EXISTS (SELECT 1 FROM room_writeset_log WHERE sequence = NEW.sequence AND json LIKE '%encounterSceneBindings%') BEGIN SELECT RAISE(ABORT, 'Injected binding SQLite failure'); END"
+    )
+    let triggerInstalled = true
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(ownerSocket, 'send')
+    try {
+      await instance.webSocketMessage(ownerSocket, JSON.stringify(command))
+      const messages = sent.mock.calls.map(([data]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      )
+      expect(messages).toContainEqual(
+        expect.objectContaining({ type: 'COMMAND_REJECTED', commandId })
+      )
+      expect(messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+      expect(evidence()).toEqual(before)
+      // Rolled-back binding must not grant the player control of the unbound Scene token.
+      sent.mockClear()
+      await instance.webSocketMessage(
+        playerSocket,
+        JSON.stringify({
+          type: 'TRANSIENT',
+          envelope: {
+            baselineVersion: scene.version,
+            audience: 'TABLE',
+            kind: 'TOKEN_DRAG_PREVIEW',
+            sceneId: scene.id,
+            tokenId,
+            sequence: 1,
+            position: { x: 15, y: 15 }
+          }
+        })
+      )
+      expect(
+        sent.mock.calls
+          .map(([data]) =>
+            liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+          )
+          .some((message) => message.type === 'TRANSIENT')
+      ).toBe(false)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      context.storage.sql.exec('DROP TRIGGER abort_binding_receipt')
+      triggerInstalled = false
+      await instance.webSocketMessage(ownerSocket, JSON.stringify(command))
+      const retry = evidence()
+      expect(retry.sceneBindings).toMatchObject([
+        { encounterId: state.id, sceneId: scene.id, commandId }
+      ])
+      expect(retry.sequence).toBe(1)
+      expect(retry.writes).toHaveLength(1)
+      expect(retry.receipts).toHaveLength(1)
+      expect(retry.state).toEqual(before.state)
+      expect(retry.actors).toEqual(before.actors)
+      expect(retry.bindings).toEqual(before.bindings)
+      expect(retry.sceneRows).toEqual(before.sceneRows)
+      expect(retry.sceneSources).toEqual(before.sceneSources)
+      expect(retry.external).toEqual([])
+      expect(retry.outbox).toEqual([])
+      expect(
+        sent.mock.calls.map(([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        )
+      ).toContainEqual(
+        expect.objectContaining({ type: 'COMMAND_COMMITTED', commandId, sequence: 1 })
+      )
+      sent.mockClear()
+      await instance.webSocketMessage(
+        playerSocket,
+        JSON.stringify({
+          type: 'TRANSIENT',
+          envelope: {
+            baselineVersion: scene.version,
+            audience: 'TABLE',
+            kind: 'TOKEN_DRAG_PREVIEW',
+            sceneId: scene.id,
+            tokenId,
+            sequence: 2,
+            position: { x: 15, y: 15 }
+          }
+        })
+      )
+      expect(
+        sent.mock.calls.map(([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        )
+      ).toContainEqual(expect.objectContaining({ type: 'TRANSIENT' }))
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    } finally {
+      if (triggerInstalled) context.storage.sql.exec('DROP TRIGGER abort_binding_receipt')
+      sent.mockRestore()
+    }
+  })
+})
+
+it('refuses a player bound-token move from current native actor control with a private Scene correction', async () => {
+  const { base, player, state, actors, scene, tokenId } = await localEncounterFixture()
+  const revokeId = crypto.randomUUID()
+  base.socket.send(
     JSON.stringify({
-      ...bound,
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
       command: {
-        ...bound.command,
-        command: { ...bound.command.command, expectedEncounterVersion: 4 }
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: state.id,
+          commandId: revokeId,
+          expectedVersion: state.version,
+          actorId: actors[0]!.id,
+          controllerUserIds: []
+        }
       }
     })
   )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ type: 'COMMAND_COMMITTED', commandId: revokeId, sequence: 1 })
+    )
+  )
+  player.messages.length = 0
+  const commandId = crypto.randomUUID()
+  const move = tokenMoveCommand(scene, tokenId, commandId, { x: 20, y: 10 }, 1)
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const before = localEncounterEvidence(context.storage)
+    expect(before.state.version).toBe(2)
+    const actor = before.actors.find(({ id }) => id === actors[0]!.id)
+    if (!actor) throw new Error('Missing revoked native actor.')
+    expect(
+      encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson)).controllerUserIds
+    ).toEqual([])
+    const room = new RoomEncounterStore(context.storage)
+    const beforeRows = room.records('SCENE_CHECKPOINT_ROW')
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.playerId
+      )
+    if (!socket) throw new Error('Missing native bound-token player socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify({
+          ...move,
+          command: {
+            ...move.command,
+            command: { ...move.command.command, expectedEncounterVersion: before.state.version }
+          }
+        })
+      )
+      expect(
+        sent.mock.calls.map(([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        )
+      ).toContainEqual(
+        expect.objectContaining({
+          code: 'DOMAIN_REJECTED',
+          commandId,
+          currentSequence: 1,
+          correction: {
+            scope: 'SCENE',
+            state: projectSceneForViewer(scene, { role: 'PLAYER', userId: base.playerId })
+          },
+          reason: 'NOT_ACTOR_CONTROLLER',
+          type: 'COMMAND_REJECTED'
+        })
+      )
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+      expect(new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')).toEqual(
+        beforeRows
+      )
+      expect(
+        context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
+      ).toEqual([])
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    } finally {
+      sent.mockRestore()
+    }
+  })
   await vi.waitFor(() =>
     expect(player.messages).toContainEqual(
       expect.objectContaining({
-        code: 'DOMAIN_REJECTED',
+        type: 'COMMAND_REJECTED',
         commandId,
-        correction: expect.objectContaining({ scope: 'SCENE' }),
-        reason: 'NOT_ACTOR_CONTROLLER',
-        type: 'COMMAND_REJECTED'
+        reason: 'NOT_ACTOR_CONTROLLER'
       })
     )
   )
-  // The room never applies the token's own controller list to a bound token.
-  expect(convex.stages).toHaveLength(1)
   expect(await journalEvidence(base)).toEqual({
-    authority: { published_sequence: 0, sequence: 0 },
-    outboxCount: 0,
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1,
     records: []
   })
 })
-
 it('holds moves and door changes on a Scene waiting on a movement decision, and keeps the chain free (D26)', async () => {
   const value = doorScene(crypto.randomUUID())
   const token = movementScene(value.scene.campaignId).scene.tokens[0]!
@@ -2038,11 +2817,17 @@ it('holds moves and door changes on a Scene waiting on a movement decision, and 
       command: {
         scope: 'ENCOUNTER',
         command: {
-          type: 'SET_ROUND',
+          type: 'UPDATE_ACTOR',
           encounterId,
           commandId: roundId,
           expectedVersion: 3,
-          round: 2
+          actorId: '00000000-0000-4000-8000-000000000510',
+          characterCommand: {
+            type: 'SET_INSPIRATION',
+            commandId: '00000000-0000-4000-8000-000000000511',
+            expectedVersion: 0,
+            inspired: true
+          }
         }
       }
     })
@@ -2210,16 +2995,35 @@ it('refuses a movement decision off the presented Scene without staging it (D42)
 it('settles an unsettled commit before the drain fence when the room closes', async () => {
   const value = movementScene(crypto.randomUUID())
   const base = await fixture(value.scene)
-  base.capture.sceneEncounterId = crypto.randomUUID()
   await synchronizeScene(base, value.scene)
   const convex = await installExternalConvex(base)
-  convex.commit = 'TIMEOUT'
   convex.resolve = 'ABANDONED'
   const commandId = crypto.randomUUID()
-  base.socket.send(
-    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
-  )
-  await vi.waitFor(async () => expect((await journalEvidence(base)).records).toEqual([commandId]))
+  // Retained evidence from a transitional external command still fences room drain.
+  await runInDurableObject(base.stub, (_instance, context) => {
+    const journal = new DurableCommandJournal(context.storage)
+    const current = journal.readCurrent()
+    if (!current) throw new Error('Missing retained drain authority.')
+    const next = createNativeLiveSessionState({ ...value.scene, version: 1 })
+    journal.beginExternalCommit({
+      actorId: base.userId,
+      authorityEpoch: base.authorityEpoch,
+      commandId,
+      expectedSequence: current.sequence,
+      expectedStateChecksum: current.stateChecksum,
+      fingerprint: 'f'.repeat(64),
+      nextStateChecksum: next.stateChecksum,
+      nextStateJson: next.stateJson,
+      receiptJson: JSON.stringify({
+        commandId,
+        delta: null,
+        sequence: current.sequence + 1,
+        type: 'COMMAND_COMMITTED'
+      }),
+      subject: { kind: 'SCENE_SAVE', saveId: crypto.randomUUID() }
+    })
+  })
+  expect((await journalEvidence(base)).records).toEqual([commandId])
   const closed = await control({
     campaignId: value.scene.campaignId,
     operation: { type: 'CLOSE_ROOM' }
@@ -2340,19 +3144,21 @@ it('returns projected corrections for stale Session and Scene versions', async (
   )
 })
 
-it('verifies a prior journal envelope before retaining only its Scene', () => {
+it('verifies Scene content independently of the authority write-set chain', () => {
   const scene = doorScene(crypto.randomUUID()).scene
-  const prior = { characters: [{ legacy: 'discarded' }], encounter: { legacy: 'discarded' }, scene }
-  const checksum = checksumCanonicalJson(prior)
-  expect(hydrateNativeLiveSessionState(JSON.stringify(prior), checksum)).toEqual({ scene })
+  const state = createNativeLiveSessionState(scene)
+  expect(hydrateNativeLiveSessionState(state.stateJson)).toEqual({ scene })
   expect(() =>
-    hydrateNativeLiveSessionState(JSON.stringify(prior), checksumCanonicalJson(scene))
+    hydrateNativeLiveSessionState(
+      JSON.stringify({
+        state: { scene },
+        contentChecksum: checksumCanonicalJson(scene)
+      })
+    )
   ).toThrow('Live Session state checksum mismatch.')
-  const preScene = { characters: [] }
-  expect(
-    hydrateNativeLiveSessionState(JSON.stringify(preScene), checksumCanonicalJson(preScene))
-  ).toEqual({ scene: null })
-  expect(createNativeLiveSessionState().stateJson).toBe('{"scene":null}')
+  expect(hydrateNativeLiveSessionState(createNativeLiveSessionState().stateJson)).toEqual({
+    scene: null
+  })
 })
 
 it('projects a private Scene without legacy Character or Encounter fields', () => {
@@ -3128,6 +3934,1905 @@ async function routeEncounterRequests(
   })
 }
 
+async function localEncounterFixture(
+  features: FeatureDto[] = [],
+  options: { unboundSceneToken?: boolean; unboundEncounterScene?: boolean } = {}
+) {
+  const value = movementScene(crypto.randomUUID())
+  if (options.unboundSceneToken) value.scene.fogMode = 'OFF'
+  const base = await fixture(value.scene)
+  const encounterId = crypto.randomUUID()
+  const sideId = crypto.randomUUID()
+  const now = '2026-09-30T00:00:00.000Z'
+  base.capture.systemId = DND5E_SYSTEM_ID
+  base.capture.sceneEncounterId = options.unboundEncounterScene ? null : encounterId
+  const actors = [0, 1, 2].map((ordinal) => {
+    const id = crypto.randomUUID()
+    const sourceId = crypto.randomUUID()
+    const payload = {
+      id: sourceId,
+      systemId: DND5E_SYSTEM_ID,
+      label: `Native Creature ${ordinal}`,
+      armorClass: 17,
+      abilityScores: {},
+      speeds: [],
+      senses: [],
+      features,
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: []
+    }
+    return encounterRunActorStateSchema.parse({
+      id,
+      encounterId,
+      sideId,
+      kind: 'CREATURE',
+      label: payload.label,
+      sourceId,
+      sourceRevision: 1,
+      public: ordinal !== 2,
+      controllerUserIds: ordinal === 0 ? [base.playerId] : [],
+      disposition: 'HOSTILE',
+      initiative: 20 - ordinal,
+      manualOrder: ordinal,
+      healthDisplay: null,
+      systemId: DND5E_SYSTEM_ID,
+      stableTieKey: id,
+      currentHitPoints: 13,
+      maxHitPoints: 19,
+      tempHitPoints: 0,
+      conditions: [],
+      defeated: false,
+      resources: features.length
+        ? { featureCharges: Object.fromEntries(features.map(({ id }) => [id, 0])) }
+        : {},
+      gmNotes: `Private notes ${ordinal}`,
+      snapshot: {
+        kind: 'CREATURE',
+        id: sourceId,
+        systemId: DND5E_SYSTEM_ID,
+        sourceRevision: 1,
+        sourceVersionId: crypto.randomUUID(),
+        sourceChecksum: checksumCanonicalJson(payload),
+        payload
+      },
+      createdAt: now,
+      updatedAt: now
+    })
+  })
+  const optionalCombatSnapshot = {
+    schemaVersion: 1,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitions: []
+  }
+  const state = encounterRunStateSchema.parse({
+    id: encounterId,
+    campaignId: base.capture.campaignId,
+    gameSystemId: DND5E_SYSTEM_ID,
+    blueprintId: crypto.randomUUID(),
+    blueprintVersion: 1,
+    blueprintChecksum: 'b'.repeat(64),
+    name: 'Native manual Encounter',
+    status: 'ACTIVE',
+    automationMode: 'MANUAL',
+    manualReminderMode: 'OFF',
+    healthDisplayDefault: 'HIDDEN',
+    version: 1,
+    round: 1,
+    currentActorId: null,
+    actorIds: actors.map((actor) => actor.id),
+    initiativePolicySnapshot: null,
+    initiativePolicySnapshotChecksum: null,
+    optionalCombatSnapshot,
+    optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalCombatSnapshot),
+    turnSequence: 0,
+    sides: [{ id: sideId, label: 'Creatures', sortOrder: 0 }],
+    createdAt: now,
+    updatedAt: now
+  })
+  const native = createMemoryEncounterStore({ idPrefix: 'convex-native-fixture' })
+  await native.store.insert(
+    'encounterRuns',
+    encounterStoredRunSchema.parse({
+      id: encounterId,
+      campaignId: state.campaignId,
+      gameSystemId: state.gameSystemId,
+      status: state.status,
+      version: state.version,
+      stateJson: JSON.stringify(state),
+      stateChecksum: checksumCanonicalJson(state),
+      createdAt: now,
+      updatedAt: now
+    })
+  )
+  for (const actor of actors) await insertRunActor({ db: native.store }, actor)
+  const initiative = encounterInitiativeRoundStateDtoSchema.parse({
+    round: {
+      encounterId,
+      round: 1,
+      procedure: 'MANUAL',
+      cadence: 'ENCOUNTER_START',
+      status: 'ACTIVE',
+      policySnapshotChecksum: null,
+      nextTurnOrderOrdinal: actors.length,
+      version: 0,
+      createdAt: now,
+      updatedAt: now
+    },
+    sides: [],
+    participants: actors.map((actor, turnOrderOrdinal) => ({
+      encounterId,
+      round: 1,
+      actorId: actor.id,
+      sideId,
+      status: 'READY',
+      initiativeScore: actor.initiative,
+      evaluation: { occurrenceId: null, resultChecksum: null },
+      tie: { occurrenceId: null, resultChecksum: null },
+      declaration: null,
+      declarationChecksum: null,
+      turnOrderOrdinal,
+      version: 0,
+      createdAt: now,
+      updatedAt: now
+    }))
+  })
+  await native.store.insert('encounterInitiativeRounds', initiative.round)
+  for (const participant of initiative.participants)
+    await native.store.insert('encounterInitiativeParticipants', participant)
+  if (!options.unboundSceneToken)
+    await native.store.insert('encounterActorTokenBindings', {
+      encounterId,
+      actorId: actors[0]!.id,
+      tokenId: value.tokenId,
+      sceneId: value.scene.id
+    })
+  const bindingCommand = bindCommand(encounterId, crypto.randomUUID()).command.command
+  if (!options.unboundEncounterScene)
+    await native.store.insert(
+      'encounterSceneBindings',
+      encounterSceneBindingSchema.parse({
+        encounterId,
+        campaignId: state.campaignId,
+        sceneId: value.scene.id,
+        commandId: bindingCommand.commandId,
+        commandFingerprint: checksumCanonicalJson(bindingCommand),
+        createdAt: now
+      })
+    )
+  const runDocuments: Extract<LiveRoomInputsResponse, { kind: 'RUN' }>['documents'] = []
+  for (const table of [
+    'encounterRuns',
+    'encounterRunActors',
+    'encounterActorProjectionFacts',
+    'encounterSourceProjectionFacts',
+    'encounterInitiativeRounds',
+    'encounterInitiativeParticipants',
+    'encounterActorTokenBindings',
+    'encounterSceneBindings'
+  ] as const) {
+    for (const { _id, _creationTime, ...fields } of native.documents(table))
+      runDocuments.push({ table, id: _id, creationTime: _creationTime, fields })
+  }
+  const system = systemAuthoredDtoSchema.parse({
+    id: DND5E_SYSTEM_ID,
+    label: 'D&D 5e',
+    rulesetCode: 'DND5E',
+    rulesetVersion: '2014',
+    userId: base.userId,
+    alignments: [],
+    challengeRatings: [],
+    conditionTypes: [],
+    creatureTypes: [],
+    currencies: [],
+    damageTypes: [],
+    heritages: [],
+    languages: [],
+    lifestyles: [],
+    magicSchools: [],
+    passives: [],
+    rarities: [],
+    senses: [],
+    skills: [],
+    speeds: [],
+    terrains: []
+  })
+  const revisions = [
+    { scope: 'SYSTEM' as const, id: DND5E_SYSTEM_ID, revision: null },
+    { scope: 'CAMPAIGN' as const, id: base.capture.campaignId, revision: null },
+    { scope: 'PLAY' as const, id: base.capture.campaignId, revision: null }
+  ]
+  const vocabularyIdentity = {
+    snapshotId: crypto.randomUUID(),
+    systemId: system.id,
+    snapshotVersion: 1,
+    schemaVersion: 1,
+    document: system
+  }
+  const vocabulary = systemVocabularySnapshotSchema.parse({
+    ...vocabularyIdentity,
+    checksum: checksumCanonicalJson(vocabularyIdentity)
+  })
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === ROOM_AUTHORIZATION_PATH) {
+      base.authorization.reads += 1
+      return Response.json(
+        roomAuthorizationResponse({
+          members: base.authorization.members,
+          play: {
+            encounter: {
+              encounterId,
+              sceneId: value.scene.id,
+              healthDisplayDefault: state.healthDisplayDefault,
+              actors: actors.map(({ id, kind, sourceId, controllerUserIds, healthDisplay }) => ({
+                id,
+                kind,
+                sourceId,
+                controllerUserIds,
+                healthDisplay
+              })),
+              tokens:
+                options.unboundSceneToken || options.unboundEncounterScene
+                  ? []
+                  : [{ actorId: actors[0]!.id, tokenId: value.tokenId }]
+            }
+          }
+        })
+      )
+    }
+    if (pathname !== ROOM_INPUTS_PATH) return undefined
+    const { scope } = liveRoomInputsInputSchema.parse(await request.json())
+    if (scope.kind === 'CHAT_METADATA')
+      return Response.json({ kind: 'CHAT_METADATA', documents: [], continueCursor: null })
+    if (scope.kind === 'RUN') {
+      expect(scope.encounterId).toBe(encounterId)
+      return Response.json({
+        kind: 'RUN',
+        encounterVersion: 1,
+        documents: runDocuments,
+        continueCursor: null
+      })
+    }
+    if (scope.kind === 'SYSTEM')
+      return Response.json({ kind: 'SYSTEM', revisions, system, vocabulary })
+    return undefined
+  })
+  await synchronizeScene(base, value.scene)
+  const player = await connectPlayer(base)
+  return { base, player, state, actors, scene: value.scene, tokenId: value.tokenId }
+}
+
+function localEncounterEvidence(storage: DurableObjectStorage) {
+  const room = new RoomEncounterStore(storage)
+  const run = room.documents('encounterRuns')[0]
+  if (!run) throw new Error('Missing durable native Run.')
+  return {
+    runId: run._id,
+    state: readRunState(run),
+    actors: room.documents('encounterRunActors'),
+    facts: room.documents('encounterActorProjectionFacts'),
+    sources: room.documents('encounterSourceProjectionFacts'),
+    rounds: room.documents('encounterInitiativeRounds'),
+    participants: room.documents('encounterInitiativeParticipants'),
+    bindings: room.documents('encounterActorTokenBindings'),
+    commands: room.documents('encounterRunCommands'),
+    sequence: room.sequence,
+    checksum: room.checksum,
+    writes: storage.sql
+      .exec('SELECT sequence, json, checksum, chain FROM room_writeset_log ORDER BY sequence')
+      .toArray(),
+    receipts: storage.sql
+      .exec(
+        'SELECT command_id, sequence, state_checksum, receipt_json FROM durable_command_receipts ORDER BY sequence'
+      )
+      .toArray(),
+    authority: storage.sql
+      .exec(
+        'SELECT sequence, state_checksum, published_sequence FROM durable_session_authority WHERE id = 1'
+      )
+      .one()
+  }
+}
+
+it('commits warm native reminders, round, initiative, health display, and actor control before acknowledgement', async () => {
+  const { base, player, state, actors } = await localEncounterFixture()
+  const reminderId = crypto.randomUUID()
+  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname !== '/live-sessions/checkpoint') return undefined
+    const checkpoint = liveSessionCheckpointInputSchema.parse(await request.json())
+    checkpoints.push(checkpoint)
+    return Response.json(checkpointResponse(checkpoint, base.authorization.members))
+  })
+  const commands = [
+    {
+      type: 'UPSERT_REMINDER',
+      reminder: {
+        id: reminderId,
+        label: 'Private round reminder',
+        timing: 'ROUND_START',
+        notes: 'Private reminder notes',
+        public: false
+      }
+    },
+    { type: 'REMOVE_REMINDER', reminderId },
+    { type: 'SET_ROUND', round: 2 },
+    { type: 'SET_INITIATIVE', actorId: actors[0]!.id, initiative: 30 },
+    { type: 'SET_HEALTH_DISPLAY_DEFAULT', level: 'BAR' },
+    {
+      type: 'UPDATE_ACTOR',
+      actorId: actors[1]!.id,
+      gmNotes: 'Private updated actor notes',
+      controllerUserIds: [base.playerId]
+    }
+  ]
+  for (const [index, fields] of commands.entries()) {
+    const command = encounterCommandInputDtoSchema.parse({
+      ...fields,
+      encounterId: state.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: index + 1
+    })
+    const sequence = index + 1
+    const frame = JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: index,
+      command: { scope: 'ENCOUNTER', command }
+    })
+    await runInDurableObject(base.stub, async (instance, context) => {
+      const socket = context
+        .getWebSockets()
+        .find(
+          (candidate) =>
+            (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+        )
+      if (!socket) throw new Error('Missing owner native socket.')
+      vi.mocked(globalThis.fetch).mockClear()
+      const originalSend = socket.send.bind(socket)
+      let checkedBeforeAck = false
+      const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+        const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        if (message.type === 'COMMAND_COMMITTED' && message.commandId === command.commandId) {
+          const evidence = localEncounterEvidence(context.storage)
+          expect(evidence.state.version).toBe(sequence + 1)
+          expect(evidence.sequence).toBe(sequence)
+          expect(evidence.commands).toHaveLength(sequence)
+          expect(
+            evidence.commands.find(({ commandId }) => commandId === command.commandId)
+          ).toMatchObject({ commandType: command.type, version: sequence + 1 })
+          expect(evidence.writes).toHaveLength(sequence < 3 ? sequence : sequence - 3)
+          if (command.type === 'SET_ROUND') {
+            expect(checkpoints).toHaveLength(1)
+            expect(checkpoints[0]).toMatchObject({
+              campaignId: base.capture.campaignId,
+              epoch: base.authorityEpoch,
+              fromSequence: 0,
+              sequence,
+              checksum: evidence.checksum
+            })
+            expect(checkpoints[0]?.records.changes).toContainEqual(
+              expect.objectContaining({
+                table: 'encounterRuns',
+                key: [state.id]
+              })
+            )
+            expect(
+              checkpoints[0]?.records.history.filter(
+                ({ table }) => table === 'encounterRunCommands'
+              )
+            ).toHaveLength(sequence)
+          } else {
+            expect(evidence.writes.at(-1)?.chain).toBe(evidence.checksum)
+            const writeSet = evidence.writes.at(-1)
+            if (typeof writeSet?.json !== 'string') throw new Error('Missing native write set.')
+            expect(JSON.parse(writeSet.json)).toEqual(
+              expect.arrayContaining([
+                expect.objectContaining({
+                  op: 'PATCH',
+                  id: evidence.runId,
+                  fields: expect.objectContaining({ version: sequence + 1 })
+                }),
+                expect.objectContaining({ op: 'INSERT', table: 'encounterRunCommands' })
+              ])
+            )
+          }
+          expect(evidence.receipts).toHaveLength(sequence)
+          expect(evidence.receipts.at(-1)).toMatchObject({
+            command_id: command.commandId,
+            sequence,
+            state_checksum: evidence.checksum
+          })
+          expect(evidence.authority).toEqual({
+            sequence,
+            state_checksum: evidence.checksum,
+            published_sequence: sequence < 3 ? 0 : 3
+          })
+          if (command.type === 'UPSERT_REMINDER')
+            expect(evidence.state.reminders).toEqual([
+              expect.objectContaining({ id: reminderId, notes: 'Private reminder notes' })
+            ])
+          if (command.type === 'REMOVE_REMINDER') expect(evidence.state.reminders).toEqual([])
+          if (command.type === 'SET_ROUND') {
+            expect(evidence.state.round).toBe(2)
+            expect(evidence.rounds.find(({ round }) => round === 2)).toMatchObject({
+              status: 'ACTIVE'
+            })
+            expect(evidence.participants.filter(({ round }) => round === 2)).toHaveLength(3)
+          }
+          if (command.type === 'SET_INITIATIVE' || command.type === 'UPDATE_ACTOR') {
+            const row = evidence.actors.find(({ id }) => id === command.actorId)
+            if (!row) throw new Error('Missing updated native actor.')
+            const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+            expect(row.stateChecksum).toBe(checksumCanonicalJson(actor))
+            expect(actor).toMatchObject(
+              command.type === 'SET_INITIATIVE'
+                ? { initiative: 30 }
+                : {
+                    gmNotes: 'Private updated actor notes',
+                    controllerUserIds: [base.playerId]
+                  }
+            )
+          }
+          if (command.type === 'SET_HEALTH_DISPLAY_DEFAULT')
+            expect(evidence.state.healthDisplayDefault).toBe('BAR')
+          checkedBeforeAck = true
+        }
+        originalSend(data)
+      })
+      try {
+        await instance.webSocketMessage(socket, frame)
+      } finally {
+        sent.mockRestore()
+      }
+      expect(checkedBeforeAck).toBe(true)
+      if (command.type === 'SET_ROUND') {
+        expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+        const [input, init] = vi.mocked(globalThis.fetch).mock.calls[0]!
+        expect(new URL(new Request(input, init).url).pathname).toBe('/live-sessions/checkpoint')
+      } else expect(globalThis.fetch).not.toHaveBeenCalled()
+    })
+    await vi.waitFor(() =>
+      expect(
+        player.messages.some(
+          (message) =>
+            message.type === 'COMMAND_COMMITTED' && message.commandId === command.commandId
+        )
+      ).toBe(true)
+    )
+    const recipient = player.messages.find(
+      (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === command.commandId
+    )
+    if (recipient?.type !== 'COMMAND_COMMITTED' || recipient.delta?.scope !== 'ENCOUNTER')
+      throw new Error('Missing local deterministic Encounter fan-out.')
+    expect(recipient.delta.result.projection).toMatchObject({ version: sequence + 1 })
+    expect(recipient.delta.result.projection.actors.map(({ id }) => id)).not.toContain(
+      actors[2]!.id
+    )
+    expect(recipient.delta.result.projection.actors).toHaveLength(2)
+    expect(recipient.delta.result.projection).not.toHaveProperty('reminders')
+    for (const actor of recipient.delta.result.projection.actors) {
+      expect(actor).not.toHaveProperty('gmNotes')
+      expect(actor).not.toHaveProperty('statBlock')
+      expect(actor).not.toHaveProperty('resources')
+      expect(actor).not.toHaveProperty('maxHitPoints')
+    }
+    expect(JSON.stringify(recipient)).not.toContain('Private reminder notes')
+    expect(JSON.stringify(recipient)).not.toContain('Private updated actor notes')
+    if (command.type === 'UPDATE_ACTOR')
+      expect(
+        recipient.delta.result.projection.actors.find(({ id }) => id === actors[1]!.id)
+      ).toMatchObject({ controllerUserIds: [base.playerId] })
+  }
+})
+
+it('checkpoints the complete native Encounter prefix before acknowledging COMPLETE', async () => {
+  const { base, state, actors } = await localEncounterFixture()
+  const currentId = crypto.randomUUID()
+  const completeId = crypto.randomUUID()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    await instance.webSocketMessage(
+      socket,
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'SET_CURRENT_ACTOR',
+            encounterId: state.id,
+            commandId: currentId,
+            expectedVersion: 1,
+            actorId: actors[0]!.id
+          }
+        }
+      })
+    )
+    expect(localEncounterEvidence(context.storage).state).toMatchObject({
+      version: 2,
+      currentActorId: actors[0]!.id
+    })
+    const previous = vi.mocked(globalThis.fetch).getMockImplementation()
+    let checkpointed = false
+    let acknowledged = false
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      if (new URL(request.url).pathname !== '/live-sessions/checkpoint') {
+        if (!previous) throw new Error('Missing native fetch fixture.')
+        return previous(input, init)
+      }
+      const checkpoint = liveSessionCheckpointInputSchema.parse(await request.json())
+      const evidence = localEncounterEvidence(context.storage)
+      expect(checkpoint).toMatchObject({
+        campaignId: base.capture.campaignId,
+        epoch: base.authorityEpoch,
+        fromSequence: 0,
+        sequence: 2,
+        checksum: evidence.checksum
+      })
+      expect(evidence.state).toMatchObject({
+        status: 'COMPLETED',
+        version: 3,
+        currentActorId: null
+      })
+      expect(evidence.commands).toHaveLength(2)
+      expect(evidence.writes).toHaveLength(2)
+      expect(evidence.receipts).toHaveLength(2)
+      expect(evidence.authority).toMatchObject({ sequence: 2, published_sequence: 0 })
+      expect(acknowledged).toBe(false)
+      checkpointed = true
+      return Response.json(checkpointResponse(checkpoint, base.authorization.members))
+    })
+    const originalSend = socket.send.bind(socket)
+    const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+      const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      if (message.type === 'COMMAND_COMMITTED' && message.commandId === completeId) {
+        expect(checkpointed).toBe(true)
+        const evidence = localEncounterEvidence(context.storage)
+        expect(evidence.authority).toMatchObject({ sequence: 2, published_sequence: 2 })
+        expect(evidence.writes).toHaveLength(0)
+        acknowledged = true
+      }
+      originalSend(data)
+    })
+    try {
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify({
+          type: 'COMMAND',
+          expectedSessionSequence: 1,
+          command: {
+            scope: 'ENCOUNTER',
+            command: {
+              type: 'COMPLETE',
+              encounterId: state.id,
+              commandId: completeId,
+              expectedVersion: 2
+            }
+          }
+        })
+      )
+    } finally {
+      sent.mockRestore()
+      if (previous) vi.mocked(globalThis.fetch).mockImplementation(previous)
+    }
+    expect(acknowledged).toBe(true)
+  })
+})
+
+it('commits a warm native initiative roll privately and replays its exact evidence after eviction', async () => {
+  const { base, player, state, actors } = await localEncounterFixture()
+  const commandId = crypto.randomUUID()
+  const actorId = actors[0]!.id
+  const frame = JSON.stringify({
+    type: 'COMMAND',
+    expectedSessionSequence: 0,
+    command: {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ROLL_ACTOR_INITIATIVE',
+        encounterId: state.id,
+        commandId,
+        expectedVersion: 1,
+        actorId
+      }
+    }
+  })
+  const committed = await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const originalSend = socket.send.bind(socket)
+    let checkedBeforeAck = false
+    const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+      const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+        if (message.delta?.scope !== 'ENCOUNTER' || !message.delta.result.roll)
+          throw new Error('Missing initiating native initiative roll.')
+        const roll = message.delta.result.roll
+        expect(roll).toMatchObject({
+          normalizedExpression: '1d20',
+          characterId: null,
+          characterLabel: actors[0]!.label,
+          source: { kind: 'INITIATIVE', label: 'Initiative' },
+          evidence: { mode: 'NORMAL', modifier: 0 }
+        })
+        const term = roll.evidence.terms[0]
+        expect(roll.evidence.terms).toHaveLength(1)
+        expect(term).toMatchObject({ count: 1, die: 20 })
+        expect(term?.rolls).toHaveLength(1)
+        expect(term?.rolls[0]).toBeGreaterThanOrEqual(1)
+        expect(term?.rolls[0]).toBeLessThanOrEqual(20)
+        expect(roll.evidence.total).toBe(term?.rolls[0])
+        const evidence = localEncounterEvidence(context.storage)
+        expect(evidence.state.version).toBe(2)
+        const actorRow = evidence.actors.find(({ id }) => id === actorId)
+        if (!actorRow) throw new Error('Missing native initiative actor.')
+        const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+        expect(actor.initiative).toBe(roll.evidence.total)
+        expect(actorRow.stateChecksum).toBe(checksumCanonicalJson(actor))
+        expect(evidence.commands).toHaveLength(1)
+        const history = evidence.commands[0]
+        if (!history) throw new Error('Missing native initiative history.')
+        expect(history).toMatchObject({
+          commandId,
+          commandType: 'ROLL_ACTOR_INITIATIVE',
+          version: 2
+        })
+        const replay = encounterStoredReplayReceiptSchema.parse(
+          JSON.parse(history.replayReceiptJson)
+        )
+        expect(replay).toEqual({ roll, occurrence: null })
+        expect(history.replayReceiptChecksum).toBe(checksumCanonicalJson(replay))
+        expect(evidence.writes).toHaveLength(1)
+        const writeSet = evidence.writes[0]
+        if (typeof writeSet?.json !== 'string') throw new Error('Missing initiative write set.')
+        expect(JSON.parse(writeSet.json)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ op: 'PATCH', id: evidence.runId }),
+            expect.objectContaining({ op: 'PATCH', id: actorRow._id }),
+            expect.objectContaining({ op: 'INSERT', table: 'encounterRunCommands' })
+          ])
+        )
+        expect(writeSet.chain).toBe(evidence.checksum)
+        expect(evidence.receipts).toHaveLength(1)
+        expect(evidence.receipts[0]).toMatchObject({
+          command_id: commandId,
+          sequence: 1,
+          state_checksum: evidence.checksum
+        })
+        expect(evidence.authority).toEqual({
+          sequence: 1,
+          state_checksum: evidence.checksum,
+          published_sequence: 0
+        })
+        checkedBeforeAck = true
+      }
+      originalSend(data)
+    })
+    try {
+      await instance.webSocketMessage(socket, frame)
+    } finally {
+      sent.mockRestore()
+    }
+    expect(checkedBeforeAck).toBe(true)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    return localEncounterEvidence(context.storage)
+  })
+  await vi.waitFor(() => {
+    expect(
+      base.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+    expect(
+      player.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  })
+  const own = base.messages.find(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+  )
+  const recipient = player.messages.find(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+  )
+  if (
+    own?.type !== 'COMMAND_COMMITTED' ||
+    own.delta?.scope !== 'ENCOUNTER' ||
+    recipient?.type !== 'COMMAND_COMMITTED' ||
+    recipient.delta?.scope !== 'ENCOUNTER'
+  )
+    throw new Error('Missing native initiative fan-out.')
+  expect(own.delta.result.roll).not.toBeNull()
+  expect(recipient.delta.result.roll).toBeNull()
+  expect(recipient.delta.result.projection.actors.map(({ id }) => id)).not.toContain(actors[2]!.id)
+  for (const actor of recipient.delta.result.projection.actors) {
+    expect(actor).not.toHaveProperty('gmNotes')
+    expect(actor).not.toHaveProperty('statBlock')
+    expect(actor).not.toHaveProperty('resources')
+    expect(actor).not.toHaveProperty('maxHitPoints')
+  }
+  for (const reconstruct of [false, true]) {
+    if (reconstruct) {
+      await evictDurableObject(base.stub)
+      base.messages.length = 0
+      base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+      await vi.waitFor(() =>
+        expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+      )
+    }
+    const replay = await runInDurableObject(base.stub, async (instance, context) => {
+      const socket = context
+        .getWebSockets()
+        .find(
+          (candidate) =>
+            (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+        )
+      if (!socket) throw new Error('Missing owner native socket.')
+      vi.mocked(globalThis.fetch).mockClear()
+      const sent = vi.spyOn(socket, 'send')
+      try {
+        await instance.webSocketMessage(socket, frame)
+        expect(sent).toHaveBeenCalledTimes(1)
+        expect(
+          liveSessionWebSocketServerMessageDtoSchema.parse(
+            JSON.parse(String(sent.mock.calls[0]?.[0]))
+          )
+        ).toEqual(own)
+        if (!reconstruct) expect(globalThis.fetch).not.toHaveBeenCalled()
+        return localEncounterEvidence(context.storage)
+      } finally {
+        sent.mockRestore()
+      }
+    })
+    expect(replay).toEqual(committed)
+  }
+})
+
+it('commits a private native enemy roll and its charge once before acknowledgement', async () => {
+  const feature = featureDtoSchema.parse({
+    id: crypto.randomUUID(),
+    label: 'Whirlwind (Recharge 4-6)',
+    description: 'Native charged enemy roll fixture.',
+    section: 'ACTION',
+    order: 0,
+    charges: {
+      id: crypto.randomUUID(),
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'MANUAL',
+      amount: 1
+    },
+    rollDefinitions: [
+      {
+        id: 'whirlwind-table',
+        label: 'Table gust',
+        kind: 'DAMAGE',
+        expression: { count: 2, die: 6, modifier: 0 },
+        rollMode: 'NORMAL',
+        chargeCost: 1,
+        order: 1
+      }
+    ]
+  })
+  const { base, player, state, actors } = await localEncounterFixture([feature])
+  const commandId = crypto.randomUUID()
+  const actorId = actors[0]!.id
+  const frame = JSON.stringify({
+    type: 'COMMAND',
+    expectedSessionSequence: 0,
+    command: {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ROLL_ENEMY_ACTION',
+        encounterId: state.id,
+        commandId,
+        expectedVersion: 1,
+        actorId,
+        featureId: feature.id,
+        rollDefinitionId: 'whirlwind-table',
+        visibility: 'PRIVATE'
+      }
+    }
+  })
+  const committed = await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const originalSend = socket.send.bind(socket)
+    let checkedBeforeAck = false
+    const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+      const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+        if (message.delta?.scope !== 'ENCOUNTER' || !message.delta.result.roll)
+          throw new Error('Missing initiating private enemy roll.')
+        const roll = message.delta.result.roll
+        expect(roll).toMatchObject({
+          normalizedExpression: '2d6',
+          characterId: null,
+          source: { kind: 'DAMAGE', label: 'Whirlwind (Recharge 4-6): Table gust' },
+          evidence: { mode: 'NORMAL', modifier: 0 }
+        })
+        expect(roll.evidence.terms).toHaveLength(1)
+        const term = roll.evidence.terms[0]
+        expect(term).toMatchObject({ count: 2, die: 6 })
+        expect(term?.rolls).toHaveLength(2)
+        for (const face of term?.rolls ?? []) {
+          expect(face).toBeGreaterThanOrEqual(1)
+          expect(face).toBeLessThanOrEqual(6)
+        }
+        expect(roll.evidence.total).toBe(term?.rolls.reduce((sum, face) => sum + face, 0))
+        const evidence = localEncounterEvidence(context.storage)
+        const actorRow = evidence.actors.find(({ id }) => id === actorId)
+        if (!actorRow) throw new Error('Missing charged native actor.')
+        const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+        expect(actor.resources).toEqual({ featureCharges: { [feature.id]: 1 } })
+        expect(actorRow.stateChecksum).toBe(checksumCanonicalJson(actor))
+        expect(
+          message.delta.result.projection.actors.find(({ id }) => id === actorId)
+        ).toMatchObject({
+          features: [
+            expect.objectContaining({
+              id: feature.id,
+              resource: { maximum: 1, used: 1, remaining: 0, resetKind: 'MANUAL' }
+            })
+          ]
+        })
+        expect(evidence.state.version).toBe(2)
+        expect(evidence.commands).toHaveLength(1)
+        const history = evidence.commands[0]
+        if (!history) throw new Error('Missing private enemy roll history.')
+        expect(history).toMatchObject({ commandId, commandType: 'ROLL_ENEMY_ACTION', version: 2 })
+        const replay = encounterStoredReplayReceiptSchema.parse(
+          JSON.parse(history.replayReceiptJson)
+        )
+        expect(replay).toEqual({ roll, occurrence: null })
+        expect(history.replayReceiptChecksum).toBe(checksumCanonicalJson(replay))
+        expect(evidence.writes).toHaveLength(1)
+        const writeSet = evidence.writes[0]
+        if (typeof writeSet?.json !== 'string') throw new Error('Missing private enemy write set.')
+        expect(JSON.parse(writeSet.json)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ op: 'PATCH', id: actorRow._id }),
+            expect.objectContaining({ op: 'PATCH', id: evidence.runId }),
+            expect.objectContaining({ op: 'INSERT', table: 'encounterRunCommands' })
+          ])
+        )
+        expect(writeSet.chain).toBe(evidence.checksum)
+        expect(evidence.receipts).toHaveLength(1)
+        expect(evidence.receipts[0]).toMatchObject({
+          command_id: commandId,
+          sequence: 1,
+          state_checksum: evidence.checksum
+        })
+        expect(evidence.authority).toEqual({
+          sequence: 1,
+          state_checksum: evidence.checksum,
+          published_sequence: 0
+        })
+        checkedBeforeAck = true
+      }
+      originalSend(data)
+    })
+    try {
+      await instance.webSocketMessage(socket, frame)
+    } finally {
+      sent.mockRestore()
+    }
+    expect(checkedBeforeAck).toBe(true)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    return localEncounterEvidence(context.storage)
+  })
+  await vi.waitFor(() => {
+    expect(
+      base.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+    expect(
+      player.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  })
+  const own = base.messages.find(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+  )
+  const recipient = player.messages.find(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+  )
+  if (
+    own?.type !== 'COMMAND_COMMITTED' ||
+    own.delta?.scope !== 'ENCOUNTER' ||
+    recipient?.type !== 'COMMAND_COMMITTED' ||
+    recipient.delta?.scope !== 'ENCOUNTER'
+  )
+    throw new Error('Missing private enemy roll fan-out.')
+  expect(own.delta.result.roll).not.toBeNull()
+  expect(recipient.delta.result.roll).toBeNull()
+  expect(recipient.delta.result.projection.actors.map(({ id }) => id)).not.toContain(actors[2]!.id)
+  for (const actor of recipient.delta.result.projection.actors) {
+    expect(actor).not.toHaveProperty('gmNotes')
+    expect(actor).not.toHaveProperty('statBlock')
+    expect(actor).not.toHaveProperty('resources')
+    expect(actor).not.toHaveProperty('maxHitPoints')
+  }
+  const retried = await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      await instance.webSocketMessage(socket, frame)
+      expect(sent).toHaveBeenCalledTimes(1)
+      expect(
+        liveSessionWebSocketServerMessageDtoSchema.parse(
+          JSON.parse(String(sent.mock.calls[0]?.[0]))
+        )
+      ).toEqual(own)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      return localEncounterEvidence(context.storage)
+    } finally {
+      sent.mockRestore()
+    }
+  })
+  expect(retried).toEqual(committed)
+})
+
+it('commits a warm native REORDER before fan-out, redacts players, and replays without another write', async () => {
+  const { base, player, state, actors } = await localEncounterFixture()
+  const commandId = crypto.randomUUID()
+  const actorIds = [...state.actorIds].reverse()
+  const frame = JSON.stringify({
+    type: 'COMMAND',
+    expectedSessionSequence: 0,
+    command: {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'REORDER',
+        encounterId: state.id,
+        commandId,
+        expectedVersion: 1,
+        actorIds
+      }
+    }
+  })
+  player.messages.length = 0
+  const committed = await runInDurableObject(base.stub, async (instance, context) => {
+    vi.mocked(globalThis.fetch).mockClear()
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    const originalSend = socket.send.bind(socket)
+    let checkedBeforeAck = false
+    const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+      const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+        const evidence = localEncounterEvidence(context.storage)
+        expect(evidence.state).toMatchObject({ version: 2, actorIds })
+        expect(evidence.commands).toHaveLength(1)
+        expect(evidence.commands[0]).toMatchObject({
+          commandId,
+          commandType: 'REORDER',
+          version: 2
+        })
+        expect(evidence.writes).toHaveLength(1)
+        const writeSet = evidence.writes[0]
+        if (typeof writeSet?.json !== 'string') throw new Error('Missing committed write set.')
+        expect(JSON.parse(writeSet.json)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              op: 'PATCH',
+              id: evidence.runId,
+              fields: expect.objectContaining({ version: 2 })
+            }),
+            expect.objectContaining({ op: 'PATCH', id: evidence.actors[0]!._id }),
+            expect.objectContaining({ op: 'INSERT', table: 'encounterRunCommands' })
+          ])
+        )
+        expect(writeSet.chain).toBe(evidence.checksum)
+        expect(evidence.receipts).toHaveLength(1)
+        expect(evidence.receipts[0]).toMatchObject({
+          command_id: commandId,
+          sequence: 1,
+          state_checksum: evidence.checksum
+        })
+        expect(evidence.authority).toEqual({
+          sequence: 1,
+          state_checksum: evidence.checksum,
+          published_sequence: 0
+        })
+        checkedBeforeAck = true
+      }
+      originalSend(data)
+    })
+    try {
+      await instance.webSocketMessage(socket, frame)
+    } finally {
+      sent.mockRestore()
+    }
+    expect(checkedBeforeAck).toBe(true)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    return localEncounterEvidence(context.storage)
+  })
+  await vi.waitFor(() =>
+    expect(
+      player.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  )
+  const own = base.messages.find(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+  )
+  const recipient = player.messages.find(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+  )
+  if (
+    own?.type !== 'COMMAND_COMMITTED' ||
+    own.delta?.scope !== 'ENCOUNTER' ||
+    recipient?.type !== 'COMMAND_COMMITTED' ||
+    recipient.delta?.scope !== 'ENCOUNTER'
+  )
+    throw new Error('Missing native Encounter fan-out.')
+  expect(own.delta.result.projection.actors).toHaveLength(3)
+  expect(own.delta.result.projection.actors[0]).toMatchObject({
+    gmNotes: expect.any(String),
+    statBlock: { armorClass: 17 }
+  })
+  expect(recipient.delta.result.projection.actors.map(({ id }) => id)).not.toContain(actors[2]!.id)
+  expect(recipient.delta.result.projection.actors).toHaveLength(2)
+  for (const actor of recipient.delta.result.projection.actors) {
+    expect(actor).not.toHaveProperty('gmNotes')
+    expect(actor).not.toHaveProperty('statBlock')
+    expect(actor).not.toHaveProperty('resources')
+    expect(actor).not.toHaveProperty('maxHitPoints')
+  }
+  const replay = await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(socket, 'send')
+    await instance.webSocketMessage(socket, frame)
+    expect(sent).toHaveBeenCalledTimes(1)
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(sent.mock.calls[0]?.[0])))
+    ).toEqual(own)
+    sent.mockRestore()
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    return localEncounterEvidence(context.storage)
+  })
+  expect(replay).toEqual(committed)
+  await evictDurableObject(base.stub)
+  expect(
+    await runInDurableObject(base.stub, (_instance, context) =>
+      localEncounterEvidence(context.storage)
+    )
+  ).toEqual(committed)
+})
+
+it.each([true, false])(
+  'commits warm CUSTOM reinforcement before acknowledgement and replays once (public: %s)',
+  async (isPublic) => {
+    const { base, player, state, actors } = await localEncounterFixture()
+    const commandId = crypto.randomUUID()
+    const frame = JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'REINFORCE',
+          encounterId: state.id,
+          commandId,
+          expectedVersion: 1,
+          sideId: state.sides[0]!.id,
+          initiative: 21,
+          public: isPublic,
+          enemy: { kind: 'CUSTOM', label: 'Reinforcement', maxHitPoints: 8 }
+        }
+      }
+    })
+    player.messages.length = 0
+    const committed = await runInDurableObject(base.stub, async (instance, context) => {
+      const socket = context
+        .getWebSockets()
+        .find(
+          (candidate) =>
+            (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+        )
+      if (!socket) throw new Error('Missing owner native socket.')
+      vi.mocked(globalThis.fetch).mockClear()
+      const originalSend = socket.send.bind(socket)
+      let checkedBeforeAck = false
+      const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
+        const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+          const evidence = localEncounterEvidence(context.storage)
+          expect(evidence.state.version).toBe(2)
+          expect(evidence.state.actorIds).toHaveLength(4)
+          expect(evidence.actors).toHaveLength(4)
+          expect(evidence.facts).toHaveLength(4)
+          expect(evidence.participants).toHaveLength(4)
+          expect(evidence.commands).toHaveLength(1)
+          const history = evidence.commands[0]
+          if (!history || history.commandType !== 'REINFORCE')
+            throw new Error('Missing reinforcement history.')
+          const reinforced = encounterRunActorStateSchema.parse(
+            JSON.parse(history.reinforcedActorStateJson)
+          )
+          expect(history).toMatchObject({ commandId, version: 2, actorUserId: base.userId })
+          expect(reinforced).toMatchObject({
+            id: history.reinforcedActorId,
+            kind: 'CUSTOM',
+            label: 'Reinforcement',
+            public: isPublic,
+            currentHitPoints: 8,
+            maxHitPoints: 8,
+            initiative: 21,
+            manualOrder: 0
+          })
+          expect(history.reinforcedActorStateChecksum).toBe(checksumCanonicalJson(reinforced))
+          expect(evidence.state.actorIds).toContain(reinforced.id)
+          expect(evidence.actors.find(({ id }) => id === reinforced.id)?.stateChecksum).toBe(
+            history.reinforcedActorStateChecksum
+          )
+          expect(
+            evidence.participants.find(({ actorId }) => actorId === reinforced.id)
+          ).toMatchObject({
+            status: 'READY',
+            initiativeScore: 21,
+            turnOrderOrdinal: 0
+          })
+          expect(evidence.writes).toHaveLength(1)
+          const writeSet = evidence.writes[0]
+          if (typeof writeSet?.json !== 'string')
+            throw new Error('Missing reinforcement write set.')
+          expect(JSON.parse(writeSet.json)).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ op: 'INSERT', table: 'encounterRunActors' }),
+              expect.objectContaining({ op: 'INSERT', table: 'encounterActorProjectionFacts' }),
+              expect.objectContaining({ op: 'INSERT', table: 'encounterRunCommands' })
+            ])
+          )
+          expect(evidence.receipts).toHaveLength(1)
+          expect(evidence.receipts[0]).toMatchObject({
+            command_id: commandId,
+            sequence: 1,
+            state_checksum: evidence.checksum
+          })
+          expect(evidence.authority).toEqual({
+            sequence: 1,
+            state_checksum: evidence.checksum,
+            published_sequence: 0
+          })
+          checkedBeforeAck = true
+        }
+        originalSend(data)
+      })
+      try {
+        await instance.webSocketMessage(socket, frame)
+      } finally {
+        sent.mockRestore()
+      }
+      expect(checkedBeforeAck).toBe(true)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      return localEncounterEvidence(context.storage)
+    })
+    await vi.waitFor(() => {
+      expect(
+        base.messages.some(
+          (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+        )
+      ).toBe(true)
+      expect(
+        player.messages.some(
+          (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+        )
+      ).toBe(true)
+    })
+    const own = base.messages.find(
+      (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+    )
+    const recipient = player.messages.find(
+      (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+    )
+    if (
+      own?.type !== 'COMMAND_COMMITTED' ||
+      own.delta?.scope !== 'ENCOUNTER' ||
+      recipient?.type !== 'COMMAND_COMMITTED' ||
+      recipient.delta?.scope !== 'ENCOUNTER'
+    )
+      throw new Error('Missing reinforcement fan-out.')
+    expect(
+      own.delta.result.projection.actors.find(({ label }) => label === 'Reinforcement')
+    ).toMatchObject({
+      kind: 'CUSTOM',
+      currentHitPoints: 8,
+      maxHitPoints: 8,
+      public: isPublic
+    })
+    const shown = recipient.delta.result.projection.actors
+    expect(shown).toHaveLength(isPublic ? 3 : 2)
+    expect(shown.map(({ id }) => id)).not.toContain(actors[2]!.id)
+    expect(shown.some(({ label }) => label === 'Reinforcement')).toBe(isPublic)
+    for (const actor of shown) {
+      expect(actor).not.toHaveProperty('gmNotes')
+      expect(actor).not.toHaveProperty('statBlock')
+      expect(actor).not.toHaveProperty('resources')
+      expect(actor).not.toHaveProperty('maxHitPoints')
+    }
+    const replay = await runInDurableObject(base.stub, async (instance, context) => {
+      const socket = context
+        .getWebSockets()
+        .find(
+          (candidate) =>
+            (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+        )
+      if (!socket) throw new Error('Missing owner native socket.')
+      vi.mocked(globalThis.fetch).mockClear()
+      const sent = vi.spyOn(socket, 'send')
+      await instance.webSocketMessage(socket, frame)
+      expect(sent).toHaveBeenCalledTimes(1)
+      expect(
+        liveSessionWebSocketServerMessageDtoSchema.parse(
+          JSON.parse(String(sent.mock.calls[0]?.[0]))
+        )
+      ).toEqual(own)
+      sent.mockRestore()
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      return localEncounterEvidence(context.storage)
+    })
+    expect(replay).toEqual(committed)
+  }
+)
+
+it('rolls back a local Encounter command when admission expires during an input read', async () => {
+  const { base, state, actors, scene, tokenId } = await localEncounterFixture()
+  const authorization = roomAuthorizationResponse({
+    members: base.authorization.members,
+    play: {
+      encounter: {
+        encounterId: state.id,
+        sceneId: scene.id,
+        healthDisplayDefault: state.healthDisplayDefault,
+        actors: actors.map(({ id, kind, sourceId, controllerUserIds, healthDisplay }) => ({
+          id,
+          kind,
+          sourceId,
+          controllerUserIds,
+          healthDisplay
+        })),
+        tokens: [{ actorId: actors[0]!.id, tokenId }]
+      }
+    }
+  })
+  authorization.revisions.system = crypto.randomUUID()
+  let authorityReadStarted = false
+  let systemReads = 0
+  let releaseRead = () => {}
+  const heldRead = new Promise<void>((resolve) => {
+    releaseRead = resolve
+  })
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === ROOM_AUTHORIZATION_PATH) {
+      base.authorization.reads += 1
+      return Response.json(authorization)
+    }
+    if (pathname !== ROOM_INPUTS_PATH) return undefined
+    const { scope } = liveRoomInputsInputSchema.parse(await request.json())
+    if (scope.kind === 'AUTHORITY') {
+      authorityReadStarted = true
+      await heldRead
+    }
+    if (scope.kind === 'SYSTEM') systemReads += 1
+    return undefined
+  })
+  const invalidated = await control({
+    campaignId: base.capture.campaignId,
+    operation: { type: 'INVALIDATE_INPUTS', scopes: ['SYSTEM'] }
+  })
+  expect(await invalidated.json()).toEqual({ invalidated: true })
+  const evidence = (storage: DurableObjectStorage) => {
+    const room = new RoomEncounterStore(storage)
+    return {
+      ...localEncounterEvidence(storage),
+      inputs: room.records('ROOM_INPUT'),
+      characterHeads: room.documents('characters'),
+      characterPlay: room.documents('characterPlayStates')
+    }
+  }
+  const before = await runInDurableObject(base.stub, async (instance, context) => {
+    const before = evidence(context.storage)
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    const sent = vi.spyOn(socket, 'send')
+    const clock = vi.spyOn(Date, 'now')
+    const commandId = crypto.randomUUID()
+    const handling = instance.webSocketMessage(
+      socket,
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'UPDATE_ACTOR',
+            encounterId: state.id,
+            commandId,
+            expectedVersion: 1,
+            actorId: actors[0]!.id,
+            controllerUserIds: []
+          }
+        }
+      })
+    )
+    try {
+      await vi.waitFor(() => expect(authorityReadStarted).toBe(true))
+      clock.mockReturnValue((base.issuedAt + 3_601) * 1_000)
+      releaseRead()
+      await handling
+      const messages = sent.mock.calls.map(([data]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      )
+      expect(messages).toContainEqual(
+        expect.objectContaining({ type: 'COMMAND_REJECTED', commandId })
+      )
+      expect(messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+      expect(systemReads).toBeGreaterThan(0)
+      expect(evidence(context.storage)).toEqual(before)
+      return before
+    } finally {
+      releaseRead()
+      await handling
+      clock.mockRestore()
+      sent.mockRestore()
+    }
+  })
+  await evictDurableObject(base.stub)
+  await runInDurableObject(base.stub, (_instance, context) => {
+    expect(evidence(context.storage)).toEqual(before)
+  })
+})
+
+it.each(['VERSION', 'SQLITE'] as const)(
+  'rolls back native REORDER state and receipts on %s refusal',
+  async (failure) => {
+    const { base, state } = await localEncounterFixture()
+    const commandId = crypto.randomUUID()
+    await runInDurableObject(base.stub, async (instance, context) => {
+      const before = localEncounterEvidence(context.storage)
+      const socket = context
+        .getWebSockets()
+        .find(
+          (candidate) =>
+            (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+        )
+      if (!socket) throw new Error('Missing owner native socket.')
+      if (failure === 'SQLITE')
+        context.storage.sql.exec(
+          `CREATE TRIGGER abort_encounter_receipt AFTER INSERT ON durable_command_receipts BEGIN SELECT RAISE(ABORT, 'Injected Encounter SQLite failure'); END`
+        )
+      vi.mocked(globalThis.fetch).mockClear()
+      const sent = vi.spyOn(socket, 'send')
+      const command = {
+        type: 'REORDER',
+        encounterId: state.id,
+        commandId,
+        expectedVersion: failure === 'VERSION' ? 0 : 1,
+        actorIds: [...state.actorIds].reverse()
+      }
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify({
+          type: 'COMMAND',
+          expectedSessionSequence: 0,
+          command: { scope: 'ENCOUNTER', command }
+        })
+      )
+      const messages = sent.mock.calls.map(([data]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      )
+      expect(messages).toContainEqual(
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId,
+          ...(failure === 'VERSION' ? { code: 'DOMAIN_REJECTED', reason: 'VERSION_STALE' } : {})
+        })
+      )
+      expect(messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      if (failure === 'SQLITE') {
+        context.storage.sql.exec('DROP TRIGGER abort_encounter_receipt')
+        await instance.webSocketMessage(
+          socket,
+          JSON.stringify({
+            type: 'COMMAND',
+            expectedSessionSequence: 0,
+            command: { scope: 'ENCOUNTER', command }
+          })
+        )
+        const retry = localEncounterEvidence(context.storage)
+        expect(retry.state.version).toBe(2)
+        expect(retry.commands).toHaveLength(1)
+        expect(retry.receipts).toHaveLength(1)
+        expect(retry.writes).toHaveLength(1)
+      }
+      sent.mockRestore()
+    })
+  }
+)
+
+it('refuses a warm native undo without an action and preserves state and receipts', async () => {
+  const { base, state } = await localEncounterFixture()
+  const commandId = crypto.randomUUID()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const before = localEncounterEvidence(context.storage)
+    expect(before.commands).toHaveLength(0)
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify({
+          type: 'COMMAND',
+          expectedSessionSequence: 0,
+          command: {
+            scope: 'ENCOUNTER',
+            command: {
+              type: 'REVERT_LAST_ACTION',
+              encounterId: state.id,
+              commandId,
+              expectedVersion: 1
+            }
+          }
+        })
+      )
+      const messages = sent.mock.calls.map(([data]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      )
+      expect(messages).toContainEqual(
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId,
+          code: 'DOMAIN_REJECTED',
+          reason: 'REVERT_UNAVAILABLE'
+        })
+      )
+      expect(messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    } finally {
+      sent.mockRestore()
+    }
+  })
+})
+
+it('keeps a local token-control revocation after eviction reloads older Convex grants', async () => {
+  const { base, player, state, actors, scene, tokenId } = await localEncounterFixture()
+  const commandId = crypto.randomUUID()
+  const preview = (sequence: number) =>
+    JSON.stringify({
+      type: 'TRANSIENT',
+      envelope: {
+        baselineVersion: scene.version,
+        audience: 'TABLE',
+        kind: 'TOKEN_DRAG_PREVIEW',
+        sceneId: scene.id,
+        tokenId,
+        sequence,
+        position: { x: 15, y: 15 }
+      }
+    })
+  const committed = await runInDurableObject(base.stub, async (instance, context) => {
+    const socketFor = (userId: string) =>
+      context
+        .getWebSockets()
+        .find(
+          (candidate) => (candidate.deserializeAttachment() as { userId: string }).userId === userId
+        )
+    const ownerSocket = socketFor(base.userId)
+    const playerSocket = socketFor(base.playerId)
+    if (!ownerSocket || !playerSocket) throw new Error('Missing native control sockets.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(ownerSocket, 'send')
+    try {
+      await instance.webSocketMessage(playerSocket, preview(1))
+      expect(
+        sent.mock.calls.some(
+          ([data]) =>
+            liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data))).type ===
+            'TRANSIENT'
+        )
+      ).toBe(true)
+      await instance.webSocketMessage(
+        ownerSocket,
+        JSON.stringify({
+          type: 'COMMAND',
+          expectedSessionSequence: 0,
+          command: {
+            scope: 'ENCOUNTER',
+            command: {
+              type: 'UPDATE_ACTOR',
+              encounterId: state.id,
+              commandId,
+              expectedVersion: 1,
+              actorId: actors[0]!.id,
+              controllerUserIds: []
+            }
+          }
+        })
+      )
+      const evidence = localEncounterEvidence(context.storage)
+      const actor = evidence.actors.find(({ id }) => id === actors[0]!.id)
+      if (!actor) throw new Error('Missing revoked native actor.')
+      expect(
+        encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson)).controllerUserIds
+      ).toEqual([])
+      expect(evidence.bindings).toHaveLength(1)
+      expect(evidence.authority).toMatchObject({ sequence: 1, published_sequence: 0 })
+      expect(
+        sent.mock.calls.map(([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+        )
+      ).toContainEqual(expect.objectContaining({ type: 'COMMAND_COMMITTED', commandId }))
+      sent.mockClear()
+      await instance.webSocketMessage(playerSocket, preview(2))
+      expect(
+        sent.mock.calls.some(
+          ([data]) =>
+            liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data))).type ===
+            'TRANSIENT'
+        )
+      ).toBe(false)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      return evidence
+    } finally {
+      sent.mockRestore()
+    }
+  })
+  const authorizationReads = base.authorization.reads
+  await evictDurableObject(base.stub)
+  base.messages.length = 0
+  player.messages.length = 0
+  await synchronizeScene(base, scene)
+  player.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.playerAccessToken }))
+  await vi.waitFor(() =>
+    expect(player.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  // The fixture still returns its original actor grant on every Convex authorization reload.
+  expect(actors[0]!.controllerUserIds).toEqual([base.playerId])
+  expect(base.authorization.reads).toBeGreaterThan(authorizationReads)
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socketFor = (userId: string) =>
+      context
+        .getWebSockets()
+        .find(
+          (candidate) => (candidate.deserializeAttachment() as { userId: string }).userId === userId
+        )
+    const ownerSocket = socketFor(base.userId)
+    const playerSocket = socketFor(base.playerId)
+    if (!ownerSocket || !playerSocket) throw new Error('Missing recovered native control sockets.')
+    vi.mocked(globalThis.fetch).mockClear()
+    const ownerSent = vi.spyOn(ownerSocket, 'send')
+    const playerSent = vi.spyOn(playerSocket, 'send')
+    try {
+      await instance.webSocketMessage(playerSocket, preview(3))
+      expect(
+        ownerSent.mock.calls.some(
+          ([data]) =>
+            liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data))).type ===
+            'TRANSIENT'
+        )
+      ).toBe(false)
+      // An owner preview on the same token proves the warmed Scene can actually fan out samples.
+      await instance.webSocketMessage(ownerSocket, preview(4))
+      expect(
+        playerSent.mock.calls.some(
+          ([data]) =>
+            liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data))).type ===
+            'TRANSIENT'
+        )
+      ).toBe(true)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      expect(localEncounterEvidence(context.storage)).toEqual(committed)
+    } finally {
+      ownerSent.mockRestore()
+      playerSent.mockRestore()
+    }
+  })
+})
+
+it('preserves corrupt unpublished rows until recovery succeeds, then hydrates acknowledged inputs under the replacement epoch', async () => {
+  const { base, player, state, actors } = await localEncounterFixture()
+  const commandId = crypto.randomUUID()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const owner = context
+      .getWebSockets()
+      .find(
+        (socket) => (socket.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!owner) throw new Error('Missing owner native recovery socket.')
+    await instance.webSocketMessage(
+      owner,
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'UPDATE_ACTOR',
+            encounterId: state.id,
+            commandId,
+            expectedVersion: 1,
+            actorId: actors[0]!.id,
+            controllerUserIds: []
+          }
+        }
+      })
+    )
+    const committed = localEncounterEvidence(context.storage)
+    expect(committed.state.version).toBe(2)
+    expect(committed.authority).toMatchObject({ sequence: 1, published_sequence: 0 })
+    expect(committed.receipts).toHaveLength(1)
+    const revoked = committed.actors.find(({ id }) => id === actors[0]!.id)
+    if (!revoked) throw new Error('Missing unpublished native actor before recovery.')
+    expect(
+      encounterRunActorStateSchema.parse(JSON.parse(revoked.stateJson)).controllerUserIds
+    ).toEqual([])
+    context.storage.sql.exec("UPDATE room_snapshot_chunks SET content = 'bad' WHERE part = 0")
+  })
+  const retainedRows = () =>
+    runInDurableObject(base.stub, (_instance, context) => ({
+      snapshot: context.storage.sql
+        .exec(
+          'SELECT generation, part, part_count, epoch, sequence, chain, content_checksum, content FROM room_snapshot_chunks ORDER BY generation, part'
+        )
+        .toArray(),
+      writes: context.storage.sql
+        .exec('SELECT sequence, json, checksum, chain FROM room_writeset_log ORDER BY sequence')
+        .toArray(),
+      receipts: context.storage.sql
+        .exec(
+          'SELECT command_id, sequence, state_checksum, receipt_json FROM durable_command_receipts ORDER BY sequence'
+        )
+        .toArray(),
+      authority: context.storage.sql
+        .exec(
+          'SELECT authority_epoch, sequence, state_checksum, published_sequence FROM durable_session_authority WHERE id = 1'
+        )
+        .toArray()
+    }))
+  const damaged = await retainedRows()
+  const replacementEpoch = crypto.randomUUID()
+  const now = new Date().toISOString()
+  const replacement = liveSessionAuthorityDtoSchema.parse({
+    campaignId: base.capture.campaignId,
+    epoch: replacementEpoch,
+    phase: 'ACTIVATING',
+    activationFingerprint: 'a'.repeat(64),
+    persistedSequence: 0,
+    persistedStateChecksum: 'a'.repeat(64),
+    createdAt: now,
+    updatedAt: now
+  })
+  const recoveries: Array<ReturnType<typeof liveSessionStorageRecoveryInputSchema.parse>> = []
+  const reloadedInputs: Array<ReturnType<typeof liveRoomInputsInputSchema.parse>> = []
+  let recoveryAvailable = false
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === LIVE_SESSION_ROUTE_PATHS.recoverStorage) {
+      expect(request.headers.get('authorization')).toBeNull()
+      expect(request.headers.get('x-artificer-live-session-secret')).toBe(secret)
+      const scope = liveSessionStorageRecoveryInputSchema.parse(await request.json())
+      expect(scope).toEqual({ campaignId: base.capture.campaignId, epoch: base.authorityEpoch })
+      recoveries.push(scope)
+      // Convex has fenced the old epoch, but the first HTTP response has an unknown outcome.
+      return recoveryAvailable
+        ? Response.json(replacement)
+        : new Response('Recovery response unavailable.', { status: 503 })
+    }
+    if (pathname === ROOM_INPUTS_PATH)
+      reloadedInputs.push(liveRoomInputsInputSchema.parse(await request.json()))
+    if (pathname === LIVE_SESSION_ROUTE_PATHS.checkpoint)
+      throw new Error('Recovery must not publish the abandoned command suffix.')
+    return undefined
+  })
+  const ownerClosed = waitForClose(base.socket)
+  const playerClosed = waitForClose(player.socket)
+  await evictDurableObject(base.stub)
+  await runInDurableObject(base.stub, (_instance, context) => {
+    expect(new RoomEncounterStore(context.storage).corruption).not.toBeNull()
+  })
+  await expect(runInDurableObject(base.stub, (instance) => instance.alarm())).rejects.toThrow()
+  await expect(ownerClosed).resolves.toMatchObject({
+    code: 1008,
+    reason: 'Live Session storage recovered; reconnect to resynchronize.'
+  })
+  await expect(playerClosed).resolves.toMatchObject({
+    code: 1008,
+    reason: 'Live Session storage recovered; reconnect to resynchronize.'
+  })
+  expect(await retainedRows()).toEqual(damaged)
+  expect(recoveries).toHaveLength(1)
+
+  recoveryAvailable = true
+  await evictDurableObject(base.stub)
+  await runInDurableObject(base.stub, (instance) => instance.alarm())
+  expect(recoveries).toEqual([
+    { campaignId: base.capture.campaignId, epoch: base.authorityEpoch },
+    { campaignId: base.capture.campaignId, epoch: base.authorityEpoch }
+  ])
+  await runInDurableObject(base.stub, (_instance, context) => {
+    const recovered = new RoomEncounterStore(context.storage)
+    expect(recovered.corruption).toBeNull()
+    expect(recovered.epoch).toBe(replacementEpoch)
+    expect(recovered.sequence).toBe(0)
+    expect(recovered.documents('encounterRuns')).toEqual([])
+    expect(recovered.record('ROOM_INPUT', 'AUTHORITY')).toBeNull()
+    expect(new DurableCommandJournal(context.storage).readCurrent()).toBeNull()
+  })
+  const messages = await authenticateOwner(
+    base,
+    await signTicket({
+      authorityEpoch: replacementEpoch,
+      campaignId: base.capture.campaignId,
+      issuedAt: Math.floor(Date.now() / 1_000),
+      role: 'OWNER',
+      subject: base.userId
+    })
+  )
+  expect(messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  expect(reloadedInputs.map(({ scope }) => scope.kind)).toEqual(
+    expect.arrayContaining(['AUTHORITY', 'RUN', 'SCENE'])
+  )
+  for (const input of reloadedInputs)
+    expect(input).toMatchObject({ campaignId: base.capture.campaignId, epoch: replacementEpoch })
+  await runInDurableObject(base.stub, (_instance, context) => {
+    const rehydrated = new RoomEncounterStore(context.storage)
+    const evidence = localEncounterEvidence(context.storage)
+    expect(rehydrated.epoch).toBe(replacementEpoch)
+    expect(rehydrated.record('ROOM_INPUT', 'AUTHORITY')).not.toBeNull()
+    expect(evidence.state.version).toBe(1)
+    const actor = evidence.actors.find(({ id }) => id === actors[0]!.id)
+    if (!actor) throw new Error('Missing acknowledged native actor after recovery.')
+    expect(
+      encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson)).controllerUserIds
+    ).toEqual([base.playerId])
+    expect(evidence.sequence).toBe(0)
+    expect(evidence.writes).toEqual([])
+    expect(evidence.receipts).toEqual([])
+    expect(new DurableCommandJournal(context.storage).readCurrent()).toMatchObject({
+      authorityEpoch: replacementEpoch,
+      sequence: 0,
+      publishedSequence: 0,
+      status: 'ACTIVE'
+    })
+  })
+})
+
+it('removes a native Encounter actor and its binding, ending the player token control immediately', async () => {
+  const { base, player, state, actors, scene, tokenId } = await localEncounterFixture()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socketFor = (userId: string) =>
+      context
+        .getWebSockets()
+        .find(
+          (candidate) => (candidate.deserializeAttachment() as { userId: string }).userId === userId
+        )
+    const ownerSocket = socketFor(base.userId)
+    const playerSocket = socketFor(base.playerId)
+    if (!ownerSocket || !playerSocket) throw new Error('Missing native Encounter sockets.')
+    const sent = vi.spyOn(ownerSocket, 'send')
+    const preview = (sequence: number) =>
+      JSON.stringify({
+        type: 'TRANSIENT',
+        envelope: {
+          baselineVersion: scene.version,
+          audience: 'TABLE',
+          kind: 'TOKEN_DRAG_PREVIEW',
+          sceneId: scene.id,
+          tokenId,
+          sequence,
+          position: { x: 15, y: 15 }
+        }
+      })
+    vi.mocked(globalThis.fetch).mockClear()
+    await instance.webSocketMessage(playerSocket, preview(1))
+    expect(
+      sent.mock.calls.some(
+        ([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data))).type ===
+          'TRANSIENT'
+      )
+    ).toBe(true)
+    const commandId = crypto.randomUUID()
+    await instance.webSocketMessage(
+      ownerSocket,
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'REMOVE_ACTOR',
+            encounterId: state.id,
+            commandId,
+            expectedVersion: 1,
+            actorId: actors[0]!.id
+          }
+        }
+      })
+    )
+    const evidence = localEncounterEvidence(context.storage)
+    expect(evidence.state).toMatchObject({ version: 2, actorIds: state.actorIds.slice(1) })
+    expect(evidence.actors.map(({ id }) => id)).not.toContain(actors[0]!.id)
+    expect(evidence.facts.map(({ id }) => id)).not.toContain(actors[0]!.id)
+    expect(evidence.participants.map(({ actorId }) => actorId)).not.toContain(actors[0]!.id)
+    expect(evidence.bindings).toEqual([])
+    expect(evidence.commands[0]).toMatchObject({ commandId, commandType: 'REMOVE_ACTOR' })
+    sent.mockClear()
+    await instance.webSocketMessage(playerSocket, preview(2))
+    expect(
+      sent.mock.calls.some(
+        ([data]) =>
+          liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data))).type ===
+          'TRANSIENT'
+      )
+    ).toBe(false)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    sent.mockRestore()
+  })
+  await vi.waitFor(() =>
+    expect(player.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(true)
+  )
+})
+
 it('forwards an unplanned Encounter command in room order and acknowledges only its initiator', async () => {
   const base = await fixture(doorScene(crypto.randomUUID()).scene)
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
@@ -3151,7 +5856,19 @@ it('forwards an unplanned Encounter command in room order and acknowledges only 
       expectedSessionSequence: 0,
       command: {
         scope: 'ENCOUNTER',
-        command: { type: 'SET_ROUND', encounterId, commandId, expectedVersion: 3, round: 2 }
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId,
+          commandId,
+          expectedVersion: 3,
+          actorId: '00000000-0000-4000-8000-000000000510',
+          characterCommand: {
+            type: 'SET_INSPIRATION',
+            commandId: '00000000-0000-4000-8000-000000000511',
+            expectedVersion: 0,
+            inspired: true
+          }
+        }
       }
     })
   )
@@ -3168,7 +5885,19 @@ it('forwards an unplanned Encounter command in room order and acknowledges only 
       authorityEpoch: base.authorityEpoch,
       expectedUserId: base.userId,
       expectedRole: 'OWNER',
-      command: { type: 'SET_ROUND', encounterId, commandId, expectedVersion: 3, round: 2 }
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId,
+        commandId,
+        expectedVersion: 3,
+        actorId: '00000000-0000-4000-8000-000000000510',
+        characterCommand: {
+          type: 'SET_INSPIRATION',
+          commandId: '00000000-0000-4000-8000-000000000511',
+          expectedVersion: 0,
+          inspired: true
+        }
+      }
     }
   ])
   expect(player.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
@@ -3205,7 +5934,19 @@ it('lets a player have one Encounter command in flight', async () => {
         expectedSessionSequence: 0,
         command: {
           scope: 'ENCOUNTER',
-          command: { type: 'SET_ROUND', encounterId, commandId, expectedVersion: 3, round: 2 }
+          command: {
+            type: 'UPDATE_ACTOR',
+            encounterId,
+            commandId,
+            expectedVersion: 3,
+            actorId: '00000000-0000-4000-8000-000000000510',
+            characterCommand: {
+              type: 'SET_INSPIRATION',
+              commandId: '00000000-0000-4000-8000-000000000511',
+              expectedVersion: 0,
+              inspired: true
+            }
+          }
         }
       })
     )
@@ -3262,7 +6003,19 @@ it('never hands a player an unredacted GM projection', async () => {
       expectedSessionSequence: 0,
       command: {
         scope: 'ENCOUNTER',
-        command: { type: 'SET_ROUND', encounterId, commandId, expectedVersion: 3, round: 2 }
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId,
+          commandId,
+          expectedVersion: 3,
+          actorId: '00000000-0000-4000-8000-000000000510',
+          characterCommand: {
+            type: 'SET_INSPIRATION',
+            commandId: '00000000-0000-4000-8000-000000000511',
+            expectedVersion: 0,
+            inspired: true
+          }
+        }
       }
     })
   )
@@ -3343,7 +6096,7 @@ it('draws a dice command with the room random source between the Convex dice rea
     actorId: crypto.randomUUID(),
     featureId: 'whirlwind',
     rollDefinitionId: 'gust',
-    visibility: 'PRIVATE'
+    visibility: 'TABLE'
   }
   const calls: { pathname: string; body: unknown }[] = []
   await routeEncounterRequests(base, async (pathname, request) => {
@@ -3406,11 +6159,17 @@ it('rejects a refused Encounter command with a generic code and no Convex detail
       command: {
         scope: 'ENCOUNTER',
         command: {
-          type: 'SET_ROUND',
+          type: 'UPDATE_ACTOR',
           encounterId: crypto.randomUUID(),
           commandId,
           expectedVersion: 3,
-          round: 2
+          actorId: '00000000-0000-4000-8000-000000000510',
+          characterCommand: {
+            type: 'SET_INSPIRATION',
+            commandId: '00000000-0000-4000-8000-000000000511',
+            expectedVersion: 0,
+            inspired: true
+          }
         }
       }
     })
@@ -3447,11 +6206,17 @@ it("tells a player a GM-only Encounter command is the GM's, not a changed Encoun
       command: {
         scope: 'ENCOUNTER',
         command: {
-          type: 'SET_ROUND',
+          type: 'UPDATE_ACTOR',
           encounterId: crypto.randomUUID(),
           commandId,
           expectedVersion: 3,
-          round: 2
+          actorId: '00000000-0000-4000-8000-000000000510',
+          characterCommand: {
+            type: 'SET_INSPIRATION',
+            commandId: '00000000-0000-4000-8000-000000000511',
+            expectedVersion: 0,
+            inspired: true
+          }
         }
       }
     })
@@ -3500,11 +6265,17 @@ it('forwards an expected domain rejection and keeps an unexpected failure generi
         command: {
           scope: 'ENCOUNTER',
           command: {
-            type: 'SET_ROUND',
+            type: 'UPDATE_ACTOR',
             encounterId: crypto.randomUUID(),
             commandId,
             expectedVersion: 3,
-            round: 2
+            actorId: '00000000-0000-4000-8000-000000000510',
+            characterCommand: {
+              type: 'SET_INSPIRATION',
+              commandId: '00000000-0000-4000-8000-000000000511',
+              expectedVersion: 0,
+              inspired: true
+            }
           }
         }
       })
@@ -3559,11 +6330,17 @@ it('forwards overridable rule warnings with an action rejection', async () => {
       command: {
         scope: 'ENCOUNTER',
         command: {
-          type: 'SET_ROUND',
+          type: 'UPDATE_ACTOR',
           encounterId: crypto.randomUUID(),
           commandId,
           expectedVersion: 3,
-          round: 2
+          actorId: '00000000-0000-4000-8000-000000000510',
+          characterCommand: {
+            type: 'SET_INSPIRATION',
+            commandId: '00000000-0000-4000-8000-000000000511',
+            expectedVersion: 0,
+            inspired: true
+          }
         }
       }
     })
@@ -3705,7 +6482,13 @@ async function leaveAndFireIdleAlarm(base: Awaited<ReturnType<typeof fixture>>) 
   await vi.waitFor(async () => {
     const pending = await idleRelease(base.stub)
     expect(pending.releaseAt).toBeGreaterThanOrEqual(leftAt + 5 * 60_000)
-    expect(pending.alarm).toBe(pending.releaseAt)
+    const checkpointAt = await runInDurableObject(base.stub, (_instance, state) => {
+      const first = new DurableCommandJournal(state.storage).oldestUnpublishedCommandTime()
+      return first === null ? null : first + ROOM_LIMITS.checkpointDeadlineMs
+    })
+    expect(pending.alarm).toBe(
+      checkpointAt === null ? pending.releaseAt : Math.min(checkpointAt, pending.releaseAt!)
+    )
   })
   await fireAlarmAfterIdleWindow(base.stub)
 }
@@ -3769,11 +6552,12 @@ it('cancels the idle release when a member reconnects inside the window', async 
   await expect(idleRelease(base.stub)).resolves.toMatchObject({ status: 'ACTIVE' })
 })
 
-it('publishes the pending outbox before an idle room releases its authority', async () => {
+it('retries the exact pending checkpoint after eviction before an idle room releases its authority', async () => {
   const value = doorScene(crypto.randomUUID())
   const base = await fixture(value.scene)
   await synchronizeScene(base, value.scene)
   const calls: string[] = []
+  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
   let publishAvailable = false
   await runInDurableObject(base.stub, () => {
     const original = vi.mocked(globalThis.fetch).getMockImplementation()
@@ -3782,25 +6566,11 @@ it('publishes the pending outbox before an idle room releases its authority', as
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
       calls.push(pathname)
-      if (pathname !== '/live-sessions/publish') return original(input, init)
+      if (pathname !== '/live-sessions/checkpoint') return original(input, init)
+      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      checkpoints.push(body)
       if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
-      const body = liveSessionPublishInputSchema.parse(await request.json())
-      if (!('expectedSceneResult' in body)) throw new Error('Expected Scene publication.')
-      const now = new Date().toISOString()
-      return Response.json({
-        authority: {
-          activationFingerprint: 'a'.repeat(64),
-          campaignId: body.campaignId,
-          createdAt: now,
-          epoch: body.epoch,
-          persistedSequence: body.sequence,
-          persistedStateChecksum: body.stateChecksum,
-          phase: 'DO_ACTIVE',
-          updatedAt: now
-        },
-        sceneResult: body.expectedSceneResult,
-        scope: 'SCENE'
-      })
+      return Response.json(checkpointResponse(body, base.authorization.members))
     })
   })
   const commandId = crypto.randomUUID()
@@ -3812,29 +6582,38 @@ it('publishes the pending outbox before an idle room releases its authority', as
       )
     ).toBe(true)
   )
-  await vi.waitFor(() => expect(calls).toContain('/live-sessions/publish'))
+  expect(calls).toEqual([])
+  await expect(fireCheckpointAlarm(base.stub)).rejects.toThrow()
+  expect(checkpoints).toHaveLength(1)
+  expect(await journalEvidence(base)).toMatchObject({
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1
+  })
+  await evictDurableObject(base.stub)
   publishAvailable = true
   calls.length = 0
 
   await leaveAndFireIdleAlarm(base)
   expect(calls).toEqual([
+    '/live-sessions/checkpoint',
     '/live-sessions/begin-drain',
-    '/live-sessions/publish',
     '/live-sessions/release'
   ])
+  expect(checkpoints).toHaveLength(2)
+  expect(checkpoints[1]).toEqual(checkpoints[0])
   const journal = await runInDurableObject(base.stub, (_instance, state) => ({
     authority: state.storage.sql
       .exec<{ published_sequence: number; sequence: number; status: string }>(
         'SELECT published_sequence, sequence, status FROM durable_session_authority WHERE id = 1'
       )
       .one(),
-    outboxCount: state.storage.sql
-      .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+    pendingWriteCount: state.storage.sql
+      .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
       .one().count
   }))
   expect(journal).toEqual({
     authority: { published_sequence: 1, sequence: 1, status: 'RELEASED' },
-    outboxCount: 0
+    pendingWriteCount: 0
   })
 })
 
@@ -3895,11 +6674,17 @@ it('rejects commands beyond the pending-command bound without closing the socket
         command: {
           scope: 'ENCOUNTER',
           command: {
-            type: 'SET_ROUND',
+            type: 'UPDATE_ACTOR',
             encounterId: crypto.randomUUID(),
             commandId,
             expectedVersion: 3,
-            round: 2
+            actorId: '00000000-0000-4000-8000-000000000510',
+            characterCommand: {
+              type: 'SET_INSPIRATION',
+              commandId: '00000000-0000-4000-8000-000000000511',
+              expectedVersion: 0,
+              inspired: true
+            }
           }
         }
       })

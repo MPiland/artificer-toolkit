@@ -39,11 +39,16 @@ describe('character routes', () => {
     expectRouteTreeToDeclare(['/_authed/characters/$characterPublicId'])
   })
 
-  it('loads native Sheet and draft queries without manually rewriting subscription caches', () => {
+  it('loads common Sheet facts and requests a draft only when the active Sheet is unavailable', () => {
     const source = readFileSync(join(process.cwd(), characterSheetRouteSource), 'utf8')
 
-    expect(source).toContain('ensureQueryData(getCharacterSheet(routeCharacterId))')
+    expect(source).toMatch(
+      /ensureQueryData\(\s*getCharacterSheetSlice\(routeCharacterId, 'COMMON'\)/
+    )
     expect(source).toContain('ensureQueryData(getCharacterDraft(routeCharacterId))')
+    expect(source).toContain('const draft = response')
+    expect(source).toContain('? null')
+    expect(source).not.toContain('Promise.all')
     expect(source).not.toContain('createServerApi')
     expect(source).not.toContain('setQueryData')
     expect(source).not.toContain('removeQueries')

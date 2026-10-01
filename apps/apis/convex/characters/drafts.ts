@@ -57,6 +57,11 @@ async function openDraft(
   active: Doc<'characters'> | null
 ): Promise<CharacterBuilderDraftDto> {
   await requireSystem(ctx, character.systemId)
+  const retiring = await ctx.db
+    .query('characterReceiptPurgeJobs')
+    .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+    .unique()
+  if (retiring) throw new Error('This Character identity is still being deleted.')
   if (!active) {
     const entitlement = await ctx.db
       .query('accountEntitlements')

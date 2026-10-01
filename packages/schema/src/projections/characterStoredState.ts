@@ -23,7 +23,7 @@ export const characterDocumentSchema = lazySchema(() =>
 )
 
 /** The stored Character document: the Builder-owned structure, without play state. */
-const characterStructureDocumentSchema = lazySchema(() =>
+export const characterStructureDocumentSchema = lazySchema(() =>
   z.extend(characterDocumentSchema, { state: characterStructureStateSchema })
 )
 
@@ -31,10 +31,10 @@ export type CharacterDocument = z.infer<typeof characterDocumentSchema>
 type StoredRecord = z.infer<typeof characterStoredRecordSchema>
 type StoredPlay = z.infer<typeof characterStoredPlayStateSchema>
 
-/** The play record's fields a reader needs: identity, version and the checksummed play JSON. */
+/** The play record's fields a reader needs: identity, version and checksummed typed state. */
 export type StoredCharacterPlay = Pick<
   StoredPlay,
-  'characterId' | 'userId' | 'streamVersion' | 'playJson' | 'checksum' | 'updatedAt'
+  'characterId' | 'userId' | 'streamVersion' | 'state' | 'checksum' | 'updatedAt'
 >
 
 /** A Character's structure row with its play record joined, as the rules read it. */
@@ -49,9 +49,9 @@ const encode = (value: unknown): unknown => JSON.parse(JSON.stringify(value))
 
 /** The play record's fields, verified against its checksum. */
 export function readCharacterPlay(
-  play: Pick<StoredCharacterPlay, 'playJson' | 'checksum'>
+  play: Pick<StoredCharacterPlay, 'state' | 'checksum'>
 ): CharacterPlayState {
-  const raw: unknown = JSON.parse(play.playJson)
+  const raw: unknown = encode(play.state)
   if (checksumRuleDocument(raw) !== play.checksum)
     throw new Error('Stored Character play state checksum mismatch.')
   return characterPlayStateSchema.parse(raw)
@@ -133,6 +133,7 @@ export function encodeCharacterRecord<TRow extends StoredCharacter>(
   }
   const sheetFields = sheetStructureChanged
     ? {
+        sheetStateChecksum: checksumRuleDocument(sheetStructure),
         sheetState: {
           documentJson: canonicalizeRuleDocument(sheetStructure),
           checksum: checksumRuleDocument(sheetStructure)
@@ -140,7 +141,7 @@ export function encodeCharacterRecord<TRow extends StoredCharacter>(
       }
     : {}
   const playFields = {
-    playJson: canonicalizeRuleDocument(play),
+    state: characterPlayStateSchema.parse(play),
     checksum: checksumRuleDocument(play)
   }
   const structureChanged = documentFields.checksum !== row.checksum || sheetStructureChanged

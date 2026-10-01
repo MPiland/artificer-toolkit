@@ -19,7 +19,7 @@ import {
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import {
-  projectOptimisticCharacterSheet,
+  projectOptimisticCharacterSheetSlice,
   projectOptimisticCharacterSheetPanel
 } from './optimisticSheet'
 
@@ -69,12 +69,12 @@ export function useCharacterSheetCommandMutation(characterId: string, campaignId
   const execute = useConvexMutation(
     convexApi.characters.sheetCommands.execute
   ).withOptimisticUpdate((localStore, { id, command }) => {
-    for (const { args, value } of localStore.getAllQueries(convexApi.characters.sheet.get)) {
-      if (value?.meta.characterId === id) {
+    for (const { args, value } of localStore.getAllQueries(convexApi.characters.sheetSlices.get)) {
+      if (value?.data.meta.characterId === id && !args.campaignId) {
         localStore.setQuery(
-          convexApi.characters.sheet.get,
+          convexApi.characters.sheetSlices.get,
           args,
-          projectOptimisticCharacterSheet(value, command)
+          projectOptimisticCharacterSheetSlice(value, command)
         )
       }
     }
@@ -91,18 +91,18 @@ export function useCharacterSheetCommandMutation(characterId: string, campaignId
   const executeCampaign = useConvexMutation(
     convexApi.campaigns.characterSheet.execute
   ).withOptimisticUpdate((localStore, { campaignId, characterId, command }) => {
-    for (const { args, value } of localStore.getAllQueries(
-      convexApi.campaigns.characterSheet.get
-    )) {
+    for (const { args, value } of localStore.getAllQueries(convexApi.characters.sheetSlices.get)) {
       if (
-        args.campaignId === campaignId &&
-        args.characterId === characterId &&
-        value?.meta.characterId === characterId
+        (!args.campaignId || args.campaignId === campaignId) &&
+        value?.data.meta.characterId === characterId &&
+        (value.slice === 'NOTES'
+          ? args.campaignId === campaignId
+          : value.data.meta.campaignId === campaignId)
       ) {
         localStore.setQuery(
-          convexApi.campaigns.characterSheet.get,
+          convexApi.characters.sheetSlices.get,
           args,
-          projectOptimisticCharacterSheet(value, command)
+          projectOptimisticCharacterSheetSlice(value, command)
         )
       }
     }

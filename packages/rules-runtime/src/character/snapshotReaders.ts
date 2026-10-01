@@ -58,7 +58,8 @@ export function createSnapshotReaders(
     CLASS: new Map<string, ContentSnapshotIndexEntry<'CLASS'>>(),
     BACKGROUND: new Map<string, ContentSnapshotIndexEntry<'BACKGROUND'>>(),
     EQUIPMENT: new Map<string, ContentSnapshotIndexEntry<'EQUIPMENT'>>(),
-    FEAT: new Map<string, ContentSnapshotIndexEntry<'FEAT'>>()
+    FEAT: new Map<string, ContentSnapshotIndexEntry<'FEAT'>>(),
+    SPELL: new Map<string, ContentSnapshotIndexEntry<'SPELL'>>()
   }
   function addEntries<Entry extends { id: string }>(
     entries: Map<string, Entry>,
@@ -84,6 +85,9 @@ export function createSnapshotReaders(
         break
       case 'FEAT':
         addEntries(index.FEAT, object.roots)
+        break
+      case 'SPELL':
+        addEntries(index.SPELL, object.roots)
         break
     }
   }
@@ -137,10 +141,14 @@ export function createSnapshotReaders(
           return features.some((feature) => missingFeatureIds.has(feature.id))
         })
       ),
-    readSpellCatalogue: async () =>
-      (publicationsByKind.get('SPELL') ?? []).flatMap((published) =>
-        published.subjectKind === 'SPELL' ? [published.document] : []
-      ),
+    readSpellCatalogue: async (referencedSpellIds) => ({
+      entries: [...index.SPELL.values()],
+      documents: (publicationsByKind.get('SPELL') ?? []).flatMap((published) =>
+        published.subjectKind === 'SPELL' && referencedSpellIds.has(published.document.id)
+          ? [published.document]
+          : []
+      )
+    }),
     readRaces: async () => {
       const races = [...index.RACE.values()]
       const bases = new Map(
@@ -219,7 +227,9 @@ export function createLazySnapshotReaders(
     readFeatureSources: async (missingFeatureIds) =>
       (await withDocuments(FEATURE_SOURCE_KINDS)).readFeatureSources(missingFeatureIds),
     readSpellCatalogue: async (referencedSpellIds) =>
-      (await withDocuments(['SPELL'])).readSpellCatalogue(referencedSpellIds),
+      (referencedSpellIds.size ? await withDocuments(['SPELL']) : readers).readSpellCatalogue(
+        referencedSpellIds
+      ),
     readRaces: () => readers.readRaces(),
     readClasses: () => readers.readClasses(),
     readBackgrounds: () => readers.readBackgrounds(),

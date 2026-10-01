@@ -1,8 +1,9 @@
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button } from '@mantine/core'
 import { Coffee, Moon } from 'lucide-react'
 import { useCallback, useRef } from 'react'
 import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as rowStyles from '../shared/rows.css'
 import * as vitalsStyles from '../vitals/vitals.css'
 import { CharacterSheetRestOverlay } from './CharacterSheetRestOverlay'
@@ -24,7 +25,7 @@ export function CharacterSheetRestControl({
   onOpen: () => void
   pending: boolean
   restKind: CharacterRestPreviewRequestDto['restKind']
-  sheet: CharacterSheet
+  sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
   submitCommand: SubmitSheetCommand
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null)

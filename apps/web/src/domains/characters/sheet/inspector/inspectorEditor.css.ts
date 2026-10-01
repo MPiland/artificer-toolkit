@@ -112,6 +112,17 @@ export const entry = style({
   }
 })
 
+export const preparationList = style({
+  '@layer': { [app]: { position: 'relative', width: '100%' } }
+})
+
+export const preparationRow = style([
+  entry,
+  {
+    '@layer': { [app]: { position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '64px' } }
+  }
+])
+
 export const entryButton = style({
   '@layer': {
     [app]: {

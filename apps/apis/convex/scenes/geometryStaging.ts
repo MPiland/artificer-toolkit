@@ -12,11 +12,7 @@ import {
   type SceneGeometryBeginResult,
   type SceneGeometryExecuteInput
 } from '@artificer-toolkit/schema/api/sceneGeometry'
-import { sceneFogPatchInputSchema } from '@artificer-toolkit/schema/api/sceneFog'
-import {
-  sceneStoredFogChunkSchema,
-  sceneStoredFogSaveSchema
-} from '@artificer-toolkit/schema/projections/sceneFogPersistence'
+import { stageSceneGeometryFog as stageGeometryFog } from '@artificer-toolkit/encounter-persistence/sceneGeometryFogStaging'
 import {
   sceneStoredGeometrySaveSchema,
   type SceneStoredGeometrySave
@@ -31,16 +27,18 @@ import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
 // eslint-disable-next-line no-restricted-imports -- Preserve lazy return metadata and apply the same Scene vision tracking in the handler.
 import type { MutationCtx } from '../_generated/server'
 import { parseFogSave } from './fogDocuments'
+import { assertStandaloneMovement, readGeometrySave } from './geometryDocuments'
 import {
-  assertGeometryReceiving,
-  assertStandaloneMovement,
   parseGeometryCommand,
+  assertGeometryReceiving,
   parseGeometrySave,
   readSpatialPreparation,
-  readMovementResolution,
-  readGeometrySave
-} from './geometryDocuments'
-import { geometryTarget, normalizeGeometryInput } from './geometryValues'
+  readMovementResolution
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
+import {
+  geometryTarget,
+  normalizeGeometryInput
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
 import { parseLiveEntity, readLiveScene } from './liveDocuments'
 import { readPresentedVisionScene, readSessionVisionScope } from './sessionVisionDocuments'
 import { assertSceneVisionCharacters } from './visionFreshness'
@@ -321,108 +319,29 @@ export async function stageSceneGeometryFog(
   ctx: MutationCtx,
   args: z.input<typeof sceneGeometryStageFogInputSchema>
 ): Promise<{ saveId: string }> {
-  const input = sceneGeometryStageFogInputSchema.parse(args)
-  const {
-    row: parentRow,
-    save: parent,
-    header,
-    userId
-  } = await readGeometrySave(ctx, input.saveId.toLowerCase())
-  assertGeometryReceiving(parent, header.version, userId)
-  if (parent.sessionVision && !parent.characterRevisions)
-    throw new Error('Scene geometry Character observations are missing.')
-  const layer = input.layer
-  if (layer.chunks.length === 0) throw new Error('Geometry fog layer must contain chunks.')
-  const columns = Math.ceil(layer.width / 32)
-  if (layer.chunks.length !== columns * Math.ceil(layer.height / 32))
-    throw new Error('Geometry fog replacement must cover the complete layer.')
-  const chunks = [...layer.chunks].sort((left, right) => left.index - right.index)
-  for (const chunk of chunks) {
-    const expectedIndex = (chunk.y / 32) * columns + chunk.x / 32
-    if (
-      chunk.x % 32 !== 0 ||
-      chunk.y % 32 !== 0 ||
-      chunk.width !== Math.min(32, layer.width - chunk.x) ||
-      chunk.height !== Math.min(32, layer.height - chunk.y) ||
-      chunk.index !== expectedIndex
-    )
-      throw new Error('Geometry fog chunks must use canonical 32-cell tiles.')
-  }
-  const manifest = chunks.map((chunk) => ({
-    index: chunk.index,
-    checksum: checksumCanonicalJson(chunk)
-  }))
-  const existingReference = parent.fogSaves.find((entry) => entry.ownerUserId === layer.ownerUserId)
-  if (existingReference) {
-    const existingRow = await ctx.db
-      .query('sceneFogSaves')
-      .withIndex('by_publicId', (q) => q.eq('id', existingReference.saveId))
-      .unique()
-    if (!existingRow) throw new Error('Stored geometry fog save is inconsistent.')
-    const existing = parseFogSave(existingRow)
-    if (
-      existing.geometrySaveId !== parent.id ||
-      existing.sceneId !== parent.sceneId ||
-      existing.actorUserId !== parent.actorUserId ||
-      existing.input.layer.ownerUserId !== layer.ownerUserId ||
-      existing.input.layer.width !== layer.width ||
-      existing.input.layer.height !== layer.height ||
-      existing.input.expectedSceneVersion !== parent.snapshotVersion ||
-      existing.status !== 'RECEIVING' ||
-      existing.chunksRemoved ||
-      existing.expiresAt <= Date.now() ||
-      existing.receivedChunks !== existing.input.chunkManifest.length ||
-      checksumCanonicalJson(existing.input.chunkManifest) !== checksumCanonicalJson(manifest)
-    )
-      throw new Error('Geometry fog layer was already staged differently.')
-    return { saveId: parent.id }
-  }
-  const saveId = crypto.randomUUID()
-  const childInput = sceneFogPatchInputSchema.parse({
-    type: 'PATCH_SCENE_FOG',
-    sceneId: parent.sceneId,
-    commandId: saveId,
-    expectedSceneVersion: parent.snapshotVersion,
-    layer: {
-      ownerUserId: layer.ownerUserId,
-      width: layer.width,
-      height: layer.height
+  let parentRowId: Awaited<ReturnType<typeof readGeometrySave>>['row']['_id'] | null = null
+  return stageGeometryFog(args, {
+    readGeometrySave: async (saveId) => {
+      const result = await readGeometrySave(ctx, saveId)
+      parentRowId = result.row._id
+      return result
     },
-    chunkManifest: manifest
+    readFogSave: async (saveId) => {
+      const row = await ctx.db
+        .query('sceneFogSaves')
+        .withIndex('by_publicId', (q) => q.eq('id', saveId))
+        .unique()
+      return row ? parseFogSave(row) : null
+    },
+    insertFogSave: (save) => ctx.db.insert('sceneFogSaves', save),
+    insertFogChunk: (chunk) => ctx.db.insert('sceneFogChunks', chunk),
+    replaceGeometrySave: async (save) => {
+      if (parentRowId === null) throw new Error('Scene geometry save is unavailable.')
+      await ctx.db.replace(parentRowId, save)
+    },
+    scheduleCleanup: (expiresAt, saveId) =>
+      ctx.scheduler.runAt(expiresAt, fogCleanupReference, { saveId })
   })
-  const child = sceneStoredFogSaveSchema.parse({
-    id: saveId,
-    sceneId: parent.sceneId,
-    commandId: saveId,
-    actorUserId: parent.actorUserId,
-    geometrySaveId: parent.id,
-    input: childInput,
-    inputChecksum: checksumCanonicalJson(childInput),
-    status: 'RECEIVING',
-    receivedChunks: chunks.length,
-    expiresAt: parent.expiresAt,
-    chunksRemoved: false
-  })
-  await ctx.db.insert('sceneFogSaves', child)
-  for (const [ordinal, chunk] of chunks.entries())
-    await ctx.db.insert(
-      'sceneFogChunks',
-      sceneStoredFogChunkSchema.parse({
-        saveId,
-        ordinal,
-        chunk,
-        checksum: checksumCanonicalJson(chunk)
-      })
-    )
-  const nextParent = sceneStoredGeometrySaveSchema.parse({
-    ...parent,
-    fogSaves: [...parent.fogSaves, { saveId, ownerUserId: layer.ownerUserId }]
-  })
-  await ctx.db.replace(parentRow._id, nextParent)
-  await ctx.scheduler.runAt(parent.expiresAt, fogCleanupReference, {
-    saveId
-  })
-  return { saveId: parent.id }
 }
 
 export const stageFog = internalMutation({

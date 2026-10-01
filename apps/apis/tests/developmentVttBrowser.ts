@@ -36,7 +36,10 @@ async function redactEvidence(path: string, secrets: readonly string[]): Promise
 }
 
 async function convexEnvironmentValue(
-  name: 'LIVE_SESSION_TICKET_SECRET' | 'LIVE_SESSION_WORKER_SECRET'
+  name:
+    | 'LIVE_SESSION_TICKET_SECRET'
+    | 'LIVE_SESSION_WORKER_SECRET'
+    | 'CONTENT_SNAPSHOT_TOKEN_SECRET'
 ): Promise<string> {
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
@@ -89,9 +92,10 @@ export async function verifyDevelopmentVttBrowser(input: {
       'Managed VTT checkpoint must stay outside recursively redacted browser evidence.'
     )
   }
-  const [ticketSecret, workerSecret] = await Promise.all([
+  const [ticketSecret, workerSecret, snapshotSecret] = await Promise.all([
     convexEnvironmentValue('LIVE_SESSION_TICKET_SECRET'),
-    convexEnvironmentValue('LIVE_SESSION_WORKER_SECRET')
+    convexEnvironmentValue('LIVE_SESSION_WORKER_SECRET'),
+    convexEnvironmentValue('CONTENT_SNAPSHOT_TOKEN_SECRET')
   ])
   const localSiteUrl = new URL(process.env.CONVEX_SITE_URL ?? '')
   assert.equal(localSiteUrl.protocol, 'http:')
@@ -136,6 +140,7 @@ export async function verifyDevelopmentVttBrowser(input: {
           CONVEX_E2E_OUTPUT: `${evidenceDirectory}/playwright`,
           LIVE_SESSION_TICKET_SECRET: ticketSecret,
           LIVE_SESSION_WORKER_SECRET: workerSecret,
+          CONTENT_SNAPSHOT_TOKEN_SECRET: snapshotSecret,
           ...(input.checkpoint
             ? {
                 MANAGED_VTT_CHECKPOINT_PATH: input.checkpoint.path,

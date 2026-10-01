@@ -1,3 +1,4 @@
+import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
@@ -240,7 +241,8 @@ async function storedTurnState(base: Awaited<ReturnType<typeof setup>>) {
       .withIndex('by_campaignId_commandId', (q) =>
         q.eq('campaignId', base.campaign.id).eq('commandId', base.command.commandId)
       )
-      .unique(),
+      .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null)),
     occurrence: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_campaignId_rootCommandId', (q) =>
@@ -253,6 +255,7 @@ async function storedTurnState(base: Awaited<ReturnType<typeof setup>>) {
         q.eq('encounterId', base.run.id).eq('commandId', base.command.commandId)
       )
       .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
   }))
 }
 
@@ -376,14 +379,18 @@ it('settles a private round-wrap initiative tie through retained responses and o
   }
   const before = await storedTurnState(base)
   const beforeRows = await base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-      .take(16),
+      .take(16)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .take(16)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
   const originalRound = before.rounds.find((round) => round.round === 1)
   if (!originalRound) throw new Error('Missing original initiative round.')
@@ -695,14 +702,18 @@ it('settles a private round-wrap initiative tie through retained responses and o
     responseCommands.map((command) => command.commandId)
   )
   const afterRows = await base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-      .take(16),
+      .take(16)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     receipts: await ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .take(16)
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
   expect(afterRows.commands).toHaveLength(beforeRows.commands.length + 1)
   expect(afterRows.receipts).toHaveLength(beforeRows.receipts.length + 1)

@@ -3,6 +3,12 @@ import { encounterStoreSchemas } from '@artificer-toolkit/encounter-persistence/
 import type { EncounterTableName } from '@artificer-toolkit/encounter-persistence/store'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import {
+  liveSessionCheckpointJournalInputSchema,
+  liveSessionCheckpointJournalResultSchema,
+  type LiveSessionCheckpointJournalInput
+} from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
+import { MAX_ROOM_INPUT_RESPONSE_DOCUMENTS } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
+import {
   RoomEncounterStore,
   RoomStoreCorruptError,
   RoomWriteSetTooLargeError
@@ -40,7 +46,281 @@ function state(room: RoomEncounterStore) {
   }
 }
 
+function acknowledgementFor(room: RoomEncounterStore) {
+  return { epoch: room.epoch!, sequence: room.sequence, checksum: room.checksum }
+}
+
+function durableState(database: ReturnType<typeof open>['database']) {
+  return {
+    chunks: database.prepare('SELECT * FROM room_snapshot_chunks ORDER BY generation, part').all(),
+    rows: database.prepare('SELECT * FROM room_writeset_log ORDER BY sequence').all()
+  }
+}
+
 describe('room Encounter store', () => {
+  it('upserts restored native identities and recovers new and refreshed inputs from SQLite', async () => {
+    const { room, storage, database } = hydrated(2)
+    const snapshot = room.checkpointSnapshot()
+    const original = room.documents('encounterRuns')[0]!
+    const fetched = { ...original, fields: { ...original.fields, version: 8 } }
+    const movement = {
+      table: 'encounterTurnMovements' as const,
+      id: 'convex:restored:movement',
+      creationTime: original.creationTime + 100,
+      fields: {
+        encounterId,
+        round: 1,
+        turnActorId: uuid(0x100),
+        actorId: uuid(0x100),
+        usedFeet: 5,
+        speedBonuses: 0
+      }
+    }
+    await room.transact(async (transaction) => {
+      transaction.restoreDocument(fetched)
+      transaction.restoreDocument(movement)
+    })
+    let recovered = new RoomEncounterStore(storage)
+    expect(recovered.corruption).toBeNull()
+    expect(state(recovered)).toEqual(state(room))
+    const refreshed = {
+      ...fetched,
+      fields: { ...fetched.fields, version: 9 }
+    }
+    await recovered.transact(async (transaction) => {
+      transaction.restoreDocument(refreshed)
+      transaction.restoreDocument(movement)
+    })
+    const expected = state(recovered)
+    recovered = new RoomEncounterStore(storage)
+    expect(recovered.corruption).toBeNull()
+    expect(state(recovered)).toEqual(expected)
+    expect(recovered.documents('encounterRuns')).toEqual([refreshed])
+    expect(recovered.documents('encounterTurnMovements')).toEqual([movement])
+    const entries = recovered.committedWriteSets({
+      epoch: snapshot.epoch,
+      fromSequence: snapshot.sequence,
+      fromChecksum: snapshot.checksum,
+      toSequence: recovered.sequence,
+      maxEntries: 100,
+      maxBytes: 4 * 1024 * 1024
+    }).entries
+    expect(entries.map((entry) => JSON.parse(entry.writeSetJson))).toEqual([
+      [
+        { op: 'RESTORE', ...fetched },
+        { op: 'RESTORE', ...movement }
+      ],
+      [
+        { op: 'RESTORE', ...refreshed },
+        { op: 'RESTORE', ...movement }
+      ]
+    ])
+    expect(durableState(database).rows).toHaveLength(2)
+    recovered.compact(acknowledgementFor(recovered))
+    expect(state(new RoomEncounterStore(storage))).toEqual(expected)
+  })
+
+  it('reads the verified durable checkpoint base until compaction advances it', async () => {
+    const { room, storage, database } = hydrated()
+    const base = room.checkpointSnapshot()
+    expect(base).toMatchObject({ epoch: room.epoch, sequence: 0, checksum: room.checksum })
+    expect(base.documents).toHaveLength(aggregate(11).documents.length)
+    expect(base.documents).toEqual(expect.arrayContaining(aggregate(11).documents))
+    await command(room, 1)
+    expect(room.checkpointSnapshot()).toEqual(base)
+    expect(new RoomEncounterStore(storage).checkpointSnapshot()).toEqual(base)
+    room.compact(acknowledgementFor(room))
+    expect(room.checkpointSnapshot()).toMatchObject({ sequence: 1, checksum: room.checksum })
+    database.prepare("UPDATE room_snapshot_chunks SET content = 'bad'").run()
+    expect(() => room.checkpointSnapshot()).toThrow('snapshot checksum')
+  })
+
+  describe('committed journal reads', () => {
+    const inputFor = (room: RoomEncounterStore): LiveSessionCheckpointJournalInput => ({
+      epoch: uuid(0x900),
+      fromSequence: room.sequence,
+      fromChecksum: room.checksum,
+      toSequence: room.sequence,
+      maxEntries: 100,
+      maxBytes: 4 * 1024 * 1024
+    })
+
+    it('reads the exact range repeatedly and continues from a retained log row', async () => {
+      const { room, storage } = hydrated()
+      await command(room, 1)
+      const input = inputFor(room)
+      for (let ordinal = 2; ordinal <= 4; ordinal++) await command(room, ordinal)
+      input.toSequence = 3
+      const before = state(room)
+      const written = room.usage.rowsWritten
+      const result = room.committedWriteSets(input)
+      expect(result.entries.map((entry) => entry.sequence)).toEqual([2, 3])
+      expect(result).toEqual({
+        entries: result.entries,
+        toSequence: 3,
+        toChecksum: result.entries[1]!.chainChecksum,
+        complete: true
+      })
+      expect(liveSessionCheckpointJournalResultSchema.safeParse(result).success).toBe(true)
+      expect(room.committedWriteSets(input)).toEqual(result)
+      expect(new RoomEncounterStore(storage).committedWriteSets(input)).toEqual(result)
+      expect(state(room)).toEqual(before)
+      expect(room.usage.rowsWritten).toBe(written)
+      expect(room.committedWriteSets(inputFor(room))).toEqual({
+        entries: [],
+        toSequence: 4,
+        toChecksum: room.checksum,
+        complete: true
+      })
+    })
+
+    it('paginates by entries and exact serialized UTF-8 array bytes', async () => {
+      const { room } = hydrated()
+      const input = inputFor(room)
+      for (let ordinal = 1; ordinal <= 3; ordinal++) await command(room, ordinal)
+      input.toSequence = 3
+      const all = room.committedWriteSets(input)
+      const one = room.committedWriteSets({ ...input, maxEntries: 1 })
+      expect(one.entries).toEqual(all.entries.slice(0, 1))
+      expect(one.complete).toBe(false)
+      expect(one.toSequence).toBe(1)
+      const exactBytes = new TextEncoder().encode(
+        JSON.stringify(all.entries.slice(0, 2))
+      ).byteLength
+      const two = room.committedWriteSets({ ...input, maxBytes: exactBytes })
+      expect(two.entries).toEqual(all.entries.slice(0, 2))
+      expect(two.toSequence).toBe(2)
+      expect(two.toChecksum).toBe(all.entries[1]!.chainChecksum)
+      expect(two.complete).toBe(false)
+      expect(room.committedWriteSets({ ...input, maxBytes: exactBytes - 1 }).entries).toHaveLength(
+        1
+      )
+      expect(() => room.committedWriteSets({ ...input, maxBytes: 2 })).toThrow('exceeds maxBytes')
+      const rest = room.committedWriteSets({
+        ...input,
+        fromSequence: two.toSequence,
+        fromChecksum: two.toChecksum
+      })
+      expect(rest.entries).toEqual(all.entries.slice(2))
+      expect(rest.complete).toBe(true)
+      expect(rest.toChecksum).toBe(room.checksum)
+    })
+
+    it('fences epochs, checksums, invalid bounds and unhydrated or corrupt stores', async () => {
+      const { room } = hydrated()
+      const input = inputFor(room)
+      expect(() => open().room.committedWriteSets(input)).toThrow('not been hydrated')
+      expect(() => room.committedWriteSets({ ...input, epoch: uuid(0x901) })).toThrow('epoch')
+      expect(() => room.committedWriteSets({ ...input, fromChecksum: 'f'.repeat(64) })).toThrow(
+        'checksum'
+      )
+      expect(() => room.committedWriteSets({ ...input, toSequence: 1 })).toThrow(
+        'committed sequence'
+      )
+      await command(room, 1)
+      expect(() => room.committedWriteSets({ ...inputFor(room), toSequence: 0 })).toThrow(
+        'committed sequence'
+      )
+      expect(() =>
+        room.committedWriteSets({ ...inputFor(room), fromChecksum: input.fromChecksum })
+      ).toThrow('checksum')
+      for (const invalid of [
+        { fromSequence: -1 },
+        { toSequence: Number.MAX_SAFE_INTEGER + 1 },
+        { maxEntries: 0 },
+        { maxEntries: MAX_ROOM_INPUT_RESPONSE_DOCUMENTS + 1 },
+        { maxEntries: 1.5 },
+        { maxBytes: 0 },
+        { maxBytes: 1 },
+        { maxBytes: 4 * 1024 * 1024 + 1 },
+        { epoch: 'not-a-uuid' },
+        { fromChecksum: 'bad' },
+        { extra: true }
+      ]) {
+        expect(
+          liveSessionCheckpointJournalInputSchema.safeParse({ ...input, ...invalid }).success
+        ).toBe(false)
+        expect(() => room.committedWriteSets({ ...input, ...invalid })).toThrow()
+      }
+      const damaged = hydrated()
+      damaged.database.prepare("UPDATE room_snapshot_chunks SET content = 'bad'").run()
+      const corrupt = new RoomEncounterStore(damaged.storage)
+      expect(() => corrupt.committedWriteSets(input)).toThrow(RoomStoreCorruptError)
+    })
+
+    it.each(['missing', 'checksum', 'chain', 'syntax', 'non-array'])(
+      'refuses %s rows without altering state or SQLite',
+      async (damage) => {
+        const { room, database } = hydrated()
+        const input = inputFor(room)
+        await command(room, 1)
+        await command(room, 2)
+        input.toSequence = 2
+        if (damage === 'missing')
+          database.prepare('DELETE FROM room_writeset_log WHERE sequence = 1').run()
+        else if (damage === 'checksum')
+          database.prepare("UPDATE room_writeset_log SET json = '[]' WHERE sequence = 1").run()
+        else if (damage === 'chain')
+          database
+            .prepare('UPDATE room_writeset_log SET chain = ? WHERE sequence = 1')
+            .run('f'.repeat(64))
+        else {
+          const json = damage === 'syntax' ? '[' : '{}'
+          const checksum = sha256Hex(json)
+          database
+            .prepare(
+              'UPDATE room_writeset_log SET json = ?, checksum = ?, chain = ? WHERE sequence = 1'
+            )
+            .run(json, checksum, sha256Hex(`${input.fromChecksum}:${checksum}`))
+        }
+        const before = state(room)
+        const rows = database.prepare('SELECT * FROM room_writeset_log ORDER BY sequence').all()
+        expect(() => room.committedWriteSets(input)).toThrow(RoomStoreCorruptError)
+        expect(state(room)).toEqual(before)
+        expect(database.prepare('SELECT * FROM room_writeset_log ORDER BY sequence').all()).toEqual(
+          rows
+        )
+      }
+    )
+
+    it('refuses a missing starting row and every read while a transaction is open', async () => {
+      const { room, database } = hydrated()
+      const input = inputFor(room)
+      await expect(
+        room.transact(async (transaction) => {
+          transaction.setRecord({ ...playState(0), revision: null, json: '{"pending":true}' })
+          expect(() => room.committedWriteSets(input)).toThrow('already running')
+          throw new Error('abort')
+        })
+      ).rejects.toThrow('abort')
+      expect(room.committedWriteSets(input).entries).toEqual([])
+      await command(room, 1)
+      const anchor = inputFor(room)
+      await command(room, 2)
+      database.prepare('DELETE FROM room_writeset_log WHERE sequence = 1').run()
+      expect(() => room.committedWriteSets({ ...anchor, toSequence: 2 })).toThrow(
+        'missing journal anchor'
+      )
+    })
+
+    it('retires earlier ranges after compaction and retains the snapshot fence after restart', async () => {
+      const { room, storage } = hydrated()
+      const prior = inputFor(room)
+      await command(room, 1)
+      const snapshot = inputFor(room)
+      room.compact(acknowledgementFor(room))
+      expect(() => room.committedWriteSets({ ...prior, toSequence: 1 })).toThrow('compacted')
+      const restarted = new RoomEncounterStore(storage)
+      expect(() => restarted.committedWriteSets(prior)).toThrow('compacted')
+      expect(restarted.committedWriteSets(snapshot).entries).toEqual([])
+      await command(restarted, 2)
+      const result = restarted.committedWriteSets({ ...snapshot, toSequence: 2 })
+      expect(result.entries.map((entry) => entry.sequence)).toEqual([2])
+      expect(result.toChecksum).toBe(restarted.checksum)
+      expect(result.complete).toBe(true)
+    })
+  })
+
   describe.each([11, 100])('hydrating %i actors', (actorCount) => {
     it('holds the Convex aggregate with its identities and survives a restart', () => {
       const { storage, room } = hydrated(actorCount)
@@ -160,13 +440,8 @@ describe('room Encounter store', () => {
     }
 
     it.each([
-      [
-        'truncated JSON',
-        (room: RoomEncounterStore) => ({
-          ...nextRow(room, '[{"op":"INSERT"'),
-          json: '[{"op":"INSERT"'
-        })
-      ],
+      ['truncated JSON', (room: RoomEncounterStore) => nextRow(room, '[{"op":"INSERT"')],
+      ['a non-array write set', (room: RoomEncounterStore) => nextRow(room, '{}')],
       [
         'a checksum that does not match',
         (room: RoomEncounterStore) => ({ ...nextRow(room, '[]'), checksum: 'f'.repeat(64) })
@@ -203,22 +478,49 @@ describe('room Encounter store', () => {
             ])
           )
       ]
-    ])('drops a torn last row (%s) and applies nothing of it', async (_name, torn) => {
-      const { database, storage, room } = hydrated()
-      await command(room, 1)
-      await command(room, 2)
-      const committed = state(room)
-      insertRow(database, torn(room))
-      const restarted = new RoomEncounterStore(storage)
-      expect(state(restarted)).toEqual(committed)
-      expect(database.prepare('SELECT COUNT(*) AS rows FROM room_writeset_log').get()).toEqual({
-        rows: 2
-      })
-      await command(restarted, 3)
-      const reference = await replayed(11, 3)
-      expect(state(restarted)).toEqual(state(reference))
-      expect(state(new RoomEncounterStore(storage))).toEqual(state(reference))
-    })
+    ])(
+      'fails closed on %s at every log position without deleting durable data',
+      async (_name, corruptRow) => {
+        for (const prefixCount of [0, 1, 2]) {
+          const { database, storage, room } = hydrated()
+          for (let ordinal = 1; ordinal <= prefixCount; ordinal++) await command(room, ordinal)
+          let row = corruptRow(room)
+          insertRow(database, row)
+          for (let suffixCount = prefixCount; suffixCount < 2; suffixCount++) {
+            const checksum = sha256Hex('[]')
+            row = {
+              sequence: row.sequence + 1,
+              json: '[]',
+              checksum,
+              chain: sha256Hex(`${row.chain}:${checksum}`)
+            }
+            insertRow(database, row)
+          }
+          const persisted = durableState(database)
+          const restarted = new RoomEncounterStore(storage)
+          expect(restarted.corruption).toBeInstanceOf(RoomStoreCorruptError)
+          expect(restarted.epoch).toBeNull()
+          expect(restarted.documents('encounterRuns')).toEqual([])
+          expect(durableState(database)).toEqual(persisted)
+          expect(() => restarted.checkpointSnapshot()).toThrow(RoomStoreCorruptError)
+          expect(durableState(database)).toEqual(persisted)
+        }
+      }
+    )
+
+    it.each([1, 2])(
+      'fails closed when log row %i is missing before a surviving row',
+      async (sequence) => {
+        const { database, storage, room } = hydrated()
+        for (let ordinal = 1; ordinal <= 3; ordinal++) await command(room, ordinal)
+        database.prepare('DELETE FROM room_writeset_log WHERE sequence = ?').run(sequence)
+        const persisted = durableState(database)
+        const restarted = new RoomEncounterStore(storage)
+        expect(restarted.corruption?.message).toContain('out of sequence')
+        expect(restarted.epoch).toBeNull()
+        expect(durableState(database)).toEqual(persisted)
+      }
+    )
 
     it('reports a damaged row that is not the last, and a hydrate supersedes the damage', async () => {
       const { database, storage, room } = hydrated()
@@ -257,11 +559,190 @@ describe('room Encounter store', () => {
   })
 
   describe('compaction', () => {
+    it('retires the acknowledged prefix while later commands survive retries and restart', async () => {
+      const { room, database, storage } = hydrated()
+      await command(room, 1)
+      const acknowledgement = acknowledgementFor(room)
+      const expectedBase = state(room)
+      await command(room, 2)
+      await command(room, 3)
+      const before = state(room)
+      const suffix = durableState(database).rows.slice(1)
+      room.compact(acknowledgement)
+      expect(state(room)).toEqual(before)
+      expect(room.logRows).toBe(2)
+      expect(durableState(database).rows).toEqual(suffix)
+      const base = room.checkpointSnapshot()
+      expect(base).toMatchObject(acknowledgement)
+      expect(base.records).toEqual(expectedBase.records)
+      expect(base.documents.find(({ table }) => table === 'encounterRuns')?.fields.version).toBe(2)
+      const persisted = durableState(database)
+      const written = room.usage.rowsWritten
+      room.compact(acknowledgement)
+      expect(room.usage.rowsWritten).toBe(written)
+      expect(durableState(database)).toEqual(persisted)
+      const restarted = new RoomEncounterStore(storage)
+      expect(state(restarted)).toEqual(before)
+      expect(restarted.checkpointSnapshot()).toEqual(base)
+      const recoveredWritten = restarted.usage.rowsWritten
+      restarted.compact(acknowledgement)
+      expect(restarted.usage.rowsWritten).toBe(recoveredWritten)
+      restarted.compact(acknowledgementFor(restarted))
+      expect(restarted.logRows).toBe(0)
+      expect(restarted.checkpointSnapshot()).toMatchObject({
+        sequence: 3,
+        checksum: before.checksum
+      })
+      expect(state(new RoomEncounterStore(storage))).toEqual(before)
+      await command(restarted, 4)
+      expect(state(restarted)).toEqual(state(await replayed(11, 4)))
+    })
+
+    it('snapshots opaque records at the prefix and replays later updates and deletions', async () => {
+      const { room, storage } = hydrated()
+      const first = { kind: 'OPAQUE', key: 'one', revision: 'rev1', json: 'opaque: é' }
+      const deleted = { kind: 'OPAQUE', key: 'two', revision: null, json: 'not JSON' }
+      await room.transact(async (transaction) => {
+        transaction.setRecord(first)
+        transaction.setRecord(deleted)
+      })
+      const acknowledgement = acknowledgementFor(room)
+      await room.transact(async (transaction) => {
+        transaction.setRecord({ ...first, revision: 'rev2', json: 'changed' })
+        transaction.deleteRecord(deleted.kind, deleted.key)
+      })
+      const secondAcknowledgement = acknowledgementFor(room)
+      await room.transact(async (transaction) => transaction.deleteRecord(first.kind, first.key))
+      room.compact(acknowledgement)
+      const base = room.checkpointSnapshot()
+      expect(base.records.filter(({ kind }) => kind === 'OPAQUE')).toEqual([first, deleted])
+      base.records.find(({ kind }) => kind === 'OPAQUE')!.json = 'mutated caller copy'
+      expect(room.checkpointSnapshot().records.filter(({ kind }) => kind === 'OPAQUE')).toEqual([
+        first,
+        deleted
+      ])
+      const restarted = new RoomEncounterStore(storage)
+      expect(restarted.records('OPAQUE')).toEqual([])
+      expect(state(restarted)).toEqual(state(room))
+      restarted.compact(secondAcknowledgement)
+      expect(
+        restarted.checkpointSnapshot().records.filter(({ kind }) => kind === 'OPAQUE')
+      ).toEqual([{ ...first, revision: 'rev2', json: 'changed' }])
+      expect(new RoomEncounterStore(storage).records('OPAQUE')).toEqual([])
+      restarted.compact(acknowledgementFor(restarted))
+      expect(
+        restarted.checkpointSnapshot().records.filter(({ kind }) => kind === 'OPAQUE')
+      ).toEqual([])
+      expect(new RoomEncounterStore(storage).records('OPAQUE')).toEqual([])
+    })
+
+    it('rolls snapshot insertion, old chunks and prefix pruning back together', async () => {
+      const { room, database, storage } = hydrated()
+      await command(room, 1)
+      const acknowledgement = acknowledgementFor(room)
+      await command(room, 2)
+      const before = state(room)
+      const durableBefore = durableState(database)
+      database.exec(`CREATE TRIGGER fail_snapshot_prune BEFORE DELETE ON room_snapshot_chunks
+        BEGIN SELECT RAISE(ABORT, 'injected snapshot failure'); END`)
+      expect(() => room.compact(acknowledgement)).toThrow('injected snapshot failure')
+      expect(state(room)).toEqual(before)
+      expect(durableState(database)).toEqual(durableBefore)
+      expect(room.logRows).toBe(2)
+      expect(state(new RoomEncounterStore(storage))).toEqual(before)
+      database.exec('DROP TRIGGER fail_snapshot_prune')
+      room.compact(acknowledgement)
+      expect(room.logRows).toBe(1)
+      expect(state(new RoomEncounterStore(storage))).toEqual(before)
+    })
+
+    it('refuses invalid acknowledgements and an open command without changing live or durable state', async () => {
+      const { room, database } = hydrated()
+      const old = acknowledgementFor(room)
+      await command(room, 1)
+      room.compact(acknowledgementFor(room))
+      await command(room, 2)
+      const current = acknowledgementFor(room)
+      const before = state(room)
+      const durableBefore = durableState(database)
+      const written = room.usage.rowsWritten
+      for (const invalid of [
+        old,
+        { ...current, epoch: uuid(0x901) },
+        { ...current, sequence: 3 },
+        { ...current, checksum: 'f'.repeat(64) },
+        { ...current, sequence: -1 },
+        { ...current, sequence: 1.5 },
+        { ...current, sequence: Number.MAX_SAFE_INTEGER + 1 },
+        { ...current, epoch: 'bad' },
+        { ...current, checksum: 'bad' },
+        { ...current, extra: true }
+      ]) {
+        expect(() => room.compact(invalid)).toThrow()
+        expect(state(room)).toEqual(before)
+        expect(durableState(database)).toEqual(durableBefore)
+        expect(room.usage.rowsWritten).toBe(written)
+      }
+      await expect(
+        room.transact(async (transaction) => {
+          transaction.deleteRecord('CHARACTER_PLAY_STATE', playState(0).key)
+          expect(() => room.compact(current)).toThrow('already running')
+          throw new Error('abort')
+        })
+      ).rejects.toThrow('abort')
+      expect(state(room)).toEqual(before)
+      expect(durableState(database)).toEqual(durableBefore)
+    })
+
+    it.each(['prefix', 'suffix', 'snapshot'])(
+      'refuses corruption in the %s without retiring rows',
+      async (damage) => {
+        const { room, database, storage } = hydrated()
+        await command(room, 1)
+        const acknowledgement = acknowledgementFor(room)
+        await command(room, 2)
+        if (damage === 'snapshot')
+          database.prepare("UPDATE room_snapshot_chunks SET content = 'bad'").run()
+        else
+          database
+            .prepare("UPDATE room_writeset_log SET json = '[]' WHERE sequence = ?")
+            .run(damage === 'prefix' ? 1 : 2)
+        const before = state(room)
+        const durableBefore = durableState(database)
+        expect(() => room.compact(acknowledgement)).toThrow(RoomStoreCorruptError)
+        expect(state(room)).toEqual(before)
+        expect(durableState(database)).toEqual(durableBefore)
+        if (damage === 'snapshot') {
+          const corrupt = new RoomEncounterStore(storage)
+          expect(() => corrupt.compact(acknowledgement)).toThrow(RoomStoreCorruptError)
+          expect(durableState(database)).toEqual(durableBefore)
+        }
+      }
+    )
+
+    it('reads bounded journal pages when the acknowledged range exceeds one page', async () => {
+      const { room, storage, database } = hydrated()
+      for (let index = 1; index <= 105; index++)
+        await room.transact(async (transaction) =>
+          transaction.setRecord({ kind: 'PAGE', key: 'one', revision: null, json: String(index) })
+        )
+      const acknowledgement = acknowledgementFor(room)
+      await room.transact(async (transaction) =>
+        transaction.setRecord({ kind: 'PAGE', key: 'one', revision: null, json: '106' })
+      )
+      room.compact(acknowledgement)
+      expect(room.checkpointSnapshot().records.find(({ kind }) => kind === 'PAGE')?.json).toBe(
+        '105'
+      )
+      expect(durableState(database).rows).toHaveLength(1)
+      expect(new RoomEncounterStore(storage).record('PAGE', 'one')?.json).toBe('106')
+    })
+
     it('keeps the aggregate and checksum, and continues the chain', async () => {
       const compacted = hydrated(100)
       for (let ordinal = 1; ordinal <= 30; ordinal++) await command(compacted.room, ordinal)
       const before = state(compacted.room)
-      compacted.room.compact()
+      compacted.room.compact(acknowledgementFor(compacted.room))
       expect(state(compacted.room)).toEqual(before)
       expect(compacted.room.logRows).toBe(0)
       expect(
@@ -297,7 +778,7 @@ describe('room Encounter store', () => {
         })
       const { storage, room } = hydrated()
       await insertAndDelete(room)
-      room.compact()
+      room.compact(acknowledgementFor(room))
       const restarted = new RoomEncounterStore(storage)
       await insertNext(restarted)
       const reference = hydrated().room
@@ -309,11 +790,11 @@ describe('room Encounter store', () => {
     it('does nothing without log rows and leaves one snapshot generation', async () => {
       const { database, room } = hydrated()
       const written = room.usage.rowsWritten
-      room.compact()
+      room.compact(acknowledgementFor(room))
       expect(room.usage.rowsWritten).toBe(written)
       await command(room, 1)
-      room.compact()
-      room.compact()
+      room.compact(acknowledgementFor(room))
+      room.compact(acknowledgementFor(room))
       expect(
         database
           .prepare('SELECT COUNT(DISTINCT generation) AS generations FROM room_snapshot_chunks')
@@ -324,12 +805,16 @@ describe('room Encounter store', () => {
 
   describe('hydrating a new epoch', () => {
     it('replaces the aggregate, records and log of the previous epoch', async () => {
-      const { storage, room } = hydrated()
+      const { storage, room, database } = hydrated()
       await command(room, 1)
+      room.compact(acknowledgementFor(room))
+      await command(room, 2)
+      await command(room, 3)
       room.hydrate({ epoch: uuid(0x901), ...aggregate(11) })
       expect(room.epoch).toBe(uuid(0x901))
       expect(room.sequence).toBe(0)
       expect(room.documents('encounterTurnMovements')).toEqual([])
+      expect(durableState(database).rows).toEqual([])
       expect(state(new RoomEncounterStore(storage))).toEqual(state(room))
       await expect(
         Promise.resolve().then(() =>
@@ -349,7 +834,9 @@ describe('room Encounter store', () => {
     it('has no epoch before its first hydrate', () => {
       const { room } = open()
       expect(room.epoch).toBeNull()
-      expect(() => room.compact()).not.toThrow()
+      expect(() =>
+        room.compact({ epoch: uuid(0x900), sequence: 0, checksum: room.checksum })
+      ).toThrow('not been hydrated')
     })
   })
 })

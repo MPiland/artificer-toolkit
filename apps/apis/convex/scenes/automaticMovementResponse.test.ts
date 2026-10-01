@@ -30,6 +30,8 @@ it.each(['DECLINE', 'OPTION'] as const)(
         runs: await ctx.db.query('encounterRuns').collect(),
         actors: await ctx.db.query('encounterRunActors').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await ctx.db.query('encounterRuleReceipts').collect(),
         commands: await ctx.db.query('encounterRunCommands').collect(),
         scenes: await ctx.db.query('campaignScenes').collect(),
@@ -186,6 +188,8 @@ it.each(['DECLINE', 'OPTION'] as const)(
         characters: await ctx.db.query('characters').collect(),
         characterPlays: await ctx.db.query('characterPlayStates').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await ctx.db.query('encounterRuleReceipts').collect(),
         commands: await ctx.db.query('encounterRunCommands').collect()
       }))

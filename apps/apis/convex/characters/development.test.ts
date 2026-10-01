@@ -1,9 +1,12 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
+import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api, components, internal } from '../_generated/api'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { deleteReceiptHeaders, readReceiptHeaders, writeReceiptRecord } from '../lib/receiptLedgers'
+import { readCharacterReceiptHistory } from './documents'
 import { removePersonalFixtureCharacter } from './development'
 
 const remove = makeFunctionReference<'mutation', { userId: string; characterId: string }, null>(
@@ -92,6 +95,8 @@ it('removes only the exact personal fixture and its private descendants, with id
     ).toBeNull()
     expect(await ctx.db.query('characterDrafts').collect()).toHaveLength(0)
     expect(await ctx.db.query('characterCommandReceipts').collect()).toHaveLength(0)
+    expect(await ctx.db.query('receiptLedgers').collect()).toHaveLength(0)
+    expect(await ctx.db.query('receiptLedgerParts').collect()).toHaveLength(0)
     expect(
       await ctx.db
         .query('authoredRouteIds')
@@ -213,28 +218,45 @@ it('rejects oversized or foreign-actor private history before any fixture deleti
       inspired: true
     }
   })
-  await base.t.run(async (ctx) => {
-    const receipt = await ctx.db.query('characterCommandReceipts').unique()
-    if (!receipt) throw new Error('Missing receipt')
+  const originalReceiptId = await base.t.run(async (ctx) => {
+    const header = await ctx.db.query('characterCommandReceipts').unique()
+    if (!header) throw new Error('Missing receipt')
+    const [receipt] = await readReceiptHeaders(ctx, 'characterCommandReceipts', [header])
+    if (!receipt) throw new Error('Missing logical receipt')
     const fields = characterStoredCommandReceiptSchema.parse(
       Object.fromEntries(Object.entries(receipt).filter(([key]) => !key.startsWith('_')))
     )
-    for (let index = 0; index < 100; index++)
-      await ctx.db.insert('characterCommandReceipts', {
+    const originalHistory = readCharacterReceiptHistory(receipt)
+    for (let index = 0; index < 100; index++) {
+      const id = crypto.randomUUID()
+      const history = { ...originalHistory, eventId: id }
+      await writeReceiptRecord(ctx, 'characterCommandReceipts', {
         ...fields,
-        id: crypto.randomUUID(),
-        commandId: crypto.randomUUID()
+        id,
+        commandId: crypto.randomUUID(),
+        historyJson: canonicalizeRuleDocument(history),
+        historyChecksum: checksumRuleDocument(history)
       })
+    }
+    return header._id
   })
   const before = await base.readState()
+  const beforeStorage = await base.readReceiptStorage()
   await expect(base.t.mutation(remove, input)).rejects.toThrow('private-history bounds')
   expect(await base.readState()).toEqual(before)
+  expect(await base.readReceiptStorage()).toEqual(beforeStorage)
   await base.t.run(async (ctx) => {
     const receipts = await ctx.db.query('characterCommandReceipts').collect()
-    for (const receipt of receipts.slice(1)) await ctx.db.delete(receipt._id)
-    await ctx.db.patch(receipts[0]!._id, { actorId: base.other.userId })
+    await deleteReceiptHeaders(
+      ctx,
+      receipts
+        .filter((header) => header._id !== originalReceiptId)
+        .map((header) => ({ table: 'characterCommandReceipts' as const, header }))
+    )
+    // Deliberately corrupt ownership metadata; logical hydration must reject this header.
+    await ctx.db.patch(originalReceiptId, { actorId: base.other.userId })
   })
-  const foreign = await base.readState()
+  const foreign = await base.readReceiptStorage()
   await expect(base.t.mutation(remove, input)).rejects.toThrow('ownership mismatch')
-  expect(await base.readState()).toEqual(foreign)
+  expect(await base.readReceiptStorage()).toEqual(foreign)
 })

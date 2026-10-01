@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { convexTest } from 'convex-test'
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -95,7 +96,7 @@ describe('native spatial Rule Effect store', () => {
     const t = await fixture()
     await expect(
       t.run((ctx) =>
-        createSpatialRuleEffectStore(ctx).scope({
+        createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope({
           encounterId: ids.encounter,
           sceneId: ids.foreignScene
         })
@@ -103,11 +104,16 @@ describe('native spatial Rule Effect store', () => {
     ).resolves.toBeNull()
     await expect(
       t.run((ctx) =>
-        createSpatialRuleEffectStore(ctx).scope({ encounterId: effectId(99), sceneId: ids.scene })
+        createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope({
+          encounterId: effectId(99),
+          sceneId: ids.scene
+        })
       )
     ).resolves.toBeNull()
     const created = await t.run(async (ctx) => {
-      const result = await createSpatialRuleEffectStore(ctx).scope({
+      const result = await createSpatialRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      }).scope({
         encounterId: ids.encounter,
         sceneId: ids.scene
       })
@@ -128,7 +134,9 @@ describe('native spatial Rule Effect store', () => {
       version: 1
     })
     const updated = await t.run(async (ctx) => {
-      const result = await createSpatialRuleEffectStore(ctx).scope({
+      const result = await createSpatialRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      }).scope({
         encounterId: ids.encounter,
         sceneId: ids.scene
       })
@@ -155,7 +163,9 @@ describe('native spatial Rule Effect store', () => {
     })
     await expect(
       t.run(async (ctx) => {
-        const result = await createSpatialRuleEffectStore(ctx).scope({
+        const result = await createSpatialRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).scope({
           encounterId: ids.encounter,
           sceneId: ids.scene
         })
@@ -173,7 +183,9 @@ describe('native spatial Rule Effect store', () => {
   ] as const)('rejects %s tampering', async (field, label) => {
     const t = await fixture()
     await t.run(async (ctx) => {
-      const result = await createSpatialRuleEffectStore(ctx).scope({
+      const result = await createSpatialRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      }).scope({
         encounterId: ids.encounter,
         sceneId: ids.scene
       })
@@ -194,7 +206,9 @@ describe('native spatial Rule Effect store', () => {
     })
     await expect(
       t.run(async (ctx) => {
-        const result = await createSpatialRuleEffectStore(ctx).scope({
+        const result = await createSpatialRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).scope({
           encounterId: ids.encounter,
           sceneId: ids.scene
         })
@@ -207,7 +221,9 @@ describe('native spatial Rule Effect store', () => {
   it('enforces limits and ordinals and rejects stale CAS', async () => {
     const t = await fixture()
     await t.run(async (ctx) => {
-      const result = await createSpatialRuleEffectStore(ctx).scope({
+      const result = await createSpatialRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      }).scope({
         encounterId: ids.encounter,
         sceneId: ids.scene
       })
@@ -256,7 +272,9 @@ describe('native spatial Rule Effect store', () => {
     const t = await fixture()
     await expect(
       t.run(async (ctx) => {
-        const result = await createSpatialRuleEffectStore(ctx).scope({
+        const result = await createSpatialRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).scope({
           encounterId: ids.encounter,
           sceneId: ids.scene
         })
@@ -267,7 +285,9 @@ describe('native spatial Rule Effect store', () => {
     ).rejects.toThrow('Injected transaction abort')
     await expect(
       t.run(async (ctx) => {
-        const result = await createSpatialRuleEffectStore(ctx).scope({
+        const result = await createSpatialRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).scope({
           encounterId: ids.encounter,
           sceneId: ids.scene
         })

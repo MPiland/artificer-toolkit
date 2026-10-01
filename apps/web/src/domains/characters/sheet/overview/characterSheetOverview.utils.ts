@@ -1,4 +1,4 @@
-import type { CharacterSheet } from '../core/CharacterSheet.types'
+import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 
 export function getAbilityShortLabel(ability: string): string {
   switch (ability) {
@@ -19,14 +19,16 @@ export function getAbilityShortLabel(ability: string): string {
   }
 }
 
-export function formatHitDiceSummary(hitDice: CharacterSheet['overview']['hitDice']): string {
+export function formatHitDiceSummary(
+  hitDice: CharacterSheetCommonDto['overview']['hitDice']
+): string {
   if (!hitDice.length) return 'None'
 
   return hitDice.map((die) => `${die.remaining}/${die.total}d${die.die}`).join(', ')
 }
 
 export function formatProficiencyLevel(
-  proficiency: CharacterSheet['overview']['skills'][number]['proficiency']
+  proficiency: CharacterSheetCommonDto['overview']['skills'][number]['proficiency']
 ): string {
   switch (proficiency) {
     case 'DOUBLE':
@@ -41,7 +43,7 @@ export function formatProficiencyLevel(
 }
 
 export function formatProficiencySummaryLabel(
-  proficiency: CharacterSheet['reference']['proficiencies'][number]
+  proficiency: CharacterSheetCommonDto['reference']['proficiencies'][number]
 ): string {
   if (proficiency.kind === 'ARMOR') {
     return proficiency.label.replace(/\s+Armor$/i, '')

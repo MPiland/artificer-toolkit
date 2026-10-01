@@ -15,7 +15,7 @@ import type {
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
-import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterCharacterWriteTransaction } from './ports.js'
 
 export type EncounterMechanicsBatchResult = {
   updatedActor: Awaited<ReturnType<typeof readRunActor>>
@@ -61,7 +61,7 @@ function validateInput(input: EncounterMechanicsBatchInput): EncounterMechanicsB
 
 /** Authorizes current Run and actor state without evaluating Character rules. */
 export async function readEncounterMechanicsBatchTarget<CharacterSources>(
-  ctx: EncounterWriteTransaction<CharacterSources>,
+  ctx: EncounterCharacterWriteTransaction<CharacterSources>,
   input: EncounterMechanicsBatchInput
 ) {
   input = validateInput(input)
@@ -96,7 +96,7 @@ export async function readEncounterMechanicsBatchTarget<CharacterSources>(
  * not a remote-plan authorization boundary and does not evaluate rules or rebuild Sheet facts.
  */
 export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
-  ctx: EncounterWriteTransaction<CharacterSources>,
+  ctx: EncounterCharacterWriteTransaction<CharacterSources>,
   target: Awaited<ReturnType<typeof readEncounterMechanicsBatchTarget>>,
   prepared: {
     actor: Awaited<ReturnType<typeof readRunActor>>
@@ -164,16 +164,11 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     character.id,
     campaign.ownerUserId
   )
-  const [currentCharacter, currentPlay] = await Promise.all([
-    ctx.db.get(character._id),
-    ctx.db.get(character.play._id)
-  ])
+  const currentCharacter = await ctx.ports.readCharacterRow(character.id)
   if (
     !currentCharacter ||
-    !currentPlay ||
     assignment.userId !== character.userId ||
-    checksumCanonicalJson({ ...currentCharacter, play: currentPlay }) !==
-      checksumCanonicalJson(character)
+    checksumCanonicalJson(currentCharacter) !== checksumCanonicalJson(character)
   )
     throw new Error('Encounter Character changed before settlement.')
   if (

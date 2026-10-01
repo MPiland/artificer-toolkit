@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
-import { CharacterSheetView } from '../core/CharacterSheetView'
+import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
 import { CharacterSheetMobileStats } from '../mobile/CharacterSheetMobileStats'
 import { createSheet, mockMobileSheetViewport } from '../tests/sheetTestHarness'
 import { CharacterSheetOverview } from './CharacterSheetOverview'
@@ -67,9 +67,9 @@ describe('Character Sheet overview', () => {
     expect(within(sensesSection as HTMLElement).getByText(/passive insight/i)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /equipment summary/i })).not.toBeInTheDocument()
 
-    expect(screen.getByRole('region', { name: /^actions$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: /^actions$/i })).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: /^features$/i }))
-    expect(screen.getByText(/action surge/i)).toBeInTheDocument()
+    expect(await screen.findByText(/action surge/i)).toBeInTheDocument()
     expect(screen.getByText(/take one additional action/i)).toBeInTheDocument()
 
     expect(screen.queryByRole('heading', { name: /^resources$/i })).not.toBeInTheDocument()

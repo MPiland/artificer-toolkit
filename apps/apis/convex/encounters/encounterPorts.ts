@@ -1,31 +1,29 @@
 import type {
-  CampaignAuthority,
   EncounterReadPorts,
   EncounterReadTransaction,
   EncounterWriteTransaction
 } from '@artificer-toolkit/encounter-persistence/ports'
-import { ruleCheckAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
-import {
-  campaignStoredEntryHeaderSchema,
-  campaignStoredEntryPayloadSchema
-} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import { postRulesChatMessage } from '@artificer-toolkit/encounter-persistence/rulesChatPersistence'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
-import {
-  insertConversationEntry,
-  openConversation,
-  readCampaignAccessTime
-} from '../campaigns/conversationDocuments'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { executeEncounterCharacterCommand } from '../characters/encounterCommands'
 import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
-import { readCharacterPlay, readCharacterRecord } from '../characters/stateDocuments'
+import {
+  readCharacterPlay,
+  readCharacterRecord,
+  readCharacterRow
+} from '../characters/stateDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
 import { readAutoRollDice } from '../lib/rollPreferences'
 import { requireActiveCampaignLiveAuthority } from '../liveSessions/authorityGuard'
 import { readEncounterSource, snapshotBlueprintEnemies } from './blueprintSnapshots'
@@ -46,42 +44,6 @@ async function readContentLabel(ctx: QueryCtx, id: string) {
   return definition?.label ?? null
 }
 
-/** A rules message in the table chat; like other rules entries it spends no chat rate limit. */
-async function postRulesChatMessage(
-  ctx: MutationCtx,
-  authority: CampaignAuthority,
-  input: { authorUserId: string; clientNonce: string; body: string }
-) {
-  const { campaign } = authority
-  const { conversation } = await openConversation(ctx, authority, 'TABLE')
-  const header = campaignStoredEntryHeaderSchema.parse({
-    id: crypto.randomUUID(),
-    campaignId: campaign.id,
-    conversationId: conversation.id,
-    authorUserId: input.authorUserId,
-    clientNonce: input.clientNonce,
-    createdAt: new Date(await readCampaignAccessTime(ctx, campaign)).toISOString()
-  })
-  await insertConversationEntry(
-    ctx,
-    header,
-    campaignStoredEntryPayloadSchema.parse({
-      entryId: header.id,
-      kind: 'CHAT',
-      mode: 'OOC',
-      body: input.body,
-      roll: null,
-      revealedByGm: false,
-      authorUsername: ruleCheckAuthorLabel,
-      characterId: null,
-      characterLabel: null,
-      editedAt: null,
-      unsentAt: null,
-      consumedAt: null
-    })
-  )
-}
-
 /** The Encounter ports over Convex: each reads the owning domain in this transaction. */
 function readPorts(ctx: QueryCtx): EncounterReadPorts {
   return {
@@ -98,6 +60,7 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
     readEncounterSource: (userId, systemId, id, kind) =>
       readEncounterSource(ctx, userId, systemId, id, kind),
     readCharacterRecord,
+    readCharacterRow: (characterId) => readCharacterRow(ctx, characterId),
     readCharacterSheetState,
     readCharacterPlay,
     readAssignedCharacter: (campaign, membership) =>
@@ -125,7 +88,7 @@ const writeTransactions = new WeakMap<
 export function encounterReadTransaction(ctx: QueryCtx): EncounterReadTransaction {
   let transaction = readTransactions.get(ctx)
   if (!transaction) {
-    transaction = { db: ctx.db, ports: readPorts(ctx) }
+    transaction = { db: createConvexEncounterStoreReader(ctx), ports: readPorts(ctx) }
     readTransactions.set(ctx, transaction)
   }
   return transaction
@@ -138,13 +101,14 @@ export function encounterWriteTransaction(
   const known = writeTransactions.get(ctx)
   if (known) return known
   const transaction: EncounterWriteTransaction<CharacterSheetSourceContext> = {
-    db: ctx.db,
+    db: createConvexEncounterStore(ctx),
     ports: {
       ...readPorts(ctx),
       insertTableRoll: (authority, userId, clientNonce, roll) =>
         insertPreEvaluatedCampaignTableRoll(ctx, authority, userId, clientNonce, roll),
       recordConcentrationCheckRoll: (input) => recordConcentrationCheckRoll(ctx, input),
-      postRulesChatMessage: (authority, input) => postRulesChatMessage(ctx, authority, input),
+      postRulesChatMessage: (authority, input) =>
+        postRulesChatMessage(encounterWriteTransaction(ctx), authority, input),
       writeCharacterRecord: async (input) => {
         await writeCharacterRecord(ctx, input)
       },

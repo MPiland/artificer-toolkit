@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import {
   getCharacterPreparationOptions,
+  getCharacterSheetSlice,
   getCharacterSheetPanel
 } from '#app/data/characters/queries'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
@@ -38,6 +39,13 @@ export function CharacterSheetInspector({
 }) {
   const isMobile = useMediaQuery('(max-width: 760px)', false)
   const panelQuery = useQuery(getCharacterSheetPanel(characterId, target, campaignId))
+  const requiresEquipment =
+    (target.kind === 'COMPANION' || target.kind === 'VEHICLE') &&
+    panelQuery.data?.editable === true &&
+    panelQuery.data.allowedCommands.includes('UPDATE_EXTRA')
+  const inventoryQuery = useQuery(
+    getCharacterSheetSlice(requiresEquipment ? characterId : undefined, 'INVENTORY', campaignId)
+  )
   const preparationOptionsQuery = useQuery(
     getCharacterPreparationOptions(target.kind === 'SPELLS' ? characterId : undefined, campaignId)
   )
@@ -86,9 +94,12 @@ export function CharacterSheetInspector({
       ) : panelQuery.data ? (
         <CharacterSheetInspectorContent
           expectedVersion={expectedVersion}
-          equipmentItems={equipmentItems ?? []}
+          equipmentItems={equipmentItems ?? inventoryQuery.data?.inventory.items ?? []}
           panel={panelQuery.data}
-          pending={pending}
+          pending={
+            pending ||
+            (requiresEquipment && inventoryQuery.data?.meta.streamVersion !== expectedVersion)
+          }
           preparationOptions={preparationOptionsQuery.data ?? undefined}
           preparationOptionsError={preparationOptionsQuery.error?.message}
           preparationOptionsPending={target.kind === 'SPELLS' && preparationOptionsQuery.isPending}

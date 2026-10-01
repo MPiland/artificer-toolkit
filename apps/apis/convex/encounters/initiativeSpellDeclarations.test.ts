@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import * as z from 'zod/mini'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
@@ -255,11 +256,14 @@ describe('native initiative Spell declarations', () => {
     }
     const option = spellOption(pending)
     const beforeCharacter = await base.t.run(async (ctx) => ({
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       character: await readCharacterRow(ctx, base.character.id),
       receipts: await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
         .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
     }))
     const publication = await base.t.run(async (ctx) => {
       const root = await ctx.db
@@ -313,11 +317,14 @@ describe('native initiative Spell declarations', () => {
     })
     expect(
       await base.t.run(async (ctx) => ({
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         character: await readCharacterRow(ctx, base.character.id),
         receipts: await ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
           .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
       }))
     ).toEqual(beforeCharacter)
   }, 30_000)
@@ -377,24 +384,40 @@ describe('native initiative Spell declarations', () => {
       })
     })
     const before = await base.t.run(async (ctx) => ({
+      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run: await ctx.db.query('encounterRuns').collect(),
       actors: await ctx.db.query('encounterRunActors').collect(),
       rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-      commands: await ctx.db.query('encounterRunCommands').collect()
+      receipts: await ctx.db
+        .query('encounterRuleReceipts')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+      commands: await ctx.db
+        .query('encounterRunCommands')
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     }))
     await expect(executeInRoom(base.player.caller, response)).rejects.toThrow(/stale/)
     expect(
       await base.t.run(async (ctx) => ({
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         run: await ctx.db.query('encounterRuns').collect(),
         actors: await ctx.db.query('encounterRunActors').collect(),
         rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
         participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect()
+        receipts: await ctx.db
+          .query('encounterRuleReceipts')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+        commands: await ctx.db
+          .query('encounterRunCommands')
+          .collect()
+          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
       }))
     ).toEqual(before)
   }, 30_000)

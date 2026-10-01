@@ -8,6 +8,9 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignCore'
 import {
   contentSnapshotObjectKey,
+  contentSnapshotDocumentsObjectSchema,
+  contentSnapshotIndexObjectSchema,
+  contentSnapshotListObjectSchema,
   type ContentSnapshotKind,
   type ContentSnapshotPart
 } from '@artificer-toolkit/schema/api/contentSnapshots'
@@ -138,22 +141,36 @@ async function setup() {
         .withIndex('by_scope_scopeId', (q) => q.eq('scope', ref.scope).eq('scopeId', ref.scopeId))
         .unique()
     )
-  async function readPart(
+  async function readObject(
     ref: ContentSnapshotScopeRef,
     snapshot: Doc<'contentSnapshotHeads'> | null,
     kind: ContentSnapshotKind,
     part: ContentSnapshotPart = 'index'
   ) {
     const object = snapshot?.kinds[kind]?.[part]
-    if (!object) return []
+    if (!object) return null
     const stored = server.contentSnapshotObjects.get(
-      contentSnapshotObjectKey({ format: 1, ...ref, kind, part }, object.sha256)
+      contentSnapshotObjectKey({ format: 2, ...ref, kind, part }, object.sha256)
     )
     if (!stored) throw new Error('Committed snapshot object is missing from R2.')
     const json = await new Response(
       new Blob([new Uint8Array(stored.body)]).stream().pipeThrough(new DecompressionStream('gzip'))
     ).text()
-    return (JSON.parse(json) as { roots: ({ id: string } & Record<string, unknown>)[] }).roots
+    const schema =
+      part === 'documents'
+        ? contentSnapshotDocumentsObjectSchema
+        : part === 'list'
+          ? contentSnapshotListObjectSchema
+          : contentSnapshotIndexObjectSchema
+    return schema.parse(JSON.parse(json))
+  }
+  async function readPart(
+    ref: ContentSnapshotScopeRef,
+    snapshot: Doc<'contentSnapshotHeads'> | null,
+    kind: ContentSnapshotKind,
+    part: ContentSnapshotPart = 'index'
+  ) {
+    return (await readObject(ref, snapshot, kind, part))?.roots ?? []
   }
 
   return {
@@ -167,6 +184,7 @@ async function setup() {
     objects: () => t.run((ctx) => ctx.db.query('contentSnapshotObjects').collect()),
     puts: () => server.methods.filter((method) => method === 'PUT').length,
     readPart,
+    readObject,
     rootIds: async (
       ref: ContentSnapshotScopeRef,
       snapshot: Doc<'contentSnapshotHeads'> | null,
@@ -181,8 +199,19 @@ function homebrew(document: HomebrewDocument) {
 
 describe('content snapshot builds', () => {
   it('rebuilds only the published scope and kind, and a retried build changes nothing', async () => {
-    const { t, server, userSource, srdSource, publish, settle, head, puts, rootIds, readPart } =
-      await setup()
+    const {
+      t,
+      server,
+      userSource,
+      srdSource,
+      publish,
+      settle,
+      head,
+      puts,
+      rootIds,
+      readPart,
+      readObject
+    } = await setup()
     try {
       await t.mutation(internal.content.import.importSubjects, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -201,6 +230,32 @@ describe('content snapshot builds', () => {
       expect(before.user).toMatchObject({ revision: 2, builtRevision: 2 })
       expect(Object.keys(before.user!.kinds).sort()).toEqual(['FEAT', 'RACE'])
       expect(before.user!.buildScheduledAt).toBeUndefined()
+      const documents = await readObject(userSource, before.user, 'RACE', 'documents')
+      if (documents?.part !== 'documents') throw new Error('Missing documents snapshot.')
+      const published = await t.run(async (ctx) => {
+        const root = await ctx.db
+          .query('authoredRoots')
+          .withIndex('by_publicId', (q) => q.eq('id', race.id))
+          .unique()
+        if (!root) throw new Error('Missing published Race.')
+        const version = await ctx.db.get(root.currentVersionId)
+        if (!version) throw new Error('Missing published Race version.')
+        return { root, version }
+      })
+      expect(documents.versions).toEqual([
+        {
+          identity: {
+            subjectKind: 'RACE',
+            subjectId: race.id,
+            systemId: race.systemId,
+            contentSourceId: userSource.scopeId,
+            versionId: published.root.currentVersionPublicId,
+            checksum: published.root.checksum
+          },
+          version: published.version.version,
+          storedParentId: published.root.parentRaceId
+        }
+      ])
       expect(await readPart(userSource, before.user, 'RACE', 'list')).toEqual([
         expect.objectContaining({
           id: race.id,
@@ -295,7 +350,7 @@ describe('content snapshot builds', () => {
       await settle()
       const built = await head(userSource)
       const orphan = contentSnapshotObjectKey(
-        { format: 1, ...userSource, kind: 'FEAT', part: 'index' },
+        { format: 2, ...userSource, kind: 'FEAT', part: 'index' },
         'a'.repeat(64)
       )
       const stale = await t.mutation(internal.contentSnapshots.heads.commitBuild, {
@@ -401,7 +456,7 @@ describe('content snapshot builds', () => {
         expect(
           superseded.has(
             contentSnapshotObjectKey(
-              { format: 1, ...ref, kind: 'RACE', part },
+              { format: 2, ...ref, kind: 'RACE', part },
               shared!.kinds.RACE![part].sha256
             )
           )

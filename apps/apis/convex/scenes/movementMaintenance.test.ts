@@ -21,6 +21,8 @@ import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pe
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 vi.mock('../lib/rollRandom', () => ({
   nextRollInt: (sides: number) => (sides === 20 ? 14 : 0)
@@ -55,10 +57,17 @@ async function gameplay(base: MaintainedBase) {
       .query('encounterMaintainedEffectStates')
       .withIndex('by_encounter_owner_definition_order', (q) => q.eq('encounterId', base.run.id))
       .collect(),
-    receipts: await ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+    receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
+    receipts: await readReceiptHeaders(
+      ctx,
+      'encounterRuleReceipts',
+      await ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
+        .collect()
+    ),
     sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
     sceneStates: await ctx.db.query('sceneLiveStates').collect()
   }))
@@ -91,7 +100,7 @@ async function resetReactionAndDetachScene(base: MaintainedBase) {
         ...actor,
         resources: withEncounterRuleUsageUsed(actor, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 0)
       })
-      await writeRunActor(ctx, reactor._id, available)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, reactor._id, available)
     }
     const tokenBindings = await ctx.db
       .query('encounterActorTokenBindings')
@@ -135,7 +144,7 @@ async function seedDetachedPassageDependents(
   if (!blinded || !poisoned || !additionalReactor || !base.maintenanceDefinitionId)
     throw new Error('Detached passage maintenance fixture is unavailable.')
   return base.t.run(async (ctx) => {
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const states = await Promise.all(
       [base.reactor.id, additionalReactor.id].map((ownerActorId) =>
         store.findMaintainedState({
@@ -211,6 +220,8 @@ async function passageRecords(base: MaintainedBase, characterId: string) {
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', characterId))
       .collect(),
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', characterId))
@@ -228,7 +239,7 @@ async function seedPriorDependents(base: MaintainedBase) {
     throw new Error('Maintained movement condition fixture is unavailable.')
   const additionalReactor = base.additionalReactorActor
   return base.t.run(async (ctx) => {
-    const store = createActiveRuleEffectStore(ctx)
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const state = await store.findMaintainedState({
       encounterId: base.run.id,
       ownerActorId: base.reactor.id,
@@ -291,7 +302,7 @@ async function seedPriorDependents(base: MaintainedBase) {
         ...JSON.parse(row.stateJson),
         conditions
       })
-      await writeRunActor(ctx, row._id, actor)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
     }
     return {
       stateId: state.id,
@@ -600,7 +611,7 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
       )
       .unique()
     if (!occurrence) throw new Error('Maintained movement pending snapshot is unavailable.')
-    const snapshot = await readPendingSnapshot(ctx, occurrence)
+    const snapshot = await readPendingSnapshot(encounterReadTransaction(ctx), occurrence)
     if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
       throw new Error('Maintained movement pending snapshot is unavailable.')
     return snapshot

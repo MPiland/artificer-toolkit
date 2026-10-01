@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { characterBuilderDraftDtoSchema } from '@artificer-toolkit/schema/api/characterBuilder'
 import { z } from 'zod/mini'
-import { getCharacterDraft, getCharacterSheet } from '#app/data/characters/queries'
+import { getCharacterDraft, getCharacterSheetSlice } from '#app/data/characters/queries'
 import {
   isCanonicalAuthoredRouteHandle,
   parseAuthoredRouteId
@@ -13,11 +13,15 @@ import { CharacterSheetPage } from '#domains/characters'
 export const Route = createFileRoute('/_authed/characters/$characterPublicId/$characterSlug/')({
   loader: async ({ context, params }): Promise<CharacterSheetLoaderData> => {
     const routeCharacterId = parseAuthoredRouteId(params.characterPublicId)
-    const [response, serializedDraft] = await Promise.all([
-      context.queryClient.ensureQueryData(getCharacterSheet(routeCharacterId)),
-      context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId))
-    ])
-    const draft = z.nullable(characterBuilderDraftDtoSchema).parse(serializedDraft)
+    const sliceResponse = await context.queryClient.ensureQueryData(
+      getCharacterSheetSlice(routeCharacterId, 'COMMON')
+    )
+    const response = sliceResponse?.slice === 'COMMON' ? sliceResponse.data : null
+    const draft = response
+      ? null
+      : z
+          .nullable(characterBuilderDraftDtoSchema)
+          .parse(await context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId)))
     const breadcrumbLabel = draft?.label ?? response?.identity.label ?? null
     const characterPublicId = draft?.publicId ?? response?.publicId ?? params.characterPublicId
     const characterId = draft?.characterId ?? response?.meta.characterId ?? routeCharacterId

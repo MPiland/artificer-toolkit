@@ -1,10 +1,11 @@
+import type { CharacterSheetNotesSliceDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button, Drawer, Modal, Select, Text, TextInput } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { IconFilePlus, IconFolderPlus, IconPin, IconSearch } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
-import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
 import { CharacterSheetNoteViewer } from './CharacterSheetNoteViewer'
 import * as detailStyles from '../shared/detail.css'
@@ -12,8 +13,8 @@ import * as panelStyles from '../shared/panel.css'
 import * as rowStyles from '../shared/rows.css'
 import * as spellListStyles from '../spells/spellList.css'
 
-type SheetNote = NonNullable<CharacterSheet['notes']['items']>[number]
-type SheetNoteGroup = NonNullable<CharacterSheet['notes']['groups']>[number]
+type SheetNote = NonNullable<CharacterSheetNotesSliceDto['notes']['items']>[number]
+type SheetNoteGroup = NonNullable<CharacterSheetNotesSliceDto['notes']['groups']>[number]
 
 function formatNoteDate(value: string) {
   const date = new Date(value)
@@ -30,7 +31,7 @@ export function CharacterSheetNotes({
 }: {
   hideTitle?: boolean
   pending: boolean
-  sheet: CharacterSheet
+  sheet: CharacterSheetNotesSliceDto
   submitCommand: SubmitSheetCommand
 }) {
   const version = sheet.meta.streamVersion

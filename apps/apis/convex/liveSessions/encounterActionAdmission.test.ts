@@ -1,3 +1,6 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
@@ -201,7 +204,11 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
       { automationMode: 'ASSISTED', round: 1, currentActorId: actor.id },
       [actor.id, target.id]
     )
-    const current = await readRunActor(ctx, state, actor.id)
+    const current = await readRunActor(
+      { db: createConvexEncounterStoreReader(ctx) },
+      state,
+      actor.id
+    )
     const capability = discoverEncounterFeatureActionCapabilities({
       actor: current,
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
@@ -281,7 +288,8 @@ async function storedActionState(base: Awaited<ReturnType<typeof setup>>) {
         .withIndex('by_campaignId_commandId', (q) =>
           q.eq('campaignId', base.campaign.id).eq('commandId', base.command.commandId)
         )
-        .unique(),
+        .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null)),
       ctx.db
         .query('encounterRuleOccurrences')
         .withIndex('by_campaignId_rootCommandId', (q) =>
@@ -294,6 +302,7 @@ async function storedActionState(base: Awaited<ReturnType<typeof setup>>) {
           q.eq('campaignId', base.campaign.id).eq('commandId', base.command.commandId)
         )
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     ])
     return {
       run: run?.stateChecksum,
@@ -520,7 +529,9 @@ it('commits one sealed Assisted pending root and replays before stale revisions'
       .unique()
   )
   if (!stored) throw new Error('Missing stored pending occurrence.')
-  const snapshot = await base.t.run((ctx) => readPendingSnapshot(ctx, stored))
+  const snapshot = await base.t.run((ctx) =>
+    readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, stored)
+  )
   if (
     snapshot?.snapshotKind !== 'KERNEL_EVIDENCE' ||
     pendingBody.snapshot.snapshotKind !== 'KERNEL_EVIDENCE'
@@ -798,6 +809,7 @@ it('resumes each Assisted evidence through the Worker and commits only the compl
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
     return { occurrence, receipts }
   })
   expect(settled.occurrence).toMatchObject({ state: 'COMPLETED', version: responses.length })
@@ -952,8 +964,11 @@ it('rejects reused IDs, stale new commands, unauthorized replay, and a corrupt r
         q.eq('encounterId', base.run.id).eq('commandId', base.command.commandId)
       )
       .unique()
+      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     if (!receipt) throw new Error('Missing real action receipt.')
-    await ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) })
+    await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
+      resultChecksum: '0'.repeat(64)
+    })
   })
   await expect(admit(base.command)).rejects.toThrow(/receipt mismatch/i)
 })

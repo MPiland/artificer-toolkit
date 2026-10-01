@@ -1,3 +1,5 @@
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { readReceiptHeader } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -107,12 +109,14 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
       quantity: 1
     }
   })
-  const shieldItemId = added.sheet.inventory.items.find(
+  expect(added).not.toHaveProperty('sheet')
+  const addedSheet = (await base.player.caller.query(api.characters.sheet.get, {
+    id: added.characterId
+  }))!
+  const shieldItemId = addedSheet.inventory.items.find(
     (item) => item.equipmentId === shieldWood.id
   )?.id
-  const weaponItemId = added.sheet.inventory.items.find(
-    (item) => item.equipmentId === weapon.id
-  )?.id
+  const weaponItemId = addedSheet.inventory.items.find((item) => item.equipmentId === weapon.id)?.id
   if (!shieldItemId || !weaponItemId) throw new Error('Missing shield stow fixture items.')
   const equippedItemIds = [
     ...(weaponEquipped ? [weaponItemId] : []),
@@ -245,7 +249,7 @@ describe('shield stow on two-handed attacks', () => {
       armorClassDelta: -2
     })
     await base.owner.caller.run(async (ctx) => {
-      const actors = await readRunActors(ctx, base.state)
+      const actors = await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, base.state)
       const prepare = (accepted: ReturnType<typeof accept> | null) =>
         prepareNativeEncounterActionMechanics(ctx, {
           state: base.state,
@@ -298,7 +302,11 @@ describe('shield stow on two-handed attacks', () => {
   it('unequips the shield in the same Character version as a resource use', async () => {
     const base = await setup()
     await base.owner.caller.run(async (ctx) => {
-      const actor = await readRunActor(ctx, base.state, base.actor.id)
+      const actor = await readRunActor(
+        { db: createConvexEncounterStoreReader(ctx) },
+        base.state,
+        base.actor.id
+      )
       const loaded = await loadCharacterSheetFacts(
         ctx,
         base.owner.userId,
@@ -455,6 +463,7 @@ describe('shield stow on two-handed attacks', () => {
           q.eq('campaignId', base.campaign.id).eq('commandId', command.commandId)
         )
         .unique()
+        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     )
     const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt!.resultJson))
     expect(stored).toEqual(plan.storedExecution)
@@ -531,6 +540,9 @@ describe('drawn weapons', () => {
             q.eq('campaignId', base.campaign.id).eq('commandId', command.commandId)
           )
           .unique()
+          .then((header) =>
+            header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
+          )
       )
       const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt!.resultJson))
       if (

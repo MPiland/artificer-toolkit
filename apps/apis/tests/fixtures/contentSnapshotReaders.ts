@@ -41,7 +41,7 @@ export async function readScopeObjects(t: Test, ref: ContentSnapshotScopeRef) {
     }
     if (sources.length === 0) continue
     const { index, list, documents } = buildContentSnapshotKind(
-      { format: 1, ...ref, kind },
+      { format: 2, ...ref, kind },
       sources
     )
     objects.push(

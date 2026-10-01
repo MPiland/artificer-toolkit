@@ -1,3 +1,4 @@
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
@@ -38,6 +39,8 @@ function response(
 
 async function snapshot(value: Awaited<ReturnType<typeof setupMovementReactionCharacterEffects>>) {
   return value.base.t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     character: await readCharacterRow(ctx, value.base.character.id),
     campaignState: await ctx.db
       .query('campaignCharacterStates')
@@ -54,7 +57,8 @@ async function snapshot(value: Awaited<ReturnType<typeof setupMovementReactionCh
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', value.base.character.id))
-      .collect(),
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers)),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
@@ -62,7 +66,8 @@ async function snapshot(value: Awaited<ReturnType<typeof setupMovementReactionCh
     commands: await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId_version', (q) => q.eq('encounterId', value.base.run.id))
-      .collect(),
+      .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
     occurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
@@ -71,6 +76,7 @@ async function snapshot(value: Awaited<ReturnType<typeof setupMovementReactionCh
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
 }
 

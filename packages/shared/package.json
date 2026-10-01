@@ -44,6 +44,14 @@
       "types": "./dist/utils/sha256.d.ts",
       "default": "./dist/utils/sha256.js"
     },
+    "./base64": {
+      "types": "./dist/utils/base64.d.ts",
+      "default": "./dist/utils/base64.js"
+    },
+    "./jsonPayloadChunks": {
+      "types": "./dist/utils/jsonPayloadChunks.d.ts",
+      "default": "./dist/utils/jsonPayloadChunks.js"
+    },
     "./utils/authoringLimits": {
       "types": "./dist/utils/authoringLimits.d.ts",
       "default": "./dist/utils/authoringLimits.js"
@@ -67,6 +75,10 @@
     "./character": {
       "types": "./dist/domains/character/index.d.ts",
       "default": "./dist/domains/character/index.js"
+    },
+    "./character/sheetRest": {
+      "types": "./dist/domains/character/sheetRest.d.ts",
+      "default": "./dist/domains/character/sheetRest.js"
     },
     "./rolls": {
       "types": "./dist/domains/rolls/index.d.ts",
@@ -119,6 +131,10 @@
     "./subjects/authored": {
       "types": "./dist/domains/subjects/authored/index.d.ts",
       "default": "./dist/domains/subjects/authored/index.js"
+    },
+    "./subjects/authored/character/intent": {
+      "types": "./dist/domains/subjects/authored/character/intent.d.ts",
+      "default": "./dist/domains/subjects/authored/character/intent.js"
     },
     "./subjects/compilers": {
       "types": "./dist/domains/subjects/compilers/index.d.ts",

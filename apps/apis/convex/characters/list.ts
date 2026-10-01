@@ -7,8 +7,8 @@ import {
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
-import { readCharacterDraftSummary, readCharacterRecord } from './documents'
-import { joinCharacterPlay } from './stateDocuments'
+import { readCharacterDraftSummary } from './documents'
+import { readCharacterPlayRow } from './stateDocuments'
 
 export const list = query({
   args: zodToConvexFields(characterDraftListInputSchema.shape),
@@ -20,33 +20,32 @@ export const list = query({
       .query('characters')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .order('desc')
-      // Bound full document joins as well as primary reads. Each draft can approach 1 MiB.
       .paginate({ ...paginationOpts, maximumRowsRead: 8, maximumBytesRead: 2 * 1024 * 1024 })
     return characterListPageSchema.parse({
       ...result,
       page: await Promise.all(
         result.page.map(async (row) => {
-          const active = await joinCharacterPlay(ctx, row)
-          const character = readCharacterRecord(active)
-          const [draft, route] = await Promise.all([
+          const [play, draft, route] = await Promise.all([
+            readCharacterPlayRow(ctx, row.id),
             ctx.db
               .query('characterDrafts')
-              .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+              .withIndex('by_characterId', (q) => q.eq('characterId', row.id))
               .unique(),
-            readVisibleAuthoredRouteId(ctx, { subjectId: character.id })
+            readVisibleAuthoredRouteId(ctx, { subjectId: row.id })
           ])
+          if (play.userId !== row.userId) throw new Error('Stored Character ownership mismatch.')
           if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== userId)
             throw new Error('Stored Character route identity mismatch.')
           if (draft && draft.publicId !== route.publicId)
             throw new Error('Stored Character draft route identity mismatch.')
           return {
-            id: character.id,
+            id: row.id,
             publicId: route.publicId,
-            label: draft?.label ?? character.label,
-            status: active.status,
-            systemId: character.systemId,
-            streamVersion: active.play.streamVersion,
-            ...(draft ? { draft: readCharacterDraftSummary(draft, active) } : {})
+            label: draft?.label ?? row.label,
+            status: row.status,
+            systemId: row.systemId,
+            streamVersion: play.streamVersion,
+            ...(draft ? { draft: readCharacterDraftSummary(draft, row) } : {})
           }
         })
       )

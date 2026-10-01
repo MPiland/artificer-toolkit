@@ -143,7 +143,11 @@ async function setup(cargoItems = 36) {
       quantity: 1
     }
   })
-  const bag = added.sheet.inventory.containers![0]!
+  expect(added).not.toHaveProperty('sheet')
+  const addedSheet = (await base.owner.caller.query(api.characters.sheet.get, {
+    id: added.characterId
+  }))!
+  const bag = addedSheet.inventory.containers![0]!
   const denominationId = srdSystemRecord.currencies[0]!.id
   const beforeCredit = await base.readState()
   await base.owner.caller.mutation(sheetExecute, {

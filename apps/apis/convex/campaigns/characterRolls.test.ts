@@ -257,8 +257,12 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
         expectedVersion: 3
       }
     })
-    const pool = damaged.sheet.overview.hitDice[0]!
-    const modifier = damaged.sheet.overview.abilities.find(
+    expect(damaged).not.toHaveProperty('sheet')
+    const damagedSheet = (await player.caller.query(api.characters.sheet.get, {
+      id: damaged.characterId
+    }))!
+    const pool = damagedSheet.overview.hitDice[0]!
+    const modifier = damagedSheet.overview.abilities.find(
       (ability) => ability.ability === 'CONSTITUTION'
     )!.modifier
     const before = await readState()
@@ -293,12 +297,17 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     expect(await readPrivate()).toEqual(beforePreview)
     vi.restoreAllMocks()
     const completed = await gm.caller.mutation(execute, { ...scope, command })
+    expect(completed).not.toHaveProperty('sheet')
+    const completedSheet = (await gm.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: scope.campaignId,
+      characterId: completed.characterId
+    }))!
     expect(completed.streamVersion).toBe(5)
-    expect(completed.sheet.overview.hitDice.find((die) => die.die === pool.die)?.used).toBe(1)
-    expect(completed.sheet.overview.currentHitPoints).toBe(
+    expect(completedSheet.overview.hitDice.find((die) => die.die === pool.die)?.used).toBe(1)
+    expect(completedSheet.overview.currentHitPoints).toBe(
       Math.min(
-        damaged.sheet.overview.maxHitPoints,
-        damaged.sheet.overview.currentHitPoints + rolled.evidence.total
+        damagedSheet.overview.maxHitPoints,
+        damagedSheet.overview.currentHitPoints + rolled.evidence.total
       )
     )
     expect(completed.result).toMatchObject({
@@ -321,8 +330,12 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
       id: character.id
     })
     expect(ownerSheet?.notes.items?.[0]?.body).toBe('PRIVATE-BODY')
-    expect(JSON.stringify(completed)).not.toContain('PRIVATE-BODY')
-    expect(JSON.stringify(completed)).not.toContain('PRIVATE-ADJUSTMENT')
+    expect(JSON.stringify({ acknowledgement: completed, sheet: completedSheet })).not.toContain(
+      'PRIVATE-BODY'
+    )
+    expect(JSON.stringify({ acknowledgement: completed, sheet: completedSheet })).not.toContain(
+      'PRIVATE-ADJUSTMENT'
+    )
     const privateState = await readPrivate()
     expect(privateState.rolls).toHaveLength(1)
     expect(privateState.rolls[0]).toMatchObject({
@@ -368,8 +381,12 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
         expectedVersion: 1
       }
     })
-    const pool = damaged.sheet.overview.hitDice[0]!
-    const modifier = damaged.sheet.overview.abilities.find(
+    expect(damaged).not.toHaveProperty('sheet')
+    const damagedSheet = (await player.caller.query(api.characters.sheet.get, {
+      id: damaged.characterId
+    }))!
+    const pool = damagedSheet.overview.hitDice[0]!
+    const modifier = damagedSheet.overview.abilities.find(
       (ability) => ability.ability === 'CONSTITUTION'
     )!.modifier
     const request = {
@@ -620,7 +637,11 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
         quantity: 1
       }
     })
-    const item = added.sheet.inventory.items.find(
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await player.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    const item = addedSheet.inventory.items.find(
       (candidate) => candidate.equipmentId === draft.subjectId
     )!
     await player.caller.mutation(api.characters.sheetCommands.execute, {
@@ -719,8 +740,12 @@ describe('GM-visible Campaign rest rolls', () => {
         expectedVersion: 1
       }
     })
-    const pool = damaged.sheet.overview.hitDice[0]!
-    const modifier = damaged.sheet.overview.abilities.find(
+    expect(damaged).not.toHaveProperty('sheet')
+    const damagedSheet = (await fixture.player.caller.query(api.characters.sheet.get, {
+      id: damaged.characterId
+    }))!
+    const pool = damagedSheet.overview.hitDice[0]!
+    const modifier = damagedSheet.overview.abilities.find(
       (ability) => ability.ability === 'CONSTITUTION'
     )!.modifier
     const hitDie: ExecuteCampaignRollInput['roll'] = {

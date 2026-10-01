@@ -2,8 +2,8 @@ import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-tool
 
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { readEncounterCharacterRow, type EncounterCharacterRow } from './characterPlay.js'
-import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterCharacterRow } from './characterPlay.js'
+import type { EncounterCharacterWriteTransaction } from './ports.js'
 
 type MaintenanceCleanupResult = Pick<
   ReturnType<typeof maintenanceCompleteRuleExecutionResultDtoSchema.parse>,
@@ -37,7 +37,7 @@ function effectReceipt(effect: StoredEffect) {
 
 /** Removes maintained effects which cannot outlive an Encounter actor. */
 export async function cleanupRemovedActorEffects(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   input: { state: EncounterRunState; actorId: string; occurredAt: string }
 ): Promise<MaintenanceCleanupResult | null> {
   const effects = createActiveRuleEffectStore(ctx)
@@ -84,7 +84,7 @@ export async function cleanupRemovedActorEffects(
   ].sort((left, right) => left.localeCompare(right))
   const characterRows = new Map<string, EncounterCharacterRow>()
   for (const characterId of affectedCharacterIds) {
-    const row = await readEncounterCharacterRow(ctx, characterId)
+    const row = await ctx.ports.readCharacterRow(characterId)
     if (!row || row.status !== 'ACTIVE')
       throw new Error('Maintained-effect Character owner is unavailable.')
     const character = ctx.ports.readCharacterRecord(row)

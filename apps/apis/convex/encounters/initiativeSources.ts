@@ -11,6 +11,7 @@ import type { QueryCtx } from '../_generated/server'
 import { loadCharacterEncounterInitiative } from '../characters/encounterInitiative'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import type { MovementTarget } from './movementTargets'
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 
 export async function loadEncounterInitiativeSources(
   ctx: QueryCtx,
@@ -24,7 +25,8 @@ export async function loadEncounterInitiativeSources(
   return prepareEncounterInitiativeSources({
     state,
     campaignId: campaign.id,
-    actors: stagedActors ?? (await readRunActors(ctx, state)),
+    actors:
+      stagedActors ?? (await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state)),
     loadCharacter: async (actor) => {
       const staged = stagedMovementTargets?.get(actor.id)
       if (staged) {

@@ -1,4 +1,12 @@
-import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
+import {
+  CharacterSheetCommandError,
+  ensureResource,
+  ensureResourceByOwner,
+  resolveSpellCastSource
+} from './sheetCommandReducer.js'
+import { validateActionResourceUse } from './sheetCommandValidation.js'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey
@@ -56,4 +64,74 @@ export function getProspectiveSheetResourceUsage(params: {
               })()
         ])
   ]
+}
+
+/** The same resource admission and spend calculation for Convex and room Sheet commands. */
+export function getSheetCommandResourceUsageUpdate(params: {
+  sheet: CharacterSheetResponseDto
+  resourceUsage: readonly CharacterResourceUsage[]
+  command: CharacterSheetCommandInputDto
+}): { resource: SheetResource; used: number } | undefined {
+  const { command } = params
+  let resourceUsageUpdate:
+    | {
+        resource: SheetResource
+        used: number
+      }
+    | undefined
+  const getRawResourceUsed = (resource: SheetResource) => {
+    const ownerKey = createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(resource.owner))
+    return (
+      params.resourceUsage.find(
+        (usage) => createCharacterResourceOwnerKey(usage.owner) === ownerKey
+      )?.used ?? resource.used
+    )
+  }
+  if (
+    command.type === 'USE_RESOURCE' ||
+    command.type === 'RESTORE_RESOURCE' ||
+    command.type === 'USE_SHEET_RESOURCE' ||
+    command.type === 'RECOVER_SHEET_RESOURCE'
+  ) {
+    const resource =
+      'owner' in command
+        ? ensureResourceByOwner(params.sheet, command.owner)
+        : ensureResource(params.sheet, command.resourceGrantId)
+    const used = getRawResourceUsed(resource)
+    if (command.type === 'USE_RESOURCE' || command.type === 'USE_SHEET_RESOURCE') {
+      const amount = command.amount ?? 1
+      validateActionResourceUse({
+        sheet: params.sheet,
+        actionId: command.actionId,
+        resourceId: resource.id,
+        amount
+      })
+      if (amount > resource.remaining)
+        throw new CharacterSheetCommandError(
+          `Resource "${resource.label}" only has ${resource.remaining} uses remaining.`
+        )
+      resourceUsageUpdate = { resource, used: used + amount }
+    } else if (command.type === 'RECOVER_SHEET_RESOURCE') {
+      if (!resource.recoveries.some((recovery) => recovery.trigger === command.trigger))
+        throw new CharacterSheetCommandError(`Resource cannot be recovered by ${command.trigger}.`)
+      resourceUsageUpdate = { resource, used: 0 }
+    } else {
+      resourceUsageUpdate = {
+        resource,
+        used: command.all ? 0 : Math.max(used - (command.amount ?? 1), 0)
+      }
+    }
+  }
+  if (command.type === 'CAST_SPELL') {
+    const { source, spell } = resolveSpellCastSource(params.sheet, command)
+    if (
+      spell.level > 0 &&
+      (source?.castMode === 'LIMITED_USE' || source?.castMode === 'FIXED_LEVEL') &&
+      source.resourceOwner
+    ) {
+      const resource = ensureResourceByOwner(params.sheet, source.resourceOwner)
+      resourceUsageUpdate = { resource, used: getRawResourceUsed(resource) + 1 }
+    }
+  }
+  return resourceUsageUpdate
 }

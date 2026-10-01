@@ -5,6 +5,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { type MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
+import { deleteReceiptHeaders, readReceiptHeaders } from '../lib/receiptLedgers'
 
 const FIXTURE_CAMPAIGN_NAME = 'Encounter execution fixture'
 type FixtureRunArgs = {
@@ -197,16 +198,21 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
     .withIndex('by_characterId_commandId', (q) => q.eq('characterId', args.characterId))
     .take(101)
   const linked = new Set(
-    children.flatMap((child) =>
-      child.commands.flatMap((command) =>
-        command.commandType === 'UPDATE_ACTOR' && command.characterReceiptId
-          ? [command.characterReceiptId]
-          : []
+    (
+      await readReceiptHeaders(
+        ctx,
+        'encounterRunCommands',
+        children.flatMap((child) =>
+          child.commands.filter((command) => command.commandType === 'UPDATE_ACTOR')
+        )
       )
-    )
+    ).flatMap((command) =>
+      command.commandType === 'UPDATE_ACTOR' && command.characterReceiptId
+        ? [command.characterReceiptId] : [])
   )
-  for (const child of children)
-    for (const receipt of child.receipts) {
+  for (const child of children) {
+    const receipts = await readReceiptHeaders(ctx, 'encounterRuleReceipts', child.receipts)
+    for (const receipt of receipts) {
       let rawResult: unknown
       try {
         rawResult = JSON.parse(receipt.resultJson)
@@ -251,6 +257,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         if (characterReceipt) linked.add(characterReceipt.id)
       }
     }
+  }
   if (
     characterReceipts.length > 100 ||
     children.some(
@@ -309,16 +316,24 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
     )
   )
     throw new Error('Fixture Encounter dependency or ownership mismatch.')
-  for (const receipt of characterReceipts)
-    if (linked.has(receipt.id)) await ctx.db.delete(receipt._id)
+  await deleteReceiptHeaders(
+    ctx,
+    [
+    ...characterReceipts
+      .filter((receipt) => linked.has(receipt.id))
+      .map((header) => ({ table: 'characterCommandReceipts' as const, header })),
+    ...children.flatMap((child) => [
+      ...child.receipts.map((header) => ({ table: 'encounterRuleReceipts' as const, header })),
+      ...child.commands.map((header) => ({ table: 'encounterRunCommands' as const, header }))
+    ])
+    ]
+  )
   for (const child of children) {
     for (const row of child.actorBindings) await ctx.db.delete(row._id)
     if (child.binding) await ctx.db.delete(child.binding._id)
+    for (const row of child.effects) await ctx.db.delete(row._id)
+    for (const row of child.occurrences) await ctx.db.delete(row._id)
     for (const row of [
-      ...child.effects,
-      ...child.receipts,
-      ...child.occurrences,
-      ...child.commands,
       ...child.participants,
       ...child.sides,
       ...child.rounds,

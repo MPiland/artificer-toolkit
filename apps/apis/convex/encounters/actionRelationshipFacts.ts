@@ -10,6 +10,7 @@ import {
 import type { QueryCtx } from '../_generated/server'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 
 /** Loads every current Run actor's effects before preparing relationship-bound action facts. */
 export async function loadNativeActionRelationshipFacts(
@@ -46,7 +47,7 @@ export async function loadNativeActionRelationshipFacts(
             actor.id,
             input.activeEffectsByActorId?.get(actor.id) ??
               (await listActiveRuleEffects(
-                ctx,
+                { db: createConvexEncounterStoreReader(ctx) },
                 actor.kind === 'CHARACTER'
                   ? { kind: 'CHARACTER', characterId: actor.sourceId! }
                   : {

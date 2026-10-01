@@ -1,3 +1,4 @@
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import type {
   SourceImportBatchResultDto,
@@ -165,7 +166,7 @@ export async function fixture() {
       optionalCombatSnapshot: optionalSnapshot,
       optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalSnapshot)
     })
-    await writeRunActor(ctx, blockerRow._id, creature)
+    await writeRunActor({ db: createConvexEncounterStore(ctx) }, blockerRow._id, creature)
     await ctx.db.patch(run._id, {
       status: 'ACTIVE',
       stateJson: JSON.stringify(active),

@@ -1,3 +1,4 @@
+import { api } from '../_generated/api'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -27,7 +28,7 @@ describe('native Character play-state commands', () => {
     })
     await t.run((ctx) =>
       ctx.db.patch(stored.character!.play._id, {
-        playJson: encoded.play.playJson,
+        state: encoded.play.state,
         checksum: encoded.play.checksum,
         updatedAt: encoded.play.updatedAt
       })
@@ -40,7 +41,11 @@ describe('native Character play-state commands', () => {
       amount: 5
     }
     const damaged = await owner.caller.mutation(execute, { id: character.id, command: damage })
-    expect(damaged.sheet.overview).toMatchObject({
+    expect(damaged).not.toHaveProperty('sheet')
+    const damagedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: damaged.characterId
+    }))!
+    expect(damagedSheet.overview).toMatchObject({
       currentHitPoints: 9,
       tempHitPoints: 0,
       maxHitPoints: 11
@@ -55,7 +60,11 @@ describe('native Character play-state commands', () => {
         amount: 100
       }
     })
-    expect(healed.sheet.overview.currentHitPoints).toBe(11)
+    expect(healed).not.toHaveProperty('sheet')
+    const healedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: healed.characterId
+    }))!
+    expect(healedSheet.overview.currentHitPoints).toBe(11)
     await owner.caller.mutation(execute, {
       id: character.id,
       command: {
@@ -83,8 +92,12 @@ describe('native Character play-state commands', () => {
       ).rejects.toThrow()
     }
     const replay = await owner.caller.mutation(execute, { id: character.id, command: damage })
+    expect(replay).not.toHaveProperty('sheet')
+    const replaySheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: replay.characterId
+    }))!
     expect(replay.streamVersion).toBe(4)
-    expect(replay.sheet.overview.currentHitPoints).toBe(11)
+    expect(replaySheet.overview.currentHitPoints).toBe(11)
     expect(replay.historyEntry).toEqual(damaged.historyEntry)
     expect(await readState()).toEqual(spent)
   })
@@ -101,7 +114,11 @@ describe('native Character play-state commands', () => {
         notes: 'Long march'
       }
     })
-    expect(exhausted.sheet.overview.exhaustion).toMatchObject({ level: 1, notes: 'Long march' })
+    expect(exhausted).not.toHaveProperty('sheet')
+    const exhaustedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: exhausted.characterId
+    }))!
+    expect(exhaustedSheet.overview.exhaustion).toMatchObject({ level: 1, notes: 'Long march' })
     const before = await readState()
     await expect(
       owner.caller.mutation(execute, {
@@ -110,7 +127,7 @@ describe('native Character play-state commands', () => {
           type: 'SET_EXHAUSTION',
           commandId: crypto.randomUUID(),
           expectedVersion: 2,
-          level: exhausted.sheet.overview.exhaustion.maximumLevel + 1
+          level: exhaustedSheet.overview.exhaustion.maximumLevel + 1
         }
       })
     ).rejects.toThrow()
@@ -126,7 +143,7 @@ describe('native Character play-state commands', () => {
       })
     ).rejects.toThrow()
     expect(await readState()).toEqual(before)
-    const condition = exhausted.sheet.reference.conditionOptions.find(
+    const condition = exhaustedSheet.reference.conditionOptions.find(
       (option) => option.label === 'Blinded'
     )
     if (!condition) throw new Error('Missing current System Blinded condition')
@@ -140,7 +157,11 @@ describe('native Character play-state commands', () => {
         notes: 'Smoke'
       }
     })
-    expect(added.sheet.overview.conditions).toContainEqual(
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    expect(addedSheet.overview.conditions).toContainEqual(
       expect.objectContaining({ conditionTypeId: condition.id, notes: 'Smoke' })
     )
     const removed = await owner.caller.mutation(execute, {
@@ -152,8 +173,12 @@ describe('native Character play-state commands', () => {
         conditionTypeId: condition.id
       }
     })
+    expect(removed).not.toHaveProperty('sheet')
+    const removedSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: removed.characterId
+    }))!
     expect(
-      removed.sheet.overview.conditions.some((entry) => entry.conditionTypeId === condition.id)
+      removedSheet.overview.conditions.some((entry) => entry.conditionTypeId === condition.id)
     ).toBe(false)
     const recovered = await owner.caller.mutation(execute, {
       id: character.id,
@@ -164,7 +189,11 @@ describe('native Character play-state commands', () => {
         level: 0
       }
     })
-    expect(recovered.sheet.overview.exhaustion.level).toBe(0)
+    expect(recovered).not.toHaveProperty('sheet')
+    const recoveredSheet = (await owner.caller.query(api.characters.sheet.get, {
+      id: recovered.characterId
+    }))!
+    expect(recoveredSheet.overview.exhaustion.level).toBe(0)
     const after = await readState()
     expect(readCharacterRecord(after.character!).intent).toEqual(
       readCharacterRecord(before.character!).intent

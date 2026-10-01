@@ -42,9 +42,8 @@ import { removeTurnSpeedBonus } from './turnMovement.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
-import { readEncounterCharacterRow } from './characterPlay.js'
 import type { EncounterDocument } from './store.js'
-import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterCharacterWriteTransaction } from './ports.js'
 
 type ActionBatch = Extract<
   ServerRuleExecutionApplicationOutputsDto,
@@ -74,7 +73,7 @@ function unavailable(message: string): never {
  * before-state refuses the undo instead of approximating it. Undoing an undo is not supported.
  */
 export async function revertLastEncounterAction(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   command: RevertLastEncounterActionInputDto,
   userId: string
 ): Promise<EncounterCommandResultDto> {
@@ -440,7 +439,7 @@ type RevertScope = {
 
 /** Writes the restored actors, the next Run version and the undo's own timeline entry. */
 async function commitRevert(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   input: RevertScope & {
     actors: readonly EncounterRunActorState[]
     nextActors: EncounterRunActorState[]
@@ -501,7 +500,7 @@ async function commitRevert(
  * the actor's latest), its allowance use and its turn's speed bonus.
  */
 async function revertBasicAction(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   input: RevertScope & { root: Extract<StoredCommand, { commandType: 'USE_BASIC_ACTION' }> }
 ): Promise<EncounterCommandResultDto> {
   const { state, root } = input
@@ -537,7 +536,7 @@ async function revertBasicAction(
   })
 }
 async function restoreCharacter(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   input: {
     characterId: string
     inverse: CharacterInverse
@@ -550,7 +549,7 @@ async function restoreCharacter(
   }
 ) {
   const { inverse } = input
-  const row = await readEncounterCharacterRow(ctx, input.characterId)
+  const row = await ctx.ports.readCharacterRow(input.characterId)
   if (!row || row.status !== 'ACTIVE' || row.systemId !== input.gameSystemId)
     throw new Error('Encounter Character is unavailable.')
   if (row.play.streamVersion !== inverse.expectedStreamVersion)

@@ -1,3 +1,7 @@
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import {
@@ -120,8 +124,8 @@ describe('native action relationship facts', () => {
         stateJson: JSON.stringify(nextState),
         stateChecksum: checksumCanonicalJson(nextState)
       })
-      await insertRunActor(ctx, target)
-      const effects = createActiveRuleEffectStore(ctx)
+      await insertRunActor({ db: createConvexEncounterStore(ctx) }, target)
+      const effects = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       await effects.create({
         id: effectId,
         owner: { kind: 'ENCOUNTER_ACTOR', encounterId: fixture.run.id, targetActorId: target.id },
@@ -156,7 +160,7 @@ describe('native action relationship facts', () => {
         const state = readRunState(run)
         return loadNativeActionRelationshipFacts(ctx, {
           state,
-          actors: await readRunActors(ctx, state),
+          actors: await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state),
           sourceActorId: source.id,
           targetActorId,
           actionEffectId

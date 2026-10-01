@@ -1,3 +1,4 @@
+import type { CharacterSheetActionsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { useState } from 'react'
 import { Text } from '@mantine/core'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
@@ -14,11 +15,7 @@ import {
   type CharacterSheetActionFilter,
   type CharacterSheetPlayableAction
 } from './characterSheetActions.utils'
-import type {
-  CharacterSheet,
-  OpenSheetPanel,
-  SubmitSheetCommand
-} from '../core/CharacterSheet.types'
+import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetRollText } from '../dice/CharacterSheetRollValue'
 import { getMechanicRollTargets } from '../dice/dice.utils'
 
@@ -32,7 +29,7 @@ export function CharacterSheetActions({
   hideTitle?: boolean
   openPanel?: OpenSheetPanel
   pending: boolean
-  sheet: CharacterSheet
+  sheet: CharacterSheetActionsDto
   submitCommand: SubmitSheetCommand
 }) {
   const version = sheet.meta.streamVersion

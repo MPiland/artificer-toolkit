@@ -2,7 +2,8 @@ import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/
 import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import {
   contentSnapshotDocumentsObjectSchema,
-  contentSnapshotKindSchema
+  contentSnapshotKindSchema,
+  type ContentSnapshotPublicationVersion
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { toCharacterBuilderRaceCatalogSource } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
 import type {
@@ -37,6 +38,9 @@ import { createBrowserReaders, readScopeObjects } from './contentSnapshotReaders
 type Test = Awaited<ReturnType<typeof fixture>>['t']
 type Caller = Awaited<ReturnType<typeof fixture>>['owner']['caller']
 type Readers = CharacterRuleContextReaders & CharacterBuilderCatalogueReaders
+type FullPoolPublication = AuthoredPublicationDocument & {
+  publicationVersion: ContentSnapshotPublicationVersion
+}
 
 /**
  * Every current publication the Character can read, through the Convex source authority
@@ -45,7 +49,7 @@ type Readers = CharacterRuleContextReaders & CharacterBuilderCatalogueReaders
 async function readFullPoolPublications(t: Test, character: CharacterAuthored, userId: string) {
   return t.run(async (ctx) => {
     const access = await readCharacterSources(ctx, character, userId)
-    const publications: AuthoredPublicationDocument[] = []
+    const publications: FullPoolPublication[] = []
     for (const kind of contentSnapshotKindSchema.options)
       for (const root of await readCharacterSourceRoots(ctx, character.systemId, access, kind)) {
         const published = await readCharacterPublication(
@@ -55,7 +59,31 @@ async function readFullPoolPublications(t: Test, character: CharacterAuthored, u
           userId,
           access
         )
-        if (published) publications.push(published)
+        if (published) {
+          const version = await ctx.db.get(root.currentVersionId)
+          if (!version) throw new Error('Missing full-pool publication version.')
+          publications.push({
+            ...published,
+            publicationVersion: {
+              identity: {
+                subjectKind: root.subjectKind,
+                subjectId: root.id,
+                systemId: root.systemId,
+                contentSourceId: root.contentSourceId,
+                versionId: root.currentVersionPublicId,
+                checksum: root.checksum
+              },
+              version: version.version,
+              ...(root.subjectKind === 'CLASS'
+                ? { storedParentId: root.parentClassId }
+                : root.subjectKind === 'RACE'
+                  ? { storedParentId: root.parentRaceId }
+                  : root.subjectKind === 'EQUIPMENT'
+                    ? { storedParentId: root.parentEquipmentId }
+                    : {})
+            }
+          })
+        }
       }
     return publications
   })
@@ -66,30 +94,32 @@ async function readFullPoolPublications(t: Test, character: CharacterAuthored, u
  * picker facts come straight from the documents (a subrace resolved against its base Race, and
  * Equipment resolved from its documents rather than the stored projection).
  */
-function createFullPoolReaders(publications: readonly AuthoredPublicationDocument[]): Readers {
-  const scopeId = crypto.randomUUID()
+function createFullPoolReaders(publications: readonly FullPoolPublication[]): Readers {
   const ruleReaders = createSnapshotReaders(
     contentSnapshotKindSchema.options.flatMap((kind) => {
-      const roots = publications
-        .filter((published) => published.subjectKind === kind)
-        .map((published) => published.document)
-      return roots.length === 0
-        ? []
-        : [
-            contentSnapshotDocumentsObjectSchema.parse({
-              format: 1,
-              scope: 'SOURCE',
-              scopeId,
-              kind,
-              part: 'documents',
-              roots
-            })
-          ]
+      const scopes = new Map<string, FullPoolPublication[]>()
+      for (const published of publications.filter((published) => published.subjectKind === kind)) {
+        const scopeId = published.publicationVersion.identity.contentSourceId
+        const entries = scopes.get(scopeId) ?? []
+        entries.push(published)
+        scopes.set(scopeId, entries)
+      }
+      return [...scopes].map(([scopeId, entries]) =>
+        contentSnapshotDocumentsObjectSchema.parse({
+          format: 2,
+          scope: 'SOURCE',
+          scopeId,
+          kind,
+          part: 'documents',
+          roots: entries.map((entry) => entry.document),
+          versions: entries.map((entry) => entry.publicationVersion)
+        })
+      )
     })
   )
   const ofKind = <Kind extends AuthoredPublicationDocument['subjectKind']>(kind: Kind) =>
     publications.filter(
-      (published): published is Extract<AuthoredPublicationDocument, { subjectKind: Kind }> =>
+      (published): published is Extract<FullPoolPublication, { subjectKind: Kind }> =>
         published.subjectKind === kind
     )
   return {

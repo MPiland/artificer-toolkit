@@ -2,6 +2,7 @@
 
 - **Status:** decision (approved 2026-09-24; implementation in progress on Phase 8.2)
 - **Date:** 2026-09-24
+- **Revised:** 2026-09-29
 - **Scope:** who may act for an Encounter actor, Encounter automation modes, rule enforcement, roll prompts, roll visibility, door and movement policy for players, and the Encounter's view of Character state
 - **Update when:** actor control, automation modes, enforcement, roll-prompt behavior, roll visibility or the Character/Encounter state boundary changes
 - **Supersedes:** "Progression remains GM-driven" and "`RESOLVE_ACTION` accepts a GM-selected actor" in the historical `docs/roadmap/07-encounters.md`; the three-mode (`AUTOMATIC | ASSISTED | MANUAL`) Encounter automation model; GM-only door toggling in [live-session coordination](../architecture/live-sessions.md). Other decisions in earlier ADRs remain in force.
@@ -63,11 +64,14 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
      (the GM for uncontrolled actors).
 4. **Character state is read live.** An Encounter reads a Character's HP and state from the Character
    at capture time, fenced by the revisions that captures already record. The Run keeps no Character HP,
-   maximum, condition or stream-version mirror. The Sheet stays the single writer of Character play state.
-   - Note (2026-09-25): for display, the Character row stores its effective maximum HP, recomputed by the
-     one Character persistence helper on every Character write and on Campaign adjustment, attunement and
-     assignment changes. Rules evaluate the maximum live. A published-content change reaches the stored
-     value on the Character's next write (accepted lag; publish-time recompute is a follow-up).
+   maximum, condition or stream-version mirror. The Sheet owns play interaction. Convex currently
+   writes Character play state; [ADR 0035](0035-room-authoritative-live-encounters.md) supersedes that
+   authority while a Character is held by a live Run, routing its play actions through the room.
+   - Note (updated 2026-09-29): for display, the `characterPlayStates` row stores effective maximum HP,
+     recomputed by the one Character persistence helper on every Character write and on Campaign
+     adjustment, attunement and assignment changes. Rules evaluate the maximum live. A published-content
+     change reaches the stored value on the Character's next write (accepted lag; publish-time recompute
+     is a follow-up).
 5. **Table policy.**
    - Players may open and close unlocked doors; locking stays GM-only.
    - Player rolls default to the table, with a "To GM" option. The GM keeps private and blind rolls and

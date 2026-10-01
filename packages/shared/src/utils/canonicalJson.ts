@@ -23,6 +23,11 @@ function normalize(value: unknown, nested = false): CanonicalJson | typeof omit 
     return value
   }
   if (Array.isArray(value)) {
+    for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
+      if (descriptor.enumerable && !('value' in descriptor)) {
+        throw new TypeError('Canonical JSON values cannot contain enumerable accessors.')
+      }
+    }
     return value.map((entry) => {
       const normalized = normalize(entry, true)
       return normalized === omit ? null : normalized
@@ -33,9 +38,20 @@ function normalize(value: unknown, nested = false): CanonicalJson | typeof omit 
   }
 
   const normalized: Record<string, CanonicalJson> = {}
-  for (const [key, entry] of Object.entries(value)) {
-    const nestedValue = normalize(entry, true)
-    if (nestedValue !== omit) normalized[key] = nestedValue
+  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) {
+    if (!descriptor.enumerable) continue
+    if (!('value' in descriptor)) {
+      throw new TypeError('Canonical JSON values cannot contain enumerable accessors.')
+    }
+    const nestedValue = normalize(descriptor.value, true)
+    if (nestedValue !== omit) {
+      Object.defineProperty(normalized, key, {
+        value: nestedValue,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      })
+    }
   }
   return normalized
 }

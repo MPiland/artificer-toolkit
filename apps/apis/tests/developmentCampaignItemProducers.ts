@@ -312,7 +312,7 @@ export async function verifyCampaignItemProducers(
     assert.deepEqual(after, before, 'Character receipt replay must not write.')
     assert.equal(replay.characterId, settled.characterId)
     assert.deepEqual(replay.historyEntry, settled.historyEntry)
-    assert.deepEqual(replay.sheet, character(before, firstCharacterId).sheet)
+    assert.deepEqual(replay.result, settled.result)
     assert.equal(replay.streamVersion, character(before, firstCharacterId).sheet.meta.streamVersion)
   }
 

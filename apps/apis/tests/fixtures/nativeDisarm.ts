@@ -47,6 +47,8 @@ import type { QueryCtx } from '../../convex/_generated/server'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readCharacterRow } from '../../convex/characters/stateDocuments'
+import { readReceiptHeaders } from '../../convex/lib/receiptLedgers'
+import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
 import { prepareNativeActionEconomy } from '../../convex/encounters/actionEconomy'
 import { prepareNativeEncounterActionMechanics } from '../../convex/encounters/actionMechanicsPreparation'
 import { readNativeActionSceneContext } from '../../convex/encounters/actionSceneContext'
@@ -355,21 +357,35 @@ export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarm
         .collect(),
       occurrences,
       pendingSnapshots: await Promise.all(
-        occurrences.map((occurrence) => readPendingSnapshot(ctx, occurrence))
+        occurrences.map((occurrence) =>
+          readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
+        )
       ),
-      receipts: await ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-        .collect(),
-      commands: await ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-        .collect(),
+      receipts: await readReceiptHeaders(
+        ctx,
+        'encounterRuleReceipts',
+        await ctx.db
+          .query('encounterRuleReceipts')
+          .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
+          .collect()
+      ),
+      commands: await readReceiptHeaders(
+        ctx,
+        'encounterRunCommands',
+        await ctx.db
+          .query('encounterRunCommands')
+          .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
+          .collect()
+      ),
       character: await readCharacterRow(ctx, base.character.id),
-      characterReceipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
-        .collect()
+      characterReceipts: await readReceiptHeaders(
+        ctx,
+        'characterCommandReceipts',
+        await ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
+          .collect()
+      )
     }
   })
 }

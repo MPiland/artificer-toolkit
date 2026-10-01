@@ -23,6 +23,7 @@ import type {
   RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
+import { insertConversationEntry } from './conversationDocuments'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -316,7 +317,11 @@ describe('native Campaign authoritative rolls', () => {
         quantity: 1
       }
     })
-    const item = added.sheet.inventory.items.find(
+    expect(added).not.toHaveProperty('sheet')
+    const addedSheet = (await player.caller.query(api.characters.sheet.get, {
+      id: added.characterId
+    }))!
+    const item = addedSheet.inventory.items.find(
       (candidate) => candidate.equipmentId === draft.subjectId
     )
     if (!item) throw new Error('Missing shared club fixture')
@@ -596,19 +601,20 @@ describe('native Campaign authoritative rolls', () => {
     await t.run(async (ctx) => {
       for (let index = 0; index < 499; index++) {
         const id = `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
-        await ctx.db.insert('campaignConversationEntries', {
+        const identity = {
           id,
           campaignId: request.campaignId,
           conversationId: template.conversationId,
           authorUserId: gm.userId,
           createdAt: '2020-01-01T00:00:00.000Z',
           clientNonce: crypto.randomUUID()
-        })
+        }
         const { _id, _creationTime, ...payload } = seed
         void _id
         void _creationTime
-        await ctx.db.insert(
-          'campaignConversationEntryPayloads',
+        await insertConversationEntry(
+          ctx,
+          identity,
           index % 2 === 0
             ? { ...payload, entryId: id }
             : {

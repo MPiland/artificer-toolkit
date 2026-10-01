@@ -64,14 +64,16 @@ export async function prepareCharacterBuilder(
           ])
         }
       }
-      const previouslyLoadedSpellDocumentsById = previousContext.currentSpellDocumentsById
       const currentContext = await loadCharacterRuleContext(
         ctx,
         character,
         character.userId,
-        previouslyLoadedSpellDocumentsById && previouslyLoadedSpellDocumentsById.size > 0
+        previousContext.spellCatalogueEntries &&
+          previousContext.spellCatalogueEntries.length > 0 &&
+          previousContext.currentSpellDocumentsById
           ? {
-              spellDocumentsById: previouslyLoadedSpellDocumentsById,
+              spellCatalogueEntries: previousContext.spellCatalogueEntries,
+              currentSpellDocumentsById: previousContext.currentSpellDocumentsById,
               sourceIdentities: previousContext.sourceIdentities
             }
           : undefined,
@@ -85,7 +87,7 @@ export async function prepareCharacterBuilder(
         ]),
         catalog: {
           ...previousContext.catalog,
-          spells: [...currentContext.currentSpellDocumentsById.values()]
+          spells: [...currentContext.spellCatalogueEntries]
             .sort(
               (left, right) =>
                 left.label.localeCompare(right.label) || left.id.localeCompare(right.id)

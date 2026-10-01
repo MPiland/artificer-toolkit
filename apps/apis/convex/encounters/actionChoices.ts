@@ -97,7 +97,7 @@ async function readActionChoicesRun(ctx: QueryCtx, input: GetEncounterActionChoi
     state.currentActorId !== input.actorId
   )
     return null
-  const actor = await readRunActor(ctx, state, input.actorId)
+  const actor = await readRunActor(encounterReadTransaction(ctx), state, input.actorId)
   // A player sees the choices of an actor they control; creature actions included only then.
   await requireEncounterActorControl(encounterReadTransaction(ctx), { campaign, membership, actor })
   // A defeated actor has no choices (D63).
@@ -305,8 +305,8 @@ export const optional = query({
     if (!current) throw new Error('Encounter action choices are stale or unavailable.')
     const { state, actor, campaign, membership } = current
     const [actors, target] = await Promise.all([
-      readRunActors(ctx, state),
-      readRunActor(ctx, state, input.targetActorId)
+      readRunActors(encounterReadTransaction(ctx), state),
+      readRunActor(encounterReadTransaction(ctx), state, input.targetActorId)
     ])
     if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
     const { descriptor, definition, targetCharacter } = await readNativeDisarmSelection(ctx, {

@@ -11,6 +11,12 @@ WebSocket carries the supported Door and standalone token move/undo commands plu
 ephemeral previews. Character Sheet and Encounter rule commands keep their owning Convex mutations.
 Durable publication converges through Convex subscriptions.
 
+The Sheet subscribes to `characters/sheetSlices:get` COMMON for visible identity/version/vitals and
+mounts Actions, Spells, Inventory, Extras, Features or Notes queries only while their surfaces are
+active. Inactive slices have immediate query cleanup. Commands return compact receipt/result
+acknowledgements; pushed slices supply state and preserve optimistic rollback. The backend's
+mechanical slices still prepare complete Character state; storage narrowing remains in progress.
+
 ```mermaid
 flowchart LR
   Routes["TanStack routes + UI"] --> Data["src/data native adapters"]
@@ -47,7 +53,8 @@ data, auth email, notifications and media authority run through Convex.
 - [`public/_headers`](public/_headers) sets immutable caching for hashed `/assets/*` and `nosniff`
   on every static asset. Worker responses get their headers from `src/server/securityHeaders.ts`.
 - The Worker bundle is checked at build time: `vite build` fails if any chunk includes the Node Sentry
-  SDK (`@sentry/node`), which does not run on `workerd`.
+  SDK (`@sentry/node`) or the browser DOM entry of `html-dom-parser`. Vite resolves the installed
+  parser's pure-JavaScript ESM server entry for both browser and Worker rich text.
 - `yarn workspace @artificer-toolkit/web dev` and `preview` both run the server in local `workerd`.
   The Vite config copies `CONVEX_SITE_URL` and `AUTH_PROXY_SECRET` from the root env file into the
   process environment, where the Worker's declared secrets are read.

@@ -1,3 +1,7 @@
+import {
+  createConvexEncounterStoreReader,
+  createConvexEncounterStore
+} from '../lib/convexEncounterStore'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 import { makeFunctionReference } from 'convex/server'
@@ -66,7 +70,11 @@ describe('native action economy', () => {
           .unique()
         if (!run) throw new Error('Missing run.')
         const state = encounterRunStateSchema.parse(JSON.parse(run.stateJson))
-        const actor = await readRunActor(ctx, state, base.actor.id)
+        const actor = await readRunActor(
+          { db: createConvexEncounterStoreReader(ctx) },
+          state,
+          base.actor.id
+        )
         const target = (
           await loadMovementTargets(ctx, {
             encounterId: state.id,
@@ -91,11 +99,14 @@ describe('native action economy', () => {
           })
         ).rejects.toThrow('Encounter action economy source is stale.')
         if (!prepared) throw new Error('Missing allowance.')
-        const updated = await consumeNativeActionEconomy(ctx, {
-          actor,
-          consumption: prepared,
-          overridden: false
-        })
+        const updated = await consumeNativeActionEconomy(
+          { db: createConvexEncounterStore(ctx) },
+          {
+            actor,
+            consumption: prepared,
+            overridden: false
+          }
+        )
         expect({ ...updated, resources: actor.resources }).toEqual(actor)
         if (abort) throw new Error('abort')
         return updated
@@ -158,7 +169,7 @@ describe('native action economy', () => {
         stateJson: JSON.stringify(state),
         stateChecksum: checksumCanonicalJson(state)
       })
-      await writeRunActor(ctx, row._id, actor)
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
     })
     const read = () =>
       base.t.run((ctx) =>
@@ -178,7 +189,11 @@ describe('native action economy', () => {
           .unique()
         if (!row) throw new Error('Missing Run.')
         const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-        const actor = await readRunActor(ctx, state, source.id)
+        const actor = await readRunActor(
+          { db: createConvexEncounterStoreReader(ctx) },
+          state,
+          source.id
+        )
         return prepareNativeActionEconomy(ctx, {
           actor,
           state,
@@ -225,7 +240,7 @@ describe('native action economy', () => {
         stateJson: JSON.stringify(state),
         stateChecksum: checksumCanonicalJson(state)
       })
-      await createActiveRuleEffectStore(ctx).create({
+      await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
         id: crypto.randomUUID(),
         owner: { kind: 'ENCOUNTER_ACTOR', encounterId: base.run.id, targetActorId: source.id },
         definition: {
@@ -298,7 +313,11 @@ describe('native action economy', () => {
           .unique()
         if (!run) throw new Error('Missing Run.')
         const state = encounterRunStateSchema.parse(JSON.parse(run.stateJson))
-        const actor = await readRunActor(ctx, state, source.id)
+        const actor = await readRunActor(
+          { db: createConvexEncounterStoreReader(ctx) },
+          state,
+          source.id
+        )
         return prepareNativeActionEconomy(ctx, {
           actor,
           state,

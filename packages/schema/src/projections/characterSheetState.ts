@@ -74,3 +74,4 @@ export const characterSheetStateSchema = lazySchema(() =>
 )
 
 export type CharacterSheetState = z.infer<typeof characterSheetStateSchema>
+export const characterSpellCustomizationSchema = spellCustomizationSchema

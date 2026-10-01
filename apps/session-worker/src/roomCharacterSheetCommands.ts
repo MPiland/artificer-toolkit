@@ -1,0 +1,231 @@
+import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import {
+  readCharacterCommandReplay,
+  writeCharacterCommandReceipt
+} from '@artificer-toolkit/encounter-persistence/characterSheetReceipts'
+import {
+  liveSessionCommandDtoSchema,
+  type LiveSessionCommandDto
+} from '@artificer-toolkit/schema/api/liveSessionCommands'
+import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
+import {
+  applyCharacterSheetCommand,
+  CharacterSheetCommandError,
+  summarizeCharacterSheetCommand
+} from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
+import {
+  getProspectiveSheetResourceUsage,
+  getSheetCommandResourceUsageUpdate
+} from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
+import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
+import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
+import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
+import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
+import type { RoomInputs } from './roomInputs.js'
+import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
+import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
+
+/** Character play and its Sheet receipt join the caller's atomic room command commit. */
+export async function executeRoomCharacterSheetCommand(input: {
+  store: RoomEncounterStore
+  transaction: RoomTransaction
+  inputs: RoomInputs
+  authorization: LiveSessionRoomAuthorization
+  campaignId: string
+  epoch: string
+  userId: string
+  command: Extract<LiveSessionCommandDto, { scope: 'CHARACTER_SHEET' }>
+}) {
+  const { store, transaction, inputs, authorization } = input
+  const campaignId = postgresUuidSchema.parse(input.campaignId)
+  const epoch = postgresUuidSchema.parse(input.epoch)
+  const userId = postgresUuidSchema.parse(input.userId)
+  const envelope = liveSessionCommandDtoSchema.parse(input.command)
+  if (envelope.scope !== 'CHARACTER_SHEET')
+    throw new Error('This command is not a live Character Sheet command.')
+  const characterId = envelope.characterId.toLowerCase()
+  const encounterId = envelope.encounterId.toLowerCase()
+  const command = envelope.command
+  if (store.epoch !== epoch || inputs.epoch !== epoch)
+    throw new Error('Room Character Sheet authority changed.')
+
+  await inputs.encounter(encounterId, transaction)
+  const observed = inputs.revisions(campaignId, authorization.revisions)
+  const ctx = await roomEncounterWriteTransaction({
+    store,
+    transaction,
+    inputs,
+    authorization,
+    campaignId,
+    epoch,
+    userId,
+    observed
+  })
+  const { campaign, membership, assignment } = await ctx.ports.requireCampaignCharacterAuthority(
+    campaignId,
+    characterId,
+    userId
+  )
+  const cachedMember = authorization.campaign.members.filter((member) => member.userId === userId)
+  const cachedAssignment = authorization.campaign.assignments.filter(
+    (assigned) => assigned.characterId === characterId
+  )
+  const cachedCharacter = authorization.characters.filter(
+    (character) => character.characterId === characterId
+  )
+  if (
+    cachedMember.length !== 1 ||
+    cachedMember[0].role !== membership.role ||
+    cachedAssignment.length !== 1 ||
+    cachedAssignment[0].userId !== assignment.userId ||
+    cachedCharacter.length !== 1 ||
+    cachedCharacter[0].ownerUserId !== assignment.userId ||
+    (membership.role === 'OWNER'
+      ? campaign.ownerUserId !== userId
+      : membership.role !== 'PLAYER' || assignment.userId !== userId)
+  )
+    throw new Error('Room Character Sheet assignment authority changed.')
+
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (query) => query.eq('id', encounterId))
+    .unique()
+  if (!run) throw new Error('Encounter is unavailable.')
+  const state = readRunState(run)
+  if (
+    state.status !== 'ACTIVE' ||
+    state.campaignId !== campaign.id ||
+    state.gameSystemId !== campaign.gameSystemId
+  )
+    throw new Error('Character Sheet requires an active Campaign Encounter.')
+  if (
+    !(await readRunActors(ctx, state)).some(
+      (actor) =>
+        actor.kind === 'CHARACTER' && actor.sourceId === characterId && actor.frozenState === null
+    )
+  )
+    throw new Error('Character is not held by this active Encounter.')
+  if (assignment.userId !== userId) assertCampaignGmSheetCommandAllowed(command)
+
+  const scope = {
+    campaignId,
+    authorityEpoch: epoch,
+    characterId,
+    expectedUserId: userId,
+    expectedRole: membership.role
+  }
+  const initial = await prepareRoomLiveCharacterSheet(store, inputs, scope, observed, transaction)
+  if (
+    initial.active.id !== characterId ||
+    initial.active.status !== 'ACTIVE' ||
+    initial.active.userId !== assignment.userId ||
+    initial.active.systemId !== campaign.gameSystemId ||
+    initial.character.userId !== assignment.userId
+  )
+    throw new Error('Stored Campaign Character assignment mismatch.')
+  const activeEffects = await listActiveRuleEffects(
+    ctx,
+    { kind: 'CHARACTER', characterId },
+    { ownerVerified: true }
+  )
+  const { sheet } = projectCharacterSheetBundle({
+    character: initial.prepared.character,
+    resolution: initial.prepared.resolution,
+    streamVersion: initial.active.play.streamVersion,
+    adjustments: initial.adjustments,
+    additionalConditions: getVisibleCampaignConditions(initial.campaignContext),
+    additionalCurrencyOptions: initial.campaignContext.currencyOptions,
+    creaturesById: initial.prepared.context.creaturesById,
+    vehiclesById: initial.prepared.context.vehiclesById,
+    spellCustomizations: initial.sheetState.spellCustomizations,
+    ruleEvaluation: initial.ruleEvaluation,
+    activeEffects
+  })
+
+  const replay = await readCharacterCommandReplay(
+    {
+      characterId,
+      userId,
+      command,
+      streamVersion: initial.active.play.streamVersion,
+      contentMaturity: initial.campaignContext.contentMaturity,
+      viewer: initial.campaignContext.viewer
+    },
+    () =>
+      ctx.db
+        .query('characterCommandReceipts')
+        .withIndex('by_characterId_commandId', (query) =>
+          query.eq('characterId', characterId).eq('commandId', command.commandId.toLowerCase())
+        )
+        .unique()
+  )
+  if (replay) return { acknowledgement: replay, facts: initial, replayed: true }
+  if (command.expectedVersion !== initial.active.play.streamVersion)
+    throw new CharacterSheetCommandError(
+      'Character Sheet changed; refresh before applying this command.'
+    )
+
+  const resourceUsageUpdate = getSheetCommandResourceUsageUpdate({
+    sheet,
+    resourceUsage: initial.sheetState.resourceUsage,
+    command
+  })
+  const occurredAt = new Date(
+    Math.max(
+      Date.now(),
+      Date.parse(initial.active.updatedAt) + 1,
+      Date.parse(initial.active.play.updatedAt) + 1
+    )
+  ).toISOString()
+  const updated = characterAuthoredDtoSchema.parse(
+    applyCharacterSheetCommand(initial.character, command, sheet, {
+      now: () => occurredAt,
+      attunementSlotLimit: initial.ruleEvaluation.output.rest.attunementSlotLimit
+    })
+  )
+  const nextSheetState = characterSheetStateSchema.parse({
+    ...initial.sheetState,
+    partyVisibility:
+      command.type === 'SET_PARTY_VISIBILITY'
+        ? command.visibility
+        : initial.sheetState.partyVisibility,
+    resourceUsage: getProspectiveSheetResourceUsage({
+      resourceUsage: initial.sheetState.resourceUsage,
+      resourceUsageUpdate,
+      characterId,
+      userId,
+      now: occurredAt
+    })
+  })
+  const sheetStateChanged =
+    canonicalizeRuleDocument(JSON.parse(JSON.stringify(nextSheetState))) !==
+    canonicalizeRuleDocument(initial.sheetState)
+  await ctx.ports.writeCharacterRecord({
+    current: initial.active,
+    fields: { streamVersion: initial.active.play.streamVersion + 1, updatedAt: occurredAt },
+    document: updated,
+    ...(sheetStateChanged ? { sheetState: nextSheetState } : {})
+  })
+  const facts = await prepareRoomLiveCharacterSheet(store, inputs, scope, observed, transaction)
+  const acknowledgement = await writeCharacterCommandReceipt(
+    {
+      characterId,
+      streamVersion: facts.active.play.streamVersion,
+      userId,
+      command,
+      occurredAt,
+      summary: summarizeCharacterSheetCommand(command, sheet),
+      contentMaturity: facts.campaignContext.contentMaturity,
+      viewer: facts.campaignContext.viewer
+    },
+    async (receipt) => {
+      await ctx.db.insert('characterCommandReceipts', receipt)
+    }
+  )
+  return { acknowledgement, facts, replayed: false }
+}

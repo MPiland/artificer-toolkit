@@ -1,15 +1,15 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
-import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest'
 
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { characterSheetFixture } from '../fixtures/characterSheet.fixtures'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
-import { CharacterSheetView } from '../core/CharacterSheetView'
+import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
 import { CharacterSheetExtras } from '../extras/CharacterSheetExtras'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
 import { CharacterSheetExtraPanel } from './CharacterSheetExtraPanel'
@@ -26,6 +26,7 @@ import {
   savingThrowPanelFixture,
   spellPanelAttackDamageFixture,
   spellPanelConfiguredCustomizationsFixture,
+  spellsPanelFixture,
   vehiclePanelFixture
 } from './inspector.fixtures'
 import { getCharacterSheetPanelImageTarget } from './inspector.model'
@@ -75,6 +76,10 @@ afterAll(() => {
 })
 
 describe('Character Sheet inspector', () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(320)
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(400)
+  })
   afterEach(() => vi.restoreAllMocks())
 
   it('maps authored domain panels to their active artwork', () => {
@@ -178,7 +183,7 @@ describe('Character Sheet inspector', () => {
   })
 
   it('announces command failures inside the overlay', async () => {
-    mockPanelQueries(abilityPanelFixture)
+    const watch = mockPanelQueries(abilityPanelFixture)
 
     renderWithAppProviders(
       <CharacterSheetInspector
@@ -199,6 +204,11 @@ describe('Character Sheet inspector', () => {
         name: 'Character sheet update failed'
       })
     ).toHaveTextContent('The server rejected this change.')
+    expect(
+      watch.mock.calls.some(
+        ([reference]) => getFunctionName(reference) === 'characters/sheetSlices:get'
+      )
+    ).toBe(false)
   })
 
   it('prepares a lazily discovered uncommitted Spell through the authoritative command', async () => {
@@ -233,17 +243,11 @@ describe('Character Sheet inspector', () => {
               classId,
               label: 'Cleric',
               preparedSpellLimit: 2,
-              options: [
-                {
-                  spellId,
-                  label: 'Healing Word',
-                  level: 1,
-                  prepared: false,
-                  committed: false
-                }
-              ]
+              eligibleSpellIds: [spellId],
+              preparedSpellIds: []
             }
-          ]
+          ],
+          catalogue: { kind: 'INLINE', spells: [{ spellId, label: 'Healing Word', level: 1 }] }
         }}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
@@ -319,24 +323,20 @@ describe('Character Sheet inspector', () => {
               classId: preparingClassId,
               label: 'Preparing source',
               preparedSpellLimit: 2,
-              options: [
-                {
-                  spellId,
-                  label: 'Shared Spell',
-                  level: 1,
-                  prepared: false,
-                  committed: true
-                }
-              ]
+              eligibleSpellIds: [spellId],
+              preparedSpellIds: []
             }
-          ]
+          ],
+          catalogue: { kind: 'INLINE', spells: [{ spellId, label: 'Shared Spell', level: 1 }] }
         }}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
       />
     )
 
-    const preparingOption = screen.getAllByRole('group', { name: 'Shared Spell' })[1]
+    const preparingOption = within(
+      screen.getByRole('region', { name: 'Eligible spells' })
+    ).getByRole('group', { name: 'Shared Spell' })
     expect(preparingOption).toBeDefined()
     await user.click(within(preparingOption!).getByRole('button', { name: 'Prepare' }))
 
@@ -405,17 +405,11 @@ describe('Character Sheet inspector', () => {
               classId,
               label: 'Preparing source',
               preparedSpellLimit: 2,
-              options: [
-                {
-                  spellId,
-                  label: 'Prepared Spell',
-                  level: 1,
-                  prepared: true,
-                  committed: true
-                }
-              ]
+              eligibleSpellIds: [spellId],
+              preparedSpellIds: [spellId]
             }
-          ]
+          ],
+          catalogue: { kind: 'INLINE', spells: [{ spellId, label: 'Prepared Spell', level: 1 }] }
         }}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
@@ -456,11 +450,11 @@ describe('Character Sheet inspector', () => {
             classId,
             label: 'Cleric',
             preparedSpellLimit: 2,
-            options: [
-              { spellId, label: 'Healing Word', level: 1, prepared: false, committed: false }
-            ]
+            eligibleSpellIds: [spellId],
+            preparedSpellIds: []
           }
-        ]
+        ],
+        catalogue: { kind: 'INLINE', spells: [{ spellId, label: 'Healing Word', level: 1 }] }
       }
     )
 
@@ -497,13 +491,151 @@ describe('Character Sheet inspector', () => {
           groups: []
         }}
         pending={false}
-        preparationOptions={{ characterId, streamVersion: 4, classes: [] }}
+        preparationOptions={{
+          characterId,
+          streamVersion: 4,
+          classes: [],
+          catalogue: { kind: 'INLINE', spells: [] }
+        }}
         submitCommand={vi.fn()}
         onTargetChange={vi.fn()}
       />
     )
 
     expect(screen.queryByRole('button', { name: /prepare/i })).not.toBeInTheDocument()
+  })
+
+  it('keeps offscreen prepared selections while paging a bounded list in the inspector scroll owner', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const characterId = '00000000-0000-4000-8000-000000000001'
+    const classId = '00000000-0000-4000-8000-000000000002'
+    const spells = Array.from({ length: 120 }, (_, index) => ({
+      spellId: `00000000-0000-4000-8000-${String(index + 100).padStart(12, '0')}`,
+      label: `Spell ${String(index).padStart(3, '0')}`,
+      level: 1
+    }))
+    renderWithAppProviders(
+      <div role='dialog'>
+        <CharacterSheetSpellsPanelContent
+          expectedVersion={4}
+          panel={{
+            kind: 'SPELLS',
+            target: { kind: 'SPELLS' },
+            panelId: 'spells',
+            characterId,
+            title: 'Manage spells',
+            state: 'DEFAULT',
+            editable: true,
+            allowedCommands: ['SET_PREPARED_SPELLS'],
+            slots: [],
+            groups: [
+              {
+                level: 1,
+                label: 'Level 1',
+                sources: spells.map((spell, index) => {
+                  const source = {
+                    spellId: spell.spellId,
+                    sourceKind: 'CLASS' as const,
+                    sourceInstanceId: `CLASS:${classId}`
+                  }
+                  return {
+                    spellId: spell.spellId,
+                    label: spell.label,
+                    sourceLabel: 'Cleric',
+                    source,
+                    target: { kind: 'SPELL', source },
+                    prepared: index === 119,
+                    canPrepare: true,
+                    preparationClassId: classId,
+                    known: false,
+                    canManageKnown: false,
+                    state: 'DEFAULT'
+                  } satisfies Extract<
+                    CharacterSheetPanelDto,
+                    { kind: 'SPELLS' }
+                  >['groups'][number]['sources'][number]
+                })
+              }
+            ]
+          }}
+          pending={false}
+          preparationOptions={{
+            characterId,
+            streamVersion: 4,
+            classes: [
+              {
+                classId,
+                label: 'Cleric',
+                preparedSpellLimit: 3,
+                eligibleSpellIds: spells.map((spell) => spell.spellId),
+                preparedSpellIds: [spells[119]!.spellId]
+              }
+            ],
+            catalogue: { kind: 'INLINE', spells }
+          }}
+          submitCommand={submitCommand}
+          onTargetChange={vi.fn()}
+        />
+      </div>
+    )
+    const region = screen.getByRole('region', { name: 'Eligible spells' })
+    expect(within(region).getAllByRole('group').length).toBeLessThan(20)
+    expect(within(region).queryByRole('group', { name: 'Spell 119' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('group').length).toBeLessThan(21)
+    await user.click(
+      within(screen.getByRole('group', { name: 'Spell 000' })).getByRole('button', {
+        name: 'Prepare'
+      })
+    )
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_PREPARED_SPELLS',
+      expectedVersion: 4,
+      classId,
+      spellIds: [spells[119]!.spellId, spells[0]!.spellId]
+    })
+    fireEvent.scroll(screen.getByRole('dialog'), { target: { scrollTop: 39 * 64 } })
+    expect(await screen.findByRole('group', { name: 'Spell 040' })).toBeVisible()
+    expect(within(region).getAllByRole('group').length).toBeLessThan(20)
+    expect(screen.queryByRole('group', { name: 'Spell 000' })).not.toBeInTheDocument()
+  })
+
+  it('requires compact metadata for an unheld eligible panel source', () => {
+    const group = spellsPanelFixture.groups[0]!
+    const source = group.sources[0]!
+    renderWithAppProviders(
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={4}
+        panel={{
+          ...spellsPanelFixture,
+          groups: [
+            {
+              ...group,
+              sources: [{ ...source, prepared: false, known: false, canManageKnown: false }]
+            }
+          ]
+        }}
+        pending={false}
+        preparationOptions={{
+          characterId: spellsPanelFixture.characterId,
+          streamVersion: 4,
+          classes: [
+            {
+              classId: source.preparationClassId!,
+              label: 'Class spells',
+              preparedSpellLimit: 3,
+              eligibleSpellIds: [source.spellId],
+              preparedSpellIds: []
+            }
+          ],
+          catalogue: { kind: 'INLINE', spells: [] }
+        }}
+        submitCommand={vi.fn()}
+        onTargetChange={vi.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Prepare' })).toBeDisabled()
+    expect(screen.getByRole('alert')).toHaveTextContent('Preparation options are incomplete')
   })
 
   it('commits select changes immediately', async () => {

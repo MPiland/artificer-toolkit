@@ -4,7 +4,10 @@ import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { refreshMapReferenceFlag } from '../media/vttMapDocuments'
 import { parseFogSave, parseFogLayer } from './fogDocuments'
-import { parseGeometryCommand, parseGeometrySave } from './geometryDocuments'
+import {
+  parseGeometryCommand,
+  parseGeometrySave
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 
 const FIXTURE_CAMPAIGN_NAME = 'Encounter execution fixture'
 

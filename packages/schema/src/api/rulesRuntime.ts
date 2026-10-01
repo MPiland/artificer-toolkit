@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
+import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 const uuidSchema = lazySchema(() =>

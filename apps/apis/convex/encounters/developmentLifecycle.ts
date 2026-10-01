@@ -22,6 +22,7 @@ import { internalQuery, query } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { requireIdentity } from '../lib/identity'
+import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
 
 const ROLLBACK_MARKER = 'Injected lifecycle fixture rollback'
 const fixtureRunSchema = z.object({
@@ -167,11 +168,17 @@ export const movementReactionDamage = query({
       occurrence.state !== 'COMPLETED'
     )
       throw new Error('Fixture movement occurrence lineage is unavailable.')
-    const rootResult = storedRuleExecutionResultDtoSchema.parse(JSON.parse(root.resultJson))
-    const terminalResult = storedRuleExecutionResultDtoSchema.parse(JSON.parse(terminal.resultJson))
+    const [rootReceipt, terminalReceipt] = await Promise.all([
+      readReceiptHeader(ctx, 'encounterRuleReceipts', root),
+      readReceiptHeader(ctx, 'encounterRuleReceipts', terminal)
+    ])
+    const rootResult = storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson))
+    const terminalResult = storedRuleExecutionResultDtoSchema.parse(
+      JSON.parse(terminalReceipt.resultJson)
+    )
     if (
-      root.resultChecksum !== checksumCanonicalJson(rootResult) ||
-      terminal.resultChecksum !== checksumCanonicalJson(terminalResult) ||
+      rootReceipt.resultChecksum !== checksumCanonicalJson(rootResult) ||
+      terminalReceipt.resultChecksum !== checksumCanonicalJson(terminalResult) ||
       rootResult.status !== 'ENCOUNTER_OCCURRENCE_PENDING' ||
       rootResult.occurrenceId !== occurrence.id ||
       rootResult.encounterId !== run.id ||
@@ -282,7 +289,7 @@ export const inspect = internalQuery({
       presentation,
       run,
       actors: actors.sort((left, right) => left.id.localeCompare(right.id)),
-      commands: commands.sort(
+      commands: (await readReceiptHeaders(ctx, 'encounterRunCommands', commands)).sort(
         (left, right) =>
           left.createdAt.localeCompare(right.createdAt) ||
           left.commandId.localeCompare(right.commandId)
@@ -291,7 +298,9 @@ export const inspect = internalQuery({
         (left, right) =>
           left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id)
       ),
-      receipts: receipts.sort((left, right) => left.commandId.localeCompare(right.commandId)),
+      receipts: (await readReceiptHeaders(ctx, 'encounterRuleReceipts', receipts)).sort(
+        (left, right) => left.commandId.localeCompare(right.commandId)
+      ),
       rounds: rounds.sort((left, right) => left.round - right.round),
       participants: participants.sort(
         (left, right) => left.round - right.round || left.actorId.localeCompare(right.actorId)

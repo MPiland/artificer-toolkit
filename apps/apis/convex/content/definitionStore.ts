@@ -147,7 +147,7 @@ export function readStoredDefinitionRoot(
   }
 }
 
-async function readSystemOwner(ctx: Context, gameSystemId: string) {
+export async function readSystemOwner(ctx: Context, gameSystemId: string) {
   const system = await ctx.db
     .query('systems')
     .withIndex('by_publicId', (q) => q.eq('id', gameSystemId))

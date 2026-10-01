@@ -3,6 +3,7 @@ import type { QueryCtx } from '../_generated/server'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { loadCharacterSheetInputs, type CharacterSheetSourceContext } from './sheetInputs'
 import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 
 export type { CharacterSheetSourceContext } from './sheetInputs'
 
@@ -16,7 +17,8 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
   catalogScope: 'active' | 'resolution' = 'active',
   authorityScope?: import('../campaigns/authority').CampaignInternalScope,
   /** The row this transaction just wrote, evaluated without reading it back. */
-  written?: TRow
+  written?: TRow,
+  referenceSpellIds: readonly string[] = []
 ) {
   const loaded = await loadCharacterSheetInputs(
     ctx,
@@ -26,7 +28,8 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     sourceContext,
     catalogScope,
     authorityScope,
-    written
+    written,
+    referenceSpellIds
   )
   if (!loaded) return null
   const evaluated = await prepareCharacterSheetFromContext({
@@ -34,18 +37,19 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     context: loaded.sourceContext.context,
     sheetState: loaded.sheetState,
     campaignContext: loaded.campaignContext,
-    sourcePreparation: sourceContext?.sourcePreparation
+    sourcePreparation: loaded.sourceContext.sourcePreparation,
+    referenceSpellIds
   })
   return {
     ...loaded,
     ...evaluated,
     // The Character row was just loaded or written in this transaction.
     activeEffects: await listActiveRuleEffects(
-      ctx,
+      { db: createConvexEncounterStoreReader(ctx) },
       { kind: 'CHARACTER', characterId: loaded.active.id },
       { ownerVerified: true }
     ),
-    sourceContext: sourceContext ?? {
+    sourceContext: {
       ...loaded.sourceContext,
       sourcePreparation: evaluated.prepared.sourcePreparation
     }
