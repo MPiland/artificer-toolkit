@@ -11,6 +11,7 @@ import { hasPendingInvitationSetup } from '#app/auth/invitationStatus'
 import { NotificationsProvider } from '#app/notifications/NotificationsProvider'
 
 export const Route = createFileRoute('/_authed')({
+  ssr: true,
   validateSearch: authoringSearchSchema,
   beforeLoad: ({ context, location }) => {
     if (!context.user) {

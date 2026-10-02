@@ -4,6 +4,7 @@ import { ResetPasswordPage } from '#app/auth/pages/ResetPasswordPage'
 import { UpdatePasswordPage } from '#app/auth/pages/UpdatePasswordPage'
 
 export const Route = createFileRoute('/_guest/_auth/update-password')({
+  ssr: true,
   validateSearch: z.object({
     flow: z.literal('invite').optional()
   }),

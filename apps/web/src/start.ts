@@ -25,6 +25,10 @@ function reportServerErrors(mechanism: string) {
 }
 
 export const startInstance = createStart(() => ({
+  // Routes render on the server only when they opt in with `ssr: true` (root, guest and the
+  // _authed layout). Every other route renders its pending skeleton on the server and loads in the
+  // browser, so signed-in pages never prefetch Convex data during SSR (D75).
+  defaultSsr: false,
   functionMiddleware: [
     createMiddleware({ type: 'function' }).server(
       reportServerErrors('auto.middleware.tanstackstart.server_function')

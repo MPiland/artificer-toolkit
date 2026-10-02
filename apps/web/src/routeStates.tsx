@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
+import { Alert, Button, Group, Skeleton, Stack, Text, Title } from '@mantine/core'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
@@ -9,7 +9,6 @@ import IArrowLeft from '#assets/icons/IArrowLeft'
 import IMapOff from '#assets/icons/IMapOff'
 import { captureClientException } from '#app/observability/sentry.client'
 import { routeLoadingMessage } from './routeLoadingMessages'
-import { loadingCopy, loadingOverlay, loadingPanel, loadingSpinner } from './routeStates.css'
 
 const captureRouteError = createClientOnlyFn((error: unknown) => {
   captureClientException(error)
@@ -71,12 +70,12 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
 
 export function RouteLoadingState() {
   return (
-    <div className={loadingOverlay}>
-      <div className={loadingPanel} role='status' aria-live='polite'>
-        <span className={loadingSpinner} aria-hidden='true' />
-        <p className={loadingCopy}>{routeLoadingMessage}</p>
-      </div>
-    </div>
+    <Stack role='status' aria-label={routeLoadingMessage} gap='md' p='md'>
+      <Skeleton height={32} width='40%' />
+      <Skeleton height={16} width='70%' />
+      <Skeleton height={16} width='55%' />
+      <Skeleton height={240} />
+    </Stack>
   )
 }
 

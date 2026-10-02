@@ -3,6 +3,7 @@ import { authEmailConfirmationSearchSchema } from '@artificer-toolkit/schema/api
 import { AuthConfirmedPage } from '#app/auth/pages'
 
 export const Route = createFileRoute('/_guest/_auth/auth/confirmed')({
+  ssr: true,
   validateSearch: authEmailConfirmationSearchSchema,
   component: AuthConfirmedRoute
 })

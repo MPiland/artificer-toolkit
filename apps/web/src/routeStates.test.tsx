@@ -65,10 +65,10 @@ describe('route states', () => {
     expect(screen.getByRole('link', { name: /return home/i })).toHaveAttribute('href', '/home')
   })
 
-  it('renders the route loading state with live progress copy', () => {
+  it('renders the route loading state as a labelled skeleton', () => {
     renderWithRouter(<RouteLoadingState />, null)
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading...')
+    expect(screen.getByRole('status', { name: 'Loading...' })).toBeInTheDocument()
   })
 })
 

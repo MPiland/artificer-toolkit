@@ -41,6 +41,7 @@ const QueryDevtools = import.meta.env.DEV
   : null
 
 export const Route = createRootRouteWithContext<AppRouterContext>()({
+  ssr: true,
   shouldReload: ({ location }) => !isAuthoringStepNavigationState(location.state),
   beforeLoad: async ({ context }: { context: AppRouterContext }): Promise<AuthSessionSnapshotDto> =>
     context.loadCurrentSession?.() ?? loadCurrentSessionFn(),

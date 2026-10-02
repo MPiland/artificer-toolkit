@@ -3,6 +3,7 @@ import { MarketingPage } from '#app/marketing/pages'
 import { shouldRedirectRootToHome } from './-guestRouteGuards'
 
 export const Route = createFileRoute('/_guest/')({
+  ssr: true,
   beforeLoad: ({ context }) => {
     if (shouldRedirectRootToHome(context.user)) {
       throw redirect({ to: '/home' })

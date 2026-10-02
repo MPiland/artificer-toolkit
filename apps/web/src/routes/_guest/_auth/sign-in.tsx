@@ -3,6 +3,7 @@ import { SignInPage } from '#app/auth/pages'
 import { signInRedirectSearchSchema } from './-signInRedirect'
 
 export const Route = createFileRoute('/_guest/_auth/sign-in')({
+  ssr: true,
   validateSearch: signInRedirectSearchSchema,
   component: SignInRoute
 })

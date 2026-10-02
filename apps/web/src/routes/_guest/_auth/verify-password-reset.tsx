@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { VerifyPasswordResetPage } from '#app/auth/pages'
 
 export const Route = createFileRoute('/_guest/_auth/verify-password-reset')({
+  ssr: true,
   validateSearch: z.object({
     email: z.string().trim().email().max(320).optional().catch(undefined)
   }),

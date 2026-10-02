@@ -298,6 +298,10 @@ async function audit() {
   const workspaceManifests = [...actualWorkspaces.keys()].map((path) => path + '/package.json')
   violations.push(...(await dependencyAudit(['package.json', ...workspaceManifests])))
 
+  if (/^\s*"?@netlify\//mu.test(await readFile(resolve(root, 'yarn.lock'), 'utf8'))) {
+    violations.push({ path: 'yarn.lock', rule: 'removed Netlify hosting surface (ADR 0037)' })
+  }
+
   const inventory = sourceInventory()
   const files = [
     ...rootConfigPaths.filter((path) => existsSync(resolve(root, path))),
