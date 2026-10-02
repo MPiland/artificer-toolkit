@@ -11,7 +11,6 @@ import {
 import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import {
   Crosshair,
@@ -28,22 +27,6 @@ import type {
   CampaignSceneStateDto,
   SceneCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import {
-  sceneCommandResultDtoSchema,
-  sceneLiveCommandInputDtoSchema
-} from '@artificer-toolkit/schema/api/vttScenes'
-import {
-  sceneGeometryCommandResultSchema,
-  sceneNativeGeometryCommandInputSchema,
-  SCENE_GEOMETRY_STAGED_REQUIRED
-} from '@artificer-toolkit/schema/api/sceneGeometry'
-import { sceneUndoCommandResultSchema } from '@artificer-toolkit/schema/api/sceneUndo'
-import {
-  sceneFogAppendInputSchema,
-  sceneFogCommandResultSchema,
-  sceneFogPatchInputSchema,
-  sceneFogSaveProgressSchema
-} from '@artificer-toolkit/schema/api/sceneFog'
 import type { ImageLookupInput } from '@artificer-toolkit/schema/api/media'
 import {
   createSceneFogAreaPatch,
@@ -52,7 +35,6 @@ import {
   sceneFogOwnerFailure,
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { getCampaignLiveScenes } from '#app/data/campaigns/scenes'
 import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScenes'
 import {
@@ -466,115 +448,12 @@ export function CampaignVttStage({
       }
     : null
 
+  // The room is the only writer of the presented Scene (D79); its broadcast updates every viewer.
   const sceneCommand = useMutation({
-    mutationFn: async (
-      command: SceneCommandInputDto
-    ): Promise<{ sceneId: string; version: number }> => {
-      if (presented.presentationVersion === null)
-        throw new Error('Scene presentation changed before the command began.')
-      const presentation = { expectedPresentationVersion: presented.presentationVersion }
-      if (command.type === 'UNDO_LAST_SCENE_MOVE') {
-        try {
-          return sceneUndoCommandResultSchema.parse(
-            await convex.mutation(convexApi.scenes.undo.executeFast, {
-              input: command,
-              presentation
-            })
-          )
-        } catch (error) {
-          if (!(error instanceof ConvexError) || error.data !== SCENE_GEOMETRY_STAGED_REQUIRED)
-            throw error
-        }
-        return sceneUndoCommandResultSchema.parse(
-          await convex.action(convexApi.scenes.undo.execute, {
-            input: command,
-            presentation
-          })
-        )
-      }
-      if (command.type === 'PATCH_SCENE_FOG') {
-        const input = sceneFogPatchInputSchema.parse({
-          type: command.type,
-          sceneId: command.sceneId,
-          commandId: command.commandId,
-          expectedSceneVersion: command.expectedSceneVersion,
-          presentation,
-          layer: {
-            ownerUserId: command.layer.ownerUserId,
-            width: command.layer.width,
-            height: command.layer.height
-          },
-          chunkManifest: command.layer.chunks.map((chunk) => ({
-            index: chunk.index,
-            checksum: checksumCanonicalJson(chunk)
-          }))
-        })
-        let progress = sceneFogSaveProgressSchema.parse(
-          await convex.mutation(convexApi.scenes.fogCommands.begin, { input })
-        )
-        if (progress.status === 'EXPIRED') throw new Error('Scene fog save expired.')
-        for (
-          let offset = progress.receivedChunks;
-          progress.status === 'RECEIVING' && offset < command.layer.chunks.length;
-          offset += 8
-        ) {
-          progress = sceneFogSaveProgressSchema.parse(
-            await convex.mutation(convexApi.scenes.fogCommands.append, {
-              input: sceneFogAppendInputSchema.parse({
-                saveId: progress.saveId,
-                offset,
-                chunks: command.layer.chunks.slice(offset, offset + 8)
-              })
-            })
-          )
-          if (progress.status === 'EXPIRED') throw new Error('Scene fog save expired.')
-        }
-        return sceneFogCommandResultSchema.parse(
-          await convex.mutation(convexApi.scenes.fogCommands.publish, {
-            saveId: progress.saveId
-          })
-        )
-      }
-      const inline = sceneLiveCommandInputDtoSchema.safeParse(command)
-      if (inline.success) {
-        return sceneCommandResultDtoSchema.parse(
-          await convex.mutation(convexApi.scenes.commands.execute, {
-            input: inline.data,
-            presentation
-          })
-        )
-      }
-      const geometry = sceneNativeGeometryCommandInputSchema.safeParse(command)
-      if (geometry.success) {
-        if (
-          geometry.data.type === 'SET_SCENE_DOOR_STATE' ||
-          geometry.data.type === 'MOVE_SCENE_TOKEN'
-        ) {
-          try {
-            return sceneGeometryCommandResultSchema.parse(
-              await convex.mutation(convexApi.scenes.geometryFastCommands.execute, {
-                input: geometry.data,
-                presentation
-              })
-            )
-          } catch (error) {
-            if (!(error instanceof ConvexError) || error.data !== SCENE_GEOMETRY_STAGED_REQUIRED)
-              throw error
-          }
-        }
-        return sceneGeometryCommandResultSchema.parse(
-          await convex.action(convexApi.scenes.geometryActions.execute, {
-            input: geometry.data,
-            presentation
-          })
-        )
-      }
-      throw new Error('Scene command is not supported by the native editor.')
-    },
-    onSuccess: (result) => {
-      if (presented.presentationVersion !== null)
-        live.synchronizeScene(result.sceneId, result.version, presented.presentationVersion)
-    }
+    mutationFn: (command: SceneCommandInputDto) =>
+      command.type === 'PATCH_SCENE_FOG'
+        ? live.sendSceneFog(command)
+        : live.sendCommand({ command, scope: 'SCENE' })
   })
   const encounterCommand = useMutation({ mutationFn: live.sendEncounterCommand })
   // The room owns the presented Scene, so the GM binds through it (D47).

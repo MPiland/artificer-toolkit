@@ -2,7 +2,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { ConvexReactClient, useConvex } from 'convex/react'
-import { getFunctionName, type FunctionArgs } from 'convex/server'
+import { getFunctionName } from 'convex/server'
 import { useEffect, useState, type ComponentProps, type JSX, type ReactNode } from 'react'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { http, HttpResponse } from 'msw'
@@ -14,13 +14,12 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import {
   sceneFogAppendInputSchema,
-  sceneFogCommandResultSchema,
   sceneFogChunksPageInputSchema,
   sceneFogChunksPageSchema,
   sceneFogLayersPageInputSchema,
   sceneFogLayersPageSchema,
   sceneFogPatchInputSchema,
-  sceneFogSaveProgressSchema
+  type SceneFogPatchInput
 } from '@artificer-toolkit/schema/api/sceneFog'
 import type {
   LiveSessionRecipientStateDto,
@@ -37,15 +36,9 @@ import {
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
   type CampaignSceneStateDto,
-  sceneCommandResultDtoSchema,
-  sceneLiveCommandInputDtoSchema,
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
-import {
-  sceneGeometryCommandResultSchema,
-  sceneGeometryExecuteInputSchema
-} from '@artificer-toolkit/schema/api/sceneGeometry'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
@@ -65,12 +58,11 @@ const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
 )
 const recipientRevision = 'a'.repeat(64)
 const mapReadyTimeoutMs = 10_000
-const geometryExecute = fn()
 const liveCommand = fn()
 const mediaGetDelivery = fn()
 const fogBegin = fn()
 const fogAppend = fn()
-const fogPublish = fn()
+const storyFogSaveId = '77777777-7777-4777-8777-777777777799'
 const meta = {
   component: CampaignTabletopWindow,
   parameters: {
@@ -120,15 +112,21 @@ export const GmWindow: Story = {
       await expect(page.getByRole('button', { name: 'Create wall' })).toBeEnabled()
     })
     await userEvent.click(page.getByRole('button', { name: 'Create wall' }))
+    // The room is the only writer of the presented Scene (D79).
     await waitFor(async () => {
-      await expect(geometryExecute).toHaveBeenCalledWith({
-        input: expect.objectContaining({
-          expectedSceneVersion: tabletopLiveScene.version,
-          sceneId: tabletopLiveScene.id,
-          type: 'UPSERT_SCENE_BARRIER'
-        }),
-        presentation: { expectedPresentationVersion: 0 }
-      })
+      await expect(liveCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: {
+            command: expect.objectContaining({
+              expectedSceneVersion: tabletopLiveScene.version,
+              sceneId: tabletopLiveScene.id,
+              type: 'UPSERT_SCENE_BARRIER'
+            }),
+            scope: 'SCENE'
+          },
+          type: 'COMMAND'
+        })
+      )
     })
     await userEvent.click(page.getByRole('button', { name: 'Close live scene editor' }))
     await userEvent.click(page.getByRole('button', { name: 'Scene controls' }))
@@ -225,15 +223,10 @@ export const GmWindow: Story = {
     await userEvent.click(page.getByRole('button', { name: 'Scene controls' }))
     await userEvent.click(await page.findByRole('menuitem', { name: 'Reveal entire map' }))
     await waitFor(async () => {
-      await expect(fogBegin).toHaveBeenCalledWith({
-        input: expect.objectContaining({
-          presentation: { expectedPresentationVersion: 0 },
-          type: 'PATCH_SCENE_FOG'
-        })
-      })
-      const input = sceneFogPatchInputSchema.parse(
-        (fogBegin.mock.calls[0]?.[0] as { input: unknown } | undefined)?.input
+      await expect(fogBegin).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'PATCH_SCENE_FOG' })
       )
+      const input = sceneFogPatchInputSchema.parse(fogBegin.mock.calls[0]?.[0])
       await expect(input.chunkManifest).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -243,7 +236,7 @@ export const GmWindow: Story = {
       )
       await expect(fogAppend).toHaveBeenCalled()
       const appendInputs = fogAppend.mock.calls.map(([args]) =>
-        sceneFogAppendInputSchema.parse((args as { input: unknown }).input)
+        sceneFogAppendInputSchema.parse(args)
       )
       await expect(appendInputs.every((append) => append.chunks.length <= 8)).toBe(true)
       await expect(input.chunkManifest).toEqual(
@@ -254,7 +247,19 @@ export const GmWindow: Story = {
           }))
         )
       )
-      await expect(fogPublish).toHaveBeenCalled()
+      await expect(liveCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: {
+            command: expect.objectContaining({
+              commandId: input.commandId,
+              saveId: storyFogSaveId,
+              type: 'PUBLISH_SCENE_FOG_PATCH'
+            }),
+            scope: 'SCENE'
+          },
+          type: 'COMMAND'
+        })
+      )
     })
   }
 }
@@ -344,20 +349,6 @@ function renderWindow(
     sceneId: scene.id,
     version: 0
   }
-  geometryExecute.mockReset().mockImplementation(async (raw) => {
-    const input = sceneGeometryExecuteInputSchema.parse(raw)
-    if (input.input.type !== 'UPSERT_SCENE_BARRIER')
-      throw new Error(`Unexpected story fixture geometry command: ${input.input.type}`)
-    return sceneGeometryCommandResultSchema.parse({
-      commandId: input.input.commandId,
-      delta: { kind: 'BARRIER_UPSERTED', barrier: input.input.barrier },
-      fogPatches: [],
-      occurrence: null,
-      replayed: false,
-      sceneId: input.input.sceneId,
-      version: scene.version + 1
-    })
-  })
   mediaGetDelivery.mockReset().mockResolvedValue(tabletopMapDelivery)
   const presentationQuery = convexQuery(convexApi.scenes.presentations.get, {
     campaignId: tabletopCampaignId
@@ -483,8 +474,6 @@ function renderWindow(
           ticket: 'storybook-live-session-ticket'
         }
       }
-      if (name === getFunctionName(convexApi.scenes.geometryActions.execute))
-        return geometryExecute(args)
       if (name === getFunctionName(convexApi.media.vttMapActions.getDelivery)) {
         return mediaGetDelivery(args)
       }
@@ -561,77 +550,12 @@ function renderWindow(
     })
   })
   Object.defineProperty(convex, 'mutation', {
-    value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference, args]) => {
-      const name = getFunctionName(reference)
-      if (name === getFunctionName(convexApi.scenes.fogCommands.begin)) return fogBegin(args)
-      if (name === getFunctionName(convexApi.scenes.fogCommands.append)) return fogAppend(args)
-      if (name === getFunctionName(convexApi.scenes.fogCommands.publish)) return fogPublish(args)
-      if (name === getFunctionName(convexApi.scenes.commands.execute)) {
-        const command = sceneLiveCommandInputDtoSchema.parse(
-          (args as FunctionArgs<typeof convexApi.scenes.commands.execute>).input
-        )
-        return sceneCommandResultDtoSchema.parse({
-          commandId: command.commandId,
-          delta: {
-            illumination: scene.ambientIllumination,
-            kind: 'AMBIENT_ILLUMINATION_SET'
-          },
-          occurrence: null,
-          replayed: false,
-          sceneId: command.sceneId,
-          version: scene.version + 1
-        })
-      }
-      throw new Error(`Unexpected story fixture mutation: ${name}`)
+    value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference]) => {
+      throw new Error(`Unexpected story fixture mutation: ${getFunctionName(reference)}`)
     })
   })
-  const fogSaveId = '77777777-7777-4777-8777-777777777799'
-  let fogInput: ReturnType<typeof sceneFogPatchInputSchema.parse> | null = null
-  fogBegin.mockReset().mockImplementation(async (raw) => {
-    fogInput = sceneFogPatchInputSchema.parse(
-      (raw as FunctionArgs<typeof convexApi.scenes.fogCommands.begin>).input
-    )
-    return sceneFogSaveProgressSchema.parse({
-      saveId: fogSaveId,
-      sceneId: fogInput.sceneId,
-      commandId: fogInput.commandId,
-      status: 'RECEIVING',
-      receivedChunks: 0,
-      totalChunks: fogInput.chunkManifest.length
-    })
-  })
-  fogAppend.mockReset().mockImplementation(async (raw) => {
-    const input = sceneFogAppendInputSchema.parse(
-      (raw as FunctionArgs<typeof convexApi.scenes.fogCommands.append>).input
-    )
-    if (!fogInput || input.saveId !== fogSaveId) throw new Error('Unexpected story fog append.')
-    return sceneFogSaveProgressSchema.parse({
-      saveId: fogSaveId,
-      sceneId: fogInput.sceneId,
-      commandId: fogInput.commandId,
-      status: 'RECEIVING',
-      receivedChunks: input.offset + input.chunks.length,
-      totalChunks: fogInput.chunkManifest.length
-    })
-  })
-  fogPublish.mockReset().mockImplementation(async (raw) => {
-    const saveId = (raw as FunctionArgs<typeof convexApi.scenes.fogCommands.publish>).saveId
-    if (!fogInput || saveId !== fogSaveId) throw new Error('Unexpected story fog publish.')
-    return sceneFogCommandResultSchema.parse({
-      sceneId: fogInput.sceneId,
-      commandId: fogInput.commandId,
-      version: fogInput.expectedSceneVersion + 1,
-      occurrence: null,
-      replayed: false,
-      patch: {
-        saveId,
-        ownerUserId: fogInput.layer.ownerUserId,
-        width: fogInput.layer.width,
-        height: fogInput.layer.height,
-        chunkCount: fogInput.chunkManifest.length
-      }
-    })
-  })
+  fogBegin.mockReset()
+  fogAppend.mockReset()
 
   const recipientState: LiveSessionRecipientStateDto = { recipientRole: campaign.role, scene }
   liveCommand.mockReset()
@@ -705,6 +629,7 @@ function StoryLiveSessionTransport({
       state,
       type: 'STATE_SYNC'
     } satisfies LiveSessionWebSocketServerMessageDto
+    let fogInput: SceneFogPatchInput | null = null
 
     class StoryWebSocket extends EventTarget {
       readyState = 0
@@ -726,6 +651,33 @@ function StoryLiveSessionTransport({
 
       send(data: string): void {
         const message = liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data))
+        // The room stages a GM fog patch and reports each step's progress (D79).
+        if (message.type === 'SCENE_FOG_BEGIN' || message.type === 'SCENE_FOG_APPEND') {
+          if (message.type === 'SCENE_FOG_BEGIN') {
+            fogBegin(message.input)
+            fogInput = message.input
+          } else {
+            fogAppend(message.input)
+            if (message.input.saveId !== storyFogSaveId)
+              throw new Error('Unexpected story fog append.')
+          }
+          if (!fogInput) throw new Error('Story fog append arrived before its begin.')
+          const progress = {
+            progress: {
+              commandId: fogInput.commandId,
+              receivedChunks:
+                message.type === 'SCENE_FOG_APPEND'
+                  ? message.input.offset + message.input.chunks.length
+                  : 0,
+              saveId: storyFogSaveId,
+              sceneId: fogInput.sceneId,
+              status: 'RECEIVING',
+              totalChunks: fogInput.chunkManifest.length
+            },
+            type: 'SCENE_FOG_PROGRESS'
+          } satisfies LiveSessionWebSocketServerMessageDto
+          this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(progress) }))
+        }
         if (message.type === 'COMMAND') {
           liveCommand(message)
           // The room acknowledges an Encounter command to its initiator, which settles the command.

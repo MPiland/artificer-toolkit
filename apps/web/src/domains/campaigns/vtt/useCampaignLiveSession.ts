@@ -6,7 +6,10 @@ import type {
   LiveSessionCommandDto,
   LiveSessionRecipientStateDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type {
+  SceneCommandInputDto,
+  SceneTransientEnvelopeDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { useConvex } from 'convex/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
@@ -112,6 +115,17 @@ export function useCampaignLiveSession({
     },
     []
   )
+  const sendSceneFog = useCallback(
+    (
+      command: Extract<SceneCommandInputDto, { type: 'PATCH_SCENE_FOG' }>
+    ): Promise<LiveSessionCommandCommit> => {
+      const current = connection.current
+      if (!current) return Promise.reject(new Error('Live play is not connected.'))
+      setRejection(null)
+      return current.submitSceneFog(command)
+    },
+    []
+  )
   // Every Encounter command enters through the room, which runs or forwards it (live-sessions.md).
   const sendEncounterCommand = useCallback(
     async (
@@ -154,6 +168,7 @@ export function useCampaignLiveSession({
     sendCharacterSheetCommand,
     sendCommand,
     sendEncounterCommand,
+    sendSceneFog,
     sendTransient,
     sequence,
     status,

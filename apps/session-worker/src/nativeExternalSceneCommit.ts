@@ -16,7 +16,7 @@ import type {
 import type { SceneSessionVisionComposition } from '@artificer-toolkit/schema/api/sceneSessionVision'
 import type {
   CampaignSceneStateDto,
-  SceneDoorStateCommandInputDto,
+  SceneGeometryCommandInputDto,
   SceneTokenMovementCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
@@ -30,20 +30,25 @@ import {
   applySceneGeometryDelta,
   deriveSceneCommandFogLayer,
   planSceneCommandExploration,
-  type SceneAtomicDelta,
+  VTT_SCENE_LIMITS,
   type SceneFogLayer,
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
+import { geometryTarget } from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
 
 import { LiveSessionRouteError } from './liveSessionRoutes.js'
+import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
 import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import { prepareNativeLiveMovement } from './nativeEncounterMovement.js'
 import type { LiveEncounterActor } from './nativeRoomEncounterCommand.js'
 
-/** A room command that stages a Scene save first: a Scene change or a movement decision. */
+/**
+ * A room command that stages a Scene save first: a token move, door change, token or barrier edit,
+ * or a movement decision.
+ */
 export type ExternalSceneCommand =
   | SceneTokenMovementCommandInputDto
-  | SceneDoorStateCommandInputDto
+  | SceneGeometryCommandInputDto
   | ResolveRuleOccurrenceInputDto
   | VoidRuleOccurrenceInputDto
 
@@ -94,14 +99,13 @@ export async function prepareStagedSceneCommit(input: {
   if (begun.header.id !== scene.id || begun.header.version !== scene.version)
     throw new LiveSessionRouteError(409)
   const staged = begun.input
+  const target = geometryTarget(staged)
   const baseOrdinal =
-    staged.type === 'MOVE_SCENE_TOKEN'
-      ? (context.baseOrdinals.tokens.find((entry) => entry.tokenId === staged.tokenId)
+    target.collection === 'tokens'
+      ? (context.baseOrdinals.tokens.find((entry) => entry.tokenId === target.entityId)
           ?.baseOrdinal ?? null)
-      : staged.type === 'SET_SCENE_DOOR_STATE'
-        ? (context.baseOrdinals.barriers.find((entry) => entry.barrierId === staged.barrierId)
-            ?.baseOrdinal ?? null)
-        : null
+      : (context.baseOrdinals.barriers.find((entry) => entry.barrierId === target.entityId)
+          ?.baseOrdinal ?? null)
   let movement: {
     prepareInput: LiveSessionMovementPrepareInput
     planned: Awaited<ReturnType<typeof prepareNativeLiveMovement>>
@@ -156,7 +160,7 @@ export async function prepareStagedSceneCommit(input: {
   const outcome = movement?.prepareInput.preparation.outcome ?? null
 
   // Exploration follows the walked segment; the published delta is what Convex will write.
-  let explorationDelta: Extract<SceneAtomicDelta, { kind: 'TOKEN_MOVED' | 'DOOR_STATE_SET' }>
+  let explorationDelta: typeof target.delta
   let publishedDelta: typeof explorationDelta | null
   let explorationPath: ScenePoint[] | null = null
   // The walked segment's cost becomes a bound actor's turn movement (D38).
@@ -177,10 +181,10 @@ export async function prepareStagedSceneCommit(input: {
       outcome,
       sceneVersion: scene.version
     })
-  } else if (staged.type === 'SET_SCENE_DOOR_STATE') {
-    explorationDelta = { kind: 'DOOR_STATE_SET', barrierId: staged.barrierId, state: staged.state }
+  } else {
+    explorationDelta = target.delta
     publishedDelta = explorationDelta
-  } else throw new LiveSessionRouteError(409)
+  }
   const plan = planSceneCommandExploration(
     scene,
     applySceneGeometryDelta(scene, explorationDelta),
@@ -209,6 +213,14 @@ export async function prepareStagedSceneCommit(input: {
       ...layers
     ]
   }
+  if (
+    nextScene.tokens.length > VTT_SCENE_LIMITS.tokens ||
+    nextScene.barriers.length > VTT_SCENE_LIMITS.barriers
+  )
+    throw new RoomSceneCommandRefusal(
+      'INVALID_COMMAND',
+      'Scene geometry exceeds the supported entity count.'
+    )
   const expectedScene = { sceneId: scene.id, version, delta: publishedDelta }
   const finish = { saveId, baseOrdinal }
   if (!movement)

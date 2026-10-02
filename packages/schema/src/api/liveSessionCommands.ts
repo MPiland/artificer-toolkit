@@ -13,6 +13,7 @@ import {
   sceneCommandInputDtoSchema,
   sceneCommandResultDtoSchema
 } from './vttScenes.js'
+import { sceneFogPublishCommandInputSchema } from './sceneFog.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 export const liveSessionSequenceDtoSchema = lazySchema(() =>
@@ -21,7 +22,8 @@ export const liveSessionSequenceDtoSchema = lazySchema(() =>
 
 /**
  * Scene and Encounter commands, including the GM's actor-token bindings, commit in the room's
- * SQLite (D78). Bound token moves stay Scene-scoped here: the room recognizes the binding and runs
+ * SQLite (D78). The GM's fog painting stages through `SCENE_FOG_BEGIN`/`SCENE_FOG_APPEND` and
+ * commits with `PUBLISH_SCENE_FOG_PATCH`; a full-layer `PATCH_SCENE_FOG` is never sent live (D79). Bound token moves stay Scene-scoped here: the room recognizes the binding and runs
  * the Encounter movement rules for them. The GM binds an Encounter to the presented Scene through
  * the room's native SQLite transaction (D47).
  * Campaign chat and rolls execute in the room while it holds authority (D69).
@@ -29,7 +31,10 @@ export const liveSessionSequenceDtoSchema = lazySchema(() =>
  */
 export const liveSessionCommandDtoSchema = lazySchema(() =>
   z.discriminatedUnion('scope', [
-    z.strictObject({ scope: z.literal('SCENE'), command: sceneCommandInputDtoSchema }),
+    z.strictObject({
+      scope: z.literal('SCENE'),
+      command: z.union([sceneCommandInputDtoSchema, sceneFogPublishCommandInputSchema])
+    }),
     z.strictObject({
       scope: z.literal('ENCOUNTER'),
       command: z.union([

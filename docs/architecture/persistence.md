@@ -2807,6 +2807,13 @@ ordinals and final counts across all base pages. The header's `counts` describe 
 `currentCounts` and `version` describe current live state. No full Scene is copied into one Convex
 response. Initial proof: `.codex/validation/phase82-v03-hydration/integration.md`.
 
+Current (A35-S3c0, D79): the live room is the only writer of a presented Scene. It writes the same
+`sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands` (INLINE and FOG_PATCH receipts) and fog
+save, chunk and layer rows in its SQLite store and checkpoints them to Convex; see
+"Room Scene edits" in [live sessions](live-sessions.md). Transitional: the Convex writers
+below (`scenes/commands:execute`, `fogCommands`) keep the same row rules until A35-S3c1 deletes
+them; the tabletop no longer calls them.
+
 ```mermaid
 flowchart LR
   Owner["Current active Campaign owner"] --> Edit["scenes/commands:execute"]

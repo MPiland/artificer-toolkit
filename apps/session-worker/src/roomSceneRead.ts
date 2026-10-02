@@ -9,9 +9,16 @@ import {
   sceneStoredLiveEntitySchema,
   sceneStoredLiveStateSchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import { sceneFogLayerDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { readSceneCurrentEntities } from '@artificer-toolkit/encounter-persistence/sceneCurrentEntities'
+import {
+  parseSceneFogLayer,
+  parseSceneReferencedFogChunk
+} from '@artificer-toolkit/encounter-persistence/sceneFogDocuments'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { SceneFogLayer } from '@artificer-toolkit/shared/vtt'
 import type { RoomTransaction } from './roomEncounterStore.js'
+import { readRoomSceneRow } from './roomSceneRecords.js'
 import {
   ROOM_SCENE_DEFINITION_HEADER,
   ROOM_SCENE_DEFINITION_ENTITY
@@ -60,6 +67,32 @@ export function readRoomSceneHeader(
   sceneId: string
 ): SceneLiveStateHeader {
   return readRoomScene(transaction, sceneId).header
+}
+
+/** One owner's stored fog layer with its referenced chunks, or null when the owner has none. */
+export function readRoomSceneFogLayer(
+  transaction: RoomTransaction,
+  sceneId: string,
+  ownerUserId: string | null,
+  version: number
+): SceneFogLayer | null {
+  const value = readRoomSceneRow(transaction, 'sceneFogLayers', [sceneId, ownerUserId])
+  if (!value) return null
+  const layer = parseSceneFogLayer(value, version)
+  return sceneFogLayerDtoSchema.parse({
+    ownerUserId,
+    width: layer.width,
+    height: layer.height,
+    chunks: layer.chunks.map((reference) =>
+      parseSceneReferencedFogChunk(
+        readRoomSceneRow(transaction, 'sceneFogSaves', [reference.saveId]),
+        readRoomSceneRow(transaction, 'sceneFogChunks', [reference.saveId, reference.ordinal]),
+        reference,
+        sceneId,
+        layer
+      )
+    )
+  })
 }
 
 /** The same BASE/APPENDED reader used by Convex, over the command's staged native records. */

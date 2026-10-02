@@ -20,7 +20,14 @@ export const ROOM_LIMITS = {
   authorizationLeaseMs: 240_000,
   checkpointDeadlineMs: 120_000,
   /** A background preview refresh starts at most once per input in this window. */
-  previewRetryMs: 5_000
+  previewRetryMs: 5_000,
+  /**
+   * A GM's staged fog patches (D79): at most this many unpublished uploads and staged chunk bytes
+   * per account, each discarded once its window passes, at publication, or when the epoch ends.
+   */
+  maxFogUploadsPerUser: 2,
+  maxFogUploadBytesPerUser: 512 * 1024,
+  fogUploadWindowMs: 10 * 60_000
 } as const
 
 /**
@@ -39,14 +46,16 @@ export const ACCOUNT_BUCKETS = {
   }
 } as const
 
-type MessageClass = 'AUTHENTICATE' | 'COMMAND' | 'INVALID' | 'SYNC' | 'TRANSIENT'
+type MessageClass = 'AUTHENTICATE' | 'COMMAND' | 'FOG_UPLOAD' | 'INVALID' | 'SYNC' | 'TRANSIENT'
 
 // Clients send previews only during a gesture, each stream at most 10 Hz, and re-authenticate only
 // on connect or challenge; the TRANSIENT budget is the room's backstop. A ping also takes one PING
-// token when it fans out; faster pings are dropped without closing the socket.
+// token when it fans out; faster pings are dropped without closing the socket. FOG_UPLOAD admits one
+// full 256-chunk fog layer (a begin and 32 batches of 8) in a burst.
 const BUDGETS: Record<MessageClass | 'PING', { capacity: number; refillPerSecond: number }> = {
   AUTHENTICATE: { capacity: 10, refillPerSecond: 0.5 },
   COMMAND: { capacity: 20, refillPerSecond: 5 },
+  FOG_UPLOAD: { capacity: 40, refillPerSecond: 20 },
   INVALID: { capacity: 5, refillPerSecond: 0.5 },
   PING: { capacity: 1, refillPerSecond: 1_000 / VTT_SCENE_LIMITS.pingIntervalMs },
   SYNC: { capacity: 20, refillPerSecond: 2 },
@@ -62,6 +71,7 @@ export function messageClass(message: LiveSessionWebSocketClientMessageDto | nul
     message.type === 'UNSUBSCRIBE_CHARACTER_SHEET'
   )
     return 'SYNC'
+  if (message.type === 'SCENE_FOG_BEGIN' || message.type === 'SCENE_FOG_APPEND') return 'FOG_UPLOAD'
   return message.type
 }
 

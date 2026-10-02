@@ -16,7 +16,15 @@ import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaig
 import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/domainRejections'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
-import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type {
+  SceneCommandInputDto,
+  SceneTransientEnvelopeDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  sceneFogPatchInputSchema,
+  type SceneFogSaveProgress
+} from '@artificer-toolkit/schema/api/sceneFog'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { applySceneDelta, VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt'
 
 export type LiveSessionConnectionStatus =
@@ -29,6 +37,10 @@ export interface LiveSessionConnection {
   close: () => void
   sendCommand: (command: LiveSessionCommandDto) => boolean
   submitCommand: (command: LiveSessionCommandDto) => Promise<LiveSessionCommandCommit>
+  /** Stages a GM fog patch in batches, then publishes it as one journaled Scene command (D79). */
+  submitSceneFog: (
+    command: Extract<SceneCommandInputDto, { type: 'PATCH_SCENE_FOG' }>
+  ) => Promise<LiveSessionCommandCommit>
   sendTransient: (envelope: SceneTransientEnvelopeDto) => boolean
   /** Follows one held Character Sheet (resent on every reconnect); null stops following. */
   subscribeCharacterSheet: (characterId: string | null) => void
@@ -76,6 +88,8 @@ type LiveSessionClientMessage = Extract<
       | 'AUTHENTICATE'
       | 'COMMAND'
       | 'RESUME'
+      | 'SCENE_FOG_APPEND'
+      | 'SCENE_FOG_BEGIN'
       | 'SUBSCRIBE_CHARACTER_SHEET'
       | 'SYNCHRONIZE_SCENE'
       | 'TRANSIENT'
@@ -83,6 +97,10 @@ type LiveSessionClientMessage = Extract<
   }
 >
 type SceneSynchronizationMessage = Extract<LiveSessionClientMessage, { type: 'SYNCHRONIZE_SCENE' }>
+type SceneFogStagingMessage = Extract<
+  LiveSessionClientMessage,
+  { type: 'SCENE_FOG_APPEND' | 'SCENE_FOG_BEGIN' }
+>
 
 interface LiveSessionConnectionOptions {
   createSocket?: (url: string, protocols: string[]) => LiveSessionSocket
@@ -109,6 +127,9 @@ const reconnectDelay = (attempt: number) => Math.min(1_000 * 2 ** attempt, 30_00
 const webSocketOpenState = 1
 /** Each preview stream sends at most 10 samples a second (ADR 0035 Amendment 15); pings, two. */
 const previewIntervalMs = 100
+/** Fog chunk characters per append, inside the room's 64 KiB frame; one chunk always fits. */
+const fogBatchChars = 48_000
+const fogBatchChunks = 8
 
 /** A preview stream as the room keys it: per kind, per dragged token and per fog owner. */
 function previewStreamKey(envelope: SceneTransientEnvelopeDto): string {
@@ -186,6 +207,11 @@ export function createLiveSessionConnection(
       resolve: (commit: LiveSessionCommandCommit) => void
     }
   >()
+  // One staging step per fog command awaits its progress or rejection.
+  const pendingFogSteps = new Map<
+    string,
+    { reject: (error: Error) => void; resolve: (progress: SceneFogSaveProgress) => void }
+  >()
   let requestedScene: SceneSynchronizationMessage | null = null
   let requestedSheetCharacterId: string | null = null
   let synchronizedScene: SceneSynchronizationMessage | null = null
@@ -199,6 +225,30 @@ export function createLiveSessionConnection(
 
   const emitDurableState = () =>
     options.onDurableState?.({ commandReady, recipientState, sequence })
+
+  const rejectFogSteps = (error: Error) => {
+    for (const step of pendingFogSteps.values()) step.reject(error)
+    pendingFogSteps.clear()
+  }
+
+  const stageFog = (message: SceneFogStagingMessage) =>
+    new Promise<SceneFogSaveProgress>((resolve, reject) => {
+      const commandId =
+        message.type === 'SCENE_FOG_BEGIN' ? message.input.commandId : message.commandId
+      if (!commandReady) {
+        reject(new Error('Live play is not ready for commands.'))
+        return
+      }
+      if (pendingFogSteps.has(commandId)) {
+        reject(new Error('This fog change is already uploading.'))
+        return
+      }
+      pendingFogSteps.set(commandId, { reject, resolve })
+      if (!send(message)) {
+        pendingFogSteps.delete(commandId)
+        reject(new Error('Live play is not connected.'))
+      }
+    })
 
   const requestResume = () => {
     if (sequence !== null) send({ lastAppliedSequence: sequence, type: 'RESUME' })
@@ -322,6 +372,9 @@ export function createLiveSessionConnection(
           sendAuthentication()
         } else if (message.type === 'TRANSIENT') {
           options.onTransient(message.message)
+        } else if (message.type === 'SCENE_FOG_PROGRESS') {
+          pendingFogSteps.get(message.progress.commandId)?.resolve(message.progress)
+          pendingFogSteps.delete(message.progress.commandId)
         } else if (message.type === 'CHARACTER_SHEET') {
           if (message.characterId.toLowerCase() === requestedSheetCharacterId?.toLowerCase())
             options.onCharacterSheet?.(message)
@@ -409,6 +462,10 @@ export function createLiveSessionConnection(
             .get(message.commandId)
             ?.reject(new LiveSessionCommandRejectedError(message))
           pendingCommands.delete(message.commandId)
+          pendingFogSteps
+            .get(message.commandId)
+            ?.reject(new LiveSessionCommandRejectedError(message))
+          pendingFogSteps.delete(message.commandId)
           options.onCommandRejected?.(message)
         }
       })
@@ -421,6 +478,8 @@ export function createLiveSessionConnection(
         emitDurableState()
         synchronizedScene = null
         for (const pending of pendingCommands.values()) pending.lastSentSequence = null
+        // Staged batches survive in the room; a retried upload resumes from its begin.
+        rejectFogSteps(new Error('Live play disconnected during a fog change.'))
         if (stopped) {
           options.onStatus('DISCONNECTED')
           return
@@ -441,6 +500,33 @@ export function createLiveSessionConnection(
 
   void connect(false)
 
+  const submitCommand = (command: LiveSessionCommandDto) => {
+    const commandId = command.command.commandId
+    if (pendingCommands.has(commandId)) {
+      return Promise.reject(new Error('This live command is already pending.'))
+    }
+    return new Promise<LiveSessionCommandCommit>((resolve, reject) => {
+      if (!commandReady || sequence === null) {
+        reject(new Error('Live play is not ready for commands.'))
+        return
+      }
+      const pending = {
+        command,
+        expectedSessionSequence: sequence,
+        lastSentSequence: null as number | null,
+        reject,
+        resolve
+      }
+      pendingCommands.set(commandId, pending)
+      if (send({ command, expectedSessionSequence: sequence, type: 'COMMAND' })) {
+        pending.lastSentSequence = sequence
+      } else {
+        pendingCommands.delete(commandId)
+        reject(new Error('Live play is not connected.'))
+      }
+    })
+  }
+
   return {
     close() {
       stopped = true
@@ -457,36 +543,60 @@ export function createLiveSessionConnection(
         pending.reject(new Error('Live session closed.'))
       }
       pendingCommands.clear()
+      rejectFogSteps(new Error('Live session closed.'))
       options.onStatus('DISCONNECTED')
     },
     sendCommand(command) {
       if (!commandReady || sequence === null) return false
       return send({ command, expectedSessionSequence: sequence, type: 'COMMAND' })
     },
-    submitCommand(command) {
-      const commandId = command.command.commandId
-      if (pendingCommands.has(commandId)) {
-        return Promise.reject(new Error('This live command is already pending.'))
+    submitCommand,
+    async submitSceneFog(command) {
+      const input = sceneFogPatchInputSchema.parse({
+        type: command.type,
+        sceneId: command.sceneId,
+        commandId: command.commandId,
+        expectedSceneVersion: command.expectedSceneVersion,
+        layer: {
+          ownerUserId: command.layer.ownerUserId,
+          width: command.layer.width,
+          height: command.layer.height
+        },
+        chunkManifest: command.layer.chunks.map((chunk) => ({
+          index: chunk.index,
+          checksum: checksumCanonicalJson(chunk)
+        }))
+      })
+      const { chunks } = command.layer
+      let progress = await stageFog({ input, type: 'SCENE_FOG_BEGIN' })
+      while (progress.status === 'RECEIVING' && progress.receivedChunks < chunks.length) {
+        const offset = progress.receivedChunks
+        let end = offset + 1
+        let chars = chunks[offset]!.data.length
+        while (
+          end < chunks.length &&
+          end - offset < fogBatchChunks &&
+          chars + chunks[end]!.data.length <= fogBatchChars
+        ) {
+          chars += chunks[end]!.data.length
+          end += 1
+        }
+        progress = await stageFog({
+          commandId: input.commandId,
+          input: { chunks: chunks.slice(offset, end), offset, saveId: progress.saveId },
+          type: 'SCENE_FOG_APPEND'
+        })
       }
-      return new Promise<LiveSessionCommandCommit>((resolve, reject) => {
-        if (!commandReady || sequence === null) {
-          reject(new Error('Live play is not ready for commands.'))
-          return
-        }
-        const pending = {
-          command,
-          expectedSessionSequence: sequence,
-          lastSentSequence: null as number | null,
-          reject,
-          resolve
-        }
-        pendingCommands.set(commandId, pending)
-        if (send({ command, expectedSessionSequence: sequence, type: 'COMMAND' })) {
-          pending.lastSentSequence = sequence
-        } else {
-          pendingCommands.delete(commandId)
-          reject(new Error('Live play is not connected.'))
-        }
+      if (progress.status === 'EXPIRED') throw new Error('Scene fog save expired.')
+      return submitCommand({
+        command: {
+          commandId: input.commandId,
+          expectedSceneVersion: input.expectedSceneVersion,
+          saveId: progress.saveId,
+          sceneId: input.sceneId,
+          type: 'PUBLISH_SCENE_FOG_PATCH'
+        },
+        scope: 'SCENE'
       })
     },
     sendTransient(envelope) {

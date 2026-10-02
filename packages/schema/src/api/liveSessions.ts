@@ -12,6 +12,11 @@ import {
   setCampaignLiveScenePresentationInputDtoSchema
 } from './vttScenes.js'
 import {
+  sceneFogAppendInputSchema,
+  sceneFogPatchInputSchema,
+  sceneFogSaveProgressSchema
+} from './sceneFog.js'
+import {
   liveSessionCommandDtoSchema,
   liveSessionCommandRejectionCodeDtoSchema,
   liveSessionCorrectionDtoSchema,
@@ -169,7 +174,15 @@ export const liveSessionWebSocketClientMessageDtoSchema = lazySchema(() =>
       characterId: uuidSchema,
       type: z.literal('SUBSCRIBE_CHARACTER_SHEET')
     }),
-    z.strictObject({ type: z.literal('UNSUBSCRIBE_CHARACTER_SHEET') })
+    z.strictObject({ type: z.literal('UNSUBSCRIBE_CHARACTER_SHEET') }),
+    // The GM's fog patch stages in bounded batches under the socket cap; each answers with
+    // SCENE_FOG_PROGRESS or COMMAND_REJECTED for the patch's command ID (D79).
+    z.strictObject({ input: sceneFogPatchInputSchema, type: z.literal('SCENE_FOG_BEGIN') }),
+    z.strictObject({
+      commandId: uuidSchema,
+      input: sceneFogAppendInputSchema,
+      type: z.literal('SCENE_FOG_APPEND')
+    })
   ])
 )
 
@@ -214,7 +227,9 @@ export const liveSessionWebSocketServerMessageDtoSchema = lazySchema(() =>
       // The unacknowledged warnings for reason `RULE_WARNINGS`; `null` otherwise.
       warnings: z.nullable(encounterRuleWarningsDtoSchema),
       type: z.literal('COMMAND_REJECTED')
-    })
+    }),
+    // Unsequenced: only the uploading socket learns its staged fog patch's progress.
+    z.strictObject({ progress: sceneFogSaveProgressSchema, type: z.literal('SCENE_FOG_PROGRESS') })
   ])
 )
 

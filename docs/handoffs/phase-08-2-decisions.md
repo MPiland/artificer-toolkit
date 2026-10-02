@@ -532,6 +532,32 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     rate-limiting rule on navigations and `/api/auth/*`, fail closed when the daily pool runs out,
     and an alert at 60%. Verify the free plan's rule allowances and that edge-blocked requests do
     not count against the Workers pool before configuring.
+- **D79 (2026-10-02): GM Scene edits become room commands; A35-S3c splits into four slices.
+  Room-native editing decided by the user on 2026-10-02; the split by Claude (integration owner).**
+  - **Evidence:** D77 assumed S6c would delete the Convex Scene live-command writers; S6c3 deleted
+    only the Encounter path. Token moves, doors and move undo already go through the room, but the
+    GM live editor in `CampaignVttStage.tsx` (`sceneCommand`) still sends `UPSERT_`/`REMOVE_SCENE_*`
+    (token, light, barrier, darkness, annotation), measurement removal, `SET_SCENE_FOG_MODE`,
+    `SET_SCENE_VISION_REVEAL_MODE` and `PATCH_SCENE_FOG` to `scenes/commands:execute`,
+    `fogCommands` begin/append/publish and `geometryFastCommands`/`geometryActions`. `commands` and
+    `fogCommands` carry no live-authority fence, so an edit while the room holds the presented Scene
+    advances the Convex Scene version under it, and the room's next checkpoint (which also carries
+    its Encounter changes) is refused as stale. The guarded geometry writers refuse instead.
+  - **Ruling (user):** the room is the only writer of a presented Scene, including GM edits, as in
+    Foundry. Rejected: refusing Convex edits during play (the GM could not edit the presented map),
+    and Convex edits that force a room flush and rehydrate (two writers racing).
+  - **S3c0:** the room gains commands for every GM editor command and for fog painting (chunked
+    upload into the room); the web sends them through the live socket.
+  - **S3c1:** delete the Convex Scene command path (functions, staging cleanup, their tests and
+    development-script calls). Tests whose subject is the deleted path are deleted, not ported (the
+    S6c2 rule); tests that only used it to set up state move to the room movement harness or
+    checkpoint fixtures. Shared `packages/encounter-persistence` Scene publication/undo code stays:
+    the room uses it.
+  - **S3c2:** pack Scene command history into Scene-scoped receipt ledgers (`SCENE` scope, one
+    ledger per Scene per checkpoint, small indexed `sceneLiveCommands` headers), and move room
+    hydration, the 30-day retention (whole ledgers) and Campaign deletion onto them.
+  - **S3c3:** the room builds its Scene cache from its store instead of the Convex `capture`/`hydrate`
+    Scene reads (D78 S6c3 ruling); the socket-admission authority capture stays.
 - **D78 (2026-10-01): A35-S6c splits into three slices and absorbs A35-S8c. Decided by the user
   on 2026-10-01.**
   - **S6c1:** every ACTIVE-Run Encounter command becomes room-native: evidence rolls and

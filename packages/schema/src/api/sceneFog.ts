@@ -54,6 +54,19 @@ export const sceneFogAppendInputSchema = lazySchema(() =>
     chunks: z.array(sceneFogChunkDtoSchema).check(z.minLength(1)).check(z.maxLength(8))
   })
 )
+/**
+ * The live room's journaled publication of a fog patch the GM staged over the socket with
+ * `SCENE_FOG_BEGIN` and `SCENE_FOG_APPEND`; it carries the begin's Scene, command and version.
+ */
+export const sceneFogPublishCommandInputSchema = lazySchema(() =>
+  z.strictObject({
+    type: z.literal('PUBLISH_SCENE_FOG_PATCH'),
+    sceneId: postgresUuidSchema,
+    commandId: postgresUuidSchema,
+    expectedSceneVersion: version,
+    saveId: postgresUuidSchema
+  })
+)
 export const sceneFogSaveLookupSchema = lazySchema(() =>
   z.strictObject({ saveId: postgresUuidSchema })
 )
@@ -153,6 +166,7 @@ export const sceneFogCommandChunksPageSchema = lazySchema(() =>
 
 export type SceneFogPatchInput = z.infer<typeof sceneFogPatchInputSchema>
 export type SceneFogAppendInput = z.infer<typeof sceneFogAppendInputSchema>
+export type SceneFogPublishCommandInput = z.infer<typeof sceneFogPublishCommandInputSchema>
 export type SceneFogSaveProgress = z.infer<typeof sceneFogSaveProgressSchema>
 export type SceneFogCommandResult = z.infer<typeof sceneFogCommandResultSchema>
 export type SceneFogLayersPageInput = z.infer<typeof sceneFogLayersPageInputSchema>

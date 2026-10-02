@@ -392,6 +392,39 @@ skip also writes an `encounterDecisionSkips` row keyed by the decision's occurre
 player was shown, and their drawer says "The GM skipped this decision." (D39). The skipped
 occurrence and version key both writes, so a retry repeats nothing.
 
+**Room Scene edits (current source, A35-S3c0, D79).** The room is the only writer of a presented
+Scene. The tabletop sends every Scene command over the socket (`live.sendCommand({ command, scope:
+'SCENE' })` in `CampaignVttStage`); each family uses the journal's fingerprint replay, the D72
+`SCENE` allowance, the `STALE_STATE` correction and per-viewer projected fanout:
+
+- **Inline edits** (settings, lights, darkness, annotations, measurements) commit through
+  [publishRoomSceneInline](../../apps/session-worker/src/roomSceneEdits.ts) and the shared planner
+  [planSceneInlineCommand](../../packages/encounter-persistence/src/sceneInlineCommand.ts): only the
+  GM edits, except a player's own measurements; a target changed after `expectedSceneVersion` is
+  `STALE_STATE`, while unrelated newer edits rebase; settings versions, ordinals and counts follow
+  the stored live head; legacy visual-only darkness input is refused; the INLINE receipt is a Scene
+  row, so an exact retry replays.
+- **Token and barrier upserts and removals** (GM only) commit through room geometry, which derives
+  each fog owner's exploration in the same transaction.
+- **GM fog painting** is staged, then published. `SCENE_FOG_BEGIN { input }` carries the
+  `PATCH_SCENE_FOG` layer and chunk-checksum manifest (at most 512x512 cells and 256 chunks);
+  `SCENE_FOG_APPEND { commandId, input: { saveId, offset, chunks } }` sends at most 8 chunks, so
+  every frame stays under the 64 KB socket cap; each step answers `SCENE_FOG_PROGRESS`. The journaled
+  `PUBLISH_SCENE_FOG_PATCH { saveId }` then writes the save, its chunks, the merged layer, the live
+  head and the FOG_PATCH receipt as Scene rows in one transaction with the journal head, and marks
+  the staging published in that transaction. Staging
+  ([RoomSceneFogUploads](../../apps/session-worker/src/roomSceneFogUploads.ts), SQLite
+  `room_scene_fog_uploads`) is not Scene state and never reaches a checkpoint. It is keyed by
+  authority epoch and account and bounded per account: 2 unpublished patches, 512 KiB of staged
+  chunks and a 10-minute window. Appends are checked against the manifest. Eviction removes the
+  account's staging and release clears it all. Staging steps only check the `SCENE` allowance, and
+  publication consumes it. A begin retried after publication answers `PUBLISHED` from the receipt.
+- **Undo** skips INLINE and FOG_PATCH receipts and undoes the latest unmatched move.
+
+Transitional until A35-S3c1: Convex `scenes/commands:execute`, the `fogCommands` begin, append and
+publish mutations and `scenes/geometryActions:execute` still exist and duplicate the room's
+inline planning. The tabletop no longer calls them; S3c1 deletes them.
+
 **Encounter binding through the room (SOURCE, execution proof pending, D47).**
 `NativeLiveSessionRoom.#executeEncounterBinding` now calls
 [executeRoomSceneBinding](../../apps/session-worker/src/roomSceneBinding.ts) and shared
@@ -1317,7 +1350,9 @@ standalone `MOVE_SCENE_TOKEN` and `SET_SCENE_DOOR_STATE` records inside
 display state and replay receipt share one SQLite transaction before acknowledgement. Raw state and
 display state remain separate so composed Character vision is never persisted as a native override.
 Integrated proof of hydration, commands, alarms, drains and unified sequence remains pending.
-Bound/fog/movement-decision and Encounter binding paths now dispatch natively in source. Character
+Inline edits, token and barrier edits and fog publications (A35-S3c0) write their Scene rows and
+receipts in the same transaction through [roomSceneEdits](../../apps/session-worker/src/roomSceneEdits.ts)
+and room geometry; see "Room Scene edits" above. Bound/fog/movement-decision and Encounter binding paths now dispatch natively in source. Character
 vision composition is wired before their journal commits. Planned/fog/settled-movement undo is now
 bound through [roomSceneUndo](../../apps/session-worker/src/roomSceneUndo.ts) and shared publication.
 The room intercepts `UNDO_LAST_SCENE_MOVE`, admits the GM, and writes undo state, current Character
@@ -1603,8 +1638,11 @@ write, so a rejection rolls back the whole transaction. Account deletion resets 
 | Social                 | Fixed UTC-aligned hour/day windows | Applications, invitations, reports and blocks ([policy](persistence.md#native-social-rate-limits--local-implementation))                                  |
 
 The `sceneWrite` burst admits two maximum fog saves (begin, 32 appends, publish) back to back.
+The `sceneWrite` Scene paths are transitional: the tabletop sends presented-Scene edits to the room
+(A35-S3c0), and A35-S3c1 deletes these Convex writers.
 While a Campaign's live room holds authority the allowances apply per account within that room
-instead (D72; chat and rolls 30/min, burst 30, the GM 60/60; Scene 240/min, burst 80), as described
+instead (D72; chat and rolls 30/min, burst 30, the GM 60/60; Scene 240/min, burst 80; fog staging
+only checks the Scene allowance, and its publication consumes one), as described
 under the chat paragraph in [Supported live-command flow](#supported-live-command-flow); these
 Convex buckets apply outside live play.
 The activation reservation cap, publication role check and control retry are described under
@@ -1618,7 +1656,8 @@ signed-in client cannot turn one socket into unbounded Convex work:
 - **Message budgets:** each socket has a token bucket per message class. Exceeding one closes the
   socket (1008). Budgets: `AUTHENTICATE` 10 then 1 per 2 s; `COMMAND` 20 then 5/s; `RESUME` and
   `SYNCHRONIZE_SCENE` together 20 then 2/s; `TRANSIENT` 200 then 100/s (clients send each preview
-  stream at most 10 Hz, only during a gesture); unparseable messages 5 then 1 per 2 s.
+  stream at most 10 Hz, only during a gesture); `SCENE_FOG_BEGIN` and `SCENE_FOG_APPEND` together
+  40 then 20/s (one full 256-chunk fog patch in a burst); unparseable messages 5 then 1 per 2 s.
 - **Sockets:** at most 4 per user and 64 per room. An upgrade over either cap is refused (429 or 503)
   before its one-use ticket is consumed. Refusing, rather than closing an older socket, prevents a
   user's tabs from evicting each other in a reconnect loop.

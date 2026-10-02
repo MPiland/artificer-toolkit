@@ -1,10 +1,14 @@
 import type { LiveSessionCommandRejectionCodeDto } from '@artificer-toolkit/schema/api/liveSessions'
+import { sceneFogPublishCommandInputSchema } from '@artificer-toolkit/schema/api/sceneFog'
 import {
   sceneDoorStateCommandInputDtoSchema,
+  sceneGeometryCommandInputDtoSchema,
+  sceneLiveCommandInputDtoSchema,
   sceneTokenMovementCommandInputDtoSchema,
   sceneUndoLastMoveCommandInputDtoSchema,
   type CampaignSceneStateDto,
-  type SceneCommandResultDto
+  type SceneCommandResultDto,
+  type SceneLiveCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   isSceneEntityVisibleToViewer,
@@ -34,10 +38,16 @@ export function canPreviewSceneTokenDrag(input: {
   return bound ? bound.controlled : token.controlledByUserIds.includes(input.userId)
 }
 
+/**
+ * Every Scene command the room writes (D79): token and barrier geometry, inline edits, undo and the
+ * publication of a staged fog patch. A whole-layer `PATCH_SCENE_FOG` is not one; fog is uploaded.
+ */
 export const liveSessionSceneCommandInputSchema = z.union([
-  sceneDoorStateCommandInputDtoSchema,
+  sceneGeometryCommandInputDtoSchema,
   sceneTokenMovementCommandInputDtoSchema,
-  sceneUndoLastMoveCommandInputDtoSchema
+  sceneLiveCommandInputDtoSchema,
+  sceneUndoLastMoveCommandInputDtoSchema,
+  sceneFogPublishCommandInputSchema
 ])
 
 /** The Scene commands the planner decides; the room commits `UNDO_LAST_SCENE_MOVE` through Scene history. */
@@ -48,10 +58,18 @@ export const liveSessionSceneGeometryCommandInputSchema = z.union([
 
 type LiveSceneCommand = z.infer<typeof liveSessionSceneCommandInputSchema>
 
+/** Settings, lights, darkness, annotations and measurements: edits with no geometry save. */
+export function isInlineSceneCommand(
+  command: LiveSceneCommand
+): command is SceneLiveCommandInputDto {
+  return sceneLiveCommandInputDtoSchema.safeParse(command).success
+}
+
 /**
- * Whether a Scene command commits to Convex first (D27) instead of through the outbox: every
- * Encounter-bound move and every move on an Encounter-bound Scene, and any move or door change that
- * derives fog exploration. Door changes and moves that do neither stay on the outbox.
+ * Whether a Scene command stages a geometry save before it commits instead of writing its delta
+ * directly: every Encounter-bound move and every move on an Encounter-bound Scene, any move or door
+ * change that derives fog exploration, and every token or barrier edit. Door changes and moves that
+ * do neither commit directly.
  */
 export function isExternalSceneCommand(
   command: LiveSceneCommand,
@@ -63,9 +81,19 @@ export function isExternalSceneCommand(
     fogLayerCount: scene.fogLayers.length,
     tokens: scene.tokens
   })
-  if (command.type === 'MOVE_SCENE_TOKEN')
-    return command.expectedEncounterVersion !== null || encounterId !== null || derivesExploration
-  return command.type === 'SET_SCENE_DOOR_STATE' && derivesExploration
+  switch (command.type) {
+    case 'MOVE_SCENE_TOKEN':
+      return command.expectedEncounterVersion !== null || encounterId !== null || derivesExploration
+    case 'SET_SCENE_DOOR_STATE':
+      return derivesExploration
+    case 'UPSERT_SCENE_TOKEN':
+    case 'REMOVE_SCENE_TOKEN':
+    case 'UPSERT_SCENE_BARRIER':
+    case 'REMOVE_SCENE_BARRIER':
+      return true
+    default:
+      return false
+  }
 }
 
 type SceneCommandPlan =

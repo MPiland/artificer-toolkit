@@ -8,10 +8,6 @@ import {
 } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { normalizeSceneGeometryEntity } from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
 import {
-  parseSceneFogLayer,
-  parseSceneReferencedFogChunk
-} from '@artificer-toolkit/encounter-persistence/sceneFogDocuments'
-import {
   sceneUndoExecuteInputSchema,
   type SceneUndoExecuteInput
 } from '@artificer-toolkit/schema/api/sceneUndo'
@@ -27,13 +23,12 @@ import {
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import {
   sceneCommandResultDtoSchema,
-  sceneFogLayerDtoSchema,
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomTransaction } from './roomEncounterStore.js'
-import { readRoomScene, readRoomSceneHeader } from './roomSceneRead.js'
+import { readRoomScene, readRoomSceneFogLayer, readRoomSceneHeader } from './roomSceneRead.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
 
 /** The Scene has no committed token move left to undo; retrying cannot succeed. */
@@ -189,26 +184,8 @@ export async function publishRoomSceneUndo(input: {
   const restoredOwners = new Set(restoredFogOwners)
   const fogLayers = scene.fogLayers.filter((layer) => !restoredOwners.has(layer.ownerUserId))
   for (const owner of restoredFogOwners) {
-    const value = readRoomSceneRow(transaction, 'sceneFogLayers', [header.id, owner])
-    if (!value) continue
-    const layer = parseSceneFogLayer(value, result.version)
-    const chunks = layer.chunks.map((reference) =>
-      parseSceneReferencedFogChunk(
-        readRoomSceneRow(transaction, 'sceneFogSaves', [reference.saveId]),
-        readRoomSceneRow(transaction, 'sceneFogChunks', [reference.saveId, reference.ordinal]),
-        reference,
-        header.id,
-        layer
-      )
-    )
-    fogLayers.push(
-      sceneFogLayerDtoSchema.parse({
-        ownerUserId: owner,
-        width: layer.width,
-        height: layer.height,
-        chunks
-      })
-    )
+    const layer = readRoomSceneFogLayer(transaction, header.id, owner, result.version)
+    if (layer) fogLayers.push(layer)
   }
   return {
     result: sceneCommandResultDtoSchema.parse(result),

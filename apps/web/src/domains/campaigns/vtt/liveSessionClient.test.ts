@@ -327,6 +327,126 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
+  it('stages a fog patch in bounded batches, then publishes it as one Scene command', async () => {
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onError: (error) => {
+        throw error
+      },
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+    socket.receive({
+      authorityEpoch,
+      sequence: 4,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: sceneState },
+      type: 'STATE_SYNC'
+    })
+    const saveId = '00000000-0000-4000-8000-000000000020'
+    const chunks = Array.from({ length: 10 }, (_, index) => ({
+      data: 'AA==',
+      height: 1,
+      index,
+      width: 1,
+      x: index,
+      y: 0
+    }))
+    const sentMessages = () =>
+      socket.sent.map((data) => liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data)))
+    const progress = (receivedChunks: number) =>
+      socket.receive({
+        progress: {
+          commandId,
+          receivedChunks,
+          saveId,
+          sceneId,
+          status: 'RECEIVING',
+          totalChunks: 10
+        },
+        type: 'SCENE_FOG_PROGRESS'
+      })
+
+    const published = connection.submitSceneFog({
+      commandId,
+      expectedSceneVersion: sceneState.version,
+      layer: { chunks, height: 1, ownerUserId: null, width: 10 },
+      sceneId,
+      type: 'PATCH_SCENE_FOG'
+    })
+    expect(sentMessages().at(-1)).toMatchObject({
+      input: { chunkManifest: expect.any(Array), commandId, type: 'PATCH_SCENE_FOG' },
+      type: 'SCENE_FOG_BEGIN'
+    })
+    progress(0)
+    await vi.waitFor(() =>
+      expect(sentMessages().at(-1)).toMatchObject({
+        commandId,
+        input: { offset: 0, saveId },
+        type: 'SCENE_FOG_APPEND'
+      })
+    )
+    progress(8)
+    await vi.waitFor(() =>
+      expect(sentMessages().at(-1)).toMatchObject({
+        input: { offset: 8 },
+        type: 'SCENE_FOG_APPEND'
+      })
+    )
+    expect(
+      sentMessages().flatMap((message) =>
+        message.type === 'SCENE_FOG_APPEND' ? [message.input.chunks.length] : []
+      )
+    ).toEqual([8, 2])
+    progress(10)
+    await vi.waitFor(() =>
+      expect(sentMessages().at(-1)).toEqual({
+        command: {
+          command: {
+            commandId,
+            expectedSceneVersion: sceneState.version,
+            saveId,
+            sceneId,
+            type: 'PUBLISH_SCENE_FOG_PATCH'
+          },
+          scope: 'SCENE'
+        },
+        expectedSessionSequence: 4,
+        type: 'COMMAND'
+      })
+    )
+    socket.receive({ commandId, delta: null, sequence: 5, type: 'COMMAND_COMMITTED' })
+    await expect(published).resolves.toMatchObject({ commandId, sequence: 5 })
+
+    // A refused step rejects the upload with the room's reason.
+    const refusedId = '00000000-0000-4000-8000-000000000021'
+    const refused = connection.submitSceneFog({
+      commandId: refusedId,
+      expectedSceneVersion: sceneState.version,
+      layer: { chunks, height: 1, ownerUserId: null, width: 10 },
+      sceneId,
+      type: 'PATCH_SCENE_FOG'
+    })
+    socket.receive({
+      code: 'RATE_LIMITED',
+      commandId: refusedId,
+      currentSequence: 5,
+      message: 'Finish or wait out your other fog changes first.',
+      reason: null,
+      warnings: null,
+      type: 'COMMAND_REJECTED'
+    })
+    await expect(refused).rejects.toThrow('Finish or wait out your other fog changes first.')
+    connection.close()
+  })
+
   it('advances contiguous native Encounter receipts, settles same-sequence replay, and resumes gaps', async () => {
     const durableStates: unknown[] = []
     const errors: Error[] = []

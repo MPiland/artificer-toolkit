@@ -6275,3 +6275,493 @@ it('fans out every non-hidden token and door to a player in a fog-OFF Scene', as
     )
   )
 })
+
+/** One Scene command message; the room is the only writer of the presented Scene (D79). */
+function sceneMessage(command: Record<string, unknown>, expectedSessionSequence: number) {
+  return JSON.stringify({
+    command: { command, scope: 'SCENE' },
+    expectedSessionSequence,
+    type: 'COMMAND'
+  })
+}
+
+function commitsOf(messages: LiveSessionWebSocketServerMessageDto[], commandId: string) {
+  return messages.filter(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+  )
+}
+
+function rejectionOf(messages: LiveSessionWebSocketServerMessageDto[], commandId: string) {
+  return messages.find(
+    (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+  )
+}
+
+/** Records every Checkpoint the room publishes while the fixture keeps answering. */
+async function recordCheckpoints(base: Awaited<ReturnType<typeof fixture>>) {
+  const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  await runInDurableObject(base.stub, () => {
+    const answer = vi.mocked(globalThis.fetch).getMockImplementation()
+    if (!answer) throw new Error('Missing fixture fetch.')
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      if (new URL(request.url).pathname === '/live-sessions/checkpoint')
+        publications.push(liveSessionCheckpointInputSchema.parse(await request.clone().json()))
+      return answer(request)
+    })
+  })
+  return publications
+}
+
+async function storedScene(base: Awaited<ReturnType<typeof fixture>>) {
+  const stateJson = await runInDurableObject(
+    base.stub,
+    (_instance, state) =>
+      state.storage.sql
+        .exec<{ state_json: string }>(
+          'SELECT state_json FROM durable_session_authority WHERE id = 1'
+        )
+        .one().state_json
+  )
+  return hydrateNativeLiveSessionState(stateJson).scene
+}
+
+it('commits an inline GM edit with its INLINE receipt, checkpoints it and replays it', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const publications = await recordCheckpoints(base)
+  base.messages.length = 0
+
+  const commandId = crypto.randomUUID()
+  const command = {
+    commandId,
+    expectedSceneVersion: 0,
+    illumination: 'DIM',
+    sceneId: scene.id,
+    type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+  }
+  base.socket.send(sceneMessage(command, 0))
+  await vi.waitFor(() => expect(commitsOf(base.messages, commandId)).toHaveLength(1))
+  const [committed] = commitsOf(base.messages, commandId)
+  expect(committed).toMatchObject({
+    delta: {
+      scope: 'SCENE',
+      result: {
+        delta: { kind: 'AMBIENT_ILLUMINATION_SET', illumination: 'DIM' },
+        replayed: false,
+        version: 1
+      }
+    },
+    sequence: 1
+  })
+  expect((await storedScene(base))?.ambientIllumination).toBe('DIM')
+
+  await fireCheckpointAlarm(base.stub)
+  expect(publications).toHaveLength(1)
+  expect(checkpointReceipt(publications[0]!, commandId)).toMatchObject({
+    actorUserId: base.userId,
+    encoding: 'INLINE',
+    input: command
+  })
+
+  base.socket.send(sceneMessage(command, 0))
+  await vi.waitFor(() => expect(commitsOf(base.messages, commandId)).toHaveLength(2))
+  expect(commitsOf(base.messages, commandId)[1]).toEqual(asReplay(committed))
+  base.socket.send(sceneMessage({ ...command, illumination: 'BRIGHT' }, 1))
+  await vi.waitFor(() =>
+    expect(rejectionOf(base.messages, commandId)).toMatchObject({ code: 'INVALID_COMMAND' })
+  )
+  expect(publications).toHaveLength(1)
+})
+
+it('lets a player save and remove only their own measurements', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const player = await connectPlayer(base)
+  player.socket.send(
+    JSON.stringify({
+      expectedPresentationVersion: base.capture.presentation!.version,
+      sceneId: scene.id,
+      type: 'SYNCHRONIZE_SCENE',
+      version: scene.version
+    })
+  )
+  await vi.waitFor(() =>
+    expect(player.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
+  )
+  const measurement = (createdByUserId: string) => ({
+    createdByUserId,
+    id: crypto.randomUUID(),
+    label: null,
+    path: [
+      { x: 0, y: 0 },
+      { x: 20, y: 0 }
+    ]
+  })
+  const upsert = (createdByUserId: string, expectedSceneVersion: number) => ({
+    commandId: crypto.randomUUID(),
+    expectedSceneVersion,
+    measurement: measurement(createdByUserId),
+    sceneId: scene.id,
+    type: 'UPSERT_SCENE_MEASUREMENT'
+  })
+
+  const own = upsert(base.playerId, 0)
+  player.socket.send(sceneMessage(own, 0))
+  await vi.waitFor(() =>
+    expect(commitsOf(player.messages, own.commandId)).toEqual([
+      expect.objectContaining({
+        delta: expect.objectContaining({
+          result: expect.objectContaining({
+            delta: { kind: 'MEASUREMENT_UPSERTED', measurement: own.measurement }
+          })
+        }),
+        sequence: 1
+      })
+    ])
+  )
+
+  const forged = upsert(base.userId, 1)
+  player.socket.send(sceneMessage(forged, 1))
+  const gms = upsert(base.userId, 1)
+  base.socket.send(sceneMessage(gms, 1))
+  await vi.waitFor(() => {
+    expect(rejectionOf(player.messages, forged.commandId)).toMatchObject({ code: 'FORBIDDEN' })
+    expect(commitsOf(base.messages, gms.commandId)).toHaveLength(1)
+  })
+  const removal = {
+    commandId: crypto.randomUUID(),
+    expectedSceneVersion: 2,
+    measurementId: gms.measurement.id,
+    sceneId: scene.id,
+    type: 'REMOVE_SCENE_MEASUREMENT'
+  }
+  player.socket.send(sceneMessage(removal, 2))
+  await vi.waitFor(() =>
+    expect(rejectionOf(player.messages, removal.commandId)).toMatchObject({ code: 'FORBIDDEN' })
+  )
+  const ownRemoval = {
+    ...removal,
+    commandId: crypto.randomUUID(),
+    measurementId: own.measurement.id
+  }
+  player.socket.send(sceneMessage(ownRemoval, 2))
+  await vi.waitFor(() => expect(commitsOf(player.messages, ownRemoval.commandId)).toHaveLength(1))
+  expect((await storedScene(base))?.measurements).toEqual([gms.measurement])
+})
+
+it('rebases an inline edit over unrelated changes and refuses a stale target', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  base.messages.length = 0
+  const ambient = (expectedSceneVersion: number, illumination: string) => ({
+    commandId: crypto.randomUUID(),
+    expectedSceneVersion,
+    illumination,
+    sceneId: scene.id,
+    type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+  })
+
+  const first = ambient(0, 'DIM')
+  base.socket.send(sceneMessage(first, 0))
+  await vi.waitFor(() => expect(commitsOf(base.messages, first.commandId)).toHaveLength(1))
+  const unrelated = {
+    commandId: crypto.randomUUID(),
+    expectedSceneVersion: 0,
+    mode: 'ON_DROP',
+    sceneId: scene.id,
+    type: 'SET_SCENE_VISION_REVEAL_MODE'
+  }
+  base.socket.send(sceneMessage(unrelated, 1))
+  await vi.waitFor(() =>
+    expect(commitsOf(base.messages, unrelated.commandId)).toEqual([
+      expect.objectContaining({
+        delta: expect.objectContaining({ result: expect.objectContaining({ version: 2 }) })
+      })
+    ])
+  )
+  const conflicting = ambient(0, 'ORDINARY_DARKNESS')
+  const ahead = ambient(5, 'ORDINARY_DARKNESS')
+  base.socket.send(sceneMessage(conflicting, 2))
+  base.socket.send(sceneMessage(ahead, 2))
+  await vi.waitFor(() => {
+    expect(rejectionOf(base.messages, conflicting.commandId)).toMatchObject({
+      code: 'STALE_STATE',
+      correction: { scope: 'SCENE' }
+    })
+    expect(rejectionOf(base.messages, ahead.commandId)).toMatchObject({ code: 'STALE_STATE' })
+  })
+  expect(await storedScene(base)).toMatchObject({
+    ambientIllumination: 'DIM',
+    version: 2,
+    visionRevealMode: 'ON_DROP'
+  })
+})
+
+it('keeps undo working past an inline edit in the Scene history', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  await synchronizeScene(base, value.scene)
+  base.messages.length = 0
+  const moveCommandId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, moveCommandId, { x: 20, y: 10 }))
+  )
+  await vi.waitFor(() => expect(commitsOf(base.messages, moveCommandId)).toHaveLength(1))
+  const inlineCommandId = crypto.randomUUID()
+  base.socket.send(
+    sceneMessage(
+      {
+        commandId: inlineCommandId,
+        expectedSceneVersion: 1,
+        illumination: 'DIM',
+        sceneId: value.scene.id,
+        type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+      },
+      1
+    )
+  )
+  await vi.waitFor(() => expect(commitsOf(base.messages, inlineCommandId)).toHaveLength(1))
+  const undoCommandId = crypto.randomUUID()
+  base.socket.send(JSON.stringify(undoMoveCommand(value.scene.id, undoCommandId, 2, 2)))
+  await vi.waitFor(() =>
+    expect(commitsOf(base.messages, undoCommandId)).toEqual([
+      expect.objectContaining({
+        delta: expect.objectContaining({
+          result: expect.objectContaining({
+            delta: expect.objectContaining({
+              kind: 'TOKEN_MOVE_UNDONE',
+              undoneCommandId: moveCommandId
+            }),
+            version: 3
+          })
+        })
+      })
+    ])
+  )
+  expect(await storedScene(base)).toMatchObject({ ambientIllumination: 'DIM' })
+  expect((await storedScene(base))?.tokens[0]?.position).toEqual({ x: 10, y: 10 })
+})
+
+it('derives fog exploration for a GM token upsert, refuses a player and replays it', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const player = await connectPlayer(base)
+  base.messages.length = 0
+  const token = {
+    ...movementScene(scene.campaignId).scene.tokens[0]!,
+    controlledByUserIds: [base.playerId],
+    vision: { angleDegrees: 360, brightRange: 0, dimRange: 30, directionDegrees: 0, enabled: true }
+  }
+  const command = {
+    commandId: crypto.randomUUID(),
+    expectedSceneVersion: 0,
+    sceneId: scene.id,
+    token,
+    type: 'UPSERT_SCENE_TOKEN'
+  }
+  const playerCommand = { ...command, commandId: crypto.randomUUID() }
+  player.socket.send(sceneMessage(playerCommand, 0))
+  await vi.waitFor(() =>
+    expect(rejectionOf(player.messages, playerCommand.commandId)).toMatchObject({
+      code: 'FORBIDDEN'
+    })
+  )
+
+  base.socket.send(sceneMessage(command, 0))
+  await vi.waitFor(() => expect(commitsOf(base.messages, command.commandId)).toHaveLength(1))
+  const [committed] = commitsOf(base.messages, command.commandId)
+  expect(committed).toMatchObject({
+    delta: { result: { delta: { kind: 'TOKEN_UPSERTED', token }, version: 1 } },
+    sequence: 1
+  })
+  const stored = await storedScene(base)
+  expect(stored?.tokens).toEqual([token])
+  expect(stored?.fogLayers).toHaveLength(1)
+  expect(stored?.fogLayers[0]).toMatchObject({ ownerUserId: null })
+  expect(stored?.fogLayers[0]?.chunks.length).toBeGreaterThan(0)
+
+  base.socket.send(sceneMessage(command, 0))
+  await vi.waitFor(() => expect(commitsOf(base.messages, command.commandId)).toHaveLength(2))
+  expect(commitsOf(base.messages, command.commandId)[1]).toEqual(asReplay(committed))
+})
+
+/** The GM's full explored fog patch for a Scene, as begin input and its chunks. */
+function fogPatch(scene: CampaignSceneStateDto) {
+  const layer = createUniformSceneFogLayer(scene, { explored: true, ownerUserId: null })
+  return {
+    chunks: layer.chunks,
+    input: {
+      chunkManifest: layer.chunks.map((chunk) => ({
+        checksum: checksumCanonicalJson(chunk),
+        index: chunk.index
+      })),
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: scene.version,
+      layer: { height: layer.height, ownerUserId: null, width: layer.width },
+      sceneId: scene.id,
+      type: 'PATCH_SCENE_FOG'
+    }
+  }
+}
+
+function fogProgress(messages: LiveSessionWebSocketServerMessageDto[], commandId: string) {
+  return messages.flatMap((message) =>
+    message.type === 'SCENE_FOG_PROGRESS' && message.progress.commandId === commandId
+      ? [message.progress]
+      : []
+  )
+}
+
+it('stages a GM fog patch over the socket, publishes it atomically and replays every step', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const player = await connectPlayer(base)
+  const publications = await recordCheckpoints(base)
+  base.messages.length = 0
+  const patch = fogPatch(scene)
+  const { commandId } = patch.input
+
+  player.socket.send(JSON.stringify({ input: patch.input, type: 'SCENE_FOG_BEGIN' }))
+  await vi.waitFor(() =>
+    expect(rejectionOf(player.messages, commandId)).toMatchObject({ code: 'FORBIDDEN' })
+  )
+  base.socket.send(JSON.stringify({ input: patch.input, type: 'SCENE_FOG_BEGIN' }))
+  await vi.waitFor(() => expect(fogProgress(base.messages, commandId)).toHaveLength(1))
+  const [begun] = fogProgress(base.messages, commandId)
+  expect(begun).toMatchObject({ receivedChunks: 0, status: 'RECEIVING', totalChunks: 16 })
+  const saveId = begun!.saveId
+
+  const publish = {
+    commandId,
+    expectedSceneVersion: 0,
+    saveId,
+    sceneId: scene.id,
+    type: 'PUBLISH_SCENE_FOG_PATCH'
+  }
+  base.socket.send(sceneMessage(publish, 0))
+  await vi.waitFor(() =>
+    expect(rejectionOf(base.messages, commandId)).toMatchObject({
+      code: 'INVALID_COMMAND',
+      message: 'Scene fog save is incomplete.'
+    })
+  )
+  const append = (offset: number) =>
+    JSON.stringify({
+      commandId,
+      input: { chunks: patch.chunks.slice(offset, offset + 8), offset, saveId },
+      type: 'SCENE_FOG_APPEND'
+    })
+  base.socket.send(append(0))
+  base.socket.send(append(0))
+  base.socket.send(append(8))
+  await vi.waitFor(() => expect(fogProgress(base.messages, commandId)).toHaveLength(4))
+  expect(
+    fogProgress(base.messages, commandId)
+      .slice(1)
+      .map((progress) => progress.receivedChunks)
+  ).toEqual([8, 8, 16])
+
+  base.socket.send(sceneMessage(publish, 0))
+  await vi.waitFor(() => expect(commitsOf(base.messages, commandId)).toHaveLength(1))
+  const [committed] = commitsOf(base.messages, commandId)
+  expect(committed).toMatchObject({
+    delta: { result: { replayed: false, version: 1 } },
+    sequence: 1
+  })
+  expect((await storedScene(base))?.fogLayers).toEqual([
+    { ...createUniformSceneFogLayer(scene, { explored: true, ownerUserId: null }) }
+  ])
+  await vi.waitFor(() =>
+    expect(player.messages).toContainEqual(expect.objectContaining({ commandId, sequence: 1 }))
+  )
+
+  await fireCheckpointAlarm(base.stub)
+  expect(publications).toHaveLength(1)
+  expect(checkpointReceipt(publications[0]!, commandId)).toMatchObject({
+    actorUserId: base.userId,
+    encoding: 'FOG_PATCH'
+  })
+  expect(
+    publications[0]!.records.scenes.flatMap((record) =>
+      record.changes.map((change) => change.table)
+    )
+  ).toEqual(expect.arrayContaining(['sceneFogLayers', 'sceneFogChunks', 'sceneFogSaves']))
+
+  base.socket.send(sceneMessage(publish, 0))
+  base.socket.send(JSON.stringify({ input: patch.input, type: 'SCENE_FOG_BEGIN' }))
+  await vi.waitFor(() => {
+    expect(commitsOf(base.messages, commandId)).toHaveLength(2)
+    expect(fogProgress(base.messages, commandId)).toHaveLength(5)
+  })
+  expect(commitsOf(base.messages, commandId)[1]).toEqual(asReplay(committed))
+  expect(fogProgress(base.messages, commandId)[4]).toMatchObject({
+    receivedChunks: 16,
+    saveId,
+    status: 'PUBLISHED'
+  })
+  expect(publications).toHaveLength(1)
+})
+
+it('bounds staged fog per GM and expires an unpublished patch', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  base.messages.length = 0
+  const patches = Array.from({ length: ROOM_LIMITS.maxFogUploadsPerUser + 1 }, () =>
+    fogPatch(scene)
+  )
+  for (const patch of patches)
+    base.socket.send(JSON.stringify({ input: patch.input, type: 'SCENE_FOG_BEGIN' }))
+  const over = patches.at(-1)!.input.commandId
+  await vi.waitFor(() =>
+    expect(rejectionOf(base.messages, over)).toMatchObject({ code: 'RATE_LIMITED' })
+  )
+  const first = patches[0]!
+  const [begun] = fogProgress(base.messages, first.input.commandId)
+  if (!begun) throw new Error('Missing staged fog patch.')
+  base.socket.send(
+    JSON.stringify({
+      commandId: first.input.commandId,
+      input: { chunks: first.chunks.slice(0, 8), offset: 0, saveId: begun.saveId },
+      type: 'SCENE_FOG_APPEND'
+    })
+  )
+  await vi.waitFor(() => expect(fogProgress(base.messages, first.input.commandId)).toHaveLength(2))
+
+  const later = Date.now() + ROOM_LIMITS.fogUploadWindowMs + 1
+  vi.spyOn(Date, 'now').mockReturnValue(later)
+  base.socket.send(
+    sceneMessage(
+      {
+        commandId: first.input.commandId,
+        expectedSceneVersion: 0,
+        saveId: begun.saveId,
+        sceneId: scene.id,
+        type: 'PUBLISH_SCENE_FOG_PATCH'
+      },
+      0
+    )
+  )
+  await vi.waitFor(() =>
+    expect(rejectionOf(base.messages, first.input.commandId)).toMatchObject({
+      code: 'INVALID_COMMAND',
+      message: 'Scene fog save expired.'
+    })
+  )
+  // The expired patches no longer count, so a new one stages.
+  const next = fogPatch(scene)
+  base.socket.send(JSON.stringify({ input: next.input, type: 'SCENE_FOG_BEGIN' }))
+  await vi.waitFor(() =>
+    expect(fogProgress(base.messages, next.input.commandId)).toEqual([
+      expect.objectContaining({ status: 'RECEIVING' })
+    ])
+  )
+  expect(base.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+  expect(await journalEvidence(base)).toMatchObject({ authority: { sequence: 0 } })
+})
