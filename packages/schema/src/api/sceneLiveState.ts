@@ -75,30 +75,7 @@ export const sceneLiveChangesPageInputSchema = lazySchema(() =>
     collection: sceneLiveCollectionSchema
   })
 )
-export const sceneMeasurementsPageInputSchema = lazySchema(() =>
-  z.strictObject({
-    sceneId: postgresUuidSchema,
-    expectedVersion: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-    paginationOpts: sceneDefinitionEntityPageInputSchema.shape.paginationOpts
-  })
-)
-export const sceneMeasurementsPageSchema = lazySchema(() =>
-  z.extend(campaignListPageSchema, {
-    version: z.number().check(z.int()).check(z.nonnegative()),
-    count: sceneLiveCountsSchema.shape.measurements,
-    page: z.array(
-      z.strictObject({
-        ordinal: z.number().check(z.int()).check(z.nonnegative()),
-        measurement: sceneMeasurementDtoSchema
-      })
-    )
-  })
-)
 
 export type SceneLiveStateHeader = z.infer<typeof sceneLiveStateHeaderSchema>
 export type SceneLiveStateEntityPageInput = z.infer<typeof sceneLiveStateEntityPageInputSchema>
-export type SceneLiveEntityChangesPage = z.infer<typeof sceneLiveEntityChangesPageSchema>
-export type SceneLiveChangesPageInput = z.infer<typeof sceneLiveChangesPageInputSchema>
 export type SceneLiveEntity = z.infer<typeof sceneLiveEntitySchema>
-export type SceneMeasurementsPageInput = z.infer<typeof sceneMeasurementsPageInputSchema>
-export type SceneMeasurementsPage = z.infer<typeof sceneMeasurementsPageSchema>

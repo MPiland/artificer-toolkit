@@ -731,7 +731,6 @@ const nativeProofModes = [
   'encounter-lifecycle',
   'checkpoint',
   'checkpoint-staging',
-  'checkpoint-scenes',
   'encounter-action-contention',
   'encounter-reaction-contention',
   'campaign-item-producers',

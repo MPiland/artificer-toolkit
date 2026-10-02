@@ -9,14 +9,11 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type {
-  SceneCommandResultDto,
-  SceneGeometryCommandInputDto,
-  SceneLiveCommandInputDto,
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { liveSceneHead, seedLiveToken } from '../../tests/fixtures/liveSceneToken'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene
@@ -33,16 +30,6 @@ const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, Ca
 const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
   'campaigns/sessions:create'
 )
-const executeScene = makeFunctionReference<
-  'mutation',
-  { input: SceneLiveCommandInputDto },
-  SceneCommandResultDto
->('scenes/commands:execute')
-const executeGeometry = makeFunctionReference<
-  'action',
-  { input: SceneGeometryCommandInputDto },
-  SceneGeometryCommandResult
->('scenes/geometryActions:execute')
 const setPresentation = makeFunctionReference<
   'mutation',
   SetCampaignLiveScenePresentationInputDto,
@@ -68,6 +55,21 @@ async function setup() {
     recipientUserIds: [base.owner.userId, base.other.userId]
   }
   return { base, input, sceneId }
+}
+
+/** Leaves the live Scene at version 1 with a DIM ambient setting, as a room checkpoint would. */
+async function dimLiveScene(base: Awaited<ReturnType<typeof setup>>['base'], sceneId: string) {
+  await base.t.run(async (ctx) => {
+    const live = await ctx.db
+      .query('sceneLiveStates')
+      .withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId))
+      .unique()
+    if (live) await ctx.db.delete(live._id)
+    await ctx.db.insert(
+      'sceneLiveStates',
+      liveSceneHead(sceneId, { version: 1, ambientIllumination: 'DIM' })
+    )
+  })
 }
 
 it('captures current authenticated admission, presentation, active recipient epochs, and Scene freshness', async () => {
@@ -121,15 +123,7 @@ it('fills the shared room Scene cache with every entity even from a player captu
     vision: null,
     width: 1
   }
-  await base.owner.caller.action(executeGeometry, {
-    input: {
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      sceneId,
-      token: hiddenToken,
-      type: 'UPSERT_SCENE_TOKEN'
-    }
-  })
+  await seedLiveToken({ ...base, sceneId, tokens: [] }, hiddenToken.id, hiddenToken)
   const playerCapture = await base.other.caller.query(capture, {
     ...input,
     expectedRole: 'PLAYER',
@@ -252,15 +246,7 @@ it('rejects archived and cross-Campaign captures, and ignores finished Campaign 
 
 it('captures a changed Scene header and presentation revision, then rejects stale Character observations', async () => {
   const { base, input, sceneId } = await setup()
-  await base.owner.caller.mutation(executeScene, {
-    input: {
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      illumination: 'DIM',
-      sceneId,
-      type: 'SET_SCENE_AMBIENT_ILLUMINATION'
-    }
-  })
+  await dimLiveScene(base, sceneId)
   await expect(base.owner.caller.query(capture, input)).resolves.toMatchObject({
     sceneHeader: { ambientIllumination: 'DIM', id: sceneId, version: 1 },
     sceneSnapshot: { scene: { ambientIllumination: 'DIM', id: sceneId, version: 1 } }
@@ -316,15 +302,7 @@ it('keeps authority capture on current admission data while skipping Character a
     visionFreshness: null
   })
 
-  await base.owner.caller.mutation(executeScene, {
-    input: {
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      illumination: 'DIM',
-      sceneId,
-      type: 'SET_SCENE_AMBIENT_ILLUMINATION'
-    }
-  })
+  await dimLiveScene(base, sceneId)
   await base.t.run(async (ctx) => {
     const live = await ctx.db
       .query('sceneLiveStates')

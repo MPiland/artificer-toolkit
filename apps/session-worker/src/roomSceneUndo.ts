@@ -178,7 +178,7 @@ export async function publishRoomSceneUndo(input: {
     }
   }
   const { restoredFogOwners, ...result } = await publishSceneUndo(
-    { header, live, userId, input: request, targetCommandId, fastOnly: false },
+    { header, live, userId, input: request, targetCommandId },
     callbacks
   )
   const restoredOwners = new Set(restoredFogOwners)

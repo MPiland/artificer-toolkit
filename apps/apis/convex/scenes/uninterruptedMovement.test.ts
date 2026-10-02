@@ -5,7 +5,6 @@ import {
   grantFixtureActorControl
 } from '../../tests/fixtures/spatialPreparation'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
-import { api, internal } from '../_generated/api'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { planMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 
@@ -98,76 +97,6 @@ async function current(value: Awaited<ReturnType<typeof setup>>) {
     fogChunks: await ctx.db.query('sceneFogChunks').collect()
   }))
 }
-
-it.each(['STAGING', 'PUBLICATION'] as const)(
-  'refuses a bound token submitted as standalone movement at %s without publishing state',
-  async (stage) => {
-    const value = await setup('ASSISTED')
-    const input = {
-      ...value.input,
-      commandId: crypto.randomUUID(),
-      expectedEncounterVersion: null
-    }
-    let stagedSaveId: string | undefined
-    if (stage === 'PUBLICATION') {
-      const binding = await value.base.t.run(async (ctx) => {
-        const row = await ctx.db.query('encounterActorTokenBindings').first()
-        if (!row) throw new Error('Missing movement binding.')
-        const { _id, _creationTime, ...stored } = row
-        await ctx.db.delete(_id)
-        return stored
-      })
-      const begin = await value.base.owner.caller.mutation(internal.scenes.geometryStaging.begin, {
-        input
-      })
-      if (begin.kind !== 'READY') throw new Error('Expected staged standalone movement.')
-      stagedSaveId = begin.saveId
-      await value.base.t.run((ctx) => ctx.db.insert('encounterActorTokenBindings', binding))
-    }
-    const before = await current(value)
-    await expect(
-      stagedSaveId
-        ? value.base.owner.caller.mutation(internal.scenes.geometryCommands.finish, {
-            saveId: stagedSaveId,
-            baseOrdinal: 0
-          })
-        : value.base.owner.caller.action(api.scenes.geometryActions.execute, {
-            input
-          })
-    ).rejects.toThrow('Bound Scene token movement requires an Encounter version.')
-    expect(await current(value)).toEqual(before)
-  },
-  30000
-)
-
-it('keeps Encounter-bound movement fenced after a Campaign Session has finished', async () => {
-  const value = await setup('ASSISTED')
-  const session = await value.base.other.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: value.base.campaign.id
-  })
-  await value.base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', session.id))
-      .unique()
-    if (!row) throw new Error('Missing movement Session.')
-    await ctx.db.patch(row._id, {
-      status: 'FINISHED',
-      finishedAt: new Date().toISOString()
-    })
-  })
-  const before = await current(value)
-  await expect(
-    value.base.owner.caller.action(api.scenes.geometryActions.execute, {
-      input: {
-        ...value.input,
-        commandId: crypto.randomUUID(),
-        expectedEncounterVersion: null
-      }
-    })
-  ).rejects.toThrow('Bound Scene token movement requires an Encounter version.')
-  expect(await current(value)).toEqual(before)
-}, 30000)
 
 it.each([
   { mode: 'MANUAL', movementKind: 'VOLUNTARY' },

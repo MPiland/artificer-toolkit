@@ -10,7 +10,7 @@ import { internalMutation } from '../lib/mutations'
  *
  * Receipts are removed oldest-first by creation time, together with their geometry save. An UNDO
  * receipt is always newer than the move it reverses, so a retained move never loses its undo marker.
- * Unpublished saves have already expired through `geometryStaging:cleanup`.
+ * The room checkpoint writes only published saves.
  */
 export const SCENE_COMMAND_RETENTION_MS = 30 * 86_400_000
 const PURGE_BATCH_SIZE = 64

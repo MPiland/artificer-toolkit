@@ -29,13 +29,12 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api } from '../convex/_generated/api.js'
 import { developmentCli as cli } from './developmentCli'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   createUniformSceneFogLayer,
   type SceneExplorationState
 } from '@artificer-toolkit/shared/vtt'
 import type { SceneGeometryCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
-import type { SceneFogSaveProgress } from '@artificer-toolkit/schema/api/sceneFog'
+import type { DevelopmentHttpClient } from './developmentHttpClient'
 import {
   createEncounterLifecycleScene,
   type EncounterLifecycleSceneOptions
@@ -75,7 +74,7 @@ export function one(scope: Record<string, Record<string, unknown>[]>, key: strin
 }
 
 export async function verifyCampaignLifecycle(input: {
-  owner: ConvexHttpClient
+  owner: DevelopmentHttpClient
   player: ConvexHttpClient
   outsider: ConvexHttpClient
   invitee: ConvexHttpClient
@@ -1076,9 +1075,10 @@ export async function verifyCampaignLifecycle(input: {
       openAngleDegrees: 90
     }
   }
-  const geometry = await owner.action(api.scenes.geometryActions.execute, { input: geometryInput })
-  assert.equal(geometry.replayed, false)
-  assert.equal(geometry.occurrence, null)
+  const roomPresentation = { expectedPresentationVersion: presentation.version }
+  const geometry = await owner.executeSceneCommand(geometryInput, roomPresentation)
+  assert.equal(geometry.result?.replayed, false)
+  assert.equal(geometry.result?.occurrence, null)
   const exploration: SceneExplorationState = {
     map: { ...sceneOptions.map, assetId: scene.assetId, tileManifestAssetId: null },
     grid: sceneOptions.grid,
@@ -1092,40 +1092,17 @@ export async function verifyCampaignLifecycle(input: {
     explored: true,
     ownerUserId: playerUserId
   })
-  let publishedFogVersion = geometry.version
-  const fogSaves: SceneFogSaveProgress[] = []
-  for (const publish of [true, false]) {
-    const save = await owner.mutation(api.scenes.fogCommands.begin, {
-      input: {
-        type: 'PATCH_SCENE_FOG',
-        sceneId: scene.liveSceneId,
-        commandId: crypto.randomUUID(),
-        expectedSceneVersion: publishedFogVersion,
-        layer: {
-          ownerUserId: fogLayer.ownerUserId,
-          width: fogLayer.width,
-          height: fogLayer.height
-        },
-        chunkManifest: fogLayer.chunks.map((chunk) => ({
-          index: chunk.index,
-          checksum: checksumCanonicalJson(chunk)
-        }))
-      }
-    })
-    assert.equal(save.status, 'RECEIVING')
-    for (let offset = 0; offset < fogLayer.chunks.length; offset += 8) {
-      const appended = await owner.mutation(api.scenes.fogCommands.append, {
-        input: { saveId: save.saveId, offset, chunks: fogLayer.chunks.slice(offset, offset + 8) }
-      })
-      assert.equal(appended.receivedChunks, Math.min(offset + 8, fogLayer.chunks.length))
-    }
-    if (publish) {
-      const result = await owner.mutation(api.scenes.fogCommands.publish, { saveId: save.saveId })
-      assert.equal(result.replayed, false)
-      publishedFogVersion = result.version
-    }
-    fogSaves.push(save)
-  }
+  const fog = await owner.executeSceneFog(
+    {
+      type: 'PATCH_SCENE_FOG',
+      sceneId: scene.liveSceneId,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: geometry.version,
+      layer: fogLayer
+    },
+    roomPresentation
+  )
+  assert.equal(fog.version, geometry.version + 1)
   const receivingDefinition = await owner.mutation(api.scenes.definitions.begin, {
     commandId: crypto.randomUUID(),
     sceneId: null,
@@ -1160,11 +1137,6 @@ export async function verifyCampaignLifecycle(input: {
     'sceneDefinitionEntities',
     'sceneLiveEntities',
     'sceneLiveStates',
-    'sceneLiveCommands',
-    'sceneGeometrySaves',
-    'sceneFogSaves',
-    'sceneFogLayers',
-    'sceneFogChunks',
     'campaignScenePresentations',
     'encounterSceneBindings',
     'encounterActorTokenBindings'
@@ -1175,18 +1147,13 @@ export async function verifyCampaignLifecycle(input: {
       (row) => row.id === receivingDefinition.saveId && row.status === 'RECEIVING'
     )
   )
-  assert.ok(
-    sceneRows.sceneFogSaves!.some(
-      (row) => row.id === fogSaves[1]!.saveId && row.status === 'RECEIVING'
-    )
-  )
   stage('populated-native-scene-map-bindings-geometry-fog-receiving', {
     scene,
     presentation,
     sceneBinding,
     geometryInput,
     geometry,
-    fogSaves,
+    fog,
     receivingDefinition,
     state: sceneState
   })

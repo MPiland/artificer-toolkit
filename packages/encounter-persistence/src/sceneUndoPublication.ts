@@ -48,7 +48,6 @@ export type SceneUndoPublicationCallbacks = {
   writeLiveToken(value: ReturnType<typeof sceneStoredLiveEntitySchema.parse>): Promise<void>
   writeLiveState(value: ReturnType<typeof sceneStoredLiveStateSchema.parse>): Promise<void>
   insertUndoCommand(value: ReturnType<typeof sceneStoredUndoCommandSchema.parse>): Promise<void>
-  stagedRequired?(): never
 }
 
 function assertPreviousLayer(
@@ -82,11 +81,10 @@ export async function publishSceneUndo(
     userId: string
     input: SceneUndoExecuteInput
     targetCommandId: string
-    fastOnly: boolean
   },
   callbacks: SceneUndoPublicationCallbacks
 ): Promise<SceneUndoCommandResult> {
-  const { header, live, userId, input, targetCommandId, fastOnly } = context
+  const { header, live, userId, input, targetCommandId } = context
   const inputChecksum = checksumCanonicalJson(input.input)
   const targetRow = await callbacks.readSceneCommand(header.id, targetCommandId)
   if (!targetRow || targetRow.encoding !== 'GEOMETRY')
@@ -112,18 +110,6 @@ export async function publishSceneUndo(
     new Set(parent.fogSaves.map((reference) => reference.saveId)).size !== parent.fogSaves.length
   )
     throw new Error('Stored Scene geometry fog history is inconsistent.')
-  if (
-    fastOnly &&
-    (parent.fogSaves.length > 0 ||
-      parent.movementResolution !== undefined ||
-      parent.spatialPreparationJson !== undefined ||
-      parent.spatialPreparationChecksum !== undefined ||
-      parent.sessionVision !== undefined ||
-      parent.characterRevisions !== undefined)
-  ) {
-    if (!callbacks.stagedRequired) throw new Error('Staged Scene undo refusal hook is unavailable.')
-    callbacks.stagedRequired()
-  }
 
   const tokenRow = await callbacks.readLiveToken(header.id, tokenId)
   if (!tokenRow) throw new Error('The latest token move can no longer be safely undone.')

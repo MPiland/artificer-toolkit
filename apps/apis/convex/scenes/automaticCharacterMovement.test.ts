@@ -1,6 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
-import { api } from '../_generated/api'
 import { joinCharacterPlay, readCharacterRow } from '../characters/stateDocuments'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
@@ -177,63 +176,6 @@ it('replays player movement with the original private projection before and afte
   expect(await snapshot()).toEqual(beforeReplay)
 }, 30_000)
 
-it('refuses a bound move with no room live and still publishes an unbound move natively (D43)', async () => {
-  const value = await setupAutomaticCharacterMovement(['CHOICE'])
-  const presentation = { expectedPresentationVersion: 0 }
-  const reactorTokenId = value.reactorTokenIds[0]
-  const reactorToken = value.tokens.find((token) => token.id === reactorTokenId)
-  if (!reactorToken) throw new Error('Expected the fixture reactor token.')
-  // Unbinding the reactor's token makes it a standalone Scene token.
-  await value.base.t.run(async (ctx) => {
-    const binding = await ctx.db
-      .query('encounterActorTokenBindings')
-      .withIndex('by_sceneId_tokenId', (q) =>
-        q.eq('sceneId', value.sceneId).eq('tokenId', reactorToken.id)
-      )
-      .unique()
-    if (!binding) throw new Error('Expected the reactor token binding.')
-    await ctx.db.delete(binding._id)
-  })
-  const scene = () =>
-    value.base.t.run(async (ctx) => ({
-      saves: await ctx.db.query('sceneGeometrySaves').collect(),
-      liveStates: await ctx.db.query('sceneLiveStates').collect(),
-      entities: await ctx.db.query('sceneLiveEntities').collect(),
-      commands: await ctx.db.query('sceneLiveCommands').collect()
-    }))
-  const before = await scene()
-  await expect(
-    value.player.caller.action(api.scenes.geometryActions.execute, {
-      input: { ...value.rootInput, commandId: crypto.randomUUID() },
-      presentation
-    })
-  ).rejects.toMatchObject({
-    data: {
-      code: 'DOMAIN_REJECTED',
-      reason: 'SCENE_NOT_PRESENTED',
-      message: 'Present this Scene to move Encounter tokens.'
-    }
-  })
-  expect(await scene()).toEqual(before)
-  const destination = { x: reactorToken.position.x, y: reactorToken.position.y + 300 }
-  await expect(
-    value.owner.caller.action(api.scenes.geometryActions.execute, {
-      input: {
-        ...value.rootInput,
-        commandId: crypto.randomUUID(),
-        expectedEncounterVersion: null,
-        tokenId: reactorToken.id,
-        path: [reactorToken.position, destination]
-      },
-      presentation
-    })
-  ).resolves.toMatchObject({
-    version: 1,
-    occurrence: null,
-    delta: { kind: 'TOKEN_MOVED', tokenId: reactorToken.id, position: destination }
-  })
-}, 30_000)
-
 it("shows a player their own actor's turn movement against its Character walking speed (V07.5)", async () => {
   const value = await setupAutomaticCharacterMovement(['CHOICE'])
   const moverId = value.base.mover.id
@@ -282,10 +224,9 @@ it('moves an Encounter-bound token for its actor controllers, not its Scene toke
   if (!grantee || !reactor || !reactorToken) throw new Error('Expected the bound reactor token.')
   // The Scene lists the mover's player on the Creature token; they do not control its actor.
   await value.base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('sceneDefinitionEntities')
-      .filter((q) => q.eq(q.field('entityId'), reactorToken.id))
-      .unique()
+    const row = (await ctx.db.query('sceneDefinitionEntities').collect()).find(
+      (entity) => entity.entityId === reactorToken.id
+    )
     if (!row || row.value.collection !== 'tokens') throw new Error('Missing reactor token entity.')
     const tokenValue = {
       ...row.value,

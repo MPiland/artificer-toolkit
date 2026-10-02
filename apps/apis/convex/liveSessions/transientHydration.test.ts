@@ -9,13 +9,8 @@ import type {
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type {
-  SceneFogAppendInput,
-  SceneFogPatchInput,
-  SceneFogSaveProgress,
-  SceneFogCommandResult
-} from '@artificer-toolkit/schema/api/sceneFog'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { seedFogLayer } from '../../tests/fixtures/liveSceneFog'
+import { liveSceneHead } from '../../tests/fixtures/liveSceneToken'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene
@@ -28,19 +23,6 @@ const setPresentation = makeFunctionReference<
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 >('scenes/presentations:set')
-const beginFog = makeFunctionReference<
-  'mutation',
-  { input: SceneFogPatchInput },
-  SceneFogSaveProgress
->('scenes/fogCommands:begin')
-const appendFog = makeFunctionReference<
-  'mutation',
-  { input: SceneFogAppendInput },
-  SceneFogSaveProgress
->('scenes/fogCommands:append')
-const publishFog = makeFunctionReference<'mutation', { saveId: string }, SceneFogCommandResult>(
-  'scenes/fogCommands:publish'
-)
 const capture = makeFunctionReference<
   'query',
   LiveSessionTransientCaptureInput,
@@ -60,20 +42,14 @@ async function setup() {
     sceneId,
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
-  const fogChunk = { data: 'AQ==', height: 1, index: 0, width: 1, x: 0, y: 0 }
-  const fogInput: SceneFogPatchInput = {
-    type: 'PATCH_SCENE_FOG',
+  await seedFogLayer(base, {
     sceneId,
-    commandId: crypto.randomUUID(),
-    expectedSceneVersion: 0,
-    layer: { ownerUserId: base.owner.userId, width: 8, height: 8 },
-    chunkManifest: [{ index: 0, checksum: checksumCanonicalJson(fogChunk) }]
-  }
-  const save = await base.owner.caller.mutation(beginFog, { input: fogInput })
-  await base.owner.caller.mutation(appendFog, {
-    input: { saveId: save.saveId, offset: 0, chunks: [fogChunk] }
+    actorUserId: base.owner.userId,
+    ownerUserId: base.owner.userId
   })
-  await base.owner.caller.mutation(publishFog, { saveId: save.saveId })
+  await base.t.run((ctx) =>
+    ctx.db.insert('sceneLiveStates', liveSceneHead(sceneId, { version: 1, fogLayers: 1 }))
+  )
   const authority: LiveSessionTransientHydrationInput['authority'] = {
     campaignId: base.campaign.id,
     expectedRole: 'OWNER',

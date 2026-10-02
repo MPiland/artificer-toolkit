@@ -27,7 +27,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   createSceneDefinitionFixture,
-  publishEmptyScene
+  publishScene
 } from '../../tests/fixtures/sceneDefinitions'
 import { readLiveSceneForUser } from '../scenes/liveDocuments'
 import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
@@ -36,8 +36,8 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
-import { api, internal } from '../_generated/api'
+import { commitSceneInRoom, insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import { api } from '../_generated/api'
 import {
   campaignRollNonceFingerprint,
   campaignStoredEntryPayloadSchema
@@ -156,7 +156,21 @@ async function setup() {
 
 async function setupScene(withGeometry = false) {
   const base = await createSceneDefinitionFixture()
-  const scene = await publishEmptyScene(base)
+  // A seeing token the room can move, so its checkpoint writes the live, command and fog families.
+  const token = {
+    id: crypto.randomUUID(),
+    assetId: null,
+    controlledByUserIds: [base.other.userId],
+    height: 1,
+    hidden: false,
+    label: 'Native token',
+    locked: false,
+    position: { x: 100, y: 100 },
+    rotationDegrees: 0,
+    vision: { angleDegrees: 360, brightRange: 0, dimRange: 5, directionDegrees: 0, enabled: true },
+    width: 1
+  }
+  const scene = await publishScene(base, { tokens: withGeometry ? [token] : [] })
   const presentation = await base.owner.caller.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
@@ -164,43 +178,6 @@ async function setupScene(withGeometry = false) {
     campaignId: base.campaign.id,
     sceneId: scene.sceneId
   })
-  if (withGeometry) {
-    const staged = await base.owner.caller.mutation(internal.scenes.geometryStaging.begin, {
-      input: {
-        type: 'UPSERT_SCENE_TOKEN',
-        sceneId: scene.sceneId,
-        commandId: crypto.randomUUID(),
-        expectedSceneVersion: 0,
-        token: {
-          id: crypto.randomUUID(),
-          assetId: null,
-          controlledByUserIds: [],
-          height: 1,
-          hidden: false,
-          label: 'Native token',
-          locked: false,
-          position: { x: 10, y: 20 },
-          rotationDegrees: 0,
-          vision: null,
-          width: 1
-        }
-      }
-    })
-    if (staged.kind !== 'READY') throw new Error('Missing geometry save fixture.')
-    await base.owner.caller.mutation(internal.scenes.geometryStaging.stageFog, {
-      saveId: staged.saveId,
-      layer: {
-        ownerUserId: null,
-        width: 1,
-        height: 1,
-        chunks: [{ index: 0, x: 0, y: 0, width: 1, height: 1, data: 'AQ==' }]
-      }
-    })
-    await base.owner.caller.mutation(internal.scenes.geometryCommands.finish, {
-      saveId: staged.saveId,
-      baseOrdinal: null
-    })
-  }
   const epoch = crypto.randomUUID()
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
@@ -209,6 +186,18 @@ async function setupScene(withGeometry = false) {
       createdAt: new Date().toISOString()
     })
   )
+  if (withGeometry)
+    await commitSceneInRoom(base.owner.caller, base.campaign.id, {
+      type: 'MOVE_SCENE_TOKEN',
+      commandId: crypto.randomUUID(),
+      sceneId: scene.sceneId,
+      tokenId: token.id,
+      expectedSceneVersion: 0,
+      expectedEncounterVersion: null,
+      correlationId: null,
+      movementKind: 'VOLUNTARY',
+      path: [token.position, { x: 900, y: 100 }]
+    })
   const request = (
     cursor: Extract<LiveRoomInputsScope, { kind: 'SCENE' }>['cursor'] = null
   ): LiveRoomInputsInput => ({
@@ -384,7 +373,8 @@ describe('raw room Scene inputs', () => {
     if (response.kind !== 'SCENE') throw new Error('Expected Scene inputs.')
     expect(response.sceneVersion).toBe(1)
     expect(response.continueCursor).toBeNull()
-    expect(response.documents.map((document) => document.table)).toEqual([
+    // The room writes every chunk of the explored layer, so chunk rows repeat at the end.
+    expect([...new Set(response.documents.map((document) => document.table))]).toEqual([
       'sceneLiveStates',
       'sceneLiveEntities',
       'sceneLiveCommands',
@@ -395,7 +385,10 @@ describe('raw room Scene inputs', () => {
     ])
     expect(
       response.documents.find((document) => document.table === 'sceneLiveEntities')?.fields.value
-    ).toMatchObject({ collection: 'tokens', entity: { label: 'Native token', vision: null } })
+    ).toMatchObject({
+      collection: 'tokens',
+      entity: { label: 'Native token', position: { x: 900, y: 100 } }
+    })
   })
 
   it('reads an empty materialized Scene with exact source pins and no synthesized live rows', async () => {

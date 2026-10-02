@@ -1031,6 +1031,9 @@ it('refuses Character play insertion, deletion, a supplied clock and mismatched 
 
 it('merges private checkpoint rolls into global owner history without changing replayed evidence or leaking invalid frames', async () => {
   const base = await setupCharacterRun()
+  await base.t.run((ctx) =>
+    ctx.db.insert('accountEntitlements', { userId: base.owner.userId, tier: 'PRO_GM' })
+  )
   const foreign = await base.owner.caller.mutation(createCampaign, {
     name: 'Other retained-roll Campaign',
     format: 'ONGOING',

@@ -2,6 +2,7 @@
 import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
+import type { ConvexHttpClient } from 'convex/browser'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
@@ -17,11 +18,8 @@ import { startLocalR2 } from '../../tests/localR2'
 import { verifyEncounterLifecycle } from '../../tests/developmentEncounterLifecycle'
 import { verifyEncounterAutomation } from '../../tests/developmentEncounterAutomation'
 import { verifyEncounterTransactions } from '../../tests/developmentEncounterTransactions'
-import {
-  prepareEncounterCutoverFixture,
-  verifyEncounterCutoverContention
-} from '../../tests/developmentEncounterCutover'
-import { verifySceneEntities } from '../../tests/developmentSceneEntities'
+import { prepareEncounterCutoverFixture } from '../../tests/developmentEncounterCutover'
+import type { DevelopmentClient } from '../../tests/developmentClient'
 import { api, components, internal } from '../_generated/api'
 import type { ActionCtx } from '../_generated/server'
 import type { FunctionArgs } from 'convex/server'
@@ -98,30 +96,32 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
       campaignId: campaign.id
     }
   )
-  const clients: Pick<Parameters<typeof verifySceneEntities>[0], 'owner' | 'player' | 'anonymous'> =
-    {
-      owner: {
-        ...inProcessDevelopmentClient(owner.caller),
-        action: (action, ...args) => {
-          const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
-          return owner.caller.action<typeof invoke>(invoke)
-        }
-      },
-      player: {
-        ...inProcessDevelopmentClient(player.caller),
-        action: (action, ...args) => {
-          const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
-          return player.caller.action<typeof invoke>(invoke)
-        }
-      },
-      anonymous: {
-        ...inProcessDevelopmentClient(t),
-        action: (action, ...args) => {
-          const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
-          return t.action<typeof invoke>(invoke)
-        }
+  const clients: Record<
+    'owner' | 'player' | 'anonymous',
+    DevelopmentClient & Pick<ConvexHttpClient, 'action'>
+  > = {
+    owner: {
+      ...inProcessDevelopmentClient(owner.caller),
+      action: (action, ...args) => {
+        const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
+        return owner.caller.action<typeof invoke>(invoke)
+      }
+    },
+    player: {
+      ...inProcessDevelopmentClient(player.caller),
+      action: (action, ...args) => {
+        const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
+        return player.caller.action<typeof invoke>(invoke)
+      }
+    },
+    anonymous: {
+      ...inProcessDevelopmentClient(t),
+      action: (action, ...args) => {
+        const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
+        return t.action<typeof invoke>(invoke)
       }
     }
+  }
   const policies = createEncounterLifecyclePolicyFixture(owner.userId)
   expect(await t.mutation(internal.content.import.bootstrap, policies.bootstrap)).toEqual({
     inserted: 2,
@@ -146,12 +146,6 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     sceneFixture: result
   })
   expect(automated).toHaveLength(4)
-  await verifySceneEntities({
-    ...clients,
-    playerUserId: player.userId,
-    campaignId: campaign.id,
-    fixture: result
-  })
   const rollbackRun = await verifyEncounterTransactions({
     owner: clients.owner,
     player: clients.player,
@@ -209,11 +203,6 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     lifecycle: result
   }).finally(() => tiedRolls.mockRestore())
   expect(cutoverFixture.initiativeOrderResolutions).toBeGreaterThan(0)
-  await verifyEncounterCutoverContention({
-    owner: clients.owner,
-    peer: { ...clients.owner },
-    fixture: cutoverFixture
-  })
   await t.mutation(
     makeFunctionReference<'mutation', typeof cleanup, null>(
       'encounters/developmentRuns:removeFixtureState'

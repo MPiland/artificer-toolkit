@@ -4,14 +4,14 @@ import { join } from 'node:path'
 import type { ConvexHttpClient } from 'convex/browser'
 import sharp from 'sharp'
 import { api } from '../convex/_generated/api'
+import type { DevelopmentHttpClient } from './developmentHttpClient'
 import { verifySceneAuthoringBrowser } from '../../web/tests/live-backend/sceneAuthoring'
 import { verifySceneLiveBrowser } from '../../web/tests/live-backend/sceneLive'
-import type { SceneGeometryExecuteInput } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 
 export async function verifySceneAuthoring(input: {
   owner: {
-    client: ConvexHttpClient
+    client: DevelopmentHttpClient
     fetchToken(): Promise<string>
     email: string
     password: string
@@ -218,20 +218,18 @@ export async function verifySceneAuthoring(input: {
     }
     let liveHead = await owner.client.query(api.scenes.liveReads.header, { sceneId: liveScene.id })
     const execute = async (token: SceneToken) => {
-      const command: SceneGeometryExecuteInput = {
-        input: {
+      const commit = await owner.client.executeSceneCommand(
+        {
           type: 'UPSERT_SCENE_TOKEN',
           sceneId: liveScene.id,
           expectedSceneVersion: liveHead.version,
           commandId: crypto.randomUUID(),
           token
         },
-        presentation: { expectedPresentationVersion: presentation.version }
-      }
-      const result = await owner.client.action(api.scenes.geometryActions.execute, command)
-      assert.equal(result.version, liveHead.version + 1)
-      liveHead = await owner.client.query(api.scenes.liveReads.header, { sceneId: liveScene.id })
-      assert.equal(liveHead.version, result.version)
+        { expectedPresentationVersion: presentation.version }
+      )
+      assert.equal(commit.version, liveHead.version + 1)
+      liveHead = { ...liveHead, version: commit.version }
     }
     await execute(publicToken)
     await execute(privateToken)

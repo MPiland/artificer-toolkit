@@ -1,20 +1,13 @@
 import assert from 'node:assert/strict'
 import { ConvexClient, type ConvexHttpClient } from 'convex/browser'
 import { makeFunctionReference } from 'convex/server'
-import { ConvexError } from 'convex/values'
-import type {
-  SceneGeometryCommandResult,
-  SceneGeometryExecuteInput
-} from '@artificer-toolkit/schema/api/sceneGeometry'
 import {
   encounterGmProjectionDtoSchema,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
-import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { api } from '../convex/_generated/api.js'
 import {
   assertDomainRejection,
@@ -42,12 +35,6 @@ import {
 
 type ActionClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
 type RollbackOperation = { kind: 'COMMAND'; input: EncounterExecuteInput }
-type SceneTokenMovementCommandInputDto = Extract<SceneCommandInputDto, { type: 'MOVE_SCENE_TOKEN' }>
-const executeGeometry = makeFunctionReference<
-  'action',
-  SceneGeometryExecuteInput,
-  SceneGeometryCommandResult
->('scenes/geometryActions:execute')
 const inspectMovementReactionDamage = makeFunctionReference<
   'query',
   { campaignId: string; encounterId: string; rootCommandId: string; terminalCommandId: string },
@@ -160,17 +147,9 @@ export async function prepareEncounterCutoverFixture({
     presentation,
     run: binding.projection,
     sceneId: bound.sceneId,
-    unrelatedSceneId: lifecycle.scenes[1].liveSceneId,
     tokenId,
     initiativeOrderResolutions
   }
-}
-
-async function readAuthoritativeToken(
-  owner: ActionClient,
-  fixture: Awaited<ReturnType<typeof prepareEncounterCutoverFixture>>
-) {
-  return readAuthoritativeSceneToken(owner, { sceneId: fixture.sceneId, tokenId: fixture.tokenId })
 }
 
 export async function readAuthoritativeSceneToken(
@@ -191,105 +170,6 @@ export async function readAuthoritativeSceneToken(
   if (!entry || entry.value.collection !== 'tokens')
     throw new Error('Cutover fixture token is absent from the authoritative Scene.')
   return { header, token: entry.value.entity }
-}
-
-export async function verifyEncounterCutoverContention({
-  owner,
-  peer,
-  fixture
-}: {
-  owner: ActionClient
-  peer: ActionClient
-  fixture: Awaited<ReturnType<typeof prepareEncounterCutoverFixture>>
-}) {
-  assert.notEqual(owner, peer, 'Cutover contenders require independent HTTP clients.')
-  const { header, token } = await readAuthoritativeToken(owner, fixture)
-  const input = (commandId: string): SceneTokenMovementCommandInputDto => ({
-    type: 'MOVE_SCENE_TOKEN',
-    sceneId: fixture.sceneId,
-    commandId,
-    expectedSceneVersion: header.version,
-    expectedEncounterVersion: fixture.run.version,
-    correlationId: null,
-    movementKind: 'VOLUNTARY',
-    tokenId: token.id,
-    path: [token.position, { x: token.position.x + token.width, y: token.position.y }]
-  })
-  const presentation = { expectedPresentationVersion: fixture.presentation.version }
-  // Only the Session room moves Encounter tokens; with no room live Convex refuses them (D43).
-  for (const request of [
-    { input: input(crypto.randomUUID()) },
-    { input: input(crypto.randomUUID()), presentation }
-  ])
-    await assert.rejects(
-      owner.action(executeGeometry, request),
-      (error: unknown) =>
-        error instanceof ConvexError &&
-        domainRejectionErrorDataSchema.safeParse(error.data).data?.reason === 'SCENE_NOT_PRESENTED'
-    )
-  assert.deepEqual(
-    await owner.query(api.scenes.recipientReads.header, { sceneId: fixture.sceneId }),
-    header
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: fixture.run.id }),
-    fixture.run
-  )
-  assert.notEqual(fixture.sceneId, fixture.unrelatedSceneId)
-  const independentHeaders = await Promise.all([
-    owner.query(api.scenes.liveReads.header, { sceneId: fixture.sceneId }),
-    peer.query(api.scenes.liveReads.header, { sceneId: fixture.unrelatedSceneId })
-  ])
-  const independentInputs = independentHeaders.map(
-    (
-      current
-    ): Extract<
-      SceneCommandInputDto,
-      {
-        type: 'SET_SCENE_AMBIENT_ILLUMINATION'
-      }
-    > => ({
-      type: 'SET_SCENE_AMBIENT_ILLUMINATION',
-      sceneId: current.id,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: current.version,
-      illumination:
-        current.ambientIllumination === 'ORDINARY_DARKNESS' ? 'BRIGHT' : 'ORDINARY_DARKNESS'
-    })
-  )
-  const clients = [owner, peer] as const
-  const independentResults = await Promise.allSettled(
-    clients.map((client, index) =>
-      client.mutation(api.scenes.commands.execute, { input: independentInputs[index]! })
-    )
-  )
-  for (const [index, result] of independentResults.entries()) {
-    if (result.status !== 'fulfilled')
-      throw new Error(`Independent Scene write failed: ${String(result.reason)}`)
-    assert.equal(result.value.replayed, false)
-    const current = await owner.query(api.scenes.liveReads.header, {
-      sceneId: independentHeaders[index]!.id
-    })
-    assert.equal(current.version, independentHeaders[index]!.version + 1)
-    assert.equal(current.ambientIllumination, independentInputs[index]!.illumination)
-    assert.deepEqual(
-      await clients[index]!.mutation(api.scenes.commands.execute, {
-        input: independentInputs[index]!
-      }),
-      {
-        ...result.value,
-        replayed: true
-      }
-    )
-    assert.deepEqual(
-      await owner.query(api.scenes.liveReads.header, { sceneId: current.id }),
-      current
-    )
-  }
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: fixture.run.id }),
-    fixture.run
-  )
 }
 
 const MEASURED_SAMPLES = 1

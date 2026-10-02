@@ -1,6 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type {
   SceneEncounterBinding,
   SceneEncounterBindingInput,
@@ -10,13 +9,13 @@ import type {
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import type {
   BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto,
-  SceneGeometryCommandInputDto
+  BindEncounterToPresentedSceneResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createEncounterSceneFixture as setup } from '../../tests/fixtures/encounterScene'
+import { seedLiveToken } from '../../tests/fixtures/liveSceneToken'
 
 const bindScene = makeFunctionReference<
   'mutation',
@@ -36,11 +35,6 @@ const encounterBindings = makeFunctionReference<
 const recipientHeader = makeFunctionReference<'query', { sceneId: string }, SceneRecipientHeader>(
   'scenes/recipientReads:header'
 )
-const executeGeometry = makeFunctionReference<
-  'action',
-  { input: SceneGeometryCommandInputDto },
-  SceneGeometryCommandResult
->('scenes/geometryActions:execute')
 
 async function publishFixtureSceneSource(base: Awaited<ReturnType<typeof setup>>) {
   await base.t.run(async (ctx) => {
@@ -219,15 +213,7 @@ describe('native Encounter recipient bindings', () => {
       next: null
     })
 
-    await base.other.caller.action(executeGeometry, {
-      input: {
-        type: 'REMOVE_SCENE_TOKEN',
-        commandId: crypto.randomUUID(),
-        sceneId: base.sceneId,
-        expectedSceneVersion: 0,
-        tokenId: bound.tokenId
-      }
-    })
+    await seedLiveToken(base, bound.tokenId, null)
     await expect(
       base.owner.caller.action(encounterBindings, await bindingInput(base, base.owner.caller))
     ).resolves.toMatchObject({ page: [] })

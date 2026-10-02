@@ -34,7 +34,7 @@ import { readCampaignLiveAuthority } from './authorityGuard'
 import { publishCheckpoint } from './checkpoint'
 import { commitStagedCheckpoint } from './checkpointStaging'
 
-export async function readCheckpointFixture(ctx: QueryCtx, scope: DevelopmentCheckpointScope) {
+async function readCheckpointFixture(ctx: QueryCtx, scope: DevelopmentCheckpointScope) {
   await requireFixtureAccount(ctx, scope.ownerUserId)
   await requireFixtureAccount(ctx, scope.playerUserId)
   if (scope.ownerUserId === scope.playerUserId)

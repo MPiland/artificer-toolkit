@@ -30,7 +30,6 @@ afterEach(() => {
 describe('user token-bucket limits', () => {
   it.each([
     ['liveSessionTicket', 10, 2_000, 'Too many live table connection attempts'],
-    ['sceneWrite', 80, 250, 'Too many Scene changes'],
     ['campaignConversation', 30, 2_000, 'Chat is temporarily rate limited']
   ] as const)(
     'admits the %s burst of %i, rejects the next, and refills one token per %ims',

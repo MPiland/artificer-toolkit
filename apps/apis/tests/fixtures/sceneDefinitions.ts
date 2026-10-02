@@ -1,8 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import type {
+  AppendSceneDefinitionInput,
   BeginSceneDefinitionInput,
   SceneDefinitionSaveProgress
 } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
+import type { SceneBarrier, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -17,6 +19,11 @@ const begin = makeFunctionReference<
   BeginSceneDefinitionInput,
   SceneDefinitionSaveProgress
 >('scenes/definitions:begin')
+const append = makeFunctionReference<
+  'mutation',
+  { input: AppendSceneDefinitionInput },
+  SceneDefinitionSaveProgress
+>('scenes/definitions:append')
 const publish = makeFunctionReference<'mutation', { saveId: string }, SceneDefinitionSaveProgress>(
   'scenes/definitions:publish'
 )
@@ -124,11 +131,31 @@ export async function createSceneDefinitionFixture() {
   return { ...base, campaign, input }
 }
 
-export async function publishEmptyScene(
-  base: Awaited<ReturnType<typeof createSceneDefinitionFixture>>
+/** Publishes the Scene with these tokens and barriers in its definition (live version 0). */
+export async function publishScene(
+  base: Awaited<ReturnType<typeof createSceneDefinitionFixture>>,
+  geometry: { tokens?: SceneToken[]; barriers?: SceneBarrier[] } = {}
 ) {
-  const save = await base.owner.caller.mutation(begin, base.input)
+  const tokens = geometry.tokens ?? []
+  const barriers = geometry.barriers ?? []
+  const save = await base.owner.caller.mutation(begin, {
+    ...base.input,
+    counts: { ...base.input.counts, tokens: tokens.length, barriers: barriers.length }
+  })
+  // Barriers first, so a token's first view stops at a closed door.
+  if (barriers.length)
+    await base.owner.caller.mutation(append, {
+      input: { saveId: save.saveId, collection: 'barriers', offset: 0, entities: barriers }
+    })
+  if (tokens.length)
+    await base.owner.caller.mutation(append, {
+      input: { saveId: save.saveId, collection: 'tokens', offset: 0, entities: tokens }
+    })
   await base.owner.caller.mutation(publish, { saveId: save.saveId })
   if (!save.liveSceneId) throw new Error('Missing live Scene')
   return { save, sceneId: save.liveSceneId }
+}
+
+export function publishEmptyScene(base: Awaited<ReturnType<typeof createSceneDefinitionFixture>>) {
+  return publishScene(base)
 }

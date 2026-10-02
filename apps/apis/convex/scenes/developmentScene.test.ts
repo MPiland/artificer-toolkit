@@ -5,20 +5,8 @@ import type {
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
 import { encodeCampaignEvent } from '@artificer-toolkit/schema/api/campaignEventTransport'
-import type {
-  SceneFogPatchInput,
-  SceneFogAppendInput,
-  SceneFogSaveProgress,
-  SceneFogCommandResult
-} from '@artificer-toolkit/schema/api/sceneFog'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { SceneGeometryCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  campaignLiveScenePresentationReceiptDtoSchema,
-  type SceneLiveCommandInputDto,
-  type SceneCommandResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
+import { campaignLiveScenePresentationReceiptDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/vttMapPersistence'
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
 import {
@@ -30,30 +18,24 @@ import {
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { sceneStoredFogSaveSchema } from '@artificer-toolkit/schema/projections/sceneFogPersistence'
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
-import { sceneStoredGeometryCommandSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import {
+  sceneStoredGeometryCommandSchema,
+  sceneStoredInlineCommandSchema
+} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
-import { components, internal } from '../_generated/api'
+import { liveSceneHead } from '../../tests/fixtures/liveSceneToken'
+import { components } from '../_generated/api'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const executeLiveCommand = makeFunctionReference<
-  'mutation',
-  { input: SceneLiveCommandInputDto },
-  SceneCommandResultDto
->('scenes/commands:execute')
 const removeFixtureState = makeFunctionReference<
   'mutation',
   { ownerUserId: string; campaignId: string },
   null
 >('scenes/developmentScene:removeFixtureState')
-const executeGeometry = makeFunctionReference<
-  'action',
-  { input: SceneGeometryCommandInputDto },
-  SceneGeometryCommandResult
->('scenes/geometryActions:execute')
 
 async function setup() {
   const base = await fixture()
@@ -270,7 +252,8 @@ async function seedPresentation(
 async function seedNonadvancingMovementReceipt(
   base: Awaited<ReturnType<typeof setup>>,
   sceneId: string,
-  snapshotVersion: number
+  snapshotVersion: number,
+  actorUserId = base.owner.userId
 ) {
   const commandId = crypto.randomUUID()
   const input = {
@@ -306,7 +289,7 @@ async function seedNonadvancingMovementReceipt(
     id: crypto.randomUUID(),
     sceneId,
     commandId,
-    actorUserId: base.owner.userId,
+    actorUserId,
     input,
     inputChecksum: checksumCanonicalJson(input),
     snapshotVersion,
@@ -318,7 +301,7 @@ async function seedNonadvancingMovementReceipt(
     encoding: 'GEOMETRY',
     sceneId,
     commandId,
-    actorUserId: base.owner.userId,
+    actorUserId,
     input,
     inputChecksum: checksumCanonicalJson(input),
     result,
@@ -337,22 +320,52 @@ it.each([false, true])(
     const base = await setup()
     const { initial } = await seedOwnerScene(base)
     const sceneId = initial.liveSceneId!
-    if (withHead)
-      await base.owner.caller.mutation(executeLiveCommand, {
-        input: {
-          type: 'UPSERT_SCENE_ANNOTATION',
-          sceneId,
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: 0,
-          annotation: {
-            id: crypto.randomUUID(),
-            position: { x: 1, y: 1 },
-            text: 'Fixture annotation',
-            visibility: 'GM_ONLY'
-          }
+    // A stored head starts at version 1 with its advancing receipt; the movement receipt stays at the head's version.
+    const version = withHead ? 1 : 0
+    if (withHead) {
+      const commandId = crypto.randomUUID()
+      const input = {
+        type: 'UPSERT_SCENE_ANNOTATION' as const,
+        sceneId,
+        commandId,
+        expectedSceneVersion: 0,
+        annotation: {
+          id: crypto.randomUUID(),
+          position: { x: 1, y: 1 },
+          text: 'Fixture annotation',
+          visibility: 'GM_ONLY' as const
         }
+      }
+      const result = {
+        sceneId,
+        commandId,
+        version,
+        occurrence: {
+          occurrenceId: crypto.randomUUID(),
+          occurrenceVersion: 0,
+          status: 'COMPLETE' as const,
+          outcome: null,
+          pending: null
+        },
+        replayed: false,
+        delta: null
+      }
+      const receipt = sceneStoredInlineCommandSchema.parse({
+        encoding: 'INLINE',
+        sceneId,
+        commandId,
+        actorUserId: base.owner.userId,
+        input,
+        inputChecksum: checksumCanonicalJson(input),
+        result,
+        resultChecksum: checksumCanonicalJson(result)
       })
-    await seedNonadvancingMovementReceipt(base, sceneId, withHead ? 1 : 0)
+      await base.t.run(async (ctx) => {
+        await ctx.db.insert('sceneLiveStates', liveSceneHead(sceneId, { version }))
+        await ctx.db.insert('sceneLiveCommands', receipt)
+      })
+    }
+    await seedNonadvancingMovementReceipt(base, sceneId, version)
     await base.t.mutation(removeFixtureState, {
       ownerUserId: base.owner.userId,
       campaignId: base.campaign.id
@@ -374,82 +387,6 @@ it.each([false, true])(
     ).toEqual({ geometrySaves: [], commands: [], heads: [] })
   },
   15_000
-)
-
-it.each(['missing', 'duplicate'] as const)(
-  'rejects %s advancing Scene receipt history atomically',
-  async (history) => {
-    const base = await setup()
-    const { initial } = await seedOwnerScene(base)
-    const sceneId = initial.liveSceneId!
-    await base.owner.caller.mutation(executeLiveCommand, {
-      input: {
-        type: 'UPSERT_SCENE_ANNOTATION',
-        sceneId,
-        commandId: crypto.randomUUID(),
-        expectedSceneVersion: 0,
-        annotation: {
-          id: crypto.randomUUID(),
-          position: { x: 1, y: 1 },
-          text: 'Fixture annotation',
-          visibility: 'GM_ONLY'
-        }
-      }
-    })
-    if (history === 'duplicate')
-      await base.owner.caller.mutation(executeLiveCommand, {
-        input: {
-          type: 'UPSERT_SCENE_ANNOTATION',
-          sceneId,
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: 1,
-          annotation: {
-            id: crypto.randomUUID(),
-            position: { x: 2, y: 1 },
-            text: 'Fixture annotation two',
-            visibility: 'GM_ONLY'
-          }
-        }
-      })
-    await base.t.run(async (ctx) => {
-      const commands = await ctx.db
-        .query('sceneLiveCommands')
-        .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', sceneId))
-        .take(3)
-      const command = commands[0]
-      if (!command) throw new Error('Missing advancing Scene command.')
-      if (history === 'missing') await ctx.db.delete(command._id)
-      else {
-        const later = commands.find((candidate) => candidate.input.expectedSceneVersion === 1)
-        if (!later || later.encoding !== 'INLINE')
-          throw new Error('Missing later advancing Scene command.')
-        const input = { ...later.input, expectedSceneVersion: 0 }
-        const result = { ...later.result, version: 1 }
-        await ctx.db.patch(later._id, {
-          input,
-          inputChecksum: checksumCanonicalJson(input),
-          result,
-          resultChecksum: checksumCanonicalJson(result)
-        })
-      }
-    })
-    const before = await base.t.run(async (ctx) => ({
-      commands: await ctx.db.query('sceneLiveCommands').collect(),
-      heads: await ctx.db.query('sceneLiveStates').collect()
-    }))
-    await expect(
-      base.t.mutation(removeFixtureState, {
-        ownerUserId: base.owner.userId,
-        campaignId: base.campaign.id
-      })
-    ).rejects.toThrow('live Scene command')
-    expect(
-      await base.t.run(async (ctx) => ({
-        commands: await ctx.db.query('sceneLiveCommands').collect(),
-        heads: await ctx.db.query('sceneLiveStates').collect()
-      }))
-    ).toEqual(before)
-  }
 )
 
 it.each(['receipt', 'parent', 'missing-parent'] as const)(
@@ -756,7 +693,7 @@ it('rejects more than sixteen entities for one selected save without partial del
   expect(await state(base)).toEqual(before)
 })
 
-it('cleans fixture-player measurement receipts only after exact Campaign fixture validation', async () => {
+it('cleans fixture-player movement receipts only after exact Campaign fixture validation', async () => {
   const base = await setup()
   const { initial } = await seedOwnerScene(base)
   if (!initial.liveSceneId) throw new Error('Missing live Scene')
@@ -771,28 +708,11 @@ it('cleans fixture-player measurement receipts only after exact Campaign fixture
       leftAt: null
     })
   )
-  await base.other.caller.mutation(executeLiveCommand, {
-    input: {
-      type: 'UPSERT_SCENE_MEASUREMENT',
-      sceneId: initial.liveSceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      measurement: {
-        id: crypto.randomUUID(),
-        createdByUserId: base.other.userId,
-        label: 'Player distance',
-        path: [
-          { x: 0, y: 0 },
-          { x: 10, y: 10 }
-        ]
-      }
-    }
-  })
+  await seedNonadvancingMovementReceipt(base, initial.liveSceneId, 0, base.other.userId)
   const snapshot = async () => ({
     scene: await state(base),
     children: await base.t.run(async (ctx) => ({
-      heads: await ctx.db.query('sceneLiveStates').collect(),
-      entities: await ctx.db.query('sceneLiveEntities').collect(),
+      geometrySaves: await ctx.db.query('sceneGeometrySaves').collect(),
       commands: await ctx.db.query('sceneLiveCommands').collect()
     }))
   })
@@ -852,45 +772,21 @@ it('cleans fixture-player measurement receipts only after exact Campaign fixture
     ownerUserId: base.owner.userId,
     campaignId: base.campaign.id
   })
-  expect((await snapshot()).children).toEqual({ heads: [], entities: [], commands: [] })
+  expect((await snapshot()).children).toEqual({ geometrySaves: [], commands: [] })
   expect((await state(base)).liveScenes).toEqual([])
 })
 
 it.each([1, 17])(
-  'cleans bounded live entity children or rejects an oversized %i-command fixture atomically',
+  'cleans bounded live command children or rejects an oversized %i-command fixture atomically',
   async (count) => {
     const base = await setup()
     const { initial } = await seedOwnerScene(base)
     if (!initial.liveSceneId) throw new Error('Missing live Scene')
-    for (let version = 0; version < count; version++) {
-      await base.owner.caller.mutation(executeLiveCommand, {
-        input: {
-          type: 'UPSERT_SCENE_ANNOTATION',
-          sceneId: initial.liveSceneId,
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: version,
-          annotation: {
-            id: crypto.randomUUID(),
-            position: { x: 1, y: 1 },
-            text: 'Live note',
-            visibility: 'GM_ONLY'
-          }
-        }
-      })
-    }
-    await base.owner.caller.mutation(executeLiveCommand, {
-      input: {
-        type: 'SET_SCENE_VISION_REVEAL_MODE',
-        sceneId: initial.liveSceneId,
-        commandId: crypto.randomUUID(),
-        expectedSceneVersion: count,
-        mode: 'ON_DROP'
-      }
-    })
+    for (let index = 0; index < count; index++)
+      await seedNonadvancingMovementReceipt(base, initial.liveSceneId, 0)
     const children = () =>
       base.t.run(async (ctx) => ({
-        states: await ctx.db.query('sceneLiveStates').collect(),
-        entities: await ctx.db.query('sceneLiveEntities').collect(),
+        geometrySaves: await ctx.db.query('sceneGeometrySaves').collect(),
         commands: await ctx.db.query('sceneLiveCommands').collect()
       }))
     const before = { scene: await state(base), children: await children() }
@@ -903,7 +799,7 @@ it.each([1, 17])(
       expect({ scene: await state(base), children: await children() }).toEqual(before)
     } else {
       await removal
-      expect(await children()).toEqual({ states: [], entities: [], commands: [] })
+      expect(await children()).toEqual({ geometrySaves: [], commands: [] })
       expect((await state(base)).liveScenes).toEqual([])
     }
   }
@@ -958,94 +854,6 @@ it.each([3, 4])(
   }
 )
 
-it('validates fog upload ownership before removing all fixture fog history and supports cleanup retry', async () => {
-  const base = await setup()
-  const { initial } = await seedOwnerScene(base)
-  const sceneId = initial.liveSceneId!
-  const begin = makeFunctionReference<
-    'mutation',
-    { input: SceneFogPatchInput },
-    SceneFogSaveProgress
-  >('scenes/fogCommands:begin')
-  const append = makeFunctionReference<
-    'mutation',
-    { input: SceneFogAppendInput },
-    SceneFogSaveProgress
-  >('scenes/fogCommands:append')
-  const publish = makeFunctionReference<'mutation', { saveId: string }, SceneFogCommandResult>(
-    'scenes/fogCommands:publish'
-  )
-  const chunk = { index: 0, x: 0, y: 0, width: 1, height: 1, data: 'AA==' }
-  const upload = await base.owner.caller.mutation(begin, {
-    input: {
-      type: 'PATCH_SCENE_FOG',
-      sceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      layer: { ownerUserId: null, width: 8, height: 8 },
-      chunkManifest: [{ index: chunk.index, checksum: checksumCanonicalJson(chunk) }]
-    }
-  })
-  await base.owner.caller.mutation(append, {
-    input: { saveId: upload.saveId, offset: 0, chunks: [chunk] }
-  })
-  await base.owner.caller.mutation(publish, { saveId: upload.saveId })
-  const children = () =>
-    base.t.run(async (ctx) => ({
-      saves: await ctx.db.query('sceneFogSaves').collect(),
-      chunks: await ctx.db.query('sceneFogChunks').collect(),
-      layers: await ctx.db.query('sceneFogLayers').collect(),
-      heads: await ctx.db.query('sceneLiveStates').collect(),
-      commands: await ctx.db.query('sceneLiveCommands').collect()
-    }))
-  const fogSave = (await children()).saves[0]!
-  await base.t.run((ctx) => ctx.db.patch(fogSave._id, { actorUserId: base.other.userId }))
-  const before = { scene: await state(base), children: await children() }
-  await expect(
-    base.t.mutation(removeFixtureState, {
-      ownerUserId: base.owner.userId,
-      campaignId: base.campaign.id
-    })
-  ).rejects.toThrow('fog ownership')
-  expect({ scene: await state(base), children: await children() }).toEqual(before)
-  await base.t.run((ctx) => ctx.db.patch(fogSave._id, { actorUserId: base.owner.userId }))
-  const layer = (await children()).layers[0]!
-  const { _id, _creationTime, checksum, ...content } = layer
-  const foreignReferences = layer.chunks.map((reference) => ({
-    ...reference,
-    saveId: crypto.randomUUID()
-  }))
-  await base.t.run((ctx) =>
-    ctx.db.patch(layer._id, {
-      chunks: foreignReferences,
-      checksum: checksumCanonicalJson({ ...content, chunks: foreignReferences })
-    })
-  )
-  const foreignState = { scene: await state(base), children: await children() }
-  await expect(
-    base.t.mutation(removeFixtureState, {
-      ownerUserId: base.owner.userId,
-      campaignId: base.campaign.id
-    })
-  ).rejects.toThrow('fog reference')
-  expect({ scene: await state(base), children: await children() }).toEqual(foreignState)
-  await base.t.run((ctx) => ctx.db.patch(layer._id, { chunks: layer.chunks, checksum }))
-  for (let retry = 0; retry < 2; retry++)
-    await base.t.mutation(removeFixtureState, {
-      ownerUserId: base.owner.userId,
-      campaignId: base.campaign.id
-    })
-  expect(await children()).toEqual({ saves: [], chunks: [], layers: [], heads: [], commands: [] })
-  expect(await state(base)).toEqual({
-    saves: [],
-    entities: [],
-    definitions: [],
-    liveScenes: [],
-    presentations: [],
-    receipts: []
-  })
-})
-
 it.each(['RECEIVING', 'PUBLISHED'] as const)(
   'handles a derived fog save whose geometry parent is missing (%s)',
   async (status) => {
@@ -1089,210 +897,3 @@ it.each(['RECEIVING', 'PUBLISHED'] as const)(
     }
   }
 )
-
-it('cleans staged and published fixture-player MOVE geometry with its derived fog', async () => {
-  const base = await setup()
-  const { initial } = await seedOwnerScene(base)
-  const sceneId = initial.liveSceneId!
-  await base.t.run((ctx) =>
-    ctx.db.insert('campaignMemberships', {
-      campaignId: base.campaign.id,
-      userId: base.other.userId,
-      role: 'PLAYER',
-      status: 'ACTIVE',
-      accessStartedAt: base.campaign.createdAt,
-      joinedAt: base.campaign.createdAt,
-      leftAt: null
-    })
-  )
-  const createToken = async (id: string) =>
-    base.owner.caller.action(executeGeometry, {
-      input: {
-        sceneId,
-        commandId: crypto.randomUUID(),
-        expectedSceneVersion: 0,
-        type: 'UPSERT_SCENE_TOKEN',
-        token: {
-          assetId: null,
-          controlledByUserIds: [base.other.userId],
-          height: 1,
-          hidden: false,
-          id,
-          label: 'Fixture token',
-          locked: false,
-          position: { x: 50, y: 50 },
-          rotationDegrees: 0,
-          vision: {
-            angleDegrees: 360,
-            brightRange: 10,
-            dimRange: 20,
-            directionDegrees: 0,
-            enabled: true
-          },
-          width: 1
-        }
-      }
-    })
-  const move = (tokenId: string) => ({
-    sceneId,
-    commandId: crypto.randomUUID(),
-    expectedSceneVersion: 1,
-    type: 'MOVE_SCENE_TOKEN' as const,
-    expectedEncounterVersion: null,
-    correlationId: null,
-    movementKind: 'VOLUNTARY' as const,
-    tokenId,
-    path: [
-      { x: 50, y: 50 },
-      { x: 60, y: 50 }
-    ]
-  })
-  const children = () =>
-    base.t.run(async (ctx) => ({
-      geometrySaves: await ctx.db.query('sceneGeometrySaves').collect(),
-      fogSaves: await ctx.db.query('sceneFogSaves').collect(),
-      commands: await ctx.db.query('sceneLiveCommands').collect(),
-      heads: await ctx.db.query('sceneLiveStates').collect()
-    }))
-  const firstTokenId = crypto.randomUUID()
-  await createToken(firstTokenId)
-  const staged = await base.other.caller.mutation(internal.scenes.geometryStaging.begin, {
-    input: move(firstTokenId)
-  })
-  expect(staged.kind).toBe('READY')
-  const partial = await children()
-  expect(partial.geometrySaves).toHaveLength(2)
-  await expect(
-    base.t.mutation(removeFixtureState, {
-      ownerUserId: base.owner.userId,
-      campaignId: base.campaign.id
-    })
-  ).rejects.toThrow('Fixture account')
-  expect(await children()).toEqual(partial)
-  await base.t.run(async (ctx) => {
-    const profile = await ctx.db
-      .query('userProfiles')
-      .withIndex('by_userId', (q) => q.eq('userId', base.other.userId))
-      .unique()
-    if (!profile) throw new Error('Missing player profile.')
-    await ctx.runMutation(components.betterAuth.adapter.updateOne, {
-      input: {
-        model: 'user',
-        where: [{ field: '_id', value: profile.authUserId }],
-        update: { email: 'draft_abcdef123456@example.invalid' }
-      }
-    })
-  })
-  const membership = await base.t.run((ctx) =>
-    ctx.db
-      .query('campaignMemberships')
-      .withIndex('by_campaignId_userId', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('userId', base.other.userId)
-      )
-      .unique()
-  )
-  if (!membership) throw new Error('Missing player membership.')
-  await base.t.run((ctx) => ctx.db.delete(membership._id))
-  await expect(
-    base.t.mutation(removeFixtureState, {
-      ownerUserId: base.owner.userId,
-      campaignId: base.campaign.id
-    })
-  ).rejects.toThrow('outside this Campaign')
-  expect(await children()).toEqual(partial)
-  await base.t.run((ctx) =>
-    ctx.db.insert('campaignMemberships', {
-      campaignId: base.campaign.id,
-      userId: base.other.userId,
-      role: 'PLAYER',
-      status: 'ACTIVE',
-      accessStartedAt: base.campaign.createdAt,
-      joinedAt: base.campaign.createdAt,
-      leftAt: null
-    })
-  )
-  await base.t.mutation(removeFixtureState, {
-    ownerUserId: base.owner.userId,
-    campaignId: base.campaign.id
-  })
-  expect(await children()).toEqual({ geometrySaves: [], fogSaves: [], commands: [], heads: [] })
-
-  const { initial: retried } = await seedOwnerScene(base)
-  const retriedSceneId = retried.liveSceneId!
-  const secondTokenId = crypto.randomUUID()
-  await base.owner.caller.action(executeGeometry, {
-    input: {
-      sceneId: retriedSceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      type: 'UPSERT_SCENE_TOKEN',
-      token: {
-        assetId: null,
-        controlledByUserIds: [base.other.userId],
-        height: 1,
-        hidden: false,
-        id: secondTokenId,
-        label: 'Fixture token',
-        locked: false,
-        position: { x: 50, y: 50 },
-        rotationDegrees: 0,
-        vision: {
-          angleDegrees: 360,
-          brightRange: 10,
-          dimRange: 20,
-          directionDegrees: 0,
-          enabled: true
-        },
-        width: 1
-      }
-    }
-  })
-  const publishedStaging = await base.other.caller.mutation(internal.scenes.geometryStaging.begin, {
-    input: { ...move(secondTokenId), sceneId: retriedSceneId }
-  })
-  if (publishedStaging.kind !== 'READY') throw new Error('Expected staged player movement.')
-  const playerFog = await base.t.run(async (ctx) => {
-    const layer = await ctx.db
-      .query('sceneFogLayers')
-      .withIndex('by_sceneId_ownerUserId', (q) =>
-        q.eq('sceneId', retriedSceneId).eq('ownerUserId', base.other.userId)
-      )
-      .unique()
-    if (!layer) return null
-    const chunks = []
-    for (const reference of layer.chunks) {
-      const row = await ctx.db
-        .query('sceneFogChunks')
-        .withIndex('by_saveId_ordinal', (q) =>
-          q.eq('saveId', reference.saveId).eq('ordinal', reference.ordinal)
-        )
-        .unique()
-      if (!row) throw new Error('Missing player fog chunk.')
-      chunks.push(row.chunk)
-    }
-    return { width: layer.width, height: layer.height, chunks }
-  })
-  if (!playerFog) throw new Error('Missing player fog layer.')
-  await base.other.caller.mutation(internal.scenes.geometryStaging.stageFog, {
-    saveId: publishedStaging.saveId,
-    layer: {
-      ownerUserId: base.other.userId,
-      width: playerFog.width,
-      height: playerFog.height,
-      chunks: playerFog.chunks
-    }
-  })
-  const publishedMove = await base.other.caller.mutation(internal.scenes.geometryCommands.finish, {
-    saveId: publishedStaging.saveId,
-    baseOrdinal: 0
-  })
-  expect(publishedMove.version).toBe(2)
-  expect((await children()).geometrySaves).toHaveLength(2)
-  expect((await children()).fogSaves).toHaveLength(2)
-  for (let retry = 0; retry < 2; retry++)
-    await base.t.mutation(removeFixtureState, {
-      ownerUserId: base.owner.userId,
-      campaignId: base.campaign.id
-    })
-  expect(await children()).toEqual({ geometrySaves: [], fogSaves: [], commands: [], heads: [] })
-})

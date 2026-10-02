@@ -1,28 +1,30 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type {
-  SceneGeometryCommandResult,
-  SceneGeometryExecuteInput
-} from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
-import { createSceneDefinitionFixture } from '../../tests/fixtures/sceneDefinitions'
-import { api } from '../_generated/api'
+  SetCampaignLiveScenePresentationInputDto,
+  SetCampaignLiveScenePresentationResultDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  commitSceneInRoom,
+  insertActiveLiveAuthority
+} from '../../tests/fixtures/liveSessionWorker'
+import { createSceneDefinitionFixture, publishScene } from '../../tests/fixtures/sceneDefinitions'
 import { SCENE_COMMAND_RETENTION_MS } from './commandRetention'
 
-type Move = Extract<SceneCommandInputDto, { type: 'MOVE_SCENE_TOKEN' }>
-const move = makeFunctionReference<'action', SceneGeometryExecuteInput, SceneGeometryCommandResult>(
-  'scenes/geometryActions:execute'
-)
 const purge = makeFunctionReference<'mutation', Record<string, never>, null>(
   'scenes/commandRetention:purge'
 )
+const setPresentation = makeFunctionReference<
+  'mutation',
+  SetCampaignLiveScenePresentationInputDto,
+  SetCampaignLiveScenePresentationResultDto
+>('scenes/presentations:set')
 
 afterEach(() => vi.useRealTimers())
 
 it('deletes only expired Scene command receipts together with their geometry saves', async () => {
   const base = await createSceneDefinitionFixture()
-  const token: SceneToken = {
+  const token = {
     id: crypto.randomUUID(),
     assetId: null,
     label: 'Scout',
@@ -33,29 +35,23 @@ it('deletes only expired Scene command receipts together with their geometry sav
     hidden: false,
     locked: false,
     controlledByUserIds: [],
-    vision: null
+    vision: { angleDegrees: 360, brightRange: 0, dimRange: 5, directionDegrees: 0, enabled: true }
   }
-  const saved = await base.owner.caller.mutation(api.scenes.definitions.begin, {
-    ...base.input,
-    counts: { ...base.input.counts, tokens: 1 }
-  })
-  await base.owner.caller.mutation(api.scenes.definitions.append, {
-    input: { saveId: saved.saveId, collection: 'tokens', offset: 0, entities: [token] }
-  })
-  await base.owner.caller.mutation(api.scenes.definitions.publish, { saveId: saved.saveId })
-  if (!saved.liveSceneId) throw new Error('Missing Scene.')
-  const sceneId = saved.liveSceneId
-  const movement = (commandId: string, expectedSceneVersion: number, x: number): Move => ({
+  const { sceneId } = await publishScene(base, { tokens: [token] })
+  await base.owner.caller.mutation(setPresentation, {
+    commandId: crypto.randomUUID(),
+    expectedPresentationVersion: null,
+    campaignId: base.campaign.id,
     sceneId,
-    commandId,
-    expectedSceneVersion,
-    expectedEncounterVersion: null,
-    correlationId: null,
-    type: 'MOVE_SCENE_TOKEN',
-    tokenId: token.id,
-    movementKind: 'VOLUNTARY',
-    path: [token.position, { x, y: 100 }]
+    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
+  await base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch: crypto.randomUUID(),
+      createdAt: base.campaign.createdAt
+    })
+  )
   const receipts = (commandId: string) =>
     base.t.run(async (ctx) => ({
       command: await ctx.db
@@ -71,40 +67,50 @@ it('deletes only expired Scene command receipts together with their geometry sav
         )
         .unique()
     }))
-
-  vi.useFakeTimers()
-  const startedAt = Date.now()
-  const expired = crypto.randomUUID()
-  const first = await base.owner.caller.action(move, { input: movement(expired, 0, 200) })
-  // Fixture identities last one minute, so the receipts are seconds apart and the clock moves later.
-  vi.setSystemTime(startedAt + 2_000)
-  const retained = crypto.randomUUID()
-  await base.owner.caller.action(move, {
-    input: {
-      ...movement(retained, first.version, 300),
+  const move = (commandId: string, expectedSceneVersion: number, from: number, to: number) =>
+    commitSceneInRoom(base.owner.caller, base.campaign.id, {
+      type: 'MOVE_SCENE_TOKEN',
+      commandId,
+      sceneId,
+      tokenId: token.id,
+      expectedSceneVersion,
+      expectedEncounterVersion: null,
+      correlationId: null,
+      movementKind: 'VOLUNTARY',
       path: [
-        { x: 200, y: 100 },
-        { x: 300, y: 100 }
+        { x: from, y: 100 },
+        { x: to, y: 100 }
       ]
-    }
-  })
+    })
+
+  // Rooms need real timers, so both moves commit before the clock is faked.
+  const expired = crypto.randomUUID()
+  const first = await move(expired, 0, 100, 200)
+  const retained = crypto.randomUUID()
+  await move(retained, first.version, 200, 300)
+  const expiredCommand = (await receipts(expired)).command
+  const retainedCommand = (await receipts(retained)).command
+  if (!expiredCommand || !retainedCommand) throw new Error('Missing committed receipts.')
+  if (retainedCommand._creationTime <= expiredCommand._creationTime + 1)
+    throw new Error('The two receipts were created in the same millisecond.')
   expect(await receipts(expired)).toMatchObject({
     command: expect.anything(),
     save: expect.anything()
   })
 
-  vi.setSystemTime(startedAt + SCENE_COMMAND_RETENTION_MS - 1)
+  vi.useFakeTimers()
+  vi.setSystemTime(expiredCommand._creationTime + SCENE_COMMAND_RETENTION_MS - 1)
   await base.t.mutation(purge, {})
   expect(await receipts(expired)).toMatchObject({
     command: expect.anything(),
     save: expect.anything()
   })
 
-  vi.setSystemTime(startedAt + SCENE_COMMAND_RETENTION_MS + 1_000)
+  vi.setSystemTime(expiredCommand._creationTime + SCENE_COMMAND_RETENTION_MS + 1)
   await base.t.mutation(purge, {})
   expect(await receipts(expired)).toEqual({ command: null, save: null })
   expect(await receipts(retained)).toMatchObject({
     command: expect.anything(),
-    save: expect.objectContaining({ status: 'PUBLISHED' })
+    save: expect.anything()
   })
-})
+}, 120_000)

@@ -35,7 +35,6 @@ import '../campaigns/create'
 import '../encounters/blueprints'
 import '../encounters/runs'
 import '../encounters/actorTokenBindings'
-import './geometryCommands'
 
 const bindActorToken = makeFunctionReference<
   'mutation',

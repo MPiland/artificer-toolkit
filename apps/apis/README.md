@@ -286,11 +286,6 @@ authorized mutation before any write, so a rejection rolls back the whole transa
 
 - `liveSessionTicket` (token bucket, 30/min, burst 10): `liveSessions/admission:authorize`, called by
   `liveSessions/tickets:issue`.
-- `sceneWrite` (token bucket, 240/min, burst 80): `scenes/commands:execute`,
-  `scenes/geometryFastCommands:execute`, `scenes/fogCommands` `begin`/`append`/`publish`,
-  `scenes/undo:executeFast` and `undo:finish`, and `scenes/geometryStaging:begin`. Transitional:
-  the live room is the only writer of a presented Scene (D79, A35-S3c0) and the tabletop no
-  longer calls `scenes/commands` or `scenes/fogCommands`; A35-S3c1 deletes them.
 - `campaignConversation` (token bucket, 30/min, burst 30): chat, public rolls and table rolls.
 - Social (fixed UTC-aligned hour/day windows from the shared `SOCIAL_RATE_LIMITS` policy):
   application, invitation, report and block writers.

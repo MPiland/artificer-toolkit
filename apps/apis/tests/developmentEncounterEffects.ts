@@ -13,18 +13,7 @@ import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import type {
-  SceneFogAppendInput,
-  SceneFogCommandResult,
-  SceneFogPatchInput,
-  SceneFogSaveProgress
-} from '@artificer-toolkit/schema/api/sceneFog'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  createUniformSceneFogLayer,
-  type SceneExplorationState
-} from '@artificer-toolkit/shared/vtt'
 import { api } from '../convex/_generated/api.js'
 import {
   type DevelopmentClient,
@@ -37,19 +26,6 @@ const actionChoices = makeFunctionReference<
   GetEncounterActionChoicesInputDto,
   EncounterActionChoicesResponseDto
 >('encounters/actionChoices:get')
-const beginFog = makeFunctionReference<
-  'mutation',
-  { input: SceneFogPatchInput },
-  SceneFogSaveProgress
->('scenes/fogCommands:begin')
-const appendFog = makeFunctionReference<
-  'mutation',
-  { input: SceneFogAppendInput },
-  SceneFogSaveProgress
->('scenes/fogCommands:append')
-const publishFog = makeFunctionReference<'mutation', { saveId: string }, SceneFogCommandResult>(
-  'scenes/fogCommands:publish'
-)
 
 export type EncounterEffectsBrowserFixture = {
   scene: { id: string; name: string }
@@ -346,62 +322,6 @@ export async function verifyEncounterEffects({
       }
       source = run.actors.find((actor) => actor.id === source.id) ?? source
       target = run.actors.find((actor) => actor.id === target.id) ?? target
-      const fogHeader = await owner.query(api.scenes.liveReads.header, {
-        sceneId: preparedScene.liveSceneId
-      })
-      const fogState = {
-        map: {
-          assetId: preparedScene.assetId,
-          height: 200,
-          tileManifestAssetId: null,
-          width: 400
-        },
-        grid: {
-          kind: 'SQUARE' as const,
-          origin: { x: 0, y: 0 },
-          cellSize: 100,
-          distancePerCell: 5,
-          diagonalPolicy: 'EQUAL' as const,
-          unit: 'FEET' as const
-        },
-        tokens: [],
-        barriers: [],
-        doorStates: {},
-        fogMode: 'PER_PLAYER' as const,
-        fogLayers: []
-      } satisfies SceneExplorationState
-      const fogLayer = createUniformSceneFogLayer(fogState, {
-        explored: true,
-        ownerUserId: browserPlayerUserId
-      })
-      const commandId = crypto.randomUUID()
-      const fogSave = await owner.mutation(beginFog, {
-        input: {
-          type: 'PATCH_SCENE_FOG',
-          sceneId: preparedScene.liveSceneId,
-          commandId,
-          expectedSceneVersion: fogHeader.version,
-          layer: {
-            ownerUserId: fogLayer.ownerUserId,
-            width: fogLayer.width,
-            height: fogLayer.height
-          },
-          chunkManifest: fogLayer.chunks.map((chunk) => ({
-            index: chunk.index,
-            checksum: checksumCanonicalJson(chunk)
-          }))
-        }
-      })
-      for (let offset = 0; offset < fogLayer.chunks.length; offset += 8) {
-        const chunkBatch = fogLayer.chunks.slice(offset, offset + 8)
-        assert.ok(chunkBatch.length)
-        const appended: SceneFogSaveProgress = await owner.mutation(appendFog, {
-          input: { saveId: fogSave.saveId, offset, chunks: chunkBatch }
-        })
-        assert.equal(appended.receivedChunks, Math.min(offset + 8, fogLayer.chunks.length))
-      }
-      const fog = await owner.mutation(publishFog, { saveId: fogSave.saveId })
-      assert.equal(fog.replayed, false)
       const header = await owner.query(api.scenes.recipientReads.header, {
         sceneId: preparedScene.liveSceneId
       })

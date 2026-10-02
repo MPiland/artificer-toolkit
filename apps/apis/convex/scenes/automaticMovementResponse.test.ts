@@ -1,5 +1,4 @@
 import { expect, it, vi } from 'vitest'
-import { api } from '../_generated/api'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import {
   setupAutomaticSceneMovement,
@@ -168,38 +167,6 @@ it.each(['DECLINE', 'OPTION'] as const)(
     if (initial.delta?.kind !== 'TOKEN_MOVED')
       throw new Error('Expected a committed first segment.')
     expect(initial.delta.position).not.toEqual(value.rootInput.path[0])
-    const mechanics = () =>
-      value.base.t.run(async (ctx) => ({
-        runs: await ctx.db.query('encounterRuns').collect(),
-        actors: await ctx.db.query('encounterRunActors').collect(),
-        characters: await ctx.db.query('characters').collect(),
-        characterPlays: await ctx.db.query('characterPlayStates').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect()
-      }))
-    const beforeUndo = await mechanics()
-    const undoInput = {
-      input: {
-        type: 'UNDO_LAST_SCENE_MOVE' as const,
-        sceneId: value.sceneId,
-        commandId: crypto.randomUUID(),
-        expectedSceneVersion: terminal.version
-      }
-    }
-    const undone = await value.owner.caller.action(api.scenes.undo.execute, undoInput)
-    expect(undone).toMatchObject({
-      version: terminal.version + 1,
-      delta: { position: initial.delta.position, undoneCommandId: terminalCommand.commandId }
-    })
-    expect(await mechanics()).toEqual(beforeUndo)
-    await expect(value.owner.caller.action(api.scenes.undo.execute, undoInput)).resolves.toEqual({
-      ...undone,
-      replayed: true
-    })
-    expect(await mechanics()).toEqual(beforeUndo)
   },
   30_000
 )

@@ -16,15 +16,6 @@ import {
   type DevelopmentCheckpointInspection
 } from '@artificer-toolkit/schema/api/developmentCheckpoint'
 import {
-  developmentCheckpointSceneInspectionSchema,
-  type DevelopmentCheckpointSceneInput,
-  type DevelopmentCheckpointSceneInspection
-} from '@artificer-toolkit/schema/api/developmentCheckpointScenes'
-import {
-  liveSessionCheckpointSceneSchema,
-  type LiveSessionCheckpointScene
-} from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
-import {
   liveSessionCheckpointInputSchema,
   liveSessionCheckpointResponseSchema,
   type LiveSessionCheckpointInput,
@@ -54,8 +45,6 @@ import type { DevelopmentClient } from './developmentClient'
 import { developmentCli as cli } from './developmentCli'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
 import { developmentTarget } from './developmentTarget'
-import { createEncounterLifecycleScene } from './developmentEncounterScenes'
-import { createUniformSceneFogLayer } from '@artificer-toolkit/shared/vtt'
 
 const prepare = makeFunctionReference<
   'mutation',
@@ -108,24 +97,13 @@ const held = makeFunctionReference<
   Pick<DevelopmentCheckpointScope, 'campaignId'>,
   boolean
 >('liveSessions/authority:held')
-const captureScene = makeFunctionReference<
-  'mutation',
-  DevelopmentCheckpointSceneInput,
-  LiveSessionCheckpointScene
->('liveSessions/developmentCheckpointScenes:capture')
-const inspectScene = makeFunctionReference<
-  'query',
-  DevelopmentCheckpointSceneInput,
-  DevelopmentCheckpointSceneInspection
->('liveSessions/developmentCheckpointScenes:inspect')
 
 /** Uses real native mutations: a post-publication throw must roll back the entire checkpoint. */
 export async function verifyDevelopmentCheckpoint({
   owner,
   player,
   characterId,
-  staged = false,
-  scenes = false
+  staged = false
 }: {
   owner: {
     client: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
@@ -137,9 +115,7 @@ export async function verifyDevelopmentCheckpoint({
   }
   characterId: string
   staged?: boolean
-  scenes?: boolean
 }) {
-  assert.ok(!scenes || !staged, 'Scene proof uses the inline checkpoint path.')
   const target = developmentTarget(process.env)
   assert.equal(target.mode, 'local', 'Checkpoint proof requires the isolated local backend.')
   assert.equal(process.env.CONVEX_SELF_HOSTED_URL, target.deploymentUrl.origin)
@@ -163,51 +139,11 @@ export async function verifyDevelopmentCheckpoint({
     args: FunctionArgs<Function>
   ) => Promise<FunctionReturnType<Function>>
 
-  const readScene = async (sceneId: string) => {
-    const header = await owner.client.query(api.scenes.liveReads.header, { sceneId })
-    const [tokens, layers] = await Promise.all([
-      owner.client.query(api.scenes.liveReads.changes, {
-        sceneId,
-        definitionSaveId: header.definitionSaveId,
-        expectedVersion: header.version,
-        collection: 'tokens',
-        paginationOpts: { cursor: null, numItems: 8 }
-      }),
-      owner.client.query(api.scenes.fogReads.layers, {
-        sceneId,
-        expectedVersion: header.version,
-        paginationOpts: { cursor: null, numItems: 8 }
-      })
-    ])
-    assert.equal(tokens.isDone, true)
-    assert.equal(layers.isDone, true)
-    const chunks = await Promise.all(
-      layers.page.map((layer) =>
-        owner.client.query(api.scenes.fogReads.chunks, {
-          sceneId,
-          ownerUserId: layer.ownerUserId,
-          expectedVersion: header.version,
-          offset: 0,
-          numItems: 8
-        })
-      )
-    )
-    assert.ok(chunks.every((page) => page.isDone))
-    return { header, tokens: tokens.page, layers: layers.page, chunks }
-  }
-
   let campaignId: string | undefined
   let blueprintId: string | undefined
   let checkpoint: LiveSessionCheckpointInput | undefined
   let released = false
   let scope: DevelopmentCheckpointScope | undefined
-  let scene: Awaited<ReturnType<typeof createEncounterLifecycleScene>> | undefined
-  let sceneInput: DevelopmentCheckpointSceneInput | undefined
-  let sceneGroup: LiveSessionCheckpointScene | undefined
-  let sceneExpected: DevelopmentCheckpointSceneInspection | undefined
-  let sceneReset: DevelopmentCheckpointSceneInspection | undefined
-  let sceneRestored: DevelopmentCheckpointSceneInspection | undefined
-  let sceneReadExpected: Awaited<ReturnType<typeof readScene>> | undefined
   let proof:
     | { before: DevelopmentCheckpointInspection; after: DevelopmentCheckpointInspection }
     | undefined
@@ -251,134 +187,9 @@ export async function verifyDevelopmentCheckpoint({
     })
     assert.equal(run.status, 'PREPARED')
     scope = { ...fixture, campaignId, encounterId: run.id }
-    if (scenes) {
-      const options = {
-        map: { width: 64, height: 64 },
-        grid: { kind: 'GRIDLESS' as const, pixelsPerUnit: 50, unit: 'FEET' as const },
-        tokens: [0, 1].map((ordinal) => ({
-          id: crypto.randomUUID(),
-          assetId: null,
-          controlledByUserIds: [],
-          height: 1,
-          hidden: false,
-          label: `Checkpoint token ${ordinal}`,
-          locked: false,
-          position: { x: ordinal, y: 0 },
-          rotationDegrees: 0,
-          vision: null,
-          width: 1
-        }))
-      }
-      const [firstToken, secondToken] = options.tokens
-      assert.ok(firstToken && secondToken)
-      scene = await createEncounterLifecycleScene({
-        owner: owner.client,
-        campaignId,
-        name: 'Checkpoint native Scene',
-        options: { ...options, tokens: [firstToken, secondToken] }
-      })
-      sceneInput = { scope, sceneId: scene.liveSceneId }
-      const presentation = await owner.client.action(api.scenes.presentations.setLive, {
-        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-        commandId: crypto.randomUUID(),
-        campaignId,
-        sceneId: scene.liveSceneId,
-        expectedPresentationVersion: null
-      })
-      const off = await owner.client.mutation(api.scenes.commands.execute, {
-        input: {
-          type: 'SET_SCENE_FOG_MODE',
-          sceneId: scene.liveSceneId,
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: 0,
-          mode: 'OFF'
-        }
-      })
-      const moved = await owner.client.action(api.scenes.geometryActions.execute, {
-        input: {
-          type: 'UPSERT_SCENE_TOKEN',
-          sceneId: scene.liveSceneId,
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: off.version,
-          token: { ...firstToken, position: { x: 10, y: 10 } }
-        },
-        presentation: { expectedPresentationVersion: presentation.version }
-      })
-      assert.deepEqual(moved.fogPatches, [])
-      const on = await owner.client.mutation(api.scenes.commands.execute, {
-        input: {
-          type: 'SET_SCENE_FOG_MODE',
-          sceneId: scene.liveSceneId,
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: moved.version,
-          mode: 'PER_PLAYER'
-        }
-      })
-      const fog = createUniformSceneFogLayer(
-        {
-          ...options,
-          map: { ...options.map, assetId: scene.assetId, tileManifestAssetId: null },
-          barriers: [],
-          doorStates: {},
-          fogMode: 'PER_PLAYER',
-          fogLayers: []
-        },
-        { explored: true, ownerUserId: player.identity.userId }
-      )
-      const save = await owner.client.mutation(api.scenes.fogCommands.begin, {
-        input: {
-          type: 'PATCH_SCENE_FOG',
-          sceneId: scene.liveSceneId,
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: on.version,
-          presentation: { expectedPresentationVersion: presentation.version },
-          layer: { ownerUserId: fog.ownerUserId, width: fog.width, height: fog.height },
-          chunkManifest: fog.chunks.map((chunk) => ({
-            index: chunk.index,
-            checksum: checksumCanonicalJson(chunk)
-          }))
-        }
-      })
-      assert.ok(fog.chunks.length > 0 && fog.chunks.length <= 8)
-      await owner.client.mutation(api.scenes.fogCommands.append, {
-        input: { saveId: save.saveId, offset: 0, chunks: fog.chunks }
-      })
-      const patched = await owner.client.mutation(api.scenes.fogCommands.publish, {
-        saveId: save.saveId
-      })
-      sceneExpected = developmentCheckpointSceneInspectionSchema.parse(
-        await invoke(inspectScene, undefined, sceneInput)
-      )
-      assert.equal(sceneExpected.version, patched.version)
-      assert.equal(Object.keys(sceneExpected.counts).length, 7)
-      assert.ok(Object.values(sceneExpected.counts).every((count) => count > 0))
-      sceneReadExpected = await readScene(scene.liveSceneId)
-      assert.equal(sceneReadExpected.tokens.length, 1)
-      assert.equal(sceneReadExpected.layers.length, 1)
-      assert.deepEqual(sceneReadExpected.chunks[0]?.page, fog.chunks)
-      sceneGroup = liveSessionCheckpointSceneSchema.parse(
-        await invoke(captureScene, undefined, sceneInput)
-      )
-      assert.equal(sceneGroup.fromVersion, 0)
-      assert.equal(sceneGroup.toVersion, sceneExpected.version)
-      sceneReset = developmentCheckpointSceneInspectionSchema.parse(
-        await invoke(inspectScene, undefined, sceneInput)
-      )
-      assert.equal(sceneReset.version, 0)
-      assert.ok(Object.values(sceneReset.counts).every((count) => count === 0))
-      assert.notEqual(sceneReset.digest, sceneExpected.digest)
-    }
-    checkpoint = liveSessionCheckpointInputSchema.parse(
+    checkpoint =liveSessionCheckpointInputSchema.parse(
       await invoke(prepare, undefined, { ...scope, staged })
     )
-    if (sceneGroup) {
-      const records = { ...checkpoint.records, scenes: [sceneGroup] }
-      checkpoint = liveSessionCheckpointInputSchema.parse({
-        ...checkpoint,
-        records,
-        payloadChecksum: checksumCanonicalJson(records)
-      })
-    }
     const before = developmentCheckpointInspectionSchema.parse(
       await invoke(inspect, undefined, scope)
     )
@@ -479,59 +290,6 @@ export async function verifyDevelopmentCheckpoint({
         new RegExp(DEVELOPMENT_CHECKPOINT_ROLLBACK_MARKER)
       )
       assert.deepEqual(await invoke(inspect, undefined, scope), before)
-      if (sceneInput && sceneGroup) {
-        assert.deepEqual(await invoke(inspectScene, undefined, sceneInput), sceneReset)
-        await assert.rejects(
-          owner.client.mutation(api.scenes.commands.execute, {
-            input: {
-              type: 'SET_SCENE_FOG_MODE',
-              sceneId: sceneInput.sceneId,
-              commandId: crypto.randomUUID(),
-              expectedSceneVersion: 0,
-              mode: 'OFF'
-            }
-          }),
-          /Campaign live table/
-        )
-        assert.deepEqual(await invoke(inspect, undefined, scope), before)
-        assert.deepEqual(await invoke(inspectScene, undefined, sceneInput), sceneReset)
-        const fogChunk = sceneGroup.changes.find((change) => change.table === 'sceneFogChunks')
-        assert.ok(fogChunk)
-        for (const changes of [
-          sceneGroup.changes.filter((change) => change !== fogChunk),
-          sceneGroup.changes.map((change) =>
-            change === fogChunk ? { ...change, nextChecksum: '0'.repeat(64) } : change
-          )
-        ]) {
-          const records = { ...checkpoint.records, scenes: [{ ...sceneGroup, changes }] }
-          await assert.rejects(
-            invoke(publish, undefined, {
-              ...checkpoint,
-              records,
-              payloadChecksum: checksumCanonicalJson(records)
-            }),
-            /fog|chunk|Scene delta checksum/i
-          )
-          assert.deepEqual(await invoke(inspect, undefined, scope), before)
-          assert.deepEqual(await invoke(inspectScene, undefined, sceneInput), sceneReset)
-        }
-        for (const source of [
-          { ...sceneGroup, definitionSaveId: crypto.randomUUID() },
-          { ...sceneGroup, presentationVersion: sceneGroup.presentationVersion + 1 }
-        ]) {
-          const records = { ...checkpoint.records, scenes: [source] }
-          await assert.rejects(
-            invoke(publish, undefined, {
-              ...checkpoint,
-              records,
-              payloadChecksum: checksumCanonicalJson(records)
-            }),
-            /Scene source or version is stale|Scene presentation is stale/
-          )
-          assert.deepEqual(await invoke(inspect, undefined, scope), before)
-          assert.deepEqual(await invoke(inspectScene, undefined, sceneInput), sceneReset)
-        }
-      }
       await assert.rejects(
         invoke(publish, undefined, { ...checkpoint, payloadChecksum: badChecksum }),
         /payload checksum/
@@ -555,13 +313,6 @@ export async function verifyDevelopmentCheckpoint({
     const after = developmentCheckpointInspectionSchema.parse(
       await invoke(inspect, undefined, scope)
     )
-    if (sceneInput) {
-      sceneRestored = developmentCheckpointSceneInspectionSchema.parse(
-        await invoke(inspectScene, undefined, sceneInput)
-      )
-      assert.deepEqual(sceneRestored, sceneExpected)
-      assert.deepEqual(await readScene(sceneInput.sceneId), sceneReadExpected)
-    }
     const sharedEntryCount = staged ? 64 : 2
     assert.equal(after.runVersion, before.runVersion + sharedEntryCount)
     assert.equal(after.playStreamVersion, before.playStreamVersion + 1)
@@ -603,10 +354,6 @@ export async function verifyDevelopmentCheckpoint({
     assert.equal(replayed.status, 'REPLAYED')
     assert.deepEqual(replayed.authority, committed.authority)
     assert.deepEqual(await invoke(inspect, undefined, scope), after)
-    if (sceneInput) {
-      assert.deepEqual(await invoke(inspectScene, undefined, sceneInput), sceneRestored)
-      assert.deepEqual(await readScene(sceneInput.sceneId), sceneReadExpected)
-    }
     if (upload) {
       await assert.rejects(
         invoke(beginUpload, undefined, { ...upload, payloadChecksum: badChecksum }),
@@ -677,19 +424,6 @@ export async function verifyDevelopmentCheckpoint({
       assert.equal(await invoke(held, undefined, { campaignId: checkpoint.campaignId }), false)
     }
     if (campaignId) {
-      if (scenes) {
-        await cli(
-          'scenes/developmentScene:removeFixtureState',
-          { ownerUserId: fixture.ownerUserId, campaignId },
-          false
-        )
-        const page = { campaignId, paginationOpts: { cursor: null, numItems: 8 } }
-        assert.deepEqual((await owner.client.query(api.scenes.definitionReads.list, page)).page, [])
-        assert.deepEqual(
-          (await owner.client.query(api.scenes.definitionReads.listLive, page)).page,
-          []
-        )
-      }
       await cli('encounters/developmentRuns:removeFixtureState', { ...fixture, campaignId }, false)
       await cli(
         'encounters/developmentCampaign:removeFixtureCampaign',
@@ -740,11 +474,9 @@ export async function verifyDevelopmentCheckpoint({
   assert.ok(proof)
   console.log(
     JSON.stringify({
-      proof: scenes
-        ? 'Native Scene/fog and Run/play checkpoint rollback, source parity and replay'
-        : staged
-          ? 'Native staged checkpoint upload, rollback, replay, receipt partition and clocks'
-          : 'Native checkpoint rollback, replay, receipt partition and clocks',
+      proof: staged
+        ? 'Native staged checkpoint upload, rollback, replay, receipt partition and clocks'
+        : 'Native checkpoint rollback, replay, receipt partition and clocks',
       campaignId,
       characterId,
       checkpointId: checkpoint?.checkpointId,
@@ -762,24 +494,6 @@ export async function verifyDevelopmentCheckpoint({
             alteredPart: 'PASS',
             incompleteUpload: 'PASS',
             uploadDeletion: 'PASS'
-          }
-        : {}),
-      ...(scenes
-        ? {
-            sceneId: scene?.liveSceneId,
-            sceneExpected,
-            sceneReset,
-            sceneRestored,
-            sceneFamilies: 7,
-            missingFogChildRollback: 'PASS',
-            malformedFogChildRollback: 'PASS',
-            sceneSourceFence: 'PASS',
-            scenePresentationFence: 'PASS',
-            sceneDirectWriteFence: 'PASS',
-            sceneReadability: 'PASS',
-            sceneReplay: 'PASS',
-            mediaCleanup:
-              'Outer account cleanup invokes guarded native media purge; object deletion retains its operation fence.'
           }
         : {}),
       privateLedgerPartition: 'PASS',

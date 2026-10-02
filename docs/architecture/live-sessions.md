@@ -380,13 +380,11 @@ decision."; chat, Sheets, other Scenes and every Encounter command continue. The
 decision drawer offers "Skip decision" on a movement reaction or passage choice: a void routed
 `MOVEMENT` that declines it (the movement continues). Bound-token movement and its decisions happen
 only in the room, on its presented Scene (D42, D43; D29's native staging path is gone): the room
-refuses a decision whose Encounter is not bound to its synchronized presented Scene, and Convex's
-public staging (`scenes/geometryActions:execute`, through `beginSceneGeometry`) refuses every
-Encounter-bound move, whether no room is live or a live room presents another Scene. Both refusals
-use domain reason `SCENE_NOT_PRESENTED` ("Present this Scene to move Encounter tokens."); the
-tabletop opens a room before it moves tokens. Unbound moves and door changes still stage natively
-while no room owns the Scene, and `finishSceneGeometry` publishes only Scene changes without
-Encounter rules. A player's geometry command counts against the one-in-flight limit. The
+refuses a decision whose Encounter is not bound to its synchronized presented Scene, using domain reason
+`SCENE_NOT_PRESENTED` ("Present this Scene to move Encounter tokens."); the tabletop opens a room
+before it moves tokens. Convex has no Scene geometry staging or command path (A35-S3c1): unbound
+moves and door changes are room commands too, and their rows reach Convex through the room
+checkpoint. A player's geometry command counts against the one-in-flight limit. The
 skip also writes an `encounterDecisionSkips` row keyed by the decision's occurrence and version, so
 `encounters/activeReads:decisionSettlement` answers `GM_SKIP` (or `ANSWER`) for the decision a
 player was shown, and their drawer says "The GM skipped this decision." (D39). The skipped
@@ -421,9 +419,13 @@ Scene. The tabletop sends every Scene command over the socket (`live.sendCommand
   publication consumes it. A begin retried after publication answers `PUBLISHED` from the receipt.
 - **Undo** skips INLINE and FOG_PATCH receipts and undoes the latest unmatched move.
 
-Transitional until A35-S3c1: Convex `scenes/commands:execute`, the `fogCommands` begin, append and
-publish mutations and `scenes/geometryActions:execute` still exist and duplicate the room's
-inline planning. The tabletop no longer calls them; S3c1 deletes them.
+Current (A35-S3c1, D79): Convex has no Scene command path. `scenes/commands:execute`, the fog
+begin/append/publish mutations, geometry staging and `scenes/undo` are deleted. Convex Scene live
+rows (`sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands`, `sceneFogSaves`,
+`sceneFogLayers`, `sceneFogChunks`, `sceneGeometrySaves`) are written only by the room checkpoint
+(`liveSessions/checkpointScenes.ts`), Scene definition and presentation flows, and Campaign
+deletion and retention. Packed Scene ledgers are target (A35-S3c2, D77); the room-built Scene
+cache is target (A35-S3c3).
 
 **Encounter binding through the room (SOURCE, execution proof pending, D47).**
 `NativeLiveSessionRoom.#executeEncounterBinding` now calls
@@ -1633,13 +1635,11 @@ write, so a rejection rolls back the whole transaction. Account deletion resets 
 | Limit                  | Kind and allowance                 | Consumed by                                                                                                                                               |
 | ---------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `liveSessionTicket`    | Token bucket, 30/min, burst 10     | `liveSessions/admission:authorize`, called by `liveSessions/tickets:issue`                                                                                |
-| `sceneWrite`           | Token bucket, 240/min, burst 80    | `scenes/commands:execute`, `geometryFastCommands:execute`, `fogCommands` begin/append/publish, `undo:executeFast`, `undo:finish`, `geometryStaging:begin` |
 | `campaignConversation` | Token bucket, 30/min, burst 30     | Campaign chat, public rolls and table rolls                                                                                                               |
 | Social                 | Fixed UTC-aligned hour/day windows | Applications, invitations, reports and blocks ([policy](persistence.md#native-social-rate-limits--local-implementation))                                  |
 
-The `sceneWrite` burst admits two maximum fog saves (begin, 32 appends, publish) back to back.
-The `sceneWrite` Scene paths are transitional: the tabletop sends presented-Scene edits to the room
-(A35-S3c0), and A35-S3c1 deletes these Convex writers.
+Convex has no Scene write allowance: the room is the only writer of a presented Scene (D79), and
+Scene edits are limited there.
 While a Campaign's live room holds authority the allowances apply per account within that room
 instead (D72; chat and rolls 30/min, burst 30, the GM 60/60; Scene 240/min, burst 80; fog staging
 only checks the Scene allowance, and its publication consumes one), as described

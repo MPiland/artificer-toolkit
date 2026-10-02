@@ -7,23 +7,13 @@ import type {
 import type { LiveSessionCheckpointRecords } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import {
   liveSessionCheckpointSceneKeys,
-  liveSessionCheckpointSceneSchemas,
   type LiveSessionCheckpointScene,
   type LiveSessionCheckpointSceneChange,
   type LiveSessionCheckpointSceneTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
-import type { LiveSessionJoinOptionsDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
-import type {
-  LiveSessionActivationInput,
-  LiveSessionAuthorityDto
-} from '@artificer-toolkit/schema/api/liveSessionState'
+import type { LiveSessionAuthorityDto } from '@artificer-toolkit/schema/api/liveSessionState'
 import type { LiveSessionPresentationCommitInput } from '@artificer-toolkit/schema/api/liveSessions'
 import type { SetCampaignLiveScenePresentationResultDto } from '@artificer-toolkit/schema/api/vttScenes'
-import {
-  sceneGeometryCommandResultSchema,
-  type SceneGeometryCommandResult,
-  type SceneGeometryExecuteInput
-} from '@artificer-toolkit/schema/api/sceneGeometry'
 import {
   canonicalJsonRecordSchema,
   type JsonValue
@@ -33,11 +23,14 @@ import { readRunState } from '@artificer-toolkit/encounter-persistence/documents
 import { diffJson } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createRun } from '../../tests/fixtures/encounterScene'
+import { commitSceneInRoom, insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 import {
   createSceneDefinitionFixture,
-  publishEmptyScene
+  publishEmptyScene,
+  publishScene
 } from '../../tests/fixtures/sceneDefinitions'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
+import type { Doc } from '../_generated/dataModel'
 import { parseFogLayer, parseFogSave, readFogChunk } from '../scenes/fogDocuments'
 import {
   parseGeometryCommand,
@@ -48,14 +41,6 @@ import { parseLiveEntity, readLiveSceneForUser } from '../scenes/liveDocuments'
 
 afterEach(() => vi.useRealTimers())
 
-const claim = makeFunctionReference<'mutation', LiveSessionJoinOptionsDto, LiveSessionAuthorityDto>(
-  'liveSessions/authority:claim'
-)
-const activate = makeFunctionReference<
-  'mutation',
-  LiveSessionActivationInput,
-  LiveSessionAuthorityDto
->('liveSessions/authority:commitActivation')
 const publish = makeFunctionReference<
   'mutation',
   LiveSessionCheckpointInput,
@@ -78,13 +63,6 @@ const createBlueprint = makeFunctionReference<
 >('encounters/blueprints:create')
 
 const tables = Object.keys(liveSessionCheckpointSceneKeys) as LiveSessionCheckpointSceneTable[]
-const layer = {
-  ownerUserId: null,
-  width: 1,
-  height: 1,
-  chunks: [{ index: 0, x: 0, y: 0, width: 1, height: 1, data: 'AQ==' }]
-}
-
 function content(row: { _id: unknown; _creationTime: unknown }) {
   const { _id, _creationTime, ...value } = row
   return canonicalJsonRecordSchema.parse(JSON.parse(canonicalizeJson(value)))
@@ -110,7 +88,10 @@ function change(
 }
 
 function frame(
-  authority: LiveSessionAuthorityDto,
+  authority: Pick<
+    LiveSessionAuthorityDto,
+    'campaignId' | 'epoch' | 'persistedSequence' | 'persistedStateChecksum'
+  >,
   records: LiveSessionCheckpointRecords
 ): LiveSessionCheckpointInput {
   return {
@@ -128,9 +109,22 @@ function frame(
 }
 
 async function fixture(withSecondScene = false) {
-  vi.useFakeTimers()
   const base = await createSceneDefinitionFixture()
-  const scene = await publishEmptyScene(base)
+  const token = {
+    id: crypto.randomUUID(),
+    assetId: null,
+    controlledByUserIds: [base.other.userId],
+    height: 1,
+    hidden: false,
+    label: 'Checkpoint token',
+    locked: false,
+    position: { x: 100, y: 100 },
+    rotationDegrees: 0,
+    // A short sight line, so the move explores cells and leaves an owner fog layer.
+    vision: { angleDegrees: 360, brightRange: 0, dimRange: 5, directionDegrees: 0, enabled: true },
+    width: 1
+  }
+  const scene = await publishScene(base, { tokens: [token] })
   const presentation = await base.owner.caller.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
@@ -138,6 +132,27 @@ async function fixture(withSecondScene = false) {
     campaignId: base.campaign.id,
     sceneId: scene.sceneId
   })
+  await base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch: crypto.randomUUID(),
+      createdAt: base.campaign.createdAt
+    })
+  )
+  // The room's own checkpoint is the fixture oracle: its rows are normalized into a publication
+  // that these tests then replay through the checkpoint mutation.
+  const result = await commitSceneInRoom(base.owner.caller, base.campaign.id, {
+    type: 'MOVE_SCENE_TOKEN',
+    commandId: crypto.randomUUID(),
+    sceneId: scene.sceneId,
+    tokenId: token.id,
+    expectedSceneVersion: 0,
+    expectedEncounterVersion: null,
+    correlationId: null,
+    movementKind: 'VOLUNTARY',
+    path: [token.position, { x: 900, y: 100 }]
+  })
+  vi.useFakeTimers()
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: base.campaign.gameSystemId,
     name: 'Checkpoint rollback Run',
@@ -149,59 +164,38 @@ async function fixture(withSecondScene = false) {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  const token = {
-    id: crypto.randomUUID(),
-    assetId: null,
-    controlledByUserIds: [],
-    height: 1,
-    hidden: false,
-    label: 'Checkpoint token',
-    locked: false,
-    position: { x: 10, y: 20 },
-    rotationDegrees: 0,
-    vision: null,
-    width: 1
-  }
-  const staged = await base.owner.caller.mutation(internal.scenes.geometryStaging.begin, {
-    input: {
-      type: 'UPSERT_SCENE_TOKEN',
-      sceneId: scene.sceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      token
-    }
-  })
-  if (staged.kind !== 'READY') throw new Error('Missing geometry fixture save.')
-  await base.owner.caller.mutation(internal.scenes.geometryStaging.stageFog, {
-    saveId: staged.saveId,
-    layer
-  })
-  const result = await base.owner.caller.mutation(internal.scenes.geometryCommands.finish, {
-    saveId: staged.saveId,
-    baseOrdinal: null
-  })
-  // Use native publication as the fixture oracle, then publish those normalized rows through the room.
-  const changes = await base.t.run(async (ctx) => {
+  const { changes, chunk } = await base.t.run(async (ctx) => {
     const changes: LiveSessionCheckpointSceneChange[] = []
+    let chunk: Doc<'sceneFogChunks'>['chunk'] | null = null
     for (const table of tables) {
-      const rows = await ctx.db.query(table).take(100)
-      expect(rows).toHaveLength(1)
+      const rows = await ctx.db.query(table).take(1000)
+      // The room writes every chunk of the explored layer; every other family has one row.
+      if (table === 'sceneFogChunks') expect(rows.length).toBeGreaterThan(0)
+      else expect(rows).toHaveLength(1)
       for (const row of rows) {
+        if (table === 'sceneFogChunks') chunk ??= (row as Doc<'sceneFogChunks'>).chunk
         changes.push(change(table, content(row)))
         await ctx.db.delete(row._id)
       }
     }
-    return changes
+    if (!chunk) throw new Error('Missing fog chunk fixture.')
+    return { changes, chunk }
   })
   const secondScene = withSecondScene
     ? await publishEmptyScene({ ...base, input: { ...base.input, commandId: crypto.randomUUID() } })
     : null
-  const claimed = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
-  const authority = await base.t.mutation(activate, {
-    campaignId: base.campaign.id,
-    epoch: claimed.epoch,
-    activationFingerprint: claimed.activationFingerprint,
-    stateChecksum: 'a'.repeat(64)
+  const authority = await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+      .unique()
+    if (!row) throw new Error('Missing live authority.')
+    return {
+      campaignId: row.campaignId,
+      epoch: row.epoch,
+      persistedSequence: row.persistedSequence,
+      persistedStateChecksum: row.persistedStateChecksum
+    }
   })
   const publication: LiveSessionCheckpointScene = {
     sceneId: scene.sceneId,
@@ -212,7 +206,17 @@ async function fixture(withSecondScene = false) {
     toVersion: result.version,
     changes
   }
-  return { ...base, scene, secondScene, authority, publication, result, token, run }
+  return {
+    ...base,
+    scene,
+    secondScene,
+    authority,
+    publication,
+    result,
+    chunk,
+    token: { ...token, position: { x: 900, y: 100 } },
+    run
+  }
 }
 
 type Fixture = Awaited<ReturnType<typeof fixture>>
@@ -220,7 +224,7 @@ type Fixture = Awaited<ReturnType<typeof fixture>>
 async function snapshot(base: Fixture) {
   return base.t.run(async (ctx) => ({
     rows: await Promise.all(
-      tables.map(async (table) => [table, await ctx.db.query(table).take(100)])
+      tables.map(async (table) => [table, await ctx.db.query(table).take(1000)])
     ),
     sources: await ctx.db.query('campaignScenes').take(100),
     definitions: await ctx.db.query('sceneDefinitionSaves').take(100),
@@ -269,7 +273,7 @@ it('publishes native token, fog and geometry rows with the authority acknowledge
   expect(after.definitionEntities).toEqual(before.definitionEntities)
   expect(after.presentations).toEqual(before.presentations)
   for (const table of tables) {
-    const rows = await base.t.run((ctx) => ctx.db.query(table).take(100))
+    const rows = await base.t.run((ctx) => ctx.db.query(table).take(1000))
     expect(rows.map(content)).toEqual(
       base.publication.changes
         .filter((entry) => entry.table === table)
@@ -298,29 +302,20 @@ it('publishes native token, fog and geometry rows with the authority acknowledge
     expect(parseFogSave(fogSave).status).toBe('PUBLISHED')
     expect(
       await readFogChunk(ctx, parsedLayer.chunks[0]!, base.scene.sceneId, parsedLayer)
-    ).toEqual(layer.chunks[0])
+    ).toEqual(base.chunk)
     expect(parseGeometrySave(geometrySave).status).toBe('PUBLISHED')
     expect(readSpatialPreparation(parseGeometrySave(geometrySave))).toBeNull()
     expect(parseGeometryCommand(receipt, 1).result).toEqual(base.result)
   })
   await expect(
-    base.owner.caller.query(api.scenes.geometryReads.commandChunks, {
-      sceneId: base.scene.sceneId,
-      commandId: base.result.commandId,
-      ownerUserId: null,
-      offset: 0,
-      numItems: 8
-    })
-  ).resolves.toMatchObject({ result: base.result, page: layer.chunks, isDone: true })
-  await expect(
     base.owner.caller.query(api.scenes.fogReads.chunks, {
       sceneId: base.scene.sceneId,
-      ownerUserId: null,
+      ownerUserId: base.other.userId,
       expectedVersion: 1,
       offset: 0,
       numItems: 8
     })
-  ).resolves.toMatchObject({ page: layer.chunks, isDone: true })
+  ).resolves.toMatchObject({ page: expect.arrayContaining([base.chunk]), isDone: false })
   await expect(base.t.mutation(publish, input)).resolves.toMatchObject({ status: 'REPLAYED' })
   expect(await snapshot(base)).toEqual(after)
   const changed = { ...input, checksum: 'c'.repeat(64) }
@@ -525,7 +520,7 @@ it('merges existing head, token and fog rows only when their canonical previous 
     const parsedLayer = parseFogLayer(fogLayer, 2)
     expect(
       await readFogChunk(ctx, parsedLayer.chunks[0]!, base.scene.sceneId, parsedLayer)
-    ).toEqual(layer.chunks[0])
+    ).toEqual(base.chunk)
     expect(await ctx.db.query('sceneGeometrySaves').take(100)).toHaveLength(1)
     expect(await ctx.db.query('sceneFogSaves').take(100)).toHaveLength(1)
   })
@@ -610,275 +605,3 @@ it('appends pending movement evidence at the current Scene version without writi
   expect(await snapshot(base)).toEqual(after)
 })
 
-async function stagedGeometry(
-  base: Awaited<ReturnType<typeof createSceneDefinitionFixture>>,
-  args: SceneGeometryExecuteInput
-): Promise<SceneGeometryCommandResult> {
-  const staged = await base.owner.caller.mutation(internal.scenes.geometryStaging.begin, args)
-  if (staged.kind !== 'READY') throw new Error('Missing folded geometry fixture save.')
-  return sceneGeometryCommandResultSchema.parse(
-    await base.owner.caller.mutation(internal.scenes.geometryCommands.finish, {
-      saveId: staged.saveId,
-      baseOrdinal: null
-    })
-  )
-}
-
-async function nativeFoldFixture() {
-  vi.useFakeTimers()
-  const base = await createSceneDefinitionFixture()
-  const scene = await publishEmptyScene(base)
-  const presentation = await base.owner.caller.mutation(api.scenes.presentations.set, {
-    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-    commandId: crypto.randomUUID(),
-    expectedPresentationVersion: null,
-    campaignId: base.campaign.id,
-    sceneId: scene.sceneId
-  })
-  const token = {
-    id: crypto.randomUUID(),
-    assetId: null,
-    controlledByUserIds: [],
-    height: 1,
-    hidden: false,
-    label: 'Folded token',
-    locked: false,
-    position: { x: 10, y: 20 },
-    rotationDegrees: 0,
-    vision: null,
-    width: 1
-  }
-  const seeded = await stagedGeometry(base, {
-    input: {
-      type: 'UPSERT_SCENE_TOKEN',
-      sceneId: scene.sceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      token
-    }
-  })
-  return { ...base, scene, presentation, token, seeded }
-}
-
-type NativeFoldFixture = Awaited<ReturnType<typeof nativeFoldFixture>>
-
-function nativeRows(base: NativeFoldFixture) {
-  return base.t.run(async (ctx) =>
-    Promise.all(
-      tables.map(async (table) => ({
-        table,
-        rows: (await ctx.db.query(table).take(100)).map(content)
-      }))
-    )
-  )
-}
-
-async function nativeReaderOutput(base: NativeFoldFixture, version: number) {
-  return {
-    header: await base.owner.caller.query(api.scenes.liveReads.header, {
-      sceneId: base.scene.sceneId
-    }),
-    tokens: await base.owner.caller.query(internal.scenes.geometryReads.entities, {
-      sceneId: base.scene.sceneId,
-      expectedVersion: version,
-      definitionSaveId: base.scene.save.saveId,
-      collection: 'tokens',
-      phase: 'APPENDED',
-      afterOrdinal: null,
-      numItems: 8
-    }),
-    fog: await base.owner.caller.query(api.scenes.fogReads.layers, {
-      sceneId: base.scene.sceneId,
-      expectedVersion: version,
-      paginationOpts: { cursor: null, numItems: 8 }
-    })
-  }
-}
-
-async function publishNativeFold(
-  base: NativeFoldFixture,
-  baseline: Awaited<ReturnType<typeof nativeRows>>,
-  fromVersion: number,
-  toVersion: number
-) {
-  const finalRows = await nativeRows(base)
-  const expectedReaders = await nativeReaderOutput(base, toVersion)
-  const changes: LiveSessionCheckpointSceneChange[] = []
-  for (const { table, rows } of finalRows) {
-    const previous = baseline.find((entry) => entry.table === table)!.rows
-    const identity = (row: Record<string, JsonValue>) =>
-      canonicalizeJson(liveSessionCheckpointSceneKeys[table].map((field) => row[field]))
-    const beforeByKey = new Map(previous.map((row) => [identity(row), row]))
-    for (const row of rows) {
-      const before = beforeByKey.get(identity(row)) ?? null
-      beforeByKey.delete(identity(row))
-      if (checksumCanonicalJson(row) !== (before ? checksumCanonicalJson(before) : null))
-        changes.push(change(table, row, before))
-    }
-    for (const row of beforeByKey.values()) {
-      const deletion = change(table, row)
-      changes.push({
-        ...deletion,
-        previousChecksum: deletion.nextChecksum,
-        nextChecksum: null,
-        delta: null
-      })
-    }
-  }
-  await base.t.run(async (ctx) => {
-    for (const { table, rows } of baseline) {
-      for (const row of await ctx.db.query(table).take(100)) await ctx.db.delete(row._id)
-      for (const row of rows)
-        await ctx.db.insert(table, liveSessionCheckpointSceneSchemas[table].parse(row))
-    }
-  })
-  const claimed = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
-  const authority = await base.t.mutation(activate, {
-    campaignId: base.campaign.id,
-    epoch: claimed.epoch,
-    activationFingerprint: claimed.activationFingerprint,
-    stateChecksum: 'a'.repeat(64)
-  })
-  const input = frame(authority, {
-    changes: [],
-    history: [],
-    scenes: [
-      {
-        sceneId: base.scene.sceneId,
-        definitionSaveId: base.scene.save.saveId,
-        definitionVersion: 1,
-        presentationVersion: base.presentation.version,
-        fromVersion,
-        toVersion,
-        changes
-      }
-    ]
-  })
-  await expect(base.t.mutation(publish, input)).resolves.toMatchObject({ status: 'COMMITTED' })
-  expect(await nativeRows(base)).toEqual(finalRows)
-  expect(await nativeReaderOutput(base, toVersion)).toEqual(expectedReaders)
-  const after = await base.t.run(async (ctx) => ({
-    rows: await Promise.all(tables.map(async (table) => await ctx.db.query(table).take(100))),
-    authority: await ctx.db.query('campaignLiveAuthorities').take(10),
-    revisions: await ctx.db.query('sceneVisionRevisions').take(100),
-    scheduled: await ctx.db.system.query('_scheduled_functions').take(100)
-  }))
-  await expect(base.t.mutation(publish, input)).resolves.toMatchObject({ status: 'REPLAYED' })
-  expect(
-    await base.t.run(async (ctx) => ({
-      rows: await Promise.all(tables.map(async (table) => await ctx.db.query(table).take(100))),
-      authority: await ctx.db.query('campaignLiveAuthorities').take(10),
-      revisions: await ctx.db.query('sceneVisionRevisions').take(100),
-      scheduled: await ctx.db.system.query('_scheduled_functions').take(100)
-    }))
-  ).toEqual(after)
-  return { changes, expectedReaders }
-}
-
-it.each(['UPSERT → REMOVE', 'REMOVE → recreate'] as const)(
-  'folds native %s commands while preserving consumed entity ordinals',
-  async (sequence) => {
-    const base = await nativeFoldFixture()
-    const baseline = await nativeRows(base)
-    const token =
-      sequence === 'UPSERT → REMOVE' ? { ...base.token, id: crypto.randomUUID() } : base.token
-    const first = await stagedGeometry(base, {
-      input:
-        sequence === 'UPSERT → REMOVE'
-          ? {
-              type: 'UPSERT_SCENE_TOKEN',
-              sceneId: base.scene.sceneId,
-              commandId: crypto.randomUUID(),
-              expectedSceneVersion: 1,
-              token
-            }
-          : {
-              type: 'REMOVE_SCENE_TOKEN',
-              sceneId: base.scene.sceneId,
-              commandId: crypto.randomUUID(),
-              expectedSceneVersion: 1,
-              tokenId: token.id
-            }
-    })
-    const last = await stagedGeometry(base, {
-      input:
-        sequence === 'UPSERT → REMOVE'
-          ? {
-              type: 'REMOVE_SCENE_TOKEN',
-              sceneId: base.scene.sceneId,
-              commandId: crypto.randomUUID(),
-              expectedSceneVersion: first.version,
-              tokenId: token.id
-            }
-          : {
-              type: 'UPSERT_SCENE_TOKEN',
-              sceneId: base.scene.sceneId,
-              commandId: crypto.randomUUID(),
-              expectedSceneVersion: first.version,
-              token
-            }
-    })
-    const head = await base.t.run((ctx) => ctx.db.query('sceneLiveStates').unique())
-    expect(head).toMatchObject({ counts: { tokens: 1 }, nextOrdinals: { tokens: 2 } })
-    const entity = await base.t.run((ctx) =>
-      ctx.db
-        .query('sceneLiveEntities')
-        .withIndex('by_sceneId_collection_entityId', (q) =>
-          q.eq('sceneId', base.scene.sceneId).eq('collection', 'tokens').eq('entityId', token.id)
-        )
-        .unique()
-    )
-    expect(entity).toMatchObject(
-      sequence === 'UPSERT → REMOVE' ? { value: null, ordinal: null } : { ordinal: 1 }
-    )
-    await publishNativeFold(base, baseline, base.seeded.version, last.version)
-  }
-)
-
-it('folds native geometry undo deleting the first owner fog layer without reclaiming its ordinal', async () => {
-  const base = await nativeFoldFixture()
-  const staged = await base.owner.caller.mutation(internal.scenes.geometryStaging.begin, {
-    input: {
-      type: 'MOVE_SCENE_TOKEN',
-      sceneId: base.scene.sceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: base.seeded.version,
-      expectedEncounterVersion: null,
-      correlationId: null,
-      tokenId: base.token.id,
-      movementKind: 'VOLUNTARY',
-      path: [base.token.position, { x: 20, y: 20 }]
-    }
-  })
-  if (staged.kind !== 'READY') throw new Error('Missing undo geometry fixture.')
-  await base.owner.caller.mutation(internal.scenes.geometryStaging.stageFog, {
-    saveId: staged.saveId,
-    layer: { ...layer, ownerUserId: base.owner.userId }
-  })
-  const moved = await base.owner.caller.mutation(internal.scenes.geometryCommands.finish, {
-    saveId: staged.saveId,
-    baseOrdinal: null
-  })
-  const baseline = await nativeRows(base)
-  expect(baseline.find((entry) => entry.table === 'sceneFogLayers')!.rows).toHaveLength(1)
-  const undone = await base.owner.caller.mutation(internal.scenes.undo.finish, {
-    targetCommandId: moved.commandId,
-    input: {
-      type: 'UNDO_LAST_SCENE_MOVE',
-      sceneId: base.scene.sceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: moved.version
-    }
-  })
-  expect(undone.restoredFogOwners).toEqual([base.owner.userId])
-  const head = await base.t.run((ctx) => ctx.db.query('sceneLiveStates').unique())
-  expect(head).toMatchObject({ fogLayerCount: 0, nextFogOrdinal: 1 })
-  const folded = await publishNativeFold(base, baseline, moved.version, undone.version)
-  expect(folded.changes).toContainEqual(
-    expect.objectContaining({ table: 'sceneFogLayers', nextChecksum: null, delta: null })
-  )
-  expect(folded.expectedReaders.fog.page).toEqual([])
-  expect(folded.expectedReaders.tokens.page).toMatchObject([
-    { value: { entity: { position: base.token.position } } }
-  ])
-})

@@ -13,16 +13,11 @@ import {
   sceneLiveStateEntityPageInputSchema,
   sceneLiveStateHeaderSchema
 } from './sceneLiveState.js'
-import {
-  sceneFogCommandResultSchema,
-  sceneFogCommandChunksInputSchema,
-  sceneFogCommandChunksPageSchema
-} from './sceneFog.js'
+import { sceneFogCommandResultSchema } from './sceneFog.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   sceneSessionVisionCaptureInputSchema,
-  sceneSessionVisionScopeSchema,
-  sceneSessionVisionCharacterRevisionsSchema
+  sceneSessionVisionScopeSchema
 } from './sceneSessionVision.js'
 
 const collection = lazySchema(() => z.enum(['tokens', 'barriers']))
@@ -38,15 +33,7 @@ export const scenePresentationFenceSchema = lazySchema(() =>
 export const sceneNativeGeometryCommandInputSchema = lazySchema(() =>
   z.union([sceneGeometryCommandInputDtoSchema, sceneTokenMovementCommandInputDtoSchema])
 )
-export const sceneGeometryExecuteInputSchema = lazySchema(() =>
-  z.strictObject({
-    input: sceneNativeGeometryCommandInputSchema,
-    presentation: z.optional(scenePresentationFenceSchema)
-  })
-)
-export type SceneGeometryExecuteInput = z.infer<typeof sceneGeometryExecuteInputSchema>
 export type SceneNativeGeometryCommandInput = z.infer<typeof sceneNativeGeometryCommandInputSchema>
-export const SCENE_GEOMETRY_STAGED_REQUIRED = 'SCENE_GEOMETRY_STAGED_REQUIRED' as const
 
 export const sceneGeometryEntitySchema = lazySchema(() =>
   z.discriminatedUnion('collection', [
@@ -80,8 +67,6 @@ export const sceneGeometryPageSchema = lazySchema(() =>
 )
 
 export type SceneGeometryEntity = z.infer<typeof sceneGeometryEntitySchema>
-export type SceneGeometryPageInput = z.infer<typeof sceneGeometryPageInputSchema>
-export type SceneGeometryPage = z.infer<typeof sceneGeometryPageSchema>
 
 const fogReplacement = lazySchema(() =>
   z.extend(sceneFogCommandResultSchema.shape.patch, {
@@ -159,24 +144,7 @@ export const sceneGeometryFinishInputSchema = lazySchema(() =>
     movementCost: z.optional(z.number().check(z.nonnegative()))
   })
 )
-export const sceneGeometryObserveInputSchema = lazySchema(() =>
-  z.extend(sceneGeometrySaveLookupSchema, {
-    characterRevisions: sceneSessionVisionCharacterRevisionsSchema
-  })
-)
 
 export type SceneGeometryCommandResult = z.infer<typeof sceneGeometryCommandResultSchema>
 export type SceneGeometryBeginResult = z.infer<typeof sceneGeometryBeginResultSchema>
 export type SceneBaseOrdinals = z.infer<typeof sceneBaseOrdinalsSchema>
-
-export const sceneGeometryCommandChunksInputSchema = lazySchema(() =>
-  z.extend(sceneFogCommandChunksInputSchema, {
-    ownerUserId: z.nullable(postgresUuidSchema)
-  })
-)
-export const sceneGeometryCommandChunksPageSchema = lazySchema(() =>
-  z.extend(sceneFogCommandChunksPageSchema, {
-    result: sceneGeometryCommandResultSchema,
-    patch: fogReplacement
-  })
-)

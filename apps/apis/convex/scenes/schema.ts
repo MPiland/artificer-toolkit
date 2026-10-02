@@ -46,9 +46,7 @@ export const sceneTables = {
     .index('by_sceneId_collection_entityId', ['sceneId', 'collection', 'entityId'])
     .index('by_sceneId_collection_ordinal', ['sceneId', 'collection', 'ordinal']),
   sceneLiveCommands: defineTable(zodToConvex(sceneStoredLiveCommandSchema))
-    .index('by_sceneId_commandId', ['sceneId', 'commandId'])
-    .index('by_sceneId_type_version', ['sceneId', 'input.type', 'result.version'])
-    .index('by_sceneId_undoneCommandId', ['sceneId', 'undoneCommandId']),
+    .index('by_sceneId_commandId', ['sceneId', 'commandId']),
   campaignScenePresentations: defineTable(zodToConvexFields(sceneStoredPresentationSchema.shape))
     .index('by_campaignId', ['campaignId'])
     .index('by_campaignId_activeMapAssetId', ['campaignId', 'activeMapAssetId']),

@@ -114,7 +114,6 @@ assert.equal(process.env.CONVEX_DEPLOY_KEY, undefined, 'Use the selected develop
 if (
   process.argv.includes('--checkpoint') ||
   process.argv.includes('--checkpoint-staging') ||
-  process.argv.includes('--checkpoint-scenes') ||
   process.argv.includes('--encounter-disarm') ||
   process.argv.includes('--encounter-disarm-browser')
 ) {
@@ -1090,14 +1089,9 @@ try {
     (await publicClient.query(api.application.featureFlags, {})).publicSignUpEnabled,
     false
   )
-  if (
-    process.argv.includes('--checkpoint') ||
-    process.argv.includes('--checkpoint-staging') ||
-    process.argv.includes('--checkpoint-scenes')
-  ) {
+  if (process.argv.includes('--checkpoint') || process.argv.includes('--checkpoint-staging')) {
     const owner = await createAuthor()
     const player = await createAuthor()
-    if (process.argv.includes('--checkpoint-scenes')) sceneOwners.add(owner.identity.userId)
     const characterId = crypto.randomUUID()
     characterFixtures.push({ userId: player.identity.userId, characterId })
     for (const subjectKind of ['EQUIPMENT', 'BACKGROUND', 'CLASS', 'RACE'] as const) {
@@ -1114,8 +1108,7 @@ try {
       owner,
       player,
       characterId,
-      staged: process.argv.includes('--checkpoint-staging'),
-      scenes: process.argv.includes('--checkpoint-scenes')
+      staged: process.argv.includes('--checkpoint-staging')
     })
   } else if (
     process.argv.includes('--scene-authoring-browser') ||
@@ -3102,15 +3095,6 @@ try {
           policies,
           sceneFixture: result
         })
-        const { verifySceneEntities } = await import('./developmentSceneEntities')
-        await verifySceneEntities({
-          owner: owner.client,
-          player: player.client,
-          anonymous: publicClient,
-          playerUserId: player.identity.userId,
-          campaignId: campaign.id,
-          fixture: result
-        })
         const { verifyEncounterTransactions } = await import('./developmentEncounterTransactions')
         await verifyEncounterTransactions({
           owner: owner.client,
@@ -3779,29 +3763,6 @@ try {
           })
           console.log(`V15 native workload: ${JSON.stringify(workloadResult)}`)
         }
-      }
-      if (process.argv.includes('--encounter-cutover')) {
-        if (!result) throw new Error('Encounter cutover requires the lifecycle fixture.')
-        const { prepareEncounterCutoverFixture, verifyEncounterCutoverContention } =
-          await import('./developmentEncounterCutover')
-        const cutoverPeer = new DevelopmentHttpClient(deploymentUrl.origin, {
-          logger: false
-        })
-        owner.client.setAuth(await owner.fetchToken())
-        const fixture = await prepareEncounterCutoverFixture({
-          owner: owner.client,
-          campaignId: campaign.id,
-          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
-          lifecycle: result
-        })
-        const cutoverToken = await owner.fetchToken()
-        owner.client.setAuth(cutoverToken)
-        cutoverPeer.setAuth(cutoverToken)
-        await verifyEncounterCutoverContention({
-          owner: owner.client,
-          peer: cutoverPeer,
-          fixture
-        })
       }
       if (process.argv.includes('--encounter-cutover') || actionContention) {
         await cli(

@@ -13,23 +13,16 @@ import type {
   RemoveEncounterSceneActorTokenBindingInputDto,
   EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import {
-  sceneTokenMovementCommandInputDtoSchema,
-  type SceneGeometryCommandInputDto
-} from '@artificer-toolkit/schema/api/vttScenes'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
+import { sceneTokenMovementCommandInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  sceneStoredLiveEntitySchema,
-  sceneStoredLiveStateSchema
-} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   createEncounterSceneFixture as setup,
   createRun
 } from '../../tests/fixtures/encounterScene'
+import { seedLiveToken } from '../../tests/fixtures/liveSceneToken'
 import {
   bindActorTokenInRoom,
   insertActiveLiveAuthority
@@ -46,11 +39,6 @@ const execute = makeFunctionReference<
   { input: EncounterActorTokenBindingCommandInputDto },
   EncounterCommandResultDto
 >('encounters/actorTokenBindings:execute')
-const executeGeometry = makeFunctionReference<
-  'action',
-  { input: SceneGeometryCommandInputDto },
-  SceneGeometryCommandResult
->('scenes/geometryActions:execute')
 
 it('exports object-form mutation arguments for Convex deployment packaging', () => {
   const registered: unknown = registeredExecute
@@ -221,64 +209,6 @@ async function snapshot(base: Awaited<ReturnType<typeof boundFixture>>) {
   }))
 }
 
-async function seedLiveToken(
-  base: Awaited<ReturnType<typeof boundFixture>>,
-  tokenId: string,
-  value: Awaited<ReturnType<typeof setup>>['tokens'][number] | null,
-  version = 1,
-  entityVersion = version
-) {
-  const baseIndex = base.tokens.findIndex(
-    (token) => token.id.toLowerCase() === tokenId.toLowerCase()
-  )
-  const tokenCount =
-    base.tokens.length + (value && baseIndex < 0 ? 1 : !value && baseIndex >= 0 ? -1 : 0)
-  const head: ReturnType<typeof sceneStoredLiveStateSchema.parse> = {
-    sceneId: base.sceneId,
-    version,
-    fogLayerCount: 0,
-    nextFogOrdinal: 0,
-    settings: {
-      ambientIllumination: { value: 'BRIGHT', version: 0 },
-      visionRevealMode: { value: 'ON_DRAG', version: 0 },
-      fogMode: { value: 'PER_PLAYER', version: 0 }
-    },
-    counts: {
-      annotations: 0,
-      barriers: 0,
-      darknessZones: 0,
-      lights: 0,
-      tokens: tokenCount,
-      measurements: 0
-    },
-    nextOrdinals: {
-      annotations: 0,
-      barriers: 0,
-      darknessZones: 0,
-      lights: 0,
-      tokens: base.tokens.length + (value && baseIndex < 0 ? 1 : 0),
-      measurements: 0
-    }
-  }
-  await base.t.run(async (ctx) => {
-    await ctx.db.insert('sceneLiveStates', sceneStoredLiveStateSchema.parse(head))
-    const change = {
-      sceneId: base.sceneId,
-      collection: 'tokens' as const,
-      entityId: tokenId.toLowerCase(),
-      value: value
-        ? { collection: 'tokens' as const, entity: { ...value, id: tokenId.toLowerCase() } }
-        : null,
-      ordinal: value ? (baseIndex < 0 ? base.tokens.length : baseIndex) : null,
-      version: entityVersion
-    }
-    await ctx.db.insert(
-      'sceneLiveEntities',
-      sceneStoredLiveEntitySchema.parse({ ...change, checksum: checksumCanonicalJson(change) })
-    )
-  })
-}
-
 it('binds a token supplied only by the current Scene override without changing Scene state', async () => {
   const base = await boundFixture()
   const overrideToken = { ...base.tokens[0]!, id: crypto.randomUUID() }
@@ -345,19 +275,11 @@ it('replays a committed binding receipt after its Scene token is tombstoned', as
   expect(await base.other.caller.mutation(execute, { input: base.input })).toEqual(first)
 })
 
-it('follows native geometry token removal and restoration for Encounter binding', async () => {
+it('follows live Scene token removal and restoration for Encounter binding', async () => {
   const base = await boundFixture()
-  await publishFixtureSceneSource(base)
   const first = await base.other.caller.mutation(execute, { input: base.input })
   const tokenId = base.tokens[0]!.id
-  const removed: SceneGeometryCommandInputDto = {
-    sceneId: base.sceneId,
-    commandId: crypto.randomUUID(),
-    expectedSceneVersion: 0,
-    type: 'REMOVE_SCENE_TOKEN',
-    tokenId
-  }
-  await base.other.caller.action(executeGeometry, { input: removed })
+  await seedLiveToken(base, tokenId.toLowerCase(), null)
   const preserved = await base.t.run((ctx) => ctx.db.query('encounterActorTokenBindings').collect())
   expect(preserved).toMatchObject([{ actorId: base.input.actorId, tokenId: tokenId.toLowerCase() }])
   await expect(
@@ -372,14 +294,7 @@ it('follows native geometry token removal and restoration for Encounter binding'
   expect(await base.t.run((ctx) => ctx.db.query('encounterActorTokenBindings').collect())).toEqual(
     preserved
   )
-  const restored: SceneGeometryCommandInputDto = {
-    sceneId: base.sceneId,
-    commandId: crypto.randomUUID(),
-    expectedSceneVersion: 1,
-    type: 'UPSERT_SCENE_TOKEN',
-    token: { ...base.tokens[0]!, id: tokenId }
-  }
-  await base.other.caller.action(executeGeometry, { input: restored })
+  await seedLiveToken(base, tokenId.toLowerCase(), base.tokens[0]!, 2)
   const rebound = await base.other.caller.mutation(execute, {
     input: {
       ...base.input,

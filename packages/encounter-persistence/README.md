@@ -117,8 +117,9 @@ native binding algorithm, now used inside the room's SQLite transaction without 
 publication. [sceneUndoPublication](src/sceneUndoPublication.ts) preserves staged fog/movement undo;
 the room now binds it to persisted command/token/fog/save rows, current Character vision and the
 journal transaction before acknowledgement. Shared `parseSceneReferencedFogChunk` validates restored
-fog chunks. The room's fast-only undo journal copies and planner are retired; its `fastOnly` option
-remains only for the Convex per-command Scene undo (`scenes/undo.ts`). Native row helpers
+fog chunks. The room's fast-only undo journal copies and planner are retired, and the Convex per-command
+Scene undo is deleted (A35-S3c1); the room's `roomSceneUndo` is the only caller of
+`publishSceneUndo`, which no longer has a fast-only mode. Native row helpers
 are separated in `roomSceneRecords`; retained-history selection scans O(N) rows and has no V15/Q16
 measurement proof. External recovery/comparators remain for retirement. General chat/public/TABLE/evidence, held Sheet frontend/rest/live-view
 and lifecycle/deletion/recovery cleanup remain transitional or open. Old external recovery and

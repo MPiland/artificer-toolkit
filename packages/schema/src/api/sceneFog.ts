@@ -67,9 +67,6 @@ export const sceneFogPublishCommandInputSchema = lazySchema(() =>
     saveId: postgresUuidSchema
   })
 )
-export const sceneFogSaveLookupSchema = lazySchema(() =>
-  z.strictObject({ saveId: postgresUuidSchema })
-)
 export const sceneFogSaveProgressSchema = lazySchema(() =>
   z.strictObject({
     saveId: postgresUuidSchema,
@@ -147,22 +144,6 @@ export const sceneFogChunksPageSchema = lazySchema(() =>
     page: z.array(sceneFogChunkDtoSchema).check(z.maxLength(8))
   })
 )
-export const sceneFogCommandChunksInputSchema = lazySchema(() =>
-  z.strictObject({
-    sceneId: postgresUuidSchema,
-    commandId: postgresUuidSchema,
-    offset: chunkCount,
-    numItems: pageSize
-  })
-)
-export const sceneFogCommandChunksPageSchema = lazySchema(() =>
-  z.strictObject({
-    result: sceneFogCommandResultSchema,
-    isDone: z.boolean(),
-    nextOffset: chunkCount,
-    page: z.array(sceneFogChunkDtoSchema).check(z.maxLength(8))
-  })
-)
 
 export type SceneFogPatchInput = z.infer<typeof sceneFogPatchInputSchema>
 export type SceneFogAppendInput = z.infer<typeof sceneFogAppendInputSchema>
@@ -173,5 +154,3 @@ export type SceneFogLayersPageInput = z.infer<typeof sceneFogLayersPageInputSche
 export type SceneFogLayersPage = z.infer<typeof sceneFogLayersPageSchema>
 export type SceneFogChunksPageInput = z.infer<typeof sceneFogChunksPageInputSchema>
 export type SceneFogChunksPage = z.infer<typeof sceneFogChunksPageSchema>
-export type SceneFogCommandChunksInput = z.infer<typeof sceneFogCommandChunksInputSchema>
-export type SceneFogCommandChunksPage = z.infer<typeof sceneFogCommandChunksPageSchema>

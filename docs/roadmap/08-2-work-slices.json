@@ -87,7 +87,7 @@
     { "id": "A35-S3a", "stream": "A35", "state": "integrating", "title": "Fenced delta checkpoints replace per-command publish", "cases": ["V05", "V07", "R06"], "refs": [] },
     { "id": "A35-S3b", "stream": "A35", "state": "integrating", "title": "Recovery, clock and DAILY cleanup", "cases": ["P15"], "refs": [] },
     { "id": "A35-S3c0", "stream": "A35", "state": "integrating", "title": "GM Scene editor through the room: token, light, barrier, darkness, annotation and measurement edits, fog and vision modes, fog painting (chunked upload) as room commands", "cases": ["R06", "V07"], "refs": ["D78", "D79"] },
-    { "id": "A35-S3c1", "stream": "A35", "state": "remaining", "title": "Delete the Convex Scene command path (writers, staging, undo, command-chunk reads) the room replaced", "cases": ["R06"], "refs": ["D77", "D79"] },
+    { "id": "A35-S3c1", "stream": "A35", "state": "integrating", "title": "Delete the Convex Scene command path (writers, staging, undo, command-chunk reads) the room replaced", "cases": ["R06"], "refs": ["D77", "D79"] },
     { "id": "A35-S3c2", "stream": "A35", "state": "remaining", "title": "Packed Scene history: Scene-scoped ledgers with indexed headers; room hydration, retention and Campaign deletion on them", "cases": ["V05", "V07"], "refs": ["D70", "D77", "D79"] },
     { "id": "A35-S3c3", "stream": "A35", "state": "remaining", "title": "The room builds its Scene cache from its store (no Convex capture/hydrate Scene reads)", "cases": ["V05", "V07"], "refs": ["D78", "D79"] },
     { "id": "A35-S4", "stream": "A35", "state": "done", "title": "Room authorization cache: 240 s lease, invalidation notices, eviction retries", "cases": ["V05", "V12"], "refs": [] },

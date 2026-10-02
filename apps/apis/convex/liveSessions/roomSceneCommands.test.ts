@@ -4,7 +4,6 @@ import type {
   ResolveRuleOccurrenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type {
   EncounterDecisionSettlementDto,
@@ -12,7 +11,6 @@ import type {
   GetEncounterDecisionSettlementInputDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import type {
-  SceneGeometryCommandInputDto,
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -27,14 +25,9 @@ import {
 } from '../../tests/fixtures/liveSessionWorker'
 import {
   createSceneDefinitionFixture,
-  publishEmptyScene
+  publishScene
 } from '../../tests/fixtures/sceneDefinitions'
 
-const executeGeometry = makeFunctionReference<
-  'action',
-  { input: SceneGeometryCommandInputDto },
-  SceneGeometryCommandResult
->('scenes/geometryActions:execute')
 const setPresentation = makeFunctionReference<
   'mutation',
   SetCampaignLiveScenePresentationInputDto,
@@ -196,14 +189,6 @@ it("refuses a player moving a reactor's token, answering the GM's decision, or a
 }, 120_000)
 it('commits an unbound fog-deriving move under live authority and stages its owner layer', async () => {
   const base = await createSceneDefinitionFixture()
-  const { sceneId } = await publishEmptyScene(base)
-  await base.owner.caller.mutation(setPresentation, {
-    commandId: crypto.randomUUID(),
-    expectedPresentationVersion: null,
-    campaignId: base.campaign.id,
-    sceneId,
-    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-  })
   const token = {
     assetId: null,
     controlledByUserIds: [base.other.userId],
@@ -218,14 +203,13 @@ it('commits an unbound fog-deriving move under live authority and stages its own
     vision: { angleDegrees: 360, brightRange: 0, dimRange: 5, directionDegrees: 0, enabled: true },
     width: 1
   }
-  await base.owner.caller.action(executeGeometry, {
-    input: {
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      sceneId,
-      token,
-      type: 'UPSERT_SCENE_TOKEN'
-    }
+  const { sceneId } = await publishScene(base, { tokens: [token] })
+  await base.owner.caller.mutation(setPresentation, {
+    commandId: crypto.randomUUID(),
+    expectedPresentationVersion: null,
+    campaignId: base.campaign.id,
+    sceneId,
+    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
   await activateRoom(base)
   const committed = await commitSceneInRoom(base.owner.caller, base.campaign.id, {
@@ -233,7 +217,7 @@ it('commits an unbound fog-deriving move under live authority and stages its own
     commandId: crypto.randomUUID(),
     sceneId,
     tokenId: token.id,
-    expectedSceneVersion: 1,
+    expectedSceneVersion: 0,
     expectedEncounterVersion: null,
     correlationId: null,
     movementKind: 'VOLUNTARY',
@@ -241,7 +225,7 @@ it('commits an unbound fog-deriving move under live authority and stages its own
   })
   // The owner's explored layer is staged in the commit's own room transaction (D52).
   expect(committed).toMatchObject({
-    version: 2,
+    version: 1,
     delta: { kind: 'TOKEN_MOVED', tokenId: token.id, position: { x: 900, y: 100 } }
   })
   expect(committed.fogPatches).toEqual([
@@ -334,14 +318,6 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
 /** A presented, fog-on Scene with a player's seeing token and one door per state (V03.4, V07.4). */
 async function setupPlayerScene() {
   const base = await createSceneDefinitionFixture()
-  const { sceneId } = await publishEmptyScene(base)
-  await base.owner.caller.mutation(setPresentation, {
-    commandId: crypto.randomUUID(),
-    expectedPresentationVersion: null,
-    campaignId: base.campaign.id,
-    sceneId,
-    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-  })
   const token = (label: string, controlledByUserIds: string[], x: number) => ({
     assetId: null,
     controlledByUserIds,
@@ -369,19 +345,18 @@ async function setupPlayerScene() {
   const sentry = token('Sentry', [], 700)
   const closed = door('CLOSED', 200)
   const locked = door('LOCKED', 600)
-  let version = 0
-  // Doors first, so the scout's first view stops at the closed door.
-  for (const input of [
-    { type: 'UPSERT_SCENE_BARRIER' as const, barrier: closed },
-    { type: 'UPSERT_SCENE_BARRIER' as const, barrier: locked },
-    { type: 'UPSERT_SCENE_TOKEN' as const, token: scout },
-    { type: 'UPSERT_SCENE_TOKEN' as const, token: sentry }
-  ])
-    version = (
-      await base.owner.caller.action(executeGeometry, {
-        input: { ...input, commandId: crypto.randomUUID(), expectedSceneVersion: version, sceneId }
-      })
-    ).version
+  const version = 0
+  const { sceneId } = await publishScene(base, {
+    barriers: [closed, locked],
+    tokens: [scout, sentry]
+  })
+  await base.owner.caller.mutation(setPresentation, {
+    commandId: crypto.randomUUID(),
+    expectedPresentationVersion: null,
+    campaignId: base.campaign.id,
+    sceneId,
+    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+  })
   await activateRoom(base)
   const player = (command: ExternalSceneCommand) =>
     commitSceneInRoom(base.other.caller, base.campaign.id, command)

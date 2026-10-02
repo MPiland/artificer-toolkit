@@ -9,15 +9,9 @@ import type {
   DeletePreparedEncounterResultDto,
   EncounterSessionStateDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import type { LiveSessionPresentationCommitInput } from '@artificer-toolkit/schema/api/liveSessions'
-import type {
-  SceneGeometryCommandResult,
-  SceneGeometryExecuteInput
-} from '@artificer-toolkit/schema/api/sceneGeometry'
 import type {
   BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto,
-  SetCampaignLiveScenePresentationResultDto
+  BindEncounterToPresentedSceneResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   createEncounterSceneFixture,
@@ -53,16 +47,6 @@ const bindScene = makeFunctionReference<
   BindEncounterToPresentedSceneInputDto,
   BindEncounterToPresentedSceneResultDto
 >('encounters/sceneBindings:bind')
-const presentFromRoom = makeFunctionReference<
-  'mutation',
-  LiveSessionPresentationCommitInput,
-  SetCampaignLiveScenePresentationResultDto
->('scenes/presentations:setFromRoom')
-const moveDirect = makeFunctionReference<
-  'mutation',
-  SceneGeometryExecuteInput,
-  SceneGeometryCommandResult
->('scenes/geometryFastCommands:execute')
 
 type SceneFixture = Awaited<ReturnType<typeof createEncounterSceneFixture>>
 
@@ -148,27 +132,10 @@ it('leaves live authority, presentation and an ACTIVE Run untouched when a Sessi
   expect(reminder.projection).toMatchObject({ id: base.run.id, version: base.run.version + 1 })
 })
 
-it('fences direct writes only to the presented Scene while room authority is live', async () => {
+it('fences direct Scene binding while room authority is live', async () => {
   const base = await createEncounterSceneFixture()
   await publishSceneSource(base)
-  const authority = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
-  const token = base.tokens[1]!
-  const move = (x: number): SceneGeometryExecuteInput => ({
-    input: {
-      type: 'MOVE_SCENE_TOKEN',
-      sceneId: base.sceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: 0,
-      expectedEncounterVersion: null,
-      correlationId: null,
-      movementKind: 'VOLUNTARY',
-      tokenId: token.id,
-      path: [token.position, { x, y: 0 }]
-    }
-  })
-  await expect(base.other.caller.mutation(moveDirect, move(3))).rejects.toThrow(
-    'currently owned by its Campaign live table'
-  )
+  await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
   await expect(
     base.other.caller.mutation(bindScene, {
       type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
@@ -176,24 +143,6 @@ it('fences direct writes only to the presented Scene while room authority is liv
       encounterId: base.run.id
     })
   ).rejects.toThrow('currently owned by its Campaign live table')
-  await base.t.mutation(presentFromRoom, {
-    campaignId: base.campaign.id,
-    actorUserId: base.other.userId,
-    epoch: authority.epoch,
-    input: {
-      type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-      commandId: crypto.randomUUID(),
-      expectedPresentationVersion: 0,
-      campaignId: base.campaign.id,
-      sceneId: null
-    },
-    expectedSequence: 0,
-    expectedStateChecksum: null
-  })
-  await expect(base.other.caller.mutation(moveDirect, move(3))).resolves.toMatchObject({
-    sceneId: base.sceneId,
-    replayed: false
-  })
 })
 
 it('deletes only a prepared Run with exact command replay', async () => {

@@ -20,15 +20,27 @@ import {
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionWebSocketClientMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import {
+  sceneFogPatchInputSchema,
+  type SceneFogPatchInput,
+  type SceneFogPublishCommandInput,
+  type SceneFogSaveProgress
+} from '@artificer-toolkit/schema/api/sceneFog'
 import type {
   SceneCommandInputDto,
   SceneCommandResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { api } from '../convex/_generated/api.js'
 import { executeEncounterCommand } from './developmentClient'
 
 type RoomSocket = Pick<WebSocket, 'addEventListener' | 'close' | 'send'>
 type RoomSocketInit = { headers: { origin: string }; protocols: string[] }
+type SceneFogStagingMessage = Extract<
+  LiveSessionWebSocketClientMessageDto,
+  { type: 'SCENE_FOG_APPEND' | 'SCENE_FOG_BEGIN' }
+>
+type SceneFogPatchCommand = Extract<SceneCommandInputDto, { type: 'PATCH_SCENE_FOG' }>
 export type OpenRoomSocket = (url: string, init: RoomSocketInit) => RoomSocket
 /** The presented Scene a Scene command needs the room to hold, as the tabletop synchronizes it. */
 export type RoomScenePresentation = { expectedPresentationVersion: number }
@@ -47,6 +59,11 @@ export type CommandRoom = {
     command: SceneCommandInputDto,
     presentation: RoomScenePresentation,
     replayOfSequence?: number
+  ) => Promise<RoomSceneCommit>
+  /** Stages a fog patch over the socket and publishes it, as the browser does (D79). */
+  executeSceneFog: (
+    command: SceneFogPatchCommand,
+    presentation: RoomScenePresentation
   ) => Promise<RoomSceneCommit>
   close: () => void
 }
@@ -73,12 +90,22 @@ type PendingCommand = {
     }
   | {
       scope: 'SCENE'
-      command: SceneCommandInputDto
+      command: SceneCommandInputDto | SceneFogPublishCommandInput
       presentation: RoomScenePresentation
       // An exact retry repeats the original session sequence, which the room's receipt covers.
       replayOfSequence: number | null
       sentSequence: number | null
       resolve: (commit: RoomSceneCommit) => void
+    }
+  | {
+      // A fog staging step answers with SCENE_FOG_PROGRESS and needs the room's Scene synchronized.
+      scope: 'FOG'
+      command: Pick<SceneFogPatchInput, 'sceneId' | 'commandId' | 'expectedSceneVersion'> & {
+        type: SceneFogStagingMessage['type']
+      }
+      message: SceneFogStagingMessage
+      presentation: RoomScenePresentation
+      resolve: (progress: SceneFogSaveProgress) => void
     }
 )
 
@@ -181,6 +208,11 @@ export function openCommandRoom(options: {
         }
         continue
       }
+      if (entry.scope === 'FOG') {
+        send(entry.message)
+        entry.sent = true
+        continue
+      }
       entry.sentSequence = entry.replayOfSequence ?? sequence
       send({
         command: { command: entry.command, scope: 'SCENE' },
@@ -252,6 +284,12 @@ export function openCommandRoom(options: {
           new Error('The Session room acknowledged the Encounter command without a result.')
         )
       flush()
+    } else if (message.type === 'SCENE_FOG_PROGRESS') {
+      const entry = pending.get(message.progress.commandId)
+      if (entry?.scope === 'FOG') {
+        take(message.progress.commandId)
+        entry.resolve(message.progress)
+      }
     } else if (message.type === 'COMMAND_REJECTED') {
       sequence = message.currentSequence
       if (message.correction?.state)
@@ -312,6 +350,48 @@ export function openCommandRoom(options: {
     flush()
   }
 
+  const executeScene = (
+    command: SceneCommandInputDto | SceneFogPublishCommandInput,
+    presentation: RoomScenePresentation,
+    replayOfSequence?: number
+  ): Promise<RoomSceneCommit> => {
+    const refused = refusal(command.commandId)
+    if (refused) return Promise.reject(refused)
+    return new Promise((resolve, reject) =>
+      track({
+        scope: 'SCENE',
+        command,
+        presentation,
+        replayOfSequence: replayOfSequence ?? null,
+        sentSequence: null,
+        sent: false,
+        resolve,
+        reject,
+        timer: expire(command, reject)
+      })
+    )
+  }
+  const stageFog = (
+    message: SceneFogStagingMessage,
+    { sceneId, commandId, expectedSceneVersion }: SceneFogPatchInput,
+    presentation: RoomScenePresentation
+  ): Promise<SceneFogSaveProgress> => {
+    const refused = refusal(commandId)
+    if (refused) return Promise.reject(refused)
+    return new Promise((resolve, reject) =>
+      track({
+        scope: 'FOG',
+        command: { type: message.type, sceneId, commandId, expectedSceneVersion },
+        message,
+        presentation,
+        sent: false,
+        resolve,
+        reject,
+        timer: expire({ commandId, type: message.type }, reject)
+      })
+    )
+  }
+
   return {
     close,
     executeEncounter(command) {
@@ -328,21 +408,54 @@ export function openCommandRoom(options: {
         })
       )
     },
-    executeScene(command, presentation, replayOfSequence) {
-      const refused = refusal(command.commandId)
-      if (refused) return Promise.reject(refused)
-      return new Promise((resolve, reject) =>
-        track({
-          scope: 'SCENE',
-          command,
-          presentation,
-          replayOfSequence: replayOfSequence ?? null,
-          sentSequence: null,
-          sent: false,
-          resolve,
-          reject,
-          timer: expire(command, reject)
-        })
+    executeScene,
+    async executeSceneFog(command, presentation) {
+      const input = sceneFogPatchInputSchema.parse({
+        type: command.type,
+        sceneId: command.sceneId,
+        commandId: command.commandId,
+        expectedSceneVersion: command.expectedSceneVersion,
+        layer: {
+          ownerUserId: command.layer.ownerUserId,
+          width: command.layer.width,
+          height: command.layer.height
+        },
+        chunkManifest: command.layer.chunks.map((chunk) => ({
+          index: chunk.index,
+          checksum: checksumCanonicalJson(chunk)
+        }))
+      })
+      let progress = await stageFog({ input, type: 'SCENE_FOG_BEGIN' }, input, presentation)
+      // One chunk per append always fits the room's frame cap.
+      while (
+        progress.status === 'RECEIVING' &&
+        progress.receivedChunks < command.layer.chunks.length
+      ) {
+        const offset = progress.receivedChunks
+        progress = await stageFog(
+          {
+            commandId: input.commandId,
+            input: {
+              chunks: command.layer.chunks.slice(offset, offset + 1),
+              offset,
+              saveId: progress.saveId
+            },
+            type: 'SCENE_FOG_APPEND'
+          },
+          input,
+          presentation
+        )
+      }
+      if (progress.status === 'EXPIRED') throw new Error('Scene fog save expired.')
+      return executeScene(
+        {
+          type: 'PUBLISH_SCENE_FOG_PATCH',
+          sceneId: input.sceneId,
+          commandId: input.commandId,
+          expectedSceneVersion: input.expectedSceneVersion,
+          saveId: progress.saveId
+        },
+        presentation
       )
     }
   }
@@ -393,14 +506,28 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     presentation: RoomScenePresentation,
     replayOfSequence?: number
   ): Promise<RoomSceneCommit> {
-    let campaignId = this.#sceneCampaigns.get(command.sceneId)
+    return (await this.#sceneRoom(command.sceneId)).executeScene(
+      command,
+      presentation,
+      replayOfSequence
+    )
+  }
+
+  /** Uploads a fog patch to the room in bounded steps and publishes it, as the browser does. */
+  async executeSceneFog(
+    command: SceneFogPatchCommand,
+    presentation: RoomScenePresentation
+  ): Promise<RoomSceneCommit> {
+    return (await this.#sceneRoom(command.sceneId)).executeSceneFog(command, presentation)
+  }
+
+  async #sceneRoom(sceneId: string): Promise<CommandRoom> {
+    let campaignId = this.#sceneCampaigns.get(sceneId)
     if (!campaignId) {
-      campaignId = (
-        await this.query(api.scenes.recipientReads.header, { sceneId: command.sceneId })
-      ).campaignId
-      this.#sceneCampaigns.set(command.sceneId, campaignId)
+      campaignId = (await this.query(api.scenes.recipientReads.header, { sceneId })).campaignId
+      this.#sceneCampaigns.set(sceneId, campaignId)
     }
-    return this.#room(campaignId).executeScene(command, presentation, replayOfSequence)
+    return this.#room(campaignId)
   }
 
   closeRooms() {

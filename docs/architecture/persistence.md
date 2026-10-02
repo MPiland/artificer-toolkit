@@ -992,7 +992,8 @@ readers so unrelated query handlers do not share their initialization work.
 Their complete validators, authority/privacy checks and paging behavior remain unchanged, and child
 queries share the caller's read snapshot. Prepared-run discovery projects each Run before reading its
 pending decision through the same full-authority internal pending query.
-The staged geometry save can now retain a typed terminal or pending preparation as checksummed JSON.
+Historical (the Convex geometry staging, preparation and finish mutations below were deleted in
+A35-S3c1, D79; the room now owns movement): the staged geometry save could retain a typed terminal or pending preparation as checksummed JSON.
 Its internal writer requires current save ownership/expiry, Scene/Session capture and an active Run
 with the exact Scene binding. The first preparation precedes fog staging; identical retries retain it,
 and replacement evidence is refused. All geometry-save reads validate paired fields and preparation
@@ -2810,22 +2811,26 @@ response. Initial proof: `.codex/validation/phase82-v03-hydration/integration.md
 Current (A35-S3c0, D79): the live room is the only writer of a presented Scene. It writes the same
 `sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands` (INLINE and FOG_PATCH receipts) and fog
 save, chunk and layer rows in its SQLite store and checkpoints them to Convex; see
-"Room Scene edits" in [live sessions](live-sessions.md). Transitional: the Convex writers
-below (`scenes/commands:execute`, `fogCommands`) keep the same row rules until A35-S3c1 deletes
-them; the tabletop no longer calls them.
+"Room Scene edits" in [live sessions](live-sessions.md). Convex has no Scene command mutation
+(A35-S3c1): `sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands`, `sceneFogSaves`,
+`sceneFogLayers`, `sceneFogChunks` and `sceneGeometrySaves` rows are written only by the room
+checkpoint (`liveSessions/checkpointScenes.ts`), Scene definition and presentation flows, and
+Campaign deletion and retention. The row rules below hold for those checkpoint-written rows.
+Target: packed Scene command ledgers (A35-S3c2, D77) and a room-built Scene cache (A35-S3c3).
 
 ```mermaid
 flowchart LR
-  Owner["Current active Campaign owner"] --> Edit["scenes/commands:execute"]
+  Owner["Current active Campaign owner"] --> Edit["Room Scene command"]
   Player["Current active Campaign player"] -->|"Own measurements"| Edit
-  Edit --> Atomic["One mutation transaction"]
+  Edit --> Atomic["One room SQLite transaction with the journal head"]
   Atomic --> Head["sceneLiveStates: current version, settings and counts"]
   Atomic --> Entities["sceneLiveEntities: collection-qualified overrides and deletions"]
   Atomic --> Receipt["sceneLiveCommands: immutable input and result"]
+  Atomic -->|"Room checkpoint"| Convex["Convex Scene live rows"]
 ```
 
-Native annotation, light and mechanical-darkness upsert/remove reads only its target override or original entity. The mutation checks
-current ownership and writable Campaign state before exact replay. A stale command may change an
+Native annotation, light and mechanical-darkness upsert/remove reads only its target override or original entity. The room checks
+current authority before exact replay. A stale command may change an
 untouched entity; the same collection/ID target's later write rejects it. Command IDs are Scene-wide,
 so reuse with a different entity command rejects. Head, entity and receipt commit
 atomically. Existing per-collection limits are unchanged. Deleting and re-adding an entity appends it,
@@ -2849,19 +2854,17 @@ closing the legacy incoming-creator-only check that allowed ID takeover. Owners 
 authority. Player replays require the original command actor and current membership/writable Campaign,
 so a successful removal can replay after its target becomes a tombstone.
 
-`scenes/measurements:list` lets current Campaign members read all saved measurements, matching the shared
-viewer projector, while private headers/base/override readers remain owner-only. It returns only Scene
-version, measurement count, ordinals and measurement values. The initial null-cursor page may acquire
-the current version; continuations must supply that version. Reads scan at most eight rows/512 KiB,
-filter tombstones and may return an empty nonfinal page. Consumers follow `isDone`, preserve the version,
-sort by ordinal and check the final measurement count. Measurement edits derive no fog patches.
+Members see saved measurements through the room's projected fanout and `scenes/recipientActions`,
+matching the shared viewer projector, while private headers/base/override readers remain owner-only.
+Measurement edits derive no fog patches.
 
 ```mermaid
 flowchart LR
-  Owner["Current Campaign owner"] --> Begin["fogCommands:begin — ordered chunk manifest"]
-  Begin --> Append["fogCommands:append — at most eight chunks"]
-  Append --> Chunks["sceneFogChunks: immutable payload rows"]
-  Append --> Publish["fogCommands:publish — one transaction"]
+  Owner["Current Campaign owner"] --> Begin["Room SCENE_FOG_BEGIN — chunk manifest"]
+  Begin --> Append["Room SCENE_FOG_APPEND — at most eight chunks"]
+  Append --> Staging["Room SQLite staging: not Scene state, never checkpointed"]
+  Staging --> Publish["Journaled PUBLISH_SCENE_FOG_PATCH — one transaction"]
+  Publish --> Chunks["sceneFogChunks: immutable payload rows"]
   Publish --> Layer["sceneFogLayers: current chunk references"]
   Publish --> Head["sceneLiveStates: version and fog layer count"]
   Publish --> Receipt["sceneLiveCommands: FOG_PATCH receipt"]
@@ -2869,33 +2872,31 @@ flowchart LR
 
 Native fog patches preserve the existing 101-layer, 256-chunk and 512-cell-per-side limits. A valid
 layer may exceed one document, so `sceneFogSaves` records its recipient, dimensions and ordered
-index/checksum manifest. Append validates batches against that manifest and the shared chunk/layer
-schemas, permits exact received-batch replay and advances a contiguous received count. Unpublished
-uploads do not appear in current reads. Publish merges references without loading payloads and
+index/checksum manifest. The room validates staged batches against that manifest and the shared
+chunk/layer schemas; the live-sessions guide gives the staging bounds (2 patches, 512 KiB, 10 minutes
+per account and authority epoch). Unpublished uploads never reach Convex, so every `sceneFogSaves` row
+the checkpoint writes is `PUBLISHED`. Publish merges references without loading payloads and
 atomically commits the layer, head, published save and receipt. The first patch preserves input order;
 later patches merge by chunk index and sort, matching the shared reducer. Dimensions cannot change.
 Stale writes to the same layer reject; unrelated Scene writes may rebase. Existing inline commands
 use the `INLINE` receipt encoding; both encodings share the Scene-wide command-ID registry.
 
-Every fog write rechecks current owner authority and an active Campaign. Receiving uploads also
-require their original actor; a current owner may replay a committed patch. Incomplete uploads expire
-after 24 hours and internal cleanup removes at most eight chunks per transaction, retaining an expired
-save marker. Published chunks remain immutable, including chunks superseded by later patches, because
-their original command history still references them.
+Every fog write rechecks current owner authority and an active Campaign. Published chunks remain
+immutable, including chunks superseded by later patches, because their original command history still
+references them.
 
 `fogReads:layers` pages headers after filtering to the current member's own/shared layers; owners see
 all layers. Clients sort headers by ordinal and pin the Scene version across header/chunk pages.
 `fogReads:chunks` uses offsets into the current reference order, returning at most eight chunks and
 rejecting a changed version. Each referenced source must be published and match the Scene, recipient,
-dimensions, ordinal, index and checksum. `fogReads:commandChunks` is owner-only and pages the original
-immutable patch, independent of later edits. Archived Campaign members retain read access; membership
+dimensions, ordinal, index and checksum. Archived Campaign members retain read access; membership
 is checked on every page. This transport replaces inline fog command/result payloads only for the
 native prototype; shared reducer contracts remain unchanged.
 
 Fog of war is opt-in per Scene (ADR 0034). The Scene definition's `fogMode` (`OFF`, `SHARED_PARTY`
 or `PER_PLAYER`) seeds the live Scene, and new Scenes default to `OFF`. The live value is a versioned
 entry in `sceneLiveStates.settings.fogMode`, changed only by the owner-only `SET_SCENE_FOG_MODE`
-command. `fogCommands` refuses new manual fog saves and publication while fog is `OFF`; replays stay
+command. The room refuses new manual fog saves and publication while fog is `OFF`; replays stay
 idempotent. Stored fog layers are kept while fog is `OFF` and apply again when fog is turned back on.
 A DM preview may calculate one recipient's view without publishing that preview as Campaign fog.
 
@@ -2919,8 +2920,8 @@ For native derived Character vision, ADR 0024 requires current published sources
 only for issued occurrences. The retiring SQL pinned-projection loader documents capability/range
 semantics; it is not a requirement to restore long-lived consumer pins or a SQL compatibility path.
 
-`scenes/geometryReads:entities` is an internal owner-authorized current-geometry query. It reads only
-tokens or barriers, pins the Scene version and immutable save on every page, and returns at most eight
+`scenes/currentEntities` (read through `recipientReads:currentEntities`) is the internal
+current-entity read. It pins the Scene version and immutable save on every page, and returns at most eight
 entities, reading one additional ordinal as lookahead. Its BASE phase resolves each immutable entity against its canonical current override;
 tombstones and entities re-added at appended ordinals are omitted there. Its APPENDED phase uses
 `by_sceneId_collection_ordinal` from the immutable collection count onward, excluding null-ordinal
@@ -2928,8 +2929,7 @@ tombstones without scanning deletion history. An empty page can retain continuat
 follow `next` until null, then verify global unique IDs/ordinals and the header's current counts.
 Continuation uses the phase and last scanned ordinal. The pinned version makes these indexed keyset
 pages stable; reactive end-cursor ranges are not accepted. Duplicate ordinals, including the lookahead
-row, reject before continuation could skip a row. Only bounded token/segment records enter this read;
-large decoration polygons and fog chunks use their separate transports.
+row, reject before continuation could skip a row. Fog chunks use their separate transport.
 Geometry IDs and token controller/asset UUIDs are normalized after checking the original stored
 checksum, preserving authored source data. Controller UUID case aliases collapse to one controller.
 Native token/barrier override keys must be lowercase.
@@ -2942,38 +2942,34 @@ not add a second door table or change immutable definitions.
 
 ```mermaid
 flowchart LR
-  Owner["Current Campaign owner"] --> Action["geometryActions:execute"]
-  Action --> Geometry["Version-pinned token/barrier pages"]
-  Geometry --> Fog["One selected fog layer at a time"]
-  Fog --> Stage["Hidden geometry parent and immutable child chunks"]
-  Stage --> Finish["geometryCommands:finish — one transaction"]
-  Finish --> Entity["Primary entity and door state"]
-  Finish --> Layers["Selected shared or recipient fog references"]
-  Finish --> Receipt["Scene head and GEOMETRY receipt"]
+  Command["Room geometry command"] --> Plan["Shared plan: reducer and exploration"]
+  Plan --> Commit["Room SQLite transaction with the journal head"]
+  Commit --> Entity["Primary entity and door state"]
+  Commit --> Layers["Derived shared or recipient fog references"]
+  Commit --> Receipt["Scene head and GEOMETRY receipt"]
+  Commit -->|"Room checkpoint"| Convex["Convex Scene live rows"]
 ```
 
-The native owner-editing action implements token/barrier upsert/removal and door state changes.
-It validates complete geometry counts and unique IDs/ordinals, applies the shared reducer, then
-derives fog using only the selected current layer. The default selected layer is shared; DM preview
-does not publish, and a future explicit per-player mode may select a recipient layer. The action does
-not load decorations or all recipient fog together. Current owner and active Campaign authority
-precede every write and replay.
+The room implements token/barrier upsert/removal, door state changes and standalone token moves
+(`roomSceneGeometryStaging`, `roomSceneGeometryPublication`, `roomSceneCommandPersistence` over
+`encounter-persistence/sceneGeometryPublication`). It validates complete geometry counts and unique
+IDs/ordinals, applies the shared reducer, then derives fog using only the selected current layer.
+The default selected layer is shared; DM preview does not publish, and a future explicit per-player
+mode may select a recipient layer. Current authority precedes every write and replay.
 The original expected version fences the primary target; unrelated changes may rebase to the captured
-current version. Every hydration page and final publication must retain that captured version.
+current version.
 
-The native action also accepts standalone `MOVE_SCENE_TOKEN` through the separate
-`sceneNativeGeometryCommandInputSchema`; the existing five-command geometry classifier stays unchanged.
-Movement requires `expectedEncounterVersion = null`. Current members may submit it; final publication
-requires an unlocked canonical token controlled by that member, or current owner authority. The action
-uses the shared path validator and derives exploration at every supplied authoritative path sample.
-Raw geometry and fog hydration stay internal, and the final transaction publishes the token position
-and all derived fog references together under the captured Scene/Session/Character fences. Immutable
-token and controller UUIDs are normalized after integrity verification. The tabletop now submits
-movement through this native action, including the exact Encounter version for bound movement.
-The bound spatial coordinator and its remaining reaction continuations are described above.
+Standalone `MOVE_SCENE_TOKEN` uses the separate `sceneNativeGeometryCommandInputSchema`; the existing
+five-command geometry classifier stays unchanged. Movement requires `expectedEncounterVersion = null`.
+Current members may submit it; final publication requires an unlocked canonical token controlled by
+that member, or current owner authority. The shared path validator derives exploration at every
+supplied authoritative path sample, and the commit publishes the token position and all derived fog
+references together. Immutable token and controller UUIDs are normalized after integrity verification.
+The tabletop submits movement through the room socket, including the exact Encounter version for
+bound movement. The bound spatial coordinator and its remaining reaction continuations are described above.
 
-Initial bound movement reuses the verified Scene save and authoritative token geometry during the
-read-only phase of one prepare or finish mutation. Each mutation reads them afresh; the in-memory
+Historical (Convex prepare/finish mutations, deleted in A35-S3c1): initial bound movement reused the
+verified Scene save and authoritative token geometry during the read-only phase of one prepare or finish mutation. Each mutation reads them afresh; the in-memory
 context must not cross a mutation boundary or a write. This retains the transaction's conflict reads,
 token authority, checksums and currentness checks without repeating the same storage validation.
 Passage options likewise share their current System and action-allowance reads within that phase.
@@ -2991,70 +2987,36 @@ Successful Passage evaluation retains its original current targets separately fr
 and effect changes. Next-choice revalidation uses those same transaction-local facts. Final publication
 loads them afresh in its own transaction before replay comparison and settlement; they are never persisted.
 
-Native undo selects the latest non-undone committed movement segment through bounded indexed pages. Current
-owner authority and any supplied open Session presentation are checked before replay; exact Scene
-counters fence new publication. For a resumed bound movement, the validated retained response snapshot
+Room undo (`roomSceneUndo`, over `encounter-persistence/sceneUndoPublication`) selects the latest
+non-undone committed movement segment by scanning the room's retained command rows. Current
+authority is checked before replay; exact Scene counters fence new publication. For a resumed bound movement, the validated retained response snapshot
 supplies the segment origin; the original command path still starts at the whole movement origin.
 Standalone and initial segments use their path origin. The transaction restores that position and prior fog references,
 then appends an undo receipt atomically. A later change to the moved token or an affected fog layer
 rejects undo rather than selecting an older move. Only movement fog saves retain prior layer metadata;
 published backing chunks remain retained. Historical movement saves without that metadata fail closed.
-The tabletop calls `scenes/undo:execute` with the current Scene and Session presentation fences.
+The tabletop sends undo through the room socket.
 
 `sceneGeometrySaves` owns the canonical command, actor, captured version and child save references.
-Only internal mutations can create or finish it. A receiving retry requires the original actor and
-same input; if an unrelated edit changed the captured version, the same row receives a new public save
-ID and empty child references. Prior children remain invisible and expire independently. Receiving
-parents and children expire after 24 hours; published parents/chunks remain immutable for history.
-Manual fog begin/append/publish reject children carrying `geometrySaveId`. Final publication commits
+Only the room checkpoint creates it, already `PUBLISHED`; published parents/chunks remain immutable
+for history. Manual fog patches never carry a `geometrySaveId`. The room's commit writes
 the primary entity, all child references, the head version, published statuses and one `GEOMETRY`
 receipt atomically. A failure in any recipient rolls back the complete publication.
 
 Geometry-derived fog is an explicit complete-layer replacement (`fogPatches[].mode = REPLACE`).
-The action ORs the explored cells from existing arbitrary manual chunks and the derived patch, then
+The room ORs the explored cells from existing arbitrary manual chunks and the derived patch, then
 uses `canonicalizeSceneFogLayer` to emit complete 32-cell tiles (at most 256). This preserves cells
 outside a replaced chunk's old bounds and avoids index collisions between manual and canonical layouts.
 Only live references are replaced; original published chunks remain available to owner-only history.
 Manual `FOG_PATCH` commands retain their existing merge-by-index behavior. The retiring shared inline
 derived-patch path still has the inherited noncanonical-index collision; native replacement deliberately
-preserves exploration rather than reproducing that loss. `geometryReads:commandChunks` checks exact
-parent/child/receipt links and pages the original replacement independent of later edits.
+preserves exploration rather than reproducing that loss.
 
-This native geometry path currently covers ordinary owner editing. The internal
-`characters/sceneVision:read` query derives a scalar vision range from current published Sense
-capabilities and current evaluated Character ranges. It uses the existing Campaign assignment/owner
-authority, checks the supplied Character stream and System, and admits only unique System vocabulary
-Sense IDs through the existing current-definition ownership and integrity reader. It returns no private
-Character mechanics. The pure range/capability algorithm lives in `rules-runtime/character/characterSceneVision`;
-the retiring functions service reuses it. Future reads follow ADR 0024 current-source semantics rather
-than retained consumer pins. Campaign sharing does not introduce transitive access to private reusable
-definitions.
-
-`scenes/sessionVision:character` admits one explicit Campaign/OPEN Session/presentation/Scene/Run/actor/
-token binding and present Character in one query snapshot. It checks supplied Scene, Session,
-presentation, Run and current Character versions, then calls the internal Character vision query in
-that same snapshot. `readRunActor` validates just the requested actor rather than hydrating unrelated
-actor snapshots. Character actors keep no stream version, so passive vision uses the current Character
-stream. The returned checksum identifies the observed binding and scalar facts; it is not a
-lease or a standalone publication-time freshness guarantee. Callers still select actual current Scene
-tokens and must validate dependencies when committing derived geometry.
-
-`scenes/sessionVision:runs` pages the exact Session's Runs through its Campaign/Session index,
-returning only those bound to the presented Scene. `scenes/sessionVision:bindings` then pages one
-Run's actor-token bindings, validates each targeted actor, and selects present Characters with current
-assignment authority. Each result supplies the current Character stream to the scalar query. Non-Character
-actors and absent Characters contribute no vision input. Native continuation metadata is preserved even
-when a page has no matching result; callers continue until `isDone`. Four-row read targets bound each
-call without capping Session history. Every page rechecks the owner, OPEN Session, presentation and
-Scene version; binding pages also require the supplied Run version. Actual-token selection and duplicate
-token binding resolution remain responsibilities of the geometry composition path.
-
-`scenes/sessionVision:capture` captures compact System, Campaign and Session revision markers alongside
-the admitted Scene/presentation versions. Every discovery page and scalar query requires those same
-markers; a changed dependency rejects the request and requires a fresh capture. Scalar results also
-include the current Character revision in the same query snapshot. These markers make relevant changes
-observable across pages without repeatedly loading every Character or published source document.
-The geometry publication transaction validates those markers before committing derived results.
+The room derives Session vision (`roomSceneVision`) with the pure range/capability algorithm in
+`rules-runtime/character/characterSceneVision`. The Convex `characters/sceneVision:read` query and the
+`scenes/sessionVision` capture, runs, bindings and character queries lost their only caller with the
+Convex geometry path and were deleted in A35-S3c1 (D79). Campaign sharing does not introduce transitive
+access to private reusable definitions.
 
 `sceneVisionRevisions` stores one marker per scope/UUID. All native mutation builders and migration
 builders use `lib/mutations`; lint rejects direct raw-builder imports outside that module. Its database
@@ -3070,28 +3032,18 @@ Character play writes therefore leave unrelated Session and System markers uncha
 is the initial `null` revision, so existing data needs no backfill. Markers do not replace current
 authorization, integrity checks, or the exact Scene, Run and Character versions.
 
-`scenes/geometryActions:execute` stages owner edits, door changes and unbound moves only; it refuses
-an Encounter-bound move with `SCENE_NOT_PRESENTED` (D43). It accepts the existing `{ input }`
-envelope plus an optional `session`
-containing Session ID, expected Session version and expected presentation version. Ordinary owner edits
-need no Session. Session edits require current owner/OPEN/presented authority, including on replay;
-omitting or switching the original optional Session identity cannot replay a retained command. Old
-freshness/version observations do not invalidate an otherwise authorized historical receipt.
+The room refuses an Encounter-bound move with `SCENE_NOT_PRESENTED` unless it presents that Encounter's
+Scene (D43). Convex no longer accepts geometry commands or an optional `session` envelope (A35-S3c1).
 
-The action selects only actual resulting tokens without explicit vision, exhausts bounded discovery
-pages and resolves duplicate token bindings by greatest Encounter UUID, preserving the retiring sorted
-Run/last-binding precedence. It evaluates each selected Character once. Explicit token vision wins,
-including disabled vision; no direct Character-token fallback or Session history cap is introduced.
-The resulting token set bounds the stored Character revision list by the existing Scene token capacity.
-`geometryStaging:observe` binds those observations to the hidden save before fog staging. Changed
-Character observations replace the attempt ID and clear staged fog; changed Scene or scope snapshots
-reset the attempt at begin. Old children remain hidden until normal expiry cleanup. Final publication
-rechecks the saved scope and Character revisions in the entity/fog/head/receipt transaction. Observation
-fields are optional for ordinary and older geometry saves, so their persisted contract remains readable.
+The room selects only actual resulting tokens without explicit vision and observes each selected
+Character's current vision (`roomSceneGeometryStaging`); explicit token vision wins, including
+disabled vision. The resulting token set bounds the stored Character revision list by the existing
+Scene token capacity. Final publication rechecks the saved Character revisions
+(`assertSceneVisionCharacters` in `sceneGeometryPublication`) in the entity/fog/head/receipt
+transaction. Observation fields are optional on `sceneGeometrySaves`, so older rows remain readable.
 
-The existing Session lifecycle proves publication, stale Character/source rejection, retry, historical
-replay and explicit overrides through the native action. Recipient geometry/privacy facts have local
-proof below; authenticated integration and full V03 acceptance remain open.
+Recipient geometry/privacy facts have local proof below; authenticated integration and full V03
+acceptance remain open.
 
 The subsequent local recipient implementation exposes `scenes/recipientReads:header` and
 `scenes/recipientActions:entities` to current Campaign members. Headers omit private base/live counts,
