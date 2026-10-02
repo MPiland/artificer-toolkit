@@ -20,7 +20,7 @@
 
 ## Last slice (integrating)
 
-**A35-S3c1 Delete the Convex Scene command path** (R06; D79). State: integrating. Gate33 is clean (build, codegen, typecheck, typecheck-web). The focused suites are green: the changed apis tests plus `deletion`, `checkpoint` and `encounters/commands` (207/207), encounter-persistence, and session-worker.
+**A35-S3c1 Delete the Convex Scene command path** (R06; D79). State: integrating (`1809df82d`). Gate33 is clean (build, codegen, typecheck, typecheck-web). The focused suites are green: the changed apis tests plus `deletion`, `checkpoint` and `encounters/commands` (207/207), encounter-persistence, and session-worker.
 
 - **Deleted:** Convex `scenes/commands`, `fogCommands`, `fogPublication`, `geometry{Actions,FastCommands,Staging,Commands,Publication,Documents,Reads}`, `measurements`, `undo`, `spatialGeometry`, `sessionVisionComposition` and `developmentProof`. Their only consumers went too: `scenes/sessionVision`, `sessionVisionDocuments`, `characters/sceneVision` and the `checkpoint-scenes` dev proof (`developmentCheckpointScenes`, Convex and schema). `fogReads.layers`/`chunks` remain. `publishSceneUndo` lost its `fastOnly` mode.
 - **Dev scripts:** these now drive the room through `DevelopmentHttpClient`: `executeSceneCommand`, and the new `executeSceneFog`, which runs begin, one-chunk appends and then publish. The lifecycle contention step and `--encounter-cutover` were deleted.
