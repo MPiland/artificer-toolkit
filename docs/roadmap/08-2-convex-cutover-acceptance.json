@@ -2721,16 +2721,18 @@
             {
               "id": "V07.1",
               "text": "Bound and standalone movement commit validated sampled paths and fog atomically in the room and reach Convex by checkpoint, with current authority, token control, fences and replay (ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the next two entries proved the per-command Convex path and no longer prove this criterion",
                 "browser suite movement-browser-29",
                 ".codex/validation/phase82-ultra-continuation-20260911/v07-standalone-movement-01/completion.md",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits one of two concurrent same-token moves and refuses the stale Scene version (VS-1)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits standalone movement and its Scene-history undo, replays, and rejects an uncontrolled player (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › plans bound moves and moves on a bound Scene through room geometry (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits each fog owner with native geometry before acknowledgement and resynchronizes the table (D52) (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › recovers a native Scene commit whose acknowledgement was lost and retries without a duplicate write (D27) (A35-S6b: a native geometry save checkpoints once; the room store logs each record's net change)",
-                "missing: the Convex movement stage and fast-only undo removed (A35-S6c), then the browser movement journeys re-proved on the final source (R08, V15)"
+                "note: the Convex movement stage and fast-only undo were removed in A35-S6c3 (VS-1 review, 2026-10-02: no stage or fast-only undo remains in apps/apis/convex or apps/session-worker/src); the room path is the only movement writer",
+                "note: the browser movement journeys re-run on the final source under R08's complete local lifecycle and V15; that release re-proof does not hold this criterion open (D80)"
               ]
             },
             {
