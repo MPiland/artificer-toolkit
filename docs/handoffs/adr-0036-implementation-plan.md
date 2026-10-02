@@ -185,9 +185,14 @@ Implemented locally (2026-09-29). Contract and behavior are in [persistence.md](
 
 ## Slices
 
-S10 foundation is implemented locally: per-owner/GM authorized manifests, verified R2 index/document
+S10 is implemented locally (2026-10-02): per-owner/GM authorized manifests, verified R2 index/document
 loads before SQLite hydration, affected-scope reloads and hibernation reuse without a Convex read.
-Native rules planning still uses capture adapters; S10 integration and final-source proof remain open.
+Character preparation reads the verified objects through `createSnapshotReaders`, as the browser
+does; the Character capture protocol (`INPUTS`/`PUBLICATIONS`/`SOURCE_INDEX` responses with read
+checksums, a JSON round trip per root) is deleted. Known differences from the deleted path: no
+500-root pool bound (as S5), and the build's Campaign parent-share rule is trusted rather than
+rechecked. Encounter content (Creature sources) already read the snapshots. The local end-to-end
+proof belongs to REL-4.
 
 | Slice | Content                                                                                                                                          | Tests first                                                                                                                                                                                               |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

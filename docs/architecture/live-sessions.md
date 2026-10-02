@@ -1434,13 +1434,13 @@ over a duplicate Campaign share. Verified objects stay in memory under their com
 unchanged reads reuse them, while invalidation reloads affected content before replacing stored
 inputs. A failed load leaves the prior SQLite inputs/effects intact. After hibernation, the room can
 reload R2 objects from its SQLite manifest without another Convex input read. System/vocabulary keep
-their existing revision-bound input path. `roomCharacterRules` runs the same Character preparation
-core against those verified publications and SQLite inputs. It now passes compact snapshot Spell
-index entries to `nativeCharacterRules`, capturing and parsing only referenced Spell documents for
-mechanics. The protected capture comparator remains as a fallback; this source optimization awaits
-execution proof. Local parity checks preserve the original
-source pins and refuse wrong epochs; repeated warm preparation makes no Convex, HTTP or R2 calls.
-The live command coordinator still uses transitional captures until the authority switch.
+their existing revision-bound input path. `roomCharacterRules` authorizes each object's scope
+against the Character's manifest, then `nativeCharacterRules` prepares the Character over its SQLite
+inputs and `createSnapshotReaders` (the browser Builder's readers), with no capture protocol, JSON
+round trip or read checksums (ADR 0036 S10). The build has already applied the Campaign parent-share
+rule, so the room does not repeat it. The prepared facts carry each root's original source pin
+(`sourceVersions`). Repeated warm preparation makes no Convex, HTTP or R2 calls. Encounter planning
+still answers its `liveSessionEncounterRules` capture requests from room SQLite (A35-S9).
 
 Active input/admission authority rejects Campaign deletion jobs. Final draining publication retains
 its separately fenced internal publication scope so deletion can checkpoint committed state.

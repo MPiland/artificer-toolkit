@@ -50,10 +50,8 @@ projections, including action undo through the existing shared action-revert red
 own Run: TABLE rolls post their card through the room `insertTableRoll` port and spend the D72
 TABLE bucket in the commit, a GM `UPDATE_ACTOR` with `characterCommand` commits on the held Sheet,
 an unrouted decision is refused as Convex refused it, and the Convex `encounter-command`, route and
-roll fallback is no longer called (deleted in S6c3). `roomCharacterRules` now passes compact snapshot Spell
-index entries into `nativeCharacterRules`; only requested documents are serialized, and only
-referenced Spell documents are captured and parsed
-for mechanics, with the protected capture comparator retained as fallback.
+roll fallback is no longer called (deleted in S6c3). Since A36-S10 `nativeCharacterRules` prepares
+Characters directly over the room's snapshot readers; the Character capture protocol is deleted.
 Initiative rolls now use secure room RNG and the native transaction. Only the initiator receives
 roll evidence; other recipients receive privacy-filtered projections with `roll: null`. Replay
 retains evidence without another draw. PRIVATE `ROLL_ENEMY_ACTION` now follows the same local

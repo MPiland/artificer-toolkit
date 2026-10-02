@@ -4,7 +4,7 @@ import { reusableDefinitionCurrentDtoSchema } from '../shared/reusableDefinition
 import { systemVocabularySnapshotSchema } from '../projections/systemVocabulary.js'
 import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
 import { characterSheetCurrencyOptionDtoSchema } from './characterSheetData.js'
-import { liveSessionCharacterInputsResponseSchema } from './liveSessionCharacterRules.js'
+import { liveSessionCharacterInputsSchema } from './liveSessionCharacterRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import { sceneVisionRevisionSchema } from '../projections/sceneVisionRevisions.js'
 import { MAX_ROOM_INPUT_RESPONSE_DOCUMENTS } from './liveRoomInputsBatch.js'
@@ -155,14 +155,7 @@ export const liveRoomCharacterPartSchema = lazySchema(() =>
       characterId: postgresUuidSchema,
       revisions: liveSessionRulesRevisionsSchema,
       /** The stored Character inputs on the Character's first part only. */
-      inputs: z.nullable(
-        z.omit(liveSessionCharacterInputsResponseSchema, {
-          kind: true,
-          revisions: true,
-          readChecksum: true,
-          system: true
-        })
-      ),
+      inputs: z.nullable(liveSessionCharacterInputsSchema),
       /** Authorized SOURCE and CAMPAIGN heads on the first Character part only. */
       contentSnapshots: z.nullable(contentSnapshotManifestDtoSchema),
       documents: pagedDocuments

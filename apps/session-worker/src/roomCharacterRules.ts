@@ -1,15 +1,8 @@
 import {
   liveSessionCharacterRulesInputSchema,
-  liveSessionCharacterRulesResponseSchema,
-  type LiveSessionCharacterRulesInput,
-  type LiveSessionCharacterRulesRequest,
-  type LiveSessionCharacterRulesResponse
+  type LiveSessionCharacterRulesInput
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
-import type { ContentSnapshotDocumentsObject } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
-import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
-import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
-import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
@@ -24,14 +17,11 @@ import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.j
 export async function prepareRoomLiveCharacterSheet(
   store: RoomEncounterStore,
   room: RoomInputs,
-  scope: Omit<LiveSessionCharacterRulesInput, 'request'>,
+  scope: LiveSessionCharacterRulesInput,
   observed: LiveSessionRulesRevisions | null,
   transaction?: RoomTransaction
 ) {
-  const initialInput = liveSessionCharacterRulesInputSchema.parse({
-    ...scope,
-    request: { kind: 'INPUTS' }
-  })
+  const initialInput = liveSessionCharacterRulesInputSchema.parse(scope)
   if (room.epoch !== initialInput.authorityEpoch)
     throw new Error('Room Character rules epoch mismatch.')
   const priorBuilder = room.characterBuilderSnapshot(initialInput.characterId, transaction)
@@ -39,149 +29,30 @@ export async function prepareRoomLiveCharacterSheet(
     room.character(initialInput.characterId, observed, transaction),
     room.system('SYSTEM', observed, transaction)
   ])
-  if (!part.inputs || !part.contentSnapshots || !systemInput.system)
+  const { system } = systemInput
+  if (!part.inputs || !part.contentSnapshots || !system)
     throw new Error('Room Character rules inputs are missing.')
   if (part.contentSnapshots.systemId !== part.inputs.owner.systemId)
     throw new Error('Room Character content System mismatch.')
   const objects = await room.contentObjects(initialInput.characterId, observed, transaction)
-  const readers = createSnapshotReaders(objects)
-  type Publication = Omit<
-    Extract<LiveSessionCharacterRulesResponse, { kind: 'PUBLICATIONS' }>['publications'][number],
-    'documentJson'
-  > & {
-    root: ContentSnapshotDocumentsObject['roots'][number]
-  }
-  const publications = new Map<string, Publication>()
-  const sharedIds = new Set<string>()
-  const sourceKinds = new Map(
-    part.contentSnapshots.sources.map((source) => [source.contentSourceId, source.kind])
-  )
+  const sources = new Set(part.contentSnapshots.sources.map((source) => source.contentSourceId))
   for (const object of objects) {
-    if (object.part !== 'documents') continue
-    if (object.roots.some((root) => root.systemId !== part.inputs!.owner.systemId))
-      throw new Error('Room Character publication System mismatch.')
-    if (object.scope === 'CAMPAIGN') {
-      if (object.scopeId !== initialInput.campaignId)
-        throw new Error('Room content Campaign mismatch.')
-      for (const root of object.roots) sharedIds.add(root.id)
-    } else if (object.scope !== 'SOURCE' || !sourceKinds.has(object.scopeId)) {
-      throw new Error('Room content source is unauthorized.')
-    }
-  }
-  const ordered = [...objects].sort(
-    (left, right) => Number(left.scope === 'CAMPAIGN') - Number(right.scope === 'CAMPAIGN')
-  )
-  for (const object of ordered) {
-    if (object.part !== 'documents') continue
-    for (const [index, root] of object.roots.entries()) {
-      const pin = object.versions[index]!
-      const previous = publications.get(root.id)
-      if (previous) {
-        if (
-          canonicalizeJson({
-            identity: previous.identity,
-            version: previous.version,
-            storedParentId: previous.storedParentId ?? null
-          }) !==
-          canonicalizeJson({
-            identity: pin.identity,
-            version: pin.version,
-            storedParentId: pin.storedParentId ?? null
-          })
-        )
-          throw new Error('Room content source versions disagree.')
-        continue
-      }
-      publications.set(root.id, {
-        ...pin,
-        root,
-        campaignShared: object.scope === 'CAMPAIGN',
-        campaignParentAllowed:
-          sharedIds.has(root.id) || sourceKinds.get(object.scopeId) === 'PLATFORM'
-      })
-    }
+    if (
+      object.scope === 'CAMPAIGN'
+        ? object.scopeId !== initialInput.campaignId
+        : object.scope !== 'SOURCE' || !sources.has(object.scopeId)
+    )
+      throw new Error('Room content scope is unauthorized.')
   }
   const revisions = mergeNativeRulesRevisions(part.revisions, systemInput.revisions)
-  const dependencies: Array<{ request: LiveSessionCharacterRulesRequest; readChecksum: string }> =
-    []
-  async function capture(
-    request: LiveSessionCharacterRulesRequest
-  ): Promise<LiveSessionCharacterRulesResponse> {
-    const input = liveSessionCharacterRulesInputSchema.parse({ ...initialInput, request })
-    const hash = (value: unknown) => sha256Hex(canonicalizeJson(value))
-    let response: LiveSessionCharacterRulesResponse
-    if (request.kind === 'INPUTS') {
-      const stored = { kind: 'INPUTS' as const, ...part.inputs!, system: systemInput.system! }
-      response = {
-        ...stored,
-        revisions,
-        readChecksum: hash({ input, userId: initialInput.expectedUserId, response: stored })
-      }
-    } else if (request.kind === 'PUBLICATIONS') {
-      const checkedIds = [...new Set(request.subjectIds)]
-        .sort()
-        .filter((id) => request.afterSubjectId === null || id > request.afterSubjectId)
-      const values = checkedIds.flatMap((id) => {
-        const publication = publications.get(id)
-        if (!publication) return []
-        const { root, ...metadata } = publication
-        return [{ ...metadata, documentJson: JSON.stringify(root) }]
-      })
-      response = {
-        kind: 'PUBLICATIONS',
-        revisions,
-        continueAfter: null,
-        publications: values,
-        readChecksum: hash({
-          input,
-          userId: initialInput.expectedUserId,
-          checkedIds,
-          publications: values.map(({ documentJson: _documentJson, ...metadata }) => metadata),
-          continueAfter: null
-        })
-      }
-    } else {
-      const featureIds = request.kind === 'FEATURE_SOURCES' ? new Set(request.featureIds) : null
-      const matches = featureIds
-        ? new Set(
-            (await readers.readFeatureSources(featureIds)).map(
-              (publication) => publication.document.id
-            )
-          )
-        : null
-      const sources = [...publications.values()]
-        .filter((publication) =>
-          request.kind === 'CLASS_CATALOGUE'
-            ? publication.identity.subjectKind === 'CLASS'
-            : request.kind === 'SPELL_CATALOGUE'
-              ? publication.identity.subjectKind === 'SPELL'
-              : publication.identity.subjectKind !== 'SPELL'
-        )
-        .map((publication) => ({
-          ...publication.identity,
-          campaignShared: publication.campaignShared,
-          matches: matches?.has(publication.identity.subjectId) ?? true
-        }))
-        .sort((left, right) => left.subjectId.localeCompare(right.subjectId))
-      response = {
-        kind: 'SOURCE_INDEX',
-        revisions,
-        continueCursor: null,
-        sources,
-        readChecksum: hash({
-          input,
-          userId: initialInput.expectedUserId,
-          sources,
-          continueCursor: null
-        })
-      }
-    }
-    const parsed = liveSessionCharacterRulesResponseSchema.parse(response)
-    dependencies.push({ request: input.request, readChecksum: parsed.readChecksum })
-    return parsed
-  }
-  const catalogue = (await readers.readSpellCatalogue(new Set())).entries
-  let facts = await prepareLiveCharacterSheetFacts(initialInput, capture, catalogue)
+  const prepare = (inputs: NonNullable<typeof part.inputs>) =>
+    prepareLiveCharacterSheetFacts({
+      scope: initialInput,
+      inputs,
+      system,
+      objects
+    })
+  let facts = await prepare(part.inputs)
   if (transaction) {
     const play = await store.store
       .query('characterPlayStates')
@@ -245,9 +116,10 @@ export async function prepareRoomLiveCharacterSheet(
         })
       )
       part = await room.character(initialInput.characterId, observed, transaction)
+      if (!part.inputs) throw new Error('Room Character rules inputs are missing.')
       // Re-evaluate over the reconciled play without replacing the Builder's structure or reloading content.
-      facts = await prepareLiveCharacterSheetFacts(initialInput, capture, catalogue)
+      facts = await prepare(part.inputs)
     }
   }
-  return { ...facts, revisions, dependencies }
+  return { ...facts, revisions }
 }

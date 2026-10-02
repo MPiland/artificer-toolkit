@@ -15,7 +15,7 @@ import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 export interface LiveCaptureReads {
   encounterRules(input: LiveSessionEncounterRulesInput): Promise<LiveSessionEncounterRulesResponse>
   prepareCharacter(
-    scope: Omit<LiveSessionCharacterRulesInput, 'request'>
+    scope: LiveSessionCharacterRulesInput
   ): Promise<PreparedLiveCharacterSheet>
 }
 

@@ -17,8 +17,9 @@ old Builder endpoint removal and snapshot-backed authored lists are implemented 
 The S10 room-input foundation now supplies manifests under the GM's or assigned Character owner's
 existing source authorization. Hydration verifies SOURCE/CAMPAIGN index and document objects from R2
 before committing inputs to SQLite; invalidation reloads the affected scope, and a hibernation wake
-reloads content from cached inputs without a Convex call. Rules planning still uses its transitional
-capture adapters, so S10 is not complete. System/vocabulary inputs keep the existing revision-bound
+reloads content from cached inputs without a Convex call. Character rules preparation in the room
+reads those objects through the browser Builder's snapshot readers (S10, implemented locally; the
+end-to-end proof is REL-4's). System/vocabulary inputs keep the existing revision-bound
 path; a new SYSTEM snapshot format is outside this completion.
 SOURCE/CAMPAIGN objects now use format 2 and `v2/` keys. Their `documents` part includes an aligned
 `versions` array with each root's original public version ID, numeric version, stored checksum,

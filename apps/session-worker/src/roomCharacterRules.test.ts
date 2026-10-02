@@ -9,7 +9,6 @@ import {
   readCharacterPlay,
   readCharacterSheetStructure
 } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
@@ -55,7 +54,7 @@ const prepareFacts = vi.hoisted(() =>
 )
 vi.mock('./nativeCharacterRules.js', () => ({ prepareLiveCharacterSheetFacts: prepareFacts }))
 
-it('serializes and hydrates only the requested Spell publication from validated room snapshots', async () => {
+it('prepares from the stored inputs and authorized snapshot objects, refusing a foreign source scope', async () => {
   const part = liveRoomCharacterPartSchema.parse(characterPageFixture)
   if (part.status !== 'ASSIGNED' || !part.inputs || !part.contentSnapshots)
     throw new Error('Missing Character fixture.')
@@ -134,46 +133,29 @@ it('serializes and hydrates only the requested Spell publication from validated 
     vocabulary: null
   })
   vi.spyOn(room, 'contentObjects').mockResolvedValue([object])
-  const serialized = vi.spyOn(JSON, 'stringify')
-  vi.mocked(prepareLiveCharacterSheetFacts).mockImplementation(async (_input, capture) => {
-    const catalogue = await capture({ kind: 'SPELL_CATALOGUE' })
-    if (catalogue.kind !== 'SOURCE_INDEX') throw new Error('Missing Spell catalogue.')
-    expect(catalogue.sources.map(({ subjectId }) => subjectId)).toEqual(roots.map(({ id }) => id))
-    const response = await capture({
-      kind: 'PUBLICATIONS',
-      subjectIds: [roots[0]!.id],
-      afterSubjectId: null
-    })
-    if (response.kind !== 'PUBLICATIONS') throw new Error('Missing publications.')
-    expect(response.publications).toHaveLength(1)
-    const publication = response.publications[0]!
-    expect(publication).toMatchObject({
-      ...object.versions[0],
-      campaignShared: true,
-      campaignParentAllowed: true
-    })
-    expect(
-      parsePublicationDocument('SPELL', JSON.parse(publication.documentJson)).document
-    ).toEqual(object.roots[0])
-    throw new Error('Publication capture complete.')
+  vi.mocked(prepareLiveCharacterSheetFacts).mockImplementation(async (input) => {
+    expect(input.inputs).toEqual(part.inputs)
+    expect(input.system).toEqual(system)
+    expect(input.objects).toEqual([object])
+    throw new Error('Preparation inputs checked.')
   })
+  const scope = {
+    campaignId: campaign.id,
+    authorityEpoch: epoch,
+    characterId: owner.id,
+    expectedUserId: owner.userId,
+    expectedRole: 'PLAYER' as const
+  }
   try {
-    await expect(
-      prepareRoomLiveCharacterSheet(
-        store,
-        room,
-        {
-          campaignId: campaign.id,
-          authorityEpoch: epoch,
-          characterId: owner.id,
-          expectedUserId: owner.userId,
-          expectedRole: 'PLAYER'
-        },
-        null
-      )
-    ).rejects.toThrow('Publication capture complete.')
-    expect(serialized.mock.calls.filter(([value]) => value === object.roots[0])).toHaveLength(1)
-    expect(serialized.mock.calls.filter(([value]) => value === object.roots[1])).toHaveLength(0)
+    await expect(prepareRoomLiveCharacterSheet(store, room, scope, null)).rejects.toThrow(
+      'Preparation inputs checked.'
+    )
+    vi.spyOn(room, 'contentObjects').mockResolvedValue([
+      { ...object, scope: 'SOURCE', scopeId: uuid(0x806) }
+    ])
+    await expect(prepareRoomLiveCharacterSheet(store, room, scope, null)).rejects.toThrow(
+      'Room content scope is unauthorized.'
+    )
   } finally {
     vi.restoreAllMocks()
     vi.mocked(prepareLiveCharacterSheetFacts).mockReset()
@@ -322,9 +304,7 @@ it('reconciles native play atomically, recovers after eviction and preserves the
   )
   let maximumHitPoints = 7
   let staleBase = false
-  prepareFacts.mockImplementation(async (_input, capture) => {
-    const inputs = await capture({ kind: 'INPUTS' })
-    if (inputs.kind !== 'INPUTS') throw new Error('Missing preparation inputs.')
+  prepareFacts.mockImplementation(async ({ inputs }) => {
     return {
       active: staleBase
         ? {

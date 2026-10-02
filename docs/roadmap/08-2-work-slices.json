@@ -61,7 +61,6 @@
     }
   ],
   "queue": [
-    "A36-S10",
     "A35-S3c",
     "TST-6",
     "TST-0",
@@ -106,7 +105,7 @@
     { "id": "A36-S6", "stream": "A36", "state": "done", "title": "Builder runs in the browser (create and edit); private cache cleared on sign-out", "cases": ["P02"], "refs": [] },
     { "id": "A36-S7", "stream": "A36", "state": "done", "title": "Commit reads only referenced content", "cases": ["P02"], "refs": [] },
     { "id": "A36-S8/S9", "stream": "A36", "state": "done", "title": "Debounced autosave (7.8 KB per save); old server Builder deleted", "cases": ["P01", "P02"], "refs": [] },
-    { "id": "A36-S10", "stream": "A36", "state": "remaining", "title": "Room loads content from snapshots", "cases": ["R06", "V15"], "refs": [] },
+    { "id": "A36-S10", "stream": "A36", "state": "integrating", "title": "Room loads content from snapshots", "cases": ["R06", "V15"], "refs": [] },
     { "id": "A36-F1", "stream": "A36", "state": "remaining", "title": "Builder follow-ups: \"opened elsewhere\" save state, open on the recommended step", "cases": [], "refs": [] },
 
     { "id": "CP-S0", "stream": "CP", "state": "done", "title": "Checkpoint Codex relocation", "cases": [], "refs": [] },

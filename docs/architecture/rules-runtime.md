@@ -201,9 +201,10 @@ paths (ADR 0036 S9 removed the server's `selectors` scope). `character/builderPa
 context into the Builder payload. `characters/builderSnapshotParity.test.ts` proves the snapshot
 readers produce the payload of a pure full-pool evaluation over the publications Convex authorizes.
 
-The `liveSessionCharacterRules` contract shapes the stored Character/Sheet/System/Campaign inputs,
-authorized source indexes and publication DTOs that Worker `nativeCharacterRules` prepares from.
-The room receives them through `room-inputs` on hydration; Convex
+The `liveSessionCharacterRules` contract shapes the Character rules scope and the stored
+Character/Sheet/Campaign inputs that Worker `nativeCharacterRules` prepares from; authored content
+comes from the room's verified content snapshot objects through `createSnapshotReaders` (ADR 0036
+S10). The room receives the inputs through `room-inputs` on hydration; Convex
 `liveSessions/characterRulesCapture` now holds only the assigned-Character and stored-input readers
 `roomInputs` uses (the per-command `character-rules` route was deleted in A35-S6c3). Source access
 remains the Character owner's. Convex imports neither context preparation nor rules evaluation. The

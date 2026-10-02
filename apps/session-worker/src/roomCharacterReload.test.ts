@@ -253,20 +253,15 @@ it.each([
     )
     const inputs = new RoomInputs(store, read, async () => [])
     native.prepare.mockImplementation(
-      async (
-        _input: Parameters<typeof prepareLiveCharacterSheetFacts>[0],
-        capture: Parameters<typeof prepareLiveCharacterSheetFacts>[1]
-      ) => {
-        const captured = await capture({ kind: 'INPUTS' })
-        if (captured.kind !== 'INPUTS') throw new Error('Missing native preparation inputs.')
-        const character = readCharacterRecord(captured.owner)
+      async ({ inputs: stored }: Parameters<typeof prepareLiveCharacterSheetFacts>[0]) => {
+        const character = readCharacterRecord(stored.owner)
         const hitDice = reconcileCharacterHitDice(
           character.intent.classes,
           [authoredClass],
           character.state.hitpoints.hitDice
         )
         return {
-          active: captured.owner,
+          active: stored.owner,
           prepared: {
             character: {
               ...character,

@@ -5,7 +5,7 @@ import type { LiveSessionEncounterRulesInput } from './liveSessionEncounterRules
 export function liveSessionCharacterRulesScope(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   actor: { id: string; sourceId: string }
-): Omit<LiveSessionCharacterRulesInput, 'request'> {
+): LiveSessionCharacterRulesInput {
   return {
     campaignId: scope.campaignId,
     authorityEpoch: scope.authorityEpoch,
