@@ -2,65 +2,70 @@
 
 > The resume point for a fresh session. Read this first, then only the sections it links. Keep it under about 60 lines; rewrite it at every slice boundary.
 >
-> Updated: 2026-10-02 (after the vertical re-cut, D80).
+> Updated: 2026-10-02 (after VS-1).
 
 ## Where we are
 
-- **Branch:** `codex/phase-08-2-convex-cutover`. Codex's source-first batch is WIP commit `cce41580d`. The user's `.agents/` deletions are intentional; leave them unstaged.
-- **Acceptance:** 50/75 cases and 190/277 criteria (`node scripts/acceptanceProgress.mjs`).
-- **Dashboard:** https://claude.ai/artifact/Qcho6LKSBVJtVg2PKv36jv (burn-up, slice board, gates → cases → criteria). It renders `node scripts/acceptanceProgress.mjs --json`, which joins the acceptance ledger, the work-slice registry [08-2-work-slices.json](../roadmap/08-2-work-slices.json) and a burn-up history from the ledger's git log. To update: change slice states in the registry, write the `--json` output to `data.json` in the session scratchpad, and republish it with the dashboard's `index.html` (Artifact `read` the URL, Read the saved page whole, then `read` with `path` for `index.html`).
-- **Slices (D80):** the queue is ten vertical slices, VS-1 to VS-10. Each names the criteria it closes and the older slices it finishes (`includes`). A slice is done when its criteria are READY_FOR_ACCEPTANCE with a focused proof; the slices it includes become done with it. The script refuses an open criterion without exactly one open owner.
+- **Branch:** `codex/phase-08-2-convex-cutover`. The user's `.agents/` deletions are intentional; leave them unstaged.
+- **Acceptance:** 50/75 cases and 190/277 criteria accepted; 59 criteria READY_FOR_ACCEPTANCE (`node scripts/acceptanceProgress.mjs`).
+- **Dashboard:** https://claude.ai/artifact/Qcho6LKSBVJtVg2PKv36jv. It renders `node scripts/acceptanceProgress.mjs --json`, which joins the acceptance ledger, the work-slice registry [08-2-work-slices.json](../roadmap/08-2-work-slices.json) and a burn-up history from git.
+  - To update it, change slice states in the registry and write the `--json` output to `data.json` in the session scratchpad.
+  - Then list the Artifact's files (`scope: files`) and publish with `files: {"data.json": <scratchpad>/data.json}`.
+- **Slices (D80):** a slice is done when its criteria are READY_FOR_ACCEPTANCE with a focused proof. The script treats READY and ACCEPTED as closed.
+  - Active slices may run in parallel only when they close disjoint cases. The script errors when two active slices share a case.
+  - Done slices leave the `queue`.
 - **Slice start:** set the slice `active` in the registry and republish the dashboard before any slice work.
 - **One slice per session.** At the boundary:
   - commit;
   - rewrite this file;
-  - update the registry (the slice and its `includes` to `done`) and republish the dashboard;
-  - stop every background shell and agent this session started;
-  - tell the user it's a good point to `/clear` and give the resume line: "Continue Phase 8.2 from docs/handoffs/phase-08-2-now.md."
-- **Working rhythm:** code first, then a compile gate (`local-validation/codex-batch/gate.ps1 -Name <gateN>`; gate33 is the last used; the gate takes the validation lock itself; `vt.ps1 -Files` takes one comma-joined string; `wt.ps1 -Globs` matches only `apps/session-worker/src`, so run `test/` suites with the worker's own vitest config). Then run the focused proofs for the slice's criteria. Full suites run once, in VS-8.
+  - set the slice and its `includes` to `done` and remove it from the queue;
+  - republish the dashboard;
+  - stop every background shell and agent;
+  - give the user the `/clear` line: "Continue Phase 8.2 from docs/handoffs/phase-08-2-now.md."
+- **Working rhythm:** code first, then the compile gate.
+  - The gate is `local-validation/codex-batch/gate.ps1 -Name <gateN>`; gate39 is the last one used. It takes the validation lock itself and runs the build, the local codegen push and the typechecks, web included.
+  - Then run the focused proofs: worker `test/` suites use the worker's own vitest config. Full suites run once, in VS-8.
+- **Docker:** agents may now start Docker Desktop and the `phase82-convex-local-linux` container ([AGENTS.md](../../AGENTS.md) Windows Process Execution). After an unclean shutdown the backend takes about 3 minutes to answer `/version`.
 
 ## Last slice
 
-**Vertical re-cut** (D80; user-approved 2026-10-02). It made three changes:
-- The registry gained the `VS` stream and the `criteria`/`includes` fields, and the script validates them.
-- The script's `--json` output now includes `history`.
-- The dashboard was rebuilt.
+**VS-1 Scene history** is done: V05.1–5, V07.1 and V14.2 are READY, and it finishes A35-S3a and S3c0–S3c3. Commits `dcb2815bd` to `1cbe6f668`.
+- S3c2: Scene history is packed into SCENE-scope receipt ledgers. S3c3: the room builds its Scene cache from its own store, and the Convex hydrate route is deleted.
+- The idle alarm retries every 30 s (`ROOM_LIMITS.alarmRetryMs`) after a failed checkpoint or close.
+- Room-path proofs cover drain gated on the final checkpoint (both sides), stale same-Scene moves, and two Campaign rooms committing concurrently.
+- Dev scripts wait for the Scene checkpoint via `awaitSceneCheckpoint`, and the lifecycle script covers Scene ledger deletion again.
+- A Convex test pins a hydration page's row and byte budget. The fanout vision tests run through the room (D33).
+- V07.1's browser movement journeys re-run on the final source under R08 and V15. The user agreed on 2026-10-02 that this does not hold V07.1 open.
+- Also done: VS-7 (D75 SSR policy). `acceptanceProgress.mjs` gained the READY-as-closed and disjoint-parallel rules.
 
-R05.2 and R09.1 were reworded to carry D75's checks, with no denominator change.
+## Next slice
 
-## Current slice
+**VS-2 Movement and passage through the room** (see the registry for its criteria and includes). Carried in:
+- Fix the detached unassigned maintained-effect owner refusal (`movementMaintenanceCharacters`).
+- The Drafts movement dev flow still reads Convex without waiting for a checkpoint. Give it an observed write version to poll with `awaitSceneCheckpoint`.
 
-**VS-1 Scene history** (closes V05.1–5, V07.1, V14.2; finishes A35-S3a, S3c0, S3c1, S3c2, S3c3). Do S3c2 first, then S3c3. Read D77, D79 and D80 in [the decisions](phase-08-2-decisions.md) and the D77 mentions in `docs/architecture/live-sessions.md` first.
+## Later slices
 
-- **S3c2:** Scene-scoped ledgers with indexed headers. Room hydration, retention and Campaign deletion run on them.
-- **S3c3:** the room builds its Scene cache from its store (D78).
-- **Hot path:** add a focused hydration row and byte budget test.
-- **V14.2 re-proof (room path):** a stale same-Scene move is refused, and concurrent writes in two Campaigns' rooms both commit.
-- **Carried from S3c1:**
-  - Dev scripts read Convex right after room commits, before any checkpoint (`developmentSceneAuthoring` `verifyState`, version assertions).
-  - The lifecycle script no longer covers Campaign deletion of Scene rows.
-  - Room authority may still be held when deletion runs.
-- **Carried from S3c0:**
-  - Each inline edit scans every `ROOM_SCENE_DEFINITION_ENTITY` record.
-  - Expired fog staging is swept only on the next begin.
-  - No test covers the 512 KiB staging cap.
-
-## Next slices
-
-Notes carried into later slices:
-- **VS-2 (movement and passage):** fix the detached unassigned maintained-effect owner refusal (`movementMaintenanceCharacters`).
 - **VS-3 (Encounter decisions):**
-  - Fix the tied-initiative pending-snapshot base rewrite (`encounterWriteSets` 100-actor budget).
-  - No direct test covers private and table enemy rolls taking the room path.
+  - Fix the tied-initiative pending-snapshot base rewrite (`encounterWriteSets`, the 100-actor budget).
+  - No direct test covers private and table enemy rolls on the room path.
 - **VS-6 (Builder budgets):** run `contentSnapshots/migrations:rebuild` after starting the local R2 fixture (port 8026).
 - **VS-8 (V15 and full suites):**
-  - Fix the date-dependent worker reds: `roomCheckpoints` "trims a journal page…" and `roomPrivateRolls` "keeps twenty private rolls…".
-  - Fix the unused import in `automaticMovementResponse.test.ts` and the unused parameter in `uninterruptedMovement.test.ts`; rename the misnamed `nativeCaptureCache.ts`.
-  - Remove the unused `readChecksum` in the Encounter capture protocol.
-  - The local Docker Convex database starts in about 10 minutes, and a fresh volume needs the user to re-enter env secrets.
-- **VS-7 and VS-10:** VS-7 is code only. The edge rules and staging deploy are in VS-10, which needs approval.
+  - The date-dependent worker reds: `roomCheckpoints` "trims a journal page…" and `roomPrivateRolls` "keeps twenty private rolls…".
+  - `src/roomInputs.test.ts`: 2 Character-refresh journal tests fail ("expected [ 1, 2 ] to deeply equal [ 3 ]"). They already failed at `dcb2815bd`.
+  - The worker suite logs "uncaught exception … RoomCheckpoints.#flush" from fire-and-forget paths when checkpoint failures are injected. Check that production handles those rejections.
+  - The Cutover V15 workload (`developmentEncounterCutover.ts`) reads Convex without waiting for a checkpoint.
+  - Run the Scene authoring and lifecycle dev scripts; they are changed but not yet run.
+  - The final hydration page (fog save chunks; 264 documents in the test) has no row budget.
+  - Expired fog staging is swept only on the next begin.
+  - Small cleanups:
+    - the unused import in `automaticMovementResponse.test.ts`;
+    - the unused parameter in `uninterruptedMovement.test.ts`;
+    - rename `nativeCaptureCache.ts`;
+    - remove the unused `readChecksum` in the Encounter capture protocol.
+- **VS-10:** edge rules and the staging deploy; needs approval.
 
-**RUL-9** (pre-beta rules audit) is done: [rul-9-rules-audit.md](rul-9-rules-audit.md). Its 11 slices are Phase 8.3 scope (ADR 0034) and gate closed beta. The crowdfunding plan lives in [future-enhancements.md](../roadmap/future-enhancements.md#crowdfunding-campaign-user-direction-2026-09-28).
+**RUL-9** (pre-beta rules audit) is done: [rul-9-rules-audit.md](rul-9-rules-audit.md). Its slices are Phase 8.3 scope (ADR 0034) and gate closed beta.
 
 ## Open questions
 
