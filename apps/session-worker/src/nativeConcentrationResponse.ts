@@ -21,19 +21,16 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { rebuildNativeLiveDeferredCleaving } from './nativeEncounterCleaving.js'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeCaptureCache.js'
 
 /** Plans one admitted concentration response without publishing the child or touching the Run. */
 export async function planNativeLiveConcentrationResponse(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
   scope: Omit<LiveSessionEncounterRulesInput, 'request' | 'concentrationResponse'>,
   response: ResolveRuleOccurrenceInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
-    captures?: LiveCaptureReads
+    captures: LiveCaptureReads
   }
 ) {
   const initial = liveSessionEncounterRulesInputSchema.parse({
@@ -51,16 +48,9 @@ export async function planNativeLiveConcentrationResponse(
   let revisions: LiveSessionEncounterConcentrationCommitInput['revisions'] = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-    const read = await captureEncounterRules(
-      environment,
-      accessToken,
-      input,
-      revisions,
-      executionOptions.captures
-    )
-    const result = read.response
+    const result = await executionOptions.captures.encounterRules(input)
     if (result.kind !== request.kind) throw new Error('Concentration capture kind mismatch.')
-    revisions = mergeNativeRulesRevisions(revisions, read.revisions)
+    revisions = mergeNativeRulesRevisions(revisions, result.revisions)
     dependencies.push({ request: input.request, readChecksum: result.readChecksum })
     return result
   }
@@ -101,8 +91,6 @@ export async function planNativeLiveConcentrationResponse(
     const existing = projectedTargets.get(actor.id)
     if (existing) return existing
     const prepared = await prepareNativeLiveMovementTarget({
-      environment,
-      accessToken,
       scope: initial,
       state,
       actor,

@@ -15,27 +15,18 @@ import {
   type SceneUndoPrepareResult
 } from '@artificer-toolkit/schema/api/sceneUndo'
 import {
-  sceneCommandResultDtoSchema,
-  type SceneCommandInputDto,
-  type SceneCommandResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
-import {
   sceneStoredLiveCommandSchema,
   sceneStoredUndoCommandSchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
-import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { action, type MutationCtx } from '../_generated/server'
 import type { Id } from '../_generated/dataModel'
 import { publishSceneUndo } from '@artificer-toolkit/encounter-persistence/sceneUndoPublication'
 import { internalQuery } from '../lib/queries'
 import { internalMutation, mutation } from '../lib/mutations'
 import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
-import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
-import {
-  parseGeometryCommand,
-  parseGeometrySave
-} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
-import { parseLiveEntity, readLiveScene, readLiveSceneForUser } from './liveDocuments'
+import { parseGeometryCommand } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
+import { readLiveScene } from './liveDocuments'
 import { readPresentedVisionScene } from './sessionVisionDocuments'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 
@@ -332,200 +323,6 @@ async function finishUndo(
       stagedRequired
     }
   )
-}
-
-type ResolvedUndoCommand = Extract<SceneCommandInputDto, { type: 'UNDO_LAST_SCENE_MOVE' }>
-
-function compactUndoResult(result: SceneUndoCommandResult): SceneCommandResultDto {
-  return sceneCommandResultDtoSchema.parse({
-    commandId: result.commandId,
-    delta: result.delta,
-    occurrence: result.occurrence,
-    replayed: result.replayed,
-    sceneId: result.sceneId,
-    version: result.version
-  })
-}
-
-export async function publishResolvedUndoCommand(
-  ctx: MutationCtx,
-  args: {
-    actorUserId: string
-    actorRole: 'OWNER' | 'PLAYER'
-    campaignId: string
-    authorityScope: import('../campaigns/authority').CampaignInternalScope
-    command: ResolvedUndoCommand
-    presentation: { expectedPresentationVersion: number }
-    expectedResult: SceneCommandResultDto
-  }
-): Promise<SceneCommandResultDto> {
-  const request = normalize({ input: args.command, presentation: args.presentation })
-  const input = request.input
-  if (args.actorRole !== 'OWNER')
-    throw new Error('Only the committed Campaign owner may undo a Scene move.')
-  const { header, campaign, live, liveRow } = await readLiveSceneForUser(
-    ctx,
-    input.sceneId,
-    'MEMBER',
-    args.actorUserId,
-    args.authorityScope
-  )
-  if (campaign.id !== args.campaignId)
-    throw new Error('Live Session Scene publication Campaign identity mismatch.')
-
-  const inputChecksum = checksumCanonicalJson(input)
-  const priorRow = await ctx.db
-    .query('sceneLiveCommands')
-    .withIndex('by_sceneId_commandId', (q) =>
-      q.eq('sceneId', header.id).eq('commandId', input.commandId)
-    )
-    .unique()
-  if (priorRow) {
-    if (priorRow.encoding !== 'UNDO') throw new Error('Scene command ID was already used.')
-    const prior = parseUndoCommand(stored(priorRow), header.version)
-    if (prior.inputChecksum !== inputChecksum || prior.actorUserId !== args.actorUserId)
-      throw new Error('Scene command ID was already used.')
-    const storedResult = compactUndoResult(prior.result)
-    if (!equalCanonicalJson(storedResult, args.expectedResult))
-      throw new Error('Live Session publication Scene result mismatch.')
-    return storedResult
-  }
-  if (header.version !== input.expectedSceneVersion)
-    throw new Error('Live Session publication Scene version is stale.')
-
-  let cursor: string | null = null
-  let target: ReturnType<typeof parseGeometryCommand> | null = null
-  while (!target) {
-    const candidates = await ctx.db
-      .query('sceneLiveCommands')
-      .withIndex('by_sceneId_type_version', (q) =>
-        q
-          .eq('sceneId', header.id)
-          .eq('input.type', 'MOVE_SCENE_TOKEN')
-          .lt('result.version', header.version + 1)
-      )
-      .order('desc')
-      .paginate({ numItems: undoSearchPageSize, cursor })
-    for (const candidate of candidates.page) {
-      const move = parseGeometryCommand(candidate, header.version)
-      const undone = await ctx.db
-        .query('sceneLiveCommands')
-        .withIndex('by_sceneId_undoneCommandId', (q) =>
-          q.eq('sceneId', header.id).eq('undoneCommandId', move.commandId)
-        )
-        .unique()
-      if (undone) {
-        if (undone.encoding !== 'UNDO')
-          throw new Error('Stored Scene undo command is inconsistent.')
-        parseUndoCommand(stored(undone), header.version)
-        continue
-      }
-      target = move
-      break
-    }
-    if (target) break
-    if (candidates.isDone) throw new Error('There is no committed token move to undo.')
-    if (candidates.continueCursor === cursor)
-      throw new Error('Scene undo history pagination did not advance.')
-    cursor = candidates.continueCursor
-  }
-  if (
-    target.input.type !== 'MOVE_SCENE_TOKEN' ||
-    target.input.expectedEncounterVersion !== null ||
-    target.result.delta?.kind !== 'TOKEN_MOVED' ||
-    target.result.fogPatches.length !== 0 ||
-    target.result.occurrence !== null
-  )
-    throw new Error('The latest token move is not a standalone live Session move.')
-
-  const targetInput = target.input
-
-  const parentRow = await ctx.db
-    .query('sceneGeometrySaves')
-    .withIndex('by_sceneId_commandId', (q) =>
-      q.eq('sceneId', header.id).eq('commandId', target.commandId)
-    )
-    .unique()
-  if (!parentRow) throw new Error('Stored Scene geometry save is inconsistent.')
-  const parent = parseGeometrySave(parentRow)
-  if (
-    parent.status !== 'PUBLISHED' ||
-    parent.inputChecksum !== target.inputChecksum ||
-    parent.actorUserId !== target.actorUserId ||
-    parent.input.type !== 'MOVE_SCENE_TOKEN' ||
-    parent.fogSaves.length !== 0 ||
-    parent.movementResolution !== undefined ||
-    parent.spatialPreparationJson !== undefined ||
-    parent.spatialPreparationChecksum !== undefined ||
-    parent.sessionVision !== undefined ||
-    parent.characterRevisions !== undefined
-  )
-    throw new Error('Stored Scene geometry save is inconsistent.')
-
-  const tokenRow = await ctx.db
-    .query('sceneLiveEntities')
-    .withIndex('by_sceneId_collection_entityId', (q) =>
-      q.eq('sceneId', header.id).eq('collection', 'tokens').eq('entityId', targetInput.tokenId)
-    )
-    .unique()
-  if (!tokenRow) throw new Error('The latest token move can no longer be safely undone.')
-  const token = parseLiveEntity(tokenRow, header.version)
-  if (token.version !== target.result.version || token.value?.collection !== 'tokens')
-    throw new Error('The latest token move can no longer be safely undone.')
-
-  const state = advanceLiveState(header, live)
-  const position = targetInput.path[0]!
-  const value = { ...token.value, entity: { ...token.value.entity, position } }
-  const restoredToken = {
-    sceneId: header.id,
-    collection: token.collection,
-    entityId: token.entityId,
-    value,
-    doorState: token.doorState,
-    ordinal: token.ordinal,
-    version: state.version
-  }
-  const expectedResult = sceneCommandResultDtoSchema.parse({
-    sceneId: header.id,
-    commandId: input.commandId,
-    version: state.version,
-    replayed: false,
-    occurrence: null,
-    delta: {
-      kind: 'TOKEN_MOVE_UNDONE',
-      tokenId: targetInput.tokenId,
-      position,
-      undoneCommandId: target.commandId
-    }
-  })
-  if (!equalCanonicalJson(expectedResult, args.expectedResult))
-    throw new Error('Live Session publication Scene result mismatch.')
-  const result = sceneUndoCommandResultSchema.parse({
-    ...expectedResult,
-    restoredFogOwners: []
-  })
-
-  await ctx.db.replace(tokenRow._id, {
-    ...restoredToken,
-    checksum: checksumCanonicalJson(restoredToken)
-  })
-  if (liveRow) await ctx.db.replace(liveRow._id, state)
-  else await ctx.db.insert('sceneLiveStates', state)
-  await ctx.db.insert(
-    'sceneLiveCommands',
-    sceneStoredUndoCommandSchema.parse({
-      encoding: 'UNDO',
-      sceneId: header.id,
-      commandId: input.commandId,
-      actorUserId: args.actorUserId,
-      input,
-      inputChecksum,
-      result,
-      resultChecksum: checksumCanonicalJson(result),
-      undoneCommandId: target.commandId
-    })
-  )
-  return expectedResult
 }
 
 export const finish = internalMutation({

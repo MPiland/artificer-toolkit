@@ -2518,7 +2518,7 @@
               "text": "Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › commits a player's door change on a fog-on Scene through the room, refusing a locked door (V03.4) (a player opens a closed door on a presented fog-on Scene Convex-first with staged fog and sequence 1; opening a LOCKED door is refused at publication and the sequence stays 1)",
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts › commits a player's door change on a fog-on Scene through the room, refusing a locked door (V03.4) (a player opens a closed door on a presented fog-on Scene Convex-first with staged fog and sequence 1; opening a LOCKED door is refused at publication and the sequence stays 1)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets $role change a visible $from door to $to: $outcome (player CLOSED→OPEN and OPEN→CLOSED plan EXTERNAL; player CLOSED→LOCKED and LOCKED→OPEN are FORBIDDEN; the GM locks and unlocks)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a player door change for $case",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets a player open a door in a fog-OFF Scene even with a kept unexplored layer",
@@ -2751,7 +2751,7 @@
               "text": "A player commits moves of tokens they control outside Encounters, and unbound tokens keep Scene token control (ADR 0034).",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › commits a player move of a controlled unbound token through the room, refusing others (V07.4) (a player moves the Scene token they control on a presented Scene with no Encounter, Convex-first at sequence 1; their move of a token they do not control is refused at publication and the sequence stays 1)",
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts › commits a player move of a controlled unbound token through the room, refusing others (V07.4) (a player moves the Scene token they control on a presented Scene with no Encounter, Convex-first at sequence 1; their move of a token they do not control is refused at publication and the sequence stays 1)",
                 "apps/apis/convex/scenes/standaloneMovement.test.ts › moves immutable uppercase token and controller identities through canonical hydration",
                 "apps/session-worker/test/nativeSceneTokenControl.test.ts › keeps Scene token control for unbound tokens and refuses locked or hidden ones",
                 "apps/web/src/domains/campaigns/vtt/CampaignVttStage.model.test.ts › uses the same token-control rule for a player and the GM",
@@ -2765,8 +2765,8 @@
               "proof": [
                 "apps/apis/convex/encounters/playerControl.test.ts › moves an Encounter-bound token only for the bound actor controllers",
                 "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › moves an Encounter-bound token for its actor controllers, not its Scene token controllers",
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a player staging a move of a token whose actor they do not control is refused NOT_ACTOR_CONTROLLER with nothing staged; replaces the pre-D52 separate-begin test)",
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)",
+                "(deleted in A35-S6c2) apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a player staging a move of a token whose actor they do not control is refused NOT_ACTOR_CONTROLLER with nothing staged; replaces the pre-D52 separate-begin test)",
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts › counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)",
                 "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › shows a player their own actor's turn movement against its Character walking speed (V07.5) (the player who controls the current actor reads only their entry, used 5 against the stored Character walkingSpeed; the GM reads every actor)",
                 "apps/apis/convex/encounters/activeReads.test.ts › reads the active projection and pending decision together with existing visibility and membership rules (the GM reads every actor's used/budget; a player who controls no actor reads an empty list)",
                 "apps/apis/convex/encounters/basicActions.test.ts › Dash spends the action and adds the speed to this turn’s budget; a second one warns first (D45: the displayed budget doubles after Dash)",
@@ -3015,7 +3015,7 @@
                 "apps/apis/convex/encounters/playerControl.test.ts › lets the assigned player end their Character turn but not the GM-only commands",
                 "apps/apis/convex/encounters/actionCommands.test.ts › lets a player resolve only an actor the GM granted them and binds its replay to that player",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › lets a player end the turn only for an actor they control",
-                "impl: apps/apis/convex/encounters/actionAdmission.ts, apps/apis/convex/liveSessions/encounterTurnAdmission.ts"
+                "impl: apps/apis/convex/encounters/actionAdmission.ts, apps/session-worker/src/roomEncounterTurnCapture.ts (turn admission in the room; the Convex encounterTurnAdmission was deleted in A35-S6c3)"
               ]
             },
             {
@@ -3365,7 +3365,7 @@
               "proof": [
                 "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: since S4-e (D43) a no-room bound move is refused SCENE_NOT_PRESENTED with the Scene header and Run unchanged, and two clients' concurrent distinct-Scene writes both commit and replay exactly; the Convex-native bound-move race it used to run was deleted with that path)",
                 "apps/apis/convex/scenes/standaloneMovement.test.ts › rejects a competing staged move after the first publication changes the Scene (two staged moves of the same token: the first publishes, the second is refused as changed, one Scene command and version 1)",
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a room bound move with a stale Scene, presentation or Encounter version is refused 409 with nothing staged)",
+                "(deleted in A35-S6c2) apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a room bound move with a stale Scene, presentation or Encounter version is refused 409 with nothing staged)",
                 "note: the room is the single writer of the presented Scene and runs its commands one at a time (R06.4, D41), so same-Scene bound moves are ordered in the room and a stale one is refused at the Convex fence; the reaction-response race is V14.4"
               ]
             },
@@ -3383,7 +3383,7 @@
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/scenes/movementResolution.test.ts › races every reaction response to one winner and one stale loser, spending the reaction once (each response step, through the terminal outcome, has one winner and one recognized stale loser; reaction ruleUsage is 1; the loser leaves no command, receipt, occurrence or Scene trace; one command receipt per committed Run version; since S4-d the responses race through the room, a retried winner or loser is refused as stale, and those retries and the root replay leave every stored table unchanged; since S4-e the root move is also planned in the room (planStagedMovementInRoom) and the timeline re-parses every stored receipt)",
-                "impl: apps/session-worker/src/nativeRoomEncounterCommand.ts (MOVEMENT route), apps/session-worker/src/nativeExternalSceneCommit.ts, apps/apis/convex/liveSessions/encounterMovementCommit.ts, apps/apis/convex/scenes/movementResolutionPublication.ts"
+                "impl: apps/session-worker/src/nativeExternalSceneCommit.ts, apps/session-worker/src/roomSceneGeometryCommand.ts, packages/encounter-persistence/src/spatialPendingPublication.ts, packages/encounter-persistence/src/spatialTerminalPublication.ts (A35-S6c3 deleted the Convex movement commit and publication modules)"
               ]
             },
             {
@@ -3394,9 +3394,9 @@
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/encounters/liveCharacterState.test.ts › keeps Encounter commands and projections current after Sheet edits made after Run creation",
                 "apps/apis/convex/encounters/liveCharacterState.test.ts › shows a changed Character maximum without blocking Encounter commands on it",
-                "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan",
+                "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan (deleted in A35-S6c3)",
                 "apps/apis/convex/encounters/runs.test.ts › atomically snapshots assigned Characters and enemies, and replays without source reads (Character actor stores no currentHitPoints or sourceRevision)",
-                "impl: apps/apis/convex/encounters/documents.ts, apps/apis/convex/liveSessions/encounterRulesCapture.ts",
+                "impl: apps/apis/convex/encounters/documents.ts, apps/session-worker/src/roomEncounterTurnCapture.ts (the Convex encounterRulesCapture was deleted in A35-S6c3)",
                 "missing: room-held play state, with a Builder save and a room HP change both surviving and a level-up clamping HP (ADR 0035 plan S7)"
               ]
             }
@@ -3623,13 +3623,13 @@
               "status": "IN_PROGRESS",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
-                "apps/session-worker/src/nativeRoomEncounterCommand.test.ts › sends only the GM tools Convex records to it and plans or rolls every other command in the room",
-                "apps/apis/convex/liveSessions/encounterRoute.test.ts › classifies the pending declaration, and Convex runs only the listed GM commands",
-                "apps/apis/convex/encounters/commands.test.ts › names the dice a room roll draws and refuses draws that do not match them",
+                "apps/session-worker/src/nativeRoomEncounterCommand.test.ts › sends only the GM tools Convex records to it and plans or rolls every other command in the room (deleted in A35-S6c3)",
+                "apps/apis/convex/liveSessions/encounterRoute.test.ts › classifies the pending declaration, and Convex runs only the listed GM commands (deleted in A35-S6c3)",
+                "apps/apis/convex/encounters/commands.test.ts › names the dice a room roll draws and refuses draws that do not match them (deleted in A35-S6c3)",
                 "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › refuses a bound move with no room live and still publishes an unbound move natively (D43) (SCENE_NOT_PRESENTED with the Scene unchanged; an unbound token still stages natively)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a movement decision off the presented Scene without staging it (D42)",
                 "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: a no-room bound move is refused SCENE_NOT_PRESENTED with and without a presentation context, leaving the Scene header and Run unchanged)",
-                "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan",
+                "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan (deleted in A35-S6c3)",
                 "apps/apis/convex/liveSessions/encounterActorCap.test.ts › starts and advances a turn in a Run at the actor cap through the room",
                 "structure: every Encounter command enters through the room (encounters/commands:execute is internal); the room plans actions, basic actions, turns, Legendary windows, Concentration, Cleaving, Disarm and movement and draws every dice command's dice (D41); liveSessions/encounterCommand:execute records only CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES (GM tools with no dice) with a throwing random source; S4-e (8b7459d6d, D43/D44) deleted scenes/spatialPreparation, encounters/spatialMovement, movementConcentration and the Convex movement perception/reaction code, and Convex no longer re-runs movement rules at commit; the only Convex random source left is lib/rollRandom.ts, used by free-form personal and Campaign rolls (rolls.ts, campaigns/rolls.ts) and Character Sheet rolls (rollDocuments.ts, R06.3)",
                 "impl: apps/apis/convex/scenes/geometryStaging.ts (beginSceneGeometry: SCENE_NOT_PRESENTED without a live room), apps/apis/convex/scenes/geometryDocuments.ts (assertStandaloneMovement refuses an unbound claim for a token bound in an ACTIVE Run), apps/apis/convex/liveSessions/encounterCommand.ts, packages/schema/src/api/liveSessionEncounterCommand.ts (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES), apps/session-worker/src/nativeRoomEncounterCommand.ts",
@@ -3639,7 +3639,7 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › retries the exact pending checkpoint after eviction before an idle room releases its authority",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › publishes a local token-control revocation before an evicted room reloads Convex grants (A35-S6b)",
                 "apps/apis/convex/liveSessions/roomConvexParity.test.ts › 9 scenarios (GM tools, START with Assisted initiative evidence, turns, RESOLVE_ACTION fixed/ATTACK/SAVE, basic actions, private enemy rolls, prompted d20 resolve and void, REVERT, REORDER, REINFORCE, REMOVE_ACTOR, COMPLETE, Disarm, refusals): room-native and Convex-first commits yield identical results, Encounter documents and play state from the same start (A35-S5, D77; deleted with the comparators in A35-S6c; Concentration, Cleaving, creature equipment and Scene commands not covered)",
-                "apps/session-worker/src/nativeRoomEncounterCommand.test.ts › commits every non-decision command in room SQLite (D78) (A35-S6c1: every ACTIVE-Run Encounter command is room-local; the room no longer forwards any command to Convex)",
+                "apps/session-worker/src/nativeRoomEncounterCommand.test.ts › commits every non-decision command in room SQLite (D78) (A35-S6c1: every ACTIVE-Run Encounter command is room-local; the room no longer forwards any command to Convex) (deleted in A35-S6c3)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a GM evidence roll with its table card and one D72 TABLE charge, in the room (D78) (A35-S6c1)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a TABLE enemy roll with its table card and one D72 TABLE charge, in the room (D78) (A35-S6c1)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a decision no room planner owns as Convex did, without a write or a Convex call (D78) (A35-S6c1)",
@@ -3648,7 +3648,11 @@
                 "apps/apis/tests/fixtures/liveSessionWorker.ts (A35-S6c2): Encounter-bound movement and its decisions commit in room SQLite through the room's own geometry command (planMovementInRoom, planMovementDecisionInRoom, executeInRoom) and reach Convex only by checkpoint; the movement suites under apps/apis/convex/scenes, encounters and liveSessions run on it, and their Convex-first commit-mechanics tests were deleted",
                 "apps/apis/convex/encounters/occurrenceVoid.test.ts › declines movement reaction choices, keeping a paused move fenced until it settles (A35-S6c2: a GM skip of a first-version movement decision checkpoints; the checkpoint key accepts occurrenceVersion 0)",
                 "apps/apis/convex/scenes/automaticMovementResponse.test.ts (A35-S6c2): a fresh answer to a settled movement decision is refused VERSION_STALE (D78) with nothing written",
-                "missing: the remaining Convex-first Encounter, Scene and movement code removed (A35-S6c3 deletion, including three unbound-token externalCommit tests that still use prepareExternalSceneCommit), and room-owned rule evaluation re-proved on the final source (R08)"
+                "structure (A35-S6c3): the per-command Convex path is deleted. LIVE_SESSION_ROUTE_PATHS (packages/schema/src/api/liveSessionRoutePaths.ts) keeps only capture, hydrate, room authorization, room inputs, bootstrap, activate, storage recovery, checkpoint (stage, part, commit), present, begin-drain and release; every Encounter command, decision, dice, movement, binding, geometry, capture, publish and external-commit route and its Convex module is gone, and the room supplies every planner read from its own SQLite (LiveCaptureReads). The S5 parity test, the Convex-first harness helpers, the Cleaving planner variant and the Convex-first turn tests (Concentration, Recharge, active effects, Legendary Action, user-approved 2026-10-02) were deleted; the journal drops the retired durable_external_commit table on open",
+                "apps/session-worker/test/nativeDurableCommandJournal.test.ts (A35-S6c3): opening a journal drops the retired external-commit table and its chunks",
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts (A35-S6c3): the unbound fog-deriving move, door change and controlled-token move commit in room SQLite through the room's geometry command and reach Convex only by checkpoint (commitSceneInRoom)",
+                "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › refuses a bound move with no room live and still publishes an unbound move natively (D43) (rechecked in A35-S6c3: still proves its title on the room-only path)",
+                "missing: room-owned rule evaluation re-proved on the final source (R08)"
               ]
             },
             {
@@ -3657,19 +3661,20 @@
               "status": "IN_PROGRESS",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
-                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › completes or abandons a record left by a restart when the next member admits (D27)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › completes or abandons a record left by a restart when the next member admits (D27) (deleted in A35-S6c3 with the external-commit record)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › plans bound moves and moves on a bound Scene through room geometry (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › binds an Encounter to the presented Scene in SQLite before acknowledgement, GM only (D47) (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › rolls back native Encounter binding and controls when late SQLite receipt insertion fails (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › holds moves, door changes and undo on a Scene waiting on a movement decision without a write (D26) (A35-S6b: the hold reads the PENDING occurrence from room SQLite)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a GM void of a held movement decision natively without a write (D26, D52) (A35-S6b)",
                 "impl: apps/session-worker/src/nativeLiveSessionRoom.ts, apps/session-worker/src/roomSceneBinding.ts, apps/session-worker/src/roomSceneGeometryCommand.ts, apps/session-worker/src/roomSceneUndo.ts, packages/encounter-persistence/src/occurrenceOwner.ts (readMovementDecisionPending)",
-                "apps/apis/convex/liveSessions/externalCommit.test.ts › settles a bound move, its answer and a GM skip through the room, naming who settled each (D26, D39) (A35-S6c2)",
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts › settles a bound move, its answer and a GM skip through the room, naming who settled each (D26, D39) (A35-S6c2)",
                 "apps/apis/convex/liveSessions/encounterMovementAdmission.test.ts (A35-S6c2): a controlling player moves their bound token through the room; a non-controller, a locked token, a stale start position and a stale Scene version are refused",
                 "apps/apis/convex/liveSessions/encounterMovementPending.test.ts, encounterMovementDecisions.test.ts and encounterMovementSealedResponses.test.ts (A35-S6c2): pauses, answers and sealed responses commit in the room; Convex is unchanged until the room's checkpoint publishes",
                 "apps/apis/convex/encounters/actorTokenBindings.test.ts › refuses Convex binding writes while the live table holds the Run, and binds in the room (A35-S6c2: actor-token binding is a room command on the presented Scene; encounters/actorTokenBindings:execute refuses a held Run; a retry replays)",
                 "impl (A35-S6c2): packages/encounter-persistence/src/actorTokenBindingPersistence.ts, apps/session-worker/src/roomEncounterCommands.ts (binding dispatch, SCENE_NOT_PRESENTED off the presented Scene), apps/apis/convex/encounters/actorTokenBindings.ts (isRoomHeldRun fence), apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx (sendEncounterCommand)",
-                "missing: the Convex external-commit stage, encounterMovement.stage and fast-only undo deleted (A35-S6c3)"
+                "structure (A35-S6c3): the Convex external-commit stage and resolve, encounterMovement stage and commit, scene-geometry and encounter-binding commits and fast-only undo are deleted; Encounter-bound movement and its decisions have no path except the room's geometry command",
+                "missing: the movement journeys re-proved on the final source (R08, V15)"
               ]
             },
             {

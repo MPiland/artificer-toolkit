@@ -20,11 +20,7 @@ export const ROOM_LIMITS = {
   authorizationLeaseMs: 240_000,
   checkpointDeadlineMs: 120_000,
   /** A background preview refresh starts at most once per input in this window. */
-  previewRetryMs: 5_000,
-  /** Rules captures reused across Encounter commands; see `nativeCaptureCache.ts`. */
-  captureCacheMaxEntries: 512,
-  captureCacheMaxBytes: 16 * 1024 * 1024,
-  captureCacheTtlMs: 60_000
+  previewRetryMs: 5_000
 } as const
 
 /**

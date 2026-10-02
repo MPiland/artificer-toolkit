@@ -41,12 +41,8 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
-import {
-  callLiveSessionRoute,
-  LiveSessionDomainRejectionError,
-  type NativeLiveSessionEnvironment
-} from './liveSessionRoutes.js'
+import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import {
@@ -81,16 +77,14 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
-/** Computes the action in the DO; only a later atomic Convex commit may publish this plan. */
+/** Computes the action in the DO; the room commits this plan in its own transaction. */
 export async function planNativeLiveEncounterAction(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   commandInput: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
-    captures?: LiveCaptureReads
+    captures: LiveCaptureReads
   }
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
@@ -113,16 +107,9 @@ export async function planNativeLiveEncounterAction(
   let revisions: LiveSessionRulesRevisions = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-    const read = await captureEncounterRules(
-      environment,
-      accessToken,
-      input,
-      revisions,
-      executionOptions.captures
-    )
-    const { response } = read
+    const response = await executionOptions.captures.encounterRules(input)
     if (response.kind !== request.kind) throw new Error('Encounter rules capture kind mismatch.')
-    revisions = mergeNativeRulesRevisions(revisions, read.revisions)
+    revisions = mergeNativeRulesRevisions(revisions, response.revisions)
     dependencies.push({ request: input.request, readChecksum: response.readChecksum })
     return response
   }
@@ -194,8 +181,6 @@ export async function planNativeLiveEncounterAction(
 
   async function loadTarget(actor: EncounterRunActorState) {
     const preparedTarget = await prepareNativeLiveMovementTarget({
-      environment,
-      accessToken,
       scope: initial,
       state,
       actor,
@@ -570,22 +555,7 @@ export async function planNativeLiveEncounterAction(
   }
 }
 
-/** Persists the sealed pending root before a room may acknowledge an assisted action. */
-export async function commitNativeLiveEncounterActionPending(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
-  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
-  plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PENDING' }>
-) {
-  return callLiveSessionRoute(
-    environment,
-    accessToken,
-    'encounterActionPending',
-    buildNativeLiveEncounterActionPendingInput(scope, plan)
-  )
-}
-
-/** Both persistence owners receive the same sealed pending contract. */
+/** The sealed pending contract the room persists before acknowledging an assisted action. */
 export function buildNativeLiveEncounterActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PENDING' }>
@@ -619,22 +589,7 @@ export function buildNativeLiveEncounterActionPendingInput(
   })
 }
 
-/** Publishes the completed root and its dependent records in one authenticated transaction. */
-export async function commitNativeLiveEncounterAction(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
-  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
-  plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PLANNED' }>
-) {
-  return callLiveSessionRoute(
-    environment,
-    accessToken,
-    'encounterActionCommit',
-    buildNativeLiveEncounterActionCommitInput(scope, plan)
-  )
-}
-
-/** Both persistence owners receive the same completed action and child contracts. */
+/** The completed action and child contracts the room persists in one transaction. */
 export function buildNativeLiveEncounterActionCommitInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PLANNED' }>

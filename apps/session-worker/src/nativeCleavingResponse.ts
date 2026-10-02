@@ -29,10 +29,7 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import {
-  LiveSessionDomainRejectionError,
-  type NativeLiveSessionEnvironment
-} from './liveSessionRoutes.js'
+import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeCaptureCache.js'
 import { readNativeLiveCleavingStep } from './nativeEncounterCleaving.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
@@ -46,14 +43,12 @@ import {
  * Concentration checks run, and an overkill offers the next target. Convex only re-applies and records.
  */
 export async function planNativeLiveCleavingResponse(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   response: ResolveRuleOccurrenceInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
-    captures?: LiveCaptureReads
+    captures: LiveCaptureReads
   }
 ) {
   const request = { kind: 'CLEAVING_RESPONSE' as const, response }
@@ -68,7 +63,7 @@ export async function planNativeLiveCleavingResponse(
     response.expectedVersion !== initial.expectedVersion
   )
     throw new Error('Live Cleaving response scope mismatch.')
-  const reads = liveEncounterCaptures(environment, accessToken, initial, executionOptions.captures)
+  const reads = liveEncounterCaptures(initial, executionOptions.captures)
   const { capture } = reads
   const admission = await capture(request)
   if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
@@ -96,8 +91,6 @@ export async function planNativeLiveCleavingResponse(
     const existing = loaded.get(actor.id)
     if (existing) return existing
     const prepared = await prepareNativeLiveMovementTarget({
-      environment,
-      accessToken,
       scope: initial,
       state,
       actor,

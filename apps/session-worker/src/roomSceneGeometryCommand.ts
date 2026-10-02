@@ -31,7 +31,6 @@ import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-ru
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   prepareStagedSceneCommit,
@@ -64,9 +63,7 @@ export async function executeRoomSceneGeometry(input: {
   userId: string
   command: ExternalSceneCommand
   context: ExternalSceneContext
-  environment: NativeLiveSessionEnvironment
   runtime: RulesRuntimeService
-  captures: LiveCaptureReads
   random(maximum: number): number
 }) {
   const { store, transaction, inputs, authorization, campaignId, epoch, userId, command, context } =
@@ -122,7 +119,6 @@ export async function executeRoomSceneGeometry(input: {
         }
       : null
   const captures: LiveCaptureReads = {
-    ...input.captures,
     encounterRules: (scope) =>
       readRoomEncounterTurnCapture(
         ctx,
@@ -170,8 +166,6 @@ export async function executeRoomSceneGeometry(input: {
     }
   }
   const prepared = await prepareStagedSceneCommit({
-    environment: input.environment,
-    accessToken: '',
     actor,
     command,
     context,

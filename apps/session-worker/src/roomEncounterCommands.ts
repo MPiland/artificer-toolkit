@@ -44,9 +44,7 @@ import {
   recordRuleOccurrenceVoid
 } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import { executeEncounterActorTokenBinding } from '@artificer-toolkit/encounter-persistence/actorTokenBindingPersistence'
 import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
@@ -72,11 +70,7 @@ export async function executeRoomEncounterCommand(input: {
   /** The room's presented Scene; actor-token bindings change only its tokens. */
   presentedSceneId?: string | null
   random(maximum: number): number
-  turnExecution?: {
-    environment: NativeLiveSessionEnvironment
-    runtime: RulesRuntimeService
-    captures: LiveCaptureReads
-  }
+  turnExecution?: { runtime: RulesRuntimeService }
 }) {
   const { store, transaction, inputs, authorization, campaignId, epoch, userId, command } = input
   await inputs.encounter(command.encounterId.toLowerCase(), transaction)

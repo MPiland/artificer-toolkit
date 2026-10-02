@@ -10,8 +10,6 @@ import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
@@ -24,12 +22,9 @@ export async function executeRoomEncounterBasicAction(input: {
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   observed: LiveSessionRulesRevisions
   command: UseEncounterBasicActionInputDto
-  environment: NativeLiveSessionEnvironment
-  captures: LiveCaptureReads
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
-  const plan = await planNativeLiveBasicAction(input.environment, '', scope, input.command, {
-    ...input.captures,
+  const plan = await planNativeLiveBasicAction(scope, input.command, {
     encounterRules: (request) => readRoomEncounterTurnCapture(ctx, inputs, transaction, request,
       observed.filter((revision) => revision.scope !== 'CHARACTER'), {
         readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),

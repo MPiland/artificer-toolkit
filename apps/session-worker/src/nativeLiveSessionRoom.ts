@@ -77,7 +77,6 @@ import {
   LiveSessionRouteError
 } from './liveSessionRoutes.js'
 import { encounterCommandRefusal, sceneNotPresentedRejection } from './nativeRoomEncounterCommand.js'
-import { LiveCaptureCache, type LiveCaptureReads } from './nativeCaptureCache.js'
 import type { ExternalSceneCommand, ExternalSceneContext } from './nativeExternalSceneCommit.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
@@ -292,7 +291,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   /** Players with an Encounter command queued or running; see `roomLimits.ts`. */
   readonly #playerEncounterCommands = new Map<string, number>()
   #cache: TransientCache | null = null
-  readonly #captureCache = new LiveCaptureCache()
   #cacheGeneration = 0
   #presentationChanging = false
   #commandChain: Promise<void> = Promise.resolve()
@@ -843,11 +841,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           current = null
           this.#cache = null
         }
-        // Convex may already hold an unsettled Convex-first commit at the next sequence.
-        if (current?.authorityEpoch === value.authorityEpoch) {
-          await this.#settleExternalCommit()
-          current = this.#journal.readCurrent()
-        }
         if (!current) {
           if (bootstrap.persistedSequence !== 0) {
             await this.#recoverStorage(value.authorityEpoch)
@@ -1086,17 +1079,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (this.#liveAdmission(socket)?.generation !== admission.generation) return
     if (!admitsRoomMember(authorization, admission))
       return this.#closeSocket(socket, 'Campaign access ended.')
-    try {
-      await this.#settleExternalCommit()
-    } catch {
-      this.#rejectCommand(
-        socket,
-        commandId,
-        'UNAVAILABLE',
-        'An earlier table change is still saving; try again.'
-      )
-      return
-    }
     if (this.#liveAdmission(socket)?.generation !== admission.generation) return
     current = this.#journal.readCurrent()
     if (
@@ -1263,14 +1245,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (plan.kind === 'EXTERNAL') {
       try {
-        await this.#commitRoomGeometry(
-          socket,
-          admission,
-          value,
-          command,
-          fingerprint,
-          this.#captureCache.reads()
-        )
+        await this.#commitRoomGeometry(socket, admission, value, command, fingerprint)
       } catch (error) {
         this.#rejectExternal(socket, commandId, error, correction())
       }
@@ -1486,8 +1461,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           admission,
           value,
           command,
-          fingerprint,
-          this.#captureCache.reads()
+          fingerprint
         )
         if (this.#liveAdmission(socket)?.generation === admission.generation)
           send(socket, {
@@ -1973,11 +1947,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             command.type === 'VOID_RULE_OCCURRENCE' ||
             command.type === 'USE_BASIC_ACTION'
               ? {
-                  turnExecution: {
-                    environment: this.env,
-                    runtime: await this.#liveRulesRuntime(),
-                    captures: this.#captureCache.reads()
-                  }
+                  turnExecution: { runtime: await this.#liveRulesRuntime() }
                 }
               : {})
           })
@@ -2103,8 +2073,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     admission: Admission,
     value: SocketAttachment,
     command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
-    fingerprint: string,
-    captures: LiveCaptureReads | undefined
+    fingerprint: string
   ): Promise<EncounterCommandResultDto> {
     if (this.#cache?.synchronized && this.#cache.encounterId !== command.encounterId.toLowerCase())
       throw sceneNotPresentedRejection()
@@ -2113,8 +2082,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       admission,
       value,
       command,
-      fingerprint,
-      captures
+      fingerprint
     )
     if (!encounter) throw new Error('A movement decision commit returned no Encounter result.')
     return encounter
@@ -2239,8 +2207,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     admission: Admission,
     value: SocketAttachment,
     command: ExternalSceneCommand,
-    fingerprint: string,
-    captures: LiveCaptureReads | undefined
+    fingerprint: string
   ) {
     if (this.#aggregateNeedsReload) await this.#flushOutbox()
     await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
@@ -2283,9 +2250,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           userId: admission.userId,
           command,
           context,
-          environment: this.env,
           runtime: await this.#liveRulesRuntime(),
-          captures: captures ?? this.#captureCache.reads(),
           random: secureRandomInt
         })
         // The fog patches are written by their owners; the acknowledged DTO carries none.
@@ -2620,37 +2585,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       !!cached?.scene &&
       isExternalSceneCommand(parsed.data, cached.scene, cached.encounterId)
     )
-  }
-
-  /**
-   * Settles a Convex-first commit whose outcome the room did not see (a timeout or a restart):
-   * Convex reports whether it committed. A committed one is applied; members never received it,
-   * so the Scene cache is dropped and every socket resynchronizes. An abandoned one is forgotten.
-   */
-  async #settleExternalCommit(): Promise<void> {
-    const record = this.#journal.readExternalCommit()
-    const current = this.#journal.readCurrent()
-    const campaignId = this.#roomCampaignId()
-    if (!record || !current || !campaignId) return
-    const { outcome } = await callLiveSessionRoute(this.env, null, 'externalCommitResolve', {
-      campaignId,
-      epoch: current.authorityEpoch,
-      subject: record.subject,
-      expectedSequence: record.expectedSequence,
-      expectedStateChecksum: record.expectedStateChecksum,
-      nextStateChecksum: record.nextStateChecksum
-    })
-    if (outcome === 'ABANDONED') {
-      this.#journal.abandonExternalCommit(record.commandId)
-      return
-    }
-    this.#journal.completeExternalCommit({
-      authorityEpoch: current.authorityEpoch,
-      commandId: record.commandId
-    })
-    this.#aggregateNeedsReload = true
-    this.#bumpCacheGeneration()
-    for (const socket of this.ctx.getWebSockets()) this.#challenge(socket)
   }
 
   /**
@@ -3513,7 +3447,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#movementIndexes.clear()
     try {
       await this.#flushOutbox()
-      await this.#settleExternalCommit()
       const current = this.#journal.readCurrent()
       if (
         current &&
@@ -3547,7 +3480,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // commands, which Convex fences only by DO_ACTIVE authority) finish before the drain fence.
     const closed = this.#closeSockets({ type: 'CLOSE_ROOM' })
     await this.#commandChain
-    await this.#settleExternalCommit()
     const draining = this.#journal.readCurrent() ?? current
     const fence = {
       authorityEpoch: draining.authorityEpoch,
@@ -3622,13 +3554,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /**
-   * Cached Scene state and rules captures belong to one generation; a bump discards both, and the
-   * bound Encounter's actor control reloads before previews use it.
+   * Cached Scene state belongs to one generation; a bump discards it, and the bound Encounter's
+   * actor control reloads before previews use it.
    */
   #bumpCacheGeneration(): void {
     this.#cacheGeneration += 1
     this.#cache = null
-    this.#captureCache.clear()
     this.#authorization.invalidatePlay()
   }
 

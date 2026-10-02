@@ -73,9 +73,9 @@ import {
   readNativeLiveMaintenanceCharacter,
   type NativeLiveMovementMaintenanceProjection
 } from './nativeEncounterMaintenance.js'
-import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
+import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 
-type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
+type CharacterFacts = PreparedLiveCharacterSheet
 type CharacterRow = Parameters<typeof readNativeLiveMaintenanceCharacter>[0]
 type ContinuationInput = MovementContinuationInput<
   CharacterFacts,

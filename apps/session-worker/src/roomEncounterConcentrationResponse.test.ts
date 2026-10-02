@@ -77,7 +77,6 @@ import { RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { executeRoomEncounterCommand } from './roomEncounterCommands.js'
 import { createNativeLiveRulesRuntime } from './nativeRulesRuntime.js'
-import { LiveCaptureCache } from './nativeCaptureCache.js'
 import { ROOM_PRIVATE_ROLL } from './roomPrivateRolls.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
@@ -666,11 +665,6 @@ it('atomically resolves a failed native Concentration save, retains the private 
     if (!loaded.inputs) throw new Error('Missing native Character inputs.')
     return sheetFacts(loaded.inputs.owner)
   })
-  const captures = new LiveCaptureCache()
-  const environment = {
-    LIVE_SESSION_WORKER_SECRET: 'native-concentration-fixture-worker-secret',
-    CONVEX_SITE_URL: 'https://native-concentration.invalid'
-  }
   const command: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
     encounterId,
@@ -700,7 +694,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
       random: () => {
         throw new Error('Entered dice must not reroll.')
       },
-      turnExecution: { environment, runtime, captures: captures.reads() }
+      turnExecution: { runtime }
     })
   }
   function evidence(value = store) {
@@ -802,7 +796,6 @@ it('atomically resolves a failed native Concentration save, retains the private 
     expect(after.sequence).toBe(1)
     store = new RoomEncounterStore(storage)
     inputs = new RoomInputs(store, read, async () => [])
-    captures.clear()
     expect(store.corruption).toBeNull()
     expect(evidence()).toEqual(after)
     const retry = await store.transact(resolve)

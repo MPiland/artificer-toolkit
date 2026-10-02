@@ -52,23 +52,13 @@ import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runti
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
-  insertActiveLiveAuthority,
   replayInRoom,
   RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
-import type { LiveSessionEncounterRollInput } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 
 // Content the room loads must be publishable, so Creatures carry the seed's ATTACK rolls.
 const airElemental = srdCreatureRecord(rawAirElemental.id)
 
-const rollDice = makeFunctionReference<'query', LiveSessionEncounterRollInput, { dice: number[] }>(
-  'liveSessions/encounterRoll:dice'
-)
-const rollCommit = makeFunctionReference<
-  'mutation',
-  LiveSessionEncounterRollInput & { draws: number[] },
-  EncounterCommandResultDto
->('liveSessions/encounterRoll:commit')
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
@@ -977,11 +967,9 @@ describe('native Encounter Run commands', () => {
     ).toEqual(beforeExhausted)
   }, 30000)
 
-  it('names the dice a room roll draws and refuses draws that do not match them', async () => {
-    const { t, owner, run } = await setup({ manual: true, resource: true })
+  it('rolls an actor initiative in the room from its own dice and replays the recorded roll', async () => {
+    const { owner, run } = await setup({ manual: true, resource: true })
     const actor = run.actors[0]!
-    const featureId = airElemental.features?.[1]?.id
-    if (!featureId) throw new Error('Missing Air Elemental Whirlwind feature.')
     await executeInRoom(owner.caller, {
       command: {
         type: 'SET_INITIATIVE',
@@ -1001,66 +989,16 @@ describe('native Encounter Run commands', () => {
         expectedVersion: 1
       }
     })
-    const epoch = crypto.randomUUID()
-    await t.run((ctx) =>
-      insertActiveLiveAuthority(ctx, {
-        campaignId: run.campaignId,
-        epoch,
-        createdAt: new Date().toISOString()
-      })
-    )
-    const scope = {
-      campaignId: run.campaignId,
-      authorityEpoch: epoch,
-      expectedUserId: owner.userId,
-      expectedRole: 'OWNER' as const
-    }
-    const initiative = {
+    const command = {
       type: 'ROLL_ACTOR_INITIATIVE' as const,
       encounterId: run.id,
       commandId: crypto.randomUUID(),
       expectedVersion: 2,
       actorId: actor.id
     }
-    expect(await owner.caller.query(rollDice, { ...scope, command: initiative })).toEqual({
-      dice: [20]
-    })
-    // The private gust rolls with advantage: two d20s.
-    expect(
-      await owner.caller.query(rollDice, {
-        ...scope,
-        command: {
-          type: 'ROLL_ENEMY_ACTION',
-          encounterId: run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 2,
-          actorId: actor.id,
-          featureId,
-          rollDefinitionId: 'whirlwind-private',
-          visibility: 'PRIVATE'
-        }
-      })
-    ).toEqual({ dice: [20, 20] })
-    const runs = () => t.run((ctx) => ctx.db.query('encounterRuns').collect())
-    const before = await runs()
-    for (const draws of [[], [20], [3, 4]])
-      await expect(
-        owner.caller.mutation(rollCommit, { ...scope, command: initiative, draws })
-      ).rejects.toThrow('The roll changed; roll again.')
-    expect(await runs()).toEqual(before)
-    const rolled = await owner.caller.mutation(rollCommit, {
-      ...scope,
-      command: initiative,
-      draws: [13]
-    })
+    const rolled = await executeInRoom(owner.caller, { command }, () => 13)
     expect(rolled.roll?.evidence.terms[0]?.rolls).toEqual([14])
-    // A retry names no dice and replays the recorded roll.
-    expect(await owner.caller.query(rollDice, { ...scope, command: initiative })).toEqual({
-      dice: []
-    })
-    expect(
-      await owner.caller.mutation(rollCommit, { ...scope, command: initiative, draws: [] })
-    ).toEqual(rolled)
+    expect(await replayInRoom(owner.caller, { command })).toEqual(rolled)
   })
 
   it('rejects enemy actions before activation, for Character actors, and for missing definitions', async () => {

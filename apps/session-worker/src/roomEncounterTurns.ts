@@ -17,8 +17,6 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 import { planNativeLiveEncounterTurn } from './nativeEncounterTurn.js'
@@ -46,9 +44,7 @@ export async function executeRoomEncounterTurn(input: {
     EncounterCommandInputDto,
     { type: 'START' | 'ADVANCE_TURN' | 'RESOLVE_RULE_OCCURRENCE' }
   >
-  environment: NativeLiveSessionEnvironment
   runtime: RulesRuntimeService
-  captures: LiveCaptureReads
   random(maximum: number): number
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
@@ -57,11 +53,10 @@ export async function executeRoomEncounterTurn(input: {
     readSceneEntities: (page: Parameters<typeof readRoomSceneEntities>[1]) =>
       readRoomSceneEntities(transaction, page)
   }
-  const plan = await planNativeLiveEncounterTurn(input.environment, '', scope, input.command, {
+  const plan = await planNativeLiveEncounterTurn(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
     captures: {
-      ...input.captures,
       encounterRules: (request) =>
         readRoomEncounterTurnCapture(
           ctx,

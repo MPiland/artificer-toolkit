@@ -581,8 +581,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - Each tied-initiative order choice rewrites the whole pending-snapshot base (about 300 KB at
       100 actors) instead of a delta; red: `encounterWriteSets` 100-actor budget (17 MB against
       2 MB). Trace `writePendingSnapshot` in the room transaction.
-  - **S6c3:** delete the per-command Convex path (routes, commit modules, Scene cache hydrate,
-    external commit, the S5 parity test), then docs and acceptance.
+  - **S6c3:** delete the per-command Convex path (routes, commit modules, external commit, the S5
+    parity test), then docs and acceptance.
+  - **S6c3 rulings (2026-10-02):**
+    - The Scene cache hydrate moves to A35-S3c (user, 2026-10-02). The room's `capture` and
+      `hydrate` routes load the presented Scene and its vision on admission, resync, presentation
+      and after an actor removal; they are not per-command. S3c builds the Scene cache from the
+      room store when it repacks Scene hydration, so that code is rewritten once.
+    - The Convex-first external-commit record and its `externalCommitResolve` drain are deleted
+      outright (integration owner): no production code writes the record, and pre-launch there is
+      no deployed room storage to drain.
+    - The room-supplied rules and Character reads become required; the Convex `encounterRules`,
+      `encounterBundle` and `characterRules` capture routes go with the per-command path.
   - Alternative rejected: keeping the roll routes as an exception would leave R06.1 incomplete.
 - **D77 (2026-10-01): A35-S5 becomes a differential test; A35-S3c follows A35-S6c. Decided by
   Claude; the user delegated slice order on 2026-10-01.**

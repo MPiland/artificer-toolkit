@@ -13,9 +13,9 @@ import {
   readNativeLiveMaintenanceCharacter,
   type NativeLiveMovementMaintenanceProjection
 } from './nativeEncounterMaintenance.js'
-import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
+import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 
-type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
+type CharacterFacts = PreparedLiveCharacterSheet
 
 /** Both spatial damage interruption and save preparation observe the same projected slot. */
 export async function readNativeLiveMovementConcentrationState(input: {

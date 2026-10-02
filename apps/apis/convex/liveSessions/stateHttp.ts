@@ -20,7 +20,6 @@ const activate = makeFunctionReference<'mutation', JsonObject, unknown>(
 const recoverStorage = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/authority:recoverStorage'
 )
-const publish = makeFunctionReference<'mutation', JsonObject, unknown>('liveSessions/state:publish')
 const checkpoint = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/checkpoint:publish'
 )
@@ -48,75 +47,6 @@ const roomAuthorization = makeFunctionReference<'query', JsonObject, unknown>(
 const roomInputs = makeFunctionReference<'query', LiveRoomInputsInput, LiveRoomInputsResponse>(
   'liveSessions/roomInputs:read'
 )
-const characterRules = makeFunctionReference<'query', JsonObject, unknown>(
-  'liveSessions/characterRulesCapture:capture'
-)
-const encounterRules = makeFunctionReference<'query', JsonObject, unknown>(
-  'liveSessions/encounterRulesCapture:capture'
-)
-const encounterBundle = makeFunctionReference<'query', JsonObject, unknown>(
-  'liveSessions/encounterCaptureBundle:capture'
-)
-const encounterMovementStage = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterMovement:stage'
-)
-const encounterMovementCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterMovement:commit'
-)
-const sceneGeometryCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterMovement:commitScene'
-)
-const encounterBindingCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterBinding:commit'
-)
-const externalCommitResolve = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/externalCommit:resolve'
-)
-const encounterActionPending = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterAction:commitPending'
-)
-const encounterTurnPending = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterTurn:commitPending'
-)
-const encounterTurnCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterTurnCommit:commit'
-)
-const encounterActionCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterActionCommit:commit'
-)
-const encounterConcentrationCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterConcentrationCommit:commit'
-)
-const encounterCleavingCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterCleavingCommit:commit'
-)
-const encounterDisarmPending = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterDisarm:commitPending'
-)
-const encounterDisarmCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterDisarm:commit'
-)
-const encounterBasicActionCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterBasicAction:commit'
-)
-const encounterVoidPrepare = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterVoid:prepare'
-)
-const encounterVoidRecord = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterVoid:record'
-)
-const encounterRollDice = makeFunctionReference<'query', JsonObject, unknown>(
-  'liveSessions/encounterRoll:dice'
-)
-const encounterRollCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterRoll:commit'
-)
-const encounterRoute = makeFunctionReference<'query', JsonObject, unknown>(
-  'liveSessions/encounterRoute:route'
-)
-const encounterCommand = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/encounterCommand:execute'
-)
 const jsonObjectSchema = z.record(z.string(), z.json())
 type JsonObject = z.infer<typeof jsonObjectSchema>
 const noStore = { 'Cache-Control': 'no-store' }
@@ -140,121 +70,6 @@ export const roomInputsHttp = liveStateHttp(
       liveRoomInputsInputSchema.parse(input)
     )
 )
-export const characterRulesHttp = liveStateHttp(
-  true,
-  'Live Session Character inputs unavailable.',
-  (ctx, input) => ctx.runQuery(characterRules, input)
-)
-export const encounterRulesHttp = liveStateHttp(
-  true,
-  'Live Session Encounter inputs unavailable.',
-  (ctx, input) => ctx.runQuery(encounterRules, input)
-)
-export const encounterBundleHttp = liveStateHttp(
-  true,
-  'Live Session Encounter inputs unavailable.',
-  (ctx, input) => ctx.runQuery(encounterBundle, input)
-)
-export const encounterMovementStageHttp = liveStateHttp(
-  true,
-  'Live Session movement preparation unavailable.',
-  (ctx, input) => ctx.runMutation(encounterMovementStage, input)
-)
-export const encounterMovementCommitHttp = liveStateHttp(
-  true,
-  'Live Session movement commit unavailable.',
-  (ctx, input) => ctx.runMutation(encounterMovementCommit, input)
-)
-export const sceneGeometryCommitHttp = liveStateHttp(
-  true,
-  'Live Session Scene commit unavailable.',
-  (ctx, input) => ctx.runMutation(sceneGeometryCommit, input)
-)
-export const encounterBindingCommitHttp = liveStateHttp(
-  true,
-  'Live Session Encounter binding unavailable.',
-  (ctx, input) => ctx.runMutation(encounterBindingCommit, input)
-)
-export const externalCommitResolveHttp = liveStateHttp(
-  false,
-  'Live Session commit resolution unavailable.',
-  (ctx, input) => ctx.runMutation(externalCommitResolve, input)
-)
-export const encounterActionPendingHttp = liveStateHttp(
-  true,
-  'Live Session pending action unavailable.',
-  (ctx, input) => ctx.runMutation(encounterActionPending, input)
-)
-export const encounterTurnPendingHttp = liveStateHttp(
-  true,
-  'Live Session pending turn unavailable.',
-  (ctx, input) => ctx.runMutation(encounterTurnPending, input)
-)
-export const encounterActionCommitHttp = liveStateHttp(
-  true,
-  'Live Session action commit unavailable.',
-  (ctx, input) => ctx.runMutation(encounterActionCommit, input)
-)
-export const encounterTurnCommitHttp = liveStateHttp(
-  true,
-  'Live Session turn commit unavailable.',
-  (ctx, input) => ctx.runMutation(encounterTurnCommit, input)
-)
-export const encounterConcentrationCommitHttp = liveStateHttp(
-  true,
-  'Live Session concentration commit unavailable.',
-  (ctx, input) => ctx.runMutation(encounterConcentrationCommit, input)
-)
-export const encounterCleavingCommitHttp = liveStateHttp(
-  true,
-  'Live Session Cleaving commit unavailable.',
-  (ctx, input) => ctx.runMutation(encounterCleavingCommit, input)
-)
-export const encounterDisarmPendingHttp = liveStateHttp(
-  true,
-  'Live Session pending Disarm unavailable.',
-  (ctx, input) => ctx.runMutation(encounterDisarmPending, input)
-)
-export const encounterDisarmCommitHttp = liveStateHttp(
-  true,
-  'Live Session Disarm commit unavailable.',
-  (ctx, input) => ctx.runMutation(encounterDisarmCommit, input)
-)
-export const encounterBasicActionCommitHttp = liveStateHttp(
-  true,
-  'Live Session basic action commit unavailable.',
-  (ctx, input) => ctx.runMutation(encounterBasicActionCommit, input)
-)
-export const encounterVoidPrepareHttp = liveStateHttp(
-  true,
-  'Live Session Encounter void unavailable.',
-  (ctx, input) => ctx.runMutation(encounterVoidPrepare, input)
-)
-export const encounterVoidRecordHttp = liveStateHttp(
-  true,
-  'Live Session Encounter void unavailable.',
-  (ctx, input) => ctx.runMutation(encounterVoidRecord, input)
-)
-export const encounterRollDiceHttp = liveStateHttp(
-  true,
-  'Live Session Encounter roll unavailable.',
-  (ctx, input) => ctx.runQuery(encounterRollDice, input)
-)
-export const encounterRollCommitHttp = liveStateHttp(
-  true,
-  'Live Session Encounter roll unavailable.',
-  (ctx, input) => ctx.runMutation(encounterRollCommit, input)
-)
-export const encounterRouteHttp = liveStateHttp(
-  true,
-  'Live Session Encounter route unavailable.',
-  (ctx, input) => ctx.runQuery(encounterRoute, input)
-)
-export const encounterCommandHttp = liveStateHttp(
-  true,
-  'Live Session Encounter command unavailable.',
-  (ctx, input) => ctx.runMutation(encounterCommand, input)
-)
 export const activateHttp = liveStateHttp(
   false,
   'Live Session activation unavailable.',
@@ -264,11 +79,6 @@ export const recoverStorageHttp = liveStateHttp(
   false,
   'Live Session storage recovery unavailable.',
   (ctx, input) => ctx.runMutation(recoverStorage, input)
-)
-export const publishHttp = liveStateHttp(
-  false,
-  'Live Session publication unavailable.',
-  (ctx, input) => ctx.runMutation(publish, input)
 )
 export const checkpointHttp = liveStateHttp(
   false,

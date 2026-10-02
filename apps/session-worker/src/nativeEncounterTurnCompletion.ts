@@ -21,9 +21,9 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { readNativeLiveMaintenanceSlot } from './nativeEncounterMaintenance.js'
-import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
+import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 
-type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
+type CharacterFacts = PreparedLiveCharacterSheet
 
 /** Projects the same post-turn state that the terminal transaction will expose to concentration. */
 export async function prepareNativeLiveTurnCompletion(input: {

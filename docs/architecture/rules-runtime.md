@@ -201,14 +201,14 @@ paths (ADR 0036 S9 removed the server's `selectors` scope). `character/builderPa
 context into the Builder payload. `characters/builderSnapshotParity.test.ts` proves the snapshot
 readers produce the payload of a pure full-pool evaluation over the publications Convex authorizes.
 
-The private `liveSessionCharacterRules` contract now supplies stored Character/Sheet/System/Campaign
-inputs, authorized source indexes and paged publication DTOs to Worker `nativeCharacterRules`.
-Convex `liveSessions/characterRulesCapture` requires the authenticated GM, current DO epoch, open
-Session and exact assignment and returns the current Character stream version under the CHARACTER
-revision fence; source access remains the Character owner's.
-It imports neither context preparation nor rules evaluation. The Worker reuses the same context,
-active Builder catalogue and Sheet preparation functions, without serializing database contexts or Maps.
-This preparation function is implemented separately from the still-incomplete live command/commit route.
+The `liveSessionCharacterRules` contract shapes the stored Character/Sheet/System/Campaign inputs,
+authorized source indexes and publication DTOs that Worker `nativeCharacterRules` prepares from.
+The room receives them through `room-inputs` on hydration; Convex
+`liveSessions/characterRulesCapture` now holds only the assigned-Character and stored-input readers
+`roomInputs` uses (the per-command `character-rules` route was deleted in A35-S6c3). Source access
+remains the Character owner's. Convex imports neither context preparation nor rules evaluation. The
+Worker reuses the same context, active Builder catalogue and Sheet preparation functions, without
+serializing database contexts or Maps.
 
 Every capture returns a read checksum. The eventual commit must validate the corresponding authorized
 current identities and complete read ranges in its transaction, together with the command's other

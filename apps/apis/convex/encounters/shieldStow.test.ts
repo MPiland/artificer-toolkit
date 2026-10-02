@@ -2,7 +2,7 @@ import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readReceiptHeader } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -11,7 +11,6 @@ import type {
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -23,16 +22,9 @@ import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import {
-  commitNativeLiveEncounterAction,
-  planNativeLiveEncounterAction
-} from '../../../session-worker/src/nativeEncounterRules'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
-  insertActiveLiveAuthority,
-  stubLiveSessionFetch,
-  workerEnvironment,
   executeInRoom,
   expectRedactedRoomRefusal,
   replayInRoom
@@ -52,19 +44,6 @@ import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persiste
 import { encounterReadTransaction } from './encounterPorts'
 import { loadMovementTargets } from './movementTargets'
 
-const workerSecret = 'private-shield-stow-test-secret-at-least-32-bytes'
-const planningOptions = {
-  runtime: createPlatformRulesRuntime({
-    continuationIntegrityKey: new Uint8Array(32).fill(1),
-    definitions: {
-      async requireCurrent() {
-        throw new Error('Definitions are resolved by sealed action graphs.')
-      }
-    }
-  }),
-  random: (maximum: number) => maximum - 1
-}
-
 /** Unlimited range keeps the fixture free of Scene positions; grips and properties are unchanged. */
 function withUnlimitedRange(weapon: typeof greatsword) {
   return {
@@ -78,11 +57,6 @@ function withUnlimitedRange(weapon: typeof greatsword) {
     }))
   }
 }
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-  vi.unstubAllEnvs()
-})
 
 /** A Character carrying a weapon (a two-handed greatsword by default) and a shield, first in initiative. */
 async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquipped = false } = {}) {
@@ -393,57 +367,12 @@ describe('shield stow on two-handed attacks', () => {
     expect((await base.characterRow())?.play.streamVersion).toBe(after!.play.streamVersion)
   }, 60000)
 
-  it('plans the stow in the room and commits it once through the live action commit', async () => {
+  it('commits the stow once and the checkpointed projection matches the room result', async () => {
     const base = await setup()
-    const authorityEpoch = crypto.randomUUID()
-    await base.t.run((ctx) =>
-      insertActiveLiveAuthority(ctx, {
-        campaignId: base.campaign.id,
-        epoch: authorityEpoch,
-        createdAt: base.campaign.createdAt
-      })
-    )
-    vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-    const environment = workerEnvironment(workerSecret)
-    stubLiveSessionFetch((pathname, init) => base.owner.caller.fetch(pathname, init))
-    const scope = {
-      campaignId: base.campaign.id,
-      authorityEpoch,
-      expectedUserId: base.owner.userId,
-      expectedRole: 'OWNER' as const,
-      encounterId: base.run.id,
-      expectedVersion: base.state.version
-    }
-    await expect(
-      planNativeLiveEncounterAction(
-        environment,
-        'fixture-access-token',
-        scope,
-        base.command(null),
-        planningOptions
-      )
-    ).rejects.toThrow('confirm it first')
-    const command = base.command(accept(base.shieldItemId))
-    const plan = await planNativeLiveEncounterAction(
-      environment,
-      'fixture-access-token',
-      scope,
-      command,
-      planningOptions
-    )
-    if (plan.kind !== 'PLANNED') throw new Error('Expected a completed shield stow plan.')
-    // The room's own post-action facts already reflect the stow before Convex commits it.
-    expect(
-      plan.settlement.projectedTargets.get(base.actor.id)?.effectiveRulePolicyOutput?.derivedStats
-        .armorClass.effective
-    ).toBe(12)
     const before = await base.characterRow()
-    const committed = await commitNativeLiveEncounterAction(
-      environment,
-      'fixture-access-token',
-      scope,
-      plan
-    )
+    const result = await executeInRoom(base.owner.caller, {
+      command: base.command(accept(base.shieldItemId))
+    })
     const storedProjection = await base.t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRuns')
@@ -451,35 +380,10 @@ describe('shield stow on two-handed attacks', () => {
         .unique()
       return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(row!))
     })
-    expect(storedProjection).toEqual(committed.projection)
-    expect(
-      await commitNativeLiveEncounterAction(environment, 'fixture-access-token', scope, plan)
-    ).toEqual(committed)
+    expect(storedProjection).toEqual(result.projection)
     const after = await base.characterRow()
     expect(after?.play.streamVersion).toBe(before!.play.streamVersion + 1)
-    expect(readCharacterRecord(after!).state.equipment.equipped).not.toContain(base.shieldItemId)
     expect(await base.armorClass()).toBe(12)
-    const receipt = await base.t.run((ctx) =>
-      ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_campaignId_commandId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('commandId', command.commandId)
-        )
-        .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
-    )
-    const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt!.resultJson))
-    expect(stored).toEqual(plan.storedExecution)
-    expect(
-      stored.status === 'COMPLETE' &&
-        stored.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-        ? stored.applicationOutputs.sourceItemUseStateTransition
-        : null
-    ).toMatchObject({
-      itemInstanceId: base.shieldItemId,
-      beforeStreamVersion: before!.play.streamVersion,
-      afterStreamVersion: after!.play.streamVersion
-    })
   }, 60000)
 })
 

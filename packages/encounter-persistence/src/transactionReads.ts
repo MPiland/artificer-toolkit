@@ -1,7 +1,6 @@
 type Step = { method: 'withIndex' | 'order'; args: unknown[]; key: unknown[] }
 
 const terminals = new Set<PropertyKey>(['unique', 'first', 'collect', 'take', 'paginate'])
-const writes = new Set<PropertyKey>(['insert', 'patch', 'replace', 'delete'])
 
 /** Serializes read arguments; `undefined` stays distinct from `null`, as it is in index bounds. */
 function readKey(parts: unknown[]): string {
@@ -43,18 +42,15 @@ function deepFreeze<T>(value: T): T {
   return value
 }
 
-/**
- * One memoized transaction's derivations by content identity: by derivation, then by identity.
- * `share` is the query memo's mode, where documents and derived values are frozen and shared.
- */
-type DerivationScope = { share: boolean; byIdentity: Map<unknown, Map<string, unknown>> }
+/** One memoized transaction's derivations by content identity: by derivation, then by identity. */
+type DerivationScope = Map<unknown, Map<string, unknown>>
 /** The transaction of each document a memo served, and of each value derived from one. */
 const scopes = new WeakMap<object, DerivationScope>()
 /** The transaction whose derivation is running, for the values it builds before returning them. */
 let deriving: DerivationScope | undefined
 const derivations = new WeakMap<object, Map<unknown, unknown>>()
-/** Every memoized reader's transaction; wrapping one again returns it rather than a second memo. */
-const readerScopes = new WeakMap<object, DerivationScope>()
+/** Every memoized reader; wrapping one again returns it rather than a second memo. */
+const memoizedReaders = new WeakSet<object>()
 
 /** The stored documents in a read result: one document, a page, or an array. */
 function resultDocuments(value: unknown): object[] {
@@ -65,83 +61,56 @@ function resultDocuments(value: unknown): object[] {
   return []
 }
 
-/** Each private copy a mutation memo or derivation handed out, keyed to the value it copies. */
-const copySources = new WeakMap<object, object>()
-
-/** A private copy of `value`; it and each document in it derive from what they copy. */
-function privateCopy<T>(value: T): T {
-  const copy = structuredClone(value)
-  if (typeof copy === 'object' && copy !== null) copySources.set(copy, value as object)
-  const sources = resultDocuments(value)
-  resultDocuments(copy).forEach((document, index) => copySources.set(document, sources[index]!))
-  return copy
-}
-
 /**
- * A pure derivation (parse, checksum verification) of a stored document, or of a value an earlier
- * derivation returned. For a document a query memo served, it runs once per transaction and its
- * deeply frozen result is shared, so callers must not mutate it. For a mutation memo's private copy
- * it runs once per stored document and each call returns a private copy. Any other value derives
- * on every call, unless an enclosing derivation built it. `derive` must be a stable module-level
- * function that never mutates its input, since it keys the cache and runs on the stored value.
+ * A pure derivation (parse, checksum verification) of a document a query memo served, or of a
+ * value an earlier derivation returned. It runs once per transaction and its deeply frozen result
+ * is shared, so callers must not mutate it. Any other value derives on every call, unless an
+ * enclosing derivation built it. `derive` must be a stable module-level function that never
+ * mutates its input, since it keys the cache.
  *
  * With `identity`, a derivation is also shared by every document in the transaction with the same
- * identity, such as a document re-read after a write that left the content it derives from
- * unchanged. `identity` must distinguish every difference in the fields `derive` reads.
+ * identity. `identity` must distinguish every difference in the fields `derive` reads.
  */
 export function deriveOnce<Document extends object, Value>(
   document: Document,
   derive: (document: Document) => Value,
   identity?: (document: Document) => string
 ): Value {
-  const stored = (copySources.get(document) as Document | undefined) ?? document
-  const scope = scopes.get(stored) ?? deriving
+  const scope = scopes.get(document) ?? deriving
   if (!scope) return derive(document)
-  let values = derivations.get(stored)
+  let values = derivations.get(document)
   if (!values) {
     values = new Map()
-    derivations.set(stored, values)
+    derivations.set(document, values)
   }
   if (!values.has(derive)) {
     const run = () => {
       const outer = deriving
       deriving = scope
       try {
-        return derive(stored)
+        return derive(document)
       } finally {
         deriving = outer
       }
     }
     let value: unknown
     if (identity) {
-      let shared = scope.byIdentity.get(derive)
+      let shared = scope.get(derive)
       if (!shared) {
         shared = new Map()
-        scope.byIdentity.set(derive, shared)
+        scope.set(derive, shared)
       }
-      const key = identity(stored)
+      const key = identity(document)
       value = shared.has(key) ? shared.get(key) : run()
       shared.set(key, value)
     } else value = run()
     if (typeof value === 'object' && value !== null) {
       scopes.set(value, scope)
-      if (scope.share) deepFreeze(value)
+      deepFreeze(value)
     }
     values.set(derive, value)
   }
-  const value = values.get(derive) as Value
-  return scope.share ? value : privateCopy(value)
-}
-
-/**
- * Places `document`, a value about to be written through `db`, in `db`'s memoized transaction,
- * so identity-keyed derivations that verify it before the write are shared with a later read of
- * the same content. Through any other reader it stays an ordinary value.
- */
-export function beforeWrite<Document extends object>(db: object, document: Document): Document {
-  const scope = readerScopes.get(db)
-  if (scope) scopes.set(document, scope)
-  return document
+  return values.get(derive) as Value
 }
 
 /**
@@ -149,43 +118,15 @@ export function beforeWrite<Document extends object>(db: object, document: Docum
  * table, index range, order and terminal call. Reads in one query see one snapshot, so a repeat
  * returns what a fresh read would. Results are deeply frozen and shared, so no caller can change
  * another caller's view, and `deriveOnce` caches their derivations. Filtered, search and streamed
- * reads pass through unmemoized.
+ * reads pass through unmemoized. A query transaction cannot write, so nothing is ever invalidated.
  */
 export function memoizeTransactionReads<Database extends object>(db: Database): Database {
-  return memoizeReads(db, true)
-}
-
-/**
- * The same memo for a mutation transaction, which also writes. Each read returns a private copy,
- * as a fresh read would, so callers may mutate what they read; `deriveOnce` derives each stored
- * document once and returns private copies too.
- *
- * Write invariant: a read is served from the memo only while nothing it covers was written in the
- * transaction. Writes pass straight through and first drop every memoized read they could change:
- * the written document's `get` reads and every query read of its table (of every table when the
- * table is unknown, which only a write by bare ID to a document this memo never read causes). They
- * drop them again when the write settles, so a read issued while it was in flight is not kept.
- * Convex transactions are serializable, so a memoized read taken earlier in the same transaction is
- * as fresh as a new one for every fence. Install the memo beneath the trigger wrapper
- * (`memoizedInternalMutation`) so trigger writes invalidate it too; a written document is never
- * served stale.
- */
-export function memoizeMutationReads<Database extends object>(db: Database): Database {
-  return memoizeReads(db, false)
-}
-
-function memoizeReads<Database extends object>(db: Database, share: boolean): Database {
-  if (readerScopes.has(db)) return db
+  if (memoizedReaders.has(db)) return db
   const gets = new Map<string, Map<string, Promise<unknown>>>()
   const queries = new Map<unknown, Map<string, Promise<unknown>>>()
-  /** Every unwritten document a read returned, by ID, so any later `get` of it is served. */
+  /** Every document a read returned, by ID, so any later `get` of it is served. */
   const documents = new Map<string, { table: unknown; document: object }>()
-  /** The table of each document this transaction inserted, for a later write by bare ID. */
-  const inserted = new Map<string, unknown>()
-  /** Counts write starts and ends; a read that overlapped a write never records its documents. */
-  let writeEpoch = 0
-  const scope: DerivationScope = { share, byIdentity: new Map() }
-  const serve = (value: unknown) => (share ? value : privateCopy(value))
+  const scope: DerivationScope = new Map()
   async function once(
     reads: Map<string, Promise<unknown>>,
     key: string,
@@ -194,19 +135,17 @@ function memoizeReads<Database extends object>(db: Database, share: boolean): Da
   ): Promise<unknown> {
     let result = reads.get(key)
     if (!result) {
-      const epoch = writeEpoch
       result = read().then((value) => {
         for (const document of resultDocuments(value)) {
           scopes.set(document, scope)
           const id = String((document as { _id: unknown })._id)
-          if (epoch === writeEpoch)
-            documents.set(id, { table: table ?? documents.get(id)?.table, document })
+          documents.set(id, { table: table ?? documents.get(id)?.table, document })
         }
-        return share ? deepFreeze(value) : value
+        return deepFreeze(value)
       })
       reads.set(key, result)
     }
-    return serve(await result)
+    return result
   }
   function readsOf<Key>(map: Map<Key, Map<string, Promise<unknown>>>, key: Key) {
     let reads = map.get(key)
@@ -215,16 +154,6 @@ function memoizeReads<Database extends object>(db: Database, share: boolean): Da
       map.set(key, reads)
     }
     return reads
-  }
-  /** Drops what a write to document `id` (none for an insert) of `table` could change. */
-  function invalidate(table: unknown, id: string | undefined) {
-    writeEpoch++
-    if (id !== undefined) {
-      gets.delete(id)
-      documents.delete(id)
-    }
-    if (table === undefined) queries.clear()
-    else queries.delete(table)
   }
   function query(open: () => unknown, table: unknown, steps: readonly Step[]): object {
     function materialize(): object {
@@ -280,33 +209,14 @@ function memoizeReads<Database extends object>(db: Database, share: boolean): Da
           const id = String(args.at(-1))
           const table = args.length > 1 ? args[0] : undefined
           const known = documents.get(id)
-          if (known && (table === undefined || known.table === table)) return serve(known.document)
+          if (known && (table === undefined || known.table === table)) return known.document
           return once(readsOf(gets, id), readKey(args), table, () => value.apply(target, args))
         }
       if (property === 'query')
         return (...args: unknown[]) => query(() => value.apply(target, args), args[0], [])
-      if (writes.has(property))
-        return async (...args: unknown[]) => {
-          // insert(table, value); patch/replace(id, value) or (table, id, value); delete(id) or
-          // (table, id).
-          const tableFirst =
-            property === 'insert' || args.length === (property === 'delete' ? 2 : 3)
-          const id = property === 'insert' ? undefined : String(tableFirst ? args[1] : args[0])
-          const table =
-            (tableFirst ? args[0] : undefined) ??
-            (id === undefined ? undefined : (documents.get(id)?.table ?? inserted.get(id)))
-          invalidate(table, id)
-          try {
-            const result: unknown = await value.apply(target, args)
-            if (property === 'insert') inserted.set(String(result), table)
-            return result
-          } finally {
-            invalidate(table, id)
-          }
-        }
       return value.bind(target)
     }
   })
-  readerScopes.set(memoized, scope)
+  memoizedReaders.add(memoized)
   return memoized
 }

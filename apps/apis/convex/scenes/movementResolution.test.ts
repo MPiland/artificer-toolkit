@@ -36,8 +36,6 @@ import '../encounters/blueprints'
 import '../encounters/runs'
 import '../encounters/actorTokenBindings'
 import './geometryCommands'
-import './movementResolutionStaging'
-import './movementResolutionReads'
 
 const bindActorToken = makeFunctionReference<
   'mutation',

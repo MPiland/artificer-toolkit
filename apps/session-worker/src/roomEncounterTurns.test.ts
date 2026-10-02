@@ -14,7 +14,6 @@ import { RoomEncounterStore, type RoomDocument } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { executeRoomEncounterCommand } from './roomEncounterCommands.js'
 import { createNativeLiveRulesRuntime } from './nativeRulesRuntime.js'
-import { LiveCaptureCache } from './nativeCaptureCache.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
@@ -257,11 +256,6 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
     .mockRejectedValue(new Error('Hydrated turns must not fetch.'))
   let inputs = new RoomInputs(room, read, async () => [])
   const runtime = await createNativeLiveRulesRuntime('native-turn-fixture-continuation-secret')
-  const captures = new LiveCaptureCache()
-  const environment = {
-    LIVE_SESSION_WORKER_SECRET: 'native-turn-fixture-worker-secret',
-    CONVEX_SITE_URL: 'https://native-turn.invalid'
-  }
   type Command = Extract<
     Parameters<typeof executeRoomEncounterCommand>[0]['command'],
     { type: 'START' | 'ADVANCE_TURN' }
@@ -280,7 +274,7 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
           recipientUserIds: [gmId, playerId],
           command,
           random: () => 0,
-          turnExecution: { environment, runtime, captures: captures.reads() }
+          turnExecution: { runtime }
         }),
       failDurable
         ? (entry) => {
@@ -377,7 +371,6 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
   ])
   room = new RoomEncounterStore(storage)
   inputs = new RoomInputs(room, read, async () => [])
-  captures.clear()
   expect(room.corruption).toBeNull()
   expect(evidence()).toEqual(committed)
   const replay = await execute(advance, playerId)

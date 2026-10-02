@@ -23,8 +23,6 @@ import {
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import { liveSessionCheckpointInputSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
-import { liveSessionMovementStageInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
-import { liveSessionSceneGeometryCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   liveSessionTransientCaptureInputSchema,
@@ -1557,97 +1555,6 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
     expect(restored.scene?.tokens[0]?.position).toEqual({ x: 10, y: 10 })
   })
 })
-type ExternalConvex = {
-  calls: string[]
-  commits: Array<ReturnType<typeof liveSessionSceneGeometryCommitInputSchema.parse>>
-  stages: Array<ReturnType<typeof liveSessionMovementStageInputSchema.parse>>
-  stagedOwners: Array<string | null>
-  /** What the next commit does: answer, time out (no response) or refuse. */
-  commit: 'COMMIT' | 'TIMEOUT' | 'REFUSE'
-  resolve: 'COMMITTED' | 'ABANDONED'
-}
-
-/** A fake Convex for the room's Convex-first pipeline (D27); it records each private route call. */
-async function installExternalConvex(base: Awaited<ReturnType<typeof fixture>>) {
-  const convex: ExternalConvex = {
-    calls: [],
-    commits: [],
-    stages: [],
-    stagedOwners: [],
-    commit: 'COMMIT',
-    resolve: 'COMMITTED'
-  }
-  await routeEncounterRequests(base, async (pathname, request) => {
-    if (pathname === '/live-sessions/encounter-movement-stage') {
-      convex.calls.push('stage')
-      const body = liveSessionMovementStageInputSchema.parse(await request.json())
-      convex.stages.push(body)
-      if (body.command.type !== 'MOVE_SCENE_TOKEN' && body.command.type !== 'SET_SCENE_DOOR_STATE')
-        throw new Error('Unexpected external decision.')
-      const saveId = crypto.randomUUID()
-      return Response.json({
-        kind: 'STAGED',
-        begun: {
-          kind: 'READY',
-          saveId,
-          input: body.command,
-          header: base.capture.sceneHeader,
-          encounterId: base.capture.sceneEncounterId
-        },
-        saveId,
-        capture: null
-      })
-    }
-    if (pathname === '/live-sessions/scene-geometry') {
-      convex.calls.push('commit')
-      const body = liveSessionSceneGeometryCommitInputSchema.parse(await request.json())
-      convex.commits.push(body)
-      convex.stagedOwners.push(...body.fogLayers.map((layer) => layer.ownerUserId))
-      if (convex.commit === 'TIMEOUT') throw new TypeError('The Convex request timed out.')
-      if (convex.commit === 'REFUSE')
-        return new Response('Live Session Scene commit unavailable.', { status: 409 })
-      const stage = convex.stages.at(-1)!
-      const snapshot = base.capture.sceneSnapshot
-      const header = base.capture.sceneHeader
-      if (snapshot && header) {
-        const delta = body.expectedScene.delta
-        const scene = {
-          ...snapshot.scene,
-          version: body.expectedScene.version,
-          ...(delta?.kind === 'TOKEN_MOVED'
-            ? {
-                tokens: snapshot.scene.tokens.map((token) =>
-                  token.id === delta.tokenId ? { ...token, position: delta.position } : token
-                )
-              }
-            : {}),
-          ...(delta?.kind === 'DOOR_STATE_SET'
-            ? { doorStates: { ...snapshot.scene.doorStates, [delta.barrierId]: delta.state } }
-            : {})
-        }
-        base.capture.sceneSnapshot = { ...snapshot, scene }
-        base.capture.sceneHeader = { ...header, version: scene.version }
-      }
-      return Response.json({
-        sceneId: body.expectedScene.sceneId,
-        commandId: stage.command.commandId,
-        version: body.expectedScene.version,
-        occurrence: null,
-        replayed: false,
-        delta: body.expectedScene.delta,
-        fogPatches: []
-      })
-    }
-    if (pathname === '/live-sessions/external-commit-resolve') {
-      expect(request.headers.get('authorization')).toBeNull()
-      convex.calls.push('resolve')
-      return Response.json({ outcome: convex.resolve })
-    }
-    if (pathname === '/live-sessions/begin-drain') convex.calls.push('beginDrain')
-    return undefined
-  })
-  return convex
-}
 
 async function journalEvidence(base: Awaited<ReturnType<typeof fixture>>) {
   return runInDurableObject(base.stub, (_instance, state) => ({
@@ -1658,11 +1565,7 @@ async function journalEvidence(base: Awaited<ReturnType<typeof fixture>>) {
       .one(),
     pendingWriteCount: state.storage.sql
       .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_writeset_log')
-      .one().count,
-    records: state.storage.sql
-      .exec<{ command_id: string }>('SELECT command_id FROM durable_external_commit')
-      .toArray()
-      .map((row) => row.command_id)
+      .one().count
   }))
 }
 
@@ -1834,8 +1737,7 @@ it('commits an unbound token move on an Encounter-bound Scene in SQLite before a
   expect(JSON.stringify(player.messages)).not.toContain('Private notes')
   expect(await journalEvidence(base)).toEqual({
     authority: { published_sequence: 0, sequence: 1 },
-    pendingWriteCount: 1,
-    records: []
+    pendingWriteCount: 1
   })
   const first = base.messages.find(
     (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
@@ -1869,8 +1771,7 @@ it('commits an unbound token move on an Encounter-bound Scene in SQLite before a
   })
   expect(await journalEvidence(base)).toEqual({
     authority: { published_sequence: 0, sequence: 1 },
-    pendingWriteCount: 1,
-    records: []
+    pendingWriteCount: 1
   })
 })
 
@@ -1913,9 +1814,6 @@ it('rolls back native bound-Scene geometry and journal writes when SQLite receip
       const recovered = new RoomEncounterStore(context.storage)
       expect(recovered.records('SCENE_CHECKPOINT_ROW')).toEqual(beforeRows)
       expect(recovered.records('SCENE_CHECKPOINT_SOURCE')).toEqual(beforeSources)
-      expect(
-        context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
-      ).toEqual([])
       expect(globalThis.fetch).not.toHaveBeenCalled()
       context.storage.sql.exec('DROP TRIGGER abort_scene_receipt')
       triggerInstalled = false
@@ -2002,9 +1900,6 @@ it('commits each fog owner with native geometry before acknowledgement and resyn
         expect(
           context.storage.sql.exec('SELECT sequence FROM room_writeset_log').toArray()
         ).toEqual([{ sequence: 1 }])
-        expect(
-          context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
-        ).toEqual([])
         expect(globalThis.fetch).not.toHaveBeenCalled()
         checkedBeforeAck = true
       }
@@ -2050,8 +1945,7 @@ it('commits each fog owner with native geometry before acknowledgement and resyn
   )
   expect(await journalEvidence(base)).toEqual({
     authority: { published_sequence: 0, sequence: 1 },
-    pendingWriteCount: 1,
-    records: []
+    pendingWriteCount: 1
   })
 })
 
@@ -2210,9 +2104,6 @@ it('recovers a native Scene commit whose acknowledgement was lost and retries wi
       expect(next.sequence).toBe(2)
       expect(next.receipts).toHaveLength(2)
       expect(next.writes).toHaveLength(1)
-      expect(
-        context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
-      ).toEqual([])
       expect(globalThis.fetch).not.toHaveBeenCalled()
     } finally {
       sent.mockRestore()
@@ -2271,9 +2162,6 @@ it.each(['VERSION', 'SCENE_SOURCE'] as const)(
         expect(new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')).toEqual(
           beforeRows
         )
-        expect(
-          context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
-        ).toEqual([])
         expect(globalThis.fetch).not.toHaveBeenCalled()
       } finally {
         sent.mockRestore()
@@ -2366,9 +2254,6 @@ it('binds an Encounter to the presented Scene in SQLite before acknowledgement, 
           state_checksum: durable.checksum,
           published_sequence: 0
         })
-        expect(
-          context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
-        ).toEqual([])
         expect(globalThis.fetch).not.toHaveBeenCalled()
         checkedBeforeAck = true
       }
@@ -2453,8 +2338,7 @@ it('binds an Encounter to the presented Scene in SQLite before acknowledgement, 
   })
   expect(await journalEvidence(base)).toEqual({
     authority: { published_sequence: 0, sequence: 1 },
-    pendingWriteCount: 1,
-    records: []
+    pendingWriteCount: 1
   })
   await evictDurableObject(base.stub)
   await runInDurableObject(base.stub, (_instance, context) => {
@@ -2492,9 +2376,6 @@ it('rolls back native Encounter binding and controls when late SQLite receipt in
         authorityState: context.storage.sql
           .exec('SELECT state_json FROM durable_session_authority WHERE id = 1')
           .one(),
-        external: context.storage.sql
-          .exec('SELECT command_id FROM durable_external_commit')
-          .toArray(),
         outbox: context.storage.sql.exec('SELECT sequence FROM durable_command_outbox').toArray()
       }
     }
@@ -2555,7 +2436,6 @@ it('rolls back native Encounter binding and controls when late SQLite receipt in
       expect(retry.bindings).toEqual(before.bindings)
       expect(retry.sceneRows).toEqual(before.sceneRows)
       expect(retry.sceneSources).toEqual(before.sceneSources)
-      expect(retry.external).toEqual([])
       expect(retry.outbox).toEqual([])
       expect(
         sent.mock.calls.map(([data]) =>
@@ -2672,9 +2552,6 @@ it('refuses a player bound-token move from current native actor control with a p
       expect(new RoomEncounterStore(context.storage).records('SCENE_CHECKPOINT_ROW')).toEqual(
         beforeRows
       )
-      expect(
-        context.storage.sql.exec('SELECT command_id FROM durable_external_commit').toArray()
-      ).toEqual([])
       expect(globalThis.fetch).not.toHaveBeenCalled()
     } finally {
       sent.mockRestore()
@@ -2691,8 +2568,7 @@ it('refuses a player bound-token move from current native actor control with a p
   )
   expect(await journalEvidence(base)).toEqual({
     authority: { published_sequence: 0, sequence: 1 },
-    pendingWriteCount: 1,
-    records: []
+    pendingWriteCount: 1
   })
 })
 it('refuses a movement decision off the presented Scene without a write (D42)', async () => {
@@ -2737,111 +2613,6 @@ it('refuses a movement decision off the presented Scene without a write (D42)', 
       sent.mockRestore()
     }
   })
-})
-
-it('settles an unsettled commit before the drain fence when the room closes', async () => {
-  const value = movementScene(crypto.randomUUID())
-  const base = await fixture(value.scene)
-  await synchronizeScene(base, value.scene)
-  const convex = await installExternalConvex(base)
-  convex.resolve = 'ABANDONED'
-  const commandId = crypto.randomUUID()
-  // Retained evidence from a transitional external command still fences room drain.
-  await runInDurableObject(base.stub, (_instance, context) => {
-    const journal = new DurableCommandJournal(context.storage)
-    const current = journal.readCurrent()
-    if (!current) throw new Error('Missing retained drain authority.')
-    const next = createNativeLiveSessionState({ ...value.scene, version: 1 })
-    journal.beginExternalCommit({
-      actorId: base.userId,
-      authorityEpoch: base.authorityEpoch,
-      commandId,
-      expectedSequence: current.sequence,
-      expectedStateChecksum: current.stateChecksum,
-      fingerprint: 'f'.repeat(64),
-      nextStateChecksum: next.stateChecksum,
-      nextStateJson: next.stateJson,
-      receiptJson: JSON.stringify({
-        commandId,
-        delta: null,
-        sequence: current.sequence + 1,
-        type: 'COMMAND_COMMITTED'
-      }),
-      subject: { kind: 'SCENE_SAVE', saveId: crypto.randomUUID() }
-    })
-  })
-  expect((await journalEvidence(base)).records).toEqual([commandId])
-  const closed = await control({
-    campaignId: value.scene.campaignId,
-    operation: { type: 'CLOSE_ROOM' }
-  })
-  expect(closed.status).toBe(200)
-  expect(convex.calls.slice(convex.calls.indexOf('resolve'))).toEqual(['resolve', 'beginDrain'])
-  expect(base.authorityLifecycleCalls).toEqual([
-    '/live-sessions/begin-drain',
-    '/live-sessions/release'
-  ])
-})
-
-it('completes or abandons a record left by a restart when the next member admits (D27)', async () => {
-  for (const persisted of [1, 0]) {
-    const value = movementScene(crypto.randomUUID())
-    const base = await fixture(value.scene)
-    base.capture.sceneEncounterId = crypto.randomUUID()
-    await synchronizeScene(base, value.scene)
-    const moved = createNativeLiveSessionState({ ...value.scene, version: 1 })
-    const commandId = crypto.randomUUID()
-    await runInDurableObject(base.stub, (_instance, state) => {
-      const journal = new DurableCommandJournal(state.storage)
-      const current = journal.readCurrent()!
-      journal.beginExternalCommit({
-        actorId: base.userId,
-        authorityEpoch: base.authorityEpoch,
-        commandId,
-        expectedSequence: 0,
-        expectedStateChecksum: current.stateChecksum,
-        fingerprint: 'f'.repeat(64),
-        nextStateChecksum: moved.stateChecksum,
-        nextStateJson: moved.stateJson,
-        receiptJson: JSON.stringify({
-          commandId,
-          delta: null,
-          sequence: 1,
-          type: 'COMMAND_COMMITTED'
-        }),
-        subject: { kind: 'SCENE_SAVE', saveId: crypto.randomUUID() }
-      })
-    })
-    await evictDurableObject(base.stub)
-    const resolved: unknown[] = []
-    await runInDurableObject(base.stub, () => {
-      const previous = vi.mocked(globalThis.fetch).getMockImplementation()
-      vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
-        const request = new Request(input, init)
-        const pathname = new URL(request.url).pathname
-        if (pathname === '/live-sessions/bootstrap')
-          return Response.json({
-            activationFingerprint: 'a'.repeat(64),
-            persistedSequence: persisted,
-            persistedStateChecksum: persisted === 1 ? moved.stateChecksum : 'a'.repeat(64)
-          })
-        if (pathname === '/live-sessions/external-commit-resolve') {
-          resolved.push(await request.json())
-          return Response.json({ outcome: persisted === 1 ? 'COMMITTED' : 'ABANDONED' })
-        }
-        if (!previous) throw new Error('Missing base native fetch mock.')
-        return previous(input, init)
-      })
-    })
-    base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-    await vi.waitFor(() => expect(resolved).toHaveLength(1))
-    await vi.waitFor(async () =>
-      expect(await journalEvidence(base)).toMatchObject({
-        authority: { published_sequence: persisted, sequence: persisted },
-        records: []
-      })
-    )
-  }
 })
 
 it('returns a projected correction for a stale Scene version', async () => {

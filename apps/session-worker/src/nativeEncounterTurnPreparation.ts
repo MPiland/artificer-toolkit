@@ -22,10 +22,10 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunCharacterActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
+import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import { resolveNativeLiveTurnEffectPerception } from './nativeTurnEffectPerception.js'
 
-type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
+type CharacterFacts = PreparedLiveCharacterSheet
 
 /** Supplies private raw captures and DO facts to the shared ordered turn planner. */
 export function createNativeLiveTurnStages(

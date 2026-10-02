@@ -40,10 +40,7 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import {
-  LiveSessionDomainRejectionError,
-  type NativeLiveSessionEnvironment
-} from './liveSessionRoutes.js'
+import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -56,14 +53,12 @@ import {
  * re-applies the settled item and ACTION changes; it never rolls.
  */
 export async function planNativeLiveDisarm(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
     random(maximum: number): number
-    captures?: LiveCaptureReads
+    captures: LiveCaptureReads
   }
 ) {
   const request = { kind: 'DISARM' as const, command }
@@ -78,7 +73,7 @@ export async function planNativeLiveDisarm(
     command.expectedVersion !== initial.expectedVersion
   )
     throw new Error('Live Disarm scope mismatch.')
-  const reads = liveEncounterCaptures(environment, accessToken, initial, executionOptions.captures)
+  const reads = liveEncounterCaptures(initial, executionOptions.captures)
   const { capture } = reads
   const admission = await capture(request)
   if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
@@ -101,8 +96,6 @@ export async function planNativeLiveDisarm(
     await Promise.all(
       [actor, target].map(async (entry) => {
         const prepared = await prepareNativeLiveMovementTarget({
-          environment,
-          accessToken,
           scope: initial,
           state,
           actor: entry,

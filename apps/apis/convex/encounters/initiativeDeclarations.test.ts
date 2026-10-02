@@ -14,7 +14,6 @@ import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
   EncounterBlueprintDto,
-  EncounterCommandResultDto,
   EncounterGmProjectionDto,
   EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
@@ -53,20 +52,6 @@ import {
   writePendingSnapshot
 } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
-  liveSessionEncounterTurnPendingInputSchema,
-  type LiveSessionEncounterTurnCommitInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
-import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import {
-  createPlatformRulesRuntime,
-  deriveRulesContinuationKey
-} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
-import {
-  insertActiveLiveAuthority,
-  stubLiveSessionFetch,
-  workerEnvironment,
   executeInRoom,
   replayInRoom,
   RoomCommandRefusal
@@ -98,11 +83,6 @@ const saveSettings = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
-const commitPrivateTurn = makeFunctionReference<
-  'mutation',
-  LiveSessionEncounterTurnCommitInput,
-  EncounterCommandResultDto
->('liveSessions/encounterTurnCommit:commit')
 
 async function setup(
   options: {
@@ -672,10 +652,7 @@ describe('native initiative declarations', () => {
   it.each(['PLAYER', 'OWNER'] as const)(
     'commits private declarations with %s responding first',
     async (firstRole) => {
-      const workerSecret = 'private-declaration-worker-secret-at-least-32-bytes'
-      const authSecret = 'private-declaration-continuation-secret-at-least-32-bytes'
-      vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
-      vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
+      vi.stubEnv('BETTER_AUTH_SECRET', 'private-declaration-continuation-secret-at-least-32-bytes')
       const base = await setupCharacterRun()
       await equipAllCharacterItems(base)
       const initiative = createEncounterInitiativeDefinitions([
@@ -739,57 +716,6 @@ describe('native initiative declarations', () => {
       if (current.occurrence?.pending?.kind !== 'INITIATIVE_DECLARATION')
         throw new Error('Expected the first native declaration request.')
       expect(current.occurrence.pending.actorId === characterActor.id).toBe(firstRole === 'PLAYER')
-      const epoch = crypto.randomUUID()
-      await base.t.run((ctx) =>
-        insertActiveLiveAuthority(ctx, {
-          campaignId: base.campaign.id,
-          epoch,
-          createdAt: base.campaign.createdAt
-        })
-      )
-      const environment = workerEnvironment(workerSecret)
-      stubLiveSessionFetch((pathname, init) => {
-        if (
-          ![
-            '/live-sessions/encounter-rules',
-            '/live-sessions/character-rules',
-            '/live-sessions/encounter-turn-pending',
-            '/live-sessions/encounter-turn'
-          ].includes(pathname)
-        )
-          throw new Error(`Unexpected private declaration request: ${pathname}`)
-        if (
-          new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
-          new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret ||
-          typeof init?.body !== 'string'
-        )
-          throw new Error('Private declaration credentials or body are missing.')
-        const input = JSON.parse(init.body) as { expectedRole: 'OWNER' | 'PLAYER' }
-        if (pathname === '/live-sessions/encounter-rules')
-          liveSessionEncounterRulesInputSchema.parse(input)
-        return (input.expectedRole === 'PLAYER' ? base.player.caller : base.owner.caller).fetch(
-          pathname,
-          init
-        )
-      })
-      const runtime = createPlatformRulesRuntime({
-        continuationIntegrityKey: await deriveRulesContinuationKey(
-          process.env.RULES_CONTINUATION_SECRET
-        ),
-        definitions: {
-          async requireCurrent() {
-            throw new Error('Private declaration graphs must use captured definitions.')
-          }
-        }
-      })
-      const scope = (role: 'OWNER' | 'PLAYER') => ({
-        campaignId: base.campaign.id,
-        authorityEpoch: epoch,
-        expectedUserId: role === 'PLAYER' ? base.player.userId : base.owner.userId,
-        expectedRole: role,
-        encounterId: run.id,
-        expectedVersion: run.version
-      })
       let pendingCommits = 0
       let playerDeclarations = 0
       let ownerDeclarations = 0
@@ -819,29 +745,10 @@ describe('native initiative declarations', () => {
         if (command.resolution.kind !== 'INITIATIVE_DECLARATION')
           throw new Error('Expected a declaration response command.')
         const before = await storedInitiative(base)
+        const answer = (member: typeof base.player) =>
+          executeInRoom(member.caller, { command })
         if (role === 'PLAYER') {
-          const forged = await base.player.caller.fetch('/live-sessions/encounter-rules', {
-            method: 'POST',
-            headers: { 'x-artificer-live-session-secret': workerSecret },
-            body: JSON.stringify({
-              ...scope('OWNER'),
-              request: { kind: 'TURN_COMMAND', command },
-              turnCommand: command
-            })
-          })
-          expect(forged.status).toBe(409)
-          await expect(
-            planNativeLiveEncounterTurn(
-              environment,
-              'fixture-access-token',
-              scope('PLAYER'),
-              start,
-              {
-                runtime,
-                random: () => 0
-              }
-            )
-          ).rejects.toThrow()
+          await expect(executeInRoom(base.player.caller, { command: start })).rejects.toThrow()
           const membership = await base.t.run((ctx) =>
             ctx.db
               .query('campaignMemberships')
@@ -857,15 +764,7 @@ describe('native initiative declarations', () => {
               leftAt: new Date().toISOString()
             })
           )
-          await expect(
-            planNativeLiveEncounterTurn(
-              environment,
-              'fixture-access-token',
-              scope('PLAYER'),
-              command,
-              { runtime, random: () => 0 }
-            )
-          ).rejects.toThrow()
+          await expect(answer(base.player)).rejects.toThrow()
           await base.t.run((ctx) =>
             ctx.db.patch(membership._id, {
               status: 'ACTIVE',
@@ -882,15 +781,7 @@ describe('native initiative declarations', () => {
           )
           if (!assignment) throw new Error('Expected current Character assignment.')
           await base.t.run((ctx) => ctx.db.delete(assignment._id))
-          await expect(
-            planNativeLiveEncounterTurn(
-              environment,
-              'fixture-access-token',
-              scope('PLAYER'),
-              command,
-              { runtime, random: () => 0 }
-            )
-          ).rejects.toThrow()
+          await expect(answer(base.player)).rejects.toThrow()
           await base.t.run((ctx) => {
             const { _id: ignoredId, _creationTime: ignoredTime, ...saved } = assignment
             void ignoredId
@@ -899,87 +790,27 @@ describe('native initiative declarations', () => {
           })
           expect(await storedInitiative(base)).toEqual(before)
         } else {
-          await expect(
-            planNativeLiveEncounterTurn(
-              environment,
-              'fixture-access-token',
-              scope('PLAYER'),
-              command,
-              { runtime, random: () => 0 }
-            )
-          ).rejects.toThrow()
+          await expect(answer(base.player)).rejects.toThrow()
         }
         await expect(
-          planNativeLiveEncounterTurn(
-            environment,
-            'fixture-access-token',
-            scope(role),
-            {
-              ...command,
-              expectedOccurrenceVersion: command.expectedOccurrenceVersion + 1
-            },
-            { runtime, random: () => 0 }
-          )
+          executeInRoom(caller, {
+            command: { ...command, expectedOccurrenceVersion: command.expectedOccurrenceVersion + 1 }
+          })
         ).rejects.toThrow()
         await expect(
-          planNativeLiveEncounterTurn(
-            environment,
-            'fixture-access-token',
-            scope(role),
-            {
+          executeInRoom(caller, {
+            command: {
               ...command,
               resolution: { ...command.resolution, requestId: crypto.randomUUID() }
-            },
-            { runtime, random: () => 0 }
-          )
+            }
+          })
         ).rejects.toThrow()
         expect(await storedInitiative(base)).toEqual(before)
-        const planned = await planNativeLiveEncounterTurn(
-          environment,
-          'fixture-access-token',
-          scope(role),
-          command,
-          { runtime, random: () => 0 }
-        )
-        if (planned.kind !== 'PLANNED') throw new Error('Expected planned declaration response.')
-        expect(await storedInitiative(base)).toEqual(before)
-        const preparedContext =
-          planned.prepared.kind === 'PENDING' ? planned.prepared.snapshot.applicationContext : null
-        if (preparedContext && preparedContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
-          throw new Error('Expected the next declaration context.')
-        const history =
-          planned.prepared.kind === 'COMPLETE'
-            ? planned.prepared.root.resolutionCommands.at(-1)
-            : preparedContext?.root.resolutionCommands.at(-1)
-        expect(history).toMatchObject({
-          kind: 'INITIATIVE_DECLARATION',
-          actorUserId: role === 'PLAYER' ? base.player.userId : base.owner.userId,
-          initiativeActorId: pending.actorId
-        })
+        current = await answer(role === 'PLAYER' ? base.player : base.owner)
+        expect(await replayInRoom(caller, { command })).toEqual(current)
         if (role === 'PLAYER') playerDeclarations += 1
         else ownerDeclarations += 1
-        if (planned.prepared.kind === 'PENDING') {
-          const input = liveSessionEncounterTurnPendingInputSchema.parse({
-            ...scope(role),
-            command,
-            revisions: planned.revisions,
-            scenes: planned.scenes,
-            snapshot: planned.prepared.snapshot
-          })
-          current = await callLiveSessionRoute(
-            environment,
-            'fixture-access-token',
-            'encounterTurnPending',
-            input
-          )
-          expect(
-            await callLiveSessionRoute(
-              environment,
-              'fixture-access-token',
-              'encounterTurnPending',
-              input
-            )
-          ).toEqual(current)
+        if (current.projection.status !== 'ACTIVE') {
           if (role === 'PLAYER') {
             expect(current.occurrence?.pending).toBeNull()
             expect(JSON.stringify(current.projection)).not.toContain('healthBand')
@@ -1001,35 +832,7 @@ describe('native initiative declarations', () => {
           pendingCommits += 1
           continue
         }
-        if (!planned.terminal) throw new Error('Expected terminal declaration settlement.')
-        const terminal = planned.terminal
-        expect(terminal.root.resolutionCommands.map((entry) => entry.actorUserId)).toEqual(
-          firstRole === 'PLAYER'
-            ? [base.player.userId, base.owner.userId]
-            : [base.owner.userId, base.player.userId]
-        )
-        await expect(
-          caller.run(async (ctx) => {
-            await ctx.runMutation(commitPrivateTurn, terminal)
-            throw new Error('Roll back private declaration terminal.')
-          })
-        ).rejects.toThrow('Roll back private declaration terminal.')
-        expect(await storedInitiative(base)).toEqual(before)
-        current = await callLiveSessionRoute(
-          environment,
-          'fixture-access-token',
-          'encounterTurnCommit',
-          terminal
-        )
         finalResponderUserId = role === 'PLAYER' ? base.player.userId : base.owner.userId
-        expect(
-          await callLiveSessionRoute(
-            environment,
-            'fixture-access-token',
-            'encounterTurnCommit',
-            terminal
-          )
-        ).toEqual(current)
         break
       }
       expect(ownerDeclarations).toBe(1)

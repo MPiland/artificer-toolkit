@@ -33,10 +33,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterCleavingChoice'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
+import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import type { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 
-type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
+type CharacterFacts = PreparedLiveCharacterSheet
 type CleavingProjection = Pick<
   Awaited<ReturnType<typeof planNativeLiveConcentration>>,
   'actors' | 'projectedTargets' | 'activeEffectsByActorId' | 'maintenanceOwners'

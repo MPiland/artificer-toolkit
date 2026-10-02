@@ -18,7 +18,10 @@ local Scene and Encounter paths. It also streams recipient-filtered ephemeral pr
 Encounter mechanics and the nineteen supported held Sheet play commands write Character play in the
 same room transaction in current source; frontend Sheet routing remains transitional. Convex remains authentication/current-membership authority,
 the durable cross-session/system store, the subscription source, and recovery authority. The current
-source has no integrated runtime acceptance; the remaining Convex-first paths are identified below.
+source has no integrated runtime acceptance. A35-S6c3 deleted the per-command Convex path (every
+Encounter, movement, binding, geometry, dice, capture and external-commit route); the room commits
+in SQLite and Convex receives fenced checkpoints. Sections below labeled historical describe that
+deleted path; the full rewrite of this guide belongs to A35-S9.
 
 The following flow describes the current narrow Scene lane. The approved target in
 [ADR 0029](../adr/0029-convex-backend-cutover.md#live-rules-execution-clarification--2026-09-24)
@@ -30,8 +33,9 @@ This remaining R06 work must preserve the room's
 command order, source/version checks, replay, and required Character/Encounter/Scene atomicity;
 commands relying on a Convex transaction cannot acknowledge success before that transaction commits.
 
-The private `/live-sessions/character-rules` and `/live-sessions/encounter-rules` captures now supply
-authorized stored inputs to Worker preparation. Each response includes compact System, Campaign,
+The private `/live-sessions/room-inputs` route supplies authorized stored inputs to the room on
+hydration (the per-command `character-rules` and `encounter-rules` captures were deleted in S6c3).
+Each response includes compact System, Campaign,
 Campaign play (`PLAY`) and relevant Character revisions read in the same transaction as its payload. Preparation
 merges these observations and rejects a changed revision across pages or Character/Encounter reads.
 The existing `sceneVisionRevisions` table tracks source publications, authority inputs, Run actors,
@@ -246,7 +250,8 @@ assignment is required even for a completed response retry. The native room call
 shared planner and persistence in source. Focused parity and rollback tests are implementation evidence, not
 release or frozen V15 acceptance.
 
-The protected Convex movement comparator uses the existing staged Scene save. The private
+Historical (deleted in A35-S6c3): the Convex movement comparator used the existing staged Scene
+save. The private
 `/live-sessions/encounter-movement-stage` route rechecks the DO authority epoch before staging a bound
 move or a response to its sealed pending occurrence;
 public Scene staging remains fenced. Each movement capture checks the receiving save, current
@@ -299,7 +304,9 @@ chat/public/TABLE/evidence rolls, held Sheet frontend/rest/live-view work and li
 or open. The original comparator flow below records the protected API algorithms, not current room
 geometry dispatch.
 
-**Historical Convex-first Scene commits (protected comparator, S4-c, D26-D28, D42).** Previously the room committed Encounter-bound movement
+**Historical Convex-first Scene commits (S4-c, D26-D28, D42; deleted in A35-S6c3).** The
+`durable_external_commit` record, its routes and the Convex commit modules below no longer exist;
+the journal drops the table on open. Previously the room committed Encounter-bound movement
 to Convex first, then applies it (`apps/session-worker/src/nativeExternalSceneCommit.ts`, called from
 `#commitExternal` in `nativeLiveSessionRoom.ts`). `isExternalSceneCommand`
 (`nativeRoomSceneCommand.ts`) selects every bound move, every move on an Encounter-bound Scene, and
@@ -505,11 +512,8 @@ occurrence and the caller may answer it, otherwise unavailable.
 `roomEncounterPlanner` (`apps/session-worker/src/nativeRoomEncounterCommand.ts`), asked the private
 `encounter-route` query (`liveSessions/encounterRoute:route`) which planner owned a decision, and
 forwarded the GM tools in `CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` to the internal
-`encounter-command` mutation (`liveSessions/encounterCommand:execute`). Those routes and the Room
-dice routes below remain in source until S6c3, but the room no longer calls them. They require the
-Worker secret, the user's identity, the expected user and role, an ACTIVE Campaign, a `DO_ACTIVE`
-authority at the given epoch, and a Run in that Campaign (`requireLiveEncounterRun`,
-`liveSessions/encounterCommandAdmission.ts`).
+`encounter-command` mutation (`liveSessions/encounterCommand:execute`). A35-S6c3 deleted those
+routes, the Room dice routes below and their admission module.
 
 **Room dice (HISTORICAL, D41; retired in S6c3).** A dice command took two private round trips. The `encounter-roll-dice`
 query (`liveSessions/encounterRoll:dice`) admits the member and names the dice the command draws, as
@@ -527,96 +531,22 @@ authority. Current: room closure
 command arrives, then awaits the in-flight command chain, including forwarded Encounter commands,
 before it sets the drain fence and releases authority.
 
-**Room capture cache (CURRENT, S4-b).** Room planners read System-level rules content through a
-per-room cache beside the Scene cache (`apps/session-worker/src/nativeCaptureCache.ts`): Encounter
-`DEFINITION` and `SYSTEM_VOCABULARY` captures (read as the Campaign owner) and every Character
-source capture (`PUBLICATIONS` and the `SOURCE_INDEX` catalogues, read as the Character's owner).
-An entry is keyed by route, Campaign (and Character), request and the plan's observed SYSTEM and
-CAMPAIGN revisions, so a revision bump misses; a plan's first read always goes to Convex. A hit keeps
-its original response and read checksum and adds only those two stamps to the plan's revisions, so
-the commit fence still checks what was read. Volatile reads are never cached: command admission, Run
-state, actors and effects, maintenance and turn state, and each Character's `INPUTS` (sheet, hit
-points, conditions, Campaign state). The compiled Character rule context is rebuilt per command
-from the fresh Character and the cached sources, since the Character document itself carries hit
-points and conditions. The cache is cleared whenever the room bumps its cache generation
-(presentation change, member eviction, room close) and is bounded by `ROOM_LIMITS` (60 s, 512
-entries, 16 MB). Historical (retired with the Convex Encounter routes, D78): when Convex refused a
-commit (409) from a plan that reused any entry, `executeLiveEncounterCommand` dropped those entries
-and replanned once from fresh reads. Action and turn planning still
-read every Run actor, because the committed actor rules, Concentration and Cleaving cover the whole
-Run.
+**Room capture reads (CURRENT, S6c3).** Room planners read rules content through `LiveCaptureReads`
+(`apps/session-worker/src/nativeCaptureCache.ts`), which the room answers from its own SQLite
+transaction: `encounterRules` serves the Encounter capture kinds from the hydrated Run, System and
+Character inputs, and `prepareCharacter` builds a Character's rule context from the room-held
+Character and its hydrated sources. `liveEncounterCaptures` shares identical requests within one
+planner, checks each response's kind, and accumulates the observed revisions and read checksums
+that the room's checkpoint carries. No planner read reaches Convex: the inputs arrive through
+`roomInputs` on hydration and are refreshed by the room's own commits.
 
-**Capture bundle (CURRENT, D32).** A room command's volatile reads arrive in one private query,
-`/live-sessions/encounter-bundle` (`liveSessions/encounterCaptureBundle.ts`,
-`packages/schema/src/api/liveSessionEncounterCaptureBundle.ts`). When a room planner makes its
-admission capture (`ACTION_COMMAND`, `ACTION_RESPONSE`, `CLEAVING_RESPONSE`, `DISARM`, `TURN_COMMAND`,
-`CONCENTRATION_RESPONSE` or `MOVEMENT_INPUTS`),
-`captureEncounterRules` sends the bundle instead. In one transaction the bundle runs the existing
-capture builders for the admission, Run `INPUTS`, the `INITIATIVE_ROUND` of a turn, the `CLEAVING_BINDINGS` of a Cleaving answer, the first `SCENE_SPATIAL_EFFECTS` page of a move at its admitted Scene version, one `ACTOR`
-(first effect page) per Run actor, the Concentration `MAINTENANCE_SLOT` per Run actor, and each
-Character actor's `INPUTS`. Each part is exactly the response its own capture returns, with its own
-read checksum and revisions, so commit fences are unchanged. The scope is admitted once for the
-Encounter parts (`admitEncounterCaptureParts`) and once for the Character parts
-(`admitCharacterInputsCaptures`): those guards do not depend on the part's request, and a Character
-part still checks that the admitted command covers its Character. A movement scope names each
-Character's own actor, so there each Character part is admitted separately. The Run's System travels at most once,
-as the bundle's `system`; the Run `inputs` and each Character's `INPUTS` omit it (their read checksums
-still cover it) and `bundleCaptures` restores it before handing the parts out. Parity tests compare
-every part of action, turn and movement bundles with its separate capture. The DO hands each part, once, to the
-capture with the same complete input; anything else (later effect pages, other maintenance, Scene
-reads, System-level content) is read as before. The bundle stops at the first failing part, and the
-planner then reads that part separately and meets the same refusal. `liveSessionCharacterRulesScope`
-derives a Character capture scope from an Encounter one for both sides. In the protected comparator,
-warm commands take two round trips (the bundle and the commit); a decision answer adds its
-`encounter-route` read, except a held movement decision. A comparator Scene command's stage reads its bundle in the same
-transaction (D52), so a warm bound move or held movement decision also takes two: the stage and the
-commit. A comparator planner takes a part the stage already bundled without reading the bundle again.
-Current native geometry capture instead reads the room transaction; these older network measurements
-do not describe the new dispatch or prove zero warm calls.
-Parts still repeat reads (actors, Characters, the System), so the bundle reads through a
-transaction-local memo (`lib/transactionReads.ts`): an identical `get`, or the same table, index
-range, order and read, is served once and deeply frozen, so no part can change another part's view,
-and a `get` of any document an earlier read returned is served by its ID; filtered, search and
-streamed reads pass through. `deriveOnce` parses and verifies a memoized document once per
-transaction (System, Run actor and Character documents, geometry saves with their movement response
-and spatial preparation) and shares the frozen result; documents from an ordinary reader derive on
-every call. At the legal maxima (100 actors: 12 Characters, one per player seat, and
-88 Creatures) the largest action bundle reads 437 index ranges, 307 documents and 1.4 MB (0.85 MB
-distinct) and returns 0.7 MB (1.1 MB before the System travelled once), each under a quarter of its
-Convex limit; without the memo it read 38.8 MB, over the 16 MiB limit. At 11 actors the returned
-bundle fell from 269 KB to 116 KB, and its JavaScript time (in-process profile) by about 60%.
-
-**Run System stamp (CURRENT).** The room capture cache also holds the last Run System a bundle
-carried, under its stamp: the SYSTEM and CAMPAIGN revisions of that bundle's Run `inputs`, the same two
-stamps every cached entry is keyed on. Every bundle request, including a movement stage, sends that
-stamp as `cachedSystem` (null when the room holds none or it expired). When it equals the stamp of the
-Run `inputs` Convex reads in the bundle transaction, `system` is `{ kind: 'UNCHANGED', stamp }` and
-the System is not serialized; otherwise it is `{ kind: 'SYSTEM', system }`, which the room keeps. The
-contract refuses an UNCHANGED stamp other than the Run `inputs` revisions, and the room refuses (409,
-fail closed) an UNCHANGED stamp that command did not offer; it restores the System it offered even if
-its cache was cleared meanwhile, since a stamp names one exact System. Nothing else changes: Convex
-still reads the System, every read checksum still covers it, and the commit fence still checks the
-SYSTEM and CAMPAIGN revisions. A reused System counts as a reused entry: a refused commit drops it
-and the replan reads it again. The cache generation bump and the 60 s age limit clear it with the
-other entries. Standalone `INPUTS` captures, which a planner makes only after a bundle stopped early,
-still carry the System.
-
-**Mutation read memo (CURRENT).** The movement stage and commit mutations
-(`liveSessions/encounterMovement.ts`) are `memoizedInternalMutation`s: the same memo
-(`memoizeMutationReads`) sits beneath the trigger wrapper, so every write, trigger writes included,
-passes through it. Invariant: a read is served from the memo only while nothing it covers has been
-written in the transaction. A write first drops the written document's reads and every query read of
-its table (of every table when the table is unknown), and drops them again when it settles, so a
-read overlapping the write is never kept. Convex transactions are serializable, so a memoized read
-from earlier in the same transaction is as fresh as a new one, and every fence still compares against
-a current read. Each mutation read, and each `deriveOnce` result, is a private copy, so callers may
-mutate what they read; the derivation itself runs once per stored document version. A geometry
-save's movement response and spatial preparation derivations are also keyed on content identity
-(the save without the fields each never reads). The stage verifies a new save, and the commit its
-preparation, as they will be stored (`beforeWrite`) before writing them, and later reads of the
-written save reuse those verifications instead of parsing and hashing the evidence again. An
-Encounter occurrence's stored pending snapshot and its checksum are derived the same way
-(`encounters/pendingSnapshots.ts`), once per stored content, wherever the transaction reads it.
+**Historical (deleted in A35-S6c3, D78).** Before the switch, room planners read through a per-room
+capture cache keyed by route and SYSTEM/CAMPAIGN revisions, one private capture bundle query
+(`/live-sessions/encounter-bundle`, D32) with a Run System stamp, and the `encounter-rules` and
+`character-rules` capture routes; the Convex movement stage and commit mutations
+(`liveSessions/encounterMovement.ts`) served their reads through a per-transaction mutation read
+memo (`memoizedInternalMutation`). All of these, and the refused-commit replan, were deleted with
+the per-command Convex path.
 
 **Import visibility (CURRENT, D34).** Imported rows are readable only while their import job is
 `COMPLETED` (`imports/visibility.ts`). A trigger in `lib/mutations.ts` bumps the SYSTEM revision of
@@ -752,16 +682,14 @@ authenticates, waits for `TRANSIENT_READY` and `STATE_SYNC`, and resolves on the
 calls the internal functions directly. The local pre-staging lifecycle starts the documented local
 Worker for its proofs; its secrets must match the local Convex deployment's.
 
-**Worker-boundary validators.** The private rules captures and commits
-(`liveSessions/{characterRulesCapture,encounterRulesCapture,encounterAction,encounterActionCommit,
-encounterCleavingCommit,encounterCommand,encounterConcentrationCommit,
-encounterDisarm,encounterMovement,encounterRoute,encounterTurn,encounterTurnCommit,encounterVoid}.ts`) are internal
-functions reached only through the Worker-secret HTTP routes. They declare `args: v.any()` with no
-`returns` validator; each handler takes `unknown` and parses it with its shared Zod contract before
-any read, and the Worker parses every response with the same contracts. Converting these large
-unions into duplicate Convex validators cost about 28 MB per module and pushed several modules past
-the 64 MB module-load budget (for example `encounterRulesCapture` needed 65.8 MB to evaluate; it now
-needs about 30 MB). Public functions keep generated Convex argument validators.
+**Worker-boundary validators.** The private checkpoint functions
+(`liveSessions/{checkpoint,checkpointStaging,developmentCheckpoint}.ts`) are internal functions
+reached only through the Worker-secret HTTP routes. They declare `args: v.any()` with no `returns`
+validator; each handler takes `unknown` and parses it with its shared Zod contract before any read,
+and the Worker parses every response with the same contracts. Converting large unions into
+duplicate Convex validators cost about 28 MB per module and pushed modules past the 64 MB
+module-load budget (the deleted `encounterRulesCapture` needed 65.8 MB). Public functions keep
+generated Convex argument validators.
 
 An admitted movement can apply rules to another assigned Character. The private mechanics helper
 validates that Character's current Campaign assignment using the Campaign owner, matching the existing
@@ -772,10 +700,9 @@ Raw Run actor/effect captures retain current Character assignment, ownership, Sy
 A Character actor keeps no hit point or stream-version copy
 ([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md) decision 4), so
 `character-rules` takes no expected stream version: it returns the current Character, and its
-CHARACTER revision joins the merged revision vector with the ACTOR capture's. The commit's
-`assertLiveSessionRulesRevisions` call covers every Character actor in a rules-applying Run, so a
-Sheet write between planning and commit refuses the stale plan; a retry re-captures. Commits read the fenced
-Character's current stream version as the before version of each planned Character transition.
+CHARACTER revision joins the merged revision vector with the ACTOR capture's. The room holds every
+Character actor of a rules-applying Run, so a Sheet write is ordered in the same command chain as
+planning; the per-command `assertLiveSessionRulesRevisions` fence was deleted in S6c3.
 
 Character source indexes page at most four raw roots or shares through one native Convex pagination
 call per capture, including empty pages. They distinguish feature matches from other readable roots
@@ -853,8 +780,7 @@ with different input rejects. Checkpoint publication is ordered and retryable, a
 the matching authority epoch, sequence and cumulative checksum. A failed publication retains the
 exact input and committed suffix; it cannot bypass ordering or permit an overlapping direct write.
 
-The retained per-command `liveSessions/state:publish` endpoint is no longer the room's standalone
-Scene publication caller. Its contract finishes an already authorized command and records the
+Historical (deleted in A35-S6c3): the per-command `liveSessions/state:publish` endpoint. Its contract finished an already authorized command and records the
 actor's command-time role. It requires that role to
 equal the stored membership role. The only exception, per ADR 0029 command-time role evidence, is a
 command that occurred in the current authority epoch (at or after its `createdAt`) and before the

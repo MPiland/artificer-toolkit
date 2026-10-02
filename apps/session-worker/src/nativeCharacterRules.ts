@@ -3,7 +3,6 @@ import type {
   AuthoredPublicationDocument
 } from '@artificer-toolkit/schema/api/authoredPublication'
 import {
-  liveSessionCharacterRulesInputSchema,
   type LiveSessionCharacterRulesInput,
   type LiveSessionCharacterRulesRequest,
   type LiveSessionCharacterRulesResponse
@@ -22,82 +21,13 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import { readCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import {
-  bundledCaptureKey,
-  captureCacheKey,
-  captureStamps,
-  type LiveCaptureReads
-} from './nativeCaptureCache.js'
 
 export type PreparedLiveCharacterSheet = Awaited<ReturnType<typeof prepareLiveCharacterSheetFacts>> & {
   revisions: LiveSessionRulesRevisions
   dependencies: Array<{ request: LiveSessionCharacterRulesRequest; readChecksum: string }>
 }
 
-/**
- * Prepare authorized live Character facts; the caller must validate dependencies before commit.
- * The Character's own inputs (sheet, hit points, conditions, Campaign state) are always read fresh,
- * possibly by the command's capture bundle; its authored sources are read as the Character's owner
- * and may come from the room cache.
- */
-export async function prepareNativeLiveCharacterSheet(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
-  scope: Omit<LiveSessionCharacterRulesInput, 'request'>,
-  captures?: LiveCaptureReads
-): Promise<PreparedLiveCharacterSheet> {
-  const initialInput = liveSessionCharacterRulesInputSchema.parse({
-    ...scope,
-    request: { kind: 'INPUTS' }
-  })
-  if (captures?.prepareCharacter) {
-    const { request: _request, ...scope } = initialInput
-    return captures.prepareCharacter(scope)
-  }
-  const dependencies: Array<{ request: LiveSessionCharacterRulesRequest; readChecksum: string }> =
-    []
-  let revisions: LiveSessionRulesRevisions = []
-  const cacheScope = { campaignId: initialInput.campaignId, characterId: initialInput.characterId }
-  async function capture(request: LiveSessionCharacterRulesRequest) {
-    const input = liveSessionCharacterRulesInputSchema.parse({ ...initialInput, request })
-    const cacheable = request.kind !== 'INPUTS'
-    const key = cacheable ? captureCacheKey('characterRules', cacheScope, request, revisions) : null
-    const cached = key ? captures?.read(key) : undefined
-    const bundled = cacheable
-      ? undefined
-      : captures?.takeBundled(bundledCaptureKey('characterRules', input))
-    const response =
-      cached?.route === 'characterRules'
-        ? cached.response
-        : bundled?.route === 'characterRules'
-          ? bundled.response
-          : await callLiveSessionRoute(environment, accessToken, 'characterRules', input)
-    const expectedKind =
-      request.kind === 'INPUTS' || request.kind === 'PUBLICATIONS' ? request.kind : 'SOURCE_INDEX'
-    if (response.kind !== expectedKind) throw new Error('Character rules capture kind mismatch.')
-    if (cached) {
-      revisions = mergeNativeRulesRevisions(revisions, captureStamps(response.revisions))
-    } else {
-      revisions = mergeNativeRulesRevisions(revisions, response.revisions)
-      const written = cacheable
-        ? captureCacheKey('characterRules', cacheScope, request, response.revisions)
-        : null
-      if (written) captures?.write(written, { route: 'characterRules', response })
-    }
-    dependencies.push({ request: input.request, readChecksum: response.readChecksum })
-    return response
-  }
-
-  return {
-    ...(await prepareLiveCharacterSheetFacts(initialInput, capture)),
-    revisions,
-    dependencies
-  }
-}
-
-/** Shared preparation over authorized stored inputs, from Convex captures or the room. */
+/** Prepares authorized Character facts over stored inputs the room reads. */
 export async function prepareLiveCharacterSheetFacts(
   initialInput: LiveSessionCharacterRulesInput,
   capture: (

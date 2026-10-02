@@ -47,7 +47,6 @@ import {
   requireActiveCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
-import { beforeWrite } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { requireBoundTokenMoveControl } from '@artificer-toolkit/encounter-persistence/actorController'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
@@ -253,8 +252,7 @@ export async function beginSceneGeometry(
       expiresAt,
       fogSaves: []
     })
-    // Verified as it will be stored; the transaction's later reads of this save reuse it.
-    readMovementResolution(beforeWrite(ctx.db, save))
+    readMovementResolution(save)
     await ctx.db.insert('sceneGeometrySaves', save)
     await ctx.scheduler.runAt(expiresAt, cleanupReference, {
       saveId: save.id

@@ -16,8 +16,7 @@ import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encou
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
@@ -38,8 +37,6 @@ type LiveTurnCommand = Extract<
 
 /** Plans the turn without writes; the caller must atomically commit it before acknowledging it. */
 export async function planNativeLiveEncounterTurn(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   command: LiveTurnCommand,
   {
@@ -48,7 +45,7 @@ export async function planNativeLiveEncounterTurn(
   }: {
     runtime: RulesRuntimeService
     random(maximum: number): number
-    captures?: LiveCaptureReads
+    captures: LiveCaptureReads
   }
 ) {
   const initial = liveSessionEncounterRulesInputSchema.parse({
@@ -69,16 +66,9 @@ export async function planNativeLiveEncounterTurn(
     if (!read) {
       read = (async () => {
         const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-        const captured = await captureEncounterRules(
-          environment,
-          accessToken,
-          input,
-          revisions,
-          captures
-        )
-        const { response } = captured
+        const response = await captures.encounterRules(input)
         if (response.kind !== request.kind) throw new Error('Turn capture kind mismatch.')
-        revisions = mergeNativeRulesRevisions(revisions, captured.revisions)
+        revisions = mergeNativeRulesRevisions(revisions, response.revisions)
         dependencies.push({ request: input.request, readChecksum: response.readChecksum })
         return response
       })()
@@ -134,8 +124,6 @@ export async function planNativeLiveEncounterTurn(
     let read = targetReads.get(actorId)
     if (!read) {
       read = prepareNativeLiveMovementTarget({
-        environment,
-        accessToken,
         scope: initial,
         state,
         actor,

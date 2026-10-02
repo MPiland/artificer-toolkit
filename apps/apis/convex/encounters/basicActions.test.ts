@@ -29,13 +29,7 @@ import {
   setActorControllers,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
-import {
-  executeInRoom,
-  insertActiveLiveAuthority,
-  withRoomConvex
-} from '../../tests/fixtures/liveSessionWorker'
-import { planNativeLiveBasicAction } from '../../../session-worker/src/nativeBasicAction'
-import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 
@@ -479,65 +473,15 @@ describe('basic combat actions in the room (Q11)', () => {
     ).resolves.toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
   })
 
-  it('Convex records the room plan only: it plans nothing itself and refuses a plan unlike its entry', async () => {
+  it('the room commits a Dodge once, checkpointing its effects and exactly one version', async () => {
     const base = await basicActionFixture()
     const command = await useBasicAction(base, {
       actorId: base.companion.id,
       definitionId: dodge!.id
     })
-    const epoch = crypto.randomUUID()
-    const authority = await base.t.run((ctx) =>
-      insertActiveLiveAuthority(ctx, {
-        campaignId: base.campaign.id,
-        epoch,
-        createdAt: new Date().toISOString()
-      })
-    )
-    const scope = {
-      campaignId: base.campaign.id,
-      authorityEpoch: epoch,
-      expectedUserId: base.owner.userId,
-      expectedRole: 'OWNER' as const
-    }
-    await withRoomConvex(base.owner.caller, async ({ environment, accessToken }) => {
-      // Convex never plans a basic action from a forwarded command.
-      await expect(
-        callLiveSessionRoute(environment, accessToken, 'encounterCommand', { ...scope, command })
-      ).rejects.toThrow()
-      const plan = await planNativeLiveBasicAction(
-        environment,
-        accessToken,
-        { ...scope, encounterId: base.run.id, expectedVersion: command.expectedVersion },
-        command,
-        undefined
-      )
-      if (plan.kind !== 'PLANNED') throw new Error('Expected a planned basic action.')
-      expect(plan.input).toMatchObject({
-        speedMovementBonus: false,
-        effects: [
-          expect.objectContaining({ mechanic: 'DISADVANTAGE_ON_ATTACKS_AGAINST' }),
-          expect.objectContaining({ mechanic: 'SAVE_ADVANTAGE' })
-        ],
-        actionEconomy: expect.objectContaining({ beforeUsed: 0, afterUsed: 1 })
-      })
-      // A plan with an effect its entry lacks is refused without writes.
-      await expect(
-        callLiveSessionRoute(environment, accessToken, 'encounterBasicActionCommit', {
-          ...plan.input,
-          effects: [{ ...plan.input.effects[0]!, mechanic: 'NO_OPPORTUNITY_ATTACKS' }]
-        })
-      ).rejects.toThrow()
-      expect(await base.version()).toBe(command.expectedVersion)
-      // The room's own plan is what Convex records.
-      const recorded = await callLiveSessionRoute(
-        environment,
-        accessToken,
-        'encounterBasicActionCommit',
-        plan.input
-      )
-      expect(recorded.projection.version).toBe(command.expectedVersion + 1)
-    })
-    await base.t.run((ctx) => ctx.db.delete(authority))
+    const committed = await executeInRoom(base.owner.caller, { command })
+    expect(committed.projection.version).toBe(command.expectedVersion + 1)
+    expect(await base.version()).toBe(command.expectedVersion + 1)
     expect(
       encounterBasicActionEffects(await actorState(base, base.companion.id)).map(
         (effect) => effect.mechanic

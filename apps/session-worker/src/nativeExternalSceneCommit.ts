@@ -4,18 +4,14 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   LiveSessionExpectedScene,
-  LiveSessionExternalAuthority,
   LiveSessionMovementCommitInput,
-  LiveSessionMovementCommitResponse,
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import type { LiveSessionMovementStage } from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import type { LiveSessionMovementCaptureScope } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
-import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
 import type {
   SceneBaseOrdinals,
-  SceneGeometryCommandResult
+  SceneGeometryBeginResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSessionVisionComposition } from '@artificer-toolkit/schema/api/sceneSessionVision'
 import type {
@@ -39,21 +35,12 @@ import {
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
 
-import {
-  callLiveSessionRoute,
-  LiveSessionRouteError,
-  type NativeLiveSessionEnvironment
-} from './liveSessionRoutes.js'
-import {
-  BUNDLED_MAINTENANCE_DEFINITION_IDS,
-  bundleCaptures,
-  LiveCaptureCache,
-  type LiveCaptureReads
-} from './nativeCaptureCache.js'
+import { LiveSessionRouteError } from './liveSessionRoutes.js'
+import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import { prepareNativeLiveMovement } from './nativeEncounterMovement.js'
 import type { LiveEncounterActor } from './nativeRoomEncounterCommand.js'
 
-/** A room command that commits to Convex first (D27): a Scene change or a movement decision. */
+/** A room command that stages a Scene save first: a Scene change or a movement decision. */
 export type ExternalSceneCommand =
   | SceneTokenMovementCommandInputDto
   | SceneDoorStateCommandInputDto
@@ -76,7 +63,7 @@ export type PreparedExternalSceneCommit = {
 } & (
   | {
       kind: 'MOVEMENT'
-      commit: Omit<LiveSessionMovementCommitInput, 'authority' | 'expectedScene'>
+      commit: Omit<LiveSessionMovementCommitInput, 'expectedScene'>
     }
   | {
       kind: 'GEOMETRY'
@@ -86,86 +73,21 @@ export type PreparedExternalSceneCommit = {
 )
 
 /**
- * Plans a Convex-first command up to its commit from its Convex stage (D52): Convex routes a
- * decision, begins and observes the save with the room's Scene vision, and reads a bound move's
- * capture bundle; any Encounter rules run in the DO on that bundle, each fog owner's complete layer
- * is derived, and the published Scene is predicted. The commit freezes the plan and stages the fog
- * in its own transaction; nothing here changes gameplay or authority.
+ * Plans a staged command up to its commit from the room's admitted save: any Encounter rules run in
+ * the DO, each fog owner's complete layer is derived, and the published Scene is predicted. The
+ * caller commits the plan in its own transaction; nothing here changes gameplay or authority.
  */
-export async function prepareExternalSceneCommit(input: {
-  environment: NativeLiveSessionEnvironment
-  accessToken: string
-  actor: LiveEncounterActor
-  command: ExternalSceneCommand
-  context: ExternalSceneContext
-  runtime: RulesRuntimeService
-  random(maximum: number): number
-  captures?: LiveCaptureReads
-}): Promise<PreparedExternalSceneCommit> {
-  const { actor, command, context } = input
-  // Without the room's cache, one view both stages and takes the bundle.
-  const captures = input.captures ?? new LiveCaptureCache().reads()
-  const decision =
-    command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE'
-  const stage = await callLiveSessionRoute(
-    input.environment,
-    input.accessToken,
-    'encounterMovementStage',
-    {
-      ...actor,
-      command,
-      ...(decision ? {} : { presentation: context.presentation }),
-      characterRevisions: context.characterRevisions,
-      tokenOrdinals: context.baseOrdinals.tokens,
-      maintenanceDefinitionIds: BUNDLED_MAINTENANCE_DEFINITION_IDS,
-      cachedSystem: captures.systemStamp()
-    }
-  )
-  // Convex holds a published command the room has no receipt for (its ID was already used), or
-  // the decision is no longer a movement decision.
-  if (stage.kind !== 'STAGED') throw new LiveSessionRouteError(409)
-  if (stage.capture) {
-    const staged = stage.begun.input
-    if (
-      staged.type !== 'MOVE_SCENE_TOKEN' ||
-      staged.expectedEncounterVersion === null ||
-      !stage.begun.encounterId
-    )
-      throw new LiveSessionRouteError(409)
-    bundleCaptures(
-      liveSessionEncounterRulesInputSchema.parse({
-        ...actor,
-        encounterId: stage.begun.encounterId,
-        expectedVersion: staged.expectedEncounterVersion,
-        movement: stage.capture.movement,
-        request: { kind: 'MOVEMENT_INPUTS' }
-      }),
-      stage.capture.bundle,
-      captures
-    )
-  }
-  return prepareStagedSceneCommit({
-    ...input,
-    staged: stage,
-    movement: stage.capture?.movement ?? null,
-    captures
-  })
-}
-
-/** The same movement and exploration planner consumes either host's admitted save and real captures. */
 export async function prepareStagedSceneCommit(input: {
-  environment: NativeLiveSessionEnvironment
-  accessToken: string
   actor: LiveEncounterActor
   command: ExternalSceneCommand
   context: ExternalSceneContext
   runtime: RulesRuntimeService
   random(maximum: number): number
   captures: LiveCaptureReads
-  staged: Pick<Extract<LiveSessionMovementStage, { kind: 'STAGED' }>, 'begun' | 'saveId'>
+  staged: { begun: Extract<SceneGeometryBeginResult, { kind: 'READY' }>; saveId: string }
   movement: LiveSessionMovementCaptureScope | null
 }): Promise<PreparedExternalSceneCommit> {
-  const { environment, accessToken, actor, command, context, captures } = input
+  const { actor, command, context, captures } = input
   const { scene } = context
   const stage = input.staged
   const { begun, saveId } = stage
@@ -206,8 +128,6 @@ export async function prepareStagedSceneCommit(input: {
     const occurrenceId = decision ? command.occurrenceId.toLowerCase() : crypto.randomUUID()
     const occurredAt = new Date().toISOString()
     const planned = await prepareNativeLiveMovement({
-      environment,
-      accessToken,
       scope,
       scene,
       occurrenceId,
@@ -315,35 +235,5 @@ export async function prepareStagedSceneCommit(input: {
       fogLayers: layers,
       ...(command.type === 'VOID_RULE_OCCURRENCE' ? { voidCommand: command } : {})
     }
-  }
-}
-
-/** Commits a staged command; Convex advances the room's authority to `authority.sequence` with it. */
-export async function commitExternalSceneCommit(input: {
-  environment: NativeLiveSessionEnvironment
-  accessToken: string
-  actor: LiveEncounterActor
-  prepared: PreparedExternalSceneCommit
-  authority: LiveSessionExternalAuthority
-}): Promise<{
-  scene: SceneGeometryCommandResult
-  encounter: LiveSessionMovementCommitResponse['encounter']
-}> {
-  const { environment, accessToken, prepared, authority } = input
-  if (prepared.kind === 'MOVEMENT')
-    return callLiveSessionRoute(environment, accessToken, 'encounterMovementCommit', {
-      ...prepared.commit,
-      authority,
-      expectedScene: prepared.expectedScene
-    })
-  return {
-    scene: await callLiveSessionRoute(environment, accessToken, 'sceneGeometryCommit', {
-      ...input.actor,
-      finish: prepared.finish,
-      fogLayers: prepared.fogLayers,
-      authority,
-      expectedScene: prepared.expectedScene
-    }),
-    encounter: null
   }
 }

@@ -20,7 +20,6 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSessions'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
-import { isRoomLocalEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { sceneStoredInitialStateSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
@@ -318,21 +317,6 @@ describe('native actor removal transaction', () => {
       }
     }
   )
-
-  it('classifies private and table enemy rolls as room-local (D78)', () => {
-    const command: Extract<EncounterExecuteInput['command'], { type: 'ROLL_ENEMY_ACTION' }> = {
-      type: 'ROLL_ENEMY_ACTION',
-      encounterId: crypto.randomUUID(),
-      commandId: crypto.randomUUID(),
-      expectedVersion: 0,
-      actorId: crypto.randomUUID(),
-      featureId: crypto.randomUUID(),
-      rollDefinitionId: crypto.randomUUID(),
-      visibility: 'PRIVATE'
-    }
-    expect(isRoomLocalEncounterCommand(command)).toBe(true)
-    expect(isRoomLocalEncounterCommand({ ...command, visibility: 'TABLE' })).toBe(true)
-  })
 
   it('removes prepared actors and exact bindings/reminders, preserves Scene identity, and replays historically with current authority', async () => {
     const base = await setup()

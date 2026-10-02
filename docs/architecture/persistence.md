@@ -250,14 +250,14 @@ so the Session room can later run the same code against its own store. It depend
   `pendingReads`, roll-mode reasons, health viewer, Character projection state).
 - **Convex keeps** its public and internal function registrations (`encounters/commands:execute`,
   `encounters/pendingReads:*`, `encounters/evidenceRolls:latest`), which resolve their guards and
-  call the package. The live commit handlers under `liveSessions/` keep their fences (live
-  admission, rules revisions) and write through the moved writers; they are deleted in S6. The
-  capture builders (`encounterRulesCapture`, `characterRulesCapture`), `actionChoices` and its
+  call the package. A35-S6c3 deleted the live commit handlers under `liveSessions/`, their
+  fences, the `encounterRulesCapture` builder and the `requireLiveEncounterRun` guard. The
+  stored-input readers (`characterRulesCapture`), `actionChoices` and its
   action-preparation helpers (`actionMechanicsPreparation`, `actionEconomy`, `actionSources`,
   `actionRelationshipFacts`, `actionSceneContext`, `actionDisarmSelection`) stay in Convex: they page
   with Convex cursors or assemble Character and System content that the room receives as hydrated
   inputs and plans with in the Worker, and their Encounter state reads already go through the
-  package. The live-session guard `requireLiveEncounterRun` stays too.
+  package.
 - **Nested calls.** The Encounter GM tool's Character Sheet command runs in the same transaction
   through `executeEncounterCharacterCommand` instead of a nested internal mutation.
 - **Conformance.** `apps/apis/convex/encounters/encounterStoreConformance.test.ts` runs the same

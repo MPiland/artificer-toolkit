@@ -19,8 +19,7 @@ import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-da
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { withRoomConvex } from '../../tests/fixtures/liveSessionWorker'
-import { planNativeLiveDisarm } from '../../../session-worker/src/nativeDisarm'
+import { replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { api, internal } from '../_generated/api'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import * as rollRandom from '../lib/rollRandom'
@@ -69,36 +68,12 @@ function contestedOutput(records: Awaited<ReturnType<typeof disarmRecords>>) {
   return receipt.applicationOutputs
 }
 
-/**
- * A settled Disarm answer is no longer routable, so a lost acknowledgement's retry is shown at the
- * planner, which returns the stored result without rolling.
- */
-function replayInRoom(
-  base: Awaited<ReturnType<typeof nativeDisarmFixture>>,
+/** A lost acknowledgement's retry of a settled Disarm answer returns its stored result without rolling. */
+async function replayDisarm(
   member: Awaited<ReturnType<typeof nativeDisarmFixture>>['player'],
   command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
 ) {
-  return withRoomConvex(member.caller, ({ environment, accessToken, runtime }) =>
-    planNativeLiveDisarm(
-      environment,
-      accessToken,
-      {
-        campaignId: base.campaign.id,
-        authorityEpoch: base.authorityEpoch,
-        expectedUserId: member.userId,
-        expectedRole: member.userId === base.owner.userId ? 'OWNER' : 'PLAYER',
-        encounterId: base.run.id,
-        expectedVersion: command.expectedVersion
-      },
-      command,
-      {
-        runtime,
-        random: () => {
-          throw new Error('A replay must not roll.')
-        }
-      }
-    )
-  )
+  return { kind: 'REPLAY' as const, result: await replayInRoom(member.caller, { command }) }
 }
 
 describe('room Disarm commands', () => {
@@ -202,7 +177,7 @@ describe('room Disarm commands', () => {
         encounterId: base.run.id
       })
     })
-    await expect(replayInRoom(base, base.player, first)).resolves.toEqual({
+    await expect(replayDisarm(base.player, first)).resolves.toEqual({
       kind: 'REPLAY',
       result: {
         ...answered,
@@ -211,7 +186,7 @@ describe('room Disarm commands', () => {
         })
       }
     })
-    await expect(replayInRoom(base, base.owner, second)).resolves.toEqual({
+    await expect(replayDisarm(base.owner, second)).resolves.toEqual({
       kind: 'REPLAY',
       result: completed
     })
@@ -455,11 +430,11 @@ describe('room Disarm commands', () => {
       expect(
         encounterRuleUsageUsed(actorState(after, base.actor.id), SRD_ACTION_ALLOWANCE_DEFINITION_ID)
       ).toBe(1)
-      await expect(replayInRoom(base, responder, second)).resolves.toEqual({
+      await expect(replayDisarm(responder, second)).resolves.toEqual({
         kind: 'REPLAY',
         result
       })
-      await expect(replayInRoom(base, base.owner, first)).resolves.toEqual({
+      await expect(replayDisarm(base.owner, first)).resolves.toEqual({
         kind: 'REPLAY',
         result: {
           ...next,

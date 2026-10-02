@@ -2,15 +2,10 @@ import {
   domainRejectionErrorDataSchema,
   type DomainRejectionErrorData
 } from '@artificer-toolkit/schema/api/domainRejections'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   liveRoomInputsInputSchema,
   liveRoomInputsResponseSchema
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
-import {
-  liveSessionCharacterRulesInputSchema,
-  liveSessionCharacterRulesResponseSchema
-} from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
 import {
   liveSessionCheckpointInputSchema,
   liveSessionCheckpointResponseSchema
@@ -21,51 +16,6 @@ import {
   liveSessionCheckpointCommitInputSchema,
   liveSessionCheckpointStageResponseSchema
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointStaging'
-import {
-  liveSessionEncounterActionCommitInputSchema,
-  liveSessionEncounterActionPendingInputSchema
-} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import {
-  liveSessionEncounterCommandInputSchema,
-  liveSessionEncounterRollCommitInputSchema,
-  liveSessionEncounterRollDiceSchema,
-  liveSessionEncounterRollInputSchema,
-  liveSessionEncounterRouteInputSchema,
-  liveSessionEncounterRouteResponseSchema,
-  liveSessionEncounterVoidInputSchema,
-  liveSessionEncounterVoidPreparedSchema
-} from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
-import {
-  liveSessionEncounterCaptureBundleInputSchema,
-  liveSessionEncounterCaptureBundleSchema
-} from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
-import { liveSessionEncounterBasicActionCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
-import { liveSessionEncounterCleavingCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterCleaving'
-import { liveSessionEncounterConcentrationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
-import {
-  liveSessionEncounterDisarmCommitInputSchema,
-  liveSessionEncounterDisarmPendingInputSchema
-} from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
-import {
-  liveSessionEncounterRulesInputSchema,
-  liveSessionEncounterRulesResponseSchema
-} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import {
-  liveSessionEncounterTurnCommitInputSchema,
-  liveSessionEncounterTurnPendingInputSchema
-} from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
-import {
-  liveSessionEncounterBindingCommitInputSchema,
-  liveSessionExternalCommitResolveInputSchema,
-  liveSessionExternalCommitResolveResponseSchema,
-  liveSessionMovementCommitInputSchema,
-  liveSessionMovementCommitResponseSchema,
-  liveSessionSceneGeometryCommitInputSchema
-} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import {
-  liveSessionMovementStageInputSchema,
-  liveSessionMovementStageSchema
-} from '@artificer-toolkit/schema/api/liveSessionMovementStage'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import {
   liveSessionRoomAuthorizationInputSchema,
@@ -77,9 +27,7 @@ import {
   liveSessionAuthorityDtoSchema,
   liveSessionBootstrapInputSchema,
   liveSessionBootstrapResponseSchema,
-  liveSessionDrainReleaseInputSchema,
-  liveSessionPublishInputSchema,
-  liveSessionPublishResponseSchema
+  liveSessionDrainReleaseInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import {
   liveSessionTransientCaptureInputSchema,
@@ -90,12 +38,7 @@ import {
   liveSessionTransientHydrationResponseSchema
 } from '@artificer-toolkit/schema/api/liveSessionTransientHydration'
 import { liveSessionPresentationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessions'
-import { sceneGeometryCommandResultSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
-
-import {
-  bindEncounterToPresentedSceneResultDtoSchema,
-  setCampaignLiveScenePresentationResultDtoSchema
-} from '@artificer-toolkit/schema/api/vttScenes'
+import { setCampaignLiveScenePresentationResultDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { z } from 'zod'
 
 export type NativeLiveSessionEnvironment = {
@@ -179,105 +122,12 @@ const liveSessionRoutes = {
     input: liveSessionStorageRecoveryInputSchema,
     output: liveSessionAuthorityDtoSchema
   },
-  publish: { input: liveSessionPublishInputSchema, output: liveSessionPublishResponseSchema },
   present: {
     input: liveSessionPresentationCommitInputSchema,
     output: setCampaignLiveScenePresentationResultDtoSchema
   },
   beginDrain: { input: liveSessionDrainReleaseInputSchema, output: liveSessionAuthorityDtoSchema },
-  release: { input: liveSessionDrainReleaseInputSchema, output: z.null() },
-  characterRules: {
-    input: liveSessionCharacterRulesInputSchema,
-    output: liveSessionCharacterRulesResponseSchema
-  },
-  encounterRules: {
-    input: liveSessionEncounterRulesInputSchema,
-    output: liveSessionEncounterRulesResponseSchema
-  },
-  encounterBundle: {
-    input: liveSessionEncounterCaptureBundleInputSchema,
-    output: liveSessionEncounterCaptureBundleSchema
-  },
-  encounterMovementStage: {
-    input: liveSessionMovementStageInputSchema,
-    output: liveSessionMovementStageSchema
-  },
-  encounterMovementCommit: {
-    input: liveSessionMovementCommitInputSchema,
-    output: liveSessionMovementCommitResponseSchema
-  },
-  sceneGeometryCommit: {
-    input: liveSessionSceneGeometryCommitInputSchema,
-    output: sceneGeometryCommandResultSchema
-  },
-  encounterBindingCommit: {
-    input: liveSessionEncounterBindingCommitInputSchema,
-    output: bindEncounterToPresentedSceneResultDtoSchema
-  },
-  externalCommitResolve: {
-    input: liveSessionExternalCommitResolveInputSchema,
-    output: liveSessionExternalCommitResolveResponseSchema
-  },
-  encounterActionPending: {
-    input: liveSessionEncounterActionPendingInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterActionCommit: {
-    input: liveSessionEncounterActionCommitInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterTurnPending: {
-    input: liveSessionEncounterTurnPendingInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterTurnCommit: {
-    input: liveSessionEncounterTurnCommitInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterConcentrationCommit: {
-    input: liveSessionEncounterConcentrationCommitInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterCleavingCommit: {
-    input: liveSessionEncounterCleavingCommitInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterDisarmPending: {
-    input: liveSessionEncounterDisarmPendingInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterDisarmCommit: {
-    input: liveSessionEncounterDisarmCommitInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterBasicActionCommit: {
-    input: liveSessionEncounterBasicActionCommitInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterRoute: {
-    input: liveSessionEncounterRouteInputSchema,
-    output: liveSessionEncounterRouteResponseSchema
-  },
-  encounterVoidPrepare: {
-    input: liveSessionEncounterVoidInputSchema,
-    output: liveSessionEncounterVoidPreparedSchema
-  },
-  encounterVoidRecord: {
-    input: liveSessionEncounterVoidInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterRollDice: {
-    input: liveSessionEncounterRollInputSchema,
-    output: liveSessionEncounterRollDiceSchema
-  },
-  encounterRollCommit: {
-    input: liveSessionEncounterRollCommitInputSchema,
-    output: encounterCommandResultDtoSchema
-  },
-  encounterCommand: {
-    input: liveSessionEncounterCommandInputSchema,
-    output: encounterCommandResultDtoSchema
-  }
+  release: { input: liveSessionDrainReleaseInputSchema, output: z.null() }
 } satisfies Record<
   keyof typeof LIVE_SESSION_ROUTE_PATHS,
   { input: Parser<unknown>; output: Parser<unknown> }

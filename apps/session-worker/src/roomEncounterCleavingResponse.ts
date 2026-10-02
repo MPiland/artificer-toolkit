@@ -15,8 +15,6 @@ import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { persistRoomConcentrationChildren } from './roomConcentrationPersistence.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
@@ -29,17 +27,14 @@ export async function executeRoomEncounterCleavingResponse(input: {
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   observed: LiveSessionRulesRevisions
   command: ResolveRuleOccurrenceInputDto
-  environment: NativeLiveSessionEnvironment
   runtime: RulesRuntimeService
-  captures: LiveCaptureReads
   random(maximum: number): number
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
-  const plan = await planNativeLiveCleavingResponse(input.environment, '', scope, input.command, {
+  const plan = await planNativeLiveCleavingResponse(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
     captures: {
-      ...input.captures,
       encounterRules: (request) =>
         readRoomEncounterTurnCapture(
           ctx,

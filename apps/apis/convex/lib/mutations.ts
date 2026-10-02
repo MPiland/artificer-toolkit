@@ -8,7 +8,6 @@ import {
   mutation as rawMutation
 } from '../_generated/server'
 import type { DataModel, Doc, TableNames } from '../_generated/dataModel'
-import { memoizeMutationReads } from '@artificer-toolkit/encounter-persistence/transactionReads'
 import { syncCampaignClockWithCombat } from '../campaigns/clockCombat'
 import { changeCampaignContentUsage } from '../campaigns/contentUsage'
 import { markContentSnapshotScope, type ContentSnapshotScopeRef } from '../contentSnapshots/marking'
@@ -410,16 +409,6 @@ export const internalMutation = withDomainRejections(
   customMutation(
     rawInternalMutation,
     trackedMutation((ctx) => ctx.db)
-  )
-)
-/**
- * An internal mutation whose identical reads are served once per transaction. The memo sits
- * beneath the triggers, so their writes invalidate it too (`memoizeMutationReads`).
- */
-export const memoizedInternalMutation = withDomainRejections(
-  customMutation(
-    rawInternalMutation,
-    trackedMutation((ctx) => memoizeMutationReads(ctx.db))
   )
 )
 /** An internal mutation that applies change tracking to its own context (`withSceneVisionTracking`). */

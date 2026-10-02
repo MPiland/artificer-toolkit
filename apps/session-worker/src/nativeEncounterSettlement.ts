@@ -23,10 +23,10 @@ import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/e
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { EncounterMechanicsBatchPlan } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
+import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import type { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 
-type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
+type CharacterFacts = PreparedLiveCharacterSheet
 type Maintenance = NonNullable<Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>>
 export type NativeLiveMaintenanceOwner = {
   owner: ActiveRuleEffectRecord['owner']

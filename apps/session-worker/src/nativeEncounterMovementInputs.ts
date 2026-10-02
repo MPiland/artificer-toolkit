@@ -25,30 +25,25 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sceneTokenMovementFailure, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 
 /**
- * The room supplies its complete, flushed Scene; raw captures stay within the trusted DO. The
- * movement admission read fetches the command's capture bundle, and System-level reads go through
- * the room cache.
+ * The room supplies its complete, flushed Scene; raw captures stay within the trusted DO.
  */
 export async function readNativeLiveMovementInputs(input: {
-  environment: NativeLiveSessionEnvironment
-  accessToken: string
   scope: Omit<LiveSessionEncounterRulesInput, 'request' | 'concentrationResponse'> & {
     movement: NonNullable<LiveSessionEncounterRulesInput['movement']>
   }
   scene: CampaignSceneState
   occurrenceId: string
   runtime: RulesRuntimeService
-  captures?: LiveCaptureReads
+  captures: LiveCaptureReads
 }) {
-  const { environment, accessToken, scene, runtime, occurrenceId, captures } = input
+  const { scene, runtime, occurrenceId, captures } = input
   const scope = liveSessionEncounterRulesInputSchema.parse({
     ...input.scope,
     request: { kind: 'MOVEMENT_INPUTS' }
@@ -61,16 +56,11 @@ export async function readNativeLiveMovementInputs(input: {
     const key = checksumCanonicalJson(request)
     let read = reads.get(key)
     if (!read) {
-      read = captureEncounterRules(
-        environment,
-        accessToken,
-        liveSessionEncounterRulesInputSchema.parse({ ...scope, request }),
-        revisions,
-        captures
-      ).then((captured) => {
-        const { response } = captured
+      read = captures
+        .encounterRules(liveSessionEncounterRulesInputSchema.parse({ ...scope, request }))
+        .then((response) => {
         if (response.kind !== request.kind) throw new Error('Movement capture kind mismatch.')
-        revisions = mergeNativeRulesRevisions(revisions, captured.revisions)
+        revisions = mergeNativeRulesRevisions(revisions, response.revisions)
         dependencies.push({ request, readChecksum: response.readChecksum })
         return response
       })
@@ -78,7 +68,6 @@ export async function readNativeLiveMovementInputs(input: {
     }
     return read
   }
-  // The admission read fetches the bundle that later reads take their parts from.
   const movement = await capture({ kind: 'MOVEMENT_INPUTS' })
   const inputs = await capture({ kind: 'INPUTS' })
   if (movement.kind !== 'MOVEMENT_INPUTS' || inputs.kind !== 'INPUTS')
@@ -195,8 +184,6 @@ export async function readNativeLiveMovementInputs(input: {
       : await Promise.all(
           actors.map((actor) =>
             prepareNativeLiveMovementTarget({
-              environment,
-              accessToken,
               scope,
               state,
               actor,

@@ -4,7 +4,7 @@ import {
 } from '../lib/convexEncounterStore'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -14,7 +14,6 @@ import type {
   EncounterBlueprintDto,
   CreateEncounterInputDto,
   EncounterGmProjectionDto,
-  EncounterCommandResultDto,
   EncounterCommandInputDto,
   EncounterExecuteInput,
   ResolveRuleOccurrenceInputDto
@@ -23,10 +22,6 @@ import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/e
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import type {
-  LiveSessionEncounterRulesInput,
-  LiveSessionEncounterRulesResponse
-} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import {
   sceneStoredInitialStateSchema,
   sceneStoredDefinitionSaveSchema,
@@ -35,10 +30,6 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { featureChargeUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import {
-  createPlatformRulesRuntime,
-  deriveRulesContinuationKey
-} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -75,21 +66,11 @@ import {
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from './encounterPorts'
 import {
-  commitNativeLiveEncounterAction,
-  planNativeLiveEncounterAction
-} from '../../../session-worker/src/nativeEncounterRules'
-import { planNativeLiveConcentrationResponse } from '../../../session-worker/src/nativeConcentrationResponse'
-import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
-import {
   executeRoomEncounterCommand,
   insertActiveLiveAuthority,
-  stubLiveSessionFetch,
-  withRoomConvex,
-  workerEnvironment,
   executeInRoom,
   replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
-import { planNativeLiveCleavingResponse } from '../../../session-worker/src/nativeCleavingResponse'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -104,11 +85,6 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
-const capture = makeFunctionReference<
-  'query',
-  LiveSessionEncounterRulesInput,
-  LiveSessionEncounterRulesResponse
->('liveSessions/encounterRulesCapture:capture')
 
 async function setup(
   rolls: FixtureRolls = 'AUTO_ROLL',
@@ -616,30 +592,9 @@ function room(
   })
 }
 
-/** The planner's own retry of a settled answer: it returns the stored result without rolling. */
-function replayAnswer(
-  base: Awaited<ReturnType<typeof setup>>,
-  member: Member,
-  command: ResolveRuleOccurrenceInputDto
-) {
-  return withRoomConvex(member.caller, ({ environment, accessToken, runtime }) =>
-    planNativeLiveCleavingResponse(
-      environment,
-      accessToken,
-      {
-        ...roomActor(base, member),
-        encounterId: base.run.id,
-        expectedVersion: command.expectedVersion
-      },
-      command,
-      {
-        runtime,
-        random: () => {
-          throw new Error('A replay must not roll.')
-        }
-      }
-    )
-  )
+/** A lost acknowledgement's retry of a settled answer returns the stored result without rolling. */
+async function replayAnswer(member: Member, command: ResolveRuleOccurrenceInputDto) {
+  return { kind: 'REPLAY' as const, result: await replayInRoom(member.caller, { command }) }
 }
 
 async function records(base: Awaited<ReturnType<typeof setup>>) {
@@ -738,120 +693,46 @@ async function completeParent(base: Awaited<ReturnType<typeof setup>>) {
 }
 
 describe('native Cleaving action settlement', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.unstubAllEnvs()
-  })
   it('commits the selected Character Cleaving choice from the Worker plan', async () => {
     const base = await setup('AUTO_ROLL', false, true)
     const command = base.command.command
     if (command.type !== 'RESOLVE_ACTION') throw new Error('Missing Cleaving action command.')
-    const workerSecret = 'private-cleaving-planning-test-secret-at-least-32-bytes'
-    const authSecret = 'private-cleaving-continuation-test-secret-at-least-32-bytes'
-    const { authorityEpoch } = base
-    const scope = {
-      campaignId: base.campaign.id,
-      authorityEpoch,
-      expectedUserId: base.owner.userId,
-      expectedRole: 'OWNER' as const,
-      encounterId: base.run.id,
-      expectedVersion: command.expectedVersion
-    }
-    vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-    vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
-    const bindings = await base.owner.caller.query(capture, {
-      ...scope,
-      request: { kind: 'CLEAVING_BINDINGS' }
-    })
-    if (bindings.kind !== 'CLEAVING_BINDINGS') throw new Error('Missing Cleaving bindings.')
-    expect(bindings.bindings.map((binding) => binding.actorId)).toEqual(
-      expect.arrayContaining(base.run.actors.map((actor) => actor.id))
+    const before = await records(base)
+    const committed = await executeInRoom(
+      base.owner.caller,
+      base.command,
+      (maximum) => (maximum === 20 ? 19 : 0)
     )
-    await expect(
-      base.other.caller.query(capture, {
-        ...scope,
-        expectedUserId: base.other.userId,
-        request: { kind: 'CLEAVING_BINDINGS' }
-      })
-    ).rejects.toThrow()
-    stubLiveSessionFetch((pathname, init) => base.owner.caller.fetch(pathname, init))
-    try {
-      const before = await records(base)
-      const continuationIntegrityKey = await deriveRulesContinuationKey(
-        process.env.RULES_CONTINUATION_SECRET
+    const after = await records(base)
+    expect(after.run?.version).toBe(before.run!.version + 1)
+    expect(
+      await base.t.run((ctx) =>
+        readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(after.run!))
       )
-      const rulesRuntime = createPlatformRulesRuntime({
-        continuationIntegrityKey,
-        definitions: {
-          async requireCurrent() {
-            throw new Error('Cleaving action graphs are sealed by their capture.')
-          }
-        }
-      })
-      const occurrenceId = crypto.randomUUID()
-      const planUuid = vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(occurrenceId)
-      const planned = await planNativeLiveEncounterAction(
-        workerEnvironment(workerSecret),
-        'fixture-access-token',
-        scope,
-        command,
-        {
-          runtime: rulesRuntime,
-          random: (maximum) => (maximum === 20 ? 19 : 0)
-        }
-      ).finally(() => planUuid.mockRestore())
-      if (planned.kind !== 'PLANNED') throw new Error('Expected complete Cleaving action plan.')
-      expect(planned.occurrenceId).toBe(occurrenceId)
-      expect(await records(base)).toEqual(before)
-      expect(planned.prepared.target.kind).toBe('CHARACTER')
-      expect(planned.concentration.pending).toBeNull()
-      expect(planned.cleaving).not.toBeNull()
-      expect(await records(base)).toEqual(before)
-      const committed = await commitNativeLiveEncounterAction(
-        workerEnvironment(workerSecret),
-        'fixture-access-token',
-        scope,
-        planned
-      )
-      const after = await records(base)
-      expect(after.run?.version).toBe(before.run!.version + 1)
-      expect(
-        await base.t.run((ctx) =>
-          readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(after.run!))
-        )
-      ).toEqual(committed.projection)
-      const rootReceipt = after.receipts.find((receipt) => receipt.commandId === command.commandId)
-      if (!rootReceipt) throw new Error('Missing Cleaving root receipt.')
-      expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson))).toEqual(
-        planned.storedExecution
-      )
-      const pending = after.occurrences.filter((occurrence) => occurrence.state === 'PENDING')
-      expect(pending).toHaveLength(1)
-      expect(
-        await base.t.run((ctx) =>
-          readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, pending[0]!)
-        )
-      ).toEqual(planned.cleaving)
-      if (planned.cleaving?.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING') {
-        throw new Error('Missing planned Cleaving choice.')
-      }
-      expect((await pendingChoice(base)).options).toHaveLength(
-        planned.cleaving.applicationContext.options.length
-      )
-    } finally {
-      vi.unstubAllGlobals()
-      vi.unstubAllEnvs()
-    }
+    ).toEqual(committed.projection)
+    const rootReceipt = after.receipts.find((receipt) => receipt.commandId === command.commandId)
+    if (!rootReceipt) throw new Error('Missing Cleaving root receipt.')
+    expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson)).status).toBe(
+      'COMPLETE'
+    )
+    const pending = after.occurrences.filter((occurrence) => occurrence.state === 'PENDING')
+    expect(pending).toHaveLength(1)
+    const snapshot = await base.t.run((ctx) =>
+      readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, pending[0]!)
+    )
+    if (snapshot?.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING')
+      throw new Error('Missing checkpointed Cleaving choice.')
+    expect((await pendingChoice(base)).options).toHaveLength(
+      snapshot.applicationContext.options.length
+    )
   }, 60_000)
 
   it.each([
     { face: 20, outcome: 'SAVE_SUCCESS' as const, transport: 'room' as const },
-    { face: 1, outcome: 'SAVE_FAILURE' as const, transport: 'room' as const },
-    { face: 20, outcome: 'SAVE_SUCCESS' as const, transport: 'planner' as const },
-    { face: 1, outcome: 'SAVE_FAILURE' as const, transport: 'planner' as const }
+    { face: 1, outcome: 'SAVE_FAILURE' as const, transport: 'room' as const }
   ])(
     'orders an Assisted concentration $outcome before the deferred Cleaving choice via $transport',
-    async ({ face, outcome, transport }) => {
+    async ({ face, outcome }) => {
       const base = await setup('PROMPT', false, true)
       if (!base.characterId) throw new Error('Missing Cleaving concentration Character.')
       const seeded = await seedConcentration({
@@ -905,12 +786,6 @@ describe('native Cleaving action settlement', () => {
           })
         ).id
       })
-      const workerSecret = 'private-cleaving-child-response-test-secret-at-least-32-bytes'
-      const authSecret = 'private-cleaving-child-continuation-test-secret-at-least-32-bytes'
-      if (transport === 'planner') {
-        vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-        vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
-      }
       const random = vi
         .spyOn(rollRandom, 'nextRollInt')
         .mockImplementation((sides) => (sides === 20 ? 18 : 0))
@@ -951,90 +826,11 @@ describe('native Cleaving action settlement', () => {
           }
         }
       }
-      const responseCommand = input.command
-      if (responseCommand.type !== 'RESOLVE_RULE_OCCURRENCE')
-        throw new Error('Expected concentration evidence response.')
-      let concentration: EncounterCommandResultDto
-      let retryConcentration: (
-        expected: EncounterCommandResultDto
-      ) => Promise<EncounterCommandResultDto>
-      if (transport === 'planner') {
-        const { authorityEpoch } = base
-        const environment = workerEnvironment(workerSecret)
-        const scope = {
-          campaignId: base.campaign.id,
-          authorityEpoch,
-          expectedUserId: base.other.userId,
-          expectedRole: 'PLAYER' as const,
-          encounterId: base.run.id,
-          expectedVersion: pending.encounterVersion
-        }
-        stubLiveSessionFetch((pathname, init) => base.other.caller.fetch(pathname, init))
-        const runtime = async () =>
-          createPlatformRulesRuntime({
-            continuationIntegrityKey: await deriveRulesContinuationKey(
-              process.env.RULES_CONTINUATION_SECRET
-            ),
-            definitions: {
-              async requireCurrent() {
-                throw new Error('Concentration graphs are supplied by their sealed capture.')
-              }
-            }
-          })
-        const plan = await planNativeLiveConcentrationResponse(
-          environment,
-          'fixture-access-token',
-          scope,
-          responseCommand,
-          {
-            runtime: await runtime(),
-            random: () => {
-              throw new Error('Entered dice must not reroll.')
-            }
-          }
-        )
-        if (plan.kind !== 'PLANNED') throw new Error('Expected planned concentration response.')
-        expect(await records(base)).toEqual(afterParent)
-        concentration = await callLiveSessionRoute(
-          environment,
-          'fixture-access-token',
-          'encounterConcentrationCommit',
-          plan.input
-        )
-        retryConcentration = async (expected) => {
-          const beforeRetry = await records(base)
-          const replay = await planNativeLiveConcentrationResponse(
-            environment,
-            'fixture-access-token',
-            scope,
-            responseCommand,
-            {
-              runtime: await runtime(),
-              random: () => {
-                throw new Error('Replay must not reroll.')
-              }
-            }
-          )
-          if (replay.kind !== 'REPLAY') throw new Error('Expected concentration response replay.')
-          expect(replay).toEqual({ kind: 'REPLAY', result: expected })
-          expect(
-            await callLiveSessionRoute(
-              environment,
-              'fixture-access-token',
-              'encounterConcentrationCommit',
-              plan.input
-            )
-          ).toEqual(expected)
-          expect(await records(base)).toEqual(beforeRetry)
-          return replay.result
-        }
-      } else {
-        concentration = encounterCommandResultDtoSchema.parse(
-          await executeInRoom(base.other.caller, input)
-        )
-        retryConcentration = async () =>
-          encounterCommandResultDtoSchema.parse(await replayInRoom(base.other.caller, input))
-      }
+      const concentration = encounterCommandResultDtoSchema.parse(
+        await executeInRoom(base.other.caller, input)
+      )
+      const retryConcentration = async () =>
+        encounterCommandResultDtoSchema.parse(await replayInRoom(base.other.caller, input))
       expect(concentration.occurrence).toMatchObject({ status: 'COMPLETE', outcome })
       const afterConcentration = await records(base)
       expect(
@@ -1057,8 +853,8 @@ describe('native Cleaving action settlement', () => {
           encounterId: base.run.id
         })
       })
-      await expect(retryConcentration(currentConcentration)).resolves.toEqual(currentConcentration)
-      await expect(replayAnswer(base, base.owner, decline)).resolves.toEqual({
+      await expect(retryConcentration()).resolves.toEqual(currentConcentration)
+      await expect(replayAnswer(base.owner, decline)).resolves.toEqual({
         kind: 'REPLAY',
         result: declined
       })
@@ -1156,7 +952,7 @@ describe('native Cleaving action settlement', () => {
       expect(after.records.occurrences.filter((entry) => entry.state === 'PENDING')).toHaveLength(1)
       const next = await pendingChoice(base)
       expect(next.occurrenceId).not.toBe(first.occurrenceId)
-      await expect(replayAnswer(base, base.owner, input)).resolves.toEqual({
+      await expect(replayAnswer(base.owner, input)).resolves.toEqual({
         kind: 'REPLAY',
         result: applied
       })
@@ -1214,7 +1010,7 @@ describe('native Cleaving action settlement', () => {
         const second = await pendingChoice(base)
         expect(second.options).toHaveLength(1)
         expect(second.occurrenceId).not.toBe(first.occurrenceId)
-        await expect(replayAnswer(base, base.owner, firstResponse)).resolves.toEqual({
+        await expect(replayAnswer(base.owner, firstResponse)).resolves.toEqual({
           kind: 'REPLAY',
           result: firstResult
         })
@@ -1279,18 +1075,18 @@ describe('native Cleaving action settlement', () => {
     const after = await records(base)
     expect(after.actors).toEqual(before.actors)
     expect(after.run?.version).toBe(before.run!.version + 1)
-    await expect(replayAnswer(base, base.owner, input)).resolves.toEqual({
+    await expect(replayAnswer(base.owner, input)).resolves.toEqual({
       kind: 'REPLAY',
       result
     })
     // The same command ID with another answer, or from another account, is not a replay.
     await expect(
-      replayAnswer(base, base.owner, {
+      replayAnswer(base.owner, {
         ...input,
         resolution: { kind: 'OPTION', optionId: pending.options[0]!.optionId }
       })
     ).rejects.toThrow()
-    await expect(replayAnswer(base, base.other, input)).rejects.toThrow()
+    await expect(replayAnswer(base.other, input)).rejects.toThrow()
     await expect(
       base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
@@ -1345,12 +1141,12 @@ describe('native Cleaving action settlement', () => {
       expect(applied.projection.actors.some((actor) => actor.id === hidden.targetActorId)).toBe(
         false
       )
-      await expect(replayAnswer(base, base.other, input)).resolves.toEqual({
+      await expect(replayAnswer(base.other, input)).resolves.toEqual({
         kind: 'REPLAY',
         result: applied
       })
       // Another member's replay of the player's answer is not theirs to read.
-      await expect(replayAnswer(base, base.owner, input)).rejects.toThrow()
+      await expect(replayAnswer(base.owner, input)).rejects.toThrow()
       const remaining = await pendingChoice(base)
       expect(remaining.options.map((option) => option.targetActorId)).toEqual([
         hidden.targetActorId
@@ -1522,7 +1318,7 @@ describe('native Cleaving action settlement', () => {
     30000
   )
 
-  it('refuses stale source, target and choice answers atomically, including a plan made before the change', async () => {
+  it('refuses stale source, target and choice answers atomically', async () => {
     const base = await setup()
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
@@ -1533,21 +1329,6 @@ describe('native Cleaving action settlement', () => {
     const pending = await pendingChoice(base)
     const input = response(base, pending)
     const before = await records(base)
-    const plan = await withRoomConvex(base.owner.caller, ({ environment, accessToken, runtime }) =>
-      planNativeLiveCleavingResponse(
-        environment,
-        accessToken,
-        {
-          ...roomActor(base, base.owner),
-          encounterId: base.run.id,
-          expectedVersion: input.expectedVersion
-        },
-        input,
-        { runtime }
-      )
-    )
-    if (plan.kind !== 'PLANNED') throw new Error('Expected a planned Cleaving answer.')
-    expect(await records(base)).toEqual(before)
     for (const actorId of [base.actor.id, pending.options[0]!.targetActorId]) {
       await base.t.run(async (ctx) => {
         const row = before.actors.find((actor) => actor.id === actorId)!
@@ -1555,13 +1336,6 @@ describe('native Cleaving action settlement', () => {
         await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, changed)
       })
       const stale = await records(base)
-      // Fixture writes skip the revision triggers, so the stale plan meets the damage re-check.
-      if (actorId !== base.actor.id)
-        await expect(
-          withRoomConvex(base.owner.caller, ({ environment, accessToken }) =>
-            callLiveSessionRoute(environment, accessToken, 'encounterCleavingCommit', plan.input)
-          )
-        ).rejects.toThrow()
       await expect(room(base, base.owner, input)).rejects.toThrow()
       expect(await records(base)).toEqual(stale)
       await base.t.run(async (ctx) => {

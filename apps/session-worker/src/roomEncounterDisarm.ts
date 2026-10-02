@@ -11,8 +11,6 @@ import { readRoomActionSceneInputs } from './roomActionSceneInputs.js'
 import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
@@ -25,16 +23,13 @@ export async function executeRoomEncounterDisarm(input: {
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   observed: LiveSessionRulesRevisions
   command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
-  environment: NativeLiveSessionEnvironment
   runtime: RulesRuntimeService
-  captures: LiveCaptureReads
   random(maximum: number): number
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
-  const plan = await planNativeLiveDisarm(input.environment, '', scope, input.command, {
+  const plan = await planNativeLiveDisarm(scope, input.command, {
     runtime: input.runtime, random: input.random,
     captures: {
-      ...input.captures,
       encounterRules: (request) => readRoomEncounterTurnCapture(ctx, inputs, transaction, request,
         observed.filter((revision) => revision.scope !== 'CHARACTER'), {
           readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),

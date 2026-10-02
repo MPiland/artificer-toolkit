@@ -130,14 +130,11 @@ export const forVisibleTokens = internalQuery({
 
 /**
  * Binds an Encounter to its Campaign's presented Scene (GM only); the same command replays its
- * result. Natively Convex must own the Scene's live state. Through the room (D47), `room` fences
- * the Scene and presentation the room synchronized, and the caller advances the room's authority
- * in the same transaction.
+ * result. Convex must own the Scene's live state; a live room binds natively in its own storage.
  */
-export async function bindEncounterToPresentedScene(
+async function bindEncounterToPresentedScene(
   ctx: MutationCtx,
-  args: BindEncounterToPresentedSceneInputDto,
-  room: { sceneId: string; expectedPresentationVersion: number } | null
+  args: BindEncounterToPresentedSceneInputDto
 ): Promise<BindEncounterToPresentedSceneResultDto> {
   return persistSceneBinding(
     {
@@ -149,7 +146,7 @@ export async function bindEncounterToPresentedScene(
       }
     },
     args,
-    room,
+    null,
     {
       readPresentation: (campaignId) =>
         ctx.db
@@ -172,5 +169,5 @@ export const bind = mutation({
   args: zodToConvex(bindEncounterToPresentedSceneInputDtoSchema),
   returns: zodToConvex(bindEncounterToPresentedSceneResultDtoSchema),
   handler: (ctx, args): Promise<BindEncounterToPresentedSceneResultDto> =>
-    bindEncounterToPresentedScene(ctx, args, null)
+    bindEncounterToPresentedScene(ctx, args)
 })

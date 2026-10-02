@@ -14,8 +14,6 @@ import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { persistRoomConcentrationChildren } from './roomConcentrationPersistence.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
@@ -28,22 +26,17 @@ export async function executeRoomEncounterConcentrationResponse(input: {
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   observed: LiveSessionRulesRevisions
   command: ResolveRuleOccurrenceInputDto
-  environment: NativeLiveSessionEnvironment
   runtime: RulesRuntimeService
-  captures: LiveCaptureReads
   random(maximum: number): number
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
   const plan = await planNativeLiveConcentrationResponse(
-    input.environment,
-    '',
     scope,
     input.command,
     {
       runtime: input.runtime,
       random: input.random,
       captures: {
-        ...input.captures,
         encounterRules: (request) =>
           readRoomEncounterTurnCapture(
             ctx,

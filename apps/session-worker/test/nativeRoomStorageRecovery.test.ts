@@ -15,7 +15,6 @@ const TABLES = [
   'durable_session_authority',
   'durable_command_receipts',
   'durable_command_outbox',
-  'durable_external_commit',
   'durable_command_json_chunks',
   'room_pending_checkpoint',
   'room_pending_checkpoint_chunks'
@@ -92,8 +91,7 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
     ).rejects.toThrow('Checkpoint upload interrupted.')
     expect(publish).toHaveBeenCalledOnce()
     for (const { table, count } of rowCounts(storage)) {
-      if (table === 'durable_external_commit') expect(count, table).toBe(0)
-      else expect(count, table).toBeGreaterThan(0)
+      expect(count, table).toBeGreaterThan(0)
     }
 
     storage.sql.exec("UPDATE room_snapshot_chunks SET content = 'corrupt snapshot'")
@@ -189,7 +187,6 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
     )
     expect(recoveredJournal.authorityEpoch).toBeNull()
     expect(recoveredJournal.readCurrent()).toBeNull()
-    expect(recoveredJournal.readExternalCommit()).toBeNull()
     return corrupt.checksum
   })
 

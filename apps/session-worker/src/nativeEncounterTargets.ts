@@ -16,10 +16,8 @@ import {
   withEncounterBasicActionDefense
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
-import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 
 export async function readNativeLiveActorsAndEffects(input: {
   state: EncounterRunState
@@ -98,37 +96,26 @@ export async function readNativeLiveActorsAndEffects(input: {
 }
 
 export async function prepareNativeLiveMovementTarget(input: {
-  environment: NativeLiveSessionEnvironment
-  accessToken: string
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   state: EncounterRunState
   actor: EncounterRunActorState
   activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
-  captures?: LiveCaptureReads
+  captures: LiveCaptureReads
 }) {
   const { actor, state, scope } = input
   const characterFacts =
     actor.kind === 'CHARACTER'
-      ? await prepareNativeLiveCharacterSheet(
-          input.environment,
-          input.accessToken,
-          liveSessionCharacterRulesScope(scope, actor),
-          input.captures
-        )
+      ? await input.captures.prepareCharacter(liveSessionCharacterRulesScope(scope, actor))
       : null
   const activeEffects = input.activeEffectsByActorId.get(actor.id)
   if (!activeEffects) throw new Error('Encounter actor effects are unavailable.')
   let revisions = characterFacts?.revisions ?? []
   const capture = async (request: LiveSessionEncounterRulesRequest) => {
-    const read = await captureEncounterRules(
-      input.environment,
-      input.accessToken,
-      liveSessionEncounterRulesInputSchema.parse({ ...scope, request }),
-      revisions,
-      input.captures
+    const response = await input.captures.encounterRules(
+      liveSessionEncounterRulesInputSchema.parse({ ...scope, request })
     )
-    revisions = mergeNativeRulesRevisions(revisions, read.revisions)
-    return read.response
+    revisions = mergeNativeRulesRevisions(revisions, response.revisions)
+    return response
   }
   const target = buildMovementTarget({
     actor,

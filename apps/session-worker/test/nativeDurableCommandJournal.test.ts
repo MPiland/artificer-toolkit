@@ -102,46 +102,6 @@ it('keeps the oldest unpublished receipt time through partial checkpoints and ev
   })
 })
 
-it('timestamps a completed external receipt without giving published commands a checkpoint deadline', async () => {
-  const test = fixture()
-  await runInDurableObject(test.stub, (_instance, state) => {
-    const journal = new DurableCommandJournal(state.storage)
-    test.activate(journal)
-    journal.beginExternalCommit({
-      actorId: test.actorId,
-      authorityEpoch: test.authorityEpoch,
-      commandId: 'timestamped-external',
-      expectedSequence: 0,
-      expectedStateChecksum: 'checksum-0',
-      fingerprint: 'timestamped-external',
-      nextStateChecksum: 'checksum-1',
-      nextStateJson: JSON.stringify({ hitPoints: 9 }),
-      receiptJson: JSON.stringify({ recovered: true }),
-      subject: { kind: 'SCENE_SAVE', saveId: crypto.randomUUID() }
-    })
-    const createdAt = 1_800_000_000_000
-    const clock = vi.spyOn(Date, 'now').mockReturnValue(createdAt)
-    try {
-      const completed = journal.completeExternalCommit({
-        authorityEpoch: test.authorityEpoch,
-        commandId: 'timestamped-external'
-      })
-      expect(completed.receipt.checkpointBeforeAcknowledgement).toBe(false)
-      expect(
-        state.storage.sql
-          .exec<{ created_at: number }>(
-            'SELECT created_at FROM durable_command_receipts WHERE command_id = ?',
-            'timestamped-external'
-          )
-          .one().created_at
-      ).toBe(createdAt)
-      expect(journal.oldestUnpublishedCommandTime()).toBeNull()
-    } finally {
-      clock.mockRestore()
-    }
-  })
-})
-
 it('migrates receipt timestamps once, drops retired undo copies, and retains the recovered deadline', async () => {
   const test = fixture()
   const createdAt = 1_800_000_000_000
@@ -422,60 +382,6 @@ it('retires transitional outbox rows only through the accepted checkpoint receip
       })
     ).toEqual({ ...before, publishedSequence: 2, publishedChecksum: 'checksum-2' })
     expect(journal.listPending(3).map(({ sequence }) => sequence)).toEqual([3])
-  })
-})
-
-it('rejects a checkpoint prefix crossing an unsettled external commit and accepts exact published replay', async () => {
-  const test = fixture()
-  await runInDurableObject(test.stub, (_instance, state) => {
-    const journal = new DurableCommandJournal(state.storage)
-    test.activate(journal)
-    const external = journal.beginExternalCommit({
-      actorId: test.actorId,
-      authorityEpoch: test.authorityEpoch,
-      commandId: 'external-checkpoint-crossing',
-      expectedSequence: 0,
-      expectedStateChecksum: 'checksum-0',
-      fingerprint: 'external-checkpoint-crossing',
-      nextStateChecksum: 'checksum-1',
-      nextStateJson: JSON.stringify({ hitPoints: 9 }),
-      receiptJson: JSON.stringify({ recovered: true }),
-      subject: { kind: 'SCENE_SAVE', saveId: crypto.randomUUID() }
-    })
-    const initial = journal.readCurrent()
-    expect(
-      journal.acknowledgeCheckpoint({
-        authorityEpoch: test.authorityEpoch,
-        throughSequence: 0,
-        stateChecksum: 'checksum-0'
-      })
-    ).toEqual(initial)
-    // Retained unsettled evidence must block a prefix even if other durable rows advance.
-    state.storage.sql.exec(
-      'UPDATE durable_session_authority SET sequence = 1, state_checksum = ? WHERE id = 1',
-      'checksum-1'
-    )
-    state.storage.sql.exec(
-      `INSERT INTO durable_command_receipts (
-         command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, created_at
-       ) VALUES (?, ?, ?, 1, ?, ?, ?)`,
-      'checkpoint-after-external',
-      test.actorId,
-      'checkpoint-after-external',
-      'checksum-1',
-      JSON.stringify({ accepted: true }),
-      Date.now()
-    )
-    const before = journal.readCurrent()
-    expect(() =>
-      journal.acknowledgeCheckpoint({
-        authorityEpoch: test.authorityEpoch,
-        throughSequence: 1,
-        stateChecksum: 'checksum-1'
-      })
-    ).toThrow('An unsettled table change crosses the checkpoint prefix.')
-    expect(journal.readCurrent()).toEqual(before)
-    expect(journal.readExternalCommit()).toEqual(external)
   })
 })
 
@@ -1022,69 +928,20 @@ it('fails closed on oversized receipts and outbox JSON, JWTs, and unbounded batc
   })
 })
 
-it('journals a Convex-first commit write-ahead and completes it with no outbox row (D27)', async () => {
+
+it('drops the retired external-commit table and its staged state', async () => {
   const test = fixture()
   await runInDurableObject(test.stub, (_instance, state) => {
-    const journal = new DurableCommandJournal(state.storage)
-    test.activate(journal)
-    const external = (commandId: string, expectedSequence: number, checksum: string) => ({
-      actorId: test.actorId,
-      authorityEpoch: test.authorityEpoch,
-      commandId,
-      expectedSequence,
-      expectedStateChecksum: checksum,
-      fingerprint: `fingerprint-${commandId}`,
-      nextStateChecksum: `${checksum}-next`,
-      nextStateJson: largeUnicodeJson(commandId),
-      receiptJson: JSON.stringify({ recovered: commandId }),
-      subject: { kind: 'SCENE_SAVE' as const, saveId: crypto.randomUUID() }
-    })
-
-    // Every earlier command must be published before Convex advances the sequence itself.
-    test.commit(journal, 1)
-    expect(() => journal.beginExternalCommit(external('external-1', 1, 'checksum-1'))).toThrow(
-      'Earlier table changes have not been published.'
+    state.storage.sql.exec('CREATE TABLE durable_external_commit (id INTEGER PRIMARY KEY)')
+    state.storage.sql.exec(
+      "INSERT INTO durable_command_json_chunks VALUES ('external', 0, 1, '{}')"
     )
-    journal.acknowledge({
-      authorityEpoch: test.authorityEpoch,
-      stateChecksum: 'checksum-1',
-      throughSequence: 1
-    })
-    expect(() => journal.beginExternalCommit(external('command-1', 1, 'checksum-1'))).toThrow(
-      'The command ID already has a receipt.'
-    )
-    const record = journal.beginExternalCommit(external('external-1', 1, 'checksum-1'))
-    expect(journal.readExternalCommit()).toEqual(record)
-    // While a commit is unsettled nothing else commits, drains or discards.
-    expect(() => journal.beginExternalCommit(external('external-2', 1, 'checksum-1'))).toThrow(
-      'An earlier table change has not settled.'
-    )
-    expect(() => test.commit(journal, 2, { expectedStateChecksum: 'checksum-1' })).toThrow(
-      'An earlier table change has not settled.'
-    )
-    expect(() =>
-      journal.beginDrain({
-        authorityEpoch: test.authorityEpoch,
-        finalSequence: 1,
-        finalStateChecksum: 'checksum-1'
-      })
-    ).toThrow('An unsettled table change blocks the drain fence.')
-
-    const completed = journal.completeExternalCommit({
-      authorityEpoch: test.authorityEpoch,
-      commandId: 'external-1',
-      receiptJson: JSON.stringify({ committed: true })
-    })
-    expect(completed.state).toMatchObject({
-      sequence: 2,
-      publishedSequence: 2,
-      stateChecksum: 'checksum-1-next',
-      publishedChecksum: 'checksum-1-next',
-      stateJson: largeUnicodeJson('external-1')
-    })
-    expect(completed.receipt).toMatchObject({ sequence: 2, receiptJson: '{"committed":true}' })
-    expect(journal.readExternalCommit()).toBeNull()
-    expect(journal.listPending(1)).toEqual([])
+    new DurableCommandJournal(state.storage)
+    expect(
+      state.storage.sql
+        .exec("SELECT name FROM sqlite_master WHERE name = 'durable_external_commit'")
+        .toArray()
+    ).toEqual([])
     expect(
       state.storage.sql
         .exec<{ count: number }>(
@@ -1092,57 +949,5 @@ it('journals a Convex-first commit write-ahead and completes it with no outbox r
         )
         .one().count
     ).toBe(0)
-
-    // An abandoned commit leaves the state unchanged; a recovery stores its recorded receipt.
-    journal.beginExternalCommit(external('external-3', 2, 'checksum-1-next'))
-    journal.abandonExternalCommit('external-3')
-    expect(journal.readCurrent()).toMatchObject({ sequence: 2 })
-    expect(
-      journal.lookupCommand({
-        actorId: test.actorId,
-        commandId: 'external-3',
-        fingerprint: 'fingerprint-external-3'
-      })
-    ).toEqual({ kind: 'MISSING' })
-    journal.beginExternalCommit(external('external-4', 2, 'checksum-1-next'))
-    expect(
-      journal.completeExternalCommit({
-        authorityEpoch: test.authorityEpoch,
-        commandId: 'external-4'
-      }).receipt
-    ).toMatchObject({ sequence: 3, receiptJson: '{"recovered":"external-4"}' })
-  })
-})
-
-it('carries an unsettled record from before D47 over as its Scene save subject', async () => {
-  const test = fixture()
-  await runInDurableObject(test.stub, (_instance, state) => {
-    const saveId = crypto.randomUUID()
-    state.storage.sql.exec('DROP TABLE durable_external_commit')
-    state.storage.sql.exec(`
-      CREATE TABLE durable_external_commit (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        command_id TEXT NOT NULL,
-        actor_id TEXT NOT NULL,
-        fingerprint TEXT NOT NULL,
-        save_id TEXT NOT NULL,
-        expected_sequence INTEGER NOT NULL CHECK (expected_sequence >= 0),
-        expected_state_checksum TEXT NOT NULL,
-        next_state_checksum TEXT NOT NULL,
-        next_state_json TEXT NOT NULL,
-        receipt_json TEXT NOT NULL
-      )
-    `)
-    state.storage.sql.exec(
-      `INSERT INTO durable_external_commit VALUES (1, 'legacy-1', ?, 'fingerprint', ?, 0,
-        'checksum-0', 'checksum-1', '{}', '{}')`,
-      test.actorId,
-      saveId
-    )
-    const journal = new DurableCommandJournal(state.storage)
-    expect(journal.readExternalCommit()).toMatchObject({
-      commandId: 'legacy-1',
-      subject: { kind: 'SCENE_SAVE', saveId }
-    })
   })
 })

@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { afterEach, expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import type {
   ResolveRuleOccurrenceInputDto,
   VoidRuleOccurrenceInputDto
@@ -16,33 +16,20 @@ import type {
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
-import { LiveCaptureCache } from '../../../session-worker/src/nativeCaptureCache'
-import {
-  commitExternalSceneCommit,
-  prepareExternalSceneCommit,
-  type ExternalSceneCommand,
-  type ExternalSceneContext
-} from '../../../session-worker/src/nativeExternalSceneCommit'
-import { createNativeLiveRulesRuntime } from '../../../session-worker/src/nativeRulesRuntime'
-import { hydrateNativeTransientScene } from '../../../session-worker/src/nativeSceneClient'
+import type { ExternalSceneCommand } from '../../../session-worker/src/nativeExternalSceneCommit'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import {
+  commitSceneInRoom,
   executeInRoom,
   insertActiveLiveAuthority,
-  nextExternalAuthority,
   planMovementDecisionInRoom,
-  planMovementInRoom,
-  stubLiveSessionFetch,
-  workerEnvironment
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene
 } from '../../tests/fixtures/sceneDefinitions'
 
-const workerSecret = 'external-commit-worker-test-secret-at-least-32-bytes'
-const environment = workerEnvironment(workerSecret)
 const executeGeometry = makeFunctionReference<
   'action',
   { input: SceneGeometryCommandInputDto },
@@ -64,7 +51,6 @@ const decisionSettlement = makeFunctionReference<
   EncounterDecisionSettlementDto
 >('encounters/activeReads:decisionSettlement')
 
-type Caller = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>['owner']['caller']
 type Base = Pick<Awaited<ReturnType<typeof setupAutomaticSceneMovement>>['base'], 't' | 'campaign'>
 
 // Two reactors in reach of the move each offer an Assisted Use/Decline choice.
@@ -77,60 +63,15 @@ const twoChoices = {
   ]
 }
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-  vi.unstubAllEnvs()
-})
-
-/** Routes the room's private calls into convex-test as `member`, recording each command's calls. */
-const calls: string[] = []
-function routeRoom(member: { caller: Caller }) {
-  vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-  stubLiveSessionFetch(async (pathname, init) => {
-    // A rules capture is named by its request kind.
-    calls.push(
-      pathname === '/live-sessions/encounter-rules'
-        ? `${pathname}:${(JSON.parse(String(init?.body)) as { request: { kind: string } }).request.kind}`
-        : pathname
-    )
-    return member.caller.fetch(pathname, init)
-  })
-}
-
+/** The Campaign's live authority, which the room's checkpoints advance and these tests then read. */
 async function activateRoom(base: Base) {
-  const epoch = crypto.randomUUID()
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
-      epoch,
+      epoch: crypto.randomUUID(),
       createdAt: base.campaign.createdAt
     })
   )
-  return epoch
-}
-
-/** The room's shared Scene cache, read through the same capture and hydration as the room. */
-async function roomContext(actor: {
-  campaignId: string
-  expectedUserId: string
-  expectedRole: 'OWNER' | 'PLAYER'
-}): Promise<ExternalSceneContext> {
-  const capture = await callLiveSessionRoute(environment, 'fixture-access-token', 'capture', {
-    campaignId: actor.campaignId,
-    expectedUserId: actor.expectedUserId,
-    expectedRole: actor.expectedRole,
-    mode: 'FULL',
-    observedCharacterRevisions: [],
-    recipientUserIds: []
-  })
-  const hydrated = await hydrateNativeTransientScene(environment, 'fixture-access-token', capture)
-  if (!hydrated.scene || !capture.presentation) throw new Error('Expected a presented Scene.')
-  return {
-    scene: hydrated.scene,
-    baseOrdinals: hydrated.baseOrdinals,
-    characterRevisions: hydrated.characterRevisions,
-    presentation: { expectedPresentationVersion: capture.presentation.version }
-  }
 }
 
 async function persisted(base: Base) {
@@ -141,48 +82,6 @@ async function persisted(base: Base) {
       .unique()
     return { sequence: row?.persistedSequence, checksum: row?.persistedStateChecksum }
   })
-}
-
-async function runRoomCommit(input: {
-  base: Base
-  member: { caller: Caller; userId: string }
-  role: 'OWNER' | 'PLAYER'
-  epoch: string
-  command: ExternalSceneCommand
-}) {
-  const actor = {
-    campaignId: input.base.campaign.id,
-    authorityEpoch: input.epoch,
-    expectedUserId: input.member.userId,
-    expectedRole: input.role
-  }
-  const context = await roomContext(actor)
-  calls.length = 0
-  const prepared = await prepareExternalSceneCommit({
-    environment,
-    accessToken: 'fixture-access-token',
-    actor,
-    command: input.command,
-    context,
-    runtime: await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET!),
-    random: () => 0,
-    captures: new LiveCaptureCache().reads()
-  })
-  const authority = await input.base.t.run((ctx) =>
-    nextExternalAuthority(ctx, input.base.campaign.id)
-  )
-  return {
-    prepared,
-    authority,
-    commit: () =>
-      commitExternalSceneCommit({
-        environment,
-        accessToken: 'fixture-access-token',
-        actor,
-        prepared,
-        authority
-      })
-  }
 }
 
 it('settles a bound move, its answer and a GM skip through the room, naming who settled each (D26, D39)', async () => {
@@ -328,37 +227,27 @@ it('commits an unbound fog-deriving move under live authority and stages its own
       type: 'UPSERT_SCENE_TOKEN'
     }
   })
-  const epoch = await activateRoom(base)
-  routeRoom(base.owner)
-  const moved = await runRoomCommit({
-    base,
-    member: base.owner,
-    role: 'OWNER',
-    epoch,
-    command: {
-      type: 'MOVE_SCENE_TOKEN',
-      commandId: crypto.randomUUID(),
-      sceneId,
-      tokenId: token.id,
-      expectedSceneVersion: 1,
-      expectedEncounterVersion: null,
-      correlationId: null,
-      movementKind: 'VOLUNTARY',
-      path: [token.position, { x: 900, y: 100 }]
-    }
+  await activateRoom(base)
+  const committed = await commitSceneInRoom(base.owner.caller, base.campaign.id, {
+    type: 'MOVE_SCENE_TOKEN',
+    commandId: crypto.randomUUID(),
+    sceneId,
+    tokenId: token.id,
+    expectedSceneVersion: 1,
+    expectedEncounterVersion: null,
+    correlationId: null,
+    movementKind: 'VOLUNTARY',
+    path: [token.position, { x: 900, y: 100 }]
   })
-  const committed = await moved.commit()
-  // The owner's explored layer travels with the commit, which stages it in its transaction (D52).
-  expect(calls).toEqual([
-    '/live-sessions/encounter-movement-stage',
-    '/live-sessions/scene-geometry'
-  ])
-  expect(moved.prepared.fogChanged).toBe(true)
-  expect(committed.scene.fogPatches).toEqual([
+  // The owner's explored layer is staged in the commit's own room transaction (D52).
+  expect(committed).toMatchObject({
+    version: 2,
+    delta: { kind: 'TOKEN_MOVED', tokenId: token.id, position: { x: 900, y: 100 } }
+  })
+  expect(committed.fogPatches).toEqual([
     expect.objectContaining({ ownerUserId: base.other.userId, mode: 'REPLACE' })
   ])
-  expect(committed.scene).toMatchObject({ version: 2, delta: moved.prepared.expectedScene.delta })
-  expect(await persisted(base)).toEqual({ sequence: 1, checksum: moved.authority.stateChecksum })
+  expect((await persisted(base)).sequence).toBe(1)
 }, 120_000)
 
 it('counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)', async () => {
@@ -493,10 +382,9 @@ async function setupPlayerScene() {
         input: { ...input, commandId: crypto.randomUUID(), expectedSceneVersion: version, sceneId }
       })
     ).version
-  const epoch = await activateRoom(base)
-  routeRoom(base.other)
+  await activateRoom(base)
   const player = (command: ExternalSceneCommand) =>
-    runRoomCommit({ base, member: base.other, role: 'PLAYER', epoch, command })
+    commitSceneInRoom(base.other.caller, base.campaign.id, command)
   return { base, sceneId, scout, sentry, closed, locked, version, player }
 }
 
@@ -510,25 +398,17 @@ it("commits a player's door change on a fog-on Scene through the room, refusing 
     barrierId,
     state: 'OPEN' as const
   })
-  const opened = await value.player(door(value.closed.id, value.version))
-  const committed = await opened.commit()
   // The player's opened door explores through it: the commit stages the fog as it publishes.
-  expect(calls).toEqual([
-    '/live-sessions/encounter-movement-stage',
-    '/live-sessions/scene-geometry'
-  ])
-  expect(opened.prepared.fogChanged).toBe(true)
-  expect(committed.scene).toMatchObject({
+  const committed = await value.player(door(value.closed.id, value.version))
+  expect(committed).toMatchObject({
     version: value.version + 1,
     delta: { kind: 'DOOR_STATE_SET', barrierId: value.closed.id, state: 'OPEN' },
     fogPatches: [expect.objectContaining({ ownerUserId: value.base.other.userId })]
   })
   expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
 
-  // Only the GM changes a locked door; publication refuses the player and nothing advances.
-  await expect(
-    value.player(door(value.locked.id, value.version + 1)).then((refused) => refused.commit())
-  ).rejects.toMatchObject({ status: 409 })
+  // Only the GM changes a locked door; the room refuses the player and nothing advances.
+  await expect(value.player(door(value.locked.id, value.version + 1))).rejects.toThrow()
   expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
 }, 120_000)
 
@@ -545,19 +425,16 @@ it('commits a player move of a controlled unbound token through the room, refusi
     movementKind: 'VOLUNTARY' as const,
     path: [from, { x: from.x + 50, y: from.y }]
   })
-  const moved = await value.player(move(value.scout.id, value.scout.position, value.version))
-  const committed = await moved.commit()
-  expect(committed.scene).toMatchObject({
+  const committed = await value.player(move(value.scout.id, value.scout.position, value.version))
+  expect(committed).toMatchObject({
     version: value.version + 1,
     delta: { kind: 'TOKEN_MOVED', tokenId: value.scout.id, position: { x: 150, y: 100 } }
   })
   expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
 
-  // The player does not control the sentry: publication refuses the move.
+  // The player does not control the sentry: the room refuses the move.
   await expect(
-    value
-      .player(move(value.sentry.id, value.sentry.position, value.version + 1))
-      .then((refused) => refused.commit())
-  ).rejects.toMatchObject({ status: 409 })
+    value.player(move(value.sentry.id, value.sentry.position, value.version + 1))
+  ).rejects.toThrow()
   expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
 }, 120_000)

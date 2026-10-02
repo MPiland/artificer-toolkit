@@ -18,10 +18,7 @@ import {
   requireEncounterBasicActionDefinition
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import {
-  LiveSessionDomainRejectionError,
-  type NativeLiveSessionEnvironment
-} from './liveSessionRoutes.js'
+import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -33,11 +30,9 @@ import {
  * and effects. Convex records the plan; it evaluates none of it.
  */
 export async function planNativeLiveBasicAction(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   command: UseEncounterBasicActionInputDto,
-  captures: LiveCaptureReads | undefined
+  captures: LiveCaptureReads
 ) {
   const request = { kind: 'BASIC_ACTION' as const, command }
   const initial = liveSessionEncounterRulesInputSchema.parse({
@@ -51,7 +46,7 @@ export async function planNativeLiveBasicAction(
     command.expectedVersion !== initial.expectedVersion
   )
     throw new Error('Live basic action scope mismatch.')
-  const reads = liveEncounterCaptures(environment, accessToken, initial, captures)
+  const reads = liveEncounterCaptures(initial, captures)
   const { capture } = reads
   const admission = await capture(request)
   if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
@@ -80,8 +75,6 @@ export async function planNativeLiveBasicAction(
       ? null
       : await (async () => {
           const actorTarget = await prepareNativeLiveMovementTarget({
-            environment,
-            accessToken,
             scope: initial,
             state,
             actor,
