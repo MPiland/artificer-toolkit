@@ -73,7 +73,7 @@ import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
   workerEnvironment,
-  executeInRoom,
+  executeInRoom as executeRoomCommand,
   replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
@@ -423,6 +423,27 @@ async function setup(
   return { ...base, campaign, run: current, graph, lifecycle }
 }
 
+const issuedResults = new Map<string, Awaited<ReturnType<typeof executeRoomCommand>>>()
+
+async function executeInRoom(...args: Parameters<typeof executeRoomCommand>) {
+  const result = await executeRoomCommand(...args)
+  issuedResults.set(args[1].command.commandId, result)
+  return result
+}
+
+/** A replay returns the journaled original result with the Run's current projection (D78). */
+async function expectReplays(
+  caller: Parameters<typeof replayInRoom>[0],
+  inputs: EncounterExecuteInput[],
+  current: { projection: unknown }
+) {
+  for (const input of inputs)
+    await expect(replayInRoom(caller, input)).resolves.toEqual({
+      ...issuedResults.get(input.command.commandId),
+      projection: current.projection
+    })
+}
+
 async function start(base: Awaited<ReturnType<typeof setup>>) {
   const input = {
     command: {
@@ -474,7 +495,7 @@ async function start(base: Awaited<ReturnType<typeof setup>>) {
     result = await executeInRoom(base.owner.caller, response(base.run.id, result, resolution))
   }
   expect(result.projection.status).toBe('ACTIVE')
-  await expect(replayInRoom(base.owner.caller, input)).resolves.toEqual(result)
+  await expectReplays(base.owner.caller, [input], result)
   return result
 }
 
@@ -619,8 +640,11 @@ describe('native Encounter turn Legendary Actions', () => {
       if (!recharge || recharge.kind !== 'RECHARGE_EVIDENCE')
         throw new Error('Expected Recharge after new initiative settles.')
       unchangedMechanics(before, await stored(base.t, base.run.id))
-      for (const input of [advance, option, dice, ...initiativeResponses])
-        await expect(replayInRoom(base.owner.caller, input)).resolves.toEqual(result)
+      await expectReplays(
+        base.owner.caller,
+        [advance, option, dice, ...initiativeResponses],
+        result
+      )
       const rechargeInput = response(base.run.id, result, {
         kind: 'ENTER_INTEGER',
         requestId: recharge.request.requestId,
@@ -643,8 +667,11 @@ describe('native Encounter turn Legendary Actions', () => {
       )
       if (hit.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
       expect(hit.currentHitPoints).toBe(10)
-      for (const input of [advance, option, dice, ...initiativeResponses, rechargeInput])
-        await expect(replayInRoom(base.owner.caller, input)).resolves.toEqual(result)
+      await expectReplays(
+        base.owner.caller,
+        [advance, option, dice, ...initiativeResponses, rechargeInput],
+        result
+      )
       expect(await stored(base.t, base.run.id)).toEqual(terminal)
     },
     30000
@@ -690,7 +717,7 @@ describe('native Encounter turn Legendary Actions', () => {
         })
       ).resolves.toBeNull()
       unchangedMechanics(before, await stored(base.t, base.run.id))
-      await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(result)
+      await expectReplays(base.owner.caller, [advance], result)
       const command = response(
         base.run.id,
         result,
@@ -754,8 +781,7 @@ describe('native Encounter turn Legendary Actions', () => {
         )
       })
     }
-    for (const input of [advance, ...responses])
-      await expect(replayInRoom(base.owner.caller, input)).resolves.toEqual(result)
+    await expectReplays(base.owner.caller, [advance, ...responses], result)
     expect(await stored(base.t, base.run.id)).toEqual(terminal)
   }, 30000)
 
@@ -833,8 +859,7 @@ describe('native Encounter turn Legendary Actions', () => {
     if (!recharge || recharge.kind !== 'RECHARGE_EVIDENCE')
       throw new Error('Expected entering Recharge after every owner resolves.')
     unchangedMechanics(before, await stored(base.t, base.run.id))
-    for (const input of [advance, option, dice, decline])
-      await expect(replayInRoom(base.owner.caller, input)).resolves.toEqual(result)
+    await expectReplays(base.owner.caller, [advance, option, dice, decline], result)
     const rechargeInput = response(base.run.id, result, {
       kind: 'ENTER_INTEGER',
       requestId: recharge.request.requestId,
@@ -893,8 +918,11 @@ describe('native Encounter turn Legendary Actions', () => {
       throw new Error('Replay must retain dice.')
     })
     try {
-      for (const input of [advance, option, dice, decline, rechargeInput])
-        await expect(replayInRoom(base.owner.caller, input)).resolves.toEqual(result)
+      await expectReplays(
+        base.owner.caller,
+        [advance, option, dice, decline, rechargeInput],
+        result
+      )
     } finally {
       entropy.mockRestore()
     }

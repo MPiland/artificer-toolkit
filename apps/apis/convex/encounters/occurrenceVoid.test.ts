@@ -1,5 +1,4 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
-import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, vi } from 'vitest'
 import type { VoidRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
@@ -17,16 +16,10 @@ import { classifyRuleOccurrenceVoid } from '@artificer-toolkit/encounter-persist
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 0) }))
-
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 function voidCommand(input: {
   encounterId: string
@@ -198,8 +191,7 @@ describe('GM void command', () => {
         { x: 450, y: 50 }
       ]
     })
-    await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
     const initial = await root.publish()
     const choice = initial.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION')
@@ -228,7 +220,7 @@ describe('GM void command', () => {
     const voided = await executeInRoom(value.owner.caller, secondSkip)
     expect(voided.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     // The movement void's receipt is the Scene's, so its retry is refused as settled; a fresh void
-    // of the settled decision is stale.
+    // of the settled decision finds it no longer pending.
     await expectRedactedRoomRefusal(
       executeInRoom(value.owner.caller, secondSkip),
       'This decision was already settled.',
@@ -238,7 +230,7 @@ describe('GM void command', () => {
       await rejectionReason(
         executeInRoom(value.owner.caller, voidCommand({ encounterId: value.base.run.id, pending: next }))
       )
-    ).toBe('VERSION_STALE')
+    ).toBe('DECISION_NOT_PENDING')
     const stored = await value.base.t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),

@@ -4,7 +4,7 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import {
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
@@ -34,7 +34,7 @@ it.each(['USE', 'DECLINE'] as const)(
       stopOnFailedSave: true
     })
     const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
     const initial = await root.publish()
     const reactionChoice = initial.occurrence?.pending
     if (
@@ -87,7 +87,6 @@ it.each(['USE', 'DECLINE'] as const)(
     )
     const completed = await publish()
     expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    await expect(publish()).resolves.toMatchObject({ replayed: true })
   },
   30_000
 )

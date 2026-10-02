@@ -1,4 +1,5 @@
 import { readMovementResponseAuthority } from '@artificer-toolkit/encounter-persistence/movementResolutionDocuments'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readRuleOccurrenceVoidDecline } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
@@ -89,6 +90,8 @@ export async function stageRoomSceneGeometry(input: {
         q.eq('encounterId', run.id).eq('commandId', responseCommand.commandId)
       )
       .unique()
+    // A fresh answer to a decision that already settled is stale (D78); its own retry replays.
+    if (!receipt && occurrence.state !== 'PENDING') rejectDomain('VERSION_STALE')
     const metadata = receipt
       ? serverRuleExecutionReceiptCommandMetadataDtoSchema.parse(
           JSON.parse(receipt.commandMetadataJson)

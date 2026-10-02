@@ -1,12 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import {
   sceneStoredDefinitionEntitySchema,
   sceneStoredDefinitionSaveSchema,
@@ -14,28 +12,17 @@ import {
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  readPendingSnapshot,
-  writePendingSnapshot
-} from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { isScenePointExplored } from '@artificer-toolkit/shared/vtt'
 import type { SceneFogChunksPage } from '@artificer-toolkit/schema/api/sceneFog'
 import { api, internal } from '../_generated/api'
 import { setupCreatureReactionRun, reactionRecords } from '../../tests/fixtures/movementReaction'
-import { readSessionVisionScope } from './sessionVisionDocuments'
-import { readLiveScene } from './liveDocuments'
-import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import {
   planMovementDecisionInRoom,
-  planMovementInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
-import {
-  createConvexEncounterStoreReader,
-  createConvexEncounterStore
-} from '../lib/convexEncounterStore'
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 
 const bindActorToken = makeFunctionReference<
   'mutation',
@@ -45,18 +32,12 @@ const bindActorToken = makeFunctionReference<
 const pendingReference = makeFunctionReference<'query', { encounterId: string }, unknown>(
   'encounters/pendingReads:pendingRuleOccurrence'
 )
-const observeReference = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 async function setup(withVision = false, returnsToOrigin = false) {
   const base = await setupCreatureReactionRun('SEE')
   const now = new Date().toISOString()
   const sceneId = crypto.randomUUID()
   const definitionSaveId = crypto.randomUUID()
-  const saveId = crypto.randomUUID()
   const commandId = crypto.randomUUID()
   const grid = {
     kind: 'SQUARE' as const,
@@ -79,7 +60,13 @@ async function setup(withVision = false, returnsToOrigin = false) {
     rotationDegrees: 0,
     vision:
       withVision && index === 1
-        ? { enabled: true, brightRange: 5, dimRange: 5, angleDegrees: 360, directionDegrees: 0 }
+        ? {
+            enabled: true,
+            brightRange: 5,
+            dimRange: 5,
+            angleDegrees: 360,
+            directionDegrees: 0
+          }
         : null
   }))
   const settings = {
@@ -203,35 +190,7 @@ async function setup(withVision = false, returnsToOrigin = false) {
       ...(returnsToOrigin ? [{ x: 150, y: 50 }] : [])
     ]
   }
-  await base.owner.caller.run(async (ctx) => {
-    const scope = {
-      campaignId: base.campaign.id,
-      systemId: base.campaign.gameSystemId,
-      sceneId,
-      expectedSceneVersion: 0,
-      expectedPresentationVersion: 0
-    }
-    const { freshness } = await readSessionVisionScope(ctx, scope)
-    await ctx.db.insert(
-      'sceneGeometrySaves',
-      sceneStoredGeometrySaveSchema.parse({
-        id: saveId,
-        sceneId,
-        commandId,
-        actorUserId: base.owner.userId,
-        input,
-        inputChecksum: checksumCanonicalJson(input),
-        snapshotVersion: 0,
-        sessionVision: { ...scope, freshness },
-        status: 'RECEIVING',
-        expiresAt: Date.now() + 60_000,
-        fogSaves: []
-      })
-    )
-  })
-  // The room plans against pinned Character observations; this Scene has none.
-  await base.owner.caller.mutation(observeReference, { saveId, characterRevisions: [] })
-  return { base, input, tokens, settings, saveId }
+  return { base, input, tokens, settings }
 }
 
 describe('room Scene movement perception staging', () => {
@@ -282,7 +241,11 @@ describe('room Scene movement perception staging', () => {
       const result = await move.publish()
       expect(result).toMatchObject({
         version: 1,
-        delta: { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: { x: 200, y: 50 } },
+        delta: {
+          kind: 'TOKEN_MOVED',
+          tokenId: input.tokenId,
+          position: { x: 200, y: 50 }
+        },
         occurrence: { status: 'PENDING' },
         fogPatches: [{ ownerUserId: base.owner.userId, mode: 'REPLACE' }]
       })
@@ -306,23 +269,29 @@ describe('room Scene movement perception staging', () => {
         height: page.height,
         chunks
       }
-      const explored = { map: settings.map, fogMode: settings.fogMode, fogLayers: [layer] }
+      const explored = {
+        map: settings.map,
+        fogMode: settings.fogMode,
+        fogLayers: [layer]
+      }
       expect(isScenePointExplored(explored, base.owner.userId, { x: 250, y: 75 })).toBe(true)
       expect(isScenePointExplored(explored, base.owner.userId, { x: 650, y: 75 })).toBe(false)
       const after = await reactionRecords(base.t, base.run.id)
       expect(after.run).toEqual(before.run)
       expect(after.actors).toEqual(before.actors)
-      expect(await move.publish()).toEqual({ ...result, replayed: true })
+      expect(await (await planMovementInRoom(base.owner.caller, command)).publish()).toEqual({
+        ...result,
+        replayed: true
+      })
       expect(await reactionRecords(base.t, base.run.id)).toEqual(after)
     },
     30000
   )
 
-  it('publishes the actual boundary and pending receipt atomically, rechecks evidence and replays exactly', async () => {
-    const { base, saveId, input, tokens } = await setup()
-    const plan = await planStagedMovementInRoom(base.owner.caller, saveId)
+  it('publishes the actual boundary and pending receipt atomically and replays exactly', async () => {
+    const { base, input, tokens } = await setup()
+    const plan = await planMovementInRoom(base.owner.caller, input)
     if (plan.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
-    const { occurrenceId } = plan.commit.preparation
     const beforeMechanics = await reactionRecords(base.t, base.run.id)
     const records = () =>
       base.t.run(async (ctx) => ({
@@ -340,28 +309,21 @@ describe('room Scene movement perception staging', () => {
         states: await ctx.db.query('sceneLiveStates').collect()
       }))
     const before = await records()
-    const saveRowId = await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('sceneGeometrySaves')
-        .withIndex('by_publicId', (q) => q.eq('id', saveId))
-        .unique()
-      if (!row) throw new Error('Missing geometry save.')
-      await ctx.db.patch(row._id, {
-        fogSaves: [{ saveId: crypto.randomUUID(), ownerUserId: base.owner.userId }]
-      })
-      return row._id
-    })
-    await expect(plan.publish()).rejects.toThrow('Stored geometry fog save is inconsistent.')
     expect(await records()).toEqual(before)
     expect(await reactionRecords(base.t, base.run.id)).toEqual(beforeMechanics)
-    await base.t.run((ctx) => ctx.db.patch(saveRowId, { fogSaves: [] }))
     const result = await plan.publish()
     expect(result).toMatchObject({
       version: 1,
       replayed: false,
-      delta: { kind: 'TOKEN_MOVED', tokenId: tokens[1]!.id, position: { x: 200, y: 50 } },
-      occurrence: { occurrenceId, occurrenceVersion: 0, status: 'PENDING' }
+      delta: {
+        kind: 'TOKEN_MOVED',
+        tokenId: tokens[1]!.id,
+        position: { x: 200, y: 50 }
+      },
+      occurrence: { occurrenceVersion: 0, status: 'PENDING' }
     })
+    const occurrenceId = result.occurrence?.occurrenceId
+    if (!occurrenceId) throw new Error('Expected a published occurrence.')
     expect(await reactionRecords(base.t, base.run.id)).toEqual(beforeMechanics)
     const after = await records()
     expect(after.occurrences).toHaveLength(before.occurrences.length + 1)
@@ -377,64 +339,36 @@ describe('room Scene movement perception staging', () => {
     expect(after.entities.find((row) => row.entityId === tokens[1]!.id)?.value).toMatchObject({
       entity: { position: { x: 200, y: 50 } }
     })
-    expect(await plan.publish()).toEqual({ ...result, replayed: true })
-    expect(await records()).toEqual(after)
-    const occurrenceRowId = occurrence._id
-    await base.t.run((ctx) =>
-      ctx.db.patch(occurrenceRowId, {
-        state: 'COMPLETED',
-        version: 1,
-        pendingSnapshotChecksum: null,
-        completedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      })
-    )
-    await expect(plan.publish()).resolves.toMatchObject({
-      replayed: true,
-      occurrence: { occurrenceId, occurrenceVersion: 1, status: 'COMPLETE' }
+    expect(await (await planMovementInRoom(base.owner.caller, input)).publish()).toEqual({
+      ...result,
+      replayed: true
     })
-    await base.t.run((ctx) =>
-      ctx.db.patch(occurrenceRowId, {
-        state: 'PENDING',
-        version: 0,
-        pendingSnapshotChecksum: '0'.repeat(64),
-        completedAt: null,
-        updatedAt: new Date().toISOString()
-      })
-    )
-    await expect(plan.publish()).rejects.toThrow('replay evidence is inconsistent')
-    await base.t.run((ctx) =>
-      ctx.db.patch(occurrenceRowId, {
-        pendingSnapshotChecksum: occurrence.pendingSnapshotChecksum
-      })
-    )
+    expect(await records()).toEqual(after)
     const receipt = after.receipts.find((row) => row.commandId === input.commandId)!
     expect(JSON.parse(receipt.commandMetadataJson)).toMatchObject({
       encounterVersionTransition: 'UNCHANGED',
       sceneVersionTransition: 'ADVANCED'
     })
-    await base.t.run((ctx) =>
-      replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
-        resultChecksum: '0'.repeat(64)
-      })
-    )
-    await expect(plan.publish()).rejects.toThrow('replay evidence is inconsistent')
   }, 30000)
 
   it('projects a native pending movement choice only to its current audience', async () => {
-    const { base, saveId, input } = await setup()
-    const plan = await planStagedMovementInRoom(base.owner.caller, saveId)
+    const { base, input } = await setup()
+    const plan = await planMovementInRoom(base.owner.caller, input)
     if (plan.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
-    const prepared = plan.commit.preparation
-    const snapshot = plan.outcome.pendingSnapshot
+    const published = (await plan.publish()).occurrence
+    if (!published?.pending) throw new Error('Expected a published pending occurrence.')
+    const prepared = {
+      occurrenceId: published.occurrenceId,
+      expectedEncounterVersion: published.pending.encounterVersion
+    }
     const query = { encounterId: base.run.id }
     await expect(base.other.caller.query(pendingReference, query)).rejects.toThrow(
       'Campaign not found.'
     )
     await expect(base.t.query(pendingReference, query)).rejects.toThrow('Unauthenticated')
     const now = new Date().toISOString()
-    const occurrenceRowId = await base.t.run(async (ctx) => {
-      await ctx.db.insert('campaignMemberships', {
+    await base.t.run((ctx) =>
+      ctx.db.insert('campaignMemberships', {
         campaignId: base.campaign.id,
         userId: base.other.userId,
         role: 'PLAYER',
@@ -443,26 +377,16 @@ describe('room Scene movement perception staging', () => {
         accessStartedAt: now,
         leftAt: null
       })
-      return ctx.db.insert(
-        'encounterRuleOccurrences',
-        encounterStoredRuleOccurrenceSchema.parse({
-          id: prepared.occurrenceId,
-          campaignId: base.campaign.id,
-          encounterId: base.run.id,
-          rootCommandId: input.commandId,
-          state: 'PENDING',
-          version: 0,
-          expectedEncounterVersion: prepared.expectedEncounterVersion,
-          pendingSnapshotChecksum: await writePendingSnapshot(
-            { db: createConvexEncounterStore(ctx) },
-            { id: prepared.occurrenceId, encounterId: base.run.id },
-            snapshot
-          ),
-          createdAt: now,
-          updatedAt: now,
-          completedAt: null
-        })
-      )
+    )
+    const occurrenceRowId = await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRuleOccurrences')
+        .withIndex('by_encounterId_state', (q) =>
+          q.eq('encounterId', base.run.id).eq('state', 'PENDING')
+        )
+        .unique()
+      if (!row) throw new Error('Missing published occurrence.')
+      return row._id
     })
     const visible = await base.owner.caller.query(pendingReference, query)
     expect(visible).toMatchObject({
@@ -540,22 +464,18 @@ describe('room Scene movement perception staging', () => {
   }, 30000)
 
   it('hydrates current Scene evidence and freezes the exact reaction choice without settling mechanics', async () => {
-    const { base, saveId, input } = await setup()
+    const { base, input } = await setup()
     const before = await reactionRecords(base.t, base.run.id)
-    const prepared = await planStagedMovementInRoom(base.owner.caller, saveId)
+    const prepared = await planMovementInRoom(base.owner.caller, input)
     expect(prepared.outcome.kind).toBe('PENDING')
     if (prepared.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
-    expect(prepared.outcome.movementIntent).toMatchObject({ position: { x: 200, y: 50 } })
+    expect(prepared.outcome.movementIntent).toMatchObject({
+      position: { x: 200, y: 50 }
+    })
     expect(prepared.outcome.pendingSnapshot.applicationContext).toMatchObject({
       kind: 'ENCOUNTER_MOVEMENT_REACTION',
       phase: { kind: 'CHOICE' }
     })
-    expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
-    await base.owner.caller.run(async (ctx) => {
-      const { header, live } = await readLiveScene(ctx, input.sceneId, 'OWNER')
-      await ctx.db.insert('sceneLiveStates', advanceLiveState(header, live))
-    })
-    await expect(prepared.publish()).rejects.toThrow('Scene changed before geometry publication.')
     expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
   }, 30000)
 })

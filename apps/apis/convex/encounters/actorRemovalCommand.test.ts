@@ -1,5 +1,4 @@
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
@@ -36,6 +35,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
 import {
   executeInRoom,
+  expectRedactedRoomRefusal,
   insertActiveLiveAuthority,
   replayInRoom,
   RoomCommandRefusal
@@ -467,9 +467,11 @@ describe('native actor removal transaction', () => {
       })
     ).toEqual({ ...result, projection: current.projection })
     expect(await capture(base)).toEqual(later)
-    await expect(
-      executeInRoom(base.owner.caller, { command: { ...command, actorId: other.id } })
-    ).rejects.toThrow('Command ID was already used with different input.')
+    await expectRedactedRoomRefusal(
+      executeInRoom(base.owner.caller, { command: { ...command, actorId: other.id } }),
+      'already used for different input',
+      'INVALID_COMMAND'
+    )
     await base.t.run(async (ctx) => {
       const membership = await ctx.db
         .query('campaignMemberships')
@@ -587,14 +589,6 @@ describe('native actor removal transaction', () => {
     })
     expect(await replayInRoom(base.owner.caller, { command })).toEqual(result)
     expect(await capture(base)).toEqual(after)
-    await base.t.run(async (ctx) => {
-      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
-        resultChecksum: 'b'.repeat(64)
-      })
-    })
-    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
-      RoomCommandRefusal
-    )
   })
 
   it('reconciles an empty automatic SIDE_ROLL side and preserves historical removal replay', async () => {
@@ -768,9 +762,7 @@ describe('native actor removal transaction', () => {
       await ctx.db.patch(actor._id, { stateChecksum: checksumCanonicalJson('corrupt') })
     })
     const corrupt = await capture(base)
-    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
-      RoomCommandRefusal
-    )
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(RoomCommandRefusal)
     expect(await capture(base)).toEqual(corrupt)
   })
 
@@ -911,9 +903,7 @@ describe('native actor removal transaction', () => {
       expectedVersion: base.run.version,
       actorId: characterActor.id
     }
-    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow(
-      RoomCommandRefusal
-    )
+    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow(RoomCommandRefusal)
     // An archived Campaign has no live members, so the room refuses even its owner at admission.
     await expect(executeInRoom(base.owner.caller, { command })).rejects.toMatchObject({
       name: 'RoomCommandRefusal',

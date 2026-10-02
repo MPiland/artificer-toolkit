@@ -49,12 +49,12 @@ import {
   type SceneViewer
 } from '@artificer-toolkit/shared/vtt'
 import type {
-  EncounterCommandInputDto,
   EncounterCommandResultDto,
   ResolveRuleOccurrenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import type { RoomNativeEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { decodeJwt } from 'jose'
 import { z } from 'zod'
 
@@ -1388,7 +1388,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     socket: WebSocket,
     admission: Admission,
     value: SocketAttachment,
-    command: EncounterCommandInputDto
+    command: RoomNativeEncounterCommand
   ): Promise<void> {
     // A movement decision the room committed is journaled; its session sequence is not fenced (D28).
     const fingerprint = roomEncounterCommandFingerprint(command)
@@ -1913,7 +1913,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     socket: WebSocket,
     admission: Admission,
     value: SocketAttachment,
-    command: EncounterCommandInputDto,
+    command: RoomNativeEncounterCommand,
     fingerprint: string
   ): Promise<void> {
     // A roll posted to the table spends the same D72 allowance as chat and Campaign rolls.
@@ -1964,6 +1964,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             userId: admission.userId,
             recipientUserIds: recipients,
             command,
+            presentedSceneId: sceneCache?.scene?.id ?? null,
             random: secureRandomInt,
             ...(command.type === 'START' ||
             command.type === 'ADVANCE_TURN' ||

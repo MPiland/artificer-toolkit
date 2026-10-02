@@ -7,7 +7,6 @@ import { isCharacterSheetLivePlayCommand } from '@artificer-toolkit/schema/api/c
 import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import {
   encounterGmProjectionDtoSchema,
-  type EncounterCommandInputDto,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -48,9 +47,14 @@ import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/ap
 import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import { executeEncounterActorTokenBinding } from '@artificer-toolkit/encounter-persistence/actorTokenBindingPersistence'
+import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
+import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { roomSceneTokenReaders } from './roomActionSceneInputs.js'
+import { readRoomScene } from './roomSceneRead.js'
 
 /** The room journal's fingerprint of an Encounter command: a reused command ID must match it. */
-export function roomEncounterCommandFingerprint(command: EncounterCommandInputDto) {
+export function roomEncounterCommandFingerprint(command: RoomNativeEncounterCommand) {
   return checksumCanonicalJson({ command, scope: 'ENCOUNTER' })
 }
 
@@ -65,6 +69,8 @@ export async function executeRoomEncounterCommand(input: {
   userId: string
   recipientUserIds: string[]
   command: RoomNativeEncounterCommand
+  /** The room's presented Scene; actor-token bindings change only its tokens. */
+  presentedSceneId?: string | null
   random(maximum: number): number
   turnExecution?: {
     environment: NativeLiveSessionEnvironment
@@ -209,7 +215,10 @@ export async function executeRoomEncounterCommand(input: {
             ? await executeVoid()
             : command.type === 'USE_BASIC_ACTION'
               ? await executeBasicAction()
-              : await recordEncounterCommand(context, command, userId, input.random)
+              : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+                  command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+                ? await executeTokenBinding(command)
+                : await recordEncounterCommand(context, command, userId, input.random)
   const parsedGm = encounterGmProjectionDtoSchema.safeParse(rawResult.projection)
   const currentRun = await context.db
     .query('encounterRuns')
@@ -234,9 +243,12 @@ export async function executeRoomEncounterCommand(input: {
     ? parsedGm.data
     : await readEncounterGmProjection(context, readRunState(currentRun))
   const result = { ...rawResult, projection }
+  // The table's token-binding view reads Convex, so a binding is durable before it is acknowledged.
   const checkpointBeforeAcknowledgement =
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
+    command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+    command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
     projection.round !== readRunState(beforeRun).round ||
     (removed !== null &&
       encounterRunActorStateSchema.parse(JSON.parse(removed.stateJson)).kind === 'CHARACTER')
@@ -257,6 +269,30 @@ export async function executeRoomEncounterCommand(input: {
   }
   const play = await readRoomEncounterPlayAuthorization(context, campaignId, authorization.play)
   return { recipients, play, checkpointBeforeAcknowledgement }
+
+  async function executeTokenBinding(command: EncounterActorTokenBindingCommandInputDto) {
+    const readers = roomSceneTokenReaders(transaction)
+    return executeEncounterActorTokenBinding(context, command, {
+      readScene: async (sceneId) => {
+        if (sceneId !== input.presentedSceneId?.toLowerCase()) rejectDomain('SCENE_NOT_PRESENTED')
+        return readRoomScene(transaction, sceneId).header
+      },
+      hasToken: async (sceneId, tokenId) => {
+        const { header } = readRoomScene(transaction, sceneId)
+        const live = await readers.readLiveToken(sceneId, tokenId)
+        if (live) return parseSceneLiveEntity(live, header.version).value?.collection === 'tokens'
+        const base = await readers.readDefinitionToken(header.definitionSaveId, tokenId)
+        if (!base) return false
+        if (
+          base.value.collection !== 'tokens' ||
+          base.value.entity.id !== base.entityId ||
+          base.checksum !== checksumCanonicalJson(base.value)
+        )
+          throw new Error('Stored Scene token is inconsistent.')
+        return true
+      }
+    })
+  }
 
   async function executeTurn(command: Parameters<typeof executeRoomEncounterTurn>[0]['command']) {
     if (!input.turnExecution) throw new Error('Room turn execution is unavailable.')

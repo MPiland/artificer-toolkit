@@ -65,23 +65,11 @@ import { useCampaignPresentedScene } from '#app/data/campaigns/useCampaignPresen
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { queryKeys } from '#app/lib/queryKeys'
 import { errorMessage } from '#app/lib/errorMessage'
-import type {
-  EncounterCommandInputDto,
-  EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounters'
 import type { GetEncounterOptionalActionChoicesInputDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import {
-  encounterCommandInputDtoSchema,
-  encounterCommandResultDtoSchema,
-  encounterProjectionListDtoSchema
-} from '@artificer-toolkit/schema/api/encounters'
+import { encounterProjectionListDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { encounterSessionStateDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import {
-  encounterActorTokenBindingCommandInputDtoSchema,
-  type BindEncounterToPresentedSceneInputDto,
-  type EncounterActorTokenBindingCommandInputDto
-} from '@artificer-toolkit/schema/api/vttScenes'
+import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneEncounterBindingSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
 import {
@@ -588,20 +576,7 @@ export function CampaignVttStage({
         live.synchronizeScene(result.sceneId, result.version, presented.presentationVersion)
     }
   })
-  const encounterCommand = useMutation({
-    mutationFn: async (
-      command: EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
-    ): Promise<EncounterCommandResultDto> => {
-      const actorTokenBinding = encounterActorTokenBindingCommandInputDtoSchema.safeParse(command)
-      if (!actorTokenBinding.success)
-        return live.sendEncounterCommand(encounterCommandInputDtoSchema.parse(command))
-      return encounterCommandResultDtoSchema.parse(
-        await convex.mutation(convexApi.encounters.actorTokenBindings.execute, {
-          input: actorTokenBinding.data
-        })
-      )
-    }
-  })
+  const encounterCommand = useMutation({ mutationFn: live.sendEncounterCommand })
   // The room owns the presented Scene, so the GM binds through it (D47).
   const bindEncounter = useMutation({
     mutationFn: async (command: BindEncounterToPresentedSceneInputDto) => {

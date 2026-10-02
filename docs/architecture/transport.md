@@ -330,9 +330,11 @@ live Door commands and standalone token move/undo travel through the Session Dur
 overlapping Convex writes are fenced. The browser supplies the exact expected versions and command ID.
 The room validates the admitted actor, executes against its minimum live projection, and commits the
 next SQLite state, replay receipt and ordered publication outbox entry before returning
-`COMMAND_COMMITTED`. Encounter turn changes, rule-occurrence decisions, actor-token bindings and other
-Encounter rule commands remain on their owning Convex paths unless separately added to the live
-contract.
+`COMMAND_COMMITTED`. For a Run the room holds (any non-COMPLETED Run while the Campaign has a live
+authority), every Encounter command also commits in the room (ADR 0035, D78): turn changes,
+rule-occurrence decisions, Encounter-bound movement and actor-token bindings on the presented Scene,
+which the room refuses with `SCENE_NOT_PRESENTED` for any other Scene. Checkpoints publish the result to
+Convex, whose `encounters/actorTokenBindings:execute` refuses a held Run.
 
 Live-session tickets use `liveSessions/tickets:issue`; identity and current Campaign membership come
 from inherited authentication, and the exact open Session is required. The signed ticket retains its

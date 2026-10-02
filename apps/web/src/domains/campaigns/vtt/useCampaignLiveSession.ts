@@ -1,10 +1,7 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import type {
-  EncounterCommandInputDto,
-  EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   LiveSessionCommandDto,
   LiveSessionRecipientStateDto
@@ -117,7 +114,9 @@ export function useCampaignLiveSession({
   )
   // Every Encounter command enters through the room, which runs or forwards it (live-sessions.md).
   const sendEncounterCommand = useCallback(
-    async (command: EncounterCommandInputDto): Promise<EncounterCommandResultDto> => {
+    async (
+      command: Extract<LiveSessionCommandDto, { scope: 'ENCOUNTER' }>['command']
+    ): Promise<EncounterCommandResultDto> => {
       const commit = await sendCommand({ command, scope: 'ENCOUNTER' })
       if (commit.delta?.scope !== 'ENCOUNTER')
         throw new Error('Live play acknowledged the Encounter command without a result.')

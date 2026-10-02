@@ -289,6 +289,7 @@ it('pages before the next payload read, keeps missing ID coverage, and permits a
         }))
       }
       const checksum = checksumRuleDocument(document)
+      const versionId = crypto.randomUUID()
       const {
         _id: _versionId,
         _creationTime: _versionTime,
@@ -299,11 +300,17 @@ it('pages before the next payload read, keeps missing ID coverage, and permits a
       } = version
       const currentVersionId = await insertAuthoredVersion(
         ctx,
-        { ...metadata, id, versionId: crypto.randomUUID(), checksum },
+        { ...metadata, id, versionId, checksum },
         canonicalizeRuleDocument(document)
       )
       const { _id: _rootId, _creationTime: _rootTime, ...root } = source
-      await ctx.db.insert('authoredRoots', { ...root, id, checksum, currentVersionId })
+      await ctx.db.insert('authoredRoots', {
+        ...root,
+        id,
+        checksum,
+        currentVersionId,
+        currentVersionPublicId: versionId
+      })
     })
   }
   const missingId = '00000000-0000-4000-8000-000000000004'

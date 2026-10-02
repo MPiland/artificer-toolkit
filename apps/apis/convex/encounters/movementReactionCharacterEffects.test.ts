@@ -1,5 +1,4 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
-import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
@@ -7,19 +6,15 @@ import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID as UNCONSCIOUS } from '@artif
 import { setupMovementReactionCharacterEffects } from '../../tests/fixtures/movementReactionCharacterEffects'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import {
+  executeInRoom,
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({
   nextRollInt: (sides: number) => (sides === 20 ? 19 : 0)
 }))
 
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 function response(
   encounterId: string,
   pending: { encounterVersion: number; occurrenceId: string; occurrenceVersion: number },
@@ -93,16 +88,12 @@ function conditionSources(value: Awaited<ReturnType<typeof snapshot>>) {
 it('creates one Character reaction effect after the public choice and preserves Sheet and Campaign condition sources', async () => {
   const value = await setupMovementReactionCharacterEffects()
 
-  await value.owner.caller.mutation(observe, {
-    saveId: value.request.saveId,
-    characterRevisions: []
-  })
   const beforeRoot = await snapshot(value)
   expect(conditionSources(beforeRoot)).toEqual({
     sheet: [expect.objectContaining({ notes: 'Sheet condition survives reaction effect' })],
     campaign: [expect.objectContaining({ notes: 'Campaign condition survives reaction effect' })]
   })
-  const preparedRoot = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  const preparedRoot = await planMovementInRoom(value.owner.caller, value.rootInput)
   expect(preparedRoot.outcome.kind).toBe('PENDING')
   expect(await snapshot(value)).toEqual(beforeRoot)
 
@@ -113,16 +104,9 @@ it('creates one Character reaction effect after the public choice and preserves 
   const afterPending = await snapshot(value)
   expect(afterPending.effects).toEqual([])
   expect(conditionSources(afterPending)).toEqual(conditionSources(beforeRoot))
-  await expect(preparedRoot.publish()).resolves.toEqual({
-    ...pendingRoot,
-    replayed: true
-  })
-  expect(await snapshot(value)).toEqual(afterPending)
 
-  const reactionRequest = await planMovementDecisionInRoom(
-    value.owner.caller,
-    response(value.base.run.id, pending, pending.choice.options[0].optionId)
-  )
+  const reaction = response(value.base.run.id, pending, pending.choice.options[0].optionId)
+  const reactionRequest = await planMovementDecisionInRoom(value.owner.caller, reaction)
   const beforeSettlement = await snapshot(value)
   const preparedReaction = { outcome: reactionRequest.outcome }
   expect(preparedReaction.outcome.kind).toBe('TERMINAL')
@@ -153,28 +137,24 @@ it('creates one Character reaction effect after the public choice and preserves 
   expect(afterSettlement.run.version).toBe(beforeSettlement.run.version + 1)
   expect(conditionSources(afterSettlement)).toEqual(conditionSources(beforeSettlement))
 
-  await expect(reactionRequest.publish()).resolves.toEqual({
-    ...settled,
-    replayed: true
+  const retried = await executeInRoom(value.owner.caller, { command: reaction })
+  expect(retried.occurrence).toMatchObject({
+    occurrenceId: settled.occurrence?.occurrenceId,
+    status: 'COMPLETE',
+    pending: null
   })
   expect(await snapshot(value)).toEqual(afterSettlement)
 }, 30_000)
 
 it('projects the first used automatic Character reaction into the second reaction ordinal', async () => {
   const value = await setupMovementReactionCharacterEffects(true)
-  await value.owner.caller.mutation(observe, {
-    saveId: value.request.saveId,
-    characterRevisions: []
-  })
-  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  const root = await planMovementInRoom(value.owner.caller, value.rootInput)
   // Assisted play offers the authored automatic reaction as Use/Decline; the GM uses it.
   const automatic = (await root.publish()).occurrence?.pending
   if (!automatic || automatic.kind !== 'MOVEMENT_REACTION' || !automatic.choice.options[0])
     throw new Error('Expected the automatic reaction Use/Decline choice.')
-  const firstRequest = await planMovementDecisionInRoom(
-    value.owner.caller,
-    response(value.base.run.id, automatic, automatic.choice.options[0].optionId)
-  )
+  const first = response(value.base.run.id, automatic, automatic.choice.options[0].optionId)
+  const firstRequest = await planMovementDecisionInRoom(value.owner.caller, first)
   const beforeRoot = await snapshot(value)
   const preparedRoot = { outcome: firstRequest.outcome }
   expect(preparedRoot.outcome.kind).toBe('PENDING')
@@ -199,16 +179,15 @@ it('projects the first used automatic Character reaction into the second reactio
   expect(afterFirstReaction.characterReceipts).toHaveLength(beforeRoot.characterReceipts.length + 1)
   expect(afterFirstReaction.run.version).toBe(beforeRoot.run.version + 1)
   expect(conditionSources(afterFirstReaction)).toEqual(conditionSources(beforeRoot))
-  await expect(firstRequest.publish()).resolves.toEqual({
-    ...pendingRoot,
-    replayed: true
+  const retriedFirst = await executeInRoom(value.owner.caller, { command: first })
+  expect(retriedFirst.occurrence).toMatchObject({
+    occurrenceId: pendingRoot.occurrence?.occurrenceId,
+    status: 'PENDING'
   })
   expect(await snapshot(value)).toEqual(afterFirstReaction)
 
-  const secondRequest = await planMovementDecisionInRoom(
-    value.owner.caller,
-    response(value.base.run.id, pending, pending.choice.options[0].optionId)
-  )
+  const second = response(value.base.run.id, pending, pending.choice.options[0].optionId)
+  const secondRequest = await planMovementDecisionInRoom(value.owner.caller, second)
   const beforeSecondReaction = await snapshot(value)
   const preparedSecond = { outcome: secondRequest.outcome }
   expect(preparedSecond.outcome.kind).toBe('TERMINAL')
@@ -236,9 +215,11 @@ it('projects the first used automatic Character reaction into the second reactio
     ...beforeSources,
     sheet: [...(beforeSources.sheet ?? []), { conditionTypeId: UNCONSCIOUS }]
   })
-  await expect(secondRequest.publish()).resolves.toEqual({
-    ...settled,
-    replayed: true
+  const retriedSecond = await executeInRoom(value.owner.caller, { command: second })
+  expect(retriedSecond.occurrence).toMatchObject({
+    occurrenceId: settled.occurrence?.occurrenceId,
+    status: 'COMPLETE',
+    pending: null
   })
   expect(await snapshot(value)).toEqual(afterSecondReaction)
 }, 30_000)

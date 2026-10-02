@@ -765,7 +765,10 @@ describe('native public turn active-effect journeys', () => {
     ).toBe(actor.currentHitPoints - 1)
     expect(terminal.characterEffects).toEqual([])
     expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length + 1)
-    await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(completed)
+    await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
+      ...pendingOutgoing,
+      projection: completed.projection
+    })
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
@@ -805,7 +808,16 @@ describe('native public turn active-effect journeys', () => {
     const accepted = await executeInRoom(base.player.caller, declarationCommand)
     expect(encounterPlayerProjectionDtoSchema.safeParse(accepted.projection).success).toBe(true)
     expect(accepted.occurrence?.pending).toBeNull()
-    const gmInitiative = await executeInRoom(base.owner.caller, start)
+    // The GM's initiative prompt is hidden from the player's result, so read it as the owner.
+    const gmInitiative = {
+      ...accepted,
+      occurrence: accepted.occurrence && {
+        ...accepted.occurrence,
+        pending: await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+          encounterId: base.run.id
+        })
+      }
+    }
     const pendingIncoming = await resolveInitiative(base, gmInitiative)
     const paused = await pendingEffect(base, effect.id, 'START_OF_TURN')
     unchangedMechanics(before, paused)
@@ -829,14 +841,7 @@ describe('native public turn active-effect journeys', () => {
         encounterId: base.run.id
       })
     )
-    const expectedReplay = {
-      ...pendingIncoming,
-      projection: playerProjection,
-      occurrence: pendingIncoming.occurrence && {
-        ...pendingIncoming.occurrence,
-        pending: playerPending
-      }
-    }
+    const expectedReplay = { ...accepted, projection: playerProjection }
     const replay = await executeInRoom(base.player.caller, declarationCommand)
     expect(replay).toEqual(expectedReplay)
     expect(replay.projection.actors.every((entry) => !('currentHitPoints' in entry))).toBe(true)
@@ -907,10 +912,14 @@ describe('native public turn active-effect journeys', () => {
     const pendingIncoming = await resolveInitiative(base, pendingInitiative)
     const paused = await pendingEffect(base, effect.id, 'START_OF_TURN')
     unchangedMechanics(before, paused)
-    await expect(replayInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual(
-      pendingIncoming
-    )
-    await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual(pendingIncoming)
+    await expect(replayInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual({
+      ...pendingInitiative,
+      projection: pendingIncoming.projection
+    })
+    await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual({
+      ...pendingDeclaration,
+      projection: pendingIncoming.projection
+    })
     expect(await stored(base)).toEqual(paused)
     expect(
       await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
@@ -927,7 +936,10 @@ describe('native public turn active-effect journeys', () => {
     ).toBe(base.run.actors[0]!.currentHitPoints - 1)
     const terminal = await stored(base)
     expect(terminal.effects).toEqual([])
-    await expect(replayInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual(settled)
+    await expect(replayInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual({
+      ...pendingInitiative,
+      projection: settled.projection
+    })
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
@@ -1217,7 +1229,10 @@ describe('native public turn active-effect journeys', () => {
       ])
       entropy.mockClear()
       await expect(replayInRoom(base.owner.caller, terminalResponse)).resolves.toEqual(result)
-      await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
+        ...pendingOutgoing,
+        projection: result.projection
+      })
       expect(entropy).not.toHaveBeenCalled()
       expect(await stored(base)).toEqual(terminal)
     } finally {

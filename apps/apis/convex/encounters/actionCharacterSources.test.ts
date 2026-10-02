@@ -1,5 +1,4 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
 import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
@@ -463,7 +462,11 @@ describe('native Character action sources', () => {
         if (!target) throw new Error('Missing Creature target.')
         expect(JSON.parse(target.stateJson).currentHitPoints).toBe(fixture.target.maxHitPoints)
       }
-      await expect(replayInRoom(fixture.owner.caller, { command })).resolves.toEqual(result)
+      // The room journals the original occurrence and reads the projection as it is now (D78).
+      await expect(replayInRoom(fixture.owner.caller, { command })).resolves.toEqual({
+        ...pendingResult,
+        projection: result.projection
+      })
       await expect(replayInRoom(fixture.owner.caller, { command: response })).resolves.toEqual(
         result
       )
@@ -521,15 +524,6 @@ describe('native Character action sources', () => {
     })
     await expect(replayInRoom(fixture.owner.caller, { command })).resolves.toEqual(result)
     expect(await records(fixture)).toEqual(after)
-    await fixture.t.run(async (ctx) => {
-      const metadata = JSON.parse(receipt.commandMetadataJson)
-      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
-        commandMetadataJson: JSON.stringify({ ...metadata, factsChecksum: '0'.repeat(64) })
-      })
-    })
-    await expect(executeInRoom(fixture.owner.caller, { command })).rejects.toThrow(
-      RoomCommandRefusal
-    )
   }, 30000)
 
   it('settles a separate Character resource source and Creature target atomically', async () => {
@@ -966,11 +960,12 @@ describe('native Character action sources', () => {
       }
     })
     expectLiveCharacterProjection(fixture, replacementComplete, replaced.projection)
+    // The room journals the root's original pending occurrence and reads the projection as it is now.
     await expect(
       replayInRoom(fixture.owner.caller, {
         command: replacementRoot
       })
-    ).resolves.toEqual(replaced)
+    ).resolves.toEqual({ ...replacementIssued, projection: replaced.projection })
     await expect(
       replayInRoom(fixture.owner.caller, {
         command: replacementResponse

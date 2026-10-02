@@ -12,20 +12,17 @@ type SpatialExecution = FrozenMovementReactionRemainder['completedSpatialExecuti
 
 /** A spatial execution the room planned for a real move over one seeded hazard. */
 async function completedExecution() {
-  const { base, input, preparation } = await planSpatialTerminalFixture()
-  if (
-    preparation.outcome.kind !== 'TERMINAL' ||
-    preparation.outcome.result.status !== 'BATCH_COMPLETE'
-  )
+  const { base, input, plan } = await planSpatialTerminalFixture()
+  if (plan.outcome.kind !== 'TERMINAL' || plan.outcome.result.status !== 'BATCH_COMPLETE')
     throw new Error('Fixture spatial execution is unavailable.')
   return {
     base,
     input: {
-      occurrenceId: preparation.occurrenceId,
+      occurrenceId: crypto.randomUUID(),
       executionCommandId: input.commandId,
-      occurredAt: preparation.occurredAt
+      occurredAt: '2026-09-14T00:00:00.000Z'
     },
-    execution: preparation.outcome.result.executions[0]!
+    execution: plan.outcome.result.executions[0]!
   }
 }
 

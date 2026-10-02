@@ -117,15 +117,25 @@ async function preparePendingDeletion() {
     commandId: crypto.randomUUID(),
     expectedVersion: base.run.version
   }
-  const continueStart = async () =>
-    encounterCommandResultDtoSchema.parse(
-      await executeInRoom(base.owner.caller, { command: start })
-    )
-  let current = await continueStart()
+  let current = encounterCommandResultDtoSchema.parse(
+    await executeInRoom(base.owner.caller, { command: start })
+  )
 
   for (let step = 0; step < 16; step += 1) {
     const occurrence = current.occurrence
-    const pending = occurrence?.pending
+    // A result shows only its submitter's request; the other member reads theirs publicly.
+    const hidden = occurrence?.status === 'PENDING' && !occurrence.pending
+    const read = hidden
+      ? ((await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+          encounterId: base.run.id
+        })) ??
+        (await base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+          encounterId: base.run.id
+        })))
+      : null
+    const pending = read
+      ? pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(read)
+      : occurrence?.pending
     if (!occurrence || !pending) {
       if (
         current.projection.status !== 'ACTIVE' ||
@@ -184,39 +194,27 @@ async function preparePendingDeletion() {
             }
           })
         )
-        if (!current.occurrence?.pending) current = await continueStart()
         continue
       }
 
       if (pending.actorId === actor.id) {
-        const declaration = await base.player.caller.query(
-          api.encounters.pendingReads.pendingRuleOccurrence,
-          {
-            encounterId: base.run.id
-          }
-        )
-        const playerDeclaration =
-          declaration === null
-            ? null
-            : pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(declaration)
-        expect(playerDeclaration?.kind).toBe('INITIATIVE_DECLARATION')
-        if (!playerDeclaration || playerDeclaration.kind !== 'INITIATIVE_DECLARATION')
+        const playerDeclaration = pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(pending)
+        if (playerDeclaration.kind !== 'INITIATIVE_DECLARATION')
           throw new Error('Expected the public Character initiative declaration.')
-        expect(playerDeclaration.actorId).toBe(actor.id)
-
-        await executeInRoom(base.player.caller, {
-          command: {
-            type: 'RESOLVE_RULE_OCCURRENCE',
-            encounterId: base.run.id,
-            commandId: crypto.randomUUID(),
-            expectedVersion: playerDeclaration.encounterVersion,
-            occurrenceId: playerDeclaration.occurrenceId,
-            expectedOccurrenceVersion: playerDeclaration.occurrenceVersion,
-            correlationId: null,
-            resolution: initiativeDeclarationResolution(playerDeclaration)
-          }
-        })
-        current = await continueStart()
+        current = encounterCommandResultDtoSchema.parse(
+          await executeInRoom(base.player.caller, {
+            command: {
+              type: 'RESOLVE_RULE_OCCURRENCE',
+              encounterId: base.run.id,
+              commandId: crypto.randomUUID(),
+              expectedVersion: playerDeclaration.encounterVersion,
+              occurrenceId: playerDeclaration.occurrenceId,
+              expectedOccurrenceVersion: playerDeclaration.occurrenceVersion,
+              correlationId: null,
+              resolution: initiativeDeclarationResolution(playerDeclaration)
+            }
+          })
+        )
         continue
       }
 

@@ -424,7 +424,11 @@ it.each([
   const settled = await executeInRoom(base.base.owner.caller, response)
   expect(settled.occurrence?.status).toBe('COMPLETE')
   expect((await stored(base)).effects).toHaveLength(effects)
-  await expect(replayInRoom(base.base.owner.caller, { command: action })).resolves.toEqual(settled)
+  // A retried command replays its journaled original occurrence with the projection as it is now (D78).
+  await expect(replayInRoom(base.base.owner.caller, { command: action })).resolves.toEqual({
+    ...issued,
+    projection: settled.projection
+  })
   await expect(replayInRoom(base.base.owner.caller, response)).resolves.toEqual(settled)
   const afterAction = await stored(base)
   expect(afterAction.effects).toHaveLength(effects)
@@ -456,7 +460,10 @@ it.each([
   )
   expect((await stored(base)).effects[0]?.lifecycle.remainingTicks).toBe(1)
   await expect(replayInRoom(base.base.owner.caller, firstResponse)).resolves.toEqual(firstTick)
-  await expect(replayInRoom(base.base.owner.caller, firstAdvance)).resolves.toEqual(firstTick)
+  await expect(replayInRoom(base.base.owner.caller, firstAdvance)).resolves.toEqual({
+    ...firstPending,
+    projection: firstTick.projection
+  })
 
   const bridgeAdvance: EncounterExecuteInput = {
     command: {
@@ -489,5 +496,8 @@ it.each([
   ).toBe(base.target.currentHitPoints - 3)
   expect((await stored(base)).effects).toEqual([])
   await expect(replayInRoom(base.base.owner.caller, finalResponse)).resolves.toEqual(expired)
-  await expect(replayInRoom(base.base.owner.caller, finalAdvance)).resolves.toEqual(expired)
+  await expect(replayInRoom(base.base.owner.caller, finalAdvance)).resolves.toEqual({
+    ...finalPending,
+    projection: expired.projection
+  })
 })

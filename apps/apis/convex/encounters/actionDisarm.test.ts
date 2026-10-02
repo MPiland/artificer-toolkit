@@ -10,7 +10,6 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { readEncounterReplayReceipt } from '@artificer-toolkit/encounter-persistence/replayReceipts'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
@@ -196,9 +195,9 @@ describe('room Disarm commands', () => {
     if (root?.commandType !== 'RESOLVE_ACTION')
       throw new Error('Missing terminal Disarm root receipt.')
     expect(root).toMatchObject({ actorUserId: base.owner.userId })
+    // The room journals the root's original pending occurrence and reads the projection as it is now.
     await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual({
-      evidenceRoll: null,
-      ...readEncounterReplayReceipt(root),
+      ...started,
       projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
         encounterId: base.run.id
       })
@@ -473,8 +472,7 @@ describe('room Disarm commands', () => {
       if (root?.commandType !== 'RESOLVE_ACTION')
         throw new Error('Missing terminal Disarm root receipt.')
       await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual({
-        evidenceRoll: null,
-        ...readEncounterReplayReceipt(root),
+        ...started,
         projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
           encounterId: base.run.id
         })

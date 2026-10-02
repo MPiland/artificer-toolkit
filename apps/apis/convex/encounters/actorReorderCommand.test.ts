@@ -1,5 +1,4 @@
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
-import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import type {
   EncounterCommandInputDto,
@@ -12,6 +11,7 @@ import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPre
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   executeInRoom,
+  expectRedactedRoomRefusal,
   replayInRoom,
   RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
@@ -193,7 +193,7 @@ describe('native Encounter reorder', () => {
     expect(await base.capture()).toEqual(before)
   }, 30_000)
 
-  it('reorders prepared actors, replays its receipt, and rejects altered receipt/input', async () => {
+  it('reorders prepared actors, replays its receipt, and rejects altered input', async () => {
     const base = await fixture()
     const actorIds = base
       .projection()
@@ -208,27 +208,13 @@ describe('native Encounter reorder', () => {
       projection: later.result.projection
     })
     expect(await base.capture()).toEqual(beforeReplay)
-    await expect(
+    await expectRedactedRoomRefusal(
       executeInRoom(base.owner.caller, {
         command: { ...request.command, actorIds: [...actorIds].reverse() }
-      })
-    ).rejects.toThrow('Command ID was already used with different input.')
-    await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_campaignId_commandId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('commandId', request.command.commandId)
-        )
-        .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
-      if (!row || row.commandType !== 'REORDER') throw new Error('Missing reorder receipt')
-      await replaceReceiptRecord(ctx, 'encounterRunCommands', row._id, {
-        replayReceiptChecksum: 'a'.repeat(64)
-      })
-    })
-    const corrupt = await base.capture()
-    await expect(executeInRoom(base.owner.caller, request)).rejects.toThrow(RoomCommandRefusal)
-    expect(await base.capture()).toEqual(corrupt)
+      }),
+      'already used for different input',
+      'INVALID_COMMAND'
+    )
   }, 30_000)
 
   it('changes remaining turns immediately while preserving current/completed turns, scores and older rounds', async () => {

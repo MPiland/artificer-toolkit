@@ -127,7 +127,8 @@ async function start(base: Fixture, preferredActorId?: string) {
       expectedVersion: base.run.version
     }
   }
-  let result = await executeInRoom(base.owner.caller, command)
+  const initial = await executeInRoom(base.owner.caller, command)
+  let result = initial
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
     if (
@@ -169,7 +170,7 @@ async function start(base: Fixture, preferredActorId?: string) {
       }
     })
   }
-  return { result: encounterCommandResultDtoSchema.parse(result), command }
+  return { result: encounterCommandResultDtoSchema.parse(result), initial, command }
 }
 
 async function prepareTurn(base: Fixture) {
@@ -238,7 +239,8 @@ async function prepareTurn(base: Fixture) {
 }
 
 async function finishTurnEffects(base: Fixture, command: EncounterExecuteInput) {
-  let result = await executeInRoom(base.owner.caller, command)
+  const initial = await executeInRoom(base.owner.caller, command)
+  let result = initial
   const responses: EncounterExecuteInput[] = []
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
@@ -248,7 +250,7 @@ async function finishTurnEffects(base: Fixture, command: EncounterExecuteInput) 
     responses.push(input)
     result = await executeInRoom(base.owner.caller, input)
   }
-  return { result: encounterCommandResultDtoSchema.parse(result), responses }
+  return { result: encounterCommandResultDtoSchema.parse(result), initial, responses }
 }
 
 type ConcentrationController = Awaited<ReturnType<typeof prepareTurn>>['aOwner']['controller']
@@ -428,7 +430,7 @@ describe('turn damage concentration ordering', () => {
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(19)
     try {
       const before = await records(base)
-      const { result, command } = await start(base, base.sourceActor.id)
+      const { result, initial, command } = await start(base, base.sourceActor.id)
       expect(result).toMatchObject({
         projection: { currentActorId: base.sourceActor.id },
         occurrence: { status: 'COMPLETE' }
@@ -458,7 +460,10 @@ describe('turn damage concentration ordering', () => {
       expect(after.states.map((state) => state.id)).toContain(seeded.state.id)
       expect(after.run?.version).toBe(before.run!.version + 1)
       random.mockClear()
-      await expect(replayInRoom(base.owner.caller, command)).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, command)).resolves.toEqual({
+        ...initial,
+        projection: result.projection
+      })
       expect(random).not.toHaveBeenCalled()
       expect(await records(base)).toEqual(after)
     } finally {
@@ -519,7 +524,7 @@ describe('turn damage concentration ordering', () => {
   it('publishes one Assisted concentration at a time after the immutable parent turn', async () => {
     const base = await turnConcentrationFixture('PROMPT')
     const prepared = await prepareTurn(base)
-    const { result: parent, responses } = await finishTurnEffects(base, prepared.advance)
+    const { result: parent, initial, responses } = await finishTurnEffects(base, prepared.advance)
     expect(parent.occurrence?.status).toBe('COMPLETE')
     expect(responses).toHaveLength(3)
     const afterParent = await records(base)
@@ -591,7 +596,7 @@ describe('turn damage concentration ordering', () => {
       success
     )
     await expect(replayInRoom(base.owner.caller, prepared.advance)).resolves.toEqual({
-      ...parent,
+      ...initial,
       projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
         encounterId: base.run.id
       })

@@ -266,8 +266,14 @@ describe('native initiative declarations', () => {
     expect(await storedInitiative(base)).toEqual(beforeTerminal)
     const settled = await executeInRoom(base.owner.caller, terminal)
     await expect(replayInRoom(base.owner.caller, terminal)).resolves.toEqual(settled)
-    await expect(replayInRoom(base.owner.caller, first)).resolves.toEqual(settled)
-    await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual(settled)
+    await expect(replayInRoom(base.owner.caller, first)).resolves.toEqual({
+      ...continued,
+      projection: settled.projection
+    })
+    await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual({
+      ...pending,
+      projection: settled.projection
+    })
     expect(settled).toMatchObject({
       projection: { status: 'ACTIVE', round: 1, currentActorId: expect.any(String) },
       occurrence: { status: 'COMPLETE', pending: null }

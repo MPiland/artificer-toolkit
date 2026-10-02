@@ -421,7 +421,11 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
       activeEffectTransitions: [expect.objectContaining({ kind: 'CREATE' })]
     }
   })
-  await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(applied)
+  // A retried command replays its journaled original occurrence with the projection as it is now (D78).
+  await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual({
+    ...initial,
+    projection: applied.projection
+  })
   await expect(replayInRoom(base.owner.caller, initialResponse)).resolves.toEqual(applied)
   expect(await stored(base)).toEqual(afterApplied)
 
@@ -505,7 +509,10 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
   await expect(replayInRoom(base.owner.caller, secondEffectResponse)).resolves.toEqual(
     oneEffectRemaining
   )
-  await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(oneEffectRemaining)
+  await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
+    ...pendingFirstEffect,
+    projection: oneEffectRemaining.projection
+  })
 
   const setFinalCharacterTurn = await executeInRoom(base.owner.caller, {
     command: {
@@ -531,7 +538,10 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
   expect((await stored(base)).effects).toEqual([])
   expect(rawConditionIds(await stored(base))).toEqual([base.blinded.id])
   await expect(replayInRoom(base.owner.caller, finalEffectResponse)).resolves.toEqual(expired)
-  await expect(replayInRoom(base.owner.caller, finalAdvance)).resolves.toEqual(expired)
+  await expect(replayInRoom(base.owner.caller, finalAdvance)).resolves.toEqual({
+    ...pendingFinalEffect,
+    projection: expired.projection
+  })
   const ownerAfterExpiry = await base.owner.caller.query(api.encounters.projectionReads.get, {
     encounterId: base.run.id
   })
@@ -591,7 +601,10 @@ it('retains a same-type Sheet condition after its real rule effect expires', asy
   expect(rawConditionIds(await stored(base))).toEqual(
     expect.arrayContaining([base.blinded.id, base.frightened.id])
   )
-  await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(expired)
+  await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
+    ...pendingExpiry,
+    projection: expired.projection
+  })
   await expect(replayInRoom(base.owner.caller, response)).resolves.toEqual(expired)
 }, 30000)
 

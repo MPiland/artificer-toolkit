@@ -1,5 +1,4 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -28,8 +27,8 @@ import { fixture } from '../../tests/fixtures/characters'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import {
   executeInRoom,
-  replayInRoom,
-  RoomCommandRefusal
+  expectRedactedRoomRefusal,
+  replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -424,7 +423,7 @@ describe('native initiative corrections', () => {
         }
       })
     ).resolves.toEqual(replayedSetRound)
-    await expect(
+    await expectRedactedRoomRefusal(
       executeInRoom(base.owner.caller, {
         command: {
           type: 'SET_ROUND',
@@ -433,23 +432,9 @@ describe('native initiative corrections', () => {
           expectedVersion: versionCursor,
           round: 9
         }
-      })
-    ).rejects.toThrow('Command ID was already used with different input.')
-    const correctionReceipt = (await capture()).commands.find(
-      (command) => command.commandId === setRound.command.commandId
-    )
-    if (!correctionReceipt || correctionReceipt.commandType !== 'SET_ROUND')
-      throw new Error('Missing correction receipt')
-    await base.t.run((ctx) =>
-      replaceReceiptRecord(ctx, 'encounterRunCommands', correctionReceipt._id, {
-        initiativeStateChecksum: '0'.repeat(64)
-      })
-    )
-    await expect(executeInRoom(base.owner.caller, setRound)).rejects.toThrow(RoomCommandRefusal)
-    await base.t.run((ctx) =>
-      replaceReceiptRecord(ctx, 'encounterRunCommands', correctionReceipt._id, {
-        initiativeStateChecksum: correctionReceipt.initiativeStateChecksum
-      })
+      }),
+      'already used for different input',
+      'INVALID_COMMAND'
     )
     result = await executeInRoom(base.owner.caller, {
       command: {

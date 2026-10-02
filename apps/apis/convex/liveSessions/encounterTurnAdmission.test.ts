@@ -34,6 +34,7 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
@@ -99,7 +100,13 @@ async function setup() {
   })
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
+    subjects: [
+      importedSubject({
+        ...wolf,
+        subjectKind: 'CREATURE',
+        document: applyCreatureAttackRolls(wolf)
+      })
+    ]
   })
   const campaign = await base.owner.caller.mutation(createCampaign, {
     name: 'Turn admission fixture',

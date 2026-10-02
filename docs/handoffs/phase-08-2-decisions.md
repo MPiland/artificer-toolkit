@@ -554,6 +554,33 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **S6c2:** a room movement harness; the movement tests leave the Convex-first commit. Actor-token
     binding becomes a room command (the room has none, so S6c1 could not fence
     `actorTokenBindings.execute` without breaking live GM binding); then the Convex writer is fenced.
+  - **S6c2 rulings (integration owner, 2026-10-02):**
+    - A fresh answer to a settled movement decision is VERSION_STALE in the room, as for any other
+      decision. A fresh GM void of a settled decision is DECISION_NOT_PENDING, because the shared
+      void planner refuses it first.
+    - A replayed command returns its journaled result with the Run's current projection, not the
+      decision's later settlement. Tests that tampered with a Convex receipt to break a replay were
+      deleted: the room journal, not the receipt, is the replay authority.
+    - Checkpoint record keys accept occurrence version 0, matching the stored schema.
+    - Tests whose subject was the Convex-first commit (staging refusals, the D42 clone check,
+      spatial-commit mechanics) were deleted, not ported. The Convex refusals of a move while
+      another decision is pending and of a root replay were not re-proved in the room harness.
+  - **S6c3 follow-ups from S6c2:** three unbound-token `externalCommit` tests still drive
+    `prepareExternalSceneCommit`/`commitExternalSceneCommit` and need a room-native unbound
+    geometry harness before that path is deleted. Delete the harness's Convex-first helpers
+    (`stageRoomMovement`, `executeConvexFirstCommand`, `executeConvexFirstInRoom`,
+    `nextExternalAuthority`, `expectedMovementScene`) with it, and recheck the D43 test that still
+    calls `scenes.geometryActions.execute`.
+  - **Room defects found in S6c2 (must fix before REL-4):**
+    - A detached, unassigned maintained-effect Character owner is refused ("Character is no longer
+      assigned to the Campaign.", `RoomInputs.character`): the CHARACTERS scope returns
+      `UNASSIGNED`, while [live-sessions.md](../architecture/live-sessions.md) lets a real
+      dependent read it and the Convex path settled it. Red: `movementMaintenanceCharacters` and
+      one `movementMaintenance` test. Proposed fix: the room reads such an owner authorized by its
+      live dependent, as turn capture's `maintenanceCharacterOwners` input already names it.
+    - Each tied-initiative order choice rewrites the whole pending-snapshot base (about 300 KB at
+      100 actors) instead of a delta; red: `encounterWriteSets` 100-actor budget (17 MB against
+      2 MB). Trace `writePendingSnapshot` in the room transaction.
   - **S6c3:** delete the per-command Convex path (routes, commit modules, Scene cache hydrate,
     external commit, the S5 parity test), then docs and acceptance.
   - Alternative rejected: keeping the roll routes as an exception would leave R06.1 incomplete.

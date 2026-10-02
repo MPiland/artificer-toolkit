@@ -10,16 +10,11 @@ import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneM
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 const pendingRuleOccurrence = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -79,9 +74,8 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
     // The GM controls both Creatures, so it answers the choice and rolls the reaction dice.
     if (rolls === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
     const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-    await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
     const beforePause = await actorChecksums(value)
-    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
     expect(root.outcome.kind).toBe('PENDING')
     const choice = (await root.publish()).occurrence?.pending
     expect(await actorChecksums(value)).toEqual(beforePause)
@@ -171,9 +165,8 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
       tokenId: value.moverTokenId,
       position: { x: 450, y: 50 }
     })
-    await expect(request.publish()).resolves.toMatchObject({
-      replayed: true
-    })
+    const retry = await planMovementDecisionInRoom(value.owner.caller, declineCommand)
+    await expect(retry.publish()).resolves.toMatchObject({ replayed: true })
     await expect(
       planMovementDecisionInRoom(value.owner.caller, {
         ...declineCommand,
@@ -190,9 +183,8 @@ it('skips a declined System-automatic reaction in Assisted mode without rolling 
     outcomeDice: true
   })
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
   const reactorBefore = await reactorChecksum(value, base.reactor.id)
-  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  const root = await planMovementInRoom(value.owner.caller, value.rootInput)
   expect(root.outcome.kind).toBe('PENDING')
   const choice = (await root.publish()).occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_REACTION')

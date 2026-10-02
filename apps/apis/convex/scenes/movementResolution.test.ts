@@ -15,17 +15,16 @@ import {
   sceneStoredInitialStateSchema,
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
-import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { api, internal } from '../_generated/api'
-import { readSessionVisionScope } from './sessionVisionDocuments'
+import { api } from '../_generated/api'
 import {
   executeInRoom,
+  expectRedactedRoomRefusal,
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 // Keep handler compilation outside the per-operation test timer.
 import '../content/import'
@@ -39,22 +38,18 @@ import '../encounters/actorTokenBindings'
 import './geometryCommands'
 import './movementResolutionStaging'
 import './movementResolutionReads'
-import './geometryStaging'
 
 const bindActorToken = makeFunctionReference<
   'mutation',
   { input: EncounterActorTokenBindingCommandInputDto },
   { projection: { version: number } }
 >('encounters/actorTokenBindings:execute')
-// A loser reads the winner's occurrence version, Encounter scope, published Scene or vision; the
-// room reports a redacted Convex refusal as a failed route.
+// A racing loser reads the winner's occurrence version, Encounter scope or Scene binding, or an
+// unavailable occurrence, and the room reports it as a redacted refusal. Once the winner completes
+// the occurrence, a loser's answer is a stale Encounter version.
 const staleResponse =
-  /Movement response (?:occurrence|Encounter scope) is stale\.|Scene changed before geometry publication\.|Rule occurrence is unavailable\.|Scene vision dependencies changed; capture a fresh play snapshot\.|Live Session route request failed\./
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
+  /Movement response (?:occurrence|Encounter scope|Scene binding) is stale\.|Rule occurrence is unavailable\./
+const versionStale = { code: 'DOMAIN_REJECTED', reason: 'VERSION_STALE' }
 
 async function setup(selected = false) {
   const base = await setupCreatureReactionRun(null, selected, true)
@@ -219,60 +214,13 @@ async function setup(selected = false) {
       { x: 300, y: 50 }
     ]
   }
-  const vision = await base.owner.caller.run(async (ctx) => {
-    const scope = {
-      campaignId: base.campaign.id,
-      systemId: base.campaign.gameSystemId,
-      sceneId,
-      expectedSceneVersion: 0,
-      expectedPresentationVersion: 0
-    }
-    const { freshness } = await readSessionVisionScope(ctx, scope)
-    return { ...scope, freshness }
-  })
-  const rootSaveId = crypto.randomUUID()
-  await base.owner.caller.run((ctx) =>
-    ctx.db.insert(
-      'sceneGeometrySaves',
-      sceneStoredGeometrySaveSchema.parse({
-        id: rootSaveId,
-        sceneId,
-        commandId: rootCommandId,
-        actorUserId: base.owner.userId,
-        input: rootInput,
-        inputChecksum: checksumCanonicalJson(rootInput),
-        snapshotVersion: 0,
-        sessionVision: vision,
-        status: 'RECEIVING',
-        expiresAt: Date.now() + 60_000,
-        fogSaves: [],
-        characterRevisions: []
-      })
-    )
-  )
-  const rootRequest = {
-    saveId: rootSaveId,
-    baseOrdinal: 1,
-    movementCost: 0,
-    tokenOrdinals: tokens.map((token, baseOrdinal) => ({
-      tokenId: token.id,
-      baseOrdinal
-    }))
-  }
-  return { base, sceneId, tokens, rootRequest }
+  return { base, sceneId, tokens, rootInput }
 }
 
 describe('room movement response publication', () => {
   it('settles a selected GM Creature reaction through its issued evidence and replays the current occurrence', async () => {
     const value = await setup(true)
-    await value.base.owner.caller.mutation(observe, {
-      saveId: value.rootRequest.saveId,
-      characterRevisions: []
-    })
-    const rootPlan = await planStagedMovementInRoom(
-      value.base.owner.caller,
-      value.rootRequest.saveId
-    )
+    const rootPlan = await planMovementInRoom(value.base.owner.caller, value.rootInput)
     expect(rootPlan.outcome.kind).toBe('PENDING')
     const root = await rootPlan.publish()
     const choice = root.occurrence?.pending
@@ -299,6 +247,7 @@ describe('room movement response publication', () => {
       commands: await ctx.db.query('encounterRunCommands').collect(),
       sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
     }))
+    let lastCommand = selected
     let plan = await planMovementDecisionInRoom(value.base.owner.caller, selected)
     expect(plan.outcome.kind).toBe('PENDING')
     expect(
@@ -352,6 +301,7 @@ describe('room movement response publication', () => {
                   value: pending.request.max
                 }
       }
+      lastCommand = command
       plan = await planMovementDecisionInRoom(value.base.owner.caller, command)
       expect(plan.outcome.kind).toBe(pending.kind === 'MOVEMENT_REACTION' ? 'TERMINAL' : 'PENDING')
       result = await plan.publish()
@@ -365,7 +315,10 @@ describe('room movement response publication', () => {
       'ACTION_OUTCOME_EVIDENCE'
     ])
     expect(sawSubsequentReactor).toBe(true)
-    expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    expect(result.occurrence).toMatchObject({
+      status: 'COMPLETE',
+      pending: null
+    })
     const completed = await value.base.t.run(async (ctx) => ({
       runs: await ctx.db.query('encounterRuns').collect(),
       actors: await ctx.db.query('encounterRunActors').collect(),
@@ -385,18 +338,23 @@ describe('room movement response publication', () => {
     if (!source || !target || !priorTarget) throw new Error('Expected selected reaction actors.')
     expect(
       encounterRunActorStateSchema.parse(JSON.parse(source.stateJson)).resources
-    ).toMatchObject({ ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 } })
+    ).toMatchObject({
+      ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
+    })
     const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
     const priorTargetState = encounterRunActorStateSchema.parse(JSON.parse(priorTarget.stateJson))
     if (targetState.kind === 'CHARACTER' || priorTargetState.kind === 'CHARACTER')
       throw new Error('Expected a Creature reaction target.')
     expect(targetState.currentHitPoints).toBeLessThan(priorTargetState.currentHitPoints)
-    await expect(plan.publish()).resolves.toMatchObject({
+    await expect(
+      (await planMovementDecisionInRoom(value.base.owner.caller, lastCommand)).publish()
+    ).resolves.toMatchObject({
       replayed: true,
       occurrence: { status: 'COMPLETE' }
     })
-    const rootReplay = await rootPlan.publish()
-    expect(rootReplay.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    await expect(
+      (await planMovementInRoom(value.base.owner.caller, value.rootInput)).publish()
+    ).resolves.toEqual({ ...root, replayed: true })
     expect(
       await value.base.t.run(async (ctx) => ({
         runs: await ctx.db.query('encounterRuns').collect(),
@@ -414,12 +372,7 @@ describe('room movement response publication', () => {
   it('races every reaction response to one winner and one stale loser, spending the reaction once', async () => {
     const value = await setup(true)
     const { t, owner, run } = value.base
-    await owner.caller.mutation(observe, {
-      saveId: value.rootRequest.saveId,
-      characterRevisions: []
-    })
-    const rootPlan = await planStagedMovementInRoom(owner.caller, value.rootRequest.saveId)
-    const root = await rootPlan.publish()
+    const root = await (await planMovementInRoom(owner.caller, value.rootInput)).publish()
     const stored = () =>
       t.run(async (ctx) => ({
         runs: await ctx.db.query('encounterRuns').collect(),
@@ -482,16 +435,20 @@ describe('room movement response publication', () => {
       const loser = raced[1 - winnerIndex]
       if (winner?.status !== 'fulfilled' || loser?.status !== 'rejected')
         throw new Error('Reaction response contention needs one winner and one stale loser.')
-      expect(String(loser.reason)).toMatch(staleResponse)
+      const expectStaleLoser = (attempt: Promise<unknown>) =>
+        winner.value.occurrence?.status === 'COMPLETE'
+          ? expect(attempt).rejects.toMatchObject({ data: versionStale })
+          : expectRedactedRoomRefusal(attempt, staleResponse)
+      await expectStaleLoser(Promise.reject(loser.reason))
       losers.push(contenders[1 - winnerIndex]!.command.commandId)
       const settled = await stored()
       // The room commits a movement decision with its Scene and refuses a settled one's retry.
-      await expect(executeInRoom(owner.caller, contenders[winnerIndex]!)).rejects.toThrow(
-        staleResponse
+      await expectRedactedRoomRefusal(
+        executeInRoom(owner.caller, contenders[winnerIndex]!),
+        'This decision was already settled.',
+        'STALE_STATE'
       )
-      await expect(executeInRoom(owner.caller, contenders[1 - winnerIndex]!)).rejects.toThrow(
-        staleResponse
-      )
+      await expectStaleLoser(executeInRoom(owner.caller, contenders[1 - winnerIndex]!))
       expect(await stored()).toEqual(settled)
       pending =
         winner.value.occurrence?.status === 'PENDING' ? winner.value.occurrence.pending : null
@@ -505,7 +462,9 @@ describe('room movement response publication', () => {
     if (!reactor) throw new Error('Expected the selected reactor.')
     expect(
       encounterRunActorStateSchema.parse(JSON.parse(reactor.stateJson)).resources
-    ).toMatchObject({ ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 } })
+    ).toMatchObject({
+      ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
+    })
     // A stale loser leaves no command, receipt, occurrence or Scene trace.
     expect(JSON.stringify(final)).not.toMatch(new RegExp(losers.join('|')))
     // Each Run version the winners committed carries exactly one command receipt.
@@ -518,22 +477,15 @@ describe('room movement response publication', () => {
       limit: 100
     })
     expect(timeline.entries.map((entry) => entry.version)).toContain(final.runs[0]!.version)
-    await expect(rootPlan.publish()).resolves.toMatchObject({
-      occurrence: { status: 'COMPLETE', pending: null }
-    })
+    await expect(
+      (await planMovementInRoom(owner.caller, value.rootInput)).publish()
+    ).resolves.toEqual({ ...root, replayed: true })
     expect(await stored()).toEqual(final)
   }, 90_000)
 
   it('publishes repeated GM declines and replays the current complete occurrence', async () => {
     const value = await setup()
-    await value.base.owner.caller.mutation(observe, {
-      saveId: value.rootRequest.saveId,
-      characterRevisions: []
-    })
-    const initial = await planStagedMovementInRoom(
-      value.base.owner.caller,
-      value.rootRequest.saveId
-    )
+    const initial = await planMovementInRoom(value.base.owner.caller, value.rootInput)
     expect(initial.outcome.kind).toBe('PENDING')
     const root = await initial.publish()
     expect(root.occurrence).toMatchObject({
@@ -595,41 +547,14 @@ describe('room movement response publication', () => {
       receipts: await ctx.db.query('encounterRuleReceipts').collect(),
       runCommands: await ctx.db.query('encounterRunCommands').collect(),
       sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
-      fogSaves: await ctx.db.query('sceneFogSaves').collect(),
       fogRows: await ctx.db.query('sceneFogLayers').collect()
     }))
-    const replay = await plan.publish()
-    expect(replay.occurrence).toMatchObject({
-      status: 'COMPLETE',
-      occurrenceVersion: 2,
-      pending: null
-    })
-    const rootReplay = await initial.publish()
-    expect(rootReplay.occurrence).toMatchObject({
-      status: 'COMPLETE',
-      occurrenceVersion: 2,
-      pending: null
-    })
-    // With no room live, Convex refuses the bound move even as a retry (D43).
-    const rootBegin = value.base.owner.caller.mutation(internal.scenes.geometryStaging.begin, {
-      input: await value.base.owner.caller.run(async (ctx) => {
-        const row = await ctx.db
-          .query('sceneGeometrySaves')
-          .withIndex('by_publicId', (q) => q.eq('id', value.rootRequest.saveId))
-          .unique()
-        if (!row) throw new Error('Root geometry save missing.')
-        return row.input
-      }),
-      presentation: await value.base.owner.caller.run(async (ctx) => {
-        const row = await ctx.db
-          .query('sceneGeometrySaves')
-          .withIndex('by_publicId', (q) => q.eq('id', value.rootRequest.saveId))
-          .unique()
-        if (!row?.sessionVision) throw new Error('Root presentation evidence missing.')
-        return { expectedPresentationVersion: row.sessionVision.expectedPresentationVersion }
-      })
-    })
-    await expect(rootBegin).rejects.toMatchObject({ data: { reason: 'SCENE_NOT_PRESENTED' } })
+    await expect(
+      (await planMovementDecisionInRoom(value.base.owner.caller, command)).publish()
+    ).resolves.toEqual({ ...first, replayed: true })
+    await expect(
+      (await planMovementInRoom(value.base.owner.caller, value.rootInput)).publish()
+    ).resolves.toEqual({ ...root, replayed: true })
     expect(
       await value.base.t.run(async (ctx) => ({
         runs: await ctx.db.query('encounterRuns').collect(),
@@ -640,7 +565,6 @@ describe('room movement response publication', () => {
         receipts: await ctx.db.query('encounterRuleReceipts').collect(),
         runCommands: await ctx.db.query('encounterRunCommands').collect(),
         sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
-        fogSaves: await ctx.db.query('sceneFogSaves').collect(),
         fogRows: await ctx.db.query('sceneFogLayers').collect()
       }))
     ).toEqual(retryState)

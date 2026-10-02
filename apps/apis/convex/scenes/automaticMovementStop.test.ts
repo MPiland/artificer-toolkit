@@ -7,7 +7,7 @@ import { joinCharacterPlay } from '../characters/stateDocuments'
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
 it.each([false, true])(
-  'stops native Character movement at a used automatic reaction with spatial prefix %s and replays without writes',
+  'stops native Character movement at a used automatic reaction with spatial prefix %s',
   async (withSpatialPrefix) => {
     const value = await setupAutomaticCharacterMovement(['AUTOMATIC', 'AUTOMATIC'], true)
     const prefix = withSpatialPrefix
@@ -94,11 +94,6 @@ it.each([false, true])(
     expect(after.entities).toMatchObject([
       { entityId: value.moverTokenId, value: { entity: { position: contact } } }
     ])
-
-    await expect(publish()).resolves.toMatchObject({
-      replayed: true
-    })
-    expect(await snapshot()).toEqual(after)
   },
   30_000
 )

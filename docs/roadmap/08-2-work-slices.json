@@ -61,7 +61,6 @@
     }
   ],
   "queue": [
-    "A35-S6c2",
     "A35-S6c3",
     "A36-S10",
     "A35-S3c",
@@ -92,8 +91,8 @@
     { "id": "A35-S6a", "stream": "A35", "state": "integrating", "title": "Room commands for geometry, doors, binding and undo; content inputs; Character holds (Codex source-first batch)", "cases": ["R06", "V03", "V07", "V14"], "refs": [] },
     { "id": "A35-S6b", "stream": "A35", "state": "integrating", "title": "Retire the remaining Scene paths; author the movement and Sheet input fixtures", "cases": ["R06", "V07"], "refs": [] },
     { "id": "A35-S6c1", "stream": "A35", "state": "integrating", "title": "The switch, part 1: every ACTIVE-Run Encounter command room-native (evidence and table rolls, held-Sheet actor commands, unowned decisions); checkpoint-backed test harness; Encounter tests migrated", "cases": ["R06", "V14"], "refs": ["D78"] },
-    { "id": "A35-S6c2", "stream": "A35", "state": "active", "title": "The switch, part 2: room movement harness; movement tests migrated off the Convex-first commit; actor-token binding as a room command, then fence actorTokenBindings.execute", "cases": ["R06", "V08"], "refs": ["D78"] },
-    { "id": "A35-S6c3", "stream": "A35", "state": "remaining", "title": "The switch, part 3: delete the per-command Convex path (routes, commit modules, Scene cache hydrate, external commit, parity test); docs and acceptance", "cases": ["R06", "V08", "V13", "V14"], "refs": ["D78"] },
+    { "id": "A35-S6c2", "stream": "A35", "state": "integrating", "title": "The switch, part 2: room movement harness; movement tests migrated off the Convex-first commit; actor-token binding as a room command, then fence actorTokenBindings.execute", "cases": ["R06", "V08"], "refs": ["D78"] },
+    { "id": "A35-S6c3", "stream": "A35", "state": "active", "title": "The switch, part 3: delete the per-command Convex path (routes, commit modules, Scene cache hydrate, external commit, parity test); docs and acceptance", "cases": ["R06", "V08", "V13", "V14"], "refs": ["D78"] },
     { "id": "A35-S7a", "stream": "A35", "state": "integrating", "title": "Sheet plays through the room while held: room push and departure reconcile", "cases": ["R06", "V14", "P04", "P08", "P15"], "refs": ["D73", "D74"] },
     { "id": "A35-S7b", "stream": "A35", "state": "integrating", "title": "Account deletion removes held actors", "cases": ["F12"], "refs": ["D74"] },
     { "id": "A35-S8a", "stream": "A35", "state": "integrating", "title": "Chat and rolls through the room, with per-room limits (players 30/min, GM 60/min)", "cases": ["P06", "P14", "V11"], "refs": ["D69", "D72", "D76"] },

@@ -1,5 +1,4 @@
 import { expect, it, vi } from 'vitest'
-import { makeFunctionReference } from 'convex/server'
 import type {
   EncounterExecuteInput,
   PendingEncounterRuleOccurrenceSummaryDto,
@@ -19,16 +18,10 @@ import { api } from '../_generated/api'
 import {
   executeInRoom,
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (maximum: number) => maximum - 1 }))
-
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 async function effects(base: Awaited<ReturnType<typeof setupCreatureReactionRun>>) {
   return base.t.run((ctx) =>
@@ -40,8 +33,7 @@ async function effects(base: Awaited<ReturnType<typeof setupCreatureReactionRun>
 }
 
 async function publish(scene: Awaited<ReturnType<typeof setupReactionMovementScene>>) {
-  await scene.owner.caller.mutation(observe, { saveId: scene.saveId, characterRevisions: [] })
-  const prepared = await planStagedMovementInRoom(scene.owner.caller, scene.saveId)
+  const prepared = await planMovementInRoom(scene.owner.caller, scene.rootInput)
   const result = await prepared.publish()
   return { prepared, result }
 }
@@ -88,7 +80,7 @@ async function answer(
   return {
     prepared: { outcome: plan.outcome },
     result: await plan.publish(),
-    publish: plan.publish
+    command
   }
 }
 
@@ -153,12 +145,8 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
   if (!frightened) throw new Error('Expected the System Frightened condition.')
   await setAutoRollDice(base.t, base.owner.userId, false)
   const scene = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-  await scene.owner.caller.mutation(observe, {
-    saveId: scene.request.saveId,
-    characterRevisions: []
-  })
   const before = await reactionRecords(base.t, base.run.id)
-  const prepared = await planStagedMovementInRoom(scene.owner.caller, scene.saveId)
+  const prepared = await planMovementInRoom(scene.owner.caller, scene.rootInput)
   expect(prepared.outcome.kind).toBe('PENDING')
   expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
   expect(await effects(base)).toEqual([])
@@ -237,9 +225,9 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
   expect(completed.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   expect(await effects(base)).toHaveLength(1)
   const settled = await reactionRecords(base.t, base.run.id)
-  await expect(completed.publish()).resolves.toMatchObject({
-    replayed: true
-  })
+  await expect(
+    executeInRoom(scene.owner.caller, { command: completed.command })
+  ).resolves.toMatchObject({ occurrence: { status: 'COMPLETE', pending: null } })
   expect(await reactionRecords(base.t, base.run.id)).toEqual(settled)
   expect(await effects(base)).toHaveLength(1)
 

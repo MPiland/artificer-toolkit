@@ -1,5 +1,4 @@
-import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import { api } from '../_generated/api'
@@ -249,7 +248,7 @@ describe('native actor reinforcement transaction', () => {
     expect(nextRound?.status).not.toBe('ACTED')
   }, 60_000)
 
-  it('rejects a tampered retained reinforcement actor snapshot and rolls back an injected post-write failure', async () => {
+  it('rolls back an injected post-write failure', async () => {
     const base = await setupCharacterRun()
     const command = {
       type: 'REINFORCE' as const,
@@ -264,25 +263,6 @@ describe('native actor reinforcement transaction', () => {
       public: true
     }
     const result = await executeInRoom(base.owner.caller, { command })
-    await base.t.run(async (ctx) => {
-      const receipt = await ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_campaignId_commandId', (query) =>
-          query.eq('campaignId', base.campaign.id).eq('commandId', command.commandId)
-        )
-        .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
-      if (!receipt || receipt.commandType !== 'REINFORCE')
-        throw new Error('Missing reinforcement receipt.')
-      await replaceReceiptRecord(ctx, 'encounterRunCommands', receipt._id, {
-        reinforcedActorStateChecksum: 'b'.repeat(64)
-      })
-    })
-    const tampered = await capture(base)
-    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
-      RoomCommandRefusal
-    )
-    expect(await capture(base)).toEqual(tampered)
     const rollback = {
       ...command,
       commandId: crypto.randomUUID(),

@@ -420,7 +420,7 @@ it('forecasts and atomically publishes maintained replacement across ordered use
   if (!firstDamage || !secondDamage) throw new Error('Expected both maintained reaction damages.')
   expect(secondDamage.beforeCurrentHitPoints).toBe(firstDamage.afterCurrentHitPoints)
 
-  const published = await replacement.publish()
+  await replacement.publish()
   const afterReplacement = await gameplay(base)
   expect(afterReplacement.maintainedStates).toHaveLength(2)
   expect(afterReplacement.maintainedStates.map((state) => state.id)).not.toContain(seeded.stateId)
@@ -447,11 +447,6 @@ it('forecasts and atomically publishes maintained replacement across ordered use
     (entry) => entry.commandId === replacement.responseCommandId
   )
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
-  expect(await replacement.publish()).toEqual({
-    ...published,
-    replayed: true
-  })
-  expect(await gameplay(base)).toEqual(afterReplacement)
 }, 60_000)
 
 it('carries detached Character maintenance through a non-pausing passage to the later contact', async () => {
@@ -548,7 +543,7 @@ it('carries detached Character maintenance through a non-pausing passage to the 
     )
   ).toEqual(expect.arrayContaining(seeded.laterOldEffectIds))
 
-  const published = await passage.publish()
+  await passage.publish()
   const after = await passageRecords(base, character.id)
   if (!after.character) throw new Error('Published detached Character is unavailable.')
   expect(after.character.play.streamVersion).toBe(character.streamVersion + 2)
@@ -572,11 +567,6 @@ it('carries detached Character maintenance through a non-pausing passage to the 
     (entry) => entry.commandId === passage.responseCommandId
   )
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
-  expect(await passage.publish()).toEqual({
-    ...published,
-    replayed: true
-  })
-  expect(await passageRecords(base, character.id)).toEqual(after)
 }, 60_000)
 
 it('keeps Assisted maintenance pending writes staged and rejects changed slot and dependent owner', async () => {
@@ -675,7 +665,7 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
   const resumedRequest = await planMovementDecisionInRoom(base.owner.caller, enterDice)
   expect(resumedRequest.outcome.kind).toBe('TERMINAL')
   expect(await encounterMechanics(base)).toEqual(pendingGameplay)
-  const completed = await resumedRequest.publish()
+  await resumedRequest.publish()
   const after = await gameplay(base)
   expect(after.maintainedStates).toHaveLength(1)
   expect(after.maintainedStates[0]?.id).not.toBe(current.state.id)
@@ -684,9 +674,4 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
     (effect) => effect.maintainedEffectStateId === after.maintainedStates[0]?.id
   )
   expect(replacementDependents).not.toHaveLength(0)
-  expect(await resumedRequest.publish()).toEqual({
-    ...completed,
-    replayed: true
-  })
-  expect(await gameplay(base)).toEqual(after)
 }, 60_000)

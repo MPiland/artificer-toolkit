@@ -26,7 +26,7 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { createCutoverWorkloadCreature } from '../../tests/fixtures/encounterAction'
 import { importedSubject } from '../../tests/fixtures/publication'
-import { executeInRoom, planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, planMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 13 : 0) }))
@@ -61,11 +61,6 @@ const movementReactionDamage = makeFunctionReference<
     afterHitPoints: number
   }
 >('encounters/developmentLifecycle:movementReactionDamage')
-const observeMovement = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 async function setup() {
   const base = await createEncounterSceneFixture()
@@ -345,11 +340,7 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
     await ctx.db.patch(campaign._id, { name: 'Encounter execution fixture' })
   })
 
-  await scene.owner.caller.mutation(observeMovement, {
-    saveId: scene.saveId,
-    characterRevisions: []
-  })
-  const plan = await planStagedMovementInRoom(scene.owner.caller, scene.saveId)
+  const plan = await planMovementInRoom(scene.owner.caller, scene.rootInput)
   const root = await plan.publish()
   const choice = root.occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])

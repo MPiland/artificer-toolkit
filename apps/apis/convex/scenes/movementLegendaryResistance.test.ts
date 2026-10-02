@@ -8,8 +8,11 @@ import {
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { api } from '../_generated/api'
-import { executeInRoom, planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  planMovementDecisionInRoom,
+  planMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
@@ -56,7 +59,7 @@ it.each(['USE', 'DECLINE'] as const)(
       { x: 475, y: 50 },
       5
     )
-    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
     const initial = await root.publish()
     const choice = initial.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
@@ -110,9 +113,6 @@ it.each(['USE', 'DECLINE'] as const)(
         .collect()
     )
     expect(remaining.map((entry) => entry.id)).toEqual(selection === 'USE' ? [] : [suffix.id])
-    await expect(request.publish()).resolves.toMatchObject({
-      replayed: true
-    })
   },
   30_000
 )
@@ -146,7 +146,7 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
   })
   await setAutoRollDice(base.t, base.owner.userId, false)
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  const root = await planMovementInRoom(value.owner.caller, value.rootInput)
   const initial = await root.publish()
   const choice = initial.occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
@@ -200,9 +200,6 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
     const completed = await replayRequest.publish()
     if (completed.occurrence?.status === 'COMPLETE') {
       expect(outcomeRequests).toBeGreaterThan(0)
-      await expect(replayRequest.publish()).resolves.toMatchObject({
-        replayed: true
-      })
       break
     }
     const pending = completed.occurrence?.pending

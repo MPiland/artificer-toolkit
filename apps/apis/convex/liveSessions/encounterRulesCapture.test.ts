@@ -288,7 +288,7 @@ it('captures only current Run members and current assigned Character actors', as
       ...base.input,
       request: { kind: 'ACTOR', actorId: base.actor.id }
     })
-  ).rejects.toThrow('Stored Character identity mismatch')
+  ).rejects.toThrow('Stored Character assembled structure checksum mismatch')
   await base.t.run((ctx) => ctx.db.patch(characterRow._id, { status: 'ACTIVE' }))
   await base.t.run((ctx) =>
     ctx.db.patch(characterRow.play._id, { streamVersion: characterRow.play.streamVersion })

@@ -13,7 +13,7 @@ import * as rollRandom from '../lib/rollRandom'
 import {
   executeInRoom,
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
@@ -61,9 +61,9 @@ async function effects(value: Awaited<ReturnType<typeof setupAutomaticSceneMovem
 
 async function publish(value: Awaited<ReturnType<typeof setupAutomaticSceneMovement>>) {
   const before = await mechanics(value)
-  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  const root = await planMovementInRoom(value.owner.caller, value.rootInput)
   expect(await mechanics(value)).toEqual(before)
-  return { root, published: { prepared: { outcome: root.outcome }, result: await root.publish() } }
+  return { prepared: { outcome: root.outcome }, result: await root.publish() }
 }
 
 function stage(
@@ -106,8 +106,7 @@ it('publishes two assisted spatial save contacts before both retained reactions'
   )
   if (!beforeTarget) throw new Error('Expected mover state.')
 
-  const staged = await publish(value)
-  let published = staged.published
+  let published = await publish(value)
   let plan: Awaited<ReturnType<typeof stage>>
   expect(published.prepared.outcome.kind).toBe('PENDING')
   let pending = published.result.occurrence?.pending
@@ -152,14 +151,6 @@ it('publishes two assisted spatial save contacts before both retained reactions'
   if (targetState.kind === 'CHARACTER' || beforeTargetState.kind === 'CHARACTER')
     throw new Error('Expected a non-Character mover.')
   expect(targetState.currentHitPoints).toBe(beforeTargetState.currentHitPoints - 2)
-  await expect(plan.publish()).resolves.toMatchObject({
-    replayed: true,
-    occurrence: { status: 'COMPLETE', pending: null }
-  })
-  await expect(staged.root.publish()).resolves.toMatchObject({
-    occurrence: { status: 'COMPLETE', pending: null }
-  })
-  expect(await mechanics(value)).toEqual(complete)
 }, 30_000)
 
 it('retains entered prefix dice through reactions and consumes the suffix save once', async () => {
@@ -187,7 +178,7 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
     (actor) => actor.id === value.base.mover.id
   )
   if (!beforeTarget) throw new Error('Expected mover state.')
-  let { published } = await publish(value)
+  let published = await publish(value)
   let plan: Awaited<ReturnType<typeof stage>>
   let pending = published.result.occurrence?.pending
   if (!pending || pending.kind !== 'D20_EVIDENCE')
@@ -274,11 +265,6 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   if (targetState.kind === 'CHARACTER' || beforeTargetState.kind === 'CHARACTER')
     throw new Error('Expected a non-Character mover.')
   expect(targetState.currentHitPoints).toBe(beforeTargetState.currentHitPoints - 2)
-  await expect(plan.publish()).resolves.toMatchObject({
-    replayed: true,
-    occurrence: { status: 'COMPLETE', pending: null }
-  })
-  expect(await mechanics(value)).toEqual(complete)
 }, 30_000)
 
 it('retains spatial executions across used automatic reactions before one suffix save roll', async () => {
@@ -320,15 +306,8 @@ it('retains spatial executions across used automatic reactions before one suffix
   expect(preparedRolls).toBeGreaterThan(0)
   expect(await mechanics(value)).toEqual(before)
   expect(await effects(value)).toEqual(beforeEffects)
-  const first = await publish()
+  await publish()
   expect(random).toHaveBeenCalledTimes(preparedRolls)
   expect((await effects(value)).map((entry) => entry.id)).not.toContain(prefix.id)
   expect((await effects(value)).map((entry) => entry.id)).not.toContain(suffix.id)
-  const complete = await mechanics(value)
-  await expect(publish()).resolves.toEqual({
-    ...first,
-    replayed: true
-  })
-  expect(random).toHaveBeenCalledTimes(preparedRolls)
-  expect(await mechanics(value)).toEqual(complete)
 }, 30_000)

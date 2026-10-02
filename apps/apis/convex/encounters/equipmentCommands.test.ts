@@ -32,6 +32,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import {
   executeInRoom,
+  expectRedactedRoomRefusal,
   replayInRoom,
   RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
@@ -274,11 +275,13 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
         beforeState.snapshot.equipmentSources[1]
       ]
     })
-    await expect(
+    await expectRedactedRoomRefusal(
       executeInRoom(owner.caller, {
         command: { ...command.command, equipmentId: dagger.id }
-      })
-    ).rejects.toThrow('Command ID was already used with different input.')
+      }),
+      'already used for different input',
+      'INVALID_COMMAND'
+    )
     await executeInRoom(owner.caller, {
       command: {
         type: 'SET_INITIATIVE',
@@ -355,39 +358,38 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
     const { t, owner, run, creatureActor, customActor } = await setup()
     const before = await stored(t, run.id)
     // Convex redacts its refusals to the room; only a domain rejection keeps its message.
-    const rejected: readonly [ReturnType<typeof replace>, string | typeof RoomCommandRefusal][] =
+    const rejected: readonly [ReturnType<typeof replace>, string | typeof RoomCommandRefusal][] = [
       [
-        [
-          replace({
-            encounterId: run.id,
-            actorId: creatureActor.id,
-            equipmentId: compatibleClub.id,
-            loadoutId: crypto.randomUUID()
-          }),
-          RoomCommandRefusal
-        ],
-        [
-          replace({
-            encounterId: run.id,
-            actorId: customActor.id,
-            equipmentId: compatibleClub.id
-          }),
-          RoomCommandRefusal
-        ],
-        [
-          replace({ encounterId: run.id, actorId: creatureActor.id, equipmentId: dagger.id }),
-          RoomCommandRefusal
-        ],
-        [
-          replace({
-            encounterId: run.id,
-            actorId: creatureActor.id,
-            equipmentId: compatibleClub.id,
-            expectedVersion: 1
-          }),
-          'Encounter version is stale.'
-        ]
+        replace({
+          encounterId: run.id,
+          actorId: creatureActor.id,
+          equipmentId: compatibleClub.id,
+          loadoutId: crypto.randomUUID()
+        }),
+        RoomCommandRefusal
+      ],
+      [
+        replace({
+          encounterId: run.id,
+          actorId: customActor.id,
+          equipmentId: compatibleClub.id
+        }),
+        RoomCommandRefusal
+      ],
+      [
+        replace({ encounterId: run.id, actorId: creatureActor.id, equipmentId: dagger.id }),
+        RoomCommandRefusal
+      ],
+      [
+        replace({
+          encounterId: run.id,
+          actorId: creatureActor.id,
+          equipmentId: compatibleClub.id,
+          expectedVersion: 1
+        }),
+        'Encounter version is stale.'
       ]
+    ]
     for (const [input, message] of rejected)
       await expect(executeInRoom(owner.caller, input)).rejects.toThrow(message)
     expect(await stored(t, run.id)).toEqual(before)

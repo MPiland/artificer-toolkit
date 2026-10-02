@@ -19,6 +19,7 @@ import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-run
 import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -72,31 +73,32 @@ it('plans the same Character action and target facts in the Worker using private
   })
   const clubItem = sheet?.inventory.items.find((item) => item.equipmentId === club.id)
   if (!sheet || !clubItem) throw new Error('Missing fixture Club.')
-  const equipped = await executeInRoom(fixture.owner.caller, {
+  // A Run that is not ACTIVE holds no play, so the equip belongs to the Sheet.
+  await fixture.player.caller.mutation(api.characters.sheetCommands.execute, {
+    id: fixture.character.id,
     command: {
-      type: 'UPDATE_ACTOR',
-      encounterId: fixture.run.id,
+      type: 'EQUIP_ITEM',
       commandId: crypto.randomUUID(),
-      expectedVersion: fixture.run.version,
-      actorId: fixture.actor.id,
-      characterCommand: {
-        type: 'EQUIP_ITEM',
-        commandId: crypto.randomUUID(),
-        expectedVersion: sheet.meta.streamVersion,
-        itemId: clubItem.id
-      }
+      expectedVersion: sheet.meta.streamVersion,
+      itemId: clubItem.id
     }
   })
   await fixture.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
+    subjects: [
+      importedSubject({
+        ...wolf,
+        subjectKind: 'CREATURE',
+        document: applyCreatureAttackRolls(wolf)
+      })
+    ]
   })
   const reinforced = await executeInRoom(fixture.owner.caller, {
     command: {
       type: 'REINFORCE',
       encounterId: fixture.run.id,
       commandId: crypto.randomUUID(),
-      expectedVersion: equipped.projection.version,
+      expectedVersion: fixture.run.version,
       enemy: { kind: 'CREATURE', sourceId: wolf.id },
       public: false
     }

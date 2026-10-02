@@ -8,14 +8,15 @@ import {
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import {
   executeInRoom,
+  expectRedactedRoomRefusal,
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
 it.each(['DECLINE', 'OPTION'] as const)(
-  'continues %s into a used automatic reaction at the next contact and replays without writes',
+  'continues %s into a used automatic reaction at the next contact',
   async (selection) => {
     const value = await setupAutomaticSceneMovement({
       policies: ['CHOICE', 'AUTOMATIC'],
@@ -38,7 +39,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
         entities: await ctx.db.query('sceneLiveEntities').collect(),
         sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
       }))
-    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
     const initial = await root.publish()
     const choice = initial.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
@@ -82,22 +83,15 @@ it.each(['DECLINE', 'OPTION'] as const)(
     const after = await snapshot()
     expect(after.runs[0]!.version).toBe(before.runs[0]!.version + 1)
     expect(after.commands.length).toBe(before.commands.length + 1)
-    await expect(used.publish()).resolves.toMatchObject({
-      replayed: true
-    })
-    await expect(root.publish()).resolves.toMatchObject({
-      occurrence: { status: 'COMPLETE' },
-      replayed: true
-    })
-    expect(await snapshot()).toEqual(after)
     expect(
       after.receipts.filter((receipt) => receipt.occurrenceId === choice.occurrenceId).length
     ).toBeGreaterThan(1)
+    // A fresh answer to the settled decision is stale (D78).
     await expect(
       executeInRoom(value.owner.caller, {
         command: { ...command, commandId: crypto.randomUUID() }
       })
-    ).rejects.toThrow('Rule occurrence is unavailable.')
+    ).rejects.toMatchObject({ data: { reason: 'VERSION_STALE' } })
     expect(await snapshot()).toEqual(after)
   },
   30_000
@@ -128,7 +122,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
           )
           .collect()
       )
-    const prepared = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const prepared = await planMovementInRoom(value.owner.caller, value.rootInput)
     expect(prepared.outcome.kind).toBe('PENDING')
     const initial = await prepared.publish()
     const choice = initial.occurrence?.pending
@@ -156,9 +150,6 @@ it.each(['DECLINE', 'OPTION'] as const)(
     if (!nextChoice || nextChoice.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the second mixed movement choice.')
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
-    await expect(request.publish()).resolves.toMatchObject({
-      replayed: true
-    })
     const terminalCommand: ResolveRuleOccurrenceInputDto = {
       type: 'RESOLVE_RULE_OCCURRENCE',
       commandId: crypto.randomUUID(),
@@ -174,10 +165,6 @@ it.each(['DECLINE', 'OPTION'] as const)(
     const terminal = await terminalRequest.publish()
     expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
-    await expect(terminalRequest.publish()).resolves.toMatchObject({
-      replayed: true,
-      occurrence: { status: 'COMPLETE', pending: null }
-    })
     if (initial.delta?.kind !== 'TOKEN_MOVED')
       throw new Error('Expected a committed first segment.')
     expect(initial.delta.position).not.toEqual(value.rootInput.path[0])

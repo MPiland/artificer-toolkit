@@ -1,6 +1,5 @@
 import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import {
   sceneStoredDefinitionEntitySchema,
   sceneStoredDefinitionSaveSchema,
@@ -10,14 +9,10 @@ import type { sceneTokenMovementCommandInputDtoSchema } from '@artificer-toolkit
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { MutationCtx } from '../../convex/_generated/server'
 import { createEncounterSceneFixture } from './encounterScene'
-import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
-import { readGeometrySave } from '../../convex/scenes/geometryDocuments'
-import { readSpatialPreparation } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
-import { internal } from '../../convex/_generated/api'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { seedSpatialEffect } from './spatialEffect'
 import { activateFixtureRun } from './activeInitiative'
-import { insertActiveLiveAuthority, planStagedMovementInRoom } from './liveSessionWorker'
+import { planMovementInRoom } from './liveSessionWorker'
 export async function createSpatialPreparationFixture() {
   const base = await createEncounterSceneFixture()
   const expectedEncounterVersion = await base.owner.caller.run(async (ctx) => {
@@ -55,7 +50,6 @@ export async function createSpatialPreparationFixture() {
       createdAt: new Date().toISOString()
     })
   })
-  const saveId = crypto.randomUUID()
   await base.owner.caller.run(async (ctx) => {
     const sceneRow = await ctx.db
       .query('campaignScenes')
@@ -103,32 +97,8 @@ export async function createSpatialPreparationFixture() {
         expiresAt: Date.now() + 60_000
       })
     )
-    const capture = {
-      campaignId: base.campaign.id,
-      systemId: base.campaign.gameSystemId,
-      sceneId: base.sceneId,
-      expectedSceneVersion: 0,
-      expectedPresentationVersion: 0
-    }
-    const { freshness } = await readSessionVisionScope(ctx, capture)
-    await ctx.db.insert(
-      'sceneGeometrySaves',
-      sceneStoredGeometrySaveSchema.parse({
-        id: saveId,
-        sceneId: base.sceneId,
-        commandId,
-        actorUserId: base.owner.userId,
-        input,
-        inputChecksum: checksumCanonicalJson(input),
-        snapshotVersion: 0,
-        sessionVision: { ...capture, freshness },
-        status: 'RECEIVING',
-        expiresAt: Date.now() + 60_000,
-        fogSaves: []
-      })
-    )
   })
-  return { base, input, saveId, tokenId }
+  return { base, input, tokenId }
 }
 
 /**
@@ -154,8 +124,8 @@ export async function grantFixtureActorControl(
 }
 
 /**
- * A player's staged bound move over one seeded spatial hazard in an Assisted Run, planned by the
- * room to a TERMINAL outcome with a live authority in place, ready to commit.
+ * A bound move over one seeded spatial hazard in an Assisted Run, committed by the room to a
+ * TERMINAL outcome and ready to publish.
  */
 export async function planSpatialTerminalFixture(
   path?: ReturnType<typeof sceneTokenMovementCommandInputDtoSchema.parse>['path']
@@ -169,17 +139,6 @@ export async function planSpatialTerminalFixture(
     controlledByUserIds: [base.owner.userId]
   }))
   await base.owner.caller.run(async (ctx) => {
-    if (path) {
-      const save = await ctx.db
-        .query('sceneGeometrySaves')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.saveId))
-        .unique()
-      if (!save) throw new Error('Fixture geometry save missing')
-      await ctx.db.patch(save._id, {
-        input,
-        inputChecksum: checksumCanonicalJson(input)
-      })
-    }
     const run = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
@@ -227,22 +186,7 @@ export async function planSpatialTerminalFixture(
     }
   })
   const effect = await seedSpatialEffect(base)
-  // A live room plans the move and Convex commits it (D43).
-  await base.owner.caller.run((ctx) =>
-    insertActiveLiveAuthority(ctx, {
-      campaignId: base.campaign.id,
-      epoch: crypto.randomUUID(),
-      createdAt: new Date().toISOString()
-    })
-  )
-  await base.owner.caller.mutation(internal.scenes.geometryStaging.observe, {
-    saveId: fixture.saveId,
-    characterRevisions: []
-  })
-  const plan = await planStagedMovementInRoom(base.owner.caller, fixture.saveId)
-  const preparation = await base.owner.caller.run(async (ctx) =>
-    readSpatialPreparation((await readGeometrySave(ctx, fixture.saveId)).save)
-  )
-  if (preparation?.outcome.kind !== 'TERMINAL') throw new Error('Expected a terminal room plan.')
-  return { ...fixture, input, plan, preparation, effect }
+  const plan = await planMovementInRoom(base.owner.caller, input)
+  if (plan.outcome.kind !== 'TERMINAL') throw new Error('Expected a terminal room plan.')
+  return { ...fixture, input, plan, effect }
 }

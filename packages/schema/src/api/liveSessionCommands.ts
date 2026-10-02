@@ -9,6 +9,7 @@ import {
   bindEncounterToPresentedSceneInputDtoSchema,
   bindEncounterToPresentedSceneResultDtoSchema,
   campaignSceneStateDtoSchema,
+  encounterActorTokenBindingCommandInputDtoSchema,
   sceneCommandInputDtoSchema,
   sceneCommandResultDtoSchema
 } from './vttScenes.js'
@@ -19,17 +20,23 @@ export const liveSessionSequenceDtoSchema = lazySchema(() =>
 )
 
 /**
- * Scene commands and the Encounter tools listed in ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES commit
- * locally; other Encounter commands still use the transitional Convex commit. Bound token moves stay Scene-scoped here:
- * the room recognizes the binding and runs the Encounter movement rules for them. The GM binds an
- * Encounter to the presented Scene through the room's native SQLite transaction (D47).
+ * Scene and Encounter commands, including the GM's actor-token bindings, commit in the room's
+ * SQLite (D78). Bound token moves stay Scene-scoped here: the room recognizes the binding and runs
+ * the Encounter movement rules for them. The GM binds an Encounter to the presented Scene through
+ * the room's native SQLite transaction (D47).
  * Campaign chat and rolls execute in the room while it holds authority (D69).
  * Held Character play commands identify their active Run; rests and structural edits stay outside this lane.
  */
 export const liveSessionCommandDtoSchema = lazySchema(() =>
   z.discriminatedUnion('scope', [
     z.strictObject({ scope: z.literal('SCENE'), command: sceneCommandInputDtoSchema }),
-    z.strictObject({ scope: z.literal('ENCOUNTER'), command: encounterCommandInputDtoSchema }),
+    z.strictObject({
+      scope: z.literal('ENCOUNTER'),
+      command: z.union([
+        encounterCommandInputDtoSchema,
+        encounterActorTokenBindingCommandInputDtoSchema
+      ])
+    }),
     z.strictObject({
       scope: z.literal('CHARACTER_SHEET'),
       characterId: uuidSchema,

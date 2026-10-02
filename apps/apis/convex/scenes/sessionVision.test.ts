@@ -41,13 +41,8 @@ import {
   senseReusableDefinitionDocumentDtoSchema,
   type SenseReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/combatPerception'
-import {
-  sceneStoredDefinitionEntitySchema,
-  sceneStoredDefinitionSaveSchema
-} from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
-import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
+import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
@@ -55,13 +50,10 @@ import { tiefling } from '@artificer-toolkit/source-data/srd/races/tiefling.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 import { withSceneVisionTracking } from '../lib/mutations'
-import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { readSceneVisionRevision } from './visionFreshness'
 import { api, components, internal } from '../_generated/api'
 import type { SceneGeometryExecuteInput } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { readSessionVisionScope } from './sessionVisionDocuments'
-import { planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const createRun = makeFunctionReference<
   'mutation',
@@ -152,7 +144,10 @@ async function createCampaignPlayer(base: Awaited<ReturnType<typeof createEncoun
       }
     })
   )
-  const caller = base.t.withIdentity({ subject: user._id, sessionId: session._id })
+  const caller = base.t.withIdentity({
+    subject: user._id,
+    sessionId: session._id
+  })
   const identity = await caller.query(api.account.identity, {})
   if (!identity) throw new Error('Missing second player identity.')
   return { caller, userId: identity.userId }
@@ -206,7 +201,9 @@ async function publishFixtureSceneSource(
 async function setup(includeSecondPlayer = false) {
   const darkvisionFeature = tiefling.features?.find((feature) => feature.label === 'Darkvision')
   if (!darkvisionFeature) throw new Error('Tiefling Darkvision feature is required.')
-  const base = await createEncounterSceneFixture({ features: [darkvisionFeature] })
+  const base = await createEncounterSceneFixture({
+    features: [darkvisionFeature]
+  })
   await base.t.mutation(importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_SENSE_DEFINITIONS.map((definition) => ({
@@ -376,161 +373,13 @@ async function patchSense(
   })
 }
 
-async function prepareBoundMovement(base: Awaited<ReturnType<typeof setup>>) {
-  const saveId = crypto.randomUUID()
-  const commandId = crypto.randomUUID()
-  const token = { ...base.tokens[0]!, id: base.tokens[0]!.id.toLowerCase() }
-  const input = {
-    sceneId: base.sceneId,
-    commandId,
-    expectedSceneVersion: 0,
-    type: 'MOVE_SCENE_TOKEN' as const,
-    expectedEncounterVersion: base.run.version,
-    correlationId: null,
-    tokenId: token.id,
-    movementKind: 'VOLUNTARY' as const,
-    path: [token.position, { x: 10, y: 0 }]
-  }
-  await base.owner.caller.run(async (ctx) => {
-    const source = await ctx.db
-      .query('sceneDefinitionEntities')
-      .withIndex('by_saveId_collection_ordinal', (q) =>
-        q.eq('saveId', base.saveId).eq('value.collection', 'tokens').eq('ordinal', 0)
-      )
-      .unique()
-    if (!source) throw new Error('Missing bound movement fixture state.')
-    await activateFixtureRun(ctx, base.run.id)
-    const { _id, _creationTime, ...stored } = source
-    const value = {
-      collection: 'tokens' as const,
-      entity: { ...token, controlledByUserIds: [base.owner.userId] }
-    }
-    await ctx.db.replace(
-      _id,
-      sceneStoredDefinitionEntitySchema.parse({
-        ...stored,
-        entityId: token.id,
-        value,
-        checksum: checksumCanonicalJson(value)
-      })
-    )
-    const { freshness } = await readSessionVisionScope(ctx, base.scope)
-    await ctx.db.insert(
-      'sceneGeometrySaves',
-      sceneStoredGeometrySaveSchema.parse({
-        id: saveId,
-        sceneId: base.sceneId,
-        commandId,
-        actorUserId: base.owner.userId,
-        input,
-        inputChecksum: checksumCanonicalJson(input),
-        snapshotVersion: 0,
-        sessionVision: { ...base.scope, freshness },
-        status: 'RECEIVING',
-        expiresAt: Date.now() + 60_000,
-        fogSaves: []
-      })
-    )
-  })
-  const vision = await base.owner.caller.query(readVision, base.input)
-  await base.owner.caller.mutation(internal.scenes.geometryStaging.observe, {
-    saveId,
-    characterRevisions: [{ characterId: base.character.id, revision: vision.characterRevision }]
-  })
-  const plan = await planStagedMovementInRoom(base.owner.caller, saveId)
-  return { saveId, commandId, token, vision, plan }
-}
-
-async function boundMovementState(
-  base: Awaited<ReturnType<typeof setup>>,
-  saveId: string,
-  commandId: string
-) {
-  return base.t.run(async (ctx) => ({
-    save: await ctx.db
-      .query('sceneGeometrySaves')
-      .withIndex('by_publicId', (q) => q.eq('id', saveId))
-      .unique(),
-    scene: await ctx.db
-      .query('campaignScenes')
-      .withIndex('by_publicId', (q) => q.eq('id', base.sceneId))
-      .unique(),
-    live: await ctx.db
-      .query('sceneLiveStates')
-      .withIndex('by_sceneId', (q) => q.eq('sceneId', base.sceneId))
-      .unique(),
-    run: await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique(),
-    occurrence: await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_campaignId_rootCommandId', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('rootCommandId', commandId)
-      )
-      .unique(),
-    sceneReceipt: await ctx.db
-      .query('sceneLiveCommands')
-      .withIndex('by_sceneId_commandId', (q) =>
-        q.eq('sceneId', base.sceneId).eq('commandId', commandId)
-      )
-      .unique(),
-    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    ruleReceipt: await ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) =>
-        q.eq('encounterId', base.run.id).eq('commandId', commandId)
-      )
-      .unique()
-  }))
-}
-
 describe('play Character vision boundary', () => {
-  it('refuses a prepared bound movement after its real Character vision observation changes', async () => {
-    const base = await setup()
-    const prepared = await prepareBoundMovement(base)
-    expect(prepared.plan.outcome).toEqual({ kind: 'UNINTERRUPTED', reason: 'NO_CANDIDATES' })
-
-    const advanced = await base.owner.caller.mutation(executeSheet, {
-      id: base.character.id,
-      command: {
-        type: 'SET_INSPIRATION',
-        commandId: crypto.randomUUID(),
-        expectedVersion: base.committed.streamVersion,
-        inspired: true
-      }
-    })
-    const currentVision = await base.owner.caller.query(readVision, {
-      ...base.input,
-      streamVersion: advanced.streamVersion
-    })
-    expect(currentVision.characterRevision).not.toBe(prepared.vision.characterRevision)
-    const before = await boundMovementState(base, prepared.saveId, prepared.commandId)
-
-    await expect(prepared.plan.publish()).rejects.toThrow(
-      'Live rules inputs changed before commit.'
-    )
-    await expect(boundMovementState(base, prepared.saveId, prepared.commandId)).resolves.toEqual(
-      before
-    )
-
-    await expect(
-      base.owner.caller.mutation(internal.scenes.geometryStaging.observe, {
-        saveId: prepared.saveId,
-        characterRevisions: [
-          { characterId: base.character.id, revision: currentVision.characterRevision }
-        ]
-      })
-    ).rejects.toThrow('Spatial preparation is stale and cannot be rebased.')
-    await expect(boundMovementState(base, prepared.saveId, prepared.commandId)).resolves.toEqual(
-      before
-    )
-  }, 60000)
-
   it('hydrates assigned player vision and rejects mismatched admission identifiers or anonymous callers', async () => {
     const base = await setup(true)
-    const discovery = { ...base.scope, paginationOpts: { cursor: null, numItems: 1 } }
+    const discovery = {
+      ...base.scope,
+      paginationOpts: { cursor: null, numItems: 1 }
+    }
     const bindingDiscovery = {
       ...discovery,
       paginationOpts: { cursor: null, numItems: 4 },
@@ -559,7 +408,9 @@ describe('play Character vision boundary', () => {
           binding: expect.objectContaining({ characterId: base.character.id })
         }),
         expect.objectContaining({
-          binding: expect.objectContaining({ characterId: base.otherPlayerCharacter.id })
+          binding: expect.objectContaining({
+            characterId: base.otherPlayerCharacter.id
+          })
         })
       ])
     )
@@ -576,7 +427,10 @@ describe('play Character vision boundary', () => {
       ['presentation', { ...base.input, expectedPresentationVersion: 1 }, 'gm'],
       [
         'Run',
-        { ...base.input, expectedEncounterVersion: base.input.expectedEncounterVersion + 1 },
+        {
+          ...base.input,
+          expectedEncounterVersion: base.input.expectedEncounterVersion + 1
+        },
         'gm'
       ],
       ['actor', { ...base.input, actorId: crypto.randomUUID() }, 'gm'],
@@ -602,7 +456,10 @@ describe('play Character vision boundary', () => {
         .withIndex('by_publicId', (q) => q.eq('id', session.id))
         .unique()
       if (!row) throw new Error('Missing Session.')
-      await ctx.db.patch(row._id, { status: 'FINISHED', finishedAt: new Date().toISOString() })
+      await ctx.db.patch(row._id, {
+        status: 'FINISHED',
+        finishedAt: new Date().toISOString()
+      })
     })
     await expect(base.other.caller.query(readVision, base.input)).resolves.toMatchObject({
       binding: { characterId: base.character.id }
@@ -739,7 +596,10 @@ describe('play Character vision boundary', () => {
       }
     })
     expect(advanced.streamVersion).toBe(base.committed.streamVersion + 1)
-    const currentInput = { ...base.input, streamVersion: advanced.streamVersion }
+    const currentInput = {
+      ...base.input,
+      streamVersion: advanced.streamVersion
+    }
     const currentBindings = await base.other.caller.query(readBindings, {
       ...runScope,
       paginationOpts: { cursor: null, numItems: 4 }
@@ -755,7 +615,10 @@ describe('play Character vision boundary', () => {
     await expect(base.other.caller.query(readVision, base.input)).rejects.toThrow('stale')
     const stored = await readStoredRun()
     expect(stored.version).toBe(base.input.expectedEncounterVersion)
-    expect(stored.actor).toMatchObject({ kind: 'CHARACTER', sourceId: base.character.id })
+    expect(stored.actor).toMatchObject({
+      kind: 'CHARACTER',
+      sourceId: base.character.id
+    })
     expect(stored).toEqual(storedBeforePlay)
     const session = await base.other.caller.mutation(createSession, {
       campaignId: base.campaign.id
@@ -774,7 +637,13 @@ describe('play Character vision boundary', () => {
         paginationOpts: { cursor: null, numItems: 4 }
       })
     ).resolves.toMatchObject({
-      page: [{ ...currentInput, ...base.scope, tokenId: currentInput.tokenId.toLowerCase() }]
+      page: [
+        {
+          ...currentInput,
+          ...base.scope,
+          tokenId: currentInput.tokenId.toLowerCase()
+        }
+      ]
     })
     await expect(
       base.other.caller.query(readVision, { ...currentInput, ...base.scope })
@@ -801,7 +670,10 @@ describe('play Character vision boundary', () => {
     await base.other.caller.mutation(internal.scenes.geometryStaging.observe, {
       saveId: pending.saveId,
       characterRevisions: [
-        { characterId: base.character.id, revision: afterPlay.characterRevision }
+        {
+          characterId: base.character.id,
+          revision: afterPlay.characterRevision
+        }
       ]
     })
     await base.other.caller.mutation(internal.scenes.geometryStaging.stageFog, {
@@ -843,7 +715,10 @@ describe('play Character vision boundary', () => {
     const refreshed = await base.other.caller.mutation(internal.scenes.geometryStaging.observe, {
       saveId: pending.saveId,
       characterRevisions: [
-        { characterId: base.character.id, revision: laterVision.characterRevision }
+        {
+          characterId: base.character.id,
+          revision: laterVision.characterRevision
+        }
       ]
     })
     expect(refreshed.saveId).not.toBe(pending.saveId)
@@ -893,7 +768,9 @@ describe('play Character vision boundary', () => {
     ).rejects.toThrow()
 
     await expect(
-      base.other.caller.action(api.scenes.geometryActions.execute, { input: request.input })
+      base.other.caller.action(api.scenes.geometryActions.execute, {
+        input: request.input
+      })
     ).rejects.toThrow('different presentation')
     const explicit = await base.other.caller.action(api.scenes.geometryActions.execute, {
       ...request,

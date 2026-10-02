@@ -25,7 +25,6 @@ import {
   sceneStoredInitialStateSchema,
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
-import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   SRD_CONTENT_SOURCE,
@@ -47,7 +46,6 @@ import {
   readCharacterRow
 } from '../characters/stateDocuments'
 import { sourceImportBatches } from '../content/importBatches'
-import { readSessionVisionScope } from './sessionVisionDocuments'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
@@ -56,7 +54,7 @@ import { reactionBinding } from '../../tests/fixtures/reactionBinding'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import {
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { withSceneVisionTracking } from '../lib/mutations'
 
@@ -462,17 +460,6 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     })
     encounterVersion = result.projection.version
   }
-  const vision = await gm.caller.run(async (ctx) => {
-    const scope = {
-      campaignId: campaign.id,
-      systemId: campaign.gameSystemId,
-      sceneId,
-      expectedSceneVersion: 0,
-      expectedPresentationVersion: 0
-    }
-    const { freshness } = await readSessionVisionScope(ctx, scope)
-    return { ...scope, freshness }
-  })
   const rootInput = {
     type: 'MOVE_SCENE_TOKEN' as const,
     sceneId,
@@ -487,26 +474,6 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
       { x: futurePlayer ? 550 : 350, y: 50 }
     ]
   }
-  const rootSaveId = crypto.randomUUID()
-  await gm.caller.run((ctx) =>
-    ctx.db.insert(
-      'sceneGeometrySaves',
-      sceneStoredGeometrySaveSchema.parse({
-        id: rootSaveId,
-        sceneId,
-        commandId: rootCommandId,
-        actorUserId: gm.userId,
-        input: rootInput,
-        inputChecksum: checksumCanonicalJson(rootInput),
-        snapshotVersion: 0,
-        sessionVision: vision,
-        status: 'RECEIVING',
-        expiresAt: Date.now() + 60_000,
-        fogSaves: [],
-        characterRevisions: []
-      })
-    )
-  )
   return {
     base,
     player,
@@ -519,13 +486,12 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     run,
     sceneId,
     tokens,
-    rootInput,
-    rootSaveId
+    rootInput
   }
 }
 
 async function startPending(value: Awaited<ReturnType<typeof setup>>) {
-  const root = await planStagedMovementInRoom(value.gm.caller, value.rootSaveId)
+  const root = await planMovementInRoom(value.gm.caller, value.rootInput)
   expect(root.outcome.kind).toBe('PENDING')
   const result = await root.publish()
   if (!result.occurrence?.pending) throw new Error('Expected Character controller pending choice.')
@@ -636,6 +602,7 @@ describe('native Character movement-decision authority', () => {
         resolution: { kind: 'OPTION', optionId: option.optionId }
       }
       const beforePreparation = await reactionMechanics(value)
+      let lastResponse = selected
       let plan = await planMovementDecisionInRoom(value.player.caller, selected)
       expect(plan.outcome.kind).toBe('PENDING')
       expect(await reactionMechanics(value)).toEqual(beforePreparation)
@@ -671,6 +638,7 @@ describe('native Character movement-decision authority', () => {
                   value: pending.request.min
                 }
         }
+        lastResponse = response
         plan = await planMovementDecisionInRoom(value.player.caller, response)
         expect(['PENDING', 'TERMINAL']).toContain(plan.outcome.kind)
         if (pending.kind === 'D20_EVIDENCE' && natural === 20)
@@ -701,10 +669,9 @@ describe('native Character movement-decision authority', () => {
       ).toMatchObject({
         ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
       })
-      await expect(plan.publish()).resolves.toMatchObject({
-        replayed: true,
-        occurrence: { status: 'COMPLETE' }
-      })
+      await expect(
+        (await planMovementDecisionInRoom(value.player.caller, lastResponse)).publish()
+      ).resolves.toMatchObject({ replayed: true, occurrence: { status: 'COMPLETE' } })
       expect(await reactionMechanics(value)).toEqual(completed)
     },
     30000
@@ -793,58 +760,6 @@ describe('native Character movement-decision authority', () => {
     expect(after.receipts).not.toEqual(before.receipts)
   }, 30000)
 
-  it.each(['source', 'scene', 'run'] as const)(
-    'refuses stale selected Character reaction %s publication without gameplay writes',
-    async (stale) => {
-      const value = await setup(false, false, true)
-      const root = await startPending(value)
-      const choice = root.pending
-      if (choice.kind !== 'MOVEMENT_REACTION')
-        throw new Error('Expected Character reaction choice.')
-      const option = choice.choice.options[0]
-      if (!option) throw new Error('Expected Character reaction option.')
-      const plan = await planMovementDecisionInRoom(value.player.caller, {
-        type: 'RESOLVE_RULE_OCCURRENCE',
-        commandId: crypto.randomUUID(),
-        encounterId: value.run.id,
-        expectedVersion: choice.encounterVersion,
-        occurrenceId: choice.occurrenceId,
-        expectedOccurrenceVersion: choice.occurrenceVersion,
-        correlationId: null,
-        resolution: { kind: 'OPTION', optionId: option.optionId }
-      })
-      expect(plan.outcome.kind).toBe('PENDING')
-      await value.base.t.run(async (rawCtx) => {
-        const ctx = withSceneVisionTracking(rawCtx)
-        if (stale === 'source') {
-          const row = await readCharacterRow(ctx, value.first.id)
-          if (!row) throw new Error('Missing current Character source.')
-          await ctx.db.patch(row.play._id, { streamVersion: row.play.streamVersion + 1 })
-          return
-        }
-        if (stale === 'scene') {
-          const row = await ctx.db
-            .query('sceneLiveStates')
-            .withIndex('by_sceneId', (q) => q.eq('sceneId', value.sceneId))
-            .unique()
-          if (!row) throw new Error('Missing current Scene.')
-          await ctx.db.patch(row._id, { version: row.version + 1 })
-          return
-        }
-        const row = await ctx.db
-          .query('encounterRuns')
-          .withIndex('by_publicId', (q) => q.eq('id', value.run.id))
-          .unique()
-        if (!row) throw new Error('Missing current Run.')
-        await ctx.db.patch(row._id, { version: row.version + 1 })
-      })
-      const afterStaleWrite = await gameplayRows(value)
-      await expect(plan.publish()).rejects.toThrow()
-      expect(await gameplayRows(value)).toEqual(afterStaleWrite)
-    },
-    30000
-  )
-
   it('lets the current Character controller decline a GM-initiated move and hides the choice from unrelated members', async () => {
     const value = await setup()
     const occurrence = await startPending(value)
@@ -911,7 +826,6 @@ describe('native Character movement-decision authority', () => {
       await value.player.caller.query(pendingRuleOccurrence, { encounterId: value.run.id })
     ).toBeNull()
     await expect(planMovementDecisionInRoom(value.player.caller, command)).rejects.toThrow()
-    await expect(staged.publish()).rejects.toThrow()
     expect(await gameplayRows(value)).toEqual(afterAssignment)
   }, 30000)
 
@@ -941,21 +855,8 @@ describe('native Character movement-decision authority', () => {
     const value = await setup(false, true)
     const root = await startPending(value)
     await advanceFutureCharacterSource(value)
-    const { sceneSaves: _saves, ...afterSourceChange } = await gameplayRows(value)
-    await expect(stageDecline(value, value.player, root)).rejects.toThrow()
-    // The room's refused plan may leave only its unpublished geometry save.
-    const { sceneSaves: _refusedSaves, ...refused } = await gameplayRows(value)
-    expect(refused).toEqual(afterSourceChange)
-  }, 30000)
-
-  it('refuses a changed future Character reaction source after preparation and before publication', async () => {
-    const value = await setup(false, true)
-    const root = await startPending(value)
-    const first = await stageDecline(value, value.player, root)
-    expect(first.outcome.kind).toBe('PENDING')
-    await advanceFutureCharacterSource(value)
     const afterSourceChange = await gameplayRows(value)
-    await expect(first.publish()).rejects.toThrow()
+    await expect(stageDecline(value, value.player, root)).rejects.toThrow()
     expect(await gameplayRows(value)).toEqual(afterSourceChange)
   }, 30000)
 

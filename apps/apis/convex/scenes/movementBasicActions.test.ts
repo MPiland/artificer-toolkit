@@ -16,7 +16,7 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
   executeInRoom,
   planMovementDecisionInRoom,
-  planStagedMovementInRoom
+  planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { internal } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
@@ -29,12 +29,6 @@ const pendingRuleOccurrence = makeFunctionReference<
   { encounterId: string },
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
-
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 /**
  * An Assisted Run on the mover's turn: a Creature next to a reactor with an opportunity attack.
@@ -133,8 +127,7 @@ async function moveAwayFromReactor(base: MoverTurn) {
     [base.reactor, base.mover],
     [50]
   )
-  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-  return planStagedMovementInRoom(value.owner.caller, value.saveId)
+  return planMovementInRoom(value.owner.caller, value.rootInput)
 }
 
 it('offers the reactor its opportunity attack when the mover leaves its reach', async () => {

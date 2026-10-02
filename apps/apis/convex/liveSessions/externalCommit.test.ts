@@ -1,7 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
-  EncounterCommandResultDto,
   ResolveRuleOccurrenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -32,6 +31,8 @@ import {
   executeInRoom,
   insertActiveLiveAuthority,
   nextExternalAuthority,
+  planMovementDecisionInRoom,
+  planMovementInRoom,
   stubLiveSessionFetch,
   workerEnvironment
 } from '../../tests/fixtures/liveSessionWorker'
@@ -83,25 +84,9 @@ afterEach(() => {
 
 /** Routes the room's private calls into convex-test as `member`, recording each command's calls. */
 const calls: string[] = []
-/** Whether each stage offered Convex a held Run System stamp, and whether the System came back. */
-const stages: Array<{ offered: boolean; system: string | null }> = []
 function routeRoom(member: { caller: Caller }) {
-  stages.length = 0
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
   stubLiveSessionFetch(async (pathname, init) => {
-    if (pathname === '/live-sessions/encounter-movement-stage') {
-      const response = await member.caller.fetch(pathname, init)
-      const staged = (await response.clone().json()) as {
-        capture?: { bundle: { system: { kind: string } | null } } | null
-      }
-      stages.push({
-        offered:
-          (JSON.parse(String(init?.body)) as { cachedSystem: unknown }).cachedSystem !== null,
-        system: staged.capture?.bundle.system?.kind ?? null
-      })
-      calls.push(pathname)
-      return response
-    }
     // A rules capture is named by its request kind.
     calls.push(
       pathname === '/live-sessions/encounter-rules'
@@ -164,8 +149,6 @@ async function runRoomCommit(input: {
   role: 'OWNER' | 'PLAYER'
   epoch: string
   command: ExternalSceneCommand
-  /** The room's System-level capture cache, kept across its commands. */
-  captureCache?: LiveCaptureCache
 }) {
   const actor = {
     campaignId: input.base.campaign.id,
@@ -183,7 +166,7 @@ async function runRoomCommit(input: {
     context,
     runtime: await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET!),
     random: () => 0,
-    captures: (input.captureCache ?? new LiveCaptureCache()).reads()
+    captures: new LiveCaptureCache().reads()
   })
   const authority = await input.base.t.run((ctx) =>
     nextExternalAuthority(ctx, input.base.campaign.id)
@@ -202,37 +185,17 @@ async function runRoomCommit(input: {
   }
 }
 
-it('runs a bound move, its answer and a GM skip through the room pipeline, advancing the sequence each time (D26, D27)', async () => {
+it('settles a bound move, its answer and a GM skip through the room, naming who settled each (D26, D39)', async () => {
   const value = await setupAutomaticSceneMovement(twoChoices)
-  const epoch = await activateRoom(value.base)
-  routeRoom(value.owner)
-  const captureCache = new LiveCaptureCache()
-  const move = { ...value.rootInput, commandId: crypto.randomUUID() }
-  const moved = await runRoomCommit({
-    base: value.base,
-    member: value.owner,
-    role: 'OWNER',
-    epoch,
-    command: move,
-    captureCache
+  const moved = await planMovementInRoom(value.owner.caller, {
+    ...value.rootInput,
+    commandId: crypto.randomUUID()
   })
-  const first = await moved.commit()
-  const coldCalls = [...calls]
-  expect(first.encounter).toBeNull()
-  expect(first.scene).toMatchObject({
-    version: moved.prepared.expectedScene.version,
-    delta: moved.prepared.expectedScene.delta,
+  const first = await moved.publish()
+  expect(first).toMatchObject({
     occurrence: { status: 'PENDING', pending: { kind: 'MOVEMENT_REACTION' } }
   })
-  expect(await persisted(value.base)).toEqual({
-    sequence: 1,
-    checksum: moved.authority.stateChecksum
-  })
-  // A replay of the published save does not advance the authority again.
-  await expect(moved.commit()).resolves.toMatchObject({ scene: { replayed: true } })
-  expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
-
-  const choice = first.scene.occurrence?.pending
+  const choice = first.occurrence?.pending
   if (choice?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected a reaction choice.')
   const answer: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
@@ -244,35 +207,10 @@ it('runs a bound move, its answer and a GM skip through the room pipeline, advan
     correlationId: null,
     resolution: { kind: 'DECLINE' }
   }
-  const answered = await runRoomCommit({
-    base: value.base,
-    member: value.owner,
-    role: 'OWNER',
-    epoch,
-    command: answer,
-    captureCache
-  })
-  const second = await answered.commit()
-  // Measured Convex round trips through the room: the first command also reads each System
-  // definition, which the room cache then serves; a warm command takes two, the stage (route,
-  // begin, observe and capture bundle) and the commit (freeze, fog and publish) (D52).
-  const warm = ['/live-sessions/encounter-movement-stage', '/live-sessions/encounter-movement']
-  expect(coldCalls).toEqual([
-    warm[0],
-    ...Array(4).fill('/live-sessions/encounter-rules:DEFINITION'),
-    warm[1]
-  ])
-  expect(calls).toEqual(warm)
-  // The warm answer offered the Run System the move left in the room cache; Convex did not resend it.
-  expect(stages).toEqual([
-    { offered: false, system: 'SYSTEM' },
-    { offered: true, system: 'UNCHANGED' }
-  ])
-  // A decision answer advances the room's sequence and returns its Encounter result.
-  expect(await persisted(value.base)).toMatchObject({ sequence: 2 })
-  expect(second.encounter?.occurrence).toMatchObject({ occurrenceId: choice.occurrenceId })
+  const second = await (await planMovementDecisionInRoom(value.owner.caller, answer)).publish()
+  expect(second.occurrence).toMatchObject({ occurrenceId: choice.occurrenceId })
 
-  const next = second.encounter?.occurrence?.pending
+  const next = second.occurrence?.pending
   if (next?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected the second reaction choice.')
   const skip: VoidRuleOccurrenceInputDto = {
     type: 'VOID_RULE_OCCURRENCE',
@@ -282,17 +220,9 @@ it('runs a bound move, its answer and a GM skip through the room pipeline, advan
     occurrenceId: next.occurrenceId,
     expectedOccurrenceVersion: next.occurrenceVersion
   }
-  const skipped = await runRoomCommit({
-    base: value.base,
-    member: value.owner,
-    role: 'OWNER',
-    epoch,
-    command: skip
-  })
-  const third: { encounter: EncounterCommandResultDto | null } = await skipped.commit()
-  expect(await persisted(value.base)).toMatchObject({ sequence: 3 })
+  const third = await executeInRoom(value.owner.caller, { command: skip })
   // The void declined the choice: the move finished and the void is on the timeline.
-  expect(third.encounter?.occurrence).toMatchObject({ status: 'COMPLETE' })
+  expect(third.occurrence).toMatchObject({ status: 'COMPLETE' })
   const chat = await value.base.t.run((ctx) =>
     ctx.db
       .query('campaignConversationEntries')
@@ -330,136 +260,21 @@ it('runs a bound move, its answer and a GM skip through the room pipeline, advan
   })
 }, 120_000)
 
-it('resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit then fails', async () => {
+it("refuses a player moving a reactor's token, answering the GM's decision, or answering a stale one", async () => {
   const value = await setupAutomaticSceneMovement(twoChoices)
-  const epoch = await activateRoom(value.base)
-  routeRoom(value.owner)
-  const resolve = (input: Awaited<ReturnType<typeof runRoomCommit>>) =>
-    callLiveSessionRoute(environment, null, 'externalCommitResolve', {
-      campaignId: value.base.campaign.id,
-      epoch,
-      subject: { kind: 'SCENE_SAVE', saveId: input.prepared.saveId },
-      expectedSequence: input.authority.sequence - 1,
-      expectedStateChecksum: input.authority.expectedStateChecksum,
-      nextStateChecksum: input.authority.stateChecksum
-    })
-  const abandoned = await runRoomCommit({
-    base: value.base,
-    member: value.owner,
-    role: 'OWNER',
-    epoch,
-    command: { ...value.rootInput, commandId: crypto.randomUUID() }
-  })
-  await expect(resolve(abandoned)).resolves.toEqual({ outcome: 'ABANDONED' })
-  await expect(resolve(abandoned)).resolves.toEqual({ outcome: 'ABANDONED' })
-  await expect(abandoned.commit()).rejects.toMatchObject({ status: 409 })
-  expect(await persisted(value.base)).toMatchObject({ sequence: 0 })
-
-  const committed = await runRoomCommit({
-    base: value.base,
-    member: value.owner,
-    role: 'OWNER',
-    epoch,
-    command: { ...value.rootInput, commandId: crypto.randomUUID() }
-  })
-  await committed.commit()
-  await expect(resolve(committed)).resolves.toEqual({ outcome: 'COMMITTED' })
-  // A resolve that matches neither outcome fails closed.
-  await expect(
-    callLiveSessionRoute(environment, null, 'externalCommitResolve', {
-      campaignId: value.base.campaign.id,
-      epoch,
-      subject: { kind: 'SCENE_SAVE', saveId: committed.prepared.saveId },
-      expectedSequence: 5,
-      expectedStateChecksum: committed.authority.expectedStateChecksum,
-      nextStateChecksum: committed.authority.stateChecksum
-    })
-  ).rejects.toMatchObject({ status: 409 })
-}, 120_000)
-
-it('refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52)', async () => {
-  const value = await setupAutomaticSceneMovement(twoChoices)
-  const epoch = await activateRoom(value.base)
-  routeRoom(value.owner)
-  const actor = {
-    campaignId: value.base.campaign.id,
-    authorityEpoch: epoch,
-    expectedUserId: value.owner.userId,
-    expectedRole: 'OWNER' as const
-  }
-  const command = { ...value.rootInput, commandId: crypto.randomUUID() }
-  const stageInput = {
-    ...actor,
-    command,
-    presentation: { expectedPresentationVersion: 0 },
-    characterRevisions: [],
-    tokenOrdinals: value.request.tokenOrdinals,
-    maintenanceDefinitionIds: [],
-    cachedSystem: null
-  }
-  const saves = () =>
-    value.base.t.run(async (ctx) => (await ctx.db.query('sceneGeometrySaves').collect()).length)
-  const staged = await saves()
-  const post = (body: unknown, secret: string | null, caller = value.owner.caller) =>
-    caller.fetch('/live-sessions/encounter-movement-stage', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        ...(secret === null ? {} : { 'x-artificer-live-session-secret': secret })
-      },
-      body: JSON.stringify(body)
-    })
-  for (const [body, secret, status] of [
-    [stageInput, null, 401],
-    [stageInput, 'wrong-worker-secret-that-is-long-enough', 401],
-    [{ ...stageInput, expectedUserId: value.player.userId }, workerSecret, 409],
-    [{ ...stageInput, authorityEpoch: crypto.randomUUID() }, workerSecret, 409],
-    // The presentation fence and the Scene version the begin checked.
-    [{ ...stageInput, presentation: { expectedPresentationVersion: 1 } }, workerSecret, 409],
-    [{ ...stageInput, command: { ...command, expectedSceneVersion: 1 } }, workerSecret, 409],
-    // The Encounter version the movement capture checked, after the begin and observe it follows.
-    [
-      {
-        ...stageInput,
-        command: { ...command, expectedEncounterVersion: command.expectedEncounterVersion + 1 }
-      },
-      workerSecret,
-      409
-    ]
-  ] as const) {
-    expect((await post(body, secret)).status).toBe(status)
-    // The stage is one transaction: a refusal leaves no begun or observed save behind.
-    expect(await saves()).toBe(staged)
-  }
-
+  const [reactorToken] = value.tokens
+  if (!reactorToken) throw new Error('Expected a reactor token.')
   // The player controls only the mover; a reactor's token follows its actor's controllers.
-  routeRoom(value.player)
-  const player = { ...actor, expectedUserId: value.player.userId, expectedRole: 'PLAYER' as const }
   await expect(
-    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementStage', {
-      ...stageInput,
-      ...player,
-      command: {
-        ...value.rootInput,
-        commandId: crypto.randomUUID(),
-        tokenId: value.reactorTokenIds[0]!,
-        path: [value.tokens[0]!.position, { x: value.tokens[0]!.position.x, y: 450 }]
-      }
+    planMovementInRoom(value.player.caller, {
+      ...value.rootInput,
+      commandId: crypto.randomUUID(),
+      tokenId: value.reactorTokenIds[0]!,
+      path: [reactorToken.position, { x: reactorToken.position.x, y: 450 }]
     })
-  ).rejects.toMatchObject({ status: 422, rejection: { reason: 'NOT_ACTOR_CONTROLLER' } })
-  expect(await saves()).toBe(staged)
-
-  // A decision is routed first: another member's decision and a stale occurrence are refused as
-  // the route refused them, before anything is staged.
-  routeRoom(value.owner)
-  const moved = await runRoomCommit({
-    base: value.base,
-    member: value.owner,
-    role: 'OWNER',
-    epoch,
-    command
-  })
-  const choice = (await moved.commit()).scene.occurrence?.pending
+  ).rejects.toThrow()
+  const choice = (await (await planMovementInRoom(value.owner.caller, value.rootInput)).publish())
+    .occurrence?.pending
   if (choice?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected a reaction choice.')
   const answer: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
@@ -471,30 +286,14 @@ it('refuses the combined stage exactly as its separate begin, observe and captur
     correlationId: null,
     resolution: { kind: 'DECLINE' }
   }
-  const decision = {
-    ...actor,
-    characterRevisions: [],
-    tokenOrdinals: [],
-    maintenanceDefinitionIds: [],
-    cachedSystem: null
-  }
-  const published = await saves()
-  routeRoom(value.player)
+  await expect(planMovementDecisionInRoom(value.player.caller, answer)).rejects.toThrow()
   await expect(
-    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementStage', {
-      ...decision,
-      ...player,
-      command: answer
-    })
-  ).rejects.toMatchObject({ status: 422, rejection: { reason: 'NOT_ACTOR_CONTROLLER' } })
-  routeRoom(value.owner)
-  await expect(
-    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementStage', {
-      ...decision,
-      command: { ...answer, occurrenceId: crypto.randomUUID() }
-    })
-  ).rejects.toMatchObject({ status: 422, rejection: { reason: 'VERSION_STALE' } })
-  expect(await saves()).toBe(published)
+    planMovementDecisionInRoom(value.owner.caller, { ...answer, occurrenceId: crypto.randomUUID() })
+  ).rejects.toThrow()
+  // The refusals staged nothing: the GM's answer still settles the same choice.
+  expect(
+    (await (await planMovementDecisionInRoom(value.owner.caller, answer)).publish()).occurrence
+  ).toMatchObject({ occurrenceId: choice.occurrenceId })
 }, 120_000)
 it('commits an unbound fog-deriving move under live authority and stages its owner layer', async () => {
   const base = await createSceneDefinitionFixture()
@@ -565,8 +364,6 @@ it('commits an unbound fog-deriving move under live authority and stages its own
 it('counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)', async () => {
   // Reactors far from the path, so each move publishes uninterrupted.
   const value = await setupAutomaticSceneMovement({ reactorPositions: [850, 850] })
-  const epoch = await activateRoom(value.base)
-  routeRoom(value.owner)
   const moverId = value.geometry.actorIdByTokenId.get(value.moverTokenId)!
   const readRun = () =>
     value.base.t.run(async (ctx) => {
@@ -583,20 +380,14 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
     expectedSceneVersion: number
   ) =>
     (
-      await runRoomCommit({
-        base: value.base,
-        member: value.owner,
-        role: 'OWNER',
-        epoch,
-        command: {
-          ...value.rootInput,
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion,
-          movementKind,
-          path
-        }
+      await planMovementInRoom(value.owner.caller, {
+        ...value.rootInput,
+        commandId: crypto.randomUUID(),
+        expectedSceneVersion,
+        movementKind,
+        path
       })
-    ).commit()
+    ).publish()
   const moverMovement = async () =>
     (
       await value.owner.caller.query(activeState, { campaignId: value.base.campaign.id })
@@ -611,7 +402,7 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
     'VOLUNTARY',
     0
   )
-  expect(first.scene.occurrence).toBeNull()
+  expect(first.occurrence).toBeNull()
   expect(await moverMovement()).toEqual({ actorId: moverId, used: 10, budget: 40 })
   // Moves in one turn accumulate.
   const second = await move(
@@ -620,7 +411,7 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
       { x: 250, y: 50 }
     ],
     'VOLUNTARY',
-    first.scene.version
+    first.version
   )
   expect(await moverMovement()).toMatchObject({ used: 15 })
   // Forced movement does not spend the mover's own movement.
@@ -630,7 +421,7 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
       { x: 150, y: 50 }
     ],
     'FORCED',
-    second.scene.version
+    second.version
   )
   expect(await moverMovement()).toMatchObject({ used: 15 })
   // The record bumps nothing on the Run: no version, no state change.
@@ -651,7 +442,6 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
   })
   expect(await moverMovement()).toMatchObject({ used: 0 })
 }, 120_000)
-
 /** A presented, fog-on Scene with a player's seeing token and one door per state (V03.4, V07.4). */
 async function setupPlayerScene() {
   const base = await createSceneDefinitionFixture()

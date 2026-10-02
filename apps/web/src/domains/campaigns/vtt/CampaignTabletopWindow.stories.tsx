@@ -36,7 +36,6 @@ import {
   sceneRecipientPageSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
-  encounterActorTokenBindingCommandInputDtoSchema,
   type CampaignSceneStateDto,
   sceneCommandResultDtoSchema,
   sceneLiveCommandInputDtoSchema,
@@ -69,7 +68,6 @@ const mapReadyTimeoutMs = 10_000
 const geometryExecute = fn()
 const liveCommand = fn()
 const mediaGetDelivery = fn()
-const encounterActorTokenBindingExecute = fn()
 const fogBegin = fn()
 const fogAppend = fn()
 const fogPublish = fn()
@@ -209,14 +207,20 @@ export const GmWindow: Story = {
     await userEvent.click(emberTokenSelect)
     await userEvent.click(await page.findByRole('option', { name: 'Ember' }))
     await waitFor(async () => {
-      await expect(encounterActorTokenBindingExecute).toHaveBeenCalledWith({
-        input: expect.objectContaining({
-          encounterId: tabletopGmEncounter.id,
-          sceneId: tabletopLiveScene.id,
-          tokenId: tabletopLiveScene.tokens[0]!.id,
-          type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+      await expect(liveCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: {
+            command: expect.objectContaining({
+              encounterId: tabletopGmEncounter.id,
+              sceneId: tabletopLiveScene.id,
+              tokenId: tabletopLiveScene.tokens[0]!.id,
+              type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+            }),
+            scope: 'ENCOUNTER'
+          },
+          type: 'COMMAND'
         })
-      })
+      )
     })
     await userEvent.click(page.getByRole('button', { name: 'Scene controls' }))
     await userEvent.click(await page.findByRole('menuitem', { name: 'Reveal entire map' }))
@@ -559,8 +563,6 @@ function renderWindow(
   Object.defineProperty(convex, 'mutation', {
     value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference, args]) => {
       const name = getFunctionName(reference)
-      if (name === getFunctionName(convexApi.encounters.actorTokenBindings.execute))
-        return encounterActorTokenBindingExecute(args)
       if (name === getFunctionName(convexApi.scenes.fogCommands.begin)) return fogBegin(args)
       if (name === getFunctionName(convexApi.scenes.fogCommands.append)) return fogAppend(args)
       if (name === getFunctionName(convexApi.scenes.fogCommands.publish)) return fogPublish(args)
@@ -629,12 +631,6 @@ function renderWindow(
         chunkCount: fogInput.chunkManifest.length
       }
     })
-  })
-  encounterActorTokenBindingExecute.mockReset().mockImplementation(async (raw) => {
-    encounterActorTokenBindingCommandInputDtoSchema.parse(
-      (raw as FunctionArgs<typeof convexApi.encounters.actorTokenBindings.execute>).input
-    )
-    return encounterResult
   })
 
   const recipientState: LiveSessionRecipientStateDto = { recipientRole: campaign.role, scene }

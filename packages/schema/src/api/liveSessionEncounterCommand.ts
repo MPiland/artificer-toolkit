@@ -12,6 +12,7 @@ import {
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
+import type { EncounterActorTokenBindingCommandInputDto } from './vttScenes.js'
 
 /**
  * Which room planner owns a pending occurrence. Convex derives it with the native resume
@@ -83,11 +84,13 @@ const roomLocalCommandTypes = new Set<EncounterCommandType>(ROOM_LOCAL_ENCOUNTER
 
 /**
  * A decision commits natively when retained evidence names its planner; otherwise the room refuses
- * it as Convex would (stale or unavailable).
+ * it as Convex would (stale or unavailable). The GM binds actors to the presented Scene's tokens in
+ * the same transaction (D78).
  */
 export type RoomNativeEncounterCommand =
   | RoomLocalEncounterCommand
   | Extract<EncounterCommandInputDto, { type: 'RESOLVE_RULE_OCCURRENCE' | 'VOID_RULE_OCCURRENCE' }>
+  | EncounterActorTokenBindingCommandInputDto
 
 export function isRoomLocalEncounterCommand(
   command: EncounterCommandInputDto

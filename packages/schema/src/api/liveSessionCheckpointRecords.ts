@@ -85,7 +85,7 @@ function validKey(fields: readonly string[], key: (string | number)[]) {
     fields.every((field, index) => {
       const value = key[index]
       if (field === 'round' || field === 'sequence' || field === 'occurrenceVersion')
-        return typeof value === 'number' && (field !== 'occurrenceVersion' || value > 0)
+        return typeof value === 'number' && (field !== 'occurrenceVersion' || value >= 0)
       return (field === 'checksum' ? projectionChecksumSchema : postgresUuidSchema).safeParse(value)
         .success
     })

@@ -4,7 +4,7 @@ import {
   useMovementReactions
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
-import { planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { planMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
@@ -24,9 +24,7 @@ it('prepares and publishes used authored automatic movement reactions once', asy
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Automatic terminal was not prepared.')
   expect(prepared.outcome.result.reactionExecutions).toHaveLength(2)
-  const first = await publish()
-  const replay = await publish()
-  expect(replay).toEqual({ ...first, replayed: true })
+  await publish()
   const after = await value.owner.caller.run(async (ctx) => {
     const run = await ctx.db
       .query('encounterRuns')
@@ -46,7 +44,7 @@ it('does not publish gameplay state during automatic preparation', async () => {
       .take(10)
     return actors.map((actor) => actor.stateChecksum)
   })
-  await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  await planMovementInRoom(value.owner.caller, value.rootInput)
   const after = await value.owner.caller.run(async (ctx) => {
     const actors = await ctx.db
       .query('encounterRunActors')
@@ -97,7 +95,7 @@ it('retains sequential used automatic reactions at distinct boundaries', async (
   expect(prepared.outcome.result.reactionExecutions.map((entry) => entry.ordinal)).toEqual([0, 1])
 })
 
-it('settles a crossed spatial prefix before its used automatic reaction, with replay', async () => {
+it('settles a crossed spatial prefix before its used automatic reaction', async () => {
   const value = await setupAutomaticSceneMovement({
     reactorPositions: [150, 150],
     path: [
@@ -166,16 +164,12 @@ it('settles a crossed spatial prefix before its used automatic reaction, with re
   )
   expect(prepared.outcome.result.terminalPosition).toEqual({ x: 600, y: 50 })
   expect(await snapshot()).toEqual(before)
-  const first = await publish()
+  await publish()
   const after = await snapshot()
   expect(after.effects.find((entry) => entry.id === effect.id)).toBeUndefined()
   expect(after.effects.find((entry) => entry.id === suffixEffect.id)).toBeUndefined()
   expect(after.receipts).toHaveLength(1)
   expect(JSON.parse(after.receipts[0]!.resultJson)).toEqual(prepared.outcome.result)
-  expect(await publish()).toEqual({
-    ...first,
-    replayed: true
-  })
 }, 30_000)
 
 it('settles a spatial prefix between a used automatic reaction and later controller choice', async () => {

@@ -4,10 +4,6 @@ import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolk
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import type {
-  SceneSessionVisionCaptureInput,
-  SceneSessionVisionScope
-} from '@artificer-toolkit/schema/api/sceneSessionVision'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -15,10 +11,8 @@ import {
   sceneStoredInitialStateSchema,
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
-import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { setupCreatureReactionRun } from './movementReaction'
-import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
-import { planMovementDecisionInRoom, planStagedMovementInRoom } from './liveSessionWorker'
+import { planMovementDecisionInRoom, planMovementInRoom } from './liveSessionWorker'
 
 const bindActorToken = makeFunctionReference<
   'mutation',
@@ -223,53 +217,15 @@ export async function setupReactionMovementScene<
     movementKind: 'VOLUNTARY' as const,
     path
   }
-  const vision = await base.owner.caller.run(async (ctx) => {
-    const scope = {
-      campaignId: base.campaign.id,
-      systemId: base.campaign.gameSystemId,
-      sceneId,
-      expectedSceneVersion: 0,
-      expectedPresentationVersion: 0
-    }
-    return { ...scope, freshness: (await readSessionVisionScope(ctx, scope)).freshness }
-  })
-  const saveId = crypto.randomUUID()
-  await base.owner.caller.run((ctx) =>
-    ctx.db.insert(
-      'sceneGeometrySaves',
-      sceneStoredGeometrySaveSchema.parse({
-        id: saveId,
-        sceneId,
-        commandId: rootCommandId,
-        actorUserId: base.owner.userId,
-        input: rootInput,
-        inputChecksum: checksumCanonicalJson(rootInput),
-        snapshotVersion: 0,
-        sessionVision: vision,
-        status: 'RECEIVING',
-        expiresAt: Date.now() + 60_000,
-        fogSaves: [],
-        characterRevisions: []
-      })
-    )
-  )
-  const request = {
-    saveId,
-    baseOrdinal: 1,
-    movementCost: 0,
-    tokenOrdinals: tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
-  }
   return {
     base,
     owner: base.owner,
     player: base.other,
     sceneId,
-    saveId,
     tokens,
     reactorTokenIds: tokens.filter((_, index) => index !== 1).map((token) => token.id),
     moverTokenId: tokens[1]!.id,
     rootInput,
-    request,
     geometry: {
       sceneTokens: tokens,
       actorIdByTokenId: new Map(tokens.map((token, index) => [token.id, actors[index]!.id]))
@@ -277,21 +233,16 @@ export async function setupReactionMovementScene<
   }
 }
 
-const observeMovement = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 /**
  * Assisted play offers every authored reaction, "automatic" ones included, to its controller as a
- * Use/Decline choice. Plans the root movement in the room (`planStagedMovementInRoom`) or continues
+ * Use/Decline choice. Plans the root movement in the room (`planMovementInRoom`) or continues
  * from a planned decision (`start`), publishes its reaction choice, then answers Use with the first
  * option as the GM through the room (the fixture reactors are Creatures) for each further choice.
  * Stops after `maxUses` Uses or at the first plan that is not a reaction choice, and returns that
  * plan's outcome with `publish` to commit it.
  */
 export async function useMovementReactions(
-  value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner' | 'request'>,
+  value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner' | 'rootInput'>,
   maxUses = 10,
   /** A planned decision to continue from instead of the root movement. */
   start?: Awaited<ReturnType<typeof planMovementDecisionInRoom>>
@@ -302,12 +253,7 @@ export async function useMovementReactions(
   responseCommandId: string | null
 }> {
   const { owner } = value
-  if (!start)
-    await owner.caller.mutation(observeMovement, {
-      saveId: value.request.saveId,
-      characterRevisions: []
-    })
-  const plan = start ?? (await planStagedMovementInRoom(owner.caller, value.request.saveId))
+  const plan = start ?? (await planMovementInRoom(owner.caller, value.rootInput))
   let prepared: Pick<SceneSpatialPreparation, 'outcome'> = { outcome: plan.outcome }
   let publish = plan.publish
   let responseCommandId: string | null = null
@@ -340,26 +286,4 @@ export async function useMovementReactions(
     prepared = { outcome: plan.outcome }
     publish = plan.publish
   }
-}
-
-const captureSessionVision = makeFunctionReference<
-  'query',
-  SceneSessionVisionCaptureInput,
-  SceneSessionVisionScope
->('scenes/sessionVision:capture')
-
-/** Recaptures the root save's session vision after a test changed its Scene vision inputs. */
-export async function refreshMovementSaveVision(
-  value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner' | 'saveId'>
-) {
-  const save = await value.base.t.run((ctx) =>
-    ctx.db
-      .query('sceneGeometrySaves')
-      .withIndex('by_publicId', (q) => q.eq('id', value.saveId))
-      .unique()
-  )
-  if (!save?.sessionVision) throw new Error('Movement vision snapshot is unavailable.')
-  const { freshness: _freshness, ...input } = save.sessionVision
-  const vision = await value.owner.caller.query(captureSessionVision, input)
-  await value.base.t.run((ctx) => ctx.db.patch(save._id, { sessionVision: vision }))
 }

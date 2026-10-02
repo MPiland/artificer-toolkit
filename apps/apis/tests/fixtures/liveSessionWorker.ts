@@ -1,14 +1,5 @@
 import { beforeEach, expect, vi } from 'vitest'
-import type {
-  LiveSessionExpectedScene,
-  LiveSessionExternalAuthority,
-  LiveSessionMovementPrepareInput
-} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import {
-  preparedMovementCost,
-  preparedMovementSceneDelta
-} from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
+import type { LiveSessionExternalAuthority } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
@@ -21,7 +12,11 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { SceneTokenMovementCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  encounterActorTokenBindingCommandInputDtoSchema,
+  type EncounterActorTokenBindingCommandInputDto,
+  type SceneTokenMovementCommandInputDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type { z } from 'zod'
 import type { TestConvex } from 'convex-test'
@@ -38,8 +33,10 @@ import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncount
 import type { MutationCtx, QueryCtx } from '../../convex/_generated/server'
 import * as rollRandom from '../../convex/lib/rollRandom'
 import type schema from '../../convex/schema'
-import { parseGeometrySave } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
-import { persistSpatialPreparation } from '../../convex/scenes/spatialPreparationPersistence'
+import {
+  parseGeometrySave,
+  readSpatialPreparation
+} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { readRoomAuthorization } from '../../convex/liveSessions/roomAuthorization'
 import { releaseCharacterHolds } from '../../convex/liveSessions/characterHolds'
 import { installContentSnapshots } from './roomContentSnapshots'
@@ -69,14 +66,14 @@ import { RoomCheckpoints } from '../../../session-worker/src/roomCheckpoints'
 import { loadRoomContentSnapshots } from '../../../session-worker/src/roomContentSnapshots'
 import { createNodeSqliteRoomStorage } from '../../../session-worker/src/testing/nodeSqliteRoomStorage'
 import { readNativeEncounterOccurrenceOwner } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
-import { commitLiveMovement } from '../../convex/liveSessions/encounterMovementCommit'
+import { voidDeclineCommandId } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import {
   commitExternalSceneCommit,
   prepareExternalSceneCommit,
   type ExternalSceneContext,
   type ExternalSceneCommand
 } from '../../../session-worker/src/nativeExternalSceneCommit'
-import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
+import { executeRoomSceneGeometry } from '../../../session-worker/src/roomSceneGeometryCommand'
 import { hydrateNativeTransientScene } from '../../../session-worker/src/nativeSceneClient'
 import {
   LiveCaptureCache,
@@ -291,24 +288,13 @@ function roomRefusal(code: RoomCommandRefusal['code'], message: string) {
 }
 
 /**
- * Sends one Encounter command to the room as a member, the way the Session room commits it (D78):
- * a fresh room store hydrated over node SQLite from the Convex room inputs at the authority's
- * persisted checkpoint, the room-native executor in one room transaction with no HTTP, then the
- * room's checkpoint published through the real checkpoint mutation before this returns. The
- * Campaign needs an active live authority at `actor.authorityEpoch`. A domain rejection surfaces as
- * the ConvexError data the browser receives; any other refusal as a redacted `RoomCommandRefusal`.
- * A movement decision still commits Convex-first with the presented Scene until A35-S6c2.
+ * A room store for one member's work over node SQLite, as the Session room opens it: hydrated
+ * (`hydrate`) from the Convex room inputs at the authority's persisted checkpoint with its
+ * presented Scene, and checkpointed (`flush`) through the real checkpoint mutation. The Campaign
+ * needs an active live authority at `actor.authorityEpoch`.
  */
-export async function executeRoomEncounterCommand(input: {
-  caller: MemberCaller
-  actor: LiveEncounterActor
-  command: EncounterCommandInputDto
-  random?: (maximum: number) => number
-}): Promise<EncounterCommandResultDto> {
-  const { caller, actor, command } = input
-  const random = input.random ?? secureRandomInt
+async function openRoom(caller: MemberCaller, actor: LiveEncounterActor, encounterId: string) {
   const { campaignId, authorityEpoch: epoch, expectedUserId: userId } = actor
-  const encounterId = command.encounterId.toLowerCase()
   const read = await caller.run(async (ctx) => {
     const authority = await ctx.db
       .query('campaignLiveAuthorities')
@@ -340,40 +326,135 @@ export async function executeRoomEncounterCommand(input: {
   const contentSnapshots = await installContentSnapshots(caller, campaignId)
   const runtime = await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
   const { storage, database } = createNodeSqliteRoomStorage()
+  const store = new RoomEncounterStore(storage)
+  const inputs = new RoomInputs(
+    store,
+    (inputEpoch, scope) =>
+      caller.query(internal.liveSessions.roomInputs.read, { campaignId, epoch: inputEpoch, scope }),
+    (manifest) => loadRoomContentSnapshots(contentSnapshots, manifest, campaignId)
+  )
+  return {
+    store,
+    inputs,
+    authorization,
+    runtime,
+    sceneId: read.sceneId,
+    hydrate: () =>
+      inputs.hydrate({ epoch, encounterId, sceneId: read.sceneId, checkpoint: read.checkpoint }),
+    flush: () =>
+      new RoomCheckpoints(store, storage, (checkpoint) =>
+        caller.mutation(internal.liveSessions.checkpoint.publish, checkpoint)
+      ).flush({ campaignId, epoch, knownAuthorization: null }),
+    close: () => database.close()
+  }
+}
+
+type OpenRoom = Awaited<ReturnType<typeof openRoom>>
+
+/** Room work, which reaches Convex only through its room inputs and checkpoints, never over HTTP. */
+async function withoutHttp<T>(work: () => Promise<T>): Promise<T> {
   const fetch = globalThis.fetch
   globalThis.fetch = async () => {
     throw new Error('The room-native path attempted an HTTP request.')
   }
   try {
-    const store = new RoomEncounterStore(storage)
-    const inputs = new RoomInputs(
-      store,
-      (inputEpoch, scope) =>
-        caller.query(internal.liveSessions.roomInputs.read, {
-          campaignId,
-          epoch: inputEpoch,
-          scope
-        }),
-      (manifest) => loadRoomContentSnapshots(contentSnapshots, manifest, campaignId)
-    )
+    return await work()
+  } finally {
+    globalThis.fetch = fetch
+  }
+}
+
+/**
+ * Commits an Encounter-bound move or movement decision in a hydrated room with its presented Scene
+ * (D27), as the Session room does: the Scene context from the room's capture, then geometry, fog,
+ * rules and Encounter writes in one room transaction. Off the presented Scene it is refused (D42).
+ * Returns the Scene and Encounter results with the move's save and its planned outcome.
+ */
+async function commitRoomMovement(
+  room: OpenRoom,
+  input: {
+    caller: MemberCaller
+    actor: LiveEncounterActor
+    encounterId: string
+    command: ExternalSceneCommand
+    random: (maximum: number) => number
+  }
+) {
+  const { caller, actor, command } = input
+  // The room captures its presented Scene from Convex before it plans against it.
+  const context = await withRoomConvex(caller, (session) =>
+    roomSceneContext(session, actor, input.encounterId)
+  )
+  if (!context) throw sceneNotPresentedRejection()
+  return room.store.transact(
+    async (transaction) => {
+      const result = await executeRoomSceneGeometry({
+        store: room.store,
+        transaction,
+        inputs: room.inputs,
+        authorization: room.authorization,
+        campaignId: actor.campaignId,
+        epoch: actor.authorityEpoch,
+        userId: actor.expectedUserId,
+        command,
+        context,
+        environment: workerEnvironment(ROOM_WORKER_SECRET),
+        runtime: room.runtime,
+        captures: new LiveCaptureCache().reads(),
+        random: input.random
+      })
+      // A GM void moves on as its decline, which the room saves under the decline's command ID.
+      const commandId =
+        command.type === 'VOID_RULE_OCCURRENCE'
+          ? voidDeclineCommandId(command.commandId.toLowerCase())
+          : command.commandId.toLowerCase()
+      const save = transaction
+        .records('SCENE_CHECKPOINT_ROW')
+        .filter((record) => record.key.startsWith('["sceneGeometrySaves",'))
+        .map((record) => parseGeometrySave(JSON.parse(record.json)))
+        .find((entry) => entry.sceneId === context.scene.id && entry.commandId === commandId)
+      const preparation = save ? readSpatialPreparation(save) : null
+      if (!save || !preparation) throw new Error('The room published no planned movement save.')
+      return { ...result, saveId: save.id, outcome: preparation.outcome }
+    },
+    // As the room does, every command commits one journal entry with its receipt.
+    () => undefined
+  )
+}
+
+/**
+ * Sends one Encounter command to the room as a member, the way the Session room commits it (D78):
+ * a fresh room (`openRoom`), the room-native executor in one room transaction with no HTTP (a
+ * movement decision with the presented Scene, `commitRoomMovement`), then the room's checkpoint
+ * published before this returns. A domain rejection surfaces as the ConvexError data the browser
+ * receives; any other refusal as a redacted `RoomCommandRefusal`.
+ */
+export async function executeRoomEncounterCommand(input: {
+  caller: MemberCaller
+  actor: LiveEncounterActor
+  command: EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
+  random?: (maximum: number) => number
+}): Promise<EncounterCommandResultDto> {
+  const { caller, actor, command } = input
+  const random = input.random ?? secureRandomInt
+  const { campaignId, authorityEpoch: epoch, expectedUserId: userId } = actor
+  const encounterId = command.encounterId.toLowerCase()
+  const room = await openRoom(caller, actor, encounterId)
+  try {
+    const { store, inputs, authorization } = room
     const fingerprint = roomEncounterCommandFingerprint(command)
     const journalKey = `${campaignId}:${command.commandId}`
     // As the room does, any failure from hydration to commit is refused to the member.
-    const committed = await (async () => {
-      await inputs.hydrate({
-        epoch,
-        encounterId,
-        sceneId: read.sceneId,
-        checkpoint: read.checkpoint
-      })
-      let movement = false
+    const committed = await withoutHttp(async () => {
+      await room.hydrate()
+      let movement: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto | null = null
       if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') {
         const route = await readRoomEncounterResponseRoute(store, command)
         const native =
           command.type === 'VOID_RULE_OCCURRENCE'
             ? await roomOwnsEncounterVoid(store, command)
             : route !== null && route !== 'MOVEMENT'
-        movement = route === 'MOVEMENT' && !native
+        if (route === 'MOVEMENT' && !native) movement = command
       }
       // As the room does, a reused command ID is looked up in the journal before execution.
       const prior = roomJournal.get(journalKey)
@@ -393,7 +474,19 @@ export async function executeRoomEncounterCommand(input: {
           })
         }
       }
-      if (movement) return null
+      if (movement) {
+        const { encounter } = await commitRoomMovement(room, {
+          caller,
+          actor,
+          encounterId,
+          command: movement,
+          random
+        })
+        if (!encounter) throw new Error('A movement decision commit returned no Encounter result.')
+        // A movement decision's receipt is the Scene's: its retry is refused as stale.
+        roomJournal.set(journalKey, { userId, fingerprint, resultJson: null })
+        return { kind: 'COMMITTED' as const, result: encounter }
+      }
       const transacted = await store.transact(
         (transaction) =>
           executeRoomCommand({
@@ -406,10 +499,11 @@ export async function executeRoomEncounterCommand(input: {
             userId,
             recipientUserIds: [],
             command,
+            presentedSceneId: room.sceneId,
             random,
             turnExecution: {
               environment: workerEnvironment(ROOM_WORKER_SECRET),
-              runtime,
+              runtime: room.runtime,
               captures: new LiveCaptureCache().reads()
             }
           }),
@@ -420,57 +514,58 @@ export async function executeRoomEncounterCommand(input: {
       if (!own) throw new Error('The room produced no result for its submitter.')
       roomJournal.set(journalKey, { userId, fingerprint, resultJson: JSON.stringify(own) })
       return { kind: 'COMMITTED' as const, result: own }
-    })().catch((error: unknown) => {
+    }).catch((error: unknown) => {
       // As the room does, a Sheet refusal reaches the member with its own message.
       if (error instanceof CharacterSheetCommandError || error instanceof RoomCommandRefusal)
         throw error
       throw domainRejection(error) ?? new RoomCommandRefusal(error)
     })
-    if (!committed) {
-      // The Convex-first movement commit routes its own requests (`withRoomConvex`).
-      const result = await executeConvexFirstCommand({ caller, actor, command, random })
-      roomJournal.set(journalKey, { userId, fingerprint, resultJson: null })
-      return result
-    }
     if (committed.kind === 'REPLAY') return committed.result
-    await new RoomCheckpoints(store, storage, (checkpoint) =>
-      caller.mutation(internal.liveSessions.checkpoint.publish, checkpoint)
-    ).flush({ campaignId, epoch, knownAuthorization: null })
+    await withoutHttp(room.flush)
     return committed.result
   } finally {
-    globalThis.fetch = fetch
-    database.close()
+    room.close()
   }
 }
 
 type MemberCaller = ReturnType<TestConvex<typeof schema>['withIdentity']>
 
 /**
- * Runs room work as the caller's Campaign member on `encounterId`. A Campaign without a live
- * authority gets an active one for this work only, so the rest of a test keeps its non-live
- * Campaign. A domain rejection surfaces as the ConvexError data the browser receives; any other
- * refusal stays redacted, as the room reports it.
+ * Runs room work as the caller's Campaign member on `encounterId` (see `enterRoom`). A domain
+ * rejection surfaces as the ConvexError data the browser receives; any other refusal stays
+ * redacted, as the room reports it.
  */
 function asRoomMember<T>(
   caller: MemberCaller,
   encounterId: string,
-  work: (actor: LiveEncounterActor) => Promise<T>,
-  temporaryEpoch?: () => string | undefined
+  work: (actor: LiveEncounterActor) => Promise<T>
 ): Promise<T> {
-  // The room runs one command at a time, so concurrent test commands queue as they would there.
-  const turn = roomQueue.then(() => runAsRoomMember(caller, encounterId, work, temporaryEpoch))
+  return queueRoomWork(async () => {
+    const member = await enterRoom(caller, encounterId)
+    try {
+      return await work(member.actor)
+    } catch (error) {
+      throw domainRejection(error) ?? error
+    } finally {
+      await member.leave()
+    }
+  })
+}
+
+/** The room runs one command at a time, so concurrent test commands queue as they would there. */
+function queueRoomWork<T>(work: () => Promise<T>): Promise<T> {
+  const turn = roomQueue.then(work)
   roomQueue = turn.catch(() => undefined)
   return turn
 }
 
 let roomQueue: Promise<unknown> = Promise.resolve()
 
-async function runAsRoomMember<T>(
-  caller: MemberCaller,
-  encounterId: string,
-  work: (actor: LiveEncounterActor) => Promise<T>,
-  temporaryEpoch?: () => string | undefined
-): Promise<T> {
+/**
+ * The caller as a room member on `encounterId`'s Campaign. A Campaign without a live authority
+ * gets an active one until `leave`, so the rest of a test keeps its non-live Campaign.
+ */
+async function enterRoom(caller: MemberCaller, encounterId: string) {
   const identity = await caller.query(api.account.identity, {})
   if (!identity) throw new Error('Unauthenticated: the Session room admits only signed-in members.')
   const { actor, createdAuthority } = await caller.run(async (ctx) => {
@@ -489,7 +584,7 @@ async function runAsRoomMember<T>(
       .query('campaignLiveAuthorities')
       .withIndex('by_campaignId', (q) => q.eq('campaignId', run.campaignId))
       .unique()
-    const authorityEpoch = authority?.epoch ?? temporaryEpoch?.() ?? crypto.randomUUID()
+    const authorityEpoch = authority?.epoch ?? crypto.randomUUID()
     return {
       actor: {
         campaignId: run.campaignId,
@@ -507,17 +602,16 @@ async function runAsRoomMember<T>(
           })
     }
   })
-  try {
-    return await work(actor)
-  } catch (error) {
-    throw domainRejection(error) ?? error
-  } finally {
+  return {
+    actor,
     // The temporary authority ends as a release does, without its open-Run reconcile.
-    if (createdAuthority)
-      await caller.run(async (ctx) => {
-        await releaseCharacterHolds(ctx, actor.campaignId, actor.authorityEpoch)
-        await ctx.db.delete(createdAuthority)
-      })
+    leave: async () => {
+      if (createdAuthority)
+        await caller.run(async (ctx) => {
+          await releaseCharacterHolds(ctx, actor.campaignId, actor.authorityEpoch)
+          await ctx.db.delete(createdAuthority)
+        })
+    }
   }
 }
 
@@ -595,24 +689,6 @@ export async function replayInRoom(
   return replay()
 }
 
-/**
- * Runs room work as `caller` on `encounterId` under one epoch: like `executeInRoom`, a Campaign
- * without a live authority is live only while each piece of work runs.
- */
-function liveRoomMember(caller: MemberCaller, encounterId: string) {
-  let epoch: string | undefined
-  return <T>(work: (actor: LiveEncounterActor) => Promise<T>) =>
-    asRoomMember(
-      caller,
-      encounterId,
-      (actor) => {
-        epoch ??= actor.authorityEpoch
-        return work(actor)
-      },
-      () => epoch
-    )
-}
-
 /** The Encounter bound to a Scene, for room work on one of its moves. */
 async function sceneEncounterId(caller: Pick<MemberCaller, 'run'>, sceneId: string) {
   const binding = await caller.run((ctx) =>
@@ -625,37 +701,60 @@ async function sceneEncounterId(caller: Pick<MemberCaller, 'run'>, sceneId: stri
   return binding.encounterId
 }
 
+/**
+ * Commits a move or movement decision in the room as `caller` (`commitRoomMovement`) and returns
+ * its save and planned outcome with `publish`, which checkpoints the room to Convex, as the room
+ * later does; until then Convex has not seen the commit, so a test can inspect it in between. Dice
+ * come from `nextRollInt`, so a test's spy on it drives them.
+ */
 async function planInRoom(
   caller: MemberCaller,
   encounterId: string,
   command: ExternalSceneCommand
 ) {
-  const whileLive = liveRoomMember(caller, encounterId)
-  const staged = await whileLive((actor) =>
-    withRoomConvex(caller, (room) =>
-      stageRoomMovement({
-        caller,
-        room,
-        actor,
-        encounterId,
-        command,
-        random: (maximum) => rollRandom.nextRollInt(maximum)
-      })
-    )
-  )
+  const planned = await queueRoomWork(async () => {
+    const member = await enterRoom(caller, encounterId)
+    try {
+      const room = await openRoom(caller, member.actor, encounterId)
+      try {
+        const committed = await withoutHttp(async () => {
+          await room.hydrate()
+          return commitRoomMovement(room, {
+            caller,
+            actor: member.actor,
+            encounterId,
+            command,
+            random: (maximum) => rollRandom.nextRollInt(maximum)
+          })
+        })
+        return { member, room, committed }
+      } catch (error) {
+        room.close()
+        throw error
+      }
+    } catch (error) {
+      await member.leave()
+      throw domainRejection(error) ?? error
+    }
+  })
+  const { member, room, committed } = planned
   return {
-    saveId: staged.saveId,
-    outcome: staged.outcome,
+    saveId: committed.saveId,
+    outcome: committed.outcome,
     publish: (): Promise<SceneGeometryCommandResult> =>
-      whileLive(() => withRoomConvex(caller, async () => (await staged.commit()).scene))
+      queueRoomWork(async () => {
+        try {
+          await withoutHttp(room.flush)
+          return committed.scene
+        } finally {
+          room.close()
+          await member.leave()
+        }
+      })
   }
 }
 
-/**
- * Plans a movement decision as the room does with its presented Scene and returns the planned
- * outcome with `publish`, which commits it Convex-first; a test can inspect or disturb the plan in
- * between. Dice come from `nextRollInt`, so a test's spy on it drives them.
- */
+/** Plans a movement decision's answer or GM void in the room (`planInRoom`). */
 export function planMovementDecisionInRoom(
   caller: MemberCaller,
   command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
@@ -664,10 +763,8 @@ export function planMovementDecisionInRoom(
 }
 
 /**
- * Stages and plans a new Encounter-bound move through the room, as a tabletop drag reaches it:
- * one stage (begin with the presented Scene's fence, observe, capture) and the rules plan; the
- * commit freezes the plan and stages fog.
- * Returns the move's save, the planned outcome and `publish`, like `planMovementDecisionInRoom`.
+ * Plans a new Encounter-bound move in the room (`planInRoom`), as a tabletop drag reaches it: the
+ * room stages it with the presented Scene's fence, plans its rules and commits it.
  */
 export async function planMovementInRoom(
   caller: MemberCaller,
@@ -677,110 +774,17 @@ export async function planMovementInRoom(
 }
 
 /**
- * Plans a staged Encounter-bound move (its save already begun, with observed Character revisions)
- * as the room does with its presented Scene: the DO plans the rules, frozen on the save. Returns
- * the planned outcome with `publish`, like `planMovementDecisionInRoom`, and the commit input for a
- * test that commits it itself under a Campaign authority it inserted.
+ * Binds or unbinds an Encounter actor's Scene token through the room as the GM does on the
+ * presented Scene (D78), checkpointed to Convex before this returns.
  */
-export async function planStagedMovementInRoom(caller: MemberCaller, saveId: string) {
-  const { sceneId, input, expectedEncounterVersion } = await caller.run(async (ctx) => {
-    const row = await ctx.db
-      .query('sceneGeometrySaves')
-      .withIndex('by_publicId', (q) => q.eq('id', saveId.toLowerCase()))
-      .unique()
-    if (!row) throw new Error('Geometry save fixture is missing.')
-    const save = parseGeometrySave(row)
-    if (save.input.type !== 'MOVE_SCENE_TOKEN' || save.input.expectedEncounterVersion === null)
-      throw new Error('Expected a staged Encounter-bound move.')
-    return {
-      sceneId: save.sceneId,
-      input: save.input,
-      expectedEncounterVersion: save.input.expectedEncounterVersion
-    }
-  })
-  const encounterId = await sceneEncounterId(caller, sceneId)
-  const whileLive = liveRoomMember(caller, encounterId)
-  const staged = await whileLive((actor) =>
-    withRoomConvex(caller, async (room) => {
-      const context = await roomSceneContext(room, actor, encounterId)
-      if (!context) throw sceneNotPresentedRejection()
-      const baseOrdinal =
-        context.baseOrdinals.tokens.find((entry) => entry.tokenId === input.tokenId)?.baseOrdinal ??
-        null
-      const movement = { encounterId, saveId: saveId.toLowerCase(), baseTokenOrdinal: baseOrdinal }
-      const occurrenceId = crypto.randomUUID()
-      const occurredAt = new Date().toISOString()
-      const planned = await prepareNativeLiveMovement({
-        ...room,
-        scope: { ...actor, encounterId, expectedVersion: expectedEncounterVersion, movement },
-        scene: context.scene,
-        occurrenceId,
-        occurredAt,
-        random: (maximum) => rollRandom.nextRollInt(maximum)
-      })
-      const prepareInput: LiveSessionMovementPrepareInput = {
-        ...actor,
-        movement,
-        preparation: {
-          encounterId,
-          expectedEncounterVersion,
-          occurrenceId,
-          occurredAt,
-          outcome: planned.outcome
-        },
-        revisions: planned.revisions(),
-        maintenanceOwners: planned.dependencies.flatMap(({ request }) =>
-          request.kind === 'MAINTENANCE_OWNER' ? [request] : []
-        )
-      }
-      // Freeze the plan now, as the commit would, so a test can inspect or disturb the frozen save
-      // before it publishes; the commit then finds the identical preparation.
-      await caller.run((ctx) =>
-        persistSpatialPreparation(ctx, movement.saveId, prepareInput.preparation)
-      )
-      const walk = { path: input.path, startDistance: 0, outcome: planned.outcome }
-      return {
-        outcome: planned.outcome,
-        commit: {
-          ...prepareInput,
-          finish: {
-            saveId: movement.saveId,
-            baseOrdinal,
-            tokenOrdinals: context.baseOrdinals.tokens,
-            movementCost: preparedMovementCost({
-              ...walk,
-              grid: context.scene.grid,
-              scene: context.scene
-            })
-          },
-          rules: planned.rules,
-          settlements: planned.settlementInputs,
-          fogLayers: []
-        }
-      }
-    })
+export function bindActorTokenInRoom(
+  caller: MemberCaller,
+  input: z.input<typeof encounterActorTokenBindingCommandInputDtoSchema>
+): Promise<EncounterCommandResultDto> {
+  const command = encounterActorTokenBindingCommandInputDtoSchema.parse(input)
+  return asRoomMember(caller, command.encounterId, (actor) =>
+    executeRoomEncounterCommand({ caller, actor, command })
   )
-  return {
-    outcome: staged.outcome,
-    /** The commit input without its authority advance and expected Scene. */
-    commit: staged.commit,
-    /** Commits through the private movement mutation itself, so a refusal keeps its message. */
-    publish: (): Promise<SceneGeometryCommandResult> =>
-      whileLive(async (actor) => {
-        const { scene } = await caller.run(async (ctx) =>
-          commitLiveMovement(ctx, {
-            ...staged.commit,
-            authority: await nextExternalAuthority(ctx, actor.campaignId),
-            expectedScene: await expectedMovementScene(
-              ctx,
-              staged.commit.movement.saveId,
-              staged.outcome
-            )
-          })
-        )
-        return scene
-      })
-  }
 }
 
 /**
@@ -837,31 +841,5 @@ export async function nextExternalAuthority(
     sequence,
     expectedStateChecksum: authority.persistedStateChecksum,
     stateChecksum: checksumCanonicalJson({ campaignId, sequence })
-  }
-}
-
-/** The Scene result a staged move publishes with its prepared outcome, as the room predicts it. */
-export async function expectedMovementScene(
-  ctx: QueryCtx,
-  saveId: string,
-  outcome: SceneSpatialPreparation['outcome'] | null
-): Promise<LiveSessionExpectedScene> {
-  const row = await ctx.db
-    .query('sceneGeometrySaves')
-    .withIndex('by_publicId', (q) => q.eq('id', saveId))
-    .unique()
-  if (!row) throw new Error('Geometry save fixture is missing.')
-  const save = parseGeometrySave(row)
-  if (save.input.type !== 'MOVE_SCENE_TOKEN') throw new Error('Expected a staged token move.')
-  const delta = preparedMovementSceneDelta({
-    tokenId: save.input.tokenId,
-    path: save.input.path,
-    outcome,
-    sceneVersion: save.snapshotVersion
-  })
-  return {
-    sceneId: save.sceneId,
-    version: save.snapshotVersion + (delta || save.fogSaves.length ? 1 : 0),
-    delta
   }
 }

@@ -30,6 +30,10 @@ import {
   createEncounterSceneFixture as setup,
   createRun
 } from '../../tests/fixtures/encounterScene'
+import {
+  bindActorTokenInRoom,
+  insertActiveLiveAuthority
+} from '../../tests/fixtures/liveSessionWorker'
 import { execute as registeredExecute } from './actorTokenBindings'
 
 const bindScene = makeFunctionReference<
@@ -661,3 +665,36 @@ it('rejects anonymous, player, revoked, pending and completed fresh writes', asy
     'Campaign not found'
   )
 })
+
+it('refuses Convex binding writes while the live table holds the Run, and binds in the room', async () => {
+  const base = await boundFixture()
+  await base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch: crypto.randomUUID(),
+      createdAt: new Date().toISOString()
+    })
+  )
+  const before = await snapshot(base)
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'currently owned by its Campaign live table'
+  )
+  expect(await snapshot(base)).toEqual(before)
+
+  await publishFixtureSceneSource(base)
+  const bound = await bindActorTokenInRoom(base.other.caller, base.input)
+  expect(bound.projection.version).toBe(base.run.version + 1)
+  expect((await snapshot(base)).bindings).toMatchObject([
+    { actorId: base.input.actorId, tokenId: base.tokens[0]!.id.toLowerCase() }
+  ])
+  expect(await bindActorTokenInRoom(base.other.caller, base.input)).toEqual(bound)
+  await bindActorTokenInRoom(base.other.caller, {
+    type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
+    commandId: crypto.randomUUID(),
+    encounterId: base.run.id,
+    expectedEncounterVersion: bound.projection.version,
+    actorId: base.input.actorId,
+    sceneId: base.sceneId
+  })
+  expect((await snapshot(base)).bindings).toEqual([])
+}, 60000)
