@@ -532,6 +532,26 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     rate-limiting rule on navigations and `/api/auth/*`, fail closed when the daily pool runs out,
     and an alert at 60%. Verify the free plan's rule allowances and that edge-blocked requests do
     not count against the Workers pool before configuring.
+- **D80 (2026-10-02): the open queue becomes ten vertical slices. Re-slicing approved by the
+  user on 2026-10-02; the cut by Claude (integration owner).**
+  - **Rule:** each slice (stream `VS` in the [work-slice registry](../roadmap/08-2-work-slices.json))
+    names the criteria it closes and the older open slices it finishes. It is done when those
+    criteria are READY_FOR_ACCEPTANCE with a focused proof, and the slices it includes become done
+    with it. Integrating slices no longer wait for one REL-4 batch. `acceptanceProgress.mjs`
+    refuses an open criterion without exactly one open owner, and an open slice that is neither
+    queued nor included.
+  - **Order:** VS-1 Scene history (S3c2 before S3c3), VS-2 movement and passage, VS-3 Encounter
+    decisions and journeys, VS-4 held Sheet, recovery and deletion, VS-5 chat and rolls, VS-6
+    Builder budgets, VS-7 web on Workers, VS-8 budgets, faster suites, one full test-and-fix run and
+    the V15 load run, VS-9 final proof, VS-10 promotion. Test-only slices fold into the case slice
+    whose suites they serve; hot-path slices check row and byte counts in focused tests. The D78
+    room defects are fixed in VS-2 (maintained-effect owner) and VS-3 (tied-initiative base).
+  - **VS-7 (PLT-5, D75)** closes no new criterion: moving off Netlify makes R05.1's packaging
+    evidence stale, so it re-proves R05.1 on the Worker build. Its code must precede VS-8 and VS-9,
+    because R08.2 requires one final source. The Cloudflare edge rules move to VS-10 with the
+    staging deploy. D75's checks attach to existing criteria without changing the denominator:
+    R05.2's request audit covers signed-in pages without server Convex prefetch and with focus
+    refetch off, and R09.1 measures signed-in SSR CPU, including cold isolates, on staging.
 - **D79 (2026-10-02): GM Scene edits become room commands; A35-S3c splits into four slices.
   Room-native editing decided by the user on 2026-10-02; the split by Claude (integration owner).**
   - **Evidence:** D77 assumed S6c would delete the Convex Scene live-command writers; S6c3 deleted

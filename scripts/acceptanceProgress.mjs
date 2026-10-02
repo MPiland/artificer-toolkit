@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Reports Phase 8.2 acceptance progress and work slices, and validates both files' structure.
 // Usage: node scripts/acceptanceProgress.mjs [--json]
-// The --json report is the progress dashboard's data.json.
+// The --json report is the progress dashboard's data.json; it adds a burn-up history from the
+// ledger's git log.
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
@@ -72,8 +74,10 @@ const validate = () => {
   return errors
 }
 
-const validateWork = (caseIds) => {
+const validateWork = (caseIds, criteria) => {
   const errors = []
+  const criterionOwners = new Map()
+  const includedBy = new Map()
   const states = work.stateVocabulary ?? []
   const streamIds = new Set((work.streams ?? []).map((stream) => stream.id))
   const slices = new Map()
@@ -90,6 +94,35 @@ const validateWork = (caseIds) => {
     }
     for (const id of slice.cases ?? []) {
       if (!caseIds.has(id)) errors.push(`${slice.id} references unknown case ${id}`)
+    }
+    for (const id of slice.criteria ?? []) {
+      const criterion = criteria.get(id)
+      if (!criterion) errors.push(`${slice.id} references unknown criterion ${id}`)
+      else if (!slice.cases.includes(criterion.caseId)) {
+        errors.push(`${slice.id} closes ${id} but does not list case ${criterion.caseId}`)
+      }
+      if (openSliceStates.includes(slice.state)) {
+        criterionOwners.set(id, [...(criterionOwners.get(id) ?? []), slice.id])
+      }
+    }
+    for (const id of slice.includes ?? []) {
+      includedBy.set(id, [...(includedBy.get(id) ?? []), slice.id])
+    }
+  }
+  for (const [id, owners] of includedBy) {
+    if (!slices.has(id)) errors.push(`${owners.join(', ')} include unknown slice ${id}`)
+    if (owners.length > 1) errors.push(`${id} is included by more than one slice: ${owners.join(', ')}`)
+  }
+  for (const [id, criterion] of criteria) {
+    const owners = criterionOwners.get(id) ?? []
+    if (criterion.status !== accepted && owners.length !== 1) {
+      errors.push(`Open criterion ${id} must be closed by exactly one open slice (has ${owners.length})`)
+    }
+  }
+  for (const slice of slices.values()) {
+    const scheduled = work.queue.includes(slice.id) || includedBy.has(slice.id)
+    if (openSliceStates.includes(slice.state) && !scheduled) {
+      errors.push(`Open slice ${slice.id} is neither queued nor included by a queued slice`)
     }
   }
   if (new Set(work.queue).size !== work.queue.length) errors.push('Queue repeats a slice')
@@ -114,7 +147,19 @@ const countByStatus = (items) =>
 const errors = validate()
 if (errors.length === 0) {
   errors.push(
-    ...validateWork(new Set(ledger.gates.flatMap((gate) => gate.cases.map((kase) => kase.id))))
+    ...validateWork(
+      new Set(ledger.gates.flatMap((gate) => gate.cases.map((kase) => kase.id))),
+      new Map(
+        ledger.gates.flatMap((gate) =>
+          gate.cases.flatMap((kase) =>
+            kase.criteria.map((criterion) => [
+              criterion.id,
+              { caseId: kase.id, status: criterion.status }
+            ])
+          )
+        )
+      )
+    )
   )
 }
 if (errors.length > 0) {
@@ -169,8 +214,29 @@ const report = {
   }
 }
 
+// Burn-up points: criterion status counts at every commit that changed the ledger, oldest first.
+const readHistory = () => {
+  const git = (args) =>
+    execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim()
+  const ledgerRelative = 'docs/roadmap/08-2-convex-cutover-acceptance.json'
+  return git(['log', '--reverse', '--format=%H %cI', '--', ledgerRelative])
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => {
+      const [commit, date] = line.split(' ')
+      const snapshot = JSON.parse(git(['show', `${commit}:${ledgerRelative}`]))
+      const criteria = (snapshot.gates ?? []).flatMap((gate) =>
+        (gate.cases ?? []).flatMap((kase) => kase.criteria ?? [])
+      )
+      return { commit: commit.slice(0, 9), date, total: criteria.length, ...countByStatus(criteria) }
+    })
+    // Ledger versions before the per-criterion shape have no criteria to count.
+    .filter((point) => point.total > 0)
+    .concat({ commit: 'working', date: report.generatedAt, ...report.criteria })
+}
+
 if (process.argv.includes('--json')) {
-  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
+  process.stdout.write(`${JSON.stringify({ ...report, history: readHistory() }, null, 2)}\n`)
   process.exit(0)
 }
 
@@ -205,19 +271,15 @@ const lines = [
   ),
   '  (* case not accepted)',
   '',
-  'Queue (scheduled open slices):',
-  ...work.queue.map((id) => {
+  'Queue (scheduled open slices, the criteria each closes and the slices it includes):',
+  ...work.queue.flatMap((id) => {
     const slice = work.slices.find((item) => item.id === id)
-    return `  ${slice.id} [${slice.state}] ${slice.title}`
+    return [
+      `  ${slice.id} [${slice.state}] ${slice.title}`,
+      `    closes: ${(slice.criteria ?? []).join(' ') || 'none'}`,
+      `    includes: ${(slice.includes ?? []).join(' ') || 'none'}`
+    ]
   }),
-  'Integrating slices (verified in REL-4):',
-  ...work.slices
-    .filter((slice) => slice.state === 'integrating')
-    .map((slice) => `  ${slice.id} ${slice.title}`),
-  'Unscheduled open slices:',
-  ...work.slices
-    .filter((slice) => ['remaining', 'waiting'].includes(slice.state) && !work.queue.includes(slice.id))
-    .map((slice) => `  ${slice.id} [${slice.state}] ${slice.title}`),
   '',
   `Open cases (${report.openCases.length}):`,
   ...report.openCases.flatMap((kase) => [

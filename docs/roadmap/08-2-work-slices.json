@@ -1,11 +1,11 @@
 {
   "phase": "8.2",
-  "description": "Phase 8.2 work slices. Each slice is a unit of work in one stream; its ID is qualified by that stream and, where a plan defines the slice, uses the plan's number. A slice lists the acceptance cases (docs/roadmap/08-2-convex-cutover-acceptance.json) it advances. `queue` is the scheduled order of open work; open slices outside the queue are unscheduled. Validated and reported by scripts/acceptanceProgress.mjs.",
+  "description": "Phase 8.2 work slices. Each slice is a unit of work in one stream; its ID is qualified by that stream and, where a plan defines the slice, uses the plan's number. A slice lists the acceptance cases (docs/roadmap/08-2-convex-cutover-acceptance.json) it advances. `queue` is the scheduled order of open work. Since the 2026-10-02 re-cut (D80) it holds only vertical slices (stream VS): each names the criteria it closes (`criteria`) and the older open slices it finishes (`includes`). Every open criterion and every open older slice belongs to exactly one queued vertical slice. Validated and reported by scripts/acceptanceProgress.mjs.",
   "stateVocabulary": ["remaining", "active", "integrating", "waiting", "done", "superseded"],
   "stateMeaning": {
     "remaining": "Not started.",
     "active": "The current session's slice.",
-    "integrating": "Source written and compiling; tests have not passed yet. Becomes done in the test-and-fix cycle (REL-4).",
+    "integrating": "Source written and compiling; tests have not passed yet. Becomes done when the vertical slice that includes it proves its criteria.",
     "waiting": "Blocked on a user decision or approval.",
     "done": "Committed with its validation.",
     "superseded": "Replaced by the slice named in its refs."
@@ -58,26 +58,15 @@
       "title": "Proof and release",
       "plan": "docs/runbooks/phase-8-2-release.md",
       "purpose": "Turns integrating work into accepted cases, then runs the final proof and promotion (gate 5)."
+    },
+    {
+      "id": "VS",
+      "title": "Vertical slices (2026-10-02 re-cut)",
+      "plan": "docs/handoffs/phase-08-2-decisions.md",
+      "purpose": "Each slice closes named criteria with a focused proof and finishes the older slices it includes. The V15 load run, final proof and promotion come last (D80)."
     }
   ],
-  "queue": [
-    "A35-S3c0",
-    "A35-S3c1",
-    "A35-S3c2",
-    "A35-S3c3",
-    "TST-6",
-    "TST-0",
-    "A35-S9",
-    "CP-S6i",
-    "PLT-5",
-    "TST-4",
-    "TST-5",
-    "A36-F1",
-    "REL-4",
-    "REL-5",
-    "REL-6",
-    "REL-7"
-  ],
+  "queue": ["VS-1", "VS-2", "VS-3", "VS-4", "VS-5", "VS-6", "VS-7", "VS-8", "VS-9", "VS-10"],
   "slices": [
     { "id": "A35-S0", "stream": "A35", "state": "done", "title": "Decision gate: ADR 0035, amendments, room CPU, Durable Object cost and checkpoint size measured", "cases": [], "refs": [] },
     { "id": "A35-S1", "stream": "A35", "state": "done", "title": "Encounter writers behind a store interface (package with no Convex runtime dependency)", "cases": ["R06"], "refs": [] },
@@ -177,7 +166,17 @@
     { "id": "REL-4", "stream": "REL", "state": "remaining", "title": "Test-and-fix cycle: local reset, seed and codegen; affected then full suites; end-to-end journeys. Integrating slices become done here", "cases": ["R06", "V05", "V07", "V13", "V14", "F12", "P15"], "refs": [] },
     { "id": "REL-5", "stream": "REL", "state": "remaining", "title": "V15 workload re-measured on the room-authoritative design, then six browsers; Q16 budgets", "cases": ["V15"], "refs": ["Q16"] },
     { "id": "REL-6", "stream": "REL", "state": "remaining", "title": "Final proof: R01–R05 audit, yarn validate:pre-staging:local on the final source, fog save retention, docs", "cases": ["R01", "R02", "R03", "R04", "R05", "R07", "R08"], "refs": ["CP-S7", "Q4"] },
-    { "id": "REL-7", "stream": "REL", "state": "remaining", "title": "Staging and production promotion (needs approval)", "cases": ["R09", "R10"], "refs": [] }
+    { "id": "REL-7", "stream": "REL", "state": "remaining", "title": "Staging and production promotion (needs approval)", "cases": ["R09", "R10"], "refs": [] },
+    { "id": "VS-1", "stream": "VS", "state": "remaining", "title": "Scene history: packed Scene-scoped ledgers, room-built Scene cache, room-path contention re-proof", "cases": ["V05", "V07", "V14"], "criteria": ["V05.1", "V05.2", "V05.3", "V05.4", "V05.5", "V07.1", "V14.2"], "includes": ["A35-S3a", "A35-S3c0", "A35-S3c1", "A35-S3c2", "A35-S3c3"], "refs": ["D70", "D77", "D78", "D79", "Hot path: hydration row and byte budget test", "Dev scripts stop reading Convex before checkpoint; Campaign deletion of Scene rows covered again"] },
+    { "id": "VS-2", "stream": "VS", "state": "remaining", "title": "Movement and passage through the room, with the maintained-effect owner fix", "cases": ["V03", "V07", "V08", "V09", "V13"], "criteria": ["V03.4", "V03.5", "V07.4", "V07.5", "V08.1", "V08.2", "V08.3", "V08.4", "V08.5", "V08.6", "V09.1", "V09.2", "V09.3", "V09.4", "V09.5", "V09.6", "V09.7", "V13.3"], "includes": ["A35-S6a", "A35-S6b", "A35-S6c2", "TST-5"], "refs": ["D78", "Hot path: checkpoint row and byte counts"] },
+    { "id": "VS-3", "stream": "VS", "state": "remaining", "title": "Encounter decisions and journeys through the room, with the tied-initiative base fix", "cases": ["R06", "V10", "V12", "V13", "V14"], "criteria": ["R06.1", "R06.2", "R06.4", "V10.5", "V10.6", "V10.7", "V10.8", "V10.9", "V10.10", "V10.11", "V12.4", "V12.5", "V12.6", "V12.7", "V12.8", "V13.1", "V13.2", "V14.1", "V14.3", "V14.4"], "includes": ["A35-S6c1", "A35-S6c3"], "refs": ["D78", "Hot path: checkpoint row and byte counts; the 100-actor write budget"] },
+    { "id": "VS-4", "stream": "VS", "state": "remaining", "title": "Held Sheet play, recovery and account deletion through the room", "cases": ["F12", "P15", "R06", "V14"], "criteria": ["F12.1", "F12.2", "F12.3", "F12.4", "F12.5", "P15.1", "P15.2", "P15.3", "P15.4", "R06.3", "V14.5"], "includes": ["A35-S7a", "A35-S3b", "A35-S7b", "TST-4"], "refs": ["Hot path: room hydration of held Characters"] },
+    { "id": "VS-5", "stream": "VS", "state": "remaining", "title": "Chat and rolls through the room, with chat cards for automatic rule rolls", "cases": ["P06", "P14", "V11"], "criteria": ["P06.4", "P06.5", "P14.5", "V11.4", "V11.5", "V11.6", "V11.7", "V11.8", "V11.9", "V11.10"], "includes": ["A35-S8a", "CP-S6i"], "refs": ["D72", "Check Q14 first"] },
+    { "id": "VS-6", "stream": "VS", "state": "remaining", "title": "Builder budgets on content snapshots, with the Builder follow-ups", "cases": ["P02"], "criteria": ["P02.3"], "includes": ["A36-S10", "A36-F1"], "refs": ["ADR 0036", "Needs contentSnapshots/migrations:rebuild against the local R2 fixture"] },
+    { "id": "VS-7", "stream": "VS", "state": "remaining", "title": "Web on Cloudflare Workers (code): skeleton SSR for signed-in pages, focus refetch off", "cases": ["R05"], "criteria": ["R05.1"], "includes": ["PLT-5"], "refs": ["D75", "D80", "Re-proves R05.1 on the Worker build; edge rules move to VS-10"] },
+    { "id": "VS-8", "stream": "VS", "state": "remaining", "title": "Budgets in gates, faster suites, one full test-and-fix run, then the V15 load run", "cases": ["V15"], "criteria": ["V15.1", "V15.2", "V15.3"], "includes": ["TST-0", "TST-6", "A35-S9", "REL-4", "REL-5"], "refs": ["Re-verifies R07 after the architecture docs rewrite"] },
+    { "id": "VS-9", "stream": "VS", "state": "remaining", "title": "Final proof on one source: R08 lifecycle and the R01-R05 audits", "cases": ["R01", "R02", "R03", "R04", "R05", "R08"], "criteria": ["R01.1", "R01.2", "R02.1", "R02.2", "R03.1", "R03.2", "R04.1", "R04.2", "R05.2", "R08.1", "R08.2"], "includes": ["REL-6", "A35-S8b"], "refs": ["yarn validate:pre-staging:local"] },
+    { "id": "VS-10", "stream": "VS", "state": "remaining", "title": "Staging and production promotion, with the Cloudflare edge rules (needs approval)", "cases": ["R09", "R10", "V15"], "criteria": ["R09.1", "R09.2", "R10.1", "R10.2", "V15.4"], "includes": ["REL-7"], "refs": ["D75 edge rules: Bot Fight Mode, WAF scanner paths, rate limit, fail closed, 60% alert"] }
   ],
   "metrics": [
     { "label": "SRD monster attacks that run", "value": "510 / 551", "from": "40 / 491", "goal": "all printed attacks (41 left)", "met": false },
