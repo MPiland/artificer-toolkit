@@ -48,7 +48,15 @@ Earlier slices: A35-S3c0 `0a19e6476`; A36-S10 `bd0125977`; A35-S6c3 `e3f51905a`;
 
 ## Current slice
 
-**A35-S3c2 Packed Scene history** (V05, V07; D70, D77, D79). Scene-scoped ledgers with indexed headers; room hydration, retention and Campaign deletion run on them. Then comes S3c3 (Scene cache from the room store, D78). Read D77 in the acceptance ledger's decisions and its mentions in `docs/architecture/live-sessions.md` first.
+**First: re-slice the remaining queue vertically (user-approved 2026-10-02), then rebuild the dashboard.**
+
+1. A Sonnet agent maps every open criterion (`node scripts/acceptanceProgress.mjs --json`) to the remaining registry slices and their dependencies.
+2. Re-cut the queue so each slice closes named criteria (one case, sometimes two or three related ones). A slice is done when those criteria are READY_FOR_ACCEPTANCE with a focused proof. No slice may close zero criteria. Infrastructure work folds into the case slice that needs it. Dependency order stays: S3c2 before S3c3.
+3. Slices that touch hot paths (room hydration, checkpoint, Scene history) check their row and byte counts against the budgets in focused tests. The full V15 load and budget run and the final proof are the last slice.
+4. Show the user the re-cut plan for approval before updating the registry.
+5. Rebuild the dashboard as Gate → Case → Criteria with a slice board (Remaining → Active → Integrating → Done; each card names the criteria it closes). Add a burn-up chart of Accepted and Ready criteria over time, built from the acceptance ledger's git history.
+
+**Then:** **A35-S3c2 Packed Scene history** (V05, V07; D70, D77, D79). Scene-scoped ledgers with indexed headers; room hydration, retention and Campaign deletion run on them. Then comes S3c3 (Scene cache from the room store, D78). Read D77 in the acceptance ledger's decisions and its mentions in `docs/architecture/live-sessions.md` first.
 
 ## Next slices
 
