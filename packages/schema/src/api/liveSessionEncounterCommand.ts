@@ -44,7 +44,10 @@ export const liveSessionEncounterRouteResponseSchema = lazySchema(() =>
 
 type EncounterCommandType = z.infer<typeof encounterCommandInputDtoSchema>['type']
 
-/** Commands whose shared reducers commit against the room's native transaction. */
+/**
+ * Commands whose shared reducers commit against the room's native transaction: every ACTIVE-Run
+ * command except a decision, which the room routes by its retained evidence (D78).
+ */
 export const ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES = [
   'START',
   'ADVANCE_TURN',
@@ -63,6 +66,7 @@ export const ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES = [
   'SET_INITIATIVE',
   'ROLL_ACTOR_INITIATIVE',
   'ROLL_ENEMY_ACTION',
+  'ROLL_RULE_EVIDENCE',
   'ADJUST_FEATURE_RESOURCE',
   'REPLACE_CREATURE_EQUIPMENT',
   'REPLACE_OPTIONAL_COMBAT_RULES',
@@ -70,26 +74,17 @@ export const ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES = [
   'COMPLETE'
 ] as const satisfies readonly EncounterCommandType[]
 
-export type RoomLocalEncounterCommand =
-  | Extract<
-      EncounterCommandInputDto,
-      {
-        type: Exclude<
-          (typeof ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES)[number],
-          'UPDATE_ACTOR' | 'ROLL_ENEMY_ACTION'
-        >
-      }
-    >
-  | (Extract<EncounterCommandInputDto, { type: 'UPDATE_ACTOR' }> & {
-      characterCommand?: undefined
-    })
-  | (Extract<EncounterCommandInputDto, { type: 'ROLL_ENEMY_ACTION' }> & {
-      visibility: 'PRIVATE'
-    })
+export type RoomLocalEncounterCommand = Extract<
+  EncounterCommandInputDto,
+  { type: (typeof ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES)[number] }
+>
 
 const roomLocalCommandTypes = new Set<EncounterCommandType>(ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES)
 
-/** A decision joins the native path only after retained evidence identifies an implemented planner. */
+/**
+ * A decision commits natively when retained evidence names its planner; otherwise the room refuses
+ * it as Convex would (stale or unavailable).
+ */
 export type RoomNativeEncounterCommand =
   | RoomLocalEncounterCommand
   | Extract<EncounterCommandInputDto, { type: 'RESOLVE_RULE_OCCURRENCE' | 'VOID_RULE_OCCURRENCE' }>
@@ -97,21 +92,13 @@ export type RoomNativeEncounterCommand =
 export function isRoomLocalEncounterCommand(
   command: EncounterCommandInputDto
 ): command is RoomLocalEncounterCommand {
-  return (
-    roomLocalCommandTypes.has(command.type) &&
-    (command.type !== 'UPDATE_ACTOR' || command.characterCommand === undefined) &&
-    (command.type !== 'ROLL_ENEMY_ACTION' || command.visibility === 'PRIVATE')
-  )
+  return roomLocalCommandTypes.has(command.type)
 }
 
 /**
- * Transitional GM tools Convex still records directly (D41): no dice, and no derived mechanics beyond the
- * deterministic actor recalculation every Convex commit runs anyway. A Character's Sheet command
- * inside `UPDATE_ACTOR` stays with the Sheet's owner (R06.3). Commands listed in
- * ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES commit in room SQLite; their protected Convex path remains
- * for shadow parity until S5 closes.
- * Account cleanup still shares the actor-removal reducer.
- * Dice commands are rolled by the room (`liveSessionEncounterRoll*`).
+ * GM tools the protected Convex per-command path still records (D41) for a Run the room does not
+ * hold. The room commits every ACTIVE-Run Encounter command in its own SQLite (D78) and no longer
+ * sends these to Convex; the Convex path is retired in S6c3.
  */
 export const CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES = [
   'UPDATE_ACTOR',
@@ -132,7 +119,10 @@ export const CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES = [
   'COMPLETE'
 ] as const satisfies readonly EncounterCommandType[]
 
-/** A dice command the room rolls with its secure random source (D41); Convex records it. */
+/**
+ * A dice command the room rolled with its secure random source (D41) for Convex to record. The room
+ * now records every dice command itself (D78); this route is retired in S6c3.
+ */
 export const liveSessionEncounterRollInputSchema = lazySchema(() =>
   z.extend(liveSessionBootstrapInputSchema, {
     command: z.discriminatedUnion('type', [
@@ -158,8 +148,8 @@ export const liveSessionEncounterRollCommitInputSchema = lazySchema(() =>
 )
 
 /**
- * An Encounter command the room sends to Convex in room order: a recorded GM tool, or a
- * movement decision on a Scene the room does not own (D29).
+ * An Encounter command Convex records for the room in room order. The room commits every
+ * ACTIVE-Run command itself (D78) and no longer sends it; the route is retired in S6c3.
  */
 export const liveSessionEncounterCommandInputSchema = lazySchema(() =>
   z.extend(liveSessionBootstrapInputSchema, {

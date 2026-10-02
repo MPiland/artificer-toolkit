@@ -24,6 +24,8 @@ export async function insertPendingMovementDecision(
     sourceActorId: string
     gameSystemId: string
     now: string
+    /** The crossed effect asks its target for a d20 save, which a "Roll dice" answers. */
+    d20Evidence?: boolean
   }
 ) {
   const occurrenceId = crypto.randomUUID()
@@ -123,7 +125,16 @@ export async function insertPendingMovementDecision(
           revealOnTrigger: false
         },
         target: { kind: 'ENCOUNTER_ACTOR', targetStateChecksum: checksum('4') },
-        d20Policy: null
+        d20Policy: input.d20Evidence
+          ? {
+              requestNodeId: 'd20',
+              rollMode: 'NORMAL',
+              contributors: [],
+              contributorChecksum: checksumRuleDocument([]),
+              modifier: 0,
+              dc: 10
+            }
+          : null
       },
       remainingCandidates: []
     }

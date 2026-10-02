@@ -64,9 +64,10 @@ import {
   stubLiveSessionFetch,
   workerEnvironment,
   executeInRoom,
-  replayInRoom
+  expectRedactedRoomRefusal,
+  replayInRoom,
+  RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const creatureId = '00000000-0000-4000-8000-0000000008e0'
 const featureId = '00000000-0000-4000-8000-0000000008e1'
@@ -736,7 +737,11 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
       createdDependentEffectIds: [firstComplete.characterEffects[0]!.id]
     }
   })
-  await expect(replayInRoom(base.owner.caller, { command: root })).resolves.toEqual(settled)
+  // The room journal replays each command's own receipt, shown over the current Run.
+  await expect(replayInRoom(base.owner.caller, { command: root })).resolves.toEqual({
+    ...issued,
+    projection: settled.projection
+  })
   await expect(replayInRoom(base.owner.caller, response)).resolves.toEqual(settled)
   expect(await records(base)).toEqual(firstComplete)
 
@@ -762,7 +767,8 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     await ctx.db.patch(state._id, { version: state.version + 1 })
     return state.version
   })
-  await expect(executeInRoom(base.owner.caller, sameTargetResponse)).rejects.toThrow(
+  await expectRedactedRoomRefusal(
+    executeInRoom(base.owner.caller, sameTargetResponse),
     'pending action source or target changed'
   )
   await base.t.run(async (ctx) => {
@@ -788,7 +794,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     await ctx.db.patch(character._id, { status: 'DRAFT' })
   })
   await expect(executeInRoom(base.owner.caller, sameTargetResponse)).rejects.toThrow(
-    LiveSessionRouteError
+    RoomCommandRefusal
   )
   await base.t.run(async (ctx) => {
     const character = await ctx.db
@@ -827,9 +833,10 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
       createdDependentEffectIds: [sameTargetComplete.characterEffects[0]!.id]
     }
   })
-  await expect(replayInRoom(base.owner.caller, { command: sameTargetRoot })).resolves.toEqual(
-    sameTargetReplaced
-  )
+  await expect(replayInRoom(base.owner.caller, { command: sameTargetRoot })).resolves.toEqual({
+    ...sameTargetIssued,
+    projection: sameTargetReplaced.projection
+  })
   await expect(replayInRoom(base.owner.caller, sameTargetResponse)).resolves.toEqual(
     sameTargetReplaced
   )
@@ -866,7 +873,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     await ctx.db.patch(character._id, { status: 'DRAFT' })
   })
   await expect(executeInRoom(base.owner.caller, detachedResponse)).rejects.toThrow(
-    LiveSessionRouteError
+    RoomCommandRefusal
   )
   await base.t.run(async (ctx) => {
     const character = await ctx.db
@@ -915,9 +922,10 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
       createdDependentEffectIds: [detachedComplete.actorEffects[0]!.id]
     }
   })
-  await expect(replayInRoom(base.owner.caller, { command: detachedRoot })).resolves.toEqual(
-    detachedReplaced
-  )
+  await expect(replayInRoom(base.owner.caller, { command: detachedRoot })).resolves.toEqual({
+    ...detachedIssued,
+    projection: detachedReplaced.projection
+  })
   await expect(replayInRoom(base.owner.caller, detachedResponse)).resolves.toEqual(detachedReplaced)
   expect(await records(base)).toEqual(detachedComplete)
   expect(projection.version).toBe(detachedComplete.run?.version)
@@ -940,7 +948,8 @@ it('rejects a missing current maintenance definition while an Assisted action is
     if (!definition) throw new Error('Maintenance definition fixture is unavailable.')
     await ctx.db.delete(definition._id)
   })
-  await expect(executeInRoom(base.owner.caller, diceResponse(issued))).rejects.toThrow(
+  await expectRedactedRoomRefusal(
+    executeInRoom(base.owner.caller, diceResponse(issued)),
     'maintenance definition is no longer current'
   )
   expect(await records(base)).toEqual(staged)
@@ -1434,13 +1443,14 @@ it('refuses a maintained action when a dependent link changes between capture pa
       changed = true
       await base.t.run(async (rawCtx) => {
         const ctx = withSceneVisionTracking(rawCtx)
-        const row = await ctx.db
-          .query('encounterActiveRuleEffects')
-          .withIndex('by_encounterId_targetActorId_id', (q) =>
-            q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
-          )
-          .filter((q) => q.eq(q.field('maintainedEffectStateId'), state.id))
-          .first()
+        const row = (
+          await ctx.db
+            .query('encounterActiveRuleEffects')
+            .withIndex('by_encounterId_targetActorId_id', (q) =>
+              q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
+            )
+            .collect()
+        ).find((effect) => effect.maintainedEffectStateId === state.id)
         if (!row) throw new Error('Missing linked dependent page row.')
         await ctx.db.patch(row._id, { maintainedEffectStateId: null })
       })

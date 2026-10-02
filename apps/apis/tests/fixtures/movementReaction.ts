@@ -21,7 +21,7 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { adultBlackDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-black-dragon.js'
+import { adultBlackDragon as rawAdultBlackDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-black-dragon.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -33,13 +33,15 @@ import {
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from './characters'
 import { reactionBinding } from './reactionBinding'
-import { srdWolf } from './srdCreatures'
+import { srdCreatureRecord, srdWolf } from './srdCreatures'
 import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
 import { importedSubject } from './publication'
 import { maintenanceDefinitionFixture } from './maintenanceDefinition'
 import { api, internal } from '../../convex/_generated/api'
 import { sourceImportBatches } from '../../convex/content/importBatches'
 import { activateFixtureRun } from './activeInitiative'
+
+const adultBlackDragon = srdCreatureRecord(rawAdultBlackDragon.id)
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )

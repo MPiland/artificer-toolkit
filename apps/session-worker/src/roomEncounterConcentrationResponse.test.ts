@@ -614,6 +614,19 @@ it('atomically resolves a failed native Concentration save, retains the private 
         revision: JSON.stringify(revisions),
         json: JSON.stringify(part)
       },
+      {
+        kind: 'ROOM_INPUT',
+        key: `RUN:${state.id}`,
+        revision: null,
+        json: JSON.stringify({
+          kind: 'RUN',
+          encounterVersion: state.version,
+          activeEncounterId: null,
+          maintenanceCharacterOwners: [],
+          documents: [],
+          continueCursor: null
+        })
+      },
       ...['SYSTEM:SYSTEM', 'SYSTEM:VOCABULARY'].map((key) => ({
         kind: 'ROOM_INPUT',
         key,

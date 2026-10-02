@@ -6,7 +6,7 @@ import {
   readCharacterSheetState
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'

@@ -12,6 +12,7 @@ import type {
 
 import {
   sceneStoredDefinitionEntitySchema,
+  sceneStoredDefinitionSaveSchema,
   sceneStoredInitialStateSchema,
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
@@ -144,4 +145,51 @@ export async function createEncounterSceneFixture(
     )
   })
   return { ...base, campaign, blueprint, run, sceneId, saveId, tokens }
+}
+
+/** Publishes the fixture Scene's source save, which a room needs to read the presented Scene. */
+export async function publishSceneSource(
+  base: Awaited<ReturnType<typeof createEncounterSceneFixture>>
+) {
+  await base.t.run(async (ctx) => {
+    const scene = await ctx.db
+      .query('campaignScenes')
+      .withIndex('by_publicId', (q) => q.eq('id', base.sceneId))
+      .unique()
+    if (!scene) throw new Error('Missing fixture Scene.')
+    const counts = {
+      annotations: 0,
+      barriers: 0,
+      darknessZones: 0,
+      lights: 0,
+      tokens: base.tokens.length
+    }
+    await ctx.db.insert(
+      'sceneDefinitionSaves',
+      sceneStoredDefinitionSaveSchema.parse({
+        id: base.saveId,
+        commandId: scene.materializationCommandId,
+        commandFingerprint: '0'.repeat(64),
+        ownerUserId: base.other.userId,
+        definitionId: scene.definitionId,
+        expectedVersion: null,
+        settings: {
+          campaignId: scene.campaignId,
+          name: scene.name,
+          ambientIllumination: scene.ambientIllumination,
+          fogMode: scene.fogMode,
+          visionRevealMode: scene.visionRevealMode,
+          grid: scene.grid,
+          map: scene.map
+        },
+        counts,
+        received: counts,
+        status: 'PUBLISHED',
+        liveSceneId: scene.id,
+        entitiesRemoved: false,
+        createdAt: scene.createdAt,
+        expiresAt: Date.now() + 60_000
+      })
+    )
+  })
 }

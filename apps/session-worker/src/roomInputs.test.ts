@@ -559,6 +559,8 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
         return {
           kind: 'RUN',
           encounterVersion: state.runVersion,
+          activeEncounterId: null,
+          maintenanceCharacterOwners: [],
           documents: state.run.slice(start, next),
           continueCursor:
             next < state.run.length ? { position: pageIndex + 1, paginationCursor: null } : null
@@ -1212,6 +1214,7 @@ describe('room inputs (ADR 0035 S2)', () => {
         `CHARACTER:${FIRST_CHARACTER}`,
         `CHARACTER:${SECOND_CHARACTER}`,
         'DEFINITIONS',
+        `RUN:${ENCOUNTER}`,
         'SYSTEM:SYSTEM',
         'SYSTEM:VOCABULARY'
       ])
@@ -1380,6 +1383,7 @@ describe('room inputs (ADR 0035 S2)', () => {
         'CAMPAIGN_PLAY',
         `CHARACTER:${FIRST_CHARACTER}`,
         'DEFINITIONS',
+        `RUN:${ENCOUNTER}`,
         'SYSTEM:SYSTEM',
         'SYSTEM:VOCABULARY'
       ])

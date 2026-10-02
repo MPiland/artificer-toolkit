@@ -374,9 +374,24 @@ export async function applyCheckpointRecords(
     if (!row) continue
     // The table-selected native query and stored schema preserve these document correlations.
     switch (change.table) {
-      case 'encounterRuns':
-        readRunState(row as Doc<'encounterRuns'>)
+      case 'encounterRuns': {
+        const run = row as Doc<'encounterRuns'>
+        readRunState(run)
+        // A Campaign has one active Encounter, wherever it started.
+        if (
+          run.status === 'ACTIVE' &&
+          (
+            await ctx.db
+              .query('encounterRuns')
+              .withIndex('by_campaignId_status', (q) =>
+                q.eq('campaignId', run.campaignId).eq('status', 'ACTIVE')
+              )
+              .take(2)
+          ).length > 1
+        )
+          throw new Error('Checkpoint starts a second active Encounter in the Campaign.')
         break
+      }
       case 'encounterRunActors': {
         const actor = row as Doc<'encounterRunActors'>
         const state = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))

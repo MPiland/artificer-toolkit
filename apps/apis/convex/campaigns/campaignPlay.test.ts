@@ -19,8 +19,10 @@ import type {
   BindEncounterToPresentedSceneResultDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
-import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
+import {
+  createEncounterSceneFixture,
+  publishSceneSource
+} from '../../tests/fixtures/encounterScene'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
@@ -81,50 +83,6 @@ function readPlayRows(base: SceneFixture) {
   }))
 }
 
-async function publishSceneSource(base: SceneFixture) {
-  await base.t.run(async (ctx) => {
-    const scene = await ctx.db
-      .query('campaignScenes')
-      .withIndex('by_publicId', (q) => q.eq('id', base.sceneId))
-      .unique()
-    if (!scene) throw new Error('Missing fixture Scene.')
-    const counts = {
-      annotations: 0,
-      barriers: 0,
-      darknessZones: 0,
-      lights: 0,
-      tokens: base.tokens.length
-    }
-    await ctx.db.insert(
-      'sceneDefinitionSaves',
-      sceneStoredDefinitionSaveSchema.parse({
-        id: base.saveId,
-        commandId: scene.materializationCommandId,
-        commandFingerprint: '0'.repeat(64),
-        ownerUserId: base.other.userId,
-        definitionId: scene.definitionId,
-        expectedVersion: null,
-        settings: {
-          campaignId: scene.campaignId,
-          name: scene.name,
-          ambientIllumination: scene.ambientIllumination,
-          fogMode: scene.fogMode,
-          visionRevealMode: scene.visionRevealMode,
-          grid: scene.grid,
-          map: scene.map
-        },
-        counts,
-        received: counts,
-        status: 'PUBLISHED',
-        liveSceneId: scene.id,
-        entitiesRemoved: false,
-        createdAt: scene.createdAt,
-        expiresAt: Date.now() + 60_000
-      })
-    )
-  })
-}
-
 it('builds the party from active assignments and opens the table for a player without a Session', async () => {
   const base = await setupCharacterRun()
   expect(
@@ -145,6 +103,7 @@ it('builds the party from active assignments and opens the table for a player wi
 
 it('leaves live authority, presentation and an ACTIVE Run untouched when a Session finishes', async () => {
   const base = await createEncounterSceneFixture()
+  await publishSceneSource(base)
   await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
   await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
   const session = await base.other.caller.mutation(createSession, { campaignId: base.campaign.id })

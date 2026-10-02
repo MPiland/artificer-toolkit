@@ -532,6 +532,31 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     rate-limiting rule on navigations and `/api/auth/*`, fail closed when the daily pool runs out,
     and an alert at 60%. Verify the free plan's rule allowances and that edge-blocked requests do
     not count against the Workers pool before configuring.
+- **D78 (2026-10-01): A35-S6c splits into three slices and absorbs A35-S8c. Decided by the user
+  on 2026-10-01.**
+  - **S6c1:** every ACTIVE-Run Encounter command becomes room-native: evidence rolls and
+    table-visible enemy rolls (a room table-roll port, superseding D76's "Convex-recorded until
+    A35-S8c"), `UPDATE_ACTOR` carrying a Sheet command (through the room's held-Sheet path), and
+    decisions the room does not own (native refusals). Tests move to a convex-test harness that runs each command room-natively
+    and writes it back through the real checkpoint mutation; assertions on the per-receipt ledger
+    shape move to the checkpoint's per-scope ledgers.
+  - **S6c1 rulings (integration owner, 2026-10-01):**
+    - A retried commandId replays its journaled result. A fresh commandId against a settled
+      decision is VERSION_STALE, and reusing a commandId with different input is INVALID_COMMAND.
+      Replay no longer re-validates Convex receipt records: the room journal is the authority.
+    - A Sheet command bridged through `UPDATE_ACTOR` runs only on a room-held Character (an ACTIVE
+      Run). On a PREPARED Run it is refused with "Make this change from the Character Sheet."; the
+      web sends no such bridge.
+    - One ACTIVE Run per Campaign: the room refuses START from its RUN input
+      (`activeEncounterId`), and checkpoint ingestion refuses a checkpoint that would leave two.
+    - The room's settlement reads a detached owner Character through its port, so it refuses the
+      same way the Convex path did.
+  - **S6c2:** a room movement harness; the movement tests leave the Convex-first commit. Actor-token
+    binding becomes a room command (the room has none, so S6c1 could not fence
+    `actorTokenBindings.execute` without breaking live GM binding); then the Convex writer is fenced.
+  - **S6c3:** delete the per-command Convex path (routes, commit modules, Scene cache hydrate,
+    external commit, the S5 parity test), then docs and acceptance.
+  - Alternative rejected: keeping the roll routes as an exception would leave R06.1 incomplete.
 - **D77 (2026-10-01): A35-S5 becomes a differential test; A35-S3c follows A35-S6c. Decided by
   Claude; the user delegated slice order on 2026-10-01.**
   - **S5:** the room already commits nearly every Encounter and Scene command natively, so the

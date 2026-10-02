@@ -62,10 +62,10 @@ Campaigns will support a campaign-level **Feature** concept that applies tempora
 
 ## Node-based Campaign management and authoring (user-requested 2026-09-27)
 
-The user wants two React Flow features. Neither starts while ADR 0035 is in flight. Scheduling, decided 2026-09-27:
-- **Advanced authoring node editor: before launch, but only after Phases 8.2 and 8.3 are both done** (user, 2026-09-27: both phases are launch-critical and come first). Authoring is heavy, and a hard Advanced path could put off newer players who want to go beyond the Guided flow.
-- **Campaign node map: soon after launch.** A competitor running a Kickstarter has a similar feature, so it must not drift far.
-  - The Campaign entry kinds it needs (locations, NPCs, factions and their relationships) should be designed before launch, together with the Q18 per-Campaign entries limit, so the board can ship quickly after launch.
+The user wants two React Flow features. Neither starts while ADR 0035 is in flight. Scheduling (user, 2026-10-01, superseding 2026-09-27): **both are pre-launch but post-beta.** They start once Phases 8.2 and 8.3 are done, and are worked while beta testers are being recruited.
+- **Advanced authoring node editor.** Authoring is heavy, and a hard Advanced path could put off newer players who want to go beyond the Guided flow.
+- **Campaign node map.** A competitor running a Kickstarter has a similar feature, so it must not drift far.
+  - The Campaign entry kinds it needs (locations, NPCs, factions and their relationships) are designed together with the Q18 per-Campaign entries limit.
 
 ### Campaign management as a node map
 
@@ -96,6 +96,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
   - it launches only once there is working footage;
   - the page states plainly what the money funds;
   - the wording is "compatible with 5th edition", never the Dungeons & Dragons trademark.
+- **Tracking:** this is a business plan, kept here and out of the Phase 8.2 work-slice registry, whose dashboard tracks dev completion only (user, 2026-10-01). Audience-building comes first. React Flow prototypes may serve as campaign footage; the features themselves keep the schedule in the node-based section above.
 - **Next step:** Claude drafts a campaign plan for the user's review. It covers the goal built from real costs, the reward tiers, a timeline tied to the Phase 8.2 and 8.3 finish, a page outline, a video shot list, the waitlist and the risks.
 
 ## Post-launch

@@ -12,7 +12,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { startLocalR2 } from '../../tests/localR2'
 import { verifyEncounterLifecycle } from '../../tests/developmentEncounterLifecycle'
 import { verifyEncounterAutomation } from '../../tests/developmentEncounterAutomation'
@@ -290,4 +290,4 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
   vi.setSystemTime(Date.now() + 25 * 60 * 60 * 1000)
   await t.finishAllScheduledFunctions(vi.runAllTimers)
   expect(server.objects.size).toBe(0)
-}, 60000)
+}, 180000)

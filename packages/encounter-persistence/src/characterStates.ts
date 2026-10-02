@@ -60,15 +60,8 @@ export async function readEncounterCharacterStates(
   for (const actor of actors) {
     if (actor.kind !== 'CHARACTER') continue
     const characterId = actor.sourceId
-    const assignment =
-      state.status === 'COMPLETED'
-        ? null
-        : await ctx.db
-            .query('campaignCharacterAssignments')
-            .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
-            .unique()
-    if (assignment?.campaignId !== state.campaignId) {
-      if (!actor.frozenState) throw new Error('Encounter Character state is unavailable.')
+    // A frozen actor stays frozen: reassigning its Character does not resume the Run reading it.
+    if (actor.frozenState) {
       states.set(characterId, {
         current: actor.frozenState.currentHitPoints,
         temporary: actor.frozenState.tempHitPoints,
@@ -77,6 +70,15 @@ export async function readEncounterCharacterStates(
       })
       continue
     }
+    const assignment =
+      state.status === 'COMPLETED'
+        ? null
+        : await ctx.db
+            .query('campaignCharacterAssignments')
+            .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+            .unique()
+    if (assignment?.campaignId !== state.campaignId)
+      throw new Error('Encounter Character state is unavailable.')
     const play = await readEncounterCharacterPlay(ctx, characterId)
     if (!play || play.userId !== assignment.userId)
       throw new Error('Stored Encounter Character source is unavailable.')

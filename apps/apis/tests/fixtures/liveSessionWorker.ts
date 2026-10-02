@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { beforeEach, expect, vi } from 'vitest'
 import type {
   LiveSessionExpectedScene,
   LiveSessionExternalAuthority,
@@ -9,16 +9,20 @@ import {
   preparedMovementCost,
   preparedMovementSceneDelta
 } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
+import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
+  encounterCommandResultDtoSchema,
   encounterExecuteInputSchema,
   type EncounterCommandInputDto,
   type EncounterCommandResultDto,
   type ResolveRuleOccurrenceInputDto,
   type VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneTokenMovementCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type { z } from 'zod'
 import type { TestConvex } from 'convex-test'
 import { ConvexError } from 'convex/values'
@@ -29,13 +33,16 @@ import {
   type OptionalRestArgs
 } from 'convex/server'
 import { executeEncounterCommand, type DevelopmentClient } from '../developmentClient'
-import { api } from '../../convex/_generated/api'
+import { api, internal } from '../../convex/_generated/api'
 import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
 import type { MutationCtx, QueryCtx } from '../../convex/_generated/server'
 import * as rollRandom from '../../convex/lib/rollRandom'
 import type schema from '../../convex/schema'
 import { parseGeometrySave } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { persistSpatialPreparation } from '../../convex/scenes/spatialPreparationPersistence'
+import { readRoomAuthorization } from '../../convex/liveSessions/roomAuthorization'
+import { releaseCharacterHolds } from '../../convex/liveSessions/characterHolds'
+import { installContentSnapshots } from './roomContentSnapshots'
 import {
   callLiveSessionRoute,
   LiveSessionDomainRejectionError,
@@ -47,11 +54,20 @@ import {
   sceneNotPresentedRejection,
   type LiveEncounterActor
 } from '../../../session-worker/src/nativeRoomEncounterCommand'
-import { planNativeLiveCleavingResponse } from '../../../session-worker/src/nativeCleavingResponse'
-import { planNativeLiveConcentrationResponse } from '../../../session-worker/src/nativeConcentrationResponse'
-import { planNativeLiveDisarm } from '../../../session-worker/src/nativeDisarm'
-import { planNativeLiveEncounterAction } from '../../../session-worker/src/nativeEncounterRules'
-import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
+import {
+  executeRoomEncounterCommand as executeRoomCommand,
+  replayRoomEncounterCommand,
+  roomEncounterCommandFingerprint
+} from '../../../session-worker/src/roomEncounterCommands'
+import {
+  readRoomEncounterResponseRoute,
+  roomOwnsEncounterVoid
+} from '../../../session-worker/src/roomEncounterResponseRouting'
+import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
+import { RoomInputs } from '../../../session-worker/src/roomInputs'
+import { RoomCheckpoints } from '../../../session-worker/src/roomCheckpoints'
+import { loadRoomContentSnapshots } from '../../../session-worker/src/roomContentSnapshots'
+import { createNodeSqliteRoomStorage } from '../../../session-worker/src/testing/nodeSqliteRoomStorage'
 import { readNativeEncounterOccurrenceOwner } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { commitLiveMovement } from '../../convex/liveSessions/encounterMovementCommit'
 import {
@@ -62,7 +78,10 @@ import {
 } from '../../../session-worker/src/nativeExternalSceneCommit'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
 import { hydrateNativeTransientScene } from '../../../session-worker/src/nativeSceneClient'
-import type { LiveCaptureReads } from '../../../session-worker/src/nativeCaptureCache'
+import {
+  LiveCaptureCache,
+  type LiveCaptureReads
+} from '../../../session-worker/src/nativeCaptureCache'
 import {
   createNativeLiveRulesRuntime,
   secureRandomInt
@@ -186,17 +205,17 @@ async function stageRoomMovement(input: {
 }
 
 /**
- * Sends one Encounter command through the room's dispatcher (`executeLiveEncounterCommand`) as a
- * member. The Campaign needs an active live authority at `actor.authorityEpoch`. A movement decision
- * commits with the presented Scene (`stageRoomMovement`).
+ * The Convex-first comparator: one Encounter command through the room's dispatcher
+ * (`executeLiveEncounterCommand`), which commits through Convex routes. A movement decision commits
+ * with the presented Scene (`stageRoomMovement`).
  */
-export function executeRoomEncounterCommand(input: {
+function executeConvexFirstCommand(input: {
   caller: Pick<MemberCaller, 'fetch' | 'run'>
   actor: LiveEncounterActor
   command: EncounterCommandInputDto
-  random?: (maximum: number) => number
+  random: (maximum: number) => number
 }): Promise<EncounterCommandResultDto> {
-  const random = input.random ?? secureRandomInt
+  const { random } = input
   return withRoomConvex(input.caller, (room) =>
     executeLiveEncounterCommand({
       ...room,
@@ -219,6 +238,209 @@ export function executeRoomEncounterCommand(input: {
       }
     })
   )
+}
+
+/** A non-domain room refusal, redacted as the room reports it to the member; `cause` keeps the error. */
+export class RoomCommandRefusal extends Error {
+  readonly code: ReturnType<typeof encounterCommandRefusal>['code']
+
+  constructor(cause: unknown, refusal = encounterCommandRefusal(cause)) {
+    super(refusal.message, { cause })
+    this.name = 'RoomCommandRefusal'
+    this.code = refusal.code
+  }
+}
+
+/** Asserts the room redacted a command's failure, by the reason its cause keeps for the server log. */
+export async function expectRedactedRoomRefusal(
+  command: Promise<unknown>,
+  reason: string | RegExp,
+  code: RoomCommandRefusal['code'] = 'UNAVAILABLE'
+) {
+  const error = await command.then(
+    () => {
+      throw new Error('Expected the room to refuse the command.')
+    },
+    (failure: unknown) => failure
+  )
+  // Anything else (a domain rejection or a harness failure) is rethrown whole for the test report.
+  if (!(error instanceof RoomCommandRefusal)) throw error
+  expect({
+    code: error.code,
+    reason: error.cause instanceof Error ? error.cause.message : error.cause
+  }).toEqual({
+    code,
+    reason: typeof reason === 'string' ? expect.stringContaining(reason) : expect.stringMatching(reason)
+  })
+}
+
+/**
+ * The room's durable command journal, keyed as the room keys it (its Campaign and the command ID):
+ * the submitter, the command's fingerprint and its committed Encounter result, or null for a
+ * movement decision, whose receipt is the Scene's. Each test opens new rooms.
+ */
+const roomJournal = new Map<
+  string,
+  { userId: string; fingerprint: string; resultJson: string | null }
+>()
+beforeEach(() => roomJournal.clear())
+
+/** A room refusal whose code and message the room sends as they are. */
+function roomRefusal(code: RoomCommandRefusal['code'], message: string) {
+  return new RoomCommandRefusal(new Error(message), { code, message })
+}
+
+/**
+ * Sends one Encounter command to the room as a member, the way the Session room commits it (D78):
+ * a fresh room store hydrated over node SQLite from the Convex room inputs at the authority's
+ * persisted checkpoint, the room-native executor in one room transaction with no HTTP, then the
+ * room's checkpoint published through the real checkpoint mutation before this returns. The
+ * Campaign needs an active live authority at `actor.authorityEpoch`. A domain rejection surfaces as
+ * the ConvexError data the browser receives; any other refusal as a redacted `RoomCommandRefusal`.
+ * A movement decision still commits Convex-first with the presented Scene until A35-S6c2.
+ */
+export async function executeRoomEncounterCommand(input: {
+  caller: MemberCaller
+  actor: LiveEncounterActor
+  command: EncounterCommandInputDto
+  random?: (maximum: number) => number
+}): Promise<EncounterCommandResultDto> {
+  const { caller, actor, command } = input
+  const random = input.random ?? secureRandomInt
+  const { campaignId, authorityEpoch: epoch, expectedUserId: userId } = actor
+  const encounterId = command.encounterId.toLowerCase()
+  const read = await caller.run(async (ctx) => {
+    const authority = await ctx.db
+      .query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .unique()
+    if (!authority || authority.epoch !== epoch)
+      throw new Error('Live authority fixture is missing.')
+    // As the room does, hydrate the presented Scene, if any.
+    const presentation = await ctx.db
+      .query('campaignScenePresentations')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .unique()
+    return {
+      checkpoint: {
+        epoch,
+        sequence: authority.persistedSequence,
+        checksum: authority.persistedStateChecksum
+      },
+      sceneId: presentation?.sceneId ?? null,
+      // A test transaction cannot return the authorization's undefined members.
+      authorizationJson: JSON.stringify(
+        await readRoomAuthorization(ctx, { campaignId, epoch, known: null })
+      )
+    }
+  })
+  const authorization = liveSessionRoomAuthorizationSchema.parse(JSON.parse(read.authorizationJson))
+  if (!authorization.campaign.members.some((member) => member.userId === userId))
+    throw new RoomCommandRefusal(new LiveSessionRouteError(403))
+  const contentSnapshots = await installContentSnapshots(caller, campaignId)
+  const runtime = await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
+  const { storage, database } = createNodeSqliteRoomStorage()
+  const fetch = globalThis.fetch
+  globalThis.fetch = async () => {
+    throw new Error('The room-native path attempted an HTTP request.')
+  }
+  try {
+    const store = new RoomEncounterStore(storage)
+    const inputs = new RoomInputs(
+      store,
+      (inputEpoch, scope) =>
+        caller.query(internal.liveSessions.roomInputs.read, {
+          campaignId,
+          epoch: inputEpoch,
+          scope
+        }),
+      (manifest) => loadRoomContentSnapshots(contentSnapshots, manifest, campaignId)
+    )
+    const fingerprint = roomEncounterCommandFingerprint(command)
+    const journalKey = `${campaignId}:${command.commandId}`
+    // As the room does, any failure from hydration to commit is refused to the member.
+    const committed = await (async () => {
+      await inputs.hydrate({
+        epoch,
+        encounterId,
+        sceneId: read.sceneId,
+        checkpoint: read.checkpoint
+      })
+      let movement = false
+      if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') {
+        const route = await readRoomEncounterResponseRoute(store, command)
+        const native =
+          command.type === 'VOID_RULE_OCCURRENCE'
+            ? await roomOwnsEncounterVoid(store, command)
+            : route !== null && route !== 'MOVEMENT'
+        movement = route === 'MOVEMENT' && !native
+      }
+      // As the room does, a reused command ID is looked up in the journal before execution.
+      const prior = roomJournal.get(journalKey)
+      if (prior) {
+        if (prior.userId !== userId || prior.fingerprint !== fingerprint)
+          throw roomRefusal('INVALID_COMMAND', 'The command ID was already used for different input.')
+        if (prior.resultJson === null)
+          throw roomRefusal('STALE_STATE', 'This decision was already settled.')
+        return {
+          kind: 'REPLAY' as const,
+          result: await replayRoomEncounterCommand({
+            store,
+            inputs,
+            authorization,
+            userId,
+            result: encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
+          })
+        }
+      }
+      if (movement) return null
+      const transacted = await store.transact(
+        (transaction) =>
+          executeRoomCommand({
+            store,
+            transaction,
+            inputs,
+            authorization,
+            campaignId,
+            epoch,
+            userId,
+            recipientUserIds: [],
+            command,
+            random,
+            turnExecution: {
+              environment: workerEnvironment(ROOM_WORKER_SECRET),
+              runtime,
+              captures: new LiveCaptureCache().reads()
+            }
+          }),
+        // As the room does, every command commits one journal entry with its receipt.
+        () => undefined
+      )
+      const own = transacted.recipients.get(userId)
+      if (!own) throw new Error('The room produced no result for its submitter.')
+      roomJournal.set(journalKey, { userId, fingerprint, resultJson: JSON.stringify(own) })
+      return { kind: 'COMMITTED' as const, result: own }
+    })().catch((error: unknown) => {
+      // As the room does, a Sheet refusal reaches the member with its own message.
+      if (error instanceof CharacterSheetCommandError || error instanceof RoomCommandRefusal)
+        throw error
+      throw domainRejection(error) ?? new RoomCommandRefusal(error)
+    })
+    if (!committed) {
+      // The Convex-first movement commit routes its own requests (`withRoomConvex`).
+      const result = await executeConvexFirstCommand({ caller, actor, command, random })
+      roomJournal.set(journalKey, { userId, fingerprint, resultJson: null })
+      return result
+    }
+    if (committed.kind === 'REPLAY') return committed.result
+    await new RoomCheckpoints(store, storage, (checkpoint) =>
+      caller.mutation(internal.liveSessions.checkpoint.publish, checkpoint)
+    ).flush({ campaignId, epoch, knownAuthorization: null })
+    return committed.result
+  } finally {
+    globalThis.fetch = fetch
+    database.close()
+  }
 }
 
 type MemberCaller = ReturnType<TestConvex<typeof schema>['withIdentity']>
@@ -288,21 +510,33 @@ async function runAsRoomMember<T>(
   try {
     return await work(actor)
   } catch (error) {
-    throw roomRefusal(error)
+    throw domainRejection(error) ?? error
   } finally {
-    if (createdAuthority) await caller.run((ctx) => ctx.db.delete(createdAuthority))
+    // The temporary authority ends as a release does, without its open-Run reconcile.
+    if (createdAuthority)
+      await caller.run(async (ctx) => {
+        await releaseCharacterHolds(ctx, actor.campaignId, actor.authorityEpoch)
+        await ctx.db.delete(createdAuthority)
+      })
   }
 }
 
-/** A domain rejection surfaces as the ConvexError data the browser receives; others stay redacted. */
-function roomRefusal(error: unknown) {
-  return error instanceof LiveSessionDomainRejectionError ? new ConvexError(error.rejection) : error
+/** A domain rejection surfaces as the ConvexError data the browser receives. */
+function domainRejection(error: unknown) {
+  if (error instanceof EncounterDomainRejection) return new ConvexError(error.data)
+  if (error instanceof LiveSessionDomainRejectionError) return new ConvexError(error.rejection)
+  return null
+}
+
+/** The room's dice: `nextRollInt` unless a test gives its own, so a test's spy on it drives them. */
+function roomRandom(random?: (maximum: number) => number) {
+  return random ?? ((maximum: number) => rollRandom.nextRollInt(maximum))
 }
 
 /**
  * Sends an Encounter command through the room as the caller's Campaign member, the way a browser
- * does (see `asRoomMember`). The room's dice come from `nextRollInt` unless `random` is given, so a
- * test's spy on it drives them.
+ * does (see `asRoomMember` and `executeRoomEncounterCommand`): committed room-natively and
+ * checkpointed to Convex before this returns.
  */
 export async function executeInRoom(
   caller: MemberCaller,
@@ -311,26 +545,39 @@ export async function executeInRoom(
 ): Promise<EncounterCommandResultDto> {
   const { command } = encounterExecuteInputSchema.parse(input)
   return asRoomMember(caller, command.encounterId, (actor) =>
-    executeRoomEncounterCommand({
-      caller,
-      actor,
-      command,
-      random: random ?? ((maximum) => rollRandom.nextRollInt(maximum))
-    })
+    executeRoomEncounterCommand({ caller, actor, command, random: roomRandom(random) })
   )
 }
 
 /**
- * Retries a settled command as a lost acknowledgement's retry reaches the room. A root command
- * retries through the room. A settled decision is no longer routable (the room refuses it as
- * stale), so its retry is shown at its planner, which must return the stored result without rolling.
+ * The Convex-first comparator for room parity: the same member and authority as `executeInRoom`,
+ * with the command committed through the room's Convex routes instead of the room store.
+ */
+export async function executeConvexFirstInRoom(
+  caller: MemberCaller,
+  input: z.input<typeof encounterExecuteInputSchema>,
+  random?: (maximum: number) => number
+): Promise<EncounterCommandResultDto> {
+  const { command } = encounterExecuteInputSchema.parse(input)
+  return asRoomMember(caller, command.encounterId, (actor) =>
+    executeConvexFirstCommand({ caller, actor, command, random: roomRandom(random) })
+  )
+}
+
+/**
+ * Retries a settled command as a lost acknowledgement's retry reaches the room: a fresh room
+ * hydrated from the Encounter documents must return the stored result without rolling.
  */
 export async function replayInRoom(
   caller: MemberCaller,
   input: z.input<typeof encounterExecuteInputSchema>
 ): Promise<EncounterCommandResultDto> {
   const { command } = encounterExecuteInputSchema.parse(input)
-  if (command.type !== 'RESOLVE_RULE_OCCURRENCE') return executeInRoom(caller, { command })
+  const replay = () =>
+    executeInRoom(caller, { command }, () => {
+      throw new Error('A replay must not roll.')
+    })
+  if (command.type !== 'RESOLVE_RULE_OCCURRENCE') return replay()
   const owner = await caller.run(async (ctx) => {
     const run = await ctx.db
       .query('encounterRuns')
@@ -345,40 +592,7 @@ export async function replayInRoom(
   })
   // A movement decision commits with the room's Scene, which refuses its retry as stale.
   if (owner === 'MOVEMENT') throw new Error('A settled movement decision has no replay.')
-  const planner =
-    owner === 'ACTION'
-      ? planNativeLiveEncounterAction
-      : owner === 'CONCENTRATION'
-        ? planNativeLiveConcentrationResponse
-        : owner === 'CLEAVING'
-          ? planNativeLiveCleavingResponse
-          : owner === 'DISARM'
-            ? planNativeLiveDisarm
-            : // A settled turn decision keeps no pending context, so it classifies as OTHER.
-              planNativeLiveEncounterTurn
-  return asRoomMember(caller, command.encounterId, (actor) =>
-    withRoomConvex(caller, async ({ environment, accessToken, runtime }) => {
-      const plan = await planner(
-        environment,
-        accessToken,
-        {
-          ...actor,
-          encounterId: command.encounterId.toLowerCase(),
-          expectedVersion: command.expectedVersion
-        },
-        command,
-        {
-          runtime,
-          random: () => {
-            throw new Error('A replay must not roll.')
-          }
-        }
-      )
-      if (plan.kind !== 'REPLAY')
-        throw new Error('Expected the planner to replay a settled decision.')
-      return plan.result
-    })
-  )
+  return replay()
 }
 
 /**
@@ -584,9 +798,8 @@ export function inProcessDevelopmentClient(caller: MemberCaller): DevelopmentCli
       getFunctionName(reference) === getFunctionName(executeEncounterCommand)
         ? (executeInRoom(caller, encounterExecuteInputSchema.parse(args[0])).catch(
             (error: unknown) => {
-              if (!(error instanceof LiveSessionRouteError)) throw error
-              const refusal = encounterCommandRefusal(error)
-              throw new Error(`${refusal.code}: ${refusal.message}`)
+              if (!(error instanceof RoomCommandRefusal)) throw error
+              throw new Error(`${error.code}: ${error.message}`, { cause: error.cause })
             }
           ) as Promise<FunctionReturnType<Reference>>)
         : caller.run((ctx) => ctx.runMutation(reference, ...args))

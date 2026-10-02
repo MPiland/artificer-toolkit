@@ -12,8 +12,12 @@ import {
 import { api } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { storeRunAutomationMode } from '../../tests/fixtures/playerControl'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  executeInRoom,
+  expectRedactedRoomRefusal,
+  replayInRoom,
+  RoomCommandRefusal
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
 
@@ -139,7 +143,7 @@ it('raises no concentration prompt in a Manual Run, where the damaging action is
     executeInRoom(fixture.owner.caller, {
       command: concentrationAction(fixture)
     })
-  ).rejects.toThrow(LiveSessionRouteError)
+  ).rejects.toThrow(RoomCommandRefusal)
   expect(await concentrationRecords(fixture)).toEqual(before)
   expect(before.states.map((state) => state.id)).toContain(seeded.state.id)
   for (const member of [fixture.owner, fixture.player])
@@ -270,7 +274,7 @@ it('cleans the exact concentration state on failure and preserves an independent
     await ctx.db.patch(state._id, { version: state.version + 1 })
     return state.version
   })
-  await expect(executeInRoom(fixture.player.caller, command)).rejects.toThrow(/stale|unavailable/)
+  await expectRedactedRoomRefusal(executeInRoom(fixture.player.caller, command), /stale|unavailable/)
   await fixture.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')

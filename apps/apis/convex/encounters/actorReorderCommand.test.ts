@@ -10,9 +10,11 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  executeInRoom,
+  replayInRoom,
+  RoomCommandRefusal
+} from '../../tests/fixtures/liveSessionWorker'
 
 async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
   const base = await setupCharacterRun()
@@ -225,7 +227,7 @@ describe('native Encounter reorder', () => {
       })
     })
     const corrupt = await base.capture()
-    await expect(executeInRoom(base.owner.caller, request)).rejects.toThrow(LiveSessionRouteError)
+    await expect(executeInRoom(base.owner.caller, request)).rejects.toThrow(RoomCommandRefusal)
     expect(await base.capture()).toEqual(corrupt)
   }, 30_000)
 
@@ -304,7 +306,7 @@ describe('native Encounter reorder', () => {
         executeInRoom(base.owner.caller, {
           command: { ...request.command, actorIds }
         })
-      ).rejects.toThrow(LiveSessionRouteError)
+      ).rejects.toThrow(RoomCommandRefusal)
       expect(await base.capture()).toEqual(before)
     }
     await expect(executeInRoom(base.player.caller, request)).rejects.toMatchObject({
@@ -349,8 +351,8 @@ describe('native Encounter reorder', () => {
         type: 'REORDER',
         actorIds: assisted.projection().actors.map((actor) => actor.id)
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
+    // Checkpointed receipts are byte ledgers, so deep equality is the unchanged-state check.
     expect(await assisted.capture()).toEqual(before)
-    expect(checksumCanonicalJson(before)).toBe(checksumCanonicalJson(await assisted.capture()))
   }, 60_000)
 })

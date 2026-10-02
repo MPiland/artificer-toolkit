@@ -3641,7 +3641,13 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › retries the exact pending checkpoint after eviction before an idle room releases its authority",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › publishes a local token-control revocation before an evicted room reloads Convex grants (A35-S6b)",
                 "apps/apis/convex/liveSessions/roomConvexParity.test.ts › 9 scenarios (GM tools, START with Assisted initiative evidence, turns, RESOLVE_ACTION fixed/ATTACK/SAVE, basic actions, private enemy rolls, prompted d20 resolve and void, REVERT, REORDER, REINFORCE, REMOVE_ACTOR, COMPLETE, Disarm, refusals): room-native and Convex-first commits yield identical results, Encounter documents and play state from the same start (A35-S5, D77; deleted with the comparators in A35-S6c; Concentration, Cleaving, creature equipment and Scene commands not covered)",
-                "missing: the remaining Convex-first Scene and movement code removed (A35-S6c), and room-owned rule evaluation re-proved on the final source (R08)"
+                "apps/session-worker/src/nativeRoomEncounterCommand.test.ts › commits every non-decision command in room SQLite (D78) (A35-S6c1: every ACTIVE-Run Encounter command is room-local; the room no longer forwards any command to Convex)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a GM evidence roll with its table card and one D72 TABLE charge, in the room (D78) (A35-S6c1)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a TABLE enemy roll with its table card and one D72 TABLE charge, in the room (D78) (A35-S6c1)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a decision no room planner owns as Convex did, without a write or a Convex call (D78) (A35-S6c1)",
+                "apps/apis/tests/fixtures/liveSessionWorker.ts (A35-S6c1): the Convex Encounter suites run each command room-natively over node SQLite with the production command-journal REPLAY/MISMATCHED_REUSE semantics and write it back through the real fenced checkpoint mutation; replay returns the journaled result byte-identically",
+                "apps/apis/convex/encounters/checkpointRecords.test.ts (A35-S6c1): a checkpoint that would leave two ACTIVE Runs in one Campaign is refused; the room refuses START with ACTIVE_ENCOUNTER_EXISTS from its RUN input",
+                "missing: the remaining Convex-first Encounter, Scene and movement code removed (A35-S6c2 room movement harness, A35-S6c3 deletion), and room-owned rule evaluation re-proved on the final source (R08)"
               ]
             },
             {
@@ -3685,7 +3691,9 @@
                 "apps/apis/convex/campaigns/campaignPlay.test.ts › fences direct writes only to the presented Scene while room authority is live",
                 "apps/apis/convex/scenes/presentations.test.ts › fences direct writes and commits a live presentation only at the matching room state",
                 "apps/apis/convex/encounters/sceneBindings.test.ts › rejects a new binding while the Campaign live table owns the presented Scene",
-                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › forwards an unplanned Encounter command in room order and acknowledges only its initiator",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › forwards an unplanned Encounter command in room order and acknowledges only its initiator (deleted in A35-S6c1: the room forwards no Encounter command)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a GM Encounter actor's Sheet command on the held Character with its receipt (D78) (A35-S6c1: UPDATE_ACTOR with a Sheet command runs on the room-held Character; a PREPARED Run refuses with Sheet guidance)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a warm native REORDER before fan-out, redacts players, and replays without another write",
                 "impl: apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsSceneLiveState), apps/apis/convex/encounters/commands.ts (execute is internal; only the room route reaches it)",
                 "missing: room ownership of ACTIVE Runs and their Characters' play state, with the Convex Run and play-state fences (ADR 0035 plan S6, S7)"
               ]

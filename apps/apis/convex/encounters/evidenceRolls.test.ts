@@ -17,8 +17,7 @@ import {
   storeRunAutomationMode,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
 
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
 type Caller = Pick<PlayerControlFixture['owner'], 'caller'>
@@ -265,7 +264,7 @@ describe('Encounter roll prompts', () => {
         executeInRoom(member.caller, {
           command: await base.bite(base.companion.id, base.enemy.id)
         })
-      ).rejects.toThrow(LiveSessionRouteError)
+      ).rejects.toThrow(RoomCommandRefusal)
     expect(await stored()).toEqual(before)
     for (const member of [base.owner, base.other, base.player])
       await expect(readPending(base, member)).resolves.toBeNull()

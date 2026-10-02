@@ -537,6 +537,15 @@ async function setup(
       commandFingerprint: '0'.repeat(64),
       createdAt: now
     })
+    // The room owns Scene-context actions only on its presented Scene (D42).
+    await ctx.db.insert('campaignScenePresentations', {
+      campaignId: campaign.id,
+      sceneId,
+      version: 1,
+      activeMapAssetId: settings.map.assetId,
+      createdAt: now,
+      updatedAt: now
+    })
     return selectedActionId
   })
   const command: EncounterExecuteInput = {
@@ -607,10 +616,7 @@ function room(
   })
 }
 
-/**
- * A settled answer is no longer routable, so a lost acknowledgement's retry is shown here at the
- * planner, which returns the stored result without rolling.
- */
+/** The planner's own retry of a settled answer: it returns the stored result without rolling. */
 function replayAnswer(
   base: Awaited<ReturnType<typeof setup>>,
   member: Member,
@@ -694,7 +700,8 @@ function response(
 }
 
 async function completeParent(base: Awaited<ReturnType<typeof setup>>) {
-  let result = await executeInRoom(base.owner.caller, base.command)
+  const root = await executeInRoom(base.owner.caller, base.command)
+  let result = root
   const evidence: EncounterExecuteInput[] = []
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
@@ -727,7 +734,7 @@ async function completeParent(base: Awaited<ReturnType<typeof setup>>) {
     evidence.push(input)
     result = await executeInRoom(base.owner.caller, input)
   }
-  return { result, evidence }
+  return { root, result, evidence }
 }
 
 describe('native Cleaving action settlement', () => {
@@ -1153,9 +1160,10 @@ describe('native Cleaving action settlement', () => {
         kind: 'REPLAY',
         result: applied
       })
-      await expect(room(base, base.owner, input)).rejects.toMatchObject({
-        rejection: { reason: 'VERSION_STALE' }
-      })
+      await expect(room(base, base.owner, input)).resolves.toEqual(applied)
+      await expect(
+        room(base, base.owner, { ...input, commandId: crypto.randomUUID() })
+      ).rejects.toMatchObject({ data: { reason: 'VERSION_STALE' } })
       expect(await current()).toEqual(after)
       const nextTargetId = next.options[0]!.targetActorId
       const nextTargetBefore = encounterRunActorStateSchema.parse(
@@ -1184,7 +1192,7 @@ describe('native Cleaving action settlement', () => {
         .spyOn(rollRandom, 'nextRollInt')
         .mockImplementation((sides) => (sides === 20 ? 18 : 0))
       try {
-        const { result, evidence } = await completeParent(base)
+        const { root, result, evidence } = await completeParent(base)
         expect(result.occurrence?.status).toBe('COMPLETE')
         const parent = await records(base)
         expect(
@@ -1238,8 +1246,9 @@ describe('native Cleaving action settlement', () => {
             .map((payload) => payload.applicationOutputs.damage.requestedAmount)
             .sort((left, right) => right - left)
         ).toEqual([29, 18])
+        // The room journal replays the root's own receipt over the current Run.
         await expect(replayInRoom(base.owner.caller, base.command)).resolves.toEqual({
-          ...result,
+          ...root,
           projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
             encounterId: base.run.id
           })
@@ -1329,7 +1338,7 @@ describe('native Cleaving action settlement', () => {
           ...response(base, ownerChoice),
           resolution: { kind: 'OPTION', optionId: hidden.optionId }
         })
-      ).rejects.toMatchObject({ rejection: { reason: 'TARGET_UNAVAILABLE' } })
+      ).rejects.toMatchObject({ data: { reason: 'TARGET_UNAVAILABLE' } })
       expect(await records(base)).toEqual(before)
       const input = response(base, playerChoice)
       const applied = await room(base, base.other, input)

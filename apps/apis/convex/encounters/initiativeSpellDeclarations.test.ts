@@ -35,7 +35,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { insertAuthoredVersion } from '../content/documents'
 import { readCharacterRow } from '../characters/stateDocuments'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, expectRedactedRoomRefusal } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -255,16 +255,35 @@ describe('native initiative Spell declarations', () => {
         throw new Error('Expected Spell declaration.')
     }
     const option = spellOption(pending)
-    const beforeCharacter = await base.t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      character: await readCharacterRow(ctx, base.character.id),
-      receipts: await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
-        .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
-    }))
+    // The room's checkpoint publishes the Encounter's receipts to a Campaign ledger; only the
+    // Character's own ledgers show a spend.
+    const characterSpend = () =>
+      base.t.run(async (ctx) => {
+        const ledgers = await ctx.db
+          .query('receiptLedgers')
+          .withIndex('by_scope_scopeId', (q) =>
+            q.eq('scope', 'CHARACTER').eq('scopeId', base.character.id)
+          )
+          .collect()
+        return {
+          receiptLedgers: ledgers,
+          receiptLedgerParts: await Promise.all(
+            ledgers.map((ledger) =>
+              ctx.db
+                .query('receiptLedgerParts')
+                .withIndex('by_ledgerId_index', (q) => q.eq('ledgerId', ledger.id))
+                .collect()
+            )
+          ),
+          character: await readCharacterRow(ctx, base.character.id),
+          receipts: await ctx.db
+            .query('characterCommandReceipts')
+            .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
+            .collect()
+            .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
+        }
+      })
+    const beforeCharacter = await characterSpend()
     const publication = await base.t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -315,18 +334,7 @@ describe('native initiative Spell declarations', () => {
         spellChecksum: publication.checksum
       }
     })
-    expect(
-      await base.t.run(async (ctx) => ({
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        character: await readCharacterRow(ctx, base.character.id),
-        receipts: await ctx.db
-          .query('characterCommandReceipts')
-          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
-      }))
-    ).toEqual(beforeCharacter)
+    expect(await characterSpend()).toEqual(beforeCharacter)
   }, 30_000)
 
   it('rejects a response after the Spell publication changes before any encounter write', async () => {
@@ -400,7 +408,7 @@ describe('native initiative Spell declarations', () => {
         .collect()
         .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     }))
-    await expect(executeInRoom(base.player.caller, response)).rejects.toThrow(/stale/)
+    await expectRedactedRoomRefusal(executeInRoom(base.player.caller, response), /stale/)
     expect(
       await base.t.run(async (ctx) => ({
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),

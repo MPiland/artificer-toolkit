@@ -9,7 +9,7 @@ import {
   SRD_CONCENTRATION_DEFINITIONS,
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from './srdCreatures'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal } from '../../convex/_generated/api'

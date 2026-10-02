@@ -21,8 +21,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
 import { encounterReadTransaction } from './encounterPorts'
 
 const leaveCampaign = makeFunctionReference<
@@ -139,11 +138,11 @@ describe('Encounter actor control', () => {
 
     // Only current players may be granted control, as a sorted list of unique user IDs.
     await expect(setActorControllers(base, base.companion.id, [base.owner.userId])).rejects.toThrow(
-      LiveSessionRouteError
+      RoomCommandRefusal
     )
     await expect(
       setActorControllers(base, base.companion.id, [crypto.randomUUID()])
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     const controllers = [base.other.userId, base.player.userId].sort()
     await expect(
       setActorControllers(base, base.companion.id, [...controllers].reverse())
@@ -249,9 +248,9 @@ describe('Encounter actor control', () => {
 
     // The issuer's retry replays its player projection; nobody else may reuse the command ID.
     await expect(act(base.other, command)).resolves.toEqual(result)
-    await expect(domainRejection(act(base.owner, command))).resolves.toMatchObject({
-      reason: 'COMMAND_ID_REUSED'
-    })
+    await expect(act(base.owner, command)).rejects.toThrow(
+      'The command ID was already used for different input.'
+    )
 
     // The player ends the companion's turn, and then it is no longer theirs to act or end.
     const advanced = await executeInRoom(base.other.caller, {

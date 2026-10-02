@@ -18,7 +18,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import {
@@ -30,8 +30,11 @@ import { fixture } from '../../tests/fixtures/characters'
 import { toCreatureFeatureEffects } from '../../tests/fixtures/creatureWeaponEffects'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  executeInRoom,
+  replayInRoom,
+  RoomCommandRefusal
+} from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -352,7 +355,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
     const { t, owner, run, creatureActor, customActor } = await setup()
     const before = await stored(t, run.id)
     // Convex redacts its refusals to the room; only a domain rejection keeps its message.
-    const rejected: readonly [ReturnType<typeof replace>, string | typeof LiveSessionRouteError][] =
+    const rejected: readonly [ReturnType<typeof replace>, string | typeof RoomCommandRefusal][] =
       [
         [
           replace({
@@ -361,7 +364,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
             equipmentId: compatibleClub.id,
             loadoutId: crypto.randomUUID()
           }),
-          LiveSessionRouteError
+          RoomCommandRefusal
         ],
         [
           replace({
@@ -369,11 +372,11 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
             actorId: customActor.id,
             equipmentId: compatibleClub.id
           }),
-          LiveSessionRouteError
+          RoomCommandRefusal
         ],
         [
           replace({ encounterId: run.id, actorId: creatureActor.id, equipmentId: dagger.id }),
-          LiveSessionRouteError
+          RoomCommandRefusal
         ],
         [
           replace({
@@ -398,7 +401,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       actorId: creatureActor.id,
       equipmentId: compatibleClub.id
     })
-    await expect(executeInRoom(other.caller, command)).rejects.toThrow(LiveSessionRouteError)
+    await expect(executeInRoom(other.caller, command)).rejects.toThrow(RoomCommandRefusal)
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -407,7 +410,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       if (!root) throw new Error('Missing compatible Equipment root.')
       await ctx.db.patch(root._id, { ownerUserId: other.userId })
     })
-    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(LiveSessionRouteError)
+    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(RoomCommandRefusal)
     expect(await stored(t, run.id)).toEqual(before)
   }, 30000)
 })

@@ -1,4 +1,4 @@
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from './srdCreatures'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 export const encounterEffectCreatureId = '00000000-0000-4000-8000-0000000008b0'

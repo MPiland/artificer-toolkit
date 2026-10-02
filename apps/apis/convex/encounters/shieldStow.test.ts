@@ -15,7 +15,7 @@ import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/pla
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { greatsword } from '@artificer-toolkit/source-data/srd/equipment/greatsword.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
@@ -34,6 +34,7 @@ import {
   stubLiveSessionFetch,
   workerEnvironment,
   executeInRoom,
+  expectRedactedRoomRefusal,
   replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { getNativeActionChoices } from '../../tests/fixtures/nativeDisarm'
@@ -292,11 +293,12 @@ describe('shield stow on two-handed attacks', () => {
       actorId: base.actor.id
     })
     expect(choices?.actions.find((action) => action.id === base.actionId)?.wieldConflict).toBeNull()
-    await expect(
+    await expectRedactedRoomRefusal(
       executeInRoom(base.owner.caller, {
         command: base.command(accept(base.shieldItemId))
-      })
-    ).rejects.toThrow('This attack does not stow a shield.')
+      }),
+      'This attack does not stow a shield.'
+    )
   }, 60000)
 
   it('unequips the shield in the same Character version as a resource use', async () => {
@@ -371,11 +373,12 @@ describe('shield stow on two-handed attacks', () => {
   it('commits an accepted stow through the Convex action path and replays it exactly', async () => {
     const base = await setup()
     expect(await base.armorClass()).toBe(14)
-    await expect(
+    await expectRedactedRoomRefusal(
       executeInRoom(base.owner.caller, {
         command: base.command(null)
-      })
-    ).rejects.toThrow('confirm it first')
+      }),
+      'confirm it first'
+    )
     const before = await base.characterRow()
     const command = base.command(accept(base.shieldItemId))
     const result = await executeInRoom(base.owner.caller, {
@@ -505,8 +508,9 @@ describe('versatile grips', () => {
     })
     const execute = (command: ResolveEncounterActionInputDto) =>
       executeInRoom(base.owner.caller, { command })
-    await expect(execute(base.command(null, twoHand.id))).rejects.toThrow('confirm it first')
-    await expect(execute(base.command(accept(base.shieldItemId), oneHand.id))).rejects.toThrow(
+    await expectRedactedRoomRefusal(execute(base.command(null, twoHand.id)), 'confirm it first')
+    await expectRedactedRoomRefusal(
+      execute(base.command(accept(base.shieldItemId), oneHand.id)),
       'This attack does not stow a shield.'
     )
     const result = await execute(base.command(accept(base.shieldItemId), twoHand.id))

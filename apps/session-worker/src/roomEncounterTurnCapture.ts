@@ -427,6 +427,20 @@ export async function readRoomEncounterTurnCapture(
     request.kind === 'MAINTENANCE_OWNER' ||
     request.kind === 'MAINTENANCE_OWNER_EFFECTS'
   ) {
+    // Character dependents load with their Character, so a detached owner loads first; one that
+    // is no longer ACTIVE or assigned refuses the capture, as the Convex capture did.
+    if (
+      request.kind === 'MAINTENANCE_DEPENDENTS' &&
+      request.ownerKind === 'CHARACTER' &&
+      request.cursor === null
+    )
+      for (const characterId of inputs.maintenanceCharacterOwnersAtLoad(
+        state.id,
+        request.stateId,
+        transaction
+      ))
+        if (!(await ctx.ports.readCharacterRow(characterId)))
+          throw new Error('Maintained-effect Character owner is unavailable.')
     response = await readRoomMaintenanceCapture(ctx, state, request)
   } else if (
     request.kind === 'MAINTENANCE_STATE' ||

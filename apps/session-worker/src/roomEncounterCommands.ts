@@ -1,13 +1,16 @@
-import { reorderEncounterActors } from '@artificer-toolkit/encounter-persistence/actorReorderCommand'
-import { removeEncounterActor } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
-import { reinforceEncounterActors } from '@artificer-toolkit/encounter-persistence/actorReinforcementCommand'
-import { recordEncounterToolCommand } from '@artificer-toolkit/encounter-persistence/commands'
-import { revertLastEncounterAction } from '@artificer-toolkit/encounter-persistence/actionRevert'
+import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence/commands'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
+import { isCharacterSheetLivePlayCommand } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
+import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import {
   encounterGmProjectionDtoSchema,
+  type EncounterCommandInputDto,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomNativeEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import {
   liveSessionRoomPlayAuthorizationSchema,
@@ -26,8 +29,12 @@ import { readCharacterPlay } from '@artificer-toolkit/schema/projections/charact
 import { executeRoomEncounterTurn } from './roomEncounterTurns.js'
 import {
   readRoomEncounterResponseRoute,
+  refuseUnroutedEncounterDecision,
+  requireEncounterDecisionResponder,
   roomOwnsEncounterVoid
 } from './roomEncounterResponseRouting.js'
+import { executeRoomCharacterSheetCommand } from './roomCharacterSheetCommands.js'
+import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcentrationResponse.js'
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
@@ -41,6 +48,11 @@ import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/ap
 import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import type { LiveCaptureReads } from './nativeCaptureCache.js'
+
+/** The room journal's fingerprint of an Encounter command: a reused command ID must match it. */
+export function roomEncounterCommandFingerprint(command: EncounterCommandInputDto) {
+  return checksumCanonicalJson({ command, scope: 'ENCOUNTER' })
+}
 
 /** The enclosing command transaction also commits the room receipt before any recipient sees it. */
 export async function executeRoomEncounterCommand(input: {
@@ -62,16 +74,8 @@ export async function executeRoomEncounterCommand(input: {
 }) {
   const { store, transaction, inputs, authorization, campaignId, epoch, userId, command } = input
   await inputs.encounter(command.encounterId.toLowerCase(), transaction)
-  const responseRoute =
-    command.type === 'RESOLVE_RULE_OCCURRENCE'
-      ? await readRoomEncounterResponseRoute(store, command)
-      : null
-  if (command.type === 'RESOLVE_RULE_OCCURRENCE' && responseRoute === null)
-    throw new Error('This occurrence is not owned by an implemented room response path.')
-  if (command.type === 'VOID_RULE_OCCURRENCE' && !(await roomOwnsEncounterVoid(store, command)))
-    throw new Error('This void is not owned by an implemented room response path.')
   const observed = inputs.revisions(campaignId, authorization.revisions)
-  const context = await roomEncounterWriteTransaction({
+  const written = await roomEncounterWriteTransaction({
     store,
     transaction,
     inputs,
@@ -81,11 +85,85 @@ export async function executeRoomEncounterCommand(input: {
     userId,
     observed
   })
+  const context: EncounterWriteTransaction = {
+    ...written,
+    ports: {
+      ...written.ports,
+      // A GM's Sheet command on an Encounter Character commits on the Run's held play (R06.3); a
+      // Run that is not ACTIVE holds no play, so that edit belongs to the Sheet itself.
+      executeCharacterCommand: async (caller, { characterId, command: sheetCommand }, encounterId) => {
+        const run = await written.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', encounterId.toLowerCase()))
+          .unique()
+        if (
+          !isCharacterSheetLivePlayCommand(sheetCommand) ||
+          sheetCommand.type === 'SET_PARTY_VISIBILITY' ||
+          (run !== null && readRunState(run).status !== 'ACTIVE')
+        )
+          throw new CharacterSheetCommandError('Make this change from the Character Sheet.')
+        const executed = await executeRoomCharacterSheetCommand({
+          store,
+          transaction,
+          inputs,
+          authorization,
+          campaignId,
+          epoch,
+          userId: caller,
+          command: { scope: 'CHARACTER_SHEET', characterId, encounterId, command: sheetCommand }
+        })
+        const { historyEntry, streamVersion } = executed.acknowledgement
+        if (!historyEntry) throw new Error('Character Sheet command receipt is unavailable.')
+        const { overview } = projectRoomCharacterSheet(
+          executed.facts,
+          await listActiveRuleEffects(
+            written,
+            { kind: 'CHARACTER', characterId: characterId.toLowerCase() },
+            { ownerVerified: true }
+          )
+        )
+        return {
+          historyEventId: historyEntry.eventId,
+          streamVersion,
+          currentHitPoints: overview.currentHitPoints,
+          maxHitPoints: overview.maxHitPoints,
+          tempHitPoints: overview.tempHitPoints,
+          conditions: overview.conditions
+        }
+      }
+    }
+  }
   const beforeRun = await context.db
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', command.encounterId.toLowerCase()))
     .unique()
   if (!beforeRun) throw new Error('Encounter is unavailable.')
+  if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') {
+    const route = await readRoomEncounterResponseRoute(store, command)
+    const routed =
+      command.type === 'RESOLVE_RULE_OCCURRENCE'
+        ? route !== null
+        : await roomOwnsEncounterVoid(store, command)
+    // The presented Scene's movement path settles its own Run's movement first, so a movement
+    // decision here belongs to an Encounter the presented Scene is not bound to (D42).
+    if (route === 'MOVEMENT' && (command.type === 'RESOLVE_RULE_OCCURRENCE' || !routed))
+      rejectDomain('SCENE_NOT_PRESENTED')
+    if (!routed) await refuseUnroutedEncounterDecision(context, beforeRun, userId, command)
+    // A recorded command is a retry: its planner's admission replays or refuses it on its receipt.
+    const prior =
+      command.type === 'RESOLVE_RULE_OCCURRENCE'
+        ? await context.db
+            .query('encounterRunCommands')
+            .withIndex('by_campaignId_commandId', (q) =>
+              q
+                .eq('campaignId', beforeRun.campaignId)
+                .eq('commandId', command.commandId.toLowerCase())
+            )
+            .unique()
+        : null
+    if (command.type === 'RESOLVE_RULE_OCCURRENCE' && prior?.encounterId !== beforeRun.id)
+      await requireEncounterDecisionResponder(context, beforeRun, userId, command)
+  }
   const state = readRunState(beforeRun)
   const characters = new Set(
     (await readRunActors(context, state)).flatMap((actor) =>
@@ -131,21 +209,27 @@ export async function executeRoomEncounterCommand(input: {
             ? await executeVoid()
             : command.type === 'USE_BASIC_ACTION'
               ? await executeBasicAction()
-              : command.type === 'REORDER'
-                ? await reorderEncounterActors(context, command, userId)
-                : command.type === 'REMOVE_ACTOR'
-                  ? await removeEncounterActor(context, command, userId)
-                  : command.type === 'REINFORCE'
-                    ? await reinforceEncounterActors(context, command, userId)
-                    : command.type === 'REVERT_LAST_ACTION'
-                      ? await revertLastEncounterAction(context, command, userId)
-                      : await recordEncounterToolCommand(context, command, userId, input.random)
+              : await recordEncounterCommand(context, command, userId, input.random)
   const parsedGm = encounterGmProjectionDtoSchema.safeParse(rawResult.projection)
   const currentRun = await context.db
     .query('encounterRuns')
     .withIndex('by_publicId', (query) => query.eq('id', state.id))
     .unique()
   if (!currentRun) throw new Error('Committed room Encounter is unavailable.')
+  if (beforeRun.status !== 'ACTIVE' && currentRun.status === 'ACTIVE') {
+    // The store fences the Runs it holds; a Run already ACTIVE in Convex when this one loaded is
+    // not held here, and still holds the Campaign's one active Encounter.
+    const activeEncounterId = inputs.activeEncounterIdAtLoad(state.id, transaction)
+    if (
+      activeEncounterId !== null &&
+      activeEncounterId !== state.id &&
+      !(await context.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', activeEncounterId))
+        .unique())
+    )
+      rejectDomain('ACTIVE_ENCOUNTER_EXISTS')
+  }
   const projection = parsedGm.success
     ? parsedGm.data
     : await readEncounterGmProjection(context, readRunState(currentRun))

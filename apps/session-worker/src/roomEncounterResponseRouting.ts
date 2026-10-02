@@ -1,4 +1,8 @@
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readNativeEncounterOccurrenceOwner } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
+import { readPendingRunDecision } from '@artificer-toolkit/encounter-persistence/pendingReads'
+import type { EncounterReadTransaction } from '@artificer-toolkit/encounter-persistence/ports'
+import type { EncounterDocument } from '@artificer-toolkit/encounter-persistence/store'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   classifyRuleOccurrenceVoid,
@@ -53,6 +57,47 @@ export async function readRoomEncounterResponseRoute(
   )
   if (transition === 'TURN_EFFECTS') return 'TURN' as const
   return transition === 'SPATIAL_MOVEMENT' ? ('MOVEMENT' as const) : null
+}
+
+/**
+ * A decision is answered only while it is the Run's one pending occurrence, and a player answers
+ * only their own (D78); the planner then admits the answer itself.
+ */
+export async function requireEncounterDecisionResponder(
+  ctx: EncounterReadTransaction,
+  run: EncounterDocument<'encounterRuns'>,
+  userId: string,
+  command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
+) {
+  const occurrenceId = command.occurrenceId.toLowerCase()
+  const pending = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_encounterId_state', (query) =>
+      query.eq('encounterId', run.id).eq('state', 'PENDING')
+    )
+    .take(2)
+  if (pending.length !== 1 || pending[0]!.id !== occurrenceId)
+    rejectDomain('VERSION_STALE', 'Rule occurrence is unavailable.')
+  const { campaign, membership } = await ctx.ports.requireCampaignAuthority(run.campaignId, userId)
+  if (
+    membership.role !== 'OWNER' &&
+    (await readPendingRunDecision(ctx, run, campaign, membership))?.occurrenceId !== occurrenceId
+  )
+    rejectDomain('NOT_ACTOR_CONTROLLER', "This decision isn't yours to answer.")
+  return membership
+}
+
+/** A decision no room planner owns is refused as Convex refused it (D78). */
+export async function refuseUnroutedEncounterDecision(
+  ctx: EncounterReadTransaction,
+  run: EncounterDocument<'encounterRuns'>,
+  userId: string,
+  command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
+): Promise<never> {
+  const membership = await requireEncounterDecisionResponder(ctx, run, userId, command)
+  if (membership.role !== 'OWNER' && command.type === 'VOID_RULE_OCCURRENCE')
+    rejectDomain('GM_ONLY')
+  throw new Error('Rule occurrence is unavailable.')
 }
 
 /** Cancellation and refusal need no rules; declining voids require an implemented response path. */

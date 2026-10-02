@@ -142,6 +142,8 @@ export function roomInputsResponse(
         characterInputs?.run ?? {
           kind: 'RUN',
           encounterVersion: 0,
+          activeEncounterId: null,
+          maintenanceCharacterOwners: [],
           documents: [],
           continueCursor: null
         }

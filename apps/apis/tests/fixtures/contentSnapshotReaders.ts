@@ -25,7 +25,7 @@ import type { fixture } from './characters'
 type Test = Awaited<ReturnType<typeof fixture>>['t']
 
 /** The S2 build's objects for one scope, parsed back as a browser would read them. */
-export async function readScopeObjects(t: Test, ref: ContentSnapshotScopeRef) {
+export async function readScopeObjects(t: Pick<Test, 'query'>, ref: ContentSnapshotScopeRef) {
   const objects: ContentSnapshotObject[] = []
   for (const kind of contentSnapshotKindSchema.options) {
     const sources: ContentSnapshotListSource[] = []

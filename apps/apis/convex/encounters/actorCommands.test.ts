@@ -28,14 +28,14 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import * as sheetCommands from '../characters/sheetCommands'
+import * as roomSheetCommands from '../../../session-worker/src/roomCharacterSheetCommands'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import {
   executeInRoom,
   replayInRoom,
-  insertActiveLiveAuthority
+  insertActiveLiveAuthority,
+  RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -261,19 +261,37 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     })
     const commandId = crypto.randomUUID()
     const nestedCommandId = crypto.randomUUID()
+    const sheetCommand = {
+      type: 'ADJUST_HIT_POINTS',
+      commandId: nestedCommandId,
+      expectedVersion: 3,
+      mode: 'DAMAGE',
+      amount: 3
+    } as const
+    // A Run that is not ACTIVE holds no play: its GM edits the Character from the Sheet.
+    await expect(
+      executeInRoom(
+        gm.caller,
+        update({
+          type: 'UPDATE_ACTOR',
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: 0,
+          actorId: characterActor.id,
+          characterCommand: sheetCommand
+        })
+      )
+    ).rejects.toThrow('Make this change from the Character Sheet.')
+    await t.run((ctx) =>
+      activateFixtureRun(ctx, run.id, { round: 1, currentActorId: characterActor.id })
+    )
     const command = update({
       type: 'UPDATE_ACTOR',
       encounterId: run.id.toUpperCase(),
       commandId: commandId.toUpperCase(),
       expectedVersion: 0,
       actorId: characterActor.id.toUpperCase(),
-      characterCommand: {
-        type: 'ADJUST_HIT_POINTS',
-        commandId: nestedCommandId,
-        expectedVersion: 3,
-        mode: 'DAMAGE',
-        amount: 3
-      }
+      characterCommand: sheetCommand
     })
     const first = await executeInRoom(gm.caller, command)
     expect(first.projection.actors.find((actor) => actor.id === characterActor.id)).toMatchObject({
@@ -315,75 +333,65 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     ).toEqual({ ...first, projection: later.projection })
     expect((await readState()).receipts).toHaveLength(3)
 
-    await owner.caller.mutation(personalExecute, {
-      id: character.id,
-      command: {
-        type: 'SET_HIT_POINTS',
-        commandId: crypto.randomUUID(),
-        expectedVersion: 4,
-        current: 6
-      }
-    })
-    const currentOuterCommandId = crypto.randomUUID()
-    const replayedSheet = await executeInRoom(
-      gm.caller,
-      update({
-        ...command.command,
-        encounterId: run.id,
-        commandId: currentOuterCommandId,
-        expectedVersion: 2
-      })
-    )
-    expect(
-      replayedSheet.projection.actors.find((actor) => actor.id === characterActor.id)
-    ).toMatchObject({ currentHitPoints: 6, maxHitPoints: 15, sourceRevision: null })
-    const replayedReceipt = (await stored(t, run.id, characterActor.id)).receipts.find(
-      (candidate) => candidate.commandId === currentOuterCommandId
-    )
-    if (replayedReceipt?.commandType !== 'UPDATE_ACTOR')
-      throw new Error('Missing replayed UPDATE_ACTOR receipt.')
-    expect(replayedReceipt.characterReceiptId).toBe(nestedReceipt?.id)
+    // A new outer command reusing the settled nested Sheet command never applies its damage again.
+    const settled = await stored(t, run.id, characterActor.id)
+    await expect(
+      executeInRoom(
+        gm.caller,
+        update({
+          ...command.command,
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: 2
+        })
+      )
+    ).rejects.toThrow('Character Sheet changed; refresh before applying this command.')
+    expect(await stored(t, run.id, characterActor.id)).toEqual(settled)
   }, 30000)
 
-  it('rolls back Sheet, actor, Run, and both receipt streams when the bridge fails after Sheet execution', async () => {
+  it('rolls back Sheet, actor, Run, and the room journal when the room transaction fails after the Sheet write', async () => {
     const { t, other: gm, run, characterActor, readState } = await setup()
+    await t.run((ctx) =>
+      activateFixtureRun(ctx, run.id, { round: 1, currentActorId: characterActor.id })
+    )
     const before = await stored(t, run.id, characterActor.id)
     const beforeSheet = await readState()
-    const original = sheetCommands.executeCharacterSheetCommand
+    const original = roomSheetCommands.executeRoomCharacterSheetCommand
     let sheetCompleted = false
-    vi.spyOn(sheetCommands, 'executeCharacterSheetCommand').mockImplementation(async (...args) => {
-      const result = await original(...args)
-      sheetCompleted = true
-      return result
-    })
+    vi.spyOn(roomSheetCommands, 'executeRoomCharacterSheetCommand').mockImplementation(
+      async (...args) => {
+        const result = await original(...args)
+        sheetCompleted = true
+        return result
+      }
+    )
     const parseActor = encounterRunActorStateSchema.parse.bind(encounterRunActorStateSchema)
     vi.spyOn(encounterRunActorStateSchema, 'parse').mockImplementation((...args) => {
       if (sheetCompleted) throw new Error('Injected post-Sheet bridge failure')
       return parseActor(...args)
     })
-    await expect(
-      executeInRoom(
-        gm.caller,
-        update({
-          type: 'UPDATE_ACTOR',
-          encounterId: run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 0,
-          actorId: characterActor.id,
-          characterCommand: {
-            type: 'ADJUST_HIT_POINTS',
-            commandId: crypto.randomUUID(),
-            expectedVersion: 1,
-            mode: 'DAMAGE',
-            amount: 1
-          }
-        })
-      )
-    ).rejects.toThrow(LiveSessionRouteError)
+    const command = update({
+      type: 'UPDATE_ACTOR',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: 0,
+      actorId: characterActor.id,
+      characterCommand: {
+        type: 'ADJUST_HIT_POINTS',
+        commandId: crypto.randomUUID(),
+        expectedVersion: 1,
+        mode: 'DAMAGE',
+        amount: 1
+      }
+    })
+    await expect(executeInRoom(gm.caller, command)).rejects.toThrow(RoomCommandRefusal)
     expect(sheetCompleted).toBe(true)
     vi.restoreAllMocks()
     expect(await stored(t, run.id, characterActor.id)).toEqual(before)
     expect(await readState()).toEqual(beforeSheet)
+    // The failed command left no journal entry: its retry commits rather than replaying.
+    const retried = await executeInRoom(gm.caller, command)
+    expect(retried.projection.version).toBe(before.run!.version + 1)
   }, 30000)
 
   it('rejects character direct state, invalid sides, failed Sheet commands, and corrupt actor state without writes', async () => {
@@ -445,6 +453,6 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
           actorId: customActor.id
         })
       )
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
   }, 30000)
 })

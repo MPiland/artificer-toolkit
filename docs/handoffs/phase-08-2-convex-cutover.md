@@ -45,9 +45,12 @@ durable Convex base, rejects dirty mutable/history replacement and emits no fals
 [Room Encounter commands](../../apps/session-worker/src/roomEncounterCommands.ts) now execute
 the deterministic tools in [the shared `ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES` list](../../packages/schema/src/api/liveSessionEncounterCommand.ts)
 with existing reducers and blueprint enemy builder, atomic room journal receipts and per-recipient
-projections, including action undo through the existing shared action-revert reducer. The shared
-predicate includes `UPDATE_ACTOR` only without `characterCommand`; embedded Character Sheet and
-other rules commands remain transitional. `roomCharacterRules` now passes compact snapshot Spell
+projections, including action undo through the existing shared action-revert reducer. Since S6c1
+(D78) the list covers every ACTIVE-Run command except decisions, which the room routes from its
+own Run: TABLE rolls post their card through the room `insertTableRoll` port and spend the D72
+TABLE bucket in the commit, a GM `UPDATE_ACTOR` with `characterCommand` commits on the held Sheet,
+an unrouted decision is refused as Convex refused it, and the Convex `encounter-command`, route and
+roll fallback is no longer called (deleted in S6c3). `roomCharacterRules` now passes compact snapshot Spell
 index entries into `nativeCharacterRules`; only requested documents are serialized, and only
 referenced Spell documents are captured and parsed
 for mechanics, with the protected capture comparator retained as fallback.

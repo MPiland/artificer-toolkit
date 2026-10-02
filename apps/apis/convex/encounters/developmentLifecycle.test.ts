@@ -18,7 +18,10 @@ import type {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { api, components, internal } from '../_generated/api'
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
-import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
+import {
+  createEncounterSceneFixture,
+  publishSceneSource
+} from '../../tests/fixtures/encounterScene'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { createCutoverWorkloadCreature } from '../../tests/fixtures/encounterAction'
@@ -66,6 +69,7 @@ const observeMovement = makeFunctionReference<
 
 async function setup() {
   const base = await createEncounterSceneFixture()
+  await publishSceneSource(base)
   await base.t.run(async (ctx) => {
     for (const [index, userId] of [base.other.userId, base.owner.userId].entries()) {
       const profile = await ctx.db

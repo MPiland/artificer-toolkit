@@ -26,8 +26,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { fixture } from '../../tests/fixtures/characters'
 
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  executeInRoom,
+  replayInRoom,
+  RoomCommandRefusal
+} from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -442,7 +445,7 @@ describe('native initiative corrections', () => {
         initiativeStateChecksum: '0'.repeat(64)
       })
     )
-    await expect(executeInRoom(base.owner.caller, setRound)).rejects.toThrow(LiveSessionRouteError)
+    await expect(executeInRoom(base.owner.caller, setRound)).rejects.toThrow(RoomCommandRefusal)
     await base.t.run((ctx) =>
       replaceReceiptRecord(ctx, 'encounterRunCommands', correctionReceipt._id, {
         initiativeStateChecksum: correctionReceipt.initiativeStateChecksum

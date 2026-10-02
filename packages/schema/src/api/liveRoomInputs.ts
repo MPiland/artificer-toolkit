@@ -212,6 +212,17 @@ export const liveRoomInputsResponseSchema = lazySchema(() =>
       kind: z.literal('RUN'),
       /** The Run's version when this page was read; a change between pages means a torn read. */
       encounterVersion: nonNegativeInt,
+      /** The Campaign's ACTIVE Run when this page was read; the room starts no second one. */
+      activeEncounterId: z.nullable(postgresUuidSchema),
+      /**
+       * The Characters holding each maintained state's dependents, read with the first page (null on
+       * later pages). Effects load with their Character, so the room loads a detached owner by this.
+       */
+      maintenanceCharacterOwners: z.nullable(
+        z.array(
+          z.strictObject({ maintainedStateId: postgresUuidSchema, characterId: postgresUuidSchema })
+        )
+      ),
       documents: pagedDocuments,
       continueCursor: roomInputsCursorSchema
     }),

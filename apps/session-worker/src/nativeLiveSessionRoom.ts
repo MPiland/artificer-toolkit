@@ -12,10 +12,6 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { LiveSessionTransientCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
-import {
-  isRoomLocalEncounterCommand,
-  type RoomNativeEncounterCommand
-} from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
 import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneLiveStateHeader } from '@artificer-toolkit/schema/api/sceneLiveState'
@@ -80,12 +76,7 @@ import {
   LiveSessionDomainRejectionError,
   LiveSessionRouteError
 } from './liveSessionRoutes.js'
-import {
-  encounterCommandRefusal,
-  executeLiveEncounterCommand,
-  sceneNotPresentedRejection,
-  type LiveEncounterActor
-} from './nativeRoomEncounterCommand.js'
+import { encounterCommandRefusal, sceneNotPresentedRejection } from './nativeRoomEncounterCommand.js'
 import { LiveCaptureCache, type LiveCaptureReads } from './nativeCaptureCache.js'
 import type { ExternalSceneCommand, ExternalSceneContext } from './nativeExternalSceneCommit.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
@@ -113,7 +104,8 @@ import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
 import {
   executeRoomEncounterCommand,
   replayRoomEncounterCommand,
-  readRoomEncounterPlayAuthorization
+  readRoomEncounterPlayAuthorization,
+  roomEncounterCommandFingerprint
 } from './roomEncounterCommands.js'
 import {
   readRoomEncounterResponseRoute,
@@ -199,16 +191,6 @@ function attachment(socket: WebSocket): SocketAttachment | null {
 
 function viewer(value: Pick<Admission, 'role' | 'userId'>): SceneViewer {
   return { role: value.role === 'OWNER' ? 'GM' : 'PLAYER', userId: value.userId }
-}
-
-/** The admitted member a private Encounter or Scene route acts for; Convex rechecks every field. */
-function liveActor(admission: Admission, value: SocketAttachment): LiveEncounterActor {
-  return {
-    campaignId: value.campaignId,
-    authorityEpoch: value.authorityEpoch,
-    expectedUserId: admission.userId,
-    expectedRole: admission.role
-  }
 }
 
 function send(socket: WebSocket, message: LiveSessionWebSocketServerMessageDto): void {
@@ -1398,7 +1380,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return
   }
 
-  /** Native planners share the room transaction; remaining legacy commands checkpoint before forwarding. */
+  /**
+   * Every ACTIVE-Run Encounter command commits in the room's SQLite (D78); a movement decision
+   * settles through the presented Scene's movement path.
+   */
   async #executeEncounterCommand(
     socket: WebSocket,
     admission: Admission,
@@ -1406,19 +1391,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     command: EncounterCommandInputDto
   ): Promise<void> {
     // A movement decision the room committed is journaled; its session sequence is not fenced (D28).
-    const fingerprint = checksumCanonicalJson({ command, scope: 'ENCOUNTER' })
-    let nativeResponse = false
+    const fingerprint = roomEncounterCommandFingerprint(command)
     let movementResponse = false
     if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') {
       try {
         if (this.#aggregateNeedsReload) await this.#flushOutbox()
         await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-        const route = await readRoomEncounterResponseRoute(this.#roomStore, command)
-        nativeResponse =
-          command.type === 'VOID_RULE_OCCURRENCE'
-            ? await roomOwnsEncounterVoid(this.#roomStore, command)
-            : route !== null && route !== 'MOVEMENT'
-        movementResponse = route === 'MOVEMENT' && !nativeResponse
+        movementResponse =
+          (await readRoomEncounterResponseRoute(this.#roomStore, command)) === 'MOVEMENT' &&
+          (command.type === 'RESOLVE_RULE_OCCURRENCE' ||
+            !(await roomOwnsEncounterVoid(this.#roomStore, command)))
       } catch {
         this.#rejectCommand(
           socket,
@@ -1449,44 +1431,42 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       )
       // A commit recovered after a restart kept only its Scene receipt.
       if (replay.type === 'COMMAND_COMMITTED' && replay.delta?.scope === 'ENCOUNTER') {
-        if (isRoomLocalEncounterCommand(command) || nativeResponse || movementResponse) {
-          try {
-            if (
-              prior.receipt.checkpointBeforeAcknowledgement &&
-              prior.receipt.sequence > (this.#journal.readCurrent()?.publishedSequence ?? 0)
-            )
-              await this.#checkpointThrough(value.authorityEpoch, prior.receipt.sequence)
-            await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-            const authorization = await this.#authorizationBoundary(value)
-            if (
-              this.#liveAdmission(socket)?.generation !== admission.generation ||
-              !admitsRoomMember(authorization, admission)
-            )
-              return
-            const result = await replayRoomEncounterCommand({
-              store: this.#roomStore,
-              inputs: this.#roomInputs,
-              authorization,
-              userId: admission.userId,
-              result: replay.delta.result
-            })
-            send(socket, {
-              ...replay,
-              sequence:
-                result.projection.version === replay.delta.result.projection.version
-                  ? replay.sequence
-                  : (this.#journal.readCurrent()?.sequence ?? replay.sequence),
-              delta: { scope: 'ENCOUNTER', result }
-            })
-          } catch {
-            this.#rejectCommand(
-              socket,
-              command.commandId,
-              'UNAVAILABLE',
-              LIVE_SESSION_TRY_AGAIN_MESSAGE
-            )
-          }
-        } else send(socket, replay)
+        try {
+          if (
+            prior.receipt.checkpointBeforeAcknowledgement &&
+            prior.receipt.sequence > (this.#journal.readCurrent()?.publishedSequence ?? 0)
+          )
+            await this.#checkpointThrough(value.authorityEpoch, prior.receipt.sequence)
+          await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
+          const authorization = await this.#authorizationBoundary(value)
+          if (
+            this.#liveAdmission(socket)?.generation !== admission.generation ||
+            !admitsRoomMember(authorization, admission)
+          )
+            return
+          const result = await replayRoomEncounterCommand({
+            store: this.#roomStore,
+            inputs: this.#roomInputs,
+            authorization,
+            userId: admission.userId,
+            result: replay.delta.result
+          })
+          send(socket, {
+            ...replay,
+            sequence:
+              result.projection.version === replay.delta.result.projection.version
+                ? replay.sequence
+                : (this.#journal.readCurrent()?.sequence ?? replay.sequence),
+            delta: { scope: 'ENCOUNTER', result }
+          })
+        } catch {
+          this.#rejectCommand(
+            socket,
+            command.commandId,
+            'UNAVAILABLE',
+            LIVE_SESSION_TRY_AGAIN_MESSAGE
+          )
+        }
       } else
         this.#rejectCommand(
           socket,
@@ -1496,8 +1476,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         )
       return
     }
-    if (isRoomLocalEncounterCommand(command))
-      return this.#executeLocalEncounterCommand(socket, admission, value, command, fingerprint)
     if (
       movementResponse &&
       (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE')
@@ -1523,77 +1501,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
       return
     }
-    if (
-      nativeResponse &&
-      (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE')
-    )
-      return this.#executeLocalEncounterCommand(socket, admission, value, command, fingerprint)
-    try {
-      await this.#flushOutbox()
-    } catch {
-      this.#rejectCommand(
-        socket,
-        command.commandId,
-        'UNAVAILABLE',
-        'Earlier table changes are still saving; try again.'
-      )
-      return
-    }
-    // Evidence rolls stay Convex-recorded; they spend the same D72 allowance as chat and rolls.
-    const evidenceBucket =
-      command.type === 'ROLL_RULE_EVIDENCE' ? this.#bucket('TABLE', value, admission) : null
-    if (evidenceBucket && !this.#buckets.admits(evidenceBucket)) {
-      this.#rejectCommand(
-        socket,
-        command.commandId,
-        'RATE_LIMITED',
-        new RoomRateLimitedError().message
-      )
-      return
-    }
-    let result: EncounterCommandResultDto
-    try {
-      result = await executeLiveEncounterCommand({
-        environment: this.env,
-        accessToken: admission.accessToken,
-        actor: liveActor(admission, value),
-        command,
-        runtime: await this.#liveRulesRuntime(),
-        random: secureRandomInt,
-        captureCache: this.#captureCache,
-        movement: (decision, captures) =>
-          this.#commitMovementDecision(socket, admission, value, decision, fingerprint, captures)
-      })
-    } catch (error) {
-      // Expected domain rejections carry a user-safe message; everything else stays generic.
-      if (error instanceof LiveSessionDomainRejectionError) {
-        send(socket, {
-          code: 'DOMAIN_REJECTED',
-          commandId: command.commandId,
-          currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
-          message: error.rejection.message,
-          reason: error.rejection.reason,
-          warnings: error.rejection.reason === 'RULE_WARNINGS' ? error.rejection.warnings : null,
-          type: 'COMMAND_REJECTED'
-        })
-        return
-      }
-      const refusal = encounterCommandRefusal(error)
-      this.#rejectCommand(socket, command.commandId, refusal.code, refusal.message)
-      return
-    }
-    if (evidenceBucket) this.#buckets.spend(evidenceBucket)
-    // The command may have changed actor control, which Convex does not push to the room.
-    this.#authorization.invalidatePlay()
-    this.#aggregateNeedsReload = true
-    // A member removed while the command ran must not receive its result.
-    if (this.#liveAdmission(socket)?.generation !== admission.generation) return
-    send(socket, {
-      commandId: command.commandId,
-      delta: { scope: 'ENCOUNTER', result },
-      sequence: this.#journal.readCurrent()?.sequence ?? 0,
-      type: 'COMMAND_COMMITTED'
-    })
+    return this.#executeLocalEncounterCommand(socket, admission, value, command, fingerprint)
   }
 
   /** Held Sheet play, its private history and the journal receipt commit before acknowledgement. */
@@ -2005,10 +1913,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     socket: WebSocket,
     admission: Admission,
     value: SocketAttachment,
-    command: RoomNativeEncounterCommand,
+    command: EncounterCommandInputDto,
     fingerprint: string
   ): Promise<void> {
+    // A roll posted to the table spends the same D72 allowance as chat and Campaign rolls.
+    const tableBucket =
+      command.type === 'ROLL_RULE_EVIDENCE' ||
+      (command.type === 'ROLL_ENEMY_ACTION' && command.visibility === 'TABLE')
+        ? this.#bucket('TABLE', value, admission)
+        : null
     try {
+      if (tableBucket && !this.#buckets.admits(tableBucket)) throw new RoomRateLimitedError()
       if (this.#aggregateNeedsReload) await this.#flushOutbox()
       await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
       const current = this.#journal.readCurrent()
@@ -2107,6 +2022,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             throw new Error('Live Session command admission expired before commit.')
           if (!receipt || entry.sequence !== current.sequence + 1)
             throw new Error('Room command sequence does not match its authority.')
+          if (tableBucket) this.#buckets.charge(tableBucket)
           const committed = this.#journal.commitInTransaction({
             actorId: admission.userId,
             authorityEpoch: value.authorityEpoch,
@@ -2166,8 +2082,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         })
         return
       }
-      const refusal = encounterCommandRefusal(error)
-      this.#rejectCommand(socket, command.commandId, refusal.code, refusal.message)
+      if (error instanceof RoomRateLimitedError)
+        this.#rejectCommand(socket, command.commandId, 'RATE_LIMITED', error.message)
+      else if (error instanceof CharacterSheetCommandError)
+        this.#rejectCommand(socket, command.commandId, 'DOMAIN_REJECTED', error.message)
+      else {
+        const refusal = encounterCommandRefusal(error)
+        this.#rejectCommand(socket, command.commandId, refusal.code, refusal.message)
+      }
     }
   }
 

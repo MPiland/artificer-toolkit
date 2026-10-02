@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
+import {
+  CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES,
+  ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES
+} from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { LiveSessionRouteError } from './liveSessionRoutes.js'
 import { encounterCommandRefusal, roomEncounterPlanner } from './nativeRoomEncounterCommand.js'
@@ -40,8 +43,16 @@ const everyType: [
   : never = true
 
 describe('room Encounter command planners', () => {
-  it('sends only the GM tools Convex records to it and plans or rolls every other command in the room', () => {
+  it('commits every non-decision command in room SQLite (D78)', () => {
     expect(everyType).toBe(true)
+    const local = new Set<string>(ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES)
+    expect(commandTypes.filter((type) => !local.has(type))).toEqual([
+      'RESOLVE_RULE_OCCURRENCE',
+      'VOID_RULE_OCCURRENCE'
+    ])
+  })
+
+  it('keeps the legacy planner naming the GM tools the protected Convex path records', () => {
     const convex = commandTypes.filter((type) => roomEncounterPlanner({ type }) === 'CONVEX')
     expect(convex.sort()).toEqual([...CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES].sort())
     // Convex records GM tools with no dice and no derived mechanics beyond actor recalculation (D41).

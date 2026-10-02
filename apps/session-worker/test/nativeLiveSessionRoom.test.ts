@@ -40,7 +40,7 @@ import {
   hydrateNativeLiveSessionState,
   projectNativeLiveSessionState
 } from '../src/nativeLiveSessionState.js'
-import { ROOM_LIMITS } from '../src/roomLimits.js'
+import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import {
   liveRoomInputsInputSchema,
@@ -76,6 +76,7 @@ import {
   encounterSceneBindingSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterCommandInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
@@ -2694,47 +2695,48 @@ it('refuses a player bound-token move from current native actor control with a p
     records: []
   })
 })
-it('refuses a movement decision off the presented Scene without staging it (D42)', async () => {
-  const value = movementScene(crypto.randomUUID())
-  const base = await fixture(value.scene)
-  base.capture.sceneEncounterId = crypto.randomUUID()
-  await synchronizeScene(base, value.scene)
-  const convex = await installExternalConvex(base)
-  await routeEncounterRequests(base, async (pathname) =>
-    pathname === '/live-sessions/encounter-route'
-      ? Response.json({ route: 'MOVEMENT', decline: null })
-      : undefined
-  )
-  const command = {
-    type: 'RESOLVE_RULE_OCCURRENCE',
-    encounterId: crypto.randomUUID(),
-    commandId: crypto.randomUUID(),
-    expectedVersion: 5,
-    occurrenceId: crypto.randomUUID(),
-    expectedOccurrenceVersion: 1,
-    correlationId: null,
-    resolution: { kind: 'DECLINE' }
-  } as const
-  base.messages.length = 0
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: { scope: 'ENCOUNTER', command }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({
-        code: 'DOMAIN_REJECTED',
-        commandId: command.commandId,
-        reason: 'SCENE_NOT_PRESENTED',
-        message: 'Present this Scene to move Encounter tokens.',
-        type: 'COMMAND_REJECTED'
-      })
-    )
-  )
-  expect(convex.stages).toEqual([])
+it('refuses a movement decision off the presented Scene without a write (D42)', async () => {
+  // The presented Scene is bound to no Encounter, so the Run's movement decision is off it.
+  const { base, state, pendingOccurrence } = await localEncounterFixture([], {
+    pendingMovementDecision: true,
+    unboundEncounterScene: true
+  })
+  if (!pendingOccurrence) throw new Error('Missing pending movement decision.')
+  const commandId = crypto.randomUUID()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.userId)
+    const writes = () =>
+      context.storage.sql.exec('SELECT COUNT(*) AS count FROM room_writeset_log').one().count
+    const before = writes()
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      await instance.webSocketMessage(
+        socket,
+        encounterFrame({
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: state.id,
+          commandId,
+          expectedVersion: state.version,
+          occurrenceId: pendingOccurrence.id,
+          expectedOccurrenceVersion: pendingOccurrence.version,
+          correlationId: null,
+          resolution: { kind: 'ENTER_INTEGER', requestId: 'd20', value: 12 }
+        })
+      )
+      expect(sentMessages(sent)).toEqual([
+        expect.objectContaining({
+          code: 'DOMAIN_REJECTED',
+          commandId,
+          reason: 'SCENE_NOT_PRESENTED',
+          message: 'Present this Scene to move Encounter tokens.',
+          type: 'COMMAND_REJECTED'
+        })
+      ])
+      expect(writes()).toBe(before)
+    } finally {
+      sent.mockRestore()
+    }
+  })
 })
 
 it('settles an unsettled commit before the drain fence when the room closes', async () => {
@@ -3616,30 +3618,6 @@ it.each([false, true])(
   }
 )
 
-function encounterResult(campaignId: string, encounterId: string) {
-  return {
-    projection: {
-      id: encounterId,
-      campaignId,
-      gameSystemId: crypto.randomUUID(),
-      blueprintId: crypto.randomUUID(),
-      blueprintVersion: 1,
-      blueprintChecksum: 'a'.repeat(64),
-      name: 'Live Encounter',
-      status: 'ACTIVE' as const,
-      automationMode: 'ASSISTED' as const,
-      version: 4,
-      round: 2,
-      currentActorId: null,
-      actors: [],
-      createdAt: '2026-09-24T00:00:00.000Z',
-      updatedAt: '2026-09-24T00:00:00.000Z'
-    },
-    roll: null,
-    occurrence: null
-  }
-}
-
 async function routeEncounterRequests(
   base: Awaited<ReturnType<typeof fixture>>,
   handle: (
@@ -3666,6 +3644,8 @@ async function localEncounterFixture(
     unboundEncounterScene?: boolean
     /** The Encounter waits on a spatial movement decision, which holds its Scene's moves and doors. */
     pendingMovementDecision?: boolean
+    /** That decision asks its target for a d20 save. */
+    pendingD20Evidence?: boolean
   } = {}
 ) {
   const value = movementScene(crypto.randomUUID())
@@ -3853,7 +3833,8 @@ async function localEncounterFixture(
         userId: base.userId,
         sourceActorId: actors[0]!.id,
         gameSystemId: DND5E_SYSTEM_ID,
-        now
+        now,
+        d20Evidence: options.pendingD20Evidence
       })
     : null
   const runDocuments: Extract<LiveRoomInputsResponse, { kind: 'RUN' }>['documents'] = []
@@ -3908,6 +3889,8 @@ async function localEncounterFixture(
       return Response.json({
         kind: 'RUN',
         encounterVersion: 1,
+        activeEncounterId: null,
+        maintenanceCharacterOwners: [],
         documents: runDocuments,
         continueCursor: null
       })
@@ -5676,525 +5659,323 @@ it('removes a native Encounter actor and its binding, ending the player token co
   )
 })
 
-it('forwards an unplanned Encounter command in room order and acknowledges only its initiator', async () => {
-  const base = await fixture(doorScene(crypto.randomUUID()).scene)
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const player = await connectPlayer(base)
-  const encounterId = crypto.randomUUID()
-  const commandId = crypto.randomUUID()
-  const forwarded: unknown[] = []
-  await routeEncounterRequests(base, async (pathname, request) => {
-    if (pathname !== '/live-sessions/encounter-command') return undefined
-    expect(request.headers.get('authorization')).toBe(`Bearer ${base.accessToken}`)
-    forwarded.push(await request.json())
-    return Response.json(encounterResult(base.capture.campaignId, encounterId))
+function memberSocket(context: DurableObjectState, userId: string) {
+  const socket = context
+    .getWebSockets()
+    .find(
+      (candidate) => (candidate.deserializeAttachment() as { userId: string }).userId === userId
+    )
+  if (!socket) throw new Error('Missing member native socket.')
+  return socket
+}
+
+function encounterFrame(command: Record<string, unknown>) {
+  return JSON.stringify({
+    type: 'COMMAND',
+    expectedSessionSequence: 0,
+    command: { scope: 'ENCOUNTER', command }
   })
-  player.messages.length = 0
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'UPDATE_ACTOR',
-          encounterId,
-          commandId,
-          expectedVersion: 3,
-          actorId: '00000000-0000-4000-8000-000000000510',
-          characterCommand: {
-            type: 'SET_INSPIRATION',
-            commandId: '00000000-0000-4000-8000-000000000511',
-            expectedVersion: 0,
-            inspired: true
-          }
-        }
-      }
-    })
+}
+
+function sentMessages(sent: { mock: { calls: unknown[][] } }) {
+  return sent.mock.calls.map(([data]) =>
+    liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
   )
-  await vi.waitFor(() =>
-    expect(
-      base.messages.find(
-        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+}
+
+function tableBucketTokens(storage: DurableObjectStorage, userId: string) {
+  return storage.sql
+    .exec<{ tokens: number }>(
+      "SELECT tokens FROM room_account_buckets WHERE user_id = ? AND kind = 'TABLE'",
+      userId
+    )
+    .toArray()
+    .map(({ tokens }) => tokens)
+}
+
+it('commits a TABLE enemy roll with its table card and one D72 TABLE charge, in the room (D78)', async () => {
+  const feature = featureDtoSchema.parse({
+    id: crypto.randomUUID(),
+    label: 'Whirlwind (Recharge 4-6)',
+    description: 'Native table enemy roll fixture.',
+    section: 'ACTION',
+    order: 0,
+    charges: {
+      id: crypto.randomUUID(),
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'MANUAL',
+      amount: 1
+    },
+    rollDefinitions: [
+      {
+        id: 'gust',
+        label: 'Table gust',
+        kind: 'DAMAGE',
+        expression: { count: 2, die: 6, modifier: 0 },
+        rollMode: 'NORMAL',
+        chargeCost: 1,
+        order: 1
+      }
+    ]
+  })
+  const { base, state, actors } = await localEncounterFixture([feature])
+  const roll = (commandId: string, expectedVersion: number) => ({
+    type: 'ROLL_ENEMY_ACTION',
+    encounterId: state.id,
+    commandId,
+    expectedVersion,
+    actorId: actors[0]!.id,
+    featureId: feature.id,
+    rollDefinitionId: 'gust',
+    visibility: 'TABLE'
+  })
+  const [commandId, limitedId] = [crypto.randomUUID(), crypto.randomUUID()]
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.userId)
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      await instance.webSocketMessage(socket, encounterFrame(roll(commandId, 1)))
+      await instance.webSocketMessage(socket, encounterFrame(roll(commandId, 1)))
+      const [committed, replayed] = sentMessages(sent)
+      if (
+        committed?.type !== 'COMMAND_COMMITTED' ||
+        committed.delta?.scope !== 'ENCOUNTER' ||
+        !committed.delta.result.roll
       )
-    ).toMatchObject({ delta: { scope: 'ENCOUNTER', result: { projection: { round: 2 } } } })
-  )
-  expect(forwarded).toEqual([
-    {
-      campaignId: base.capture.campaignId,
-      authorityEpoch: base.authorityEpoch,
-      expectedUserId: base.userId,
-      expectedRole: 'OWNER',
-      command: {
-        type: 'UPDATE_ACTOR',
-        encounterId,
-        commandId,
-        expectedVersion: 3,
-        actorId: '00000000-0000-4000-8000-000000000510',
-        characterCommand: {
-          type: 'SET_INSPIRATION',
-          commandId: '00000000-0000-4000-8000-000000000511',
-          expectedVersion: 0,
-          inspired: true
-        }
-      }
+        throw new Error('Missing committed TABLE enemy roll.')
+      expect(replayed).toEqual(committed)
+      const tableRoll = committed.delta.result.roll
+      expect(tableRoll).toMatchObject({ normalizedExpression: '2d6', characterId: null })
+      const room = new RoomEncounterStore(context.storage)
+      expect(room.documents('campaignConversationEntries')).toEqual([
+        expect.objectContaining({ authorUserId: base.userId, clientNonce: commandId })
+      ])
+      expect(room.documents('campaignConversationEntryPayloads')).toEqual([
+        expect.objectContaining({
+          kind: 'ROLL',
+          roll: expect.objectContaining({ id: tableRoll.id }),
+          authorUsername: 'FixtureMember'
+        })
+      ])
+      expect(localEncounterEvidence(context.storage).commands).toEqual([
+        expect.objectContaining({ commandId, commandType: 'ROLL_ENEMY_ACTION', version: 2 })
+      ])
+      // The commit spends one of the GM's TABLE tokens, as a chat roll does; the replay is free.
+      expect(tableBucketTokens(context.storage, base.userId)).toEqual([
+        ACCOUNT_BUCKETS.TABLE.OWNER.capacity - 1
+      ])
+      context.storage.sql.exec(
+        "UPDATE room_account_buckets SET tokens = 0, updated_at = ? WHERE user_id = ? AND kind = 'TABLE'",
+        Date.now() + 60_000,
+        base.userId
+      )
+      sent.mockClear()
+      await instance.webSocketMessage(socket, encounterFrame(roll(limitedId, 2)))
+      expect(sentMessages(sent)).toEqual([
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId: limitedId,
+          code: 'RATE_LIMITED'
+        })
+      ])
+      expect(localEncounterEvidence(context.storage).commands).toHaveLength(1)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    } finally {
+      sent.mockRestore()
     }
-  ])
-  expect(player.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+  })
 })
 
-it('lets a player have one Encounter command in flight', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const player = await connectPlayer(base)
-  const encounterId = crypto.randomUUID()
+it('commits a GM evidence roll with its table card and one D72 TABLE charge, in the room (D78)', async () => {
+  const { base, state, pendingOccurrence } = await localEncounterFixture([], {
+    pendingMovementDecision: true,
+    pendingD20Evidence: true
+  })
+  if (!pendingOccurrence) throw new Error('Missing pending movement decision.')
+  const commandId = crypto.randomUUID()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.userId)
+    vi.mocked(globalThis.fetch).mockClear()
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      await instance.webSocketMessage(
+        socket,
+        encounterFrame({
+          type: 'ROLL_RULE_EVIDENCE',
+          encounterId: state.id,
+          commandId,
+          expectedVersion: state.version,
+          occurrenceId: pendingOccurrence.id,
+          expectedOccurrenceVersion: pendingOccurrence.version,
+          requestId: 'd20',
+          rollMode: null
+        })
+      )
+      const [committed] = sentMessages(sent)
+      if (committed?.type !== 'COMMAND_COMMITTED' || committed.delta?.scope !== 'ENCOUNTER')
+        throw new Error('Missing committed evidence roll.')
+      const { roll, evidenceRoll } = committed.delta.result
+      expect(evidenceRoll).not.toBeNull()
+      expect(roll).toMatchObject({ normalizedExpression: '1d20' })
+      const room = new RoomEncounterStore(context.storage)
+      expect(room.documents('encounterEvidenceRolls')).toEqual([
+        expect.objectContaining({ commandId, userId: base.userId, attempt: 1 })
+      ])
+      expect(room.documents('campaignConversationEntryPayloads')).toEqual([
+        expect.objectContaining({ kind: 'ROLL', roll: expect.objectContaining({ id: roll?.id }) })
+      ])
+      expect(tableBucketTokens(context.storage, base.userId)).toEqual([
+        ACCOUNT_BUCKETS.TABLE.OWNER.capacity - 1
+      ])
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    } finally {
+      sent.mockRestore()
+    }
+  })
+})
+
+it('refuses a decision no room planner owns as Convex did, without a write or a Convex call (D78)', async () => {
+  const { base, state, pendingOccurrence } = await localEncounterFixture([], {
+    pendingMovementDecision: true
+  })
+  if (!pendingOccurrence) throw new Error('Missing pending movement decision.')
+  const decision = (type: 'RESOLVE_RULE_OCCURRENCE' | 'VOID_RULE_OCCURRENCE') => ({
+    type,
+    encounterId: state.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: state.version,
+    occurrenceId: crypto.randomUUID(),
+    expectedOccurrenceVersion: pendingOccurrence.version,
+    ...(type === 'RESOLVE_RULE_OCCURRENCE'
+      ? { resolution: { kind: 'ENTER_INTEGER', requestId: 'd20', value: 12 } }
+      : {})
+  })
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const before = localEncounterEvidence(context.storage)
+    vi.mocked(globalThis.fetch).mockClear()
+    for (const [userId, command] of [
+      [base.userId, decision('RESOLVE_RULE_OCCURRENCE')],
+      [base.userId, decision('VOID_RULE_OCCURRENCE')],
+      [base.playerId, decision('VOID_RULE_OCCURRENCE')]
+    ] as const) {
+      const socket = memberSocket(context, userId)
+      const sent = vi.spyOn(socket, 'send')
+      try {
+        await instance.webSocketMessage(socket, encounterFrame(command))
+        expect(sentMessages(sent)).toEqual([
+          expect.objectContaining({
+            type: 'COMMAND_REJECTED',
+            commandId: command.commandId,
+            code: 'DOMAIN_REJECTED',
+            reason: 'VERSION_STALE',
+            message: 'Rule occurrence is unavailable.'
+          })
+        ])
+      } finally {
+        sent.mockRestore()
+      }
+    }
+    expect(localEncounterEvidence(context.storage)).toEqual(before)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+})
+
+it("lets a player have one Encounter command in flight and tells them a GM-only command is the GM's (D42)", async () => {
+  const { base, state, actors } = await localEncounterFixture()
   const [firstId, secondId, thirdId] = [
     crypto.randomUUID(),
     crypto.randomUUID(),
     crypto.randomUUID()
   ]
-  let release = () => {}
-  const held = new Promise<void>((resolve) => {
-    release = resolve
-  })
-  let forwarded = 0
-  await routeEncounterRequests(base, async (pathname) => {
-    if (pathname !== '/live-sessions/encounter-command') return undefined
-    forwarded += 1
-    if (forwarded === 1) await held
-    return Response.json(encounterResult(base.capture.campaignId, encounterId))
-  })
-  const send = (commandId: string) =>
-    player.socket.send(
-      JSON.stringify({
-        type: 'COMMAND',
-        expectedSessionSequence: 0,
-        command: {
-          scope: 'ENCOUNTER',
-          command: {
-            type: 'UPDATE_ACTOR',
-            encounterId,
+  const update = (commandId: string) =>
+    encounterFrame({
+      type: 'UPDATE_ACTOR',
+      encounterId: state.id,
+      commandId,
+      expectedVersion: state.version,
+      actorId: actors[0]!.id,
+      currentHitPoints: 5
+    })
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.playerId)
+    const before = localEncounterEvidence(context.storage)
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      // The gate runs before the first await, so the second command meets the first in flight.
+      const first = instance.webSocketMessage(socket, update(firstId))
+      await instance.webSocketMessage(socket, update(secondId))
+      await first
+      // The slot frees once the first command settles.
+      await instance.webSocketMessage(socket, update(thirdId))
+      const rejected = sentMessages(sent).filter(({ type }) => type === 'COMMAND_REJECTED')
+      expect(rejected).toEqual([
+        expect.objectContaining({
+          commandId: secondId,
+          code: 'UNAVAILABLE',
+          message: 'Your previous action is still resolving.'
+        }),
+        ...[firstId, thirdId].map((commandId) =>
+          expect.objectContaining({
             commandId,
-            expectedVersion: 3,
-            actorId: '00000000-0000-4000-8000-000000000510',
-            characterCommand: {
-              type: 'SET_INSPIRATION',
-              commandId: '00000000-0000-4000-8000-000000000511',
-              expectedVersion: 0,
-              inspired: true
-            }
-          }
-        }
-      })
-    )
-  send(firstId)
-  await vi.waitFor(() => expect(forwarded).toBe(1))
-  send(secondId)
-  await vi.waitFor(() =>
-    expect(
-      player.messages.find(
-        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === secondId
-      )
-    ).toMatchObject({ code: 'UNAVAILABLE', message: 'Your previous action is still resolving.' })
-  )
-  release()
-  await vi.waitFor(() =>
-    expect(
-      player.messages.some(
-        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === firstId
-      )
-    ).toBe(true)
-  )
-  // The slot frees once the first command settles.
-  send(thirdId)
-  await vi.waitFor(() =>
-    expect(
-      player.messages.some(
-        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === thirdId
-      )
-    ).toBe(true)
-  )
-  expect(forwarded).toBe(2)
-})
-
-it('never hands a player an unredacted GM projection', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const player = await connectPlayer(base)
-  const encounterId = crypto.randomUUID()
-  const commandId = crypto.randomUUID()
-  await routeEncounterRequests(base, (pathname) => {
-    if (pathname !== '/live-sessions/encounter-command') return undefined
-    const result = encounterResult(base.capture.campaignId, encounterId)
-    return Response.json({
-      ...result,
-      projection: { ...result.projection, manualReminderMode: 'SUBTLE' }
-    })
-  })
-  player.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'UPDATE_ACTOR',
-          encounterId,
-          commandId,
-          expectedVersion: 3,
-          actorId: '00000000-0000-4000-8000-000000000510',
-          characterCommand: {
-            type: 'SET_INSPIRATION',
-            commandId: '00000000-0000-4000-8000-000000000511',
-            expectedVersion: 0,
-            inspired: true
-          }
-        }
-      }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(
-      player.messages.find(
-        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
-      )
-    ).toMatchObject({ code: 'UNAVAILABLE' })
-  )
-  expect(JSON.stringify(player.messages)).not.toContain('manualReminderMode')
-})
-
-it('asks Convex which planner owns a decision and records a GM void that declines nothing', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const encounterId = crypto.randomUUID()
-  const occurrenceId = crypto.randomUUID()
-  const commandId = crypto.randomUUID()
-  const calls: string[] = []
-  await routeEncounterRequests(base, async (pathname, request) => {
-    if (pathname === '/live-sessions/encounter-route') {
-      calls.push(pathname)
-      expect(await request.json()).toMatchObject({ command: { encounterId, occurrenceId } })
-      return Response.json({ route: 'VOID', decline: null })
-    }
-    if (pathname === '/live-sessions/encounter-void-prepare') {
-      calls.push(pathname)
-      return Response.json({
-        kind: 'COMPLETE',
-        result: encounterResult(base.capture.campaignId, encounterId)
-      })
-    }
-    return undefined
-  })
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'VOID_RULE_OCCURRENCE',
-          encounterId,
-          commandId,
-          expectedVersion: 3,
-          occurrenceId,
-          expectedOccurrenceVersion: 1
-        }
-      }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(
-      base.messages.some(
-        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
-      )
-    ).toBe(true)
-  )
-  expect(calls).toEqual(['/live-sessions/encounter-route', '/live-sessions/encounter-void-prepare'])
-})
-it('draws a dice command with the room random source between the Convex dice read and commit', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const encounterId = crypto.randomUUID()
-  const commandId = crypto.randomUUID()
-  const command = {
-    type: 'ROLL_ENEMY_ACTION',
-    encounterId,
-    commandId,
-    expectedVersion: 3,
-    actorId: crypto.randomUUID(),
-    featureId: 'whirlwind',
-    rollDefinitionId: 'gust',
-    visibility: 'TABLE'
-  }
-  const calls: { pathname: string; body: unknown }[] = []
-  await routeEncounterRequests(base, async (pathname, request) => {
-    if (pathname === '/live-sessions/encounter-roll-dice') {
-      calls.push({ pathname, body: await request.json() })
-      return Response.json({ dice: [20, 6] })
-    }
-    if (pathname === '/live-sessions/encounter-roll') {
-      calls.push({ pathname, body: await request.json() })
-      return Response.json(encounterResult(base.capture.campaignId, encounterId))
-    }
-    return undefined
-  })
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: { scope: 'ENCOUNTER', command }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(
-      base.messages.some(
-        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
-      )
-    ).toBe(true)
-  )
-  const scope = {
-    campaignId: base.capture.campaignId,
-    authorityEpoch: base.authorityEpoch,
-    expectedUserId: base.userId,
-    expectedRole: 'OWNER'
-  }
-  expect(calls.map((call) => call.pathname)).toEqual([
-    '/live-sessions/encounter-roll-dice',
-    '/live-sessions/encounter-roll'
-  ])
-  expect(calls[0]!.body).toEqual({ ...scope, command })
-  const commit = calls[1]!.body as { draws: number[] }
-  expect(commit).toEqual({ ...scope, command, draws: [expect.any(Number), expect.any(Number)] })
-  expect(commit.draws[0]).toBeLessThan(20)
-  expect(commit.draws[1]).toBeLessThan(6)
-})
-it('rejects a refused Encounter command with a generic code and no Convex detail', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const commandId = crypto.randomUUID()
-  await routeEncounterRequests(base, (pathname) =>
-    pathname === '/live-sessions/encounter-command'
-      ? new Response('Encounter version is stale: internal detail', { status: 409 })
-      : undefined
-  )
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'UPDATE_ACTOR',
-          encounterId: crypto.randomUUID(),
-          commandId,
-          expectedVersion: 3,
-          actorId: '00000000-0000-4000-8000-000000000510',
-          characterCommand: {
-            type: 'SET_INSPIRATION',
-            commandId: '00000000-0000-4000-8000-000000000511',
-            expectedVersion: 0,
-            inspired: true
-          }
-        }
-      }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(
-      base.messages.find(
-        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
-      )
-    ).toMatchObject({ code: 'STALE_STATE', reason: null })
-  )
-  expect(JSON.stringify(base.messages)).not.toContain('internal detail')
-})
-
-it("tells a player a GM-only Encounter command is the GM's, not a changed Encounter (D42)", async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const commandId = crypto.randomUUID()
-  await routeEncounterRequests(base, (pathname) =>
-    pathname === '/live-sessions/encounter-command'
-      ? Response.json(
-          { code: 'DOMAIN_REJECTED', reason: 'GM_ONLY', message: 'Only the GM can do that.' },
-          { status: 422 }
-        )
-      : undefined
-  )
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'UPDATE_ACTOR',
-          encounterId: crypto.randomUUID(),
-          commandId,
-          expectedVersion: 3,
-          actorId: '00000000-0000-4000-8000-000000000510',
-          characterCommand: {
-            type: 'SET_INSPIRATION',
-            commandId: '00000000-0000-4000-8000-000000000511',
-            expectedVersion: 0,
-            inspired: true
-          }
-        }
-      }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(
-      base.messages.find(
-        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
-      )
-    ).toMatchObject({
-      code: 'DOMAIN_REJECTED',
-      reason: 'GM_ONLY',
-      message: 'Only the GM can do that.'
-    })
-  )
-})
-
-it('forwards an expected domain rejection and keeps an unexpected failure generic', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const [rejectedId, failedId] = [crypto.randomUUID(), crypto.randomUUID()]
-  // The room serializes commands, so the first forwarded command is the rejected one.
-  let forwarded = 0
-  await routeEncounterRequests(base, (pathname) => {
-    if (pathname !== '/live-sessions/encounter-command') return undefined
-    forwarded += 1
-    return forwarded === 1
-      ? Response.json(
-          {
             code: 'DOMAIN_REJECTED',
-            reason: 'ACTIVE_ENCOUNTER_EXISTS',
-            message: 'Campaign already has an active Encounter.'
-          },
-          { status: 422 }
+            reason: 'GM_ONLY',
+            message: DOMAIN_REJECTION_MESSAGES.GM_ONLY
+          })
         )
-      : Response.json({ code: 'INTERNAL', message: 'internal detail' }, { status: 500 })
+      ])
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+    } finally {
+      sent.mockRestore()
+    }
   })
-  for (const commandId of [rejectedId, failedId])
-    base.socket.send(
-      JSON.stringify({
-        type: 'COMMAND',
-        expectedSessionSequence: 0,
-        command: {
-          scope: 'ENCOUNTER',
-          command: {
+})
+it('sends an expected domain rejection and keeps an unexpected failure generic', async () => {
+  const { base, state, actors } = await localEncounterFixture()
+  const [staleId, failedId] = [crypto.randomUUID(), crypto.randomUUID()]
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.userId)
+    const before = localEncounterEvidence(context.storage)
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      for (const [commandId, expectedVersion, actorId] of [
+        [staleId, state.version + 1, actors[0]!.id],
+        [failedId, state.version, crypto.randomUUID()]
+      ] as const)
+        await instance.webSocketMessage(
+          socket,
+          encounterFrame({
             type: 'UPDATE_ACTOR',
-            encounterId: crypto.randomUUID(),
+            encounterId: state.id,
             commandId,
-            expectedVersion: 3,
-            actorId: '00000000-0000-4000-8000-000000000510',
-            characterCommand: {
-              type: 'SET_INSPIRATION',
-              commandId: '00000000-0000-4000-8000-000000000511',
-              expectedVersion: 0,
-              inspired: true
-            }
-          }
-        }
-      })
-    )
-  const rejection = (commandId: string) =>
-    base.messages.find(
-      (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
-    )
-  await vi.waitFor(() => {
-    expect(rejection(rejectedId)).toMatchObject({
-      code: 'DOMAIN_REJECTED',
-      message: 'Campaign already has an active Encounter.',
-      reason: 'ACTIVE_ENCOUNTER_EXISTS'
-    })
-    expect(rejection(failedId)).toMatchObject({
-      code: 'UNAVAILABLE',
-      message: 'The Encounter command could not be completed.',
-      reason: null
-    })
-  })
-  expect(JSON.stringify(base.messages)).not.toContain('internal detail')
-})
-
-it('forwards overridable rule warnings with an action rejection', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  const warnings = [
-    { code: 'ACTION_ECONOMY_UNAVAILABLE', message: 'No bonus action left this turn.' },
-    { code: 'TARGET_OUT_OF_RANGE', message: 'The target is out of range.' }
-  ]
-  await routeEncounterRequests(base, (pathname) =>
-    pathname === '/live-sessions/encounter-command'
-      ? Response.json(
-          {
-            code: 'DOMAIN_REJECTED',
-            reason: 'RULE_WARNINGS',
-            message: 'This action breaks a rule. Do it anyway?',
-            warnings
-          },
-          { status: 422 }
+            expectedVersion,
+            actorId,
+            currentHitPoints: 5
+          })
         )
-      : undefined
-  )
-  const commandId = crypto.randomUUID()
-  base.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'UPDATE_ACTOR',
-          encounterId: crypto.randomUUID(),
-          commandId,
-          expectedVersion: 3,
-          actorId: '00000000-0000-4000-8000-000000000510',
-          characterCommand: {
-            type: 'SET_INSPIRATION',
-            commandId: '00000000-0000-4000-8000-000000000511',
-            expectedVersion: 0,
-            inspired: true
-          }
-        }
-      }
-    })
-  )
-  await vi.waitFor(() =>
-    expect(
-      base.messages.find(
-        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
-      )
-    ).toMatchObject({ code: 'DOMAIN_REJECTED', reason: 'RULE_WARNINGS', warnings })
-  )
+      const messages = sentMessages(sent)
+      expect(messages).toEqual([
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId: staleId,
+          code: 'DOMAIN_REJECTED',
+          reason: 'VERSION_STALE'
+        }),
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId: failedId,
+          code: 'UNAVAILABLE',
+          message: 'The Encounter command could not be completed.',
+          reason: null
+        })
+      ])
+      expect(JSON.stringify(messages)).not.toContain('Encounter actor was not found')
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+    } finally {
+      sent.mockRestore()
+    }
+  })
 })
 
 const ownerTicket = (base: Awaited<ReturnType<typeof fixture>>) =>
@@ -6495,58 +6276,40 @@ it('never captures authority for pings on the synchronized Scene', async () => {
 })
 
 it('rejects commands beyond the pending-command bound without closing the socket', async () => {
-  const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  // Each forwarded command stays in Convex long enough for the rest to queue behind it.
-  await routeEncounterRequests(base, (pathname) =>
-    pathname === '/live-sessions/encounter-command'
-      ? new Promise<Response>((resolve) =>
-          setTimeout(() => resolve(new Response('stale', { status: 409 })), 100)
-        )
-      : undefined
-  )
+  const { base, state, actors } = await localEncounterFixture()
   const commandIds = Array.from({ length: 9 }, () => crypto.randomUUID())
-  for (const commandId of commandIds)
-    base.socket.send(
-      JSON.stringify({
-        type: 'COMMAND',
-        expectedSessionSequence: 0,
-        command: {
-          scope: 'ENCOUNTER',
-          command: {
-            type: 'UPDATE_ACTOR',
-            encounterId: crypto.randomUUID(),
-            commandId,
-            expectedVersion: 3,
-            actorId: '00000000-0000-4000-8000-000000000510',
-            characterCommand: {
-              type: 'SET_INSPIRATION',
-              commandId: '00000000-0000-4000-8000-000000000511',
-              expectedVersion: 0,
-              inspired: true
-            }
-          }
-        }
-      })
-    )
-  await vi.waitFor(() =>
-    expect(
-      base.messages.find(
-        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandIds[8]
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.userId)
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      // Each call passes the synchronous gate before any queued command runs.
+      await Promise.all(
+        commandIds.map((commandId) =>
+          instance.webSocketMessage(
+            socket,
+            encounterFrame({
+              type: 'UPDATE_ACTOR',
+              encounterId: state.id,
+              commandId,
+              expectedVersion: state.version + 1,
+              actorId: actors[0]!.id,
+              currentHitPoints: 5
+            })
+          )
+        )
       )
-    ).toMatchObject({ code: 'UNAVAILABLE', message: 'Too many pending table changes.' })
-  )
+      const rejected = sentMessages(sent).filter(({ type }) => type === 'COMMAND_REJECTED')
+      expect(rejected[0]).toMatchObject({
+        commandId: commandIds[8],
+        code: 'UNAVAILABLE',
+        message: 'Too many pending table changes.'
+      })
+      expect(rejected).toHaveLength(9)
+    } finally {
+      sent.mockRestore()
+    }
+  })
   expect(base.socket.readyState).toBe(WebSocket.OPEN)
-  await vi.waitFor(
-    () =>
-      expect(base.messages.filter((message) => message.type === 'COMMAND_REJECTED')).toHaveLength(
-        9
-      ),
-    { timeout: 3_000 }
-  )
 })
 
 function exploredDoorScene(explored: boolean) {

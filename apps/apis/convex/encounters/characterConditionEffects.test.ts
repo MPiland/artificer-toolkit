@@ -10,7 +10,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
@@ -22,7 +22,11 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  expectRedactedRoomRefusal,
+  replayInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 const creatureId = '00000000-0000-4000-8000-0000000008d0'
 const featureId = '00000000-0000-4000-8000-0000000008d1'
@@ -606,8 +610,9 @@ it('rejects a pending condition action after its Campaign overlay changes withou
     notes: 'changed while condition action was pending'
   })
   const beforeResponse = await stored(base)
-  await expect(
-    executeInRoom(base.owner.caller, diceResponse(base.run.id, initial, 1))
-  ).rejects.toThrow(/Campaign condition changed|pending action source or target changed/)
+  await expectRedactedRoomRefusal(
+    executeInRoom(base.owner.caller, diceResponse(base.run.id, initial, 1)),
+    /Campaign condition changed|pending action source or target changed/
+  )
   expect(await stored(base)).toEqual(beforeResponse)
 }, 30000)

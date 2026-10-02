@@ -136,10 +136,14 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
     userId: string,
     input: Pick<CreateEncounterBlueprintInputDto, 'gameSystemId' | 'enemies'>
   ): Promise<EncounterBlueprintDto['enemies']>
-  /** Runs a Sheet command on an Encounter Character for its Campaign's GM. */
+  /**
+   * Runs a Sheet command on an Encounter Character for its Campaign's GM. `encounterId` names the
+   * Run issuing it; the room commits it on the Run's held Character.
+   */
   executeCharacterCommand(
     userId: string,
-    input: CharacterEncounterCommandInput
+    input: CharacterEncounterCommandInput,
+    encounterId: string
   ): Promise<CharacterEncounterCommandResult>
 }
 

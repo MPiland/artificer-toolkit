@@ -6,7 +6,6 @@ import {
   type EncounterCommandInputDto,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { RoomLocalEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   encounterRunActorStateSchema,
@@ -47,8 +46,8 @@ import { presentEncounterResultForMember } from './resultPresentation.js'
 import { rollEncounterRuleEvidence } from './evidenceRolls.js'
 import type { EncounterPersistenceTransaction, EncounterWriteTransaction } from './ports.js'
 
-type RoomEncounterToolCommand = Extract<
-  RoomLocalEncounterCommand,
+type EncounterToolCommand = Extract<
+  EncounterCommandInputDto,
   {
     type:
       | 'UPSERT_REMINDER'
@@ -67,12 +66,6 @@ type RoomEncounterToolCommand = Extract<
       | 'SET_HEALTH_DISPLAY_DEFAULT'
   }
 >
-type EncounterToolCommand =
-  | RoomEncounterToolCommand
-  | Extract<
-      EncounterCommandInputDto,
-      { type: 'UPDATE_ACTOR' | 'ROLL_ACTOR_INITIATIVE' | 'ROLL_ENEMY_ACTION' }
-    >
 
 /** The stored actor a GM tool edits, checked against its row and the Run. */
 async function readCommandActor(
@@ -151,20 +144,8 @@ export async function recordEncounterCommand(
 }
 
 /** Records a generic GM tool command using the transaction's real domain capabilities. */
-export function recordEncounterToolCommand(
-  ctx: EncounterPersistenceTransaction,
-  command: RoomEncounterToolCommand,
-  userId: string,
-  nextInt: (size: number) => number
-): Promise<EncounterCommandResultDto>
-export function recordEncounterToolCommand(
+async function recordEncounterToolCommand(
   ctx: EncounterWriteTransaction,
-  command: EncounterToolCommand,
-  userId: string,
-  nextInt: (size: number) => number
-): Promise<EncounterCommandResultDto>
-export async function recordEncounterToolCommand(
-  ctx: EncounterPersistenceTransaction | EncounterWriteTransaction,
   command: EncounterToolCommand,
   userId: string,
   nextInt: (size: number) => number
@@ -384,13 +365,15 @@ export async function recordEncounterToolCommand(
     if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
       if (actor.kind !== 'CHARACTER')
         throw new Error('Sheet command does not target this Character actor.')
-      if (!('executeCharacterCommand' in ctx.ports))
-        throw new Error('Encounter Character commands are unavailable in this transaction.')
-      const character = await ctx.ports.executeCharacterCommand(userId, {
-        characterId: actor.sourceId,
-        command: input.characterCommand,
-        campaignId: campaign.id
-      })
+      const character = await ctx.ports.executeCharacterCommand(
+        userId,
+        {
+          characterId: actor.sourceId,
+          command: input.characterCommand,
+          campaignId: campaign.id
+        },
+        state.id
+      )
       characterReceiptId = character.historyEventId
     }
     if (input.type === 'ROLL_ACTOR_INITIATIVE') {
@@ -553,11 +536,8 @@ export async function recordEncounterToolCommand(
       ...evaluateRollExpression(parseRollExpression(expression), { nextInt }, definition.rollMode),
       createdAt: updatedAt
     })
-    if (input.visibility === 'TABLE') {
-      if (!('insertTableRoll' in ctx.ports))
-        throw new Error('Encounter table rolls are unavailable in this transaction.')
+    if (input.visibility === 'TABLE')
       await ctx.ports.insertTableRoll({ campaign, membership }, userId, input.commandId, roll)
-    }
   } else if (input.type === 'COMPLETE') {
     if (state.status !== 'ACTIVE' || state.currentActorId === null)
       rejectDomain(

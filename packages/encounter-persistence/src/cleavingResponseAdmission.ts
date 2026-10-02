@@ -139,15 +139,16 @@ export async function readCleavingResponseAdmission(
       result: await presentEncounterResultForMember(ctx, { campaign, membership, result })
     }
   }
-  const pending = readNativeCleavingPending(occurrence, await readPendingSnapshot(ctx, occurrence))
   if (
-    !pending ||
+    occurrence.state !== 'PENDING' ||
     state.status !== 'ACTIVE' ||
     state.version !== response.expectedVersion ||
     occurrence.expectedEncounterVersion !== state.version ||
-    occurrence.version !== response.expectedOccurrenceVersion ||
-    occurrence.rootCommandId !== cleavingChildCommandIdentity(occurrence.id)
+    occurrence.version !== response.expectedOccurrenceVersion
   )
+    rejectDomain('VERSION_STALE', 'Rule occurrence is unavailable.')
+  const pending = readNativeCleavingPending(occurrence, await readPendingSnapshot(ctx, occurrence))
+  if (!pending || occurrence.rootCommandId !== cleavingChildCommandIdentity(occurrence.id))
     throw new Error('Cleaving choice is stale.')
   const { context } = pending
   const sourceActor = actors.find((actor) => actor.id === context.sourceActorId)

@@ -14,7 +14,11 @@ import {
 import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { api } from '../_generated/api'
 import { classifyRuleOccurrenceVoid } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
-import { executeInRoom, planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  expectRedactedRoomRefusal,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 0) }))
 
@@ -124,8 +128,8 @@ describe('GM void command', () => {
       limit: 1
     })
     expect(timeline.entries[0]).toMatchObject({ commandType: 'VOID_RULE_OCCURRENCE' })
-    // A settled void is no longer routable, so its retry is refused as stale.
-    expect(await rejectionReason(executeInRoom(base.owner.caller, input))).toBe('VERSION_STALE')
+    // The void's retry replays its journaled result; a fresh void of the settled occurrence is stale.
+    expect(await executeInRoom(base.owner.caller, input)).toEqual(voided)
     expect(
       await rejectionReason(
         executeInRoom(base.owner.caller, voidCommand({ encounterId: base.run.id, pending }))
@@ -223,10 +227,18 @@ describe('GM void command', () => {
     const secondSkip = voidCommand({ encounterId: value.base.run.id, pending: next })
     const voided = await executeInRoom(value.owner.caller, secondSkip)
     expect(voided.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    // A settled decision is no longer routable, so the void's retry is refused as stale.
-    expect(await rejectionReason(executeInRoom(value.owner.caller, secondSkip))).toBe(
-      'VERSION_STALE'
+    // The movement void's receipt is the Scene's, so its retry is refused as settled; a fresh void
+    // of the settled decision is stale.
+    await expectRedactedRoomRefusal(
+      executeInRoom(value.owner.caller, secondSkip),
+      'This decision was already settled.',
+      'STALE_STATE'
     )
+    expect(
+      await rejectionReason(
+        executeInRoom(value.owner.caller, voidCommand({ encounterId: value.base.run.id, pending: next }))
+      )
+    ).toBe('VERSION_STALE')
     const stored = await value.base.t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),

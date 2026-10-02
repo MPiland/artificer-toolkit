@@ -1,5 +1,4 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
 import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
@@ -35,8 +34,7 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
-import { airElemental } from '@artificer-toolkit/source-data/srd/creatures/air-elemental.js'
+import { airElemental as rawAirElemental } from '@artificer-toolkit/source-data/srd/creatures/air-elemental.js'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -44,6 +42,7 @@ import { encounterSummaryOf } from '../../tests/fixtures/encounterSummaries'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { srdCreatureRecord, srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
@@ -52,11 +51,15 @@ import { requireEncounterPolicySources } from './sourceDependencies'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import {
   executeInRoom,
+  expectRedactedRoomRefusal,
   insertActiveLiveAuthority,
-  replayInRoom
+  replayInRoom,
+  RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
 import type { LiveSessionEncounterRollInput } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+
+// Content the room loads must be publishable, so Creatures carry the seed's ATTACK rolls.
+const airElemental = srdCreatureRecord(rawAirElemental.id)
 
 const rollDice = makeFunctionReference<'query', LiveSessionEncounterRollInput, { dice: number[] }>(
   'liveSessions/encounterRoll:dice'
@@ -641,7 +644,7 @@ describe('native Encounter Run commands', () => {
           expectedVersion: 1
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     const afterBound = await t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -958,7 +961,7 @@ describe('native Encounter Run commands', () => {
           expectedVersion: 5
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     expect(
       await t.run(async (ctx) => ({
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
@@ -1111,7 +1114,7 @@ describe('native Encounter Run commands', () => {
           visibility: 'PRIVATE'
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     await replaceActorResources(prepared.t, prepared.run.id, preparedActor.id, {
       featureCharges: { [featureId]: 0, stale: -1 }
     })
@@ -1138,7 +1141,7 @@ describe('native Encounter Run commands', () => {
           visibility: 'PRIVATE'
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     expect(
       await prepared.t.run(async (ctx) => ({
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
@@ -1170,7 +1173,7 @@ describe('native Encounter Run commands', () => {
           visibility: 'PRIVATE'
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
   }, 30000)
 
   it('rejects Character feature resource changes', async () => {
@@ -1190,7 +1193,7 @@ describe('native Encounter Run commands', () => {
           amount: 1
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
   })
 
   it('restores from reconciled feature usage after a maximum decreases', async () => {
@@ -1264,7 +1267,7 @@ describe('native Encounter Run commands', () => {
           amount: 1
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     const after = await t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -1314,7 +1317,7 @@ describe('native Encounter Run commands', () => {
           amount: 1
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     const staleAfter = await t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -1572,9 +1575,16 @@ describe('native Encounter Run commands', () => {
       ]
     })
     expect(settledStored.commands).toHaveLength(2)
-    await expect(replayInRoom(owner.caller, resolveInput)).resolves.toEqual(settled)
+    // The room journal replays each command's own receipt, shown over the current Run.
+    await expect(replayInRoom(owner.caller, resolveInput)).resolves.toEqual({
+      ...continued,
+      projection: settled.projection
+    })
     await expect(replayInRoom(owner.caller, finalResolveInput)).resolves.toEqual(settled)
-    await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual(settled)
+    await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual({
+      ...pending,
+      projection: settled.projection
+    })
     const firstAdvanceInput: EncounterExecuteInput = {
       command: {
         type: 'ADVANCE_TURN',
@@ -1595,7 +1605,7 @@ describe('native Encounter Run commands', () => {
     })
     // A replay by command ID returns only to the user who issued it.
     await expect(executeInRoom(other.caller, firstAdvanceInput)).rejects.toThrow(
-      'COMMAND_ID_REUSED'
+      'The command ID was already used for different input.'
     )
     expect(progressed.projection.currentActorId).not.toBe(settled.projection.currentActorId)
     const advancedStored = await t.run(async (ctx) => ({
@@ -1640,10 +1650,9 @@ describe('native Encounter Run commands', () => {
       ruleOccurrenceId: expect.any(String),
       ruleResultChecksum: expect.stringMatching(/^[a-f0-9]{64}$/)
     })
-    const replayAfterProgress = await replayInRoom(owner.caller, resolveInput)
-    expect(replayAfterProgress).toMatchObject({
-      projection: { version: progressed.projection.version },
-      occurrence: settled.occurrence
+    await expect(replayInRoom(owner.caller, resolveInput)).resolves.toEqual({
+      ...continued,
+      projection: progressed.projection
     })
     const secondAdvanceInput: EncounterExecuteInput = {
       command: {
@@ -1752,7 +1761,7 @@ describe('native Encounter Run commands', () => {
     })
     await expect(replayInRoom(other.caller, playerAdvanceInput)).resolves.toEqual(playerAdvanced)
     await expect(executeInRoom(owner.caller, playerAdvanceInput)).rejects.toThrow(
-      'COMMAND_ID_REUSED'
+      'The command ID was already used for different input.'
     )
   }, 30000)
 
@@ -1834,13 +1843,6 @@ describe('native Encounter Run commands', () => {
     })
     expect(stored.commands).toHaveLength(2)
     await expect(replayInRoom(owner.caller, input)).resolves.toEqual(started)
-    await t.run(async (ctx) => {
-      if (!stored.receipt) throw new Error('Missing rule receipt fixture.')
-      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', stored.receipt._id, {
-        resultChecksum: 'f'.repeat(64)
-      })
-    })
-    await expect(executeInRoom(owner.caller, input)).rejects.toThrow(LiveSessionRouteError)
   })
 
   it('runs native SIDE_ROLL start, side transitions, correction, and both cadence wraps', async () => {
@@ -2025,7 +2027,7 @@ describe('native Encounter Run commands', () => {
         currentActorId: null
       })
       await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual({
-        ...started,
+        ...startedPending,
         projection: completed.projection
       })
       await expect(replayInRoom(owner.caller, correctionInput)).resolves.toEqual({
@@ -2121,7 +2123,7 @@ describe('native Encounter Run commands', () => {
               }
             }
           })
-        ).rejects.toThrow(LiveSessionRouteError)
+        ).rejects.toThrow(RoomCommandRefusal)
         await expect(replayInRoom(owner.caller, rootInput)).resolves.toEqual(pending)
         expect(await capture()).toEqual(before)
         const settled = await executeInRoom(owner.caller, resolution)
@@ -2133,7 +2135,10 @@ describe('native Encounter Run commands', () => {
         expect(settled.occurrence?.status).toBe('COMPLETE')
         version = settled.projection.version
         const after = await capture()
-        await expect(replayInRoom(owner.caller, rootInput)).resolves.toEqual(settled)
+        await expect(replayInRoom(owner.caller, rootInput)).resolves.toEqual({
+          ...pending,
+          projection: settled.projection
+        })
         await expect(replayInRoom(owner.caller, resolution)).resolves.toEqual(settled)
         expect(await capture()).toEqual(after)
       }
@@ -2297,7 +2302,8 @@ describe('native Encounter Run commands', () => {
     const source = before.rounds.find((row) => row.round === 1)!
     await t.run((ctx) => ctx.db.patch(source._id, { version: source.version + 1 }))
     const corrupt = await capture()
-    await expect(executeInRoom(owner.caller, firstResolution)).rejects.toThrow(
+    await expectRedactedRoomRefusal(
+      executeInRoom(owner.caller, firstResolution),
       'Initiative outgoing advancement is stale.'
     )
     expect(await capture()).toEqual(corrupt)
@@ -2324,7 +2330,10 @@ describe('native Encounter Run commands', () => {
       version: 3,
       round: 2
     })
-    await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual(settled)
+    await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual({
+      ...pending,
+      projection: settled.projection
+    })
     const after = await t.run(async (ctx) => ({
       run: await ctx.db.query('encounterRuns').unique(),
       rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
@@ -2358,7 +2367,7 @@ describe('native Encounter Run commands', () => {
     })
     const beforeReplay = await capture()
     await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual({
-      ...settled,
+      ...pending,
       projection: corrected.projection
     })
     await expect(replayInRoom(owner.caller, terminalInput)).resolves.toMatchObject({
@@ -2427,7 +2436,7 @@ describe('native Encounter Run commands', () => {
           actorId: actor.id
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
   })
 
   it('rolls Character initiative with its effective modifier and rejects stale source identity', async () => {
@@ -2489,7 +2498,7 @@ describe('native Encounter Run commands', () => {
           actorId: actor.id
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
   })
 
   it('rolls initiative with advantage for a Character with Feral Instinct', async () => {
@@ -2835,7 +2844,7 @@ describe('native Encounter Run commands', () => {
         leftAt: new Date().toISOString()
       })
     })
-    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(LiveSessionRouteError)
+    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(RoomCommandRefusal)
   }, 30000)
 
   it('treats UUID casing as equivalent for the Run, command, reminder, and actor IDs', async () => {
@@ -2960,7 +2969,13 @@ describe('native Encounter Run commands', () => {
         .withIndex('by_publicId', (q) => q.eq('id', evaluationGraphId))
         .unique()
       if (!graph) throw new Error('Missing current initiative graph.')
-      await ctx.db.patch(graph._id, { version: graph.version + 1 })
+      // A published revision, which the room reads with the complete definition inventory.
+      await ctx.db.patch(graph._id, {
+        version: graph.version + 1,
+        contractVersion: 1,
+        publishedAt: new Date().toISOString(),
+        publishedBy: srdSystemRecord.userId
+      })
     })
     const replaced = await executeInRoom(owner.caller, {
       command: {
@@ -2990,7 +3005,7 @@ describe('native Encounter Run commands', () => {
           definitionIds: [crypto.randomUUID()]
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     await expect(
       executeInRoom(owner.caller, {
         command: {
@@ -3160,7 +3175,7 @@ describe('native Encounter Run commands', () => {
     )
   }, 30000)
 
-  it('rejects corrupt Run state and receipt records', async () => {
+  it('rejects corrupt Run state', async () => {
     const { t, owner, run } = await setup()
     const command = upsert(run.id, 0, {
       label: 'Corrupt',
@@ -3172,14 +3187,6 @@ describe('native Encounter Run commands', () => {
       order: 0
     })
     const original = await executeInRoom(owner.caller, command)
-    const integrity = await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique()
-      if (!row) throw new Error('Missing Run.')
-      return { stateChecksum: row.stateChecksum }
-    })
     await t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRuns')
@@ -3196,27 +3203,9 @@ describe('native Encounter Run commands', () => {
           expectedVersion: 1
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
-    await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique()
-      if (!row) throw new Error('Missing Run.')
-      await ctx.db.patch(row._id, { stateChecksum: integrity.stateChecksum })
-      const receipt = await ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_campaignId_commandId', (q) =>
-          q.eq('campaignId', run.campaignId).eq('commandId', command.command.commandId)
-        )
-        .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
-      if (!receipt) throw new Error('Missing receipt.')
-      await replaceReceiptRecord(ctx, 'encounterRunCommands', receipt._id, {
-        replayReceiptChecksum: '0'.repeat(64)
-      })
-    })
-    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
+    // The room journal, not the Convex receipt record, serves an exact retry.
+    await expect(executeInRoom(owner.caller, command)).resolves.toEqual(original)
     expect(original.projection.version).toBe(1)
   }, 30000)
 })

@@ -25,7 +25,7 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
@@ -40,8 +40,12 @@ import { api, components, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  executeInRoom,
+  expectRedactedRoomRefusal,
+  replayInRoom,
+  RoomCommandRefusal
+} from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -524,7 +528,7 @@ describe('native Character action sources', () => {
       })
     })
     await expect(executeInRoom(fixture.owner.caller, { command })).rejects.toThrow(
-      LiveSessionRouteError
+      RoomCommandRefusal
     )
   }, 30000)
 
@@ -862,11 +866,12 @@ describe('native Character action sources', () => {
       await ctx.db.patch(state._id, { version: state.version + 1 })
       return state.version
     })
-    await expect(
+    await expectRedactedRoomRefusal(
       executeInRoom(fixture.owner.caller, {
         command: replacementResponse
-      })
-    ).rejects.toThrow(/pending action source or target changed/)
+      }),
+      /pending action source or target changed/
+    )
     await fixture.t.run(async (ctx) => {
       const state = await ctx.db
         .query('encounterMaintainedEffectStates')
@@ -894,7 +899,7 @@ describe('native Character action sources', () => {
       executeInRoom(fixture.owner.caller, {
         command: replacementResponse
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     await fixture.t.run(async (ctx) => {
       const character = await ctx.db
         .query('characters')

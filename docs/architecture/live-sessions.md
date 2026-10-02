@@ -470,33 +470,48 @@ speed 0 is read from evaluated speeds (a Character's rule output, a Creature's s
 condition that zeroes a Creature's speed without changing those is not seen; and targets rebuilt
 inside turn-effect saves carry no Dodge contributors.
 
-**Single Encounter command door.** Browsers cannot execute Encounter commands directly:
-`encounters/commands:execute` is internal and records only GM tools. Every Encounter command enters
-through the Session room, and `roomEncounterPlanner`
-(`apps/session-worker/src/nativeRoomEncounterCommand.ts`) picks its planner before any read:
-`RESOLVE_ACTION` plans as `ACTION`, or `DISARM` when it carries an optional-combat intent (Disarm is
-the one contested action); `USE_BASIC_ACTION` plans as `BASIC_ACTION`; `START` and `ADVANCE_TURN` plan as `TURN`.
-Shared room-local tools, including `ROLL_ACTOR_INITIATIVE` and PRIVATE `ROLL_ENEMY_ACTION`, are intercepted before this transitional
-planner path and commit in room SQLite. The remaining dice commands
-(`ROLL_RULE_EVIDENCE` and TABLE `ROLL_ENEMY_ACTION`) take the room's dice (`ROLL`,
-below); a decision answer or GM void asks the private `encounter-route` query
-(`liveSessions/encounterRoute:route`), which names the planner for the current pending occurrence —
-`ACTION`, `TURN`, `CONCENTRATION`, `CLEAVING`, `DISARM`, `MOVEMENT` or `VOID` — through the one shared
-classifier, `encounters/occurrenceOwner.ts`, and refuses an occurrence no planner owns. A PLAYER may
-classify only an occurrence that `encounters/pendingReads` already shows them. The room first
-classifies from its own loaded Run (`readRoomEncounterResponseRoute`): a movement decision the room
-owns goes straight to its movement commit and a native-owned void or answer to its native planner,
-with no route query. Only the GM tools in
-`CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` (`packages/schema/src/api/liveSessionEncounterCommand.ts`)
-go to Convex as they are (D41): no dice, and no derived mechanics beyond the deterministic actor
-recalculation every Convex commit runs anyway. The private `encounter-command` route
-(`liveSessions/encounterCommand:execute`, an internal mutation) admits and records those through
-`recordEncounterCommand` in one transaction, as the forwarding user, and refuses every other command.
-Both routes require the Worker secret, the user's identity, the expected user and role, an ACTIVE
-Campaign, a `DO_ACTIVE` authority at the given epoch, and a Run in that Campaign
-(`requireLiveEncounterRun`, `liveSessions/encounterCommandAdmission.ts`).
+**Single Encounter command door (CURRENT, D78).** Browsers cannot execute Encounter commands
+directly: `encounters/commands:execute` is internal and records only GM tools. Every Encounter
+command enters through the Session room, and every ACTIVE-Run command commits in room SQLite before
+acknowledgement, with no Convex call. `ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES`
+(`packages/schema/src/api/liveSessionEncounterCommand.ts`) run the shared reducers through
+`executeRoomEncounterCommand` (`apps/session-worker/src/roomEncounterCommands.ts`), drawing dice
+from the room's secure random source: `RESOLVE_ACTION` runs the action planner, or Disarm when it
+carries an optional-combat intent (Disarm is the one contested action); `USE_BASIC_ACTION` runs the
+basic-action planner; `START` and `ADVANCE_TURN` run the turn planner; the GM tools and the dice
+commands run `recordEncounterCommand`. A TABLE roll (`ROLL_RULE_EVIDENCE`, TABLE
+`ROLL_ENEMY_ACTION`) posts its table card through the room's `insertTableRoll` port and spends one
+D72 TABLE token inside the commit, as a chat roll does; the room checks the allowance before any
+work. A GM `UPDATE_ACTOR` with a `characterCommand` commits that Sheet command on the Run's held
+Character through the room's `executeCharacterCommand` port, and the Run command history keeps its
+Sheet receipt id; a command that is not live Sheet play, or one on a PREPARED Run (its Character is
+not room-held), is refused with "Make this change from the Character Sheet.". One ACTIVE Run per
+Campaign holds across the cutover: the room's RUN input carries the Campaign's `activeEncounterId`
+at load and `START` refuses `ACTIVE_ENCOUNTER_EXISTS` when another Run is ACTIVE, and checkpoint
+ingestion refuses a checkpoint that would leave two ACTIVE Runs. Character effects load with their
+Character, so the RUN input's first page also lists the Characters holding each maintained state's
+dependents (`maintenanceCharacterOwners`). Before a Character dependents capture, the room loads
+those owners through `readCharacterRow`; a detached owner that is no longer ACTIVE or assigned refuses
+the command, as the Convex capture did. A retried commandId replays its
+journaled result byte-identically; a reused commandId with different input is `INVALID_COMMAND`
+(the durable command journal is the replay authority, not the Convex receipt). A decision answer or GM void is
+classified from the room's loaded Run (`readRoomEncounterResponseRoute`): a movement decision goes
+to its movement commit, a native-owned answer or void to its native planner, and a decision no
+planner owns is refused as Convex refused it (`refuseUnroutedEncounterDecision` in
+`roomEncounterResponseRouting.ts`): `VERSION_STALE` unless it names the Run's one pending
+occurrence and the caller may answer it, otherwise unavailable.
 
-**Room dice (CURRENT, D41).** A dice command takes two private round trips. The `encounter-roll-dice`
+**Historical Convex Encounter routes (retired in S6c3).** Before D78 the room picked a planner with
+`roomEncounterPlanner` (`apps/session-worker/src/nativeRoomEncounterCommand.ts`), asked the private
+`encounter-route` query (`liveSessions/encounterRoute:route`) which planner owned a decision, and
+forwarded the GM tools in `CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` to the internal
+`encounter-command` mutation (`liveSessions/encounterCommand:execute`). Those routes and the Room
+dice routes below remain in source until S6c3, but the room no longer calls them. They require the
+Worker secret, the user's identity, the expected user and role, an ACTIVE Campaign, a `DO_ACTIVE`
+authority at the given epoch, and a Run in that Campaign (`requireLiveEncounterRun`,
+`liveSessions/encounterCommandAdmission.ts`).
+
+**Room dice (HISTORICAL, D41; retired in S6c3).** A dice command took two private round trips. The `encounter-roll-dice`
 query (`liveSessions/encounterRoll:dice`) admits the member and names the dice the command draws, as
 die sizes in draw order: one d20 for initiative, the roll definition's dice (two d20s for advantage or
 disadvantage) for an enemy action, and the request's die for "Roll dice"; none for a retried command,
@@ -525,9 +540,9 @@ points, conditions, Campaign state). The compiled Character rule context is rebu
 from the fresh Character and the cached sources, since the Character document itself carries hit
 points and conditions. The cache is cleared whenever the room bumps its cache generation
 (presentation change, member eviction, room close) and is bounded by `ROOM_LIMITS` (60 s, 512
-entries, 16 MB). When Convex refuses a commit (409) from a plan that reused any entry,
-`executeLiveEncounterCommand` drops those entries and replans once from fresh reads; a second refusal
-surfaces as before, and a plan that reused nothing is never replanned. Action and turn planning still
+entries, 16 MB). Historical (retired with the Convex Encounter routes, D78): when Convex refused a
+commit (409) from a plan that reused any entry, `executeLiveEncounterCommand` dropped those entries
+and replanned once from fresh reads. Action and turn planning still
 read every Run actor, because the committed actor rules, Concentration and Cleaving cover the whole
 Run.
 
@@ -981,8 +996,9 @@ receipt. Per-account D72 token buckets live in room SQLite
 chat and every roll share one bucket (players 30/min burst 30, the GM 60/60) and Scene writes use
 240/min burst 80. A charge commits inside the command's durable transaction, so exact retries and
 rolled-back commands are never charged, reconnects share the bucket, and rows are keyed by epoch.
-Eviction removes the account's rows and room release clears them. Evidence rolls stay Convex-recorded
-and spend the same bucket after they succeed. Convex fences `campaigns/chat:send` and
+Eviction removes the account's rows and room release clears them. Evidence rolls and TABLE enemy
+rolls commit in the room (D78) and spend the same bucket inside their commit; their table cards
+reach other members' chat history at the next checkpoint. Convex fences `campaigns/chat:send` and
 `campaigns/rolls:execute` while authority exists, and the web routes both through the room
 (`useCampaignChatRoom`), merging pushed entries into Convex history. Edit, unsend and GM reveal
 remain Convex-only.

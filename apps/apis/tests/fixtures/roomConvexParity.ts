@@ -2,13 +2,7 @@ import { vi } from 'vitest'
 import type { TestConvex } from 'convex-test'
 import type { z } from 'zod'
 import { ConvexError } from 'convex/values'
-import { gzipSync } from 'node:zlib'
-import {
-  contentSnapshotObjectKey,
-  type ContentSnapshotHead,
-  type ContentSnapshotHeader,
-  type ContentSnapshotManifestDto
-} from '@artificer-toolkit/schema/api/contentSnapshots'
+import type { ContentSnapshotManifestDto } from '@artificer-toolkit/schema/api/contentSnapshots'
 import {
   encounterExecuteInputSchema,
   type EncounterCommandInputDto,
@@ -26,7 +20,6 @@ import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persisten
 import type { EncounterTableName } from '@artificer-toolkit/encounter-persistence/store'
 import { encounterStoreSchemas } from '@artificer-toolkit/encounter-persistence/storeTables'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
-import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { internal } from '../../convex/_generated/api'
 import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
 import { readRoomAuthorization } from '../../convex/liveSessions/roomAuthorization'
@@ -36,11 +29,14 @@ import { createNativeLiveRulesRuntime } from '../../../session-worker/src/native
 import { executeRoomEncounterCommand } from '../../../session-worker/src/roomEncounterCommands'
 import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
 import { RoomInputs } from '../../../session-worker/src/roomInputs'
-import type { ContentSnapshotObjectBody } from '../../../session-worker/src/contentSnapshotStorage'
 import { loadRoomContentSnapshots } from '../../../session-worker/src/roomContentSnapshots'
 import { createNodeSqliteRoomStorage } from '../../../session-worker/src/testing/nodeSqliteRoomStorage'
-import { readScopeObjects } from './contentSnapshotReaders'
-import { executeInRoom, insertActiveLiveAuthority, workerEnvironment } from './liveSessionWorker'
+import {
+  executeConvexFirstInRoom as executeInRoom,
+  insertActiveLiveAuthority,
+  workerEnvironment
+} from './liveSessionWorker'
+import { installContentSnapshots } from './roomContentSnapshots'
 
 /**
  * Shadow parity (A35-S5): the same Encounter command sequence through the Convex-first comparator
@@ -219,78 +215,6 @@ async function convexAuthorization(t: TestConvex<typeof schema>, campaignId: str
     JSON.stringify(await readRoomAuthorization(ctx, { campaignId, epoch, known: null }))
   )
   return liveSessionRoomAuthorizationSchema.parse(JSON.parse(json))
-}
-
-/**
- * Builds the Campaign's content snapshots as the publisher would (SOURCE scopes of its Game System
- * and the CAMPAIGN scope), records their heads, and serves the objects from an in-memory bucket the
- * room's real loader reads.
- */
-async function installContentSnapshots(t: TestConvex<typeof schema>, campaignId: string) {
-  const gameSystemId = await t.run(async (ctx) => {
-    const campaign = await ctx.db
-      .query('campaigns')
-      .withIndex('by_publicId', (q) => q.eq('id', campaignId))
-      .unique()
-    if (!campaign) throw new Error('Parity Campaign is unavailable.')
-    return campaign.gameSystemId
-  })
-  const sources = await t.run((ctx) =>
-    ctx.db
-      .query('contentSources')
-      .withIndex('by_gameSystemId', (q) => q.eq('gameSystemId', gameSystemId))
-      .collect()
-  )
-  const scopes = [
-    ...sources.map((source) => ({ scope: 'SOURCE' as const, scopeId: source.id })),
-    { scope: 'CAMPAIGN' as const, scopeId: campaignId }
-  ]
-  const objects = new Map<string, Uint8Array>()
-  for (const scope of scopes) {
-    const kinds: ContentSnapshotHead['kinds'] = {}
-    for (const object of await readScopeObjects(t, scope)) {
-      const json = canonicalizeJson(object)
-      const ref = {
-        sha256: sha256Hex(json),
-        byteLength: new TextEncoder().encode(json).byteLength,
-        rootCount: object.roots.length
-      }
-      const header: ContentSnapshotHeader = {
-        format: object.format,
-        scope: object.scope,
-        scopeId: object.scopeId,
-        kind: object.kind,
-        part: object.part
-      }
-      objects.set(contentSnapshotObjectKey(header, ref.sha256), gzipSync(json))
-      const refs = kinds[object.kind] ?? { index: ref, list: ref, documents: ref }
-      refs[object.part] = ref
-      kinds[object.kind] = refs
-    }
-    if (!Object.keys(kinds).length) continue
-    await t.run(async (ctx) => {
-      const existing = await ctx.db
-        .query('contentSnapshotHeads')
-        .withIndex('by_scope_scopeId', (q) =>
-          q.eq('scope', scope.scope).eq('scopeId', scope.scopeId)
-        )
-        .unique()
-      if (existing) await ctx.db.patch(existing._id, { kinds, builtRevision: existing.revision })
-      else await ctx.db.insert('contentSnapshotHeads', { ...scope, revision: 1, builtRevision: 1, kinds })
-    })
-  }
-  const get = async (key: string): Promise<ContentSnapshotObjectBody | null> => {
-    const bytes = objects.get(key)
-    return bytes
-      ? {
-          body: new Blob([new Uint8Array(bytes).buffer]).stream(),
-          httpEtag: 'parity-fixture',
-          customMetadata: {},
-          httpMetadata: { contentType: 'application/json', contentEncoding: 'gzip' }
-        }
-      : null
-  }
-  return { CONTENT_SNAPSHOTS: { get }, CONVEX_SITE_URL: 'http://127.0.0.1:3211' }
 }
 
 /**

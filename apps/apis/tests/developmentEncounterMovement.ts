@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import type { ConvexHttpClient } from 'convex/browser'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from './fixtures/srdCreatures'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'

@@ -535,11 +535,14 @@ const cacheKey = (
   scope:
     | { kind: 'CAMPAIGN_PLAY' }
     | { kind: 'CHARACTER'; characterId: string }
+    | { kind: 'RUN'; encounterId: string }
     | { kind: 'SYSTEM'; part: 'SYSTEM' | 'VOCABULARY' }
 ) => {
   switch (scope.kind) {
     case 'CAMPAIGN_PLAY':
       return 'CAMPAIGN_PLAY'
+    case 'RUN':
+      return `RUN:${scope.encounterId.toLowerCase()}`
     case 'CHARACTER':
       return `CHARACTER:${scope.characterId}`
     case 'SYSTEM':
@@ -591,7 +594,7 @@ export class RoomInputs {
       play,
       system,
       vocabulary,
-      { run, characters },
+      { run, runRecord, characters },
       scene,
       authority,
       chatPages,
@@ -602,7 +605,7 @@ export class RoomInputs {
       read({ kind: 'SYSTEM', part: 'VOCABULARY' }),
       encounterId
         ? this.#readRunWithCharacters(read, encounterId)
-        : Promise.resolve({ run: [], characters: [] }),
+        : Promise.resolve({ run: [], runRecord: null, characters: [] }),
       sceneId ? this.#readScene(read, sceneId) : Promise.resolve([]),
       this.#readAuthority(read),
       readPages(read, 'CHAT_METADATA', (cursor) => ({ kind: 'CHAT_METADATA', cursor })),
@@ -634,6 +637,7 @@ export class RoomInputs {
       ],
       records: [
         ...scene,
+        ...(runRecord ? [runRecord] : []),
         ...definitionRecords(definitions),
         cacheRecord('AUTHORITY', { ...authority, documents: [] }),
         cacheRecord(cacheKey({ kind: 'CAMPAIGN_PLAY' }), play),
@@ -702,11 +706,12 @@ export class RoomInputs {
       .withIndex('by_publicId', (q) => q.eq('id', encounterId))
       .unique()
     if (held) return
-    const { run, characters } = await this.#readRunWithCharacters(
+    const { run, runRecord, characters } = await this.#readRunWithCharacters(
       (scope) => this.#read(this.#requireEpoch(), scope),
       encounterId
     )
     for (const document of run) transaction.restoreDocument(document)
+    transaction.setRecord(runRecord)
     for (const { part, documents } of characters) {
       if (!part.inputs) throw new Error('Character inputs are missing.')
       const key = cacheKey({ kind: 'CHARACTER', characterId: part.characterId })
@@ -729,6 +734,33 @@ export class RoomInputs {
       transaction.setRecord(cacheRecord(key, part))
       this.#content.set(key, content)
     }
+  }
+
+  /** The Campaign's ACTIVE Run in Convex when the room loaded `encounterId`, if any. */
+  activeEncounterIdAtLoad(encounterId: string, transaction: RoomTransaction) {
+    return this.#runAtLoad(encounterId, transaction).activeEncounterId
+  }
+
+  /**
+   * Characters that held `maintainedStateId`'s dependents when the room loaded the Run. Later
+   * dependents are written on Characters the room already holds.
+   */
+  maintenanceCharacterOwnersAtLoad(
+    encounterId: string,
+    maintainedStateId: string,
+    transaction: RoomTransaction
+  ) {
+    const owners = this.#runAtLoad(encounterId, transaction).maintenanceCharacterOwners
+    if (!owners) throw new Error('Room Run maintenance owners are unavailable.')
+    return owners.flatMap((owner) =>
+      owner.maintainedStateId === maintainedStateId ? [owner.characterId] : []
+    )
+  }
+
+  #runAtLoad(encounterId: string, transaction: RoomTransaction) {
+    const held = transaction.record(CACHE_KIND, cacheKey({ kind: 'RUN', encounterId }))
+    if (!held) throw new Error('Room Run inputs are unavailable.')
+    return expectKind(liveRoomInputsResponseSchema.parse(JSON.parse(held.json)), 'RUN')
   }
 
   /** Campaign facts are native rows, refreshed only when their revision changes. */
@@ -980,7 +1012,14 @@ export class RoomInputs {
       const pages = await readPages(read, 'RUN', (cursor) => ({ kind: 'RUN', encounterId, cursor }))
       // A command between pages bumps the Run's version, so one version means one snapshot.
       if (new Set(pages.map((page) => page.encounterVersion)).size === 1)
-        return toRoomDocuments(pages)
+        return {
+          documents: toRoomDocuments(pages),
+          record: cacheRecord(cacheKey({ kind: 'RUN', encounterId }), {
+            ...pages[0]!,
+            documents: [],
+            continueCursor: null
+          })
+        }
     }
     throw new Error('The Run changed while it was being read.')
   }
@@ -1096,12 +1135,12 @@ export class RoomInputs {
     read: (scope: LiveRoomInputsScope) => Promise<LiveRoomInputsResponse>,
     encounterId: string
   ) {
-    const run = await this.#readRun(read, encounterId)
+    const { documents: run, record: runRecord } = await this.#readRun(read, encounterId)
     const characterIds = characterIdsOf(run)
     const { characters } = characterIds.length
       ? await this.#readCharacters(read, characterIds)
       : { characters: [] }
-    return { run, characters }
+    return { run, runRecord, characters }
   }
 
   /**

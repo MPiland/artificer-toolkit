@@ -228,6 +228,19 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
           continueCursor: null
         })
       },
+      {
+        kind: 'ROOM_INPUT',
+        key: `RUN:${state.id}`,
+        revision: null,
+        json: JSON.stringify({
+          kind: 'RUN',
+          encounterVersion: state.version,
+          activeEncounterId: null,
+          maintenanceCharacterOwners: [],
+          documents: [],
+          continueCursor: null
+        })
+      },
       ...['SYSTEM:SYSTEM', 'SYSTEM:VOCABULARY'].map((key) => ({
         kind: 'ROOM_INPUT',
         key,

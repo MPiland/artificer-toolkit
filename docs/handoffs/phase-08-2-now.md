@@ -2,7 +2,7 @@
 
 > The resume point for a fresh session. Read this first, then only the sections it links. Keep it under about 60 lines; rewrite it at every slice boundary.
 >
-> Updated: 2026-10-01 (after A35-S5).
+> Updated: 2026-10-01 (after A35-S6c1).
 
 ## Where we are
 
@@ -15,32 +15,40 @@
   - update the slice registry and republish the dashboard;
   - stop every background shell and agent this session started (`TaskStop` each ID; check that none are still running, including ones that seemed to finish or were killed with `pkill`);
   - tell the user it's a good point to `/clear` and give the resume line: "Continue Phase 8.2 from docs/handoffs/phase-08-2-now.md."
-- **Working rhythm:** code first, with a compile gate after each slice (`local-validation/codex-batch/gate.ps1 -Name <gateN>`; gate21 is the last used). The full test suites and end-to-end runs come once all known code is written.
+- **Working rhythm:** code first, with a compile gate after each slice (`local-validation/codex-batch/gate.ps1 -Name <gateN>`; gate24 is the last used). The full test suites and end-to-end runs come once all known code is written.
 
-## Last slice (done)
+## Last slice (integrating)
 
-**A35-S5 Room/Convex parity** (R06, [D77](phase-08-2-decisions.md)). State: done. Gate21 is clean. D77 re-scoped S5 to a differential test, because the room already commits natively, and moved A35-S3c (packed Scene history) after S6c.
+**A35-S6c1 The switch, part 1** (R06, V14, [D78](phase-08-2-decisions.md) and its S6c1 rulings). State: integrating; the remaining reds go to REL-4. Gate24 is clean (build, codegen, typecheck, typecheck-web).
 
-- **Test:** `apps/apis/convex/liveSessions/roomConvexParity.test.ts` (9/9) with `apps/apis/tests/fixtures/roomConvexParity.ts`. Each scenario pages the Convex room inputs into a `RoomEncounterStore` over node SQLite, then runs the same commands through the Convex-first path and `executeRoomEncounterCommand`. After each command it compares the result, the logical Encounter documents and the authorization play JSON. No divergences.
-- **Covered:** GM tools, START with Assisted initiative evidence, turns, RESOLVE_ACTION (fixed, ATTACK, SAVE), basic actions, private enemy rolls, prompted d20 resolve and void, REVERT, REORDER, REINFORCE, REMOVE_ACTOR, COMPLETE, Disarm and refusals.
-- **Not covered:** Concentration, Cleaving, REPLACE_CREATURE_EQUIPMENT and Scene commands. Character play is compared only through the authorization play JSON.
-- **Fixture note:** the room's content snapshot builder needs one ATTACK roll per attacking feature, and the raw SRD wolf has none, so START imports `companionCreature('ATTACK')` (now exported from `tests/fixtures/playerControl.ts`).
-- **Lifetime:** S6c deletes this test and its fixture along with the Convex comparators.
+- **Room-native:** every ACTIVE-Run Encounter command commits in room SQLite. Evidence and table rolls go through `insertTableRoll` with a D72 TABLE charge, `UPDATE_ACTOR` + `characterCommand` through the held Sheet, and unowned decisions through `refuseUnroutedEncounterDecision`. A PREPARED Run refuses the Sheet bridge with "Make this change from the Character Sheet."
+- **Harness:** `apps/apis/tests/fixtures/liveSessionWorker.ts` runs commands room-natively and flushes them through checkpoints. It mirrors the durable journal: same commandId replays, a fresh commandId gives VERSION_STALE, mismatched reuse gives INVALID_COMMAND.
+- **Fixes:**
+  - One ACTIVE Run per Campaign: the room input carries `activeEncounterId`, the room refuses START with ACTIVE_ENCOUNTER_EXISTS, and checkpoint ingestion refuses a second ACTIVE Run.
+  - Replay is byte-identical.
+  - The new private RUN input `maintenanceCharacterOwners` lets turn capture read detached maintained-effect owners ([live-sessions.md](../architecture/live-sessions.md)).
+- **Known reds, deferred to REL-4:**
+  - Worker: roomCheckpoints, roomEncounterTurns, roomInputs (2), roomEncounterTurnCapture, roomPrivateRolls. roomPrivateRolls is still red with HEAD's input files, so this slice didn't cause it.
+  - Convex: the checkpoint activeHostedCampaigns test.
+  - The Cleaving "planner" variant, which S6c3 deletes.
+  - One cold-start 5 s timeout in the nativeLiveSessionRoom door test; it passed on re-run.
 
 Follow-ups carried forward:
 
-- **From A35-S7b:** see this file at `55165f7ea`. That covers the frozen-then-deleted actor gap, the REL-4 room tests for deletion and reconcile, the S7a `delta: null` freeze receipt and the two stale Worker `src/roomInputs.test.ts` cases.
-- **From A35-S6b and A35-S3b:** see this file at `2a96c51f8`.
+- **Detached owners:** other dependent-read paths (actor removal, Concentration cleanup) may miss a detached Character owner after a re-hydrate. An unassigned or deleted detached owner now refuses turn capture; Convex never checked assignment. Check both in S6c2 or REL-4.
+- **From A35-S5:** see this file at `6cc8b3b30`. From A35-S7b: at `55165f7ea`. From A35-S6b and A35-S3b: at `2a96c51f8`.
 
 ## Current slice
 
-**A35-S6c The switch** (R06, V08, V13, V14; approved for Opus). ACTIVE Runs become fully room-authoritative and the per-command Convex path is deleted: `liveSessions` comparator routes, `executeInRoom`, the Convex-first Encounter and Scene writers (including `sceneLiveCommands` per-command writes), the S6b carry-overs (Convex movement stage, preview Scene cache), and the S5 parity test. See the S6 row in [adr-0035-implementation-plan.md](adr-0035-implementation-plan.md) and the R06.1 "missing" proof line in the acceptance ledger.
+**A35-S6c2 The switch, part 2** (R06, V08, D78). Build the room movement harness and move the movement tests off the Convex-first commit. Then make actor-token binding a room command and fence `actorTokenBindings.execute` for ACTIVE Runs. S6c3 then deletes the per-command Convex path; see the S6 row in [adr-0035-implementation-plan.md](adr-0035-implementation-plan.md) and the R06.1 "missing" proof line.
 
 ## Next slices
 
-The registry `queue` holds the order: A35-S3c packed Scene history (Scene-scoped ledgers per D77), A35-S9 budgets, then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
+The registry `queue` holds the order (user-approved 2026-10-01): A35-S6c3, A36-S10 room content from snapshots (before budgets, so S9 measures the real load path), A35-S3c packed Scene history (Scene-scoped ledgers per D77), TST-6 and TST-0 (after S6c3's test deletions, before REL-4's full runs), A35-S9 budgets, CP-S6i rule-roll chat cards, PLT-5 (D75 web hosting; staging deploy needs approval), TST-4, TST-5 and A36-F1 (small; may share a session), then REL-4 test and fix (integrating slices become done here), REL-5 V15, REL-6 final proof, REL-7 promotion. Small adjacent slices may share a session.
 
-**Not scheduled (needs your call):** CP-S6i rule-roll chat cards, A35-S8c room-planned evidence rolls, A36-S10 room content from snapshots, A36-F1, RUL-9, TST-0/4/5/6, PLT-5 (D75 web hosting), PLT-6.
+**RUL-9** (pre-beta rules audit) is done: [rul-9-rules-audit.md](rul-9-rules-audit.md). None of its 11 slices blocks 8.2 promotion; they are Phase 8.3 scope (ADR 0034, launch-gating) and seed the 8.3 plan when 8.2 closes. All 11 gate closed beta (user, 2026-10-01).
+
+**Not scheduled:** none. The registry and dashboard track dev work only; the crowdfunding plan lives in [future-enhancements.md](../roadmap/future-enhancements.md#crowdfunding-campaign-user-direction-2026-09-28). A35-S8c is superseded (folded into S6c1 by D78).
 
 ## Open questions
 

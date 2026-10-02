@@ -65,6 +65,7 @@ import {
   stubLiveSessionFetch,
   workerEnvironment,
   executeInRoom,
+  expectRedactedRoomRefusal,
   replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
@@ -653,9 +654,9 @@ describe('native Encounter turn Recharge', () => {
     expect(
       terminal.receipts.find((row) => row.commandId === advance.command.commandId)
     ).toMatchObject({ actorUserId: base.other.userId })
-    // A replay returns only to the player who ended the turn, as the player projection.
+    // A replay returns the player's own original result over the current player projection.
     const replay = await executeInRoom(base.other.caller, advance)
-    expect(replay).toMatchObject({ occurrence: { status: 'COMPLETE', pending: null } })
+    expect(replay.occurrence).toEqual(paused.occurrence)
     expect(replay.projection).toEqual(
       projectPlayerEncounterProjection(
         encounterGmProjectionDtoSchema.parse(
@@ -668,7 +669,9 @@ describe('native Encounter turn Recharge', () => {
     )
     for (const hidden of ['healthBand', 'gmNotes', 'statBlock'])
       expect(JSON.stringify(replay)).not.toContain(hidden)
-    await expect(executeInRoom(base.owner.caller, advance)).rejects.toThrow('COMMAND_ID_REUSED')
+    await expect(executeInRoom(base.owner.caller, advance)).rejects.toThrow(
+      'The command ID was already used for different input.'
+    )
     expect(await stored(base.t, base.run.id)).toEqual(terminal)
   }, 30000)
 
@@ -815,7 +818,8 @@ describe('native Encounter turn Recharge', () => {
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, actor._id, state)
     })
     const staleBefore = await stored(base.t, base.run.id)
-    await expect(executeInRoom(base.owner.caller, invalid)).rejects.toThrow(
+    await expectRedactedRoomRefusal(
+      executeInRoom(base.owner.caller, invalid),
       'Recharge evidence has no current candidate.'
     )
     expect(await stored(base.t, base.run.id)).toEqual(staleBefore)

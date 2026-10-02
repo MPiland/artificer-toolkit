@@ -68,9 +68,9 @@ import {
   stubLiveSessionFetch,
   workerEnvironment,
   executeInRoom,
-  replayInRoom
+  replayInRoom,
+  RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -498,7 +498,7 @@ describe('native initiative declarations', () => {
     const before = await storedInitiative(base)
     await expect(
       executeInRoom(base.owner.caller, declarationCommand({ encounterId: base.run.id, pending }))
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     expect(await storedInitiative(base)).toEqual(before)
   }, 30000)
 

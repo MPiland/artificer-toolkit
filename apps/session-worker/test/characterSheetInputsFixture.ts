@@ -13,6 +13,7 @@ import {
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRunSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
@@ -313,12 +314,50 @@ export async function characterSheetInputsFixture({
     })
   )
   await insertRunActor({ db: native.store }, actor)
+  // An ACTIVE Run projects from its normalized initiative round.
+  const initiative = encounterInitiativeRoundStateDtoSchema.parse({
+    round: {
+      encounterId,
+      round: 1,
+      procedure: 'MANUAL',
+      cadence: 'ENCOUNTER_START',
+      status: 'ACTIVE',
+      policySnapshotChecksum: null,
+      nextTurnOrderOrdinal: 1,
+      version: 0,
+      createdAt: NOW,
+      updatedAt: NOW
+    },
+    sides: [],
+    participants: [
+      {
+        encounterId,
+        round: 1,
+        actorId: actor.id,
+        sideId,
+        status: 'READY',
+        initiativeScore: null,
+        evaluation: { occurrenceId: null, resultChecksum: null },
+        tie: { occurrenceId: null, resultChecksum: null },
+        declaration: null,
+        declarationChecksum: null,
+        turnOrderOrdinal: 0,
+        version: 0,
+        createdAt: NOW,
+        updatedAt: NOW
+      }
+    ]
+  })
+  await native.store.insert('encounterInitiativeRounds', initiative.round)
+  await native.store.insert('encounterInitiativeParticipants', initiative.participants[0]!)
   const documents: RoomCharacterInputs['run']['documents'] = []
   for (const table of [
     'encounterRuns',
     'encounterRunActors',
     'encounterActorProjectionFacts',
-    'encounterSourceProjectionFacts'
+    'encounterSourceProjectionFacts',
+    'encounterInitiativeRounds',
+    'encounterInitiativeParticipants'
   ] as const) {
     for (const { _id, _creationTime, ...fields } of native.documents(table))
       documents.push({ table, id: _id, creationTime: _creationTime, fields })
@@ -327,7 +366,14 @@ export async function characterSheetInputsFixture({
   const characterInputs: RoomCharacterInputs = {
     parts: [part],
     system: systemInputs,
-    run: { kind: 'RUN', encounterVersion: state.version, documents, continueCursor: null }
+    run: {
+      kind: 'RUN',
+      encounterVersion: state.version,
+      activeEncounterId: null,
+      maintenanceCharacterOwners: [],
+      documents,
+      continueCursor: null
+    }
   }
   return { actorId: actor.id, characterInputs, characterRevision, encounterId, systemId }
 }

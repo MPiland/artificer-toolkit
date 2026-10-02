@@ -21,8 +21,7 @@ import {
   turnCharacterEffectFixture
 } from '../../tests/fixtures/turnActiveEffectFixtures'
 import { removeAccountCharacterActors } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 
 type Fixture = Awaited<ReturnType<typeof turnCharacterEffectFixture>>
@@ -293,7 +292,7 @@ describe('trusted account cleanup during another actor pending turn effect', () 
         actorId: actor.id
       }
     }
-    await expect(executeInRoom(base.owner.caller, remove)).rejects.toThrow(LiveSessionRouteError)
+    await expect(executeInRoom(base.owner.caller, remove)).rejects.toThrow(RoomCommandRefusal)
     expect(await capture(base)).toEqual(before)
 
     await base.t.run((ctx) =>

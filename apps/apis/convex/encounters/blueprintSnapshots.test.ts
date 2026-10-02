@@ -1,6 +1,6 @@
 import { convexTest } from 'convex-test'
 import { describe, expect, it } from 'vitest'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'

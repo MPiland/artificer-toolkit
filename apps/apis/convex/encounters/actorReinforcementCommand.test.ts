@@ -10,8 +10,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { reinforceEncounterActors } from '@artificer-toolkit/encounter-persistence/actorReinforcementCommand'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 
 const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
@@ -151,7 +150,7 @@ describe('native actor reinforcement transaction', () => {
           commandId: crypto.randomUUID()
         }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     expect(await capture(base)).toEqual(pending)
   }, 30_000)
   it('inserts before and after the current actor while preserving settled manual participants', async () => {
@@ -281,7 +280,7 @@ describe('native actor reinforcement transaction', () => {
     })
     const tampered = await capture(base)
     await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
-      LiveSessionRouteError
+      RoomCommandRefusal
     )
     expect(await capture(base)).toEqual(tampered)
     const rollback = {

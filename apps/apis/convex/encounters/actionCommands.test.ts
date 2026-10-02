@@ -1,5 +1,4 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
 import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
@@ -47,7 +46,6 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
@@ -62,8 +60,12 @@ import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPre
 import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { loadMovementTargets } from './movementTargets'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  executeInRoom,
+  expectRedactedRoomRefusal,
+  replayInRoom,
+  RoomCommandRefusal
+} from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -83,8 +85,8 @@ const createRun = makeFunctionReference<
  * charges, self targeting, recurring effects, saves and undo that need no attack roll or Scene.
  */
 const creature = {
-  ...wolf,
-  features: wolf.features?.map((feature) =>
+  ...srdWolf,
+  features: srdWolf.features?.map((feature) =>
     feature.label !== 'Bite'
       ? feature
       : {
@@ -887,16 +889,20 @@ describe('native encounter actions', () => {
       actionId: base.actionId
     })
     const before = await records(base.t, base.run.id)
-    let result = await executeInRoom(base.owner.caller, {
+    const issued = await executeInRoom(base.owner.caller, {
       command: input
     })
+    let result = issued
     expect(result.occurrence?.status).toBe('PENDING')
     await expect(
       replayInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
-    const responses: ResolveRuleOccurrenceInputDto[] = []
+    const responses: Array<{
+      command: ResolveRuleOccurrenceInputDto
+      result: EncounterCommandResultDto
+    }> = []
     while (result.occurrence?.status === 'PENDING') {
       expect(responses.length).toBeLessThan(20)
       const pending = result.occurrence.pending
@@ -963,27 +969,34 @@ describe('native encounter actions', () => {
         command: response
       })
       const settledResponse = await records(base.t, base.run.id)
-      // Once the action settles its decision is no longer routable, so a retry is refused stale.
+      // Once the action settles, a reused command ID with other input is refused and a fresh one is stale.
       const settledAction = result.occurrence?.status !== 'PENDING'
-      await expect(
-        executeInRoom(base.owner.caller, {
-          command: { ...response, correlationId: crypto.randomUUID() }
+      const retry = (change: { correlationId: string } | { commandId: string }) =>
+        executeInRoom(base.owner.caller, { command: { ...response, ...change } })
+      if (settledAction) {
+        await expectRedactedRoomRefusal(
+          retry({ correlationId: crypto.randomUUID() }),
+          'The command ID was already used for different input.',
+          'INVALID_COMMAND'
+        )
+        await expect(retry({ commandId: crypto.randomUUID() })).rejects.toMatchObject({
+          data: { reason: 'VERSION_STALE' }
         })
-      ).rejects.toThrow(settledAction ? 'Rule occurrence is unavailable.' : LiveSessionRouteError)
-      await expect(
-        executeInRoom(base.owner.caller, {
-          command: { ...response, commandId: crypto.randomUUID() }
-        })
-      ).rejects.toThrow(
-        settledAction ? 'Rule occurrence is unavailable.' : 'occurrence version is stale'
-      )
+      } else {
+        await expect(retry({ correlationId: crypto.randomUUID() })).rejects.toThrow(
+          RoomCommandRefusal
+        )
+        await expect(retry({ commandId: crypto.randomUUID() })).rejects.toThrow(
+          'occurrence version is stale'
+        )
+      }
       await expect(
         replayInRoom(base.owner.caller, {
           command: response
         })
       ).resolves.toEqual(result)
       expect(await records(base.t, base.run.id)).toEqual(settledResponse)
-      responses.push(response)
+      responses.push({ command: response, result })
     }
     expect(responses.length).toBeGreaterThanOrEqual(2)
     expect(result.projection.version).toBe(1)
@@ -1003,24 +1016,27 @@ describe('native encounter actions', () => {
       base.target.currentHitPoints!
     )
     expect(settled.commands).toHaveLength(before.commands.length + 1)
+    // The root replays its own pending result over the settled projection.
     await expect(
       replayInRoom(base.owner.caller, {
         command: input
       })
-    ).resolves.toEqual(result)
-    for (const response of responses)
+    ).resolves.toEqual({ ...issued, projection: result.projection })
+    // Each answer replays its own result over the settled projection.
+    for (const answered of responses)
       await expect(
         replayInRoom(base.owner.caller, {
-          command: response
+          command: answered.command
         })
-      ).resolves.toEqual(result)
+      ).resolves.toEqual({ ...answered.result, projection: result.projection })
     expect(await records(base.t, base.run.id)).toEqual(settled)
-    await expect(
+    await expectRedactedRoomRefusal(
       executeInRoom(base.owner.caller, {
-        command: { ...input, expectedVersion: 1, commandId: responses[0]!.commandId }
-      })
-      // Refused as reused, or redacted when Convex finds the id on the answer's history first.
-    ).rejects.toThrow(/Command ID was already used with different input|Live Session route request/)
+        command: { ...input, expectedVersion: 1, commandId: responses[0]!.command.commandId }
+      }),
+      'The command ID was already used for different input.',
+      'INVALID_COMMAND'
+    )
     expect(await records(base.t, base.run.id)).toEqual(settled)
     const secondRun = await base.owner.caller.mutation(createRun, {
       campaignId: base.campaign.id,
@@ -1029,13 +1045,13 @@ describe('native encounter actions', () => {
     })
     for (const run of [result.projection, secondRun]) {
       const beforeCollision = await records(base.t, run.id)
-      await expect(
+      await expectRedactedRoomRefusal(
         executeInRoom(base.owner.caller, {
           command: {
             type: 'UPSERT_REMINDER',
             encounterId: run.id,
             expectedVersion: run.version,
-            commandId: responses[0]!.commandId,
+            commandId: responses[0]!.command.commandId,
             reminder: {
               label: 'Reused evidence command',
               timing: 'ROUND_START',
@@ -1046,10 +1062,9 @@ describe('native encounter actions', () => {
               order: 0
             }
           }
-        })
-        // Refused as reused, or redacted when Convex finds the id on the answer's history first.
-      ).rejects.toThrow(
-        /Command ID was already used with different input|Live Session route request/
+        }),
+        'The command ID was already used for different input.',
+        'INVALID_COMMAND'
       )
       expect(await records(base.t, run.id)).toEqual(beforeCollision)
     }
@@ -1101,9 +1116,9 @@ describe('native encounter actions', () => {
     expect(result.projection.version).toBe(granted.projection.version + 1)
     const settled = await records(base.t, base.run.id)
     await expect(replayInRoom(base.other.caller, { command: input })).resolves.toEqual(result)
-    expect(await rejection(executeInRoom(base.owner.caller, { command: input }))).toMatchObject({
-      reason: 'COMMAND_ID_REUSED'
-    })
+    await expect(executeInRoom(base.owner.caller, { command: input })).rejects.toThrow(
+      'The command ID was already used for different input.'
+    )
     expect(await records(base.t, base.run.id)).toEqual(settled)
   }, 30000)
 
@@ -1150,25 +1165,7 @@ describe('native encounter actions', () => {
       executeInRoom(base.other.caller, {
         command: input
       })
-    ).rejects.toThrow(LiveSessionRouteError)
-    await base.t.run(async (ctx) => {
-      const receipt = await ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) =>
-          q.eq('encounterId', base.run.id).eq('commandId', input.commandId)
-        )
-        .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
-      if (!receipt) throw new Error('Missing native action receipt.')
-      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
-        resultChecksum: '0'.repeat(64)
-      })
-    })
-    await expect(
-      executeInRoom(base.owner.caller, {
-        command: input
-      })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
   }, 30000)
 
   it.each([false, true])(
@@ -1252,7 +1249,7 @@ describe('native encounter actions', () => {
           reason: 'RULE_WARNINGS',
           warnings: [{ code: 'TARGET_OUT_OF_RANGE' }]
         })
-      else await expect(attempt()).rejects.toThrow(LiveSessionRouteError)
+      else await expect(attempt()).rejects.toThrow(RoomCommandRefusal)
       expect(await records(base.t, base.run.id)).toEqual(before)
     },
     30000
@@ -1436,9 +1433,10 @@ describe('native encounter actions', () => {
       }
     })
     const before = await records(base.t, base.run.id)
-    let result = await executeInRoom(base.owner.caller, {
+    const issued = await executeInRoom(base.owner.caller, {
       command: input
     })
+    let result = issued
     // Every d20 is a natural 20, so the critical hit rolls each damage die twice (D58).
     for (let step = 0; result.occurrence?.status === 'PENDING'; step++) {
       expect(step).toBeLessThan(6)
@@ -1488,7 +1486,11 @@ describe('native encounter actions', () => {
     const settled = await records(base.t, base.run.id)
     expect(settled.run?.version).toBe(base.run.version + 1)
     expect(settled.commands).toHaveLength(before.commands.length + 1)
-    await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
+    // The root replays its own pending result over the settled projection.
+    await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual({
+      ...issued,
+      projection: result.projection
+    })
     expect(await records(base.t, base.run.id)).toEqual(settled)
   }, 30000)
 
@@ -1511,11 +1513,12 @@ describe('native encounter actions', () => {
       .mockReturnValueOnce(0)
       .mockReturnValueOnce(0)
     try {
-      await expect(
+      await expectRedactedRoomRefusal(
         executeInRoom(base.owner.caller, {
           command: input
-        })
-      ).rejects.toThrow('Spatially interpreted actions are not available yet.')
+        }),
+        'Spatially interpreted actions are not available yet.'
+      )
       expect(random).toHaveBeenCalled()
     } finally {
       random.mockRestore()
@@ -1589,32 +1592,6 @@ describe('native encounter actions', () => {
     const replayed = await records(base.t, base.run.id)
     expect(replayed).toEqual(settled)
     expect(replayed.run?.version).toBe(1)
-
-    const commandRecord = replayed.commands.find((entry) => entry.commandId === input.commandId)
-    const phaseReceipts = stored.phaseReceipts
-    if (!commandRecord || !phaseReceipts)
-      throw new Error('Missing phased native action receipt linkage.')
-    const tampered = storedRuleExecutionResultDtoSchema.parse({
-      ...stored,
-      phaseReceipts: phaseReceipts.map((phase, index) =>
-        index === 0 ? { ...phase, boundFactsChecksum: '0'.repeat(64) } : phase
-      )
-    })
-    const tamperedChecksum = checksumRuleDocument(tampered)
-    await base.t.run(async (ctx) => {
-      await replaceReceiptRecord(ctx, 'encounterRuleReceipts', receipt._id, {
-        resultJson: JSON.stringify(tampered),
-        resultChecksum: tamperedChecksum
-      })
-      await replaceReceiptRecord(ctx, 'encounterRunCommands', commandRecord._id, {
-        ruleResultChecksum: tamperedChecksum
-      })
-    })
-    await expect(
-      executeInRoom(base.owner.caller, {
-        command: input
-      })
-    ).rejects.toThrow(LiveSessionRouteError)
   }, 30000)
 
   it('settles a self action on the source actor once', async () => {
@@ -2150,7 +2127,7 @@ describe('Assisted soft enforcement', () => {
     )
     expect(await refuse({ ...input, expectedVersion: 7 })).toBe('VERSION_STALE')
     await expect(executeInRoom(base.other.caller, { command: input })).rejects.toThrow(
-      LiveSessionRouteError
+      RoomCommandRefusal
     )
     await expect(
       executeInRoom(base.owner.caller, {
@@ -2178,7 +2155,7 @@ describe('GM undo of the last action', () => {
       creatureActorState(value.actors.find((actor) => actor.id === base.target.id)!.stateJson)
     expect(targetState(settled).currentHitPoints).toBeLessThan(targetState(before).currentHitPoints)
 
-    await expect(revert(base, 1, base.other.caller)).rejects.toThrow(LiveSessionRouteError)
+    await expect(revert(base, 1, base.other.caller)).rejects.toThrow(RoomCommandRefusal)
     const undone = await revert(base, 1)
     expect(undone.projection.version).toBe(2)
     const after = await records(base.t, base.run.id)

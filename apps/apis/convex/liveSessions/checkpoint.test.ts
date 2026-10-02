@@ -29,7 +29,9 @@ import { readRunState } from '@artificer-toolkit/encounter-persistence/documents
 import { diffJson } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { api } from '../_generated/api'
 import { createCampaign } from '../../tests/fixtures/encounterScene'
 import { disarmInRoom, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
@@ -400,6 +402,56 @@ it('publishes Run and Character play deltas with grouped history, then replays w
   expect(replayed.authorization.play).toBeUndefined()
   expect(replayed.authorization.characters).toEqual([])
   expect(await snapshot(base)).toEqual(beforeReplay)
+})
+
+it('refuses a checkpoint that starts a second active Run in the Campaign', async () => {
+  const base = await setupCharacterRun()
+  const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
+    gameSystemId: base.campaign.gameSystemId,
+    name: 'Second active Run fixture',
+    commandId: crypto.randomUUID(),
+    enemies: [{ kind: 'CUSTOM', label: 'Sibling target', maxHitPoints: 3 }]
+  })
+  const sibling = await base.owner.caller.mutation(api.encounters.runs.create, {
+    campaignId: base.campaign.id,
+    blueprintId: blueprint.id,
+    commandId: crypto.randomUUID()
+  })
+  await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
+  const authority = await activate(base)
+  const change = await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', sibling.id))
+      .unique()
+    if (!row) throw new Error('Missing sibling Run.')
+    const { _id, _creationTime, ...stored } = row
+    const state = readRunState(row)
+    const active = {
+      ...state,
+      status: 'ACTIVE' as const,
+      version: row.version + 1,
+      round: 1,
+      currentActorId: state.actorIds[0]!
+    }
+    return recordChange(
+      'encounterRuns',
+      [row.id],
+      decodeCheckpointRecord('encounterRuns', stored),
+      decodeCheckpointRecord('encounterRuns', {
+        ...stored,
+        status: 'ACTIVE',
+        version: active.version,
+        stateJson: canonicalizeJson(active),
+        stateChecksum: checksumCanonicalJson(active)
+      })
+    )
+  })
+  const before = await snapshot(base)
+  await expect(
+    base.t.mutation(publish, frame(authority, { changes: [change], history: [] }))
+  ).rejects.toThrow('Checkpoint starts a second active Encounter in the Campaign.')
+  expect(await snapshot(base)).toEqual(before)
 })
 
 it('publishes paired chat checkpoints once and rolls back malformed scope, pairs and history collisions', async () => {

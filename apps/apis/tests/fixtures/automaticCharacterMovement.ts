@@ -6,7 +6,7 @@ import type {
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from './srdCreatures'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {

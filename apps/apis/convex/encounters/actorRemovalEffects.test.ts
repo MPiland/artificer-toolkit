@@ -18,8 +18,11 @@ import { readRunState } from '@artificer-toolkit/encounter-persistence/documents
 import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { cleanupRemovedActorEffects } from '@artificer-toolkit/encounter-persistence/actorRemovalEffects'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  executeInRoom,
+  replayInRoom,
+  RoomCommandRefusal
+} from '../../tests/fixtures/liveSessionWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 import { readCharacterRow } from '../characters/stateDocuments'
 
@@ -339,7 +342,7 @@ describe('native actor maintained-effect cleanup', () => {
     const before = await records(fixture)
     await expect(
       executeInRoom(fixture.owner.caller, { command: { ...command, actorId: other.id } })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     expect(await records(fixture)).toEqual(before)
     if (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK')
       throw new Error('Expected concentration')
@@ -363,7 +366,7 @@ describe('native actor maintained-effect cleanup', () => {
       })
     )
     await expect(executeInRoom(fixture.owner.caller, { command })).rejects.toThrow(
-      LiveSessionRouteError
+      RoomCommandRefusal
     )
     expect(await records(fixture)).toEqual(before)
     await fixture.t.run(async (ctx) =>

@@ -409,6 +409,11 @@ async function readRunPage(
     .withIndex('by_publicId', (q) => q.eq('id', encounterId))
     .unique()
   if (!run || run.campaignId !== campaign.id) throw new Error('Encounter not found.')
+  const active = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_campaignId_status', (q) => q.eq('campaignId', campaign.id).eq('status', 'ACTIVE'))
+    .first()
+  const activeEncounterId = active?.id ?? null
   const isFirstPage = scope.cursor === null
   const { paginationCursor } = scope.cursor ?? { paginationCursor: null }
   let tableIndex = scope.cursor?.position ?? 0
@@ -422,10 +427,35 @@ async function readRunPage(
       tableIndex += 1
   const entry = RUN_TABLES[tableIndex]
   const runDocument = isFirstPage ? [toDocument('encounterRuns', run)] : []
+  // Character dependents load with their Character; a detached owner is found only through this.
+  const maintenanceCharacterOwners = isFirstPage
+    ? (
+        await Promise.all(
+          (
+            await ctx.db
+              .query('encounterMaintainedEffectStates')
+              .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id))
+              .collect()
+          ).map(async (state) => {
+            const dependents = await ctx.db
+              .query('characterActiveRuleEffects')
+              .withIndex('by_state_source_owner_order', (q) =>
+                q.eq('maintainedEffectStateId', state.id).eq('sourceEncounterId', run.id)
+              )
+              .collect()
+            return [...new Set(dependents.map((effect) => effect.characterId))].map(
+              (characterId) => ({ maintainedStateId: state.id, characterId })
+            )
+          })
+        )
+      ).flat()
+    : null
   if (!entry)
     return {
       kind: 'RUN',
       encounterVersion: run.version,
+      activeEncounterId,
+      maintenanceCharacterOwners,
       documents: runDocument,
       continueCursor: null
     }
@@ -445,6 +475,8 @@ async function readRunPage(
   return {
     kind: 'RUN',
     encounterVersion: run.version,
+    activeEncounterId,
+    maintenanceCharacterOwners,
     documents: [...runDocument, ...page.page.map((row) => toDocument(entry.table, row))],
     continueCursor
   }

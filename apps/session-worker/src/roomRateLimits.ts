@@ -39,14 +39,6 @@ export class RoomAccountBuckets {
   /** Consumes one token, or throws RoomRateLimitedError without changing the bucket. */
   charge(scope: BucketScope, now = Date.now()): void {
     if (!this.admits(scope, now)) throw new RoomRateLimitedError()
-    this.spend(scope, now)
-  }
-
-  /**
-   * Consumes one token for a command another store already committed (an evidence roll recorded in
-   * Convex), after dmits allowed it; the bucket floors at empty.
-   */
-  spend(scope: BucketScope, now = Date.now()): void {
     this.#sql.exec(
       `INSERT INTO room_account_buckets (epoch, user_id, kind, tokens, updated_at)
        VALUES (?, ?, ?, ?, ?)
@@ -54,7 +46,7 @@ export class RoomAccountBuckets {
       scope.epoch,
       scope.userId,
       scope.kind,
-      Math.max(0, this.#refilled(scope, now) - 1),
+      this.#refilled(scope, now) - 1,
       now
     )
   }

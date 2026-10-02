@@ -21,8 +21,7 @@ import type { CharacterPartyVisibilityDto } from '@artificer-toolkit/schema/api/
 import { api } from '../_generated/api'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
+import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
 
 const get = makeFunctionReference<
   'query',
@@ -174,7 +173,7 @@ describe('Encounter health display levels (ADR 0034 decision 5)', () => {
     // The GM cannot override a Character's level; its player owns it on the Sheet.
     await expect(
       base.gm({ type: 'UPDATE_ACTOR', actorId: characterId, healthDisplay: 'HIDDEN' })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
   }, 60_000)
 
   it('posts one enemy health state to the table log without changing its level', async () => {

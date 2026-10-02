@@ -22,6 +22,7 @@ import type {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { isRoomLocalEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
+import { sceneStoredInitialStateSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
@@ -36,9 +37,9 @@ import {
 import {
   executeInRoom,
   insertActiveLiveAuthority,
-  replayInRoom
+  replayInRoom,
+  RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 
@@ -318,7 +319,7 @@ describe('native actor removal transaction', () => {
     }
   )
 
-  it('classifies private enemy rolls locally while table rolls remain transitional', () => {
+  it('classifies private and table enemy rolls as room-local (D78)', () => {
     const command: Extract<EncounterExecuteInput['command'], { type: 'ROLL_ENEMY_ACTION' }> = {
       type: 'ROLL_ENEMY_ACTION',
       encounterId: crypto.randomUUID(),
@@ -330,7 +331,7 @@ describe('native actor removal transaction', () => {
       visibility: 'PRIVATE'
     }
     expect(isRoomLocalEncounterCommand(command)).toBe(true)
-    expect(isRoomLocalEncounterCommand({ ...command, visibility: 'TABLE' })).toBe(false)
+    expect(isRoomLocalEncounterCommand({ ...command, visibility: 'TABLE' })).toBe(true)
   })
 
   it('removes prepared actors and exact bindings/reminders, preserves Scene identity, and replays historically with current authority', async () => {
@@ -360,13 +361,43 @@ describe('native actor removal transaction', () => {
     const sceneId = crypto.randomUUID()
     const tokenId = crypto.randomUUID()
     await base.t.run(async (ctx) => {
+      const now = new Date().toISOString()
+      // The room's checkpoint accepts a binding only to a Scene of the Campaign.
+      await ctx.db.insert(
+        'campaignScenes',
+        sceneStoredInitialStateSchema.parse({
+          id: sceneId,
+          campaignId: base.campaign.id,
+          name: 'Removal Scene',
+          ambientIllumination: 'BRIGHT',
+          fogMode: 'SHARED_PARTY',
+          visionRevealMode: 'ON_DRAG',
+          grid: {
+            kind: 'SQUARE',
+            origin: { x: 0, y: 0 },
+            cellSize: 100,
+            distancePerCell: 5,
+            diagonalPolicy: 'EQUAL',
+            unit: 'FEET'
+          },
+          map: { assetId: crypto.randomUUID(), width: 800, height: 400, tileManifestAssetId: null },
+          definitionId: crypto.randomUUID(),
+          definitionVersion: 1,
+          definitionSaveId: crypto.randomUUID(),
+          version: 0,
+          materializationCommandId: crypto.randomUUID(),
+          materializationCommandFingerprint: '0'.repeat(64),
+          createdAt: now,
+          updatedAt: now
+        })
+      )
       await ctx.db.insert('encounterSceneBindings', {
         encounterId: base.run.id,
         campaignId: base.campaign.id,
         sceneId,
         commandId: crypto.randomUUID(),
         commandFingerprint: 'a'.repeat(64),
-        createdAt: new Date().toISOString()
+        createdAt: now
       })
       await ctx.db.insert('encounterActorTokenBindings', {
         encounterId: base.run.id,
@@ -562,7 +593,7 @@ describe('native actor removal transaction', () => {
       })
     })
     await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
-      LiveSessionRouteError
+      RoomCommandRefusal
     )
   })
 
@@ -738,7 +769,7 @@ describe('native actor removal transaction', () => {
     })
     const corrupt = await capture(base)
     await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
-      LiveSessionRouteError
+      RoomCommandRefusal
     )
     expect(await capture(base)).toEqual(corrupt)
   })
@@ -881,11 +912,13 @@ describe('native actor removal transaction', () => {
       actorId: characterActor.id
     }
     await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow(
-      LiveSessionRouteError
+      RoomCommandRefusal
     )
-    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
-      'Archived Campaigns are read-only'
-    )
+    // An archived Campaign has no live members, so the room refuses even its owner at admission.
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toMatchObject({
+      name: 'RoomCommandRefusal',
+      code: 'FORBIDDEN'
+    })
     const before = await capture(base)
     const otherRun = before.runs.find((run) => run.id !== base.run.id && run.status !== 'COMPLETED')
     if (!otherRun) throw new Error('Missing non-completed Run for archived cleanup.')

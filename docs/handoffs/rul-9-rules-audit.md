@@ -1,0 +1,165 @@
+# RUL-9: Pre-beta rules audit
+
+Status: current as of 2026-10-01, branch `codex/phase-08-2-convex-cutover`. Doc-only audit; no code was run. Evidence is file:line where read directly, otherwise file or symbol. "Authored" means the data exists in `packages/source-data`; "executable" means a resolver runs it in an Encounter.
+
+## Headline
+
+The Encounter executes a narrow, well-tested core: single-target attacks and effect saves, damage defenses, concentration, recharge, Legendary Resistance and Legendary actions, movement with reaction decisions, Dodge/Disengage/Dash/Help, and 0 HP defeat. Everything else the brief names is either authored-but-inert or absent.
+
+The root cause is shared. `CLOSED_RULE` (713 kinds, `packages/shared/src/domains/effects/core/closedRuleKind.ts`) are marker discriminants "for a future resolver" with no runtime resolver. The `semantic-ledger.json` COMPLETE status means authored, not executable. Class features, Counterspell, Haste, Slow, Sleep, Polymorph and Multiattack all sit behind it.
+
+Every gap below is a Phase 8.3 item (ADR 0034, launch-gating) unless noted. Nothing here was found in the frozen Phase 8.2 acceptance cases as an unmet criterion (see "Promotion ordering").
+
+Where it runs: all executable behavior below runs room-side (Worker, `apps/session-worker`) over `packages/rules-runtime` and `packages/encounter-persistence`. Convex-side Encounter rule paths are being retired (A35-S6c3, CP-S4-d superseded). Items stated as "no runtime" exist in neither place.
+
+## Area audit
+
+### 1. Grapple
+
+| Aspect | State | Evidence |
+|---|---|---|
+| Grapple/shove actions | Absent. Basic actions are Dash, Disengage, Dodge, Help only | `packages/source-data/src/srd/basicActions.ts`; `packages/rules-runtime/src/encounterBasicActions.ts` |
+| Grappled condition | Vocabulary label plus a manual condition. No speed 0, no escape | `packages/shared/src/domains/vocabulary/authored/condition.ts`; no speed-from-condition logic in `characterMovementAndSenses.ts` or `encounterMovementPath.ts` (grep, no hits) |
+| Monster grapple riders | Allowlisted as unsupported in the SRD attack sweep | `packages/rules-runtime/src/__tests__/srdCreatureAttackSweepAllowlist.ts` |
+| Contests, escape DC, size limit | Absent | grep, no hits |
+
+Gap: **blocker** for closed beta. Grapple and shove are core SRD combat and monsters grapple constantly (owlbear, giant spider rider variants, constrictors, ogre-class grabs). Today a GM must adjudicate manually with no contest roll.
+
+### 2. Conditions
+
+What exists:
+
+- Capability suppression (actions, bonus actions, reactions) for Incapacitated, Paralyzed, Petrified, Stunned, Unconscious. `packages/rules-runtime/src/ruleCapabilityStateService.ts` (`actionSuppressingConditionCodes`).
+- Perception contributions: Blinded suppresses visual sense, Invisible suppresses visual emission. `packages/source-data/src/srd/ruleState.ts:131` (`perceptionContributionsByConditionDefinitionId`); consumed by `encounterCombatPerception.ts`.
+- Roll modes from Dodge, Help and long range (`rule:long-range`), plus `ACTOR_RELATIONSHIP` active effects and authored grants. `encounterRollModeReasons.ts`, `encounterRelationshipActionFacts.ts`, `systems/dnd5e/characterRollModes.ts`.
+- Character 0 HP applies Unconscious (`characterZeroHitPoints.ts:14`).
+- Sheet can add or remove any condition and set exhaustion (`sheetCommandReducer.ts:796`, `:811`).
+
+| Condition | Executable mechanics today | SRD effect missing |
+|---|---|---|
+| Blinded | Visual sense suppressed | Auto-fail sight checks; attack disadvantage and advantage against it in `RESOLVE_ACTION` (perception feeds visibility, not attack roll mode: unverified end to end) |
+| Charmed | None | Cannot attack charmer; charmer social advantage |
+| Deafened | None | Cosmetic |
+| Frightened | None | Attack/check disadvantage while source visible; cannot move closer |
+| Grappled | None | Speed 0 |
+| Incapacitated | No actions or reactions | Ends concentration (not wired) |
+| Invisible | Visual emission suppressed | Attack advantage/disadvantage |
+| Paralyzed | No actions or reactions | Speed 0; auto-fail Str/Dex saves; advantage against; melee crit within 5 ft |
+| Petrified | No actions or reactions | Resistance to all damage; auto-fail Str/Dex; advantage against |
+| Poisoned | None | Attack and check disadvantage |
+| Prone | None | Stand-up movement cost; melee advantage and ranged disadvantage against; own attack disadvantage |
+| Restrained | None | Speed 0; attack disadvantage; Dex save disadvantage; advantage against |
+| Stunned | No actions or reactions | Speed 0 (action-only now); auto-fail Str/Dex; advantage against |
+| Unconscious | No actions or reactions | Prone; auto-fail Str/Dex; advantage against; melee crit within 5 ft |
+| Exhaustion | Sheet state only (`characterRulePolicyFacts.ts:132` reads level) | Level 1-6 effects (check disadvantage, speed halved/0, attack/save disadvantage, HP max halved, death) not applied |
+
+Proving tests: capability suppression and perception under `rules-runtime/src/__tests__` (`encounterCombatPerception`-area tests; I did not enumerate each). Roll-mode contributors: `dnd5eCombatMath.test.ts`, `encounterBasicActions.test.ts`. No test proves a condition changing an attack roll mode or speed, because no such code exists.
+
+Gap: **blocker**. Poisoned, Frightened, Prone, Restrained and the "advantage against" family change nearly every other fight. The roll-mode contributor seam exists, so this is data and policy, not new architecture.
+
+### 3. Death saves, dying, instant death
+
+| Aspect | State | Evidence |
+|---|---|---|
+| Creature at 0 HP | Defeated (D63), tested | `encounterActorDefeat.ts:4`; RUL-6 done |
+| Character at 0 HP | Gains Unconscious. No dying state, no death saves, no death, no damage-at-0 failures | `characterZeroHitPoints.ts:14` |
+| Stabilize | `STABILIZE` effect kind is authored but has no executor; Spare the Dying/Healer's Kit inert | `packages/schema/src/effects/stabilize.ts:8` |
+| Instant death (massive damage) | Absent | grep, no hits |
+| Healing from 0 | Clears via HP restore; no regain-consciousness rule beyond that | unverified |
+
+Gap: **blocker**. A player Character at 0 HP is the central drama of an SRD fight. ADR 0034 puts player-driven death saves in Phase 8.3 as a prompted roll the player makes.
+
+### 4. Area targeting, templates, cover
+
+| Aspect | State | Evidence |
+|---|---|---|
+| Authored shapes | Authored (Fireball etc.: `packages/source-data/src/srd/spells/fireball.ts`) | -- |
+| Runtime | Refused. Policies with a shape or path overrides return null | `encounterActionTargetPolicy.ts:57`; `:68` accepts only `SINGLE_TARGET`; test `encounterActionTargetPolicy.test.ts:384` ("refuses policies the single-target path cannot resolve") |
+| Command shape | `RESOLVE_ACTION` carries one `targetActorId` | `packages/schema/src/api/encounterRuleCommands.ts` |
+| Template placement, per-target saves, cover | Absent | grep, no hits |
+| Dragon breath, Legendary area options, Fireball-class monsters | Inert (breath weapons are Recharge features whose recharge works but whose effect cannot target) | `srdCreatureAttackSweepAllowlist.ts`; recharge itself tested in `encounterRecharge.test.ts:110` |
+
+Gap: **blocker**. Cover is **degraded** (GM adjudicates AC bonus manually; no cover model found).
+
+### 5. Spellcasting
+
+| Aspect | State | Evidence |
+|---|---|---|
+| Sheet slots, prepared/known spells | Supported (use, restore, set prepared/known, cast-level options, ritual cast mode) | `sheetCommandReducer.ts` (`USE_SPELL_SLOT`, `RESTORE_SPELL_SLOT`, `CAST_SPELL` at `:869`), `sheetProjection.ts:296`; `sheetCommandReducer.test.ts` |
+| Spell attack and save DC math | Supported | `systems/dnd5e/characterActions.ts`, `characterActionMechanics.ts` |
+| Cast in an Encounter | Not offered. `compileCharacterSpellCastEntryPoints` (`encounterActionEntryPointCompiler.ts:239`) handles only single-effect, single-mechanic spells and has no caller. `CHARACTER_SPELL_CAST` appears only as an initiative declaration kind (`encounterRuleCommands.ts:19`; test `apps/apis/convex/encounters/initiativeSpellDeclarations.test.ts`) | -- |
+| Slot spend, upcast, ritual during combat | Sheet-side only; not wired to action resolution. Undo refuses spell slots (`packages/encounter-persistence/src/actionRevert.ts:205`) | -- |
+| Concentration | Supported: start/end hooks, DC max(10, half damage), one check per damage source, Assisted prompt and auto-roll, ends on movement conditions | `encounterConcentration.test.ts:113`, `encounterMovementConcentrationEnd.test.ts` |
+| Concentration ends on incapacitation or death | Not wired | unverified; no hit in concentration policy |
+| Components (V/S/M, material cost) | Authored on spells; no enforcement. Silence, hands-full, component pouch not modeled | `source-data/src/srd/spells/*.ts` carry component text only |
+| Reactions: Counterspell, Shield, Absorb Elements | Authored/closed-rule only. Only movement-triggered reactions exist (opportunity attacks via movement reaction decision) | `encounterMovementReactionDecision.test.ts`; `CLOSED_RULE` list |
+| Status spells (Haste, Slow, Sleep, Hold Person, Polymorph) | Mixed: `APPLY_GRANT`/condition effects work where authored as effects; Haste, Slow, Sleep, Polymorph are closed-rule | `closedRuleKind.ts` |
+
+Gap: **blocker** that a caster cannot cast in the Encounter at all. Players would cast outside the app and adjust HP/slots by hand. Components and ritual are **degraded**. Counterspell/Shield reactions are **degraded** for beta (table can adjudicate once, announced) but become blockers for caster-heavy groups.
+
+### 6. Monsters
+
+| Feature | State | Evidence |
+|---|---|---|
+| Single attacks, hit riders, multipart SEQUENTIAL/CHOICE attacks | Supported; SRD-wide sweep with a shrink-only allowlist | `srdCreatureAttackSweep.test.ts`, `srdCreatureHitRiders.test.ts`; RUL-2..5 done |
+| Multiattack | 62 SRD Multiattacks are description-only. The GM resolves each attack separately; action allowance is 1 per turn so each extra attack raises an acknowledgeable `ACTION_ECONOMY_UNAVAILABLE` warning | `packages/source-data/src/srd/creatureDescriptionOnlyActions.ts`; `encounterActionEconomy.ts` |
+| Recharge | Supported at turn start, replayable | `encounterRecharge.test.ts:110` |
+| Legendary actions and resistance | Supported (eligibility graph, pool); 3 Legendary own-action options remain unmodeled | `encounterLegendaryAction.test.ts`; `creatureDescriptionOnlyActions.ts` |
+| Lair actions | Not found as executable (text only, e.g. `adult-gold-dragon.ts`) | grep |
+| Resistances, immunities, vulnerabilities | Supported, including `damageResistanceIds` | `encounterDamageDefenses.test.ts:45` |
+| Nonmagical-weapon and silvered/adamantine defenses | Unverified | -- |
+| Special senses (blindsight, darkvision, tremorsense) | Perception contributions exist for Blinded/Invisible; sense-vs-visibility use in attack roll mode unverified | `encounterCombatPerception.ts` |
+| Remaining riders (swallow, attach, curse, drain, pull, follow-up saves) | About 41-44 unsupported SRD attacks, 17 unmodeled mechanics, allowlisted | `srdCreatureAttackSweepAllowlist.ts` |
+
+Gaps: Multiattack is **degraded** (warning fatigue, no auto-sequence); rider gaps are **degraded** per creature but hit marquee monsters (dragons' breath is blocked by area targeting, owlbear/giant spider by grapple/restrain). Lair actions **degraded**.
+
+## Other combat areas
+
+| Area | State | Rating |
+|---|---|---|
+| Opportunity attacks | Supported via movement reaction decision; Disengage suppresses them (`encounterBasicActions.ts:77`, `apps/session-worker/src/nativeEncounterMovementInputs.ts:313`, `encounterMovementReactionDecision.test.ts`) | ok |
+| Class features (Extra Attack, Rage, Sneak Attack, Smite, Action Surge, Second Wind) | Closed-rule; Extra Attack missing means a martial's second attack is a warning each turn | **blocker** (Extra Attack, Sneak Attack, Rage); degraded for the rest |
+| Two-weapon fighting / bonus-action attack | Only class text found (`classes/fighter.ts`); no executor found | degraded |
+| Cover | Not modeled | degraded |
+| Exhaustion effects | Level stored, no mechanical effect | cosmetic to degraded |
+| Hidden/unseen attackers advantage | Perception facts exist; attack-roll integration unverified (RUL-8 covers redaction, not roll mode) | degraded |
+| Surprise, mounted combat, underwater, flanking | Optional/niche | cosmetic |
+
+## Not verified
+
+- Whether perception contributions change `RESOLVE_ACTION` roll modes (Blinded, Invisible); I found no wiring but did not trace every call site.
+- Nonmagical-weapon damage defenses; component enforcement; a cover model; healing-from-0 side effects; any Convex-only legacy path for the same rules (not read; the room is the authority per ADR 0035).
+- The exact test list proving capability suppression.
+- Lair-action modeling beyond text hits.
+
+## Promotion ordering
+
+Phase 8.2 acceptance in `docs/roadmap/08-2-convex-cutover-acceptance.json` covers actions and effects through case **V10** ("Actions, reactions, effects, and selected optional combat rules") and V11 (decisions). The V10 criteria are all about the current capability set (Assisted warnings, player-driven actions, undo, optional combat). The denominator is frozen by explicit user approval (2026-09-03; changes need approval). None of the slices below touches an existing V10/V11 criterion, so by the stated rule **none must precede promotion**. Adding a death-save or spell criterion would reopen V10 and needs your approval.
+
+Tradeoff: ADR 0034 makes Phase 8.3 launch-gating, so these precede closed beta even though they follow promotion.
+
+**Decision (user, 2026-10-01): all 11 proposed slices gate closed beta.** The table's per-slice beta column is superseded by this ruling. They are Phase 8.3 scope and seed the 8.3 plan when Phase 8.2 closes.
+
+## Proposed slices
+
+| # | Title | Closes | Packages | Size | Depends on | Before promotion? | Beta gate |
+|---|---|---|---|---|---|---|---|
+| 1 | Condition mechanics policy | Poisoned, Frightened, Prone, Restrained, Paralyzed/Unconscious/Stunned/Petrified auto-fail and advantage-against, speed 0, melee crit in 5 ft; exhaustion levels (can split) | schema, source-data, rules-runtime | L | none (uses the roll-mode contributor seam) | No (no case; would add V10 criteria) | Yes |
+| 2 | Grapple and shove | Contests, escape DC, size limit, end on distance/incapacitation, monster grapple riders | rules-runtime, source-data, schema | M-L | 1 | No | Yes |
+| 3 | Character death saves | Dying state, prompted saves, damage at 0, massive damage, STABILIZE executor, healing from 0 | schema, rules-runtime, encounter-persistence, apps/session-worker | M-L | none | No | Yes |
+| 4 | Multi-target and area actions | Multi-target `RESOLVE_ACTION`, templates, per-target saves, cover, breath/area Legendary options | schema, rules-runtime, session-worker | L | none | No | Yes |
+| 5 | Encounter spell casting | Spell action choices, slot spend and undo, upcast, ritual, concentration start, multi-effect spells, components | rules-runtime, encounter-persistence, schema | L | 4 | No | Yes |
+| 6 | Multiattack and Extra Attack | Attack-count allowance, auto-sequence for the 62 Multiattacks | source-data, rules-runtime | M | none | No | Yes (warning fatigue every round) |
+| 7 | Class-feature resolvers | Rage, Sneak Attack, Smite, Action Surge, Second Wind, two-weapon fighting | rules-runtime, source-data | L | 6 | No | Partial: Extra Attack (6) plus Sneak Attack/Rage first; remainder can follow beta |
+| 8 | Non-movement reactions | Shield, Counterspell, Absorb Elements via a trigger model | schema, rules-runtime, session-worker | L | 5 | No | Can follow beta with table adjudication |
+| 9 | Remaining monster riders | Swallow, attach, curse, drain, pull, follow-up saves; shrink the allowlist | source-data, rules-runtime | M-L | 1, 2, 4 | No | Can follow beta, ordered by marquee monsters |
+| 10 | Concentration and defense completions | Concentration ends on incapacitation/death; nonmagical-weapon defenses | rules-runtime | S-M | 1 | No | Yes (small) |
+| 11 | Attack-roll perception | Invisible, unseen, hidden attacker advantage/disadvantage in `RESOLVE_ACTION`; Dodge sight check | rules-runtime | M | none | No | Degraded; can follow |
+
+Suggested order: 1, 10, 3, 6 (cheap and unblocking), then 4, 2, 5 (large, sequential), then 7, 8, 9, 11.
+
+## Pushback and uncertainty
+
+- Slices 4 and 5 are the largest and gate "casters work". If beta must ship earlier, the least-bad cut is Counterspell/Shield (8) and the long tail of riders (9); not death saves or spellcasting. That is a scope call for you given the no-scope-cuts-before-beta preference.
+- Slice 1 should be one typed condition policy table in System content, not per-condition code, or it will duplicate the `ruleState` pattern. I did not design it.
+- Registry check: no existing slice in `docs/roadmap/08-2-work-slices.json` covers these; RUL-1..8 are done and RUL-9 is this audit. Slice ids are intentionally not assigned here.

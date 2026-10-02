@@ -256,7 +256,7 @@ async function sheetRoom() {
       return { current: readCharacterPlay(row).hitpoints.current, streamVersion: row.streamVersion }
     })
 
-  return { gm, owner, stranger, play, hitPoints }
+  return { gm, gmId, owner, stranger, play, hitPoints, characterId, stub, ...inputs }
 }
 
 it('plays a Character Sheet command through the room with the real Character rules path', async () => {
@@ -305,6 +305,70 @@ it('plays a Character Sheet command through the room with the real Character rul
   )
   expect(retried.at(-1)).toEqual(committed)
   expect(await room.hitPoints()).toEqual({ current: 8, streamVersion: 2 })
+})
+
+it("commits a GM Encounter actor's Sheet command on the held Character with its receipt (D78)", async () => {
+  const room = await sheetRoom()
+  const commandId = crypto.randomUUID()
+  const sheetCommandId = crypto.randomUUID()
+  // The room's fetch stub throws for every Convex Encounter route, so a commit is room-native.
+  room.gm.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: room.encounterId,
+          commandId,
+          expectedVersion: 1,
+          actorId: room.actorId,
+          characterCommand: {
+            type: 'ADJUST_HIT_POINTS',
+            commandId: sheetCommandId,
+            expectedVersion: 1,
+            mode: 'DAMAGE',
+            amount: 3
+          }
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      room.gm.messages.find(
+        (message) =>
+          (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+          message.commandId === commandId
+      )
+    ).toMatchObject({
+      type: 'COMMAND_COMMITTED',
+      delta: { scope: 'ENCOUNTER', result: { projection: { version: 2 } } }
+    })
+  )
+  expect(await room.hitPoints()).toEqual({ current: 8, streamVersion: 2 })
+  const evidence = await runInDurableObject(room.stub, (_instance, state) => {
+    const store = new RoomEncounterStore(state.storage)
+    return {
+      receipts: store.documents('characterCommandReceipts'),
+      commands: store.documents('encounterRunCommands')
+    }
+  })
+  expect(evidence.receipts).toEqual([
+    expect.objectContaining({
+      characterId: room.characterId,
+      commandId: sheetCommandId,
+      actorId: room.gmId
+    })
+  ])
+  expect(evidence.commands).toEqual([
+    expect.objectContaining({
+      commandId,
+      commandType: 'UPDATE_ACTOR',
+      characterReceiptId: evidence.receipts[0]!.id
+    })
+  ])
 })
 
 it('refuses a Sheet command from a player who does not own the Character', async () => {

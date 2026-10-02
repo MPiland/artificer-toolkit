@@ -489,7 +489,7 @@ describe('native Campaign custody deletion', () => {
         const job = await deletionJob(base.t, target.id)
         await base.t.action(runDeletionPage, { jobId: job._id, revision: job.revision })
       }
-      for (let page = 0; (await deletionJob(base.t, target.id)).phase < 20; page++) {
+      for (let page = 0; (await deletionJob(base.t, target.id)).phase < 21; page++) {
         if (page > 30) throw new Error('Campaign event cleanup phase was not reached.')
         const job = await deletionJob(base.t, target.id)
         await base.t.action(runDeletionPage, { jobId: job._id, revision: job.revision })

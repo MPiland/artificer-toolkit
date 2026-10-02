@@ -1,6 +1,6 @@
 # Native live-session Worker
 
-`apps/session-worker` is the Phase 8.2 WebSocket edge. One hibernatable Session Durable Object is addressed per Campaign, and the stable `LiveSessionRoom` export points to `NativeLiveSessionRoom`. While its authority epoch is active, the room owns supported Scene commands and recipient-filtered transient fanout. Encounter tools in the shared `ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES` list now execute local reducers and commit through SQLite in current source; other Encounter paths retain their Convex commits. Character Sheet commands still use Convex.
+`apps/session-worker` is the Phase 8.2 WebSocket edge. One hibernatable Session Durable Object is addressed per Campaign, and the stable `LiveSessionRoom` export points to `NativeLiveSessionRoom`. While its authority epoch is active, the room owns supported Scene commands and recipient-filtered transient fanout. Every ACTIVE-Run Encounter command now commits through SQLite in current source (D78): the shared `ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES` list runs the local reducers, and decisions route from the room's own Run, refusing one no planner owns as Convex did. Held Character Sheet play commits in the room.
 
 [ADR 0033](../../docs/adr/0033-campaign-owned-play-and-session-log.md) (implemented locally) addresses one room per Campaign (`idFromName(campaignId)`) instead of per Campaign Session. The name "live session" is retained for this Worker and `liveSessions/*`.
 

@@ -7,7 +7,7 @@ import {
   type EncounterExecuteInput,
   type EncounterBlueprintDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { srdWolf as wolf } from './fixtures/srdCreatures'
 import { api } from '../convex/_generated/api.js'
 import {
   assertDomainRejection,
@@ -163,11 +163,10 @@ export async function verifyEncounterAutomation({
     projection = encounterGmProjectionDtoSchema.parse(tokenBinding.projection)
     assert.equal(projection.version, prepared.version + 1)
     let pendingResponses = 0
-    const terminalRoots: Array<{
+    const issuedCommands: Array<{
       input: EncounterExecuteInput
       result: ReturnType<typeof encounterCommandResultDtoSchema.parse>
     }> = []
-    const resolutionInputs: EncounterExecuteInput[] = []
     const commandBase = () => ({
       encounterId: prepared.id,
       commandId: crypto.randomUUID(),
@@ -181,6 +180,7 @@ export async function verifyEncounterAutomation({
         let result = encounterCommandResultDtoSchema.parse(
           await owner.mutation(executeEncounterCommand, input)
         )
+        issuedCommands.push({ input, result })
         if (result.occurrence?.status === 'PENDING') {
           assert.deepEqual(result.projection, before)
           operation = 'root replay'
@@ -245,7 +245,7 @@ export async function verifyEncounterAutomation({
           )
           assert.ok(result.occurrence)
           assert.equal(result.occurrence.occurrenceVersion, previousOccurrenceVersion + 1)
-          resolutionInputs.push(continuation)
+          issuedCommands.push({ input: continuation, result })
           pendingResponses++
           if (result.occurrence.status === 'PENDING') assert.deepEqual(result.projection, before)
         }
@@ -253,7 +253,6 @@ export async function verifyEncounterAutomation({
         assert.equal(projection.version, before.version + 1)
         assert.deepEqual(projection.initiativePolicy, prepared.initiativePolicy)
         assert.equal(projection.automationMode, 'ASSISTED')
-        terminalRoots.push({ input, result })
         return result
       } catch (error) {
         throw new Error(
@@ -378,7 +377,7 @@ export async function verifyEncounterAutomation({
     assert.equal(projection.version, beforeContentionVersion + 1)
     assert.equal(projection.actors.length, 3)
     assert.equal(projection.currentActorId, insertionCursor)
-    terminalRoots.push({ input: contenders[winnerIndex]!, result: winningResult })
+    issuedCommands.push({ input: contenders[winnerIndex]!, result: winningResult })
     await execute({
       ...commandBase(),
       type: 'REINFORCE',
@@ -432,17 +431,13 @@ export async function verifyEncounterAutomation({
       encounterId: prepared.id,
       limit: 100
     })
-    for (const { input, result } of terminalRoots) {
+    // The room journal replays each command's own receipt, shown over the current Run.
+    for (const { input, result } of issuedCommands) {
       assert.deepEqual(await owner.mutation(executeEncounterCommand, input), {
         ...result,
         projection
       })
     }
-    // A settled decision is no longer routable: the room refuses its retry as stale.
-    for (const input of resolutionInputs)
-      await assert.rejects(owner.mutation(executeEncounterCommand, input), (error) =>
-        assertDomainRejection(error, 'VERSION_STALE')
-      )
     assert.deepEqual(
       await owner.query(api.encounters.timelineReads.timeline, {
         encounterId: prepared.id,

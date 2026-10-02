@@ -57,9 +57,9 @@ import {
   stubLiveSessionFetch,
   workerEnvironment,
   executeInRoom,
-  replayInRoom
+  replayInRoom,
+  RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
-import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
@@ -1151,7 +1151,7 @@ describe('native public turn active-effect journeys', () => {
       executeInRoom(base.owner.caller, {
         command: { ...outgoingResponse.command, correlationId: crypto.randomUUID() }
       })
-    ).rejects.toThrow(LiveSessionRouteError)
+    ).rejects.toThrow(RoomCommandRefusal)
     expect(await stored(base)).toEqual(retainedInitiative)
     const pendingRecharge = await resolveInitiative(base, pendingInitiative)
     const recharge = pendingRecharge.occurrence?.pending
@@ -1261,8 +1261,9 @@ describe('native public turn active-effect journeys', () => {
         lifecycle: { schemaVersion: 1, remainingTicks: 1 }
       })
     )
-    const stale = await stored(base)
+    // The app roll commits through the room's checkpoint ledger, so capture after it.
     const final = await appRollResponse(base, pendingSecond)
+    const stale = await stored(base)
     const entropy = vi.spyOn(crypto, 'getRandomValues')
     try {
       await expect(executeInRoom(base.owner.caller, final)).rejects.toThrow()

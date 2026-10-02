@@ -2,13 +2,13 @@ import { expect, it } from 'vitest'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'

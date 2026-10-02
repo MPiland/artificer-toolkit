@@ -5,6 +5,9 @@ import type {
 import { buildEncounterBlueprintEnemies } from '@artificer-toolkit/encounter-persistence/blueprintSnapshots'
 import { postRulesChatMessage } from '@artificer-toolkit/encounter-persistence/rulesChatPersistence'
 import { recordConcentrationCheckRoll } from '@artificer-toolkit/encounter-persistence/concentrationRollPersistence'
+import { readActiveCampaignMembers } from '@artificer-toolkit/encounter-persistence/campaignMemberships'
+import { presentChatEntries } from '@artificer-toolkit/encounter-persistence/conversationPresentation'
+import { insertPreEvaluatedCampaignTableRoll } from '@artificer-toolkit/encounter-persistence/tableRollPersistence'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import { writeRoomCharacterPlay } from './roomCharacterWrites.js'
@@ -13,7 +16,10 @@ import { retainRoomPrivateRoll } from './roomPrivateRolls.js'
 export type RoomEncounterWriteTransaction = EncounterCharacterWriteTransaction & {
   readonly ports: Pick<
     EncounterWritePorts,
-    'snapshotBlueprintEnemies' | 'postRulesChatMessage' | 'recordConcentrationCheckRoll'
+    | 'snapshotBlueprintEnemies'
+    | 'postRulesChatMessage'
+    | 'recordConcentrationCheckRoll'
+    | 'insertTableRoll'
   >
 }
 
@@ -40,6 +46,41 @@ export async function roomEncounterWriteTransaction(
       ...read.ports,
       postRulesChatMessage: (authority, message) =>
         postRulesChatMessage({ db: store.store, ports: read.ports }, authority, message),
+      // The room charges the TABLE bucket for the whole command (D72), so the roll consumes no
+      // separate conversation rate.
+      insertTableRoll: (authority, author, clientNonce, roll) =>
+        insertPreEvaluatedCampaignTableRoll({ db: store.store }, authority, author, clientNonce, roll, {
+          requireAuthenticatedUsername: async (author) => {
+            const username = authorization.preferences.find(
+              (entry) => entry.userId === author
+            )?.username
+            if (!username) throw new Error('A username is required to post in this Campaign.')
+            return username
+          },
+          requirePeerAuthority: read.ports.requireCampaignAuthority,
+          readEntryPayload: async (entryId) => {
+            const payload = await store.store
+              .query('campaignConversationEntryPayloads')
+              .withIndex('by_entryId', (q) => q.eq('entryId', entryId))
+              .unique()
+            if (!payload) throw new Error('Stored conversation payload is unavailable.')
+            return payload
+          },
+          readCampaignAccessTime: async (campaign) => {
+            const members = await readActiveCampaignMembers(
+              store.store.query('campaignMemberships'),
+              campaign
+            )
+            return Math.max(Date.now(), ...members.map((member) => Date.parse(member.accessStartedAt)))
+          },
+          consumeConversationRate: async () => {},
+          presentChatEntry: async (header, payload, conversation, contentMaturity) => {
+            const [entry] = presentChatEntries([{ header, payload }], conversation, contentMaturity, [
+              payload.authorUsername
+            ])
+            return entry!
+          }
+        }),
       recordConcentrationCheckRoll: (roll) =>
         recordConcentrationCheckRoll(read, roll, async (userId, record, gmCampaignRoll) => {
           retainRoomPrivateRoll(transaction, { userId, record, gmCampaignRoll })
