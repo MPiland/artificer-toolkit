@@ -7,6 +7,16 @@
 The web app is the Worker `artificer-web` (staging: `artificer-web-staging`). It serves SSR, server
 functions and the `/api/auth` proxy; hashed assets are Workers Static Assets and never invoke it.
 
+## Rendering policy (D75)
+
+Public and guest pages server-render in full. Signed-in pages render the layout plus a Mantine `Skeleton` on
+the server and fill from the browser's Convex subscriptions, so SSR never prefetches product data for
+a signed-in user. The mechanism is TanStack Start's `defaultSsr: false` in `src/start.ts`; only the root,
+`_guest` and `_authed` layout routes and the guest auth pages set `ssr: true`. A new route is therefore
+client-rendered by default; give a public page `ssr: true` explicitly. `-ssrPolicy.test.ts` pins the
+list. The Better Auth client sets `sessionOptions.refetchOnWindowFocus: false`; the session is still
+checked on load and navigation.
+
 ## Local
 
 Both commands run the server in `workerd` against the local Docker Convex backend. The root env file

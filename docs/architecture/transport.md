@@ -8,9 +8,9 @@
 >
 > Verification: `apps/web/src/data`, `apps/apis/convex`, generated Convex bindings, shared schemas, and focused owning tests
 
-Convex is the durable product-data transport and persistence boundary. The browser and SSR loaders use
+Convex is the durable product-data transport and persistence boundary. The browser and the public-page SSR loaders use
 generated queries, mutations and actions for ordinary product work; active supported live commands use
-the Session DO path below. No client chooses an account identity, database connection, storage key, or
+the Session DO path below. Signed-in (`_authed`) routes do not run on the server (D75); their loaders run in the browser behind a Skeleton. No client chooses an account identity, database connection, storage key, or
 internal function name.
 
 ```mermaid
