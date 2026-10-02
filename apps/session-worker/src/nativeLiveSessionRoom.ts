@@ -625,19 +625,27 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     const now = Date.now()
-    const checkpointAt = this.#checkpointAt()
-    if (checkpointAt !== null && checkpointAt <= now) await this.#flushOutbox()
     for (const socket of this.#openSockets()) {
       const value = attachment(socket)
       if (!value || value.membershipEpoch !== null || this.#admissions.has(socket)) continue
       if (value.acceptedAt + ROOM_LIMITS.authenticationTimeoutMs <= now)
         this.#closeSocket(socket, 'Live-session authentication timed out.')
     }
-    const releaseAt = this.#idleReleaseAt()
-    const campaignId = this.#roomCampaignId()
-    // A socket still inside its admission window may be a reconnect, so release waits for it.
-    if (releaseAt !== null && releaseAt <= now && campaignId && this.#openSockets().length === 0)
-      await this.#closeRoom(campaignId)
+    try {
+      const checkpointAt = this.#checkpointAt()
+      if (checkpointAt !== null && checkpointAt <= now) await this.#flushOutbox()
+      const releaseAt = this.#idleReleaseAt()
+      const campaignId = this.#roomCampaignId()
+      // A socket still inside its admission window may be a reconnect, so release waits for it.
+      if (releaseAt !== null && releaseAt <= now && campaignId && this.#openSockets().length === 0)
+        await this.#closeRoom(campaignId)
+    } catch (error) {
+      // The unpublished checkpoint and drain fence persist, so a later alarm resumes them. A past
+      // deadline would spin, so the retry is bounded.
+      console.error('Live Session alarm failed; retrying.', error)
+      await this.ctx.storage.setAlarm(Date.now() + ROOM_LIMITS.alarmRetryMs)
+      return
+    }
     await this.#refreshIdleRelease()
   }
 

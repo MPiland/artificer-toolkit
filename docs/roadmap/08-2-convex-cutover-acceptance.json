@@ -2649,7 +2649,7 @@
             {
               "id": "V05.5",
               "text": "The room activates on the first admitted socket, commits its final checkpoint and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033, ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › drains and releases authority after five minutes without an admitted socket (no release while a socket is admitted; the next admitted socket activates a fresh epoch)",
@@ -2658,8 +2658,10 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › closes every socket when the live Session ends (CLOSE_ROOM drains and releases)",
                 "apps/apis/convex/campaigns/lifecycle.test.ts › archives only with current owner authority and version, preserving member reads and stored data (schedules CLOSE_ROOM)",
                 "apps/apis/convex/campaigns/deletionLifecycle.test.ts › retains the root through a %s room close and retries the captured authority (deletion closes the room before purge)",
-                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts (room_idle_release, alarm), apps/session-worker/src/roomLimits.ts, apps/apis/convex/liveSessions/controlScheduling.ts, apps/apis/convex/campaigns/deletionJobs.ts",
-                "missing: drain and release gated on the final checkpoint (ADR 0035 plan S3)"
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › keeps the authority draining when its final checkpoint fails and releases on the retried close (a failed final publication never calls release and leaves the journal DRAINING; the retried close republishes the identical checkpoint, then releases)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › keeps an alarm scheduled when the idle release checkpoint fails and releases once publication recovers (a failed alarm logs, schedules a bounded retry instead of a past deadline, and the later alarm releases)",
+                "apps/apis/convex/liveSessions/authority.test.ts › fences one Campaign authority epoch through claim, publication, drain, and release (release is refused while the persisted sequence and checksum differ from the drain fence, then accepted and idempotent)",
+                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts (room_idle_release, alarm), apps/session-worker/src/roomLimits.ts, apps/apis/convex/liveSessions/controlScheduling.ts, apps/apis/convex/campaigns/deletionJobs.ts"
               ]
             }
           ]
@@ -3361,13 +3363,14 @@
             {
               "id": "V14.2",
               "text": "Same-Scene movement contention and distinct-Scene writes stay consistent.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "(deleted in A35-S3c1) apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: since S4-e (D43) a no-room bound move is refused SCENE_NOT_PRESENTED with the Scene header and Run unchanged, and two clients' concurrent distinct-Scene writes both commit and replay exactly; the Convex-native bound-move race it used to run was deleted with that path)",
                 "(deleted in A35-S3c1) apps/apis/convex/scenes/standaloneMovement.test.ts › rejects a competing staged move after the first publication changes the Scene (two staged moves of the same token: the first publishes, the second is refused as changed, one Scene command and version 1)",
                 "(deleted in A35-S6c2) apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a room bound move with a stale Scene, presentation or Encounter version is refused 409 with nothing staged)",
                 "note: the room is the single writer of the presented Scene and runs its commands one at a time (R06.4, D41), so same-Scene bound moves are ordered in the room and a stale one is refused at the Convex fence; the reaction-response race is V14.4",
-                "open: A35-S3c1 deleted the Convex Scene writers these proofs drove; the room-path re-proof (same-Scene stale move refused, concurrent writes in two Campaigns' rooms both commit) is owed before this returns to READY_FOR_ACCEPTANCE"
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits one of two concurrent same-token moves and refuses the stale Scene version (second move presents Scene version 0: STALE_STATE with the version-1 correction; one Scene command, sequence 1, Scene version 1)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits and replays writes to two Campaign rooms concurrently (two Durable Object rooms each commit one move, publish their own checkpoint and replay it exactly)"
               ]
             },
             {

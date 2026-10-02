@@ -34,6 +34,7 @@ export const developmentCampaignDescendantsSchema = lazySchema(() =>
     sceneIds: fixtureIds(4),
     definitionSaveIds: fixtureIds(8),
     fogSaveIds: fixtureIds(8),
+    sceneLedgerIds: fixtureIds(4),
     conversationIds: fixtureIds(8),
     entryIds: fixtureIds(32),
     listingIds: fixtureIds(2),

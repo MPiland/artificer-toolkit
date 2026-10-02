@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import type { ConvexHttpClient } from 'convex/browser'
 import sharp from 'sharp'
 import { api } from '../convex/_generated/api'
+import { awaitSceneCheckpoint } from './developmentCheckpoint'
 import type { DevelopmentHttpClient } from './developmentHttpClient'
 import { verifySceneAuthoringBrowser } from '../../web/tests/live-backend/sceneAuthoring'
 import { verifySceneLiveBrowser } from '../../web/tests/live-backend/sceneLive'
@@ -299,6 +300,8 @@ export async function verifySceneAuthoring(input: {
         )
       },
       verifyState: async (stage) => {
+        const expectedVersion = stage === 'hydrated' ? 2 : stage === 'live-updated' ? 3 : 4
+        await awaitSceneCheckpoint(owner.client, liveScene.id, expectedVersion)
         const expectedPublicTokenName =
           stage === 'hydrated'
             ? publicToken.label
@@ -308,7 +311,7 @@ export async function verifySceneAuthoring(input: {
         assert.ok(expectedPublicTokenName)
         await verifyRecipient(expectedPublicTokenName)
         liveHead = await owner.client.query(api.scenes.liveReads.header, { sceneId: liveScene.id })
-        assert.equal(liveHead.version, stage === 'hydrated' ? 2 : stage === 'live-updated' ? 3 : 4)
+        assert.equal(liveHead.version, expectedVersion)
       }
     })
     assert.equal(reconnectedTokenName, 'V02 reconnected token')

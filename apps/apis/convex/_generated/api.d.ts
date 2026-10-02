@@ -47314,6 +47314,7 @@ export declare const internal: {
             fogSaveIds: Array<string>;
             listingIds: Array<string>;
             sceneIds: Array<string>;
+            sceneLedgerIds: Array<string>;
             sessionIds: Array<string>;
           };
           fixture: {
@@ -47346,6 +47347,7 @@ export declare const internal: {
             fogSaveIds: Array<string>;
             listingIds: Array<string>;
             sceneIds: Array<string>;
+            sceneLedgerIds: Array<string>;
             sessionIds: Array<string>;
           };
           personalStateJson: string;

@@ -34,6 +34,7 @@ import {
   type SceneExplorationState
 } from '@artificer-toolkit/shared/vtt'
 import type { SceneGeometryCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { awaitSceneCheckpoint } from './developmentCheckpoint'
 import type { DevelopmentHttpClient } from './developmentHttpClient'
 import {
   createEncounterLifecycleScene,
@@ -1128,6 +1129,8 @@ export async function verifyCampaignLifecycle(input: {
       ]
     }
   })
+  // Room commits reach Convex at a checkpoint; deletion must remove the rows that checkpoint wrote.
+  await awaitSceneCheckpoint(owner, scene.liveSceneId, fog.version)
   const sceneState = await inspect(campaign.id)
   const sceneRows = tables(sceneState.campaignStateJson)
   for (const family of [
@@ -1137,6 +1140,12 @@ export async function verifyCampaignLifecycle(input: {
     'sceneDefinitionEntities',
     'sceneLiveEntities',
     'sceneLiveStates',
+    'sceneLiveCommands',
+    'sceneGeometrySaves',
+    'sceneFogSaves',
+    'sceneFogLayers',
+    'sceneFogChunks',
+    'sceneReceiptLedgers',
     'campaignScenePresentations',
     'encounterSceneBindings',
     'encounterActorTokenBindings'

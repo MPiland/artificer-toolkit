@@ -1548,6 +1548,133 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
   })
 })
 
+it('commits one of two concurrent same-token moves and refuses the stale Scene version', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
+  base.capture.presentation.version = 2
+  await synchronizeScene(base, value.scene)
+  base.messages.length = 0
+
+  const firstId = crypto.randomUUID()
+  const staleId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, firstId, { x: 20, y: 10 }))
+  )
+  // The second mover has not seen the first commit: it expects the Scene version it last held.
+  base.socket.send(
+    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, staleId, { x: 30, y: 10 }, 1))
+  )
+  await vi.waitFor(() => {
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ commandId: firstId, sequence: 1, type: 'COMMAND_COMMITTED' })
+    )
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'STALE_STATE',
+        commandId: staleId,
+        correction: expect.objectContaining({
+          scope: 'SCENE',
+          state: expect.objectContaining({ version: 1 })
+        }),
+        type: 'COMMAND_REJECTED'
+      })
+    )
+  })
+  expect(await journalEvidence(base)).toMatchObject({
+    authority: { published_sequence: 0, sequence: 1 },
+    pendingWriteCount: 1
+  })
+  const current = await runInDurableObject(base.stub, (_instance, state) =>
+    hydrateNativeLiveSessionState(
+      state.storage.sql
+        .exec<{ state_json: string }>(
+          'SELECT state_json FROM durable_session_authority WHERE id = 1'
+        )
+        .one().state_json
+    )
+  )
+  expect(current.scene?.version).toBe(1)
+  expect(current.scene?.tokens[0]?.position).toEqual({ x: 20, y: 10 })
+})
+
+it('commits and replays writes to two Campaign rooms concurrently', async () => {
+  const bases: Array<Awaited<ReturnType<typeof fixture>>> = []
+  const values = [movementScene(crypto.randomUUID()), movementScene(crypto.randomUUID())]
+  for (const value of values) {
+    const base = await fixture(value.scene)
+    if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
+    base.capture.presentation.version = 2
+    await synchronizeScene(base, value.scene)
+    base.messages.length = 0
+    bases.push(base)
+  }
+  // Each fixture installs its own fetch mock; one dispatcher now serves both rooms' publications.
+  const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  await runInDurableObject(bases[0]!.stub, () => {
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      expect(new URL(request.url).pathname).toBe('/live-sessions/checkpoint')
+      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      publications.push(body)
+      const owner = bases.find((base) => base.capture.campaignId === body.campaignId)
+      if (!owner) throw new Error('Unexpected checkpoint Campaign.')
+      return Response.json(checkpointResponse(body, owner.authorization.members))
+    })
+  })
+
+  const commands = values.map((value, index) =>
+    tokenMoveCommand(value.scene, value.tokenId, crypto.randomUUID(), { x: 20 + index, y: 10 })
+  )
+  bases.forEach((base, index) => base.socket.send(JSON.stringify(commands[index])))
+  await vi.waitFor(() =>
+    bases.forEach((base, index) =>
+      expect(base.messages).toContainEqual(
+        expect.objectContaining({
+          commandId: commands[index]!.command.command.commandId,
+          sequence: 1,
+          type: 'COMMAND_COMMITTED'
+        })
+      )
+    )
+  )
+  await Promise.all(bases.map((base) => fireCheckpointAlarm(base.stub)))
+  expect(publications.map((publication) => publication.campaignId).sort()).toEqual(
+    bases.map((base) => base.capture.campaignId).sort()
+  )
+
+  for (const [index, base] of bases.entries()) {
+    expect(await journalEvidence(base)).toMatchObject({
+      authority: { published_sequence: 1, sequence: 1 }
+    })
+    const restored = await runInDurableObject(base.stub, (_instance, state) =>
+      hydrateNativeLiveSessionState(
+        state.storage.sql
+          .exec<{ state_json: string }>(
+            'SELECT state_json FROM durable_session_authority WHERE id = 1'
+          )
+          .one().state_json
+      )
+    )
+    expect(restored.scene?.id).toBe(values[index]!.scene.id)
+    expect(restored.scene?.tokens[0]?.position).toEqual({ x: 20 + index, y: 10 })
+    base.messages.length = 0
+    base.socket.send(JSON.stringify(commands[index]))
+    await vi.waitFor(() =>
+      expect(base.messages).toContainEqual(
+        expect.objectContaining({
+          commandId: commands[index]!.command.command.commandId,
+          delta: expect.objectContaining({
+            result: expect.objectContaining({ replayed: true, version: 1 })
+          }),
+          type: 'COMMAND_COMMITTED'
+        })
+      )
+    )
+  }
+  expect(publications).toHaveLength(2)
+})
+
 async function journalEvidence(base: Awaited<ReturnType<typeof fixture>>) {
   return runInDurableObject(base.stub, (_instance, state) => ({
     authority: state.storage.sql
@@ -5970,7 +6097,7 @@ it('retries the exact pending checkpoint after eviction before an idle room rele
     ).toBe(true)
   )
   expect(calls).toEqual([])
-  await expect(fireCheckpointAlarm(base.stub)).rejects.toThrow()
+  await fireCheckpointAlarm(base.stub)
   expect(checkpoints).toHaveLength(1)
   expect(await journalEvidence(base)).toMatchObject({
     authority: { published_sequence: 0, sequence: 1 },
@@ -6002,6 +6129,105 @@ it('retries the exact pending checkpoint after eviction before an idle room rele
     authority: { published_sequence: 1, sequence: 1, status: 'RELEASED' },
     pendingWriteCount: 0
   })
+})
+
+it('keeps the authority draining when its final checkpoint fails and releases on the retried close', async () => {
+  const value = doorScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  await synchronizeScene(base, value.scene)
+  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  let publishAvailable = false
+  await runInDurableObject(base.stub, () => {
+    const original = vi.mocked(globalThis.fetch).getMockImplementation()
+    if (!original) throw new Error('Missing native fetch mock.')
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      if (new URL(request.url).pathname !== '/live-sessions/checkpoint')
+        return original(input, init)
+      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      checkpoints.push(body)
+      if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
+      return Response.json(checkpointResponse(body, base.authorization.members))
+    })
+  })
+  const commandId = crypto.randomUUID()
+  base.socket.send(JSON.stringify(doorCommand(value.scene, value.doorId, commandId)))
+  await vi.waitFor(() =>
+    expect(
+      base.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  )
+  const close = () =>
+    control({ campaignId: base.capture.campaignId, operation: { type: 'CLOSE_ROOM' } })
+
+  await expect(close()).rejects.toThrow()
+  expect(base.authorityLifecycleCalls).toEqual(['/live-sessions/begin-drain'])
+  expect(checkpoints).toHaveLength(1)
+  expect(
+    (
+      await runInDurableObject(base.stub, (_i, s) =>
+        new DurableCommandJournal(s.storage).readCurrent()
+      )
+    )?.status
+  ).toBe('DRAINING')
+
+  publishAvailable = true
+  await expect((await close()).json()).resolves.toEqual({ closed: 0 })
+  expect(base.authorityLifecycleCalls).toEqual([
+    '/live-sessions/begin-drain',
+    '/live-sessions/begin-drain',
+    '/live-sessions/release'
+  ])
+  expect(checkpoints[1]).toEqual(checkpoints[0])
+  expect(await idleRelease(base.stub)).toMatchObject({ status: 'RELEASED' })
+})
+
+it('keeps an alarm scheduled when the idle release checkpoint fails and releases once publication recovers', async () => {
+  const value = doorScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  await synchronizeScene(base, value.scene)
+  let publishAvailable = false
+  await runInDurableObject(base.stub, () => {
+    const original = vi.mocked(globalThis.fetch).getMockImplementation()
+    if (!original) throw new Error('Missing native fetch mock.')
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      if (new URL(request.url).pathname !== '/live-sessions/checkpoint')
+        return original(input, init)
+      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
+      return Response.json(checkpointResponse(body, base.authorization.members))
+    })
+  })
+  const commandId = crypto.randomUUID()
+  base.socket.send(JSON.stringify(doorCommand(value.scene, value.doorId, commandId)))
+  await vi.waitFor(() =>
+    expect(
+      base.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  )
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  try {
+    await leaveAndFireIdleAlarm(base)
+    expect(logged).toHaveBeenCalledWith('Live Session alarm failed; retrying.', expect.anything())
+  } finally {
+    logged.mockRestore()
+  }
+  expect(base.authorityLifecycleCalls).toEqual([])
+  expect(await idleRelease(base.stub)).toMatchObject({ status: 'ACTIVE' })
+  expect((await idleRelease(base.stub)).alarm).toBeGreaterThan(Date.now())
+
+  publishAvailable = true
+  await fireAlarmAfterIdleWindow(base.stub)
+  expect(base.authorityLifecycleCalls).toEqual([
+    '/live-sessions/begin-drain',
+    '/live-sessions/release'
+  ])
+  expect(await idleRelease(base.stub)).toMatchObject({ status: 'RELEASED' })
 })
 
 it('never captures authority for pings on the synchronized Scene', async () => {

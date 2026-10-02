@@ -50,18 +50,29 @@ it('proves native GM overlays through public Campaign handlers', async () => {
     const current = await readCharacterRow(ctx, base.character.id)
     if (!current) throw new Error('Missing committed Character fixture.')
     const id = crypto.randomUUID()
-    await insertActiveCharacterRecord(ctx, {
-      ...readCharacterRecord(current), status: current.status, id, userId: player.userId
-    }, {
-      createdAt: current.createdAt, updatedAt: current.updatedAt,
-      streamVersion: current.play.streamVersion,
-      maximumHitPoints: current.play.maximumHitPoints, walkingSpeed: current.play.walkingSpeed
-    })
+    await insertActiveCharacterRecord(
+      ctx,
+      {
+        ...readCharacterRecord(current),
+        status: current.status,
+        id,
+        userId: player.userId
+      },
+      {
+        createdAt: current.createdAt,
+        updatedAt: current.updatedAt,
+        streamVersion: current.play.streamVersion,
+        maximumHitPoints: current.play.maximumHitPoints,
+        walkingSpeed: current.play.walkingSpeed
+      }
+    )
     const clone = await readCharacterRow(ctx, id)
     if (!clone) throw new Error('Missing cloned Character fixture.')
     await writeCharacterRecord(ctx, clone, {
-      document: readCharacterRecord(clone), sheetState: readCharacterSheetState(current),
-      portraitAssetId: current.portraitAssetId, portraitRevision: current.portraitRevision
+      document: readCharacterRecord(clone),
+      sheetState: readCharacterSheetState(current),
+      portraitAssetId: current.portraitAssetId,
+      portraitRevision: current.portraitRevision
     })
     await ctx.db.patch(clone.play._id, { updatedAt: current.play.updatedAt })
     await ensureAuthoredRouteId(ctx, 'CHARACTER', id, false, player.userId)
@@ -105,6 +116,7 @@ it('proves native GM overlays through public Campaign handlers', async () => {
           sceneIds: [],
           definitionSaveIds: [],
           fogSaveIds: [],
+          sceneLedgerIds: [],
           conversationIds: [],
           entryIds: [],
           listingIds: [],

@@ -19,6 +19,8 @@ export const ROOM_LIMITS = {
    */
   authorizationLeaseMs: 240_000,
   checkpointDeadlineMs: 120_000,
+  /** A failed checkpoint or release in the alarm retries after this delay instead of at its past deadline. */
+  alarmRetryMs: 30_000,
   /** A background preview refresh starts at most once per input in this window. */
   previewRetryMs: 5_000,
   /**

@@ -46,6 +46,13 @@ import {
 import { insertConversationEntry } from '../campaigns/conversationDocuments'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { requireDefaultUserContentSource } from '../content/sources'
+import { livePublicationCampaignScope } from '../campaigns/authority'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
+import { readRoomSceneInputsPage } from './roomSceneInputs'
+import {
+  RECEIPT_LEDGER_MAX_BYTES,
+  RECEIPT_LEDGER_MAX_PARTS
+} from '@artificer-toolkit/schema/projections/receiptLedgerPersistence'
 
 const read = makeFunctionReference<'query', LiveRoomInputsInput, LiveRoomInputsResponse>(
   'liveSessions/roomInputs:read'
@@ -72,6 +79,32 @@ afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllEnvs()
 })
+
+/** Counts the documents a reader's queries return, through any chain of query-builder calls. */
+function countDocumentReads<T extends object>(target: T, reads: { documents: number }): T {
+  const documentsIn = (value: unknown): number => {
+    if (Array.isArray(value)) return value.length
+    if (value === null || typeof value !== 'object') return 0
+    return 'page' in value && Array.isArray(value.page) ? value.page.length : 1
+  }
+  return new Proxy(target, {
+    get(object, key) {
+      const member: unknown = Reflect.get(object, key, object)
+      if (typeof member !== 'function') return member
+      return (...args: unknown[]) => {
+        const result: unknown = Reflect.apply(member, object, args)
+        if (result instanceof Promise)
+          return result.then((value: unknown) => {
+            reads.documents += documentsIn(value)
+            return value
+          })
+        return typeof result === 'object' && result !== null
+          ? countDocumentReads(result, reads)
+          : result
+      }
+    }
+  })
+}
 
 async function setup() {
   const base = await setupCharacterRun()
@@ -417,6 +450,73 @@ describe('raw room Scene inputs', () => {
     expect(commandPages.sort((a, b) => a - b)).toEqual([1, history, history])
     expect(commandPages).toHaveLength(ledgerCount)
   })
+
+  it('keeps a hydration page of a long command history within its row and byte budget', async () => {
+    // One page reads the Scene's fixed authority rows, one ledger head and that ledger's parts.
+    const FIXED_ROWS_BUDGET = 8
+    const COMMAND_PAGE_ROWS_BUDGET = FIXED_ROWS_BUDGET + 1 + RECEIPT_LEDGER_MAX_PARTS
+    const COMMAND_PAGE_BYTES_BUDGET = RECEIPT_LEDGER_MAX_BYTES
+    const history = 1500
+    const base = await setupScene(true)
+    await base.t.run(async (ctx) => {
+      await insertSceneCommandLedger(
+        ctx,
+        Array.from({ length: history }, () => undoSceneCommand(base.sceneId, base.owner.userId))
+      )
+    })
+    // Each page is its own Convex function execution: only one paginated query is allowed per call.
+    const measurePage = (cursor: Extract<LiveRoomInputsScope, { kind: 'SCENE' }>['cursor']) =>
+      base.t.run(async (ctx) => {
+        const campaign = await ctx.db
+          .query('campaigns')
+          .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+          .unique()
+        if (!campaign) throw new Error('Missing Campaign.')
+        const authority = await requireActiveCampaignLiveAuthority(ctx, {
+          campaignId: base.campaign.id,
+          epoch: base.epoch
+        })
+        const reads = { documents: 0 }
+        const response = await readRoomSceneInputsPage(
+          { ...ctx, db: countDocumentReads(ctx.db, reads) },
+          campaign,
+          { kind: 'SCENE', sceneId: base.sceneId, cursor },
+          livePublicationCampaignScope(authority)
+        )
+        return {
+          next: response.continueCursor,
+          commands: response.documents.filter((document) => document.table === 'sceneLiveCommands')
+            .length,
+          documents: reads.documents,
+          bytes: new TextEncoder().encode(JSON.stringify(response)).byteLength
+        }
+      })
+    const pages: Awaited<ReturnType<typeof measurePage>>[] = []
+    for (let cursor: Extract<LiveRoomInputsScope, { kind: 'SCENE' }>['cursor'] = null; ; ) {
+      const page = await measurePage(cursor)
+      pages.push(page)
+      if (!page.next) break
+      cursor = page.next
+    }
+    const ledgers = await base.t.run((ctx) =>
+      ctx.db
+        .query('receiptLedgers')
+        .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE').eq('scopeId', base.sceneId))
+        .take(10)
+    )
+    const commandPages = pages.filter((page) => page.commands > 0)
+    expect(commandPages.map((page) => page.commands).sort((a, b) => a - b)).toEqual([1, history])
+    const [small, large] = ledgers.sort((a, b) => a.entryCount - b.entryCount)
+    if (!small || !large) throw new Error('Expected two Scene ledgers.')
+    expect(large.partCount).toBeGreaterThan(1)
+    const largePage = commandPages.find((page) => page.commands === history)!
+    const smallPage = commandPages.find((page) => page.commands === 1)!
+    // History adds one row per ledger part and nothing per command.
+    expect(largePage.documents - smallPage.documents).toBe(large.partCount - small.partCount)
+    expect(smallPage.documents).toBeLessThanOrEqual(FIXED_ROWS_BUDGET + 1)
+    expect(largePage.documents).toBeLessThanOrEqual(COMMAND_PAGE_ROWS_BUDGET)
+    expect(largePage.bytes).toBeLessThanOrEqual(COMMAND_PAGE_BYTES_BUDGET)
+  }, 60_000)
 
   it('reads an empty materialized Scene with exact source pins and no synthesized live rows', async () => {
     const base = await setupScene()

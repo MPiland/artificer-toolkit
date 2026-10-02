@@ -98,6 +98,27 @@ const held = makeFunctionReference<
   boolean
 >('liveSessions/authority:held')
 
+// The room checkpoints a pending Scene commit at its deadline alarm (`ROOM_LIMITS.checkpointDeadlineMs`).
+const SCENE_CHECKPOINT_TIMEOUT_MS = 180_000
+
+/**
+ * Room Scene commits reach Convex only at a checkpoint, so Convex reads of a presented Scene lag the
+ * room. Waits, without disturbing connected sockets, until Convex holds the Scene at `version`.
+ */
+export async function awaitSceneCheckpoint(
+  client: Pick<ConvexHttpClient, 'query'>,
+  sceneId: string,
+  version: number
+) {
+  const deadline = Date.now() + SCENE_CHECKPOINT_TIMEOUT_MS
+  while (true) {
+    const header = await client.query(api.scenes.liveReads.header, { sceneId })
+    if (header.version >= version) return
+    assert.ok(Date.now() < deadline, `Scene ${sceneId} did not checkpoint to version ${version}.`)
+    await new Promise((resolve) => setTimeout(resolve, 1_000))
+  }
+}
+
 /** Uses real native mutations: a post-publication throw must roll back the entire checkpoint. */
 export async function verifyDevelopmentCheckpoint({
   owner,
@@ -187,7 +208,7 @@ export async function verifyDevelopmentCheckpoint({
     })
     assert.equal(run.status, 'PREPARED')
     scope = { ...fixture, campaignId, encounterId: run.id }
-    checkpoint =liveSessionCheckpointInputSchema.parse(
+    checkpoint = liveSessionCheckpointInputSchema.parse(
       await invoke(prepare, undefined, { ...scope, staged })
     )
     const before = developmentCheckpointInspectionSchema.parse(
