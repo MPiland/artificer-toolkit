@@ -69,7 +69,8 @@ import type {
   ExternalSceneCommand
 } from '../../../session-worker/src/nativeExternalSceneCommit'
 import { executeRoomSceneGeometry } from '../../../session-worker/src/roomSceneGeometryCommand'
-import { hydrateNativeTransientScene } from '../../../session-worker/src/nativeSceneClient'
+import { composeRoomSceneVision } from '../../../session-worker/src/roomSceneVision'
+import { readRoomSceneState } from '../../../session-worker/src/roomSceneRead'
 import {
   createNativeLiveRulesRuntime,
   secureRandomInt
@@ -124,16 +125,17 @@ export async function withRoomConvex<T>(
 }
 
 /**
- * The room's Scene cache for `encounterId`, read through the same capture and hydration as the
- * room; null when the presented Scene is not bound to that Encounter (or, for a null
+ * The room's Scene cache for `encounterId`: the room's capture for the presentation, then the
+ * Scene from its own hydrated rows as the room builds it; null when the presented Scene is not bound to that Encounter (or, for a null
  * `encounterId`, is bound to any), so the room does not own it.
  */
 async function roomSceneContext(
-  room: { environment: ReturnType<typeof workerEnvironment>; accessToken: string },
-  actor: Omit<LiveEncounterActor, 'authorityEpoch'>,
+  room: OpenRoom,
+  session: { environment: ReturnType<typeof workerEnvironment>; accessToken: string },
+  actor: LiveEncounterActor,
   encounterId: string | null
 ): Promise<ExternalSceneContext | null> {
-  const capture = await callLiveSessionRoute(room.environment, room.accessToken, 'capture', {
+  const capture = await callLiveSessionRoute(session.environment, session.accessToken, 'capture', {
     campaignId: actor.campaignId,
     expectedUserId: actor.expectedUserId,
     expectedRole: actor.expectedRole,
@@ -143,8 +145,22 @@ async function roomSceneContext(
   })
   if (!capture.presentation || capture.sceneEncounterId !== (encounterId?.toLowerCase() ?? null))
     return null
-  const hydrated = await hydrateNativeTransientScene(room.environment, room.accessToken, capture)
-  if (!hydrated.scene) return null
+  const header = capture.sceneHeader
+  if (!header) return null
+  const hydrated = await room.store.transact(async (transaction) => {
+    const { scene, baseOrdinals } = await readRoomSceneState(transaction, header.id)
+    const composition = await composeRoomSceneVision({
+      store: room.store,
+      transaction,
+      inputs: room.inputs,
+      authorization: room.authorization,
+      campaignId: actor.campaignId,
+      epoch: actor.authorityEpoch,
+      scene,
+      encounterIds: capture.sceneEncounterId ? [capture.sceneEncounterId] : []
+    })
+    return { baseOrdinals, ...composition }
+  })
   return {
     scene: hydrated.scene,
     baseOrdinals: hydrated.baseOrdinals,
@@ -183,7 +199,8 @@ export async function expectRedactedRoomRefusal(
     reason: error.cause instanceof Error ? error.cause.message : error.cause
   }).toEqual({
     code,
-    reason: typeof reason === 'string' ? expect.stringContaining(reason) : expect.stringMatching(reason)
+    reason:
+      typeof reason === 'string' ? expect.stringContaining(reason) : expect.stringMatching(reason)
   })
 }
 
@@ -332,7 +349,7 @@ async function commitRoomScene(
   const { caller, actor, command } = input
   // The room captures its presented Scene from Convex before it plans against it.
   const context = await withRoomConvex(caller, (session) =>
-    roomSceneContext(session, actor, input.encounterId)
+    roomSceneContext(room, session, actor, input.encounterId)
   )
   if (!context) throw sceneNotPresentedRejection()
   return room.store.transact(
@@ -400,7 +417,10 @@ export async function executeRoomEncounterCommand(input: {
       const prior = roomJournal.get(journalKey)
       if (prior) {
         if (prior.userId !== userId || prior.fingerprint !== fingerprint)
-          throw roomRefusal('INVALID_COMMAND', 'The command ID was already used for different input.')
+          throw roomRefusal(
+            'INVALID_COMMAND',
+            'The command ID was already used for different input.'
+          )
         if (prior.resultJson === null)
           throw roomRefusal('STALE_STATE', 'This decision was already settled.')
         return {

@@ -14,7 +14,6 @@ import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persis
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { readLiveScene } from '../scenes/liveDocuments'
-import { readCompactScene } from '../scenes/recipientReads'
 import { assertSceneVisionCharacters, readSceneVisionFreshness } from '../scenes/visionFreshness'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 
@@ -109,13 +108,6 @@ export const capture = internalQuery({
         return recipient ? activeMember(recipient, campaign.ownerUserId) : null
       })
     )
-    // The room shares one Scene cache across members, so it is never filtered for the origin.
-    const sceneSnapshot =
-      fullCapture && scene
-        ? await readCompactScene(ctx, { header: scene.header, viewer: null }, scene)
-        : fullCapture
-          ? null
-          : undefined
     return liveSessionTransientCaptureSchema.parse({
       campaignId: campaign.id,
       systemId: campaign.gameSystemId,
@@ -133,7 +125,6 @@ export const capture = internalQuery({
           ? await readBoundTokenControl(ctx, { campaign, membership, sceneBinding })
           : [],
       sceneHeader: scene?.header ?? null,
-      ...(sceneSnapshot === undefined ? {} : { sceneSnapshot }),
       visionFreshness:
         fullCapture && scene
           ? await readSceneVisionFreshness(ctx, {

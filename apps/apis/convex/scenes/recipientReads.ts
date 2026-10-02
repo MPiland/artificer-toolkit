@@ -6,14 +6,14 @@ import {
   sceneRecipientCaptureSchema,
   sceneRecipientHeaderInputSchema,
   sceneRecipientHeaderSchema,
-  type SceneCurrentEntityPage,
   type SceneRecipientCapture
 } from '@artificer-toolkit/schema/api/sceneRecipient'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
-  campaignSceneStateDtoSchema,
-  type CampaignSceneStateDto
-} from '@artificer-toolkit/schema/api/vttScenes'
-import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
+  assembleCurrentScene,
+  readAllCurrentEntityPages,
+  sceneCurrentCollections
+} from '@artificer-toolkit/encounter-persistence/sceneCurrentEntities'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { isSceneEntityVisibleToViewer } from '@artificer-toolkit/shared/vtt'
 import type { QueryCtx } from '../_generated/server'
@@ -22,29 +22,16 @@ import type { readLiveScene } from './liveDocuments'
 import { readCurrentEntities, readCurrentEntitiesFromScene } from './currentEntities'
 import { readRecipientContext } from './recipientContext'
 
-const compactCollections = [
-  'annotations',
-  'barriers',
-  'darknessZones',
-  'lights',
-  'tokens',
-  'measurements'
-] as const
 const compactSceneEntityLimit = 16
 
-/**
- * A small Scene read in one transaction. A `null` viewer reads every entity for the room's shared
- * Scene cache, with each token's and barrier's definition ordinal.
- */
+/** A small Scene read in one transaction, filtered to what `viewer` may see. */
 export async function readCompactScene(
   ctx: QueryCtx,
-  captured: Pick<SceneRecipientCapture, 'header'> & {
-    viewer: SceneRecipientCapture['viewer'] | null
-  },
+  captured: Pick<SceneRecipientCapture, 'header' | 'viewer'>,
   liveScene: Pick<Awaited<ReturnType<typeof readLiveScene>>, 'header' | 'live'>
-): Promise<{ scene: CampaignSceneStateDto; baseOrdinals: SceneBaseOrdinals } | null> {
+): Promise<CampaignSceneStateDto | null> {
   const { header, viewer } = captured
-  const totalEntities = compactCollections.reduce(
+  const totalEntities = sceneCurrentCollections.reduce(
     (total, collection) => total + header.currentCounts[collection],
     0
   )
@@ -72,95 +59,17 @@ export async function readCompactScene(
   )
     return null
   const prefetched = { definitionEntities, liveEntities }
-  const entityPages = new Map(
-    await Promise.all(
-      compactCollections.map(async (collection) => {
-        const page: SceneCurrentEntityPage['page'] = []
-        let next: SceneCurrentEntityPage['next'] = { phase: 'BASE', afterOrdinal: null }
-        while (next) {
-          const current = await readCurrentEntitiesFromScene(
-            ctx,
-            {
-              sceneId: header.id,
-              expectedVersion: header.version,
-              definitionSaveId: header.definitionSaveId,
-              collection,
-              numItems: 8,
-              ...next
-            },
-            liveScene,
-            prefetched
-          )
-          if (current.version !== header.version || current.collection !== collection)
-            throw new Error('Compact Scene recipient page is inconsistent.')
-          page.push(...current.page)
-          if (page.length > header.currentCounts[collection])
-            throw new Error('Compact Scene recipient count is inconsistent.')
-          next = current.next
-        }
-        if (
-          page.length !== header.currentCounts[collection] ||
-          new Set(page.map(({ value }) => value.entity.id)).size !== page.length
-        )
-          throw new Error('Compact Scene recipient entities are inconsistent.')
-        return [
-          collection,
-          viewer === null
-            ? page
-            : page.filter(({ value }) =>
-                // The compact path runs only without stored fog layers, so an empty list is exact.
-                isSceneEntityVisibleToViewer(
-                  { map: header.map, fogMode: header.fogMode, fogLayers: [] },
-                  viewer,
-                  value
-                )
-              )
-        ] as const
-      })
-    )
+  const pages = await readAllCurrentEntityPages(header, (input) =>
+    readCurrentEntitiesFromScene(ctx, input, liveScene, prefetched)
   )
-
-  const barriers = entityPages.get('barriers')!
-  const doorStates: CampaignSceneStateDto['doorStates'] = {}
-  for (const row of barriers) {
-    if (row.value.collection === 'barriers' && row.value.entity.kind === 'DOOR') {
-      if (row.doorState === null) throw new Error('Compact Scene door state is inconsistent.')
-      doorStates[row.value.entity.id] = row.doorState
-    }
-  }
-  const {
-    definitionSaveId: _definitionSaveId,
-    counts: _counts,
-    currentCounts: _currentCounts,
-    fogLayerCount: _fogLayerCount,
-    ...scene
-  } = header
-  const tokens = entityPages.get('tokens')!
-  const baseOrdinal = (collection: 'tokens' | 'barriers', ordinal: number) =>
-    ordinal < header.counts[collection] ? ordinal : null
-  return {
-    scene: campaignSceneStateDtoSchema.parse({
-      ...scene,
-      annotations: entityPages.get('annotations')!.map((row) => row.value.entity),
-      barriers: barriers.map((row) => row.value.entity),
-      darknessZones: entityPages.get('darknessZones')!.map((row) => row.value.entity),
-      lights: entityPages.get('lights')!.map((row) => row.value.entity),
-      tokens: tokens.map((row) => row.value.entity),
-      measurements: entityPages.get('measurements')!.map((row) => row.value.entity),
-      doorStates,
-      fogLayers: []
-    }),
-    baseOrdinals: {
-      tokens: tokens.map((row) => ({
-        tokenId: row.value.entity.id,
-        baseOrdinal: baseOrdinal('tokens', row.ordinal)
-      })),
-      barriers: barriers.map((row) => ({
-        barrierId: row.value.entity.id,
-        baseOrdinal: baseOrdinal('barriers', row.ordinal)
-      }))
-    }
-  }
+  // The compact path runs only without stored fog layers, so an empty list is exact.
+  return assembleCurrentScene(header, pages, [], ({ value }) =>
+    isSceneEntityVisibleToViewer(
+      { map: header.map, fogMode: header.fogMode, fogLayers: [] },
+      viewer,
+      value
+    )
+  ).scene
 }
 export const header = query({
   args: zodToConvexFields(sceneRecipientHeaderInputSchema.shape),
@@ -174,7 +83,7 @@ export const header = query({
     const snapshot =
       input.includeSnapshot === false
         ? null
-        : ((await readCompactScene(ctx, capture, scene))?.scene ?? null)
+        : ((await readCompactScene(ctx, capture, scene)) ?? null)
     const {
       definitionSaveId: _save,
       counts: _base,

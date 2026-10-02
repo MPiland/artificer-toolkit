@@ -10,8 +10,7 @@ import {
   sceneSessionVisionFreshnessSchema
 } from './sceneSessionVision.js'
 import { sceneLiveStateHeaderSchema } from './sceneLiveState.js'
-import { sceneBaseOrdinalsSchema } from './sceneGeometry.js'
-import { campaignSceneStateDtoSchema, campaignScenePresentationDtoSchema } from './vttScenes.js'
+import { campaignScenePresentationDtoSchema } from './vttScenes.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const membershipEpochSchema = lazySchema(() => z.iso.datetime({ offset: true }))
@@ -59,15 +58,6 @@ export const liveSessionTransientCaptureSchema = lazySchema(() =>
     originBoundTokenControl: z
       .array(z.strictObject({ tokenId: uuidSchema, controlled: z.boolean() }))
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-    /** The room's shared Scene cache: every entity, never filtered for the origin member. */
-    sceneSnapshot: z.optional(
-      z.nullable(
-        z.strictObject({
-          scene: campaignSceneStateDtoSchema,
-          baseOrdinals: sceneBaseOrdinalsSchema
-        })
-      )
-    ),
     visionFreshness: z.nullable(sceneSessionVisionFreshnessSchema)
   })
 )

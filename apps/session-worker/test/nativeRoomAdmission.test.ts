@@ -122,7 +122,6 @@ async function room() {
           sceneEncounterId: null,
           originBoundTokenControl: [],
           sceneHeader: null,
-          sceneSnapshot: null,
           visionFreshness: null
         } satisfies LiveSessionTransientCapture)
       }

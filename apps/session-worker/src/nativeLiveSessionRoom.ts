@@ -82,14 +82,13 @@ import {
 } from './nativeRoomEncounterCommand.js'
 import type { ExternalSceneCommand, ExternalSceneContext } from './nativeExternalSceneCommit.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
-import { hydrateNativeTransientScene } from './nativeSceneClient.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { RoomCheckpoints } from './roomCheckpoints.js'
 import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
-import { readRoomSceneHeader } from './roomSceneRead.js'
+import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
 import { executeRoomSceneBinding } from './roomSceneBinding.js'
 import { NoSceneMoveToUndoError, publishRoomSceneUndo } from './roomSceneUndo.js'
@@ -1032,7 +1031,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (
       sameHead &&
       !this.#aggregateNeedsReload &&
-      this.#roomStore.record('ROOM_INPUT', 'AUTHORITY')
+      this.#roomStore.record('ROOM_INPUT', 'AUTHORITY') &&
+      (sceneId === null || this.#roomStore.record('SCENE_CHECKPOINT_SOURCE', sceneId))
     )
       return
     if (current.sequence !== current.publishedSequence)
@@ -3210,7 +3210,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     candidates: readonly { admission: Admission; socket: WebSocket }[]
   ): void {
     this.#refreshPreviewInBackground('scene', async () => {
-      await this.#refreshSceneCache(value, admission, candidates)
+      await this.#refreshSceneCache(value, admission, candidates, true)
       const sceneId = this.#cache?.scene?.id
       if (sceneId) this.#overlayDurableSceneCache(sceneId)
     })
@@ -3228,7 +3228,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#refreshPreviewInBackground('scene', async () => {
       const authorization = await this.#refreshAuthorization()
       if (!roomVisionCurrent(authorization, this.#cache?.characterRevisions ?? []))
-        await this.#refreshSceneCache(value, admission, candidates)
+        await this.#refreshSceneCache(value, admission, candidates, true)
     })
   }
 
@@ -3314,10 +3314,70 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
   }
 
+  /**
+   * The presented Scene from the room's own rows, composed with Character vision. The room's Scene
+   * rows are loaded from Convex first when the store does not hold this Scene (D78).
+   */
+  async #hydrateSceneCache(
+    value: SocketAttachment,
+    capture: LiveSessionTransientCapture,
+    serialized: boolean
+  ) {
+    // Off-chain refreshes queue behind a running command: the room store runs one at a time.
+    if (!serialized) return this.#buildSceneCache(value, capture)
+    const next = this.#commandChain.then(() => this.#buildSceneCache(value, capture))
+    this.#commandChain = next.then(
+      () => undefined,
+      () => undefined
+    )
+    return next
+  }
+
+  async #buildSceneCache(value: SocketAttachment, capture: LiveSessionTransientCapture) {
+    const header = capture.sceneHeader
+    if (!header)
+      return {
+        baseOrdinals: { tokens: [], barriers: [] },
+        characterRevisions: [],
+        scene: null,
+        uncomposedScene: null,
+        visionEncounterIds: []
+      }
+    await this.#loadRoomAggregate(header.id)
+    const authorization = await this.#authorizationBoundary(value)
+    const encounterIds = capture.sceneEncounterId ? [capture.sceneEncounterId] : []
+    return this.#roomStore.transact(async (transaction) => {
+      const { scene: uncomposedScene, baseOrdinals } = await readRoomSceneState(
+        transaction,
+        header.id
+      )
+      if (uncomposedScene.version < header.version)
+        throw new Error('Room Scene rows are older than the presented Scene.')
+      const composition = await composeRoomSceneVision({
+        store: this.#roomStore,
+        transaction,
+        inputs: this.#roomInputs,
+        authorization,
+        campaignId: value.campaignId,
+        epoch: value.authorityEpoch,
+        scene: uncomposedScene,
+        encounterIds
+      })
+      return {
+        baseOrdinals,
+        characterRevisions: composition.characterRevisions,
+        scene: composition.scene,
+        uncomposedScene,
+        visionEncounterIds: encounterIds
+      }
+    })
+  }
+
   async #refreshSceneCache(
     value: SocketAttachment,
     admission: Admission,
-    candidates: readonly { admission: Admission; socket: WebSocket }[]
+    candidates: readonly { admission: Admission; socket: WebSocket }[],
+    serialized = false
   ): Promise<LiveSessionTransientCapture | null> {
     if (this.#presentationChanging) return null
     const generation = this.#cacheGeneration
@@ -3342,7 +3402,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const key = cacheKey(capture)
     if (this.#cache?.key === key) return capture
 
-    const hydrated = await hydrateNativeTransientScene(this.env, admission.accessToken, capture)
+    const hydrated = await this.#hydrateSceneCache(value, capture, serialized)
     let scene = hydrated.scene
     let uncomposedScene = hydrated.uncomposedScene
     let revisions = hydrated.characterRevisions
@@ -3358,11 +3418,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       staleRetryUsed = true
       this.#cache = null
       const retry = await this.#capture(value, admission, candidates, 'FULL', [])
-      const hydratedRetry = await hydrateNativeTransientScene(
-        this.env,
-        admission.accessToken,
-        retry
-      )
+      const hydratedRetry = await this.#hydrateSceneCache(value, retry, serialized)
       scene = hydratedRetry.scene
       uncomposedScene = hydratedRetry.uncomposedScene
       revisions = hydratedRetry.characterRevisions

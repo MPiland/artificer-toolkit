@@ -4,6 +4,11 @@ import {
   type SceneCurrentEntityPage,
   type SceneCurrentEntityPageInput
 } from '@artificer-toolkit/schema/api/sceneRecipient'
+import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import {
   sceneLiveEntitySchema,
   type SceneLiveEntity,
@@ -190,4 +195,128 @@ export async function readSceneCurrentEntities(
         ? { phase: 'APPENDED', afterOrdinal: page.at(-1)!.ordinal }
         : null
   })
+}
+
+export const sceneCurrentCollections = [
+  'annotations',
+  'barriers',
+  'darknessZones',
+  'lights',
+  'tokens',
+  'measurements'
+] as const
+
+export type SceneCurrentEntityPages = Record<
+  (typeof sceneCurrentCollections)[number],
+  SceneCurrentEntityPage['page']
+>
+
+/**
+ * The Scene state a complete set of current-entity pages describes, with each token's and barrier's
+ * definition ordinal (`null` once appended). Convex and the room share it so both build the same
+ * Scene from the same rows; `fogLayers` are the stored layers to include, in owner order, and
+ * `keep` drops the rows a viewer may not see.
+ */
+export function assembleCurrentScene(
+  header: SceneLiveStateHeader,
+  allPages: SceneCurrentEntityPages,
+  fogLayers: CampaignSceneStateDto['fogLayers'],
+  keep: (row: SceneCurrentEntityPage['page'][number]) => boolean = () => true
+): { scene: CampaignSceneStateDto; baseOrdinals: SceneBaseOrdinals } {
+  const pages = {
+    annotations: allPages.annotations.filter(keep),
+    barriers: allPages.barriers.filter(keep),
+    darknessZones: allPages.darknessZones.filter(keep),
+    lights: allPages.lights.filter(keep),
+    measurements: allPages.measurements.filter(keep),
+    tokens: allPages.tokens.filter(keep)
+  }
+  const doorStates: CampaignSceneStateDto['doorStates'] = {}
+  for (const row of pages.barriers) {
+    if (row.value.collection === 'barriers' && row.value.entity.kind === 'DOOR') {
+      if (row.doorState === null) throw new Error('Current Scene door state is inconsistent.')
+      doorStates[row.value.entity.id] = row.doorState
+    }
+  }
+  const {
+    definitionSaveId: _definitionSaveId,
+    counts: _counts,
+    currentCounts: _currentCounts,
+    fogLayerCount: _fogLayerCount,
+    ...state
+  } = header
+  const baseOrdinal = (collection: 'tokens' | 'barriers', ordinal: number) =>
+    ordinal < header.counts[collection] ? ordinal : null
+  return {
+    scene: campaignSceneStateDtoSchema.parse({
+      ...state,
+      annotations: pages.annotations.map((row) => row.value.entity),
+      barriers: pages.barriers.map((row) => row.value.entity),
+      darknessZones: pages.darknessZones.map((row) => row.value.entity),
+      doorStates,
+      fogLayers,
+      lights: pages.lights.map((row) => row.value.entity),
+      measurements: pages.measurements.map((row) => row.value.entity),
+      tokens: pages.tokens.map((row) => row.value.entity)
+    }),
+    baseOrdinals: {
+      tokens: pages.tokens.map((row) => ({
+        tokenId: row.value.entity.id,
+        baseOrdinal: baseOrdinal('tokens', row.ordinal)
+      })),
+      barriers: pages.barriers.map((row) => ({
+        barrierId: row.value.entity.id,
+        baseOrdinal: baseOrdinal('barriers', row.ordinal)
+      }))
+    }
+  }
+}
+
+/** Reads every current entity of every collection through a page reader, verifying live counts. */
+export async function readAllCurrentEntityPages(
+  header: SceneLiveStateHeader,
+  readPage: (input: SceneCurrentEntityPageInput) => Promise<SceneCurrentEntityPage>
+): Promise<SceneCurrentEntityPages> {
+  const read = (collection: (typeof sceneCurrentCollections)[number]) =>
+    readAllCurrentEntities(header, collection, readPage)
+  const [annotations, barriers, darknessZones, lights, measurements, tokens] = await Promise.all([
+    read('annotations'),
+    read('barriers'),
+    read('darknessZones'),
+    read('lights'),
+    read('measurements'),
+    read('tokens')
+  ])
+  return { annotations, barriers, darknessZones, lights, measurements, tokens }
+}
+
+async function readAllCurrentEntities(
+  header: SceneLiveStateHeader,
+  collection: (typeof sceneCurrentCollections)[number],
+  readPage: (input: SceneCurrentEntityPageInput) => Promise<SceneCurrentEntityPage>
+): Promise<SceneCurrentEntityPage['page']> {
+  const rows: SceneCurrentEntityPage['page'] = []
+  let next: SceneCurrentEntityPage['next'] = { phase: 'BASE', afterOrdinal: null }
+  while (next) {
+    const page: SceneCurrentEntityPage = await readPage({
+      sceneId: header.id,
+      expectedVersion: header.version,
+      definitionSaveId: header.definitionSaveId,
+      collection,
+      numItems: 8,
+      ...next
+    })
+    if (page.version !== header.version || page.collection !== collection)
+      throw new Error('Current Scene page is inconsistent.')
+    rows.push(...page.page)
+    if (rows.length > header.currentCounts[collection])
+      throw new Error('Current Scene entity count is inconsistent.')
+    next = page.next
+  }
+  if (
+    rows.length !== header.currentCounts[collection] ||
+    new Set(rows.map(({ value }) => value.entity.id)).size !== rows.length
+  )
+    throw new Error('Current Scene entities are inconsistent.')
+  return rows
 }

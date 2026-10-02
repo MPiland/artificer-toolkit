@@ -230,16 +230,6 @@ function asReplay(message: LiveSessionWebSocketServerMessageDto | undefined) {
   }
 }
 
-function baseOrdinals(scene: CampaignSceneStateDto) {
-  return {
-    tokens: scene.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal })),
-    barriers: scene.barriers.map((barrier, baseOrdinal) => ({
-      barrierId: barrier.id,
-      baseOrdinal
-    }))
-  }
-}
-
 function control(input: LiveSessionControlInput, workerSecret = secret) {
   return SELF.fetch(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
     body: JSON.stringify(input),
@@ -357,9 +347,10 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
           visionRevealMode: scene.visionRevealMode
         }
       : null,
-    sceneSnapshot: scene ? { scene, baseOrdinals: baseOrdinals(scene) } : null,
     visionFreshness: scene ? { campaign: null, play: null, system: null } : null
   }
+  /** The Scene Convex serves through the SCENE room-inputs scopes. */
+  const rawScene = { current: scene }
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
   const captureModes: Array<'AUTHORITY' | 'FULL' | undefined> = []
   const authorityLifecycleCalls: string[] = []
@@ -384,10 +375,10 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
         const inputs = liveRoomInputsInputSchema.parse(await request.json())
         expect(inputs).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
         if (inputs.scope.kind === 'SCENE' || inputs.scope.kind === 'SCENE_DEFINITION') {
-          const scene = capture.sceneSnapshot?.scene
-          if (!capture.sceneHeader || !scene) throw new Error('Missing raw Scene fixture.')
+          const served = rawScene.current
+          if (!capture.sceneHeader || !served) throw new Error('Missing raw Scene fixture.')
           const sceneFixture = {
-            scene,
+            scene: served,
             header: capture.sceneHeader,
             presentationVersion: capture.presentation?.version ?? 0
           }
@@ -519,6 +510,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
     authorization,
     capture,
     captureModes,
+    rawScene,
     issueAccessToken,
     issuedAt,
     messages,
@@ -871,7 +863,7 @@ it.each([false, true])(
     const setCapturedScene = (scene: CampaignSceneStateDto) => {
       const header = base.capture.sceneHeader
       if (!header) throw new Error('Missing captured Scene header.')
-      base.capture.sceneSnapshot = { scene, baseOrdinals: baseOrdinals(scene) }
+      base.rawScene.current = scene
       base.capture.sceneHeader = {
         ...header,
         definitionId: scene.definitionId,
@@ -2017,7 +2009,7 @@ it('recovers a native Scene commit whose acknowledgement was lost and retries wi
       checkpoints.push(checkpoint)
       publishedSequence = checkpoint.sequence
       publishedChecksum = checkpoint.checksum
-      base.capture.sceneSnapshot = { scene: moved, baseOrdinals: baseOrdinals(moved) }
+      base.rawScene.current = moved
       if (!base.capture.sceneHeader) throw new Error('Missing published recovery Scene header.')
       base.capture.sceneHeader = { ...base.capture.sceneHeader, version: moved.version }
       return Response.json(checkpointResponse(checkpoint, base.authorization.members))
@@ -6373,6 +6365,51 @@ it('commits an inline GM edit with its INLINE receipt, checkpoints it and replay
     expect(rejectionOf(base.messages, commandId)).toMatchObject({ code: 'INVALID_COMMAND' })
   )
   expect(publications).toHaveLength(1)
+})
+
+it('serves a joining player the committed Scene from the room store without a Convex hydrate read', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const commandId = crypto.randomUUID()
+  base.socket.send(
+    sceneMessage(
+      {
+        commandId,
+        expectedSceneVersion: 0,
+        illumination: 'DIM',
+        sceneId: scene.id,
+        type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+      },
+      0
+    )
+  )
+  await vi.waitFor(() => expect(commitsOf(base.messages, commandId)).toHaveLength(1))
+  vi.mocked(globalThis.fetch).mockClear()
+
+  const player = await connectPlayer(base)
+  player.socket.send(
+    JSON.stringify({
+      expectedPresentationVersion: base.capture.presentation?.version,
+      sceneId: scene.id,
+      type: 'SYNCHRONIZE_SCENE',
+      version: 1
+    })
+  )
+  await vi.waitFor(() =>
+    expect(player.messages).toContainEqual(
+      expect.objectContaining({
+        state: expect.objectContaining({
+          scene: expect.objectContaining({ ambientIllumination: 'DIM', id: scene.id, version: 1 })
+        }),
+        type: 'STATE_SYNC'
+      })
+    )
+  )
+  const paths = vi
+    .mocked(globalThis.fetch)
+    .mock.calls.map(([input, init]) => new URL(new Request(input, init).url).pathname)
+  expect(paths.filter((path) => path.includes('hydrate'))).toEqual([])
 })
 
 it('lets a player save and remove only their own measurements', async () => {

@@ -1,5 +1,6 @@
 import {
   sceneLiveStateHeaderSchema,
+  type SceneLiveEntity,
   type SceneLiveStateHeader
 } from '@artificer-toolkit/schema/api/sceneLiveState'
 import type { SceneCurrentEntityPageInput } from '@artificer-toolkit/schema/api/sceneRecipient'
@@ -9,8 +10,16 @@ import {
   sceneStoredLiveEntitySchema,
   sceneStoredLiveStateSchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
-import { sceneFogLayerDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
-import { readSceneCurrentEntities } from '@artificer-toolkit/encounter-persistence/sceneCurrentEntities'
+import {
+  sceneFogLayerDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
+import {
+  assembleCurrentScene,
+  readAllCurrentEntityPages,
+  readSceneCurrentEntities
+} from '@artificer-toolkit/encounter-persistence/sceneCurrentEntities'
 import {
   parseSceneFogLayer,
   parseSceneReferencedFogChunk
@@ -93,6 +102,71 @@ export function readRoomSceneFogLayer(
       )
     )
   })
+}
+
+/**
+ * One definition entity by identity. Definition ordinals are contiguous below the base count, so
+ * each is one keyed read; the entity's own key carries its ordinal.
+ */
+export function readRoomSceneDefinitionEntity(
+  transaction: RoomTransaction,
+  header: Pick<SceneLiveStateHeader, 'definitionSaveId' | 'counts'>,
+  collection: SceneLiveEntity['collection'],
+  entityId: string
+) {
+  if (collection === 'measurements') return null
+  for (let ordinal = 0; ordinal < header.counts[collection]; ordinal++) {
+    const record = transaction.record(
+      ROOM_SCENE_DEFINITION_ENTITY,
+      canonicalizeJson([header.definitionSaveId, collection, ordinal, entityId])
+    )
+    if (record) return JSON.parse(record.json)
+  }
+  return null
+}
+
+/** Every stored fog layer of the Scene, shared layer first, as Convex lists them by owner. */
+function readRoomSceneFogLayers(
+  transaction: RoomTransaction,
+  header: SceneLiveStateHeader
+): SceneFogLayer[] {
+  const prefix = canonicalizeJson(['sceneFogLayers', header.id]).slice(0, -1) + ','
+  const owners = transaction
+    .records('SCENE_CHECKPOINT_ROW')
+    .filter((record) => record.key.startsWith(prefix))
+    .map((record) => {
+      const key: unknown = JSON.parse(record.key)
+      const owner = Array.isArray(key) ? key[2] : undefined
+      if (owner !== null && typeof owner !== 'string')
+        throw new Error('Room Scene fog layer key is invalid.')
+      return owner
+    })
+    .sort((left, right) =>
+      left === right ? 0 : left === null ? -1 : right === null ? 1 : left < right ? -1 : 1
+    )
+  const layers = owners.map((owner) => {
+    const layer = readRoomSceneFogLayer(transaction, header.id, owner, header.version)
+    if (!layer) throw new Error('Room Scene fog layer is unavailable.')
+    return layer
+  })
+  if (layers.length !== header.fogLayerCount)
+    throw new Error('Room Scene fog layer count is inconsistent.')
+  return layers
+}
+
+/**
+ * The whole presented Scene from the room's rows, uncomposed with Character vision: the room's
+ * Scene cache source. It reads the rows Convex checkpointed plus the room's own commits.
+ */
+export async function readRoomSceneState(
+  transaction: RoomTransaction,
+  sceneId: string
+): Promise<{ scene: CampaignSceneStateDto; baseOrdinals: SceneBaseOrdinals }> {
+  const { header } = readRoomScene(transaction, sceneId)
+  const pages = await readAllCurrentEntityPages(header, (input) =>
+    readRoomSceneEntities(transaction, input)
+  )
+  return assembleCurrentScene(header, pages, readRoomSceneFogLayers(transaction, header))
 }
 
 /** The same BASE/APPENDED reader used by Convex, over the command's staged native records. */

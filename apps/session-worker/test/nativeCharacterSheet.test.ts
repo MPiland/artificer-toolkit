@@ -86,7 +86,6 @@ async function sheetRoom() {
     sceneEncounterId: null,
     originBoundTokenControl: [],
     sceneHeader: null,
-    sceneSnapshot: null,
     visionFreshness: null
   }
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))

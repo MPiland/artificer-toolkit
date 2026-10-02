@@ -33,10 +33,6 @@ import {
   liveSessionTransientCaptureInputSchema,
   liveSessionTransientCaptureSchema
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
-import {
-  liveSessionTransientHydrationInputSchema,
-  liveSessionTransientHydrationResponseSchema
-} from '@artificer-toolkit/schema/api/liveSessionTransientHydration'
 import { liveSessionPresentationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessions'
 import { setCampaignLiveScenePresentationResultDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { z } from 'zod'
@@ -106,10 +102,6 @@ const liveSessionRoutes = {
   capture: {
     input: liveSessionTransientCaptureInputSchema,
     output: liveSessionTransientCaptureSchema
-  },
-  hydrate: {
-    input: liveSessionTransientHydrationInputSchema,
-    output: liveSessionTransientHydrationResponseSchema
   },
   roomAuthorization: {
     input: liveSessionRoomAuthorizationInputSchema,

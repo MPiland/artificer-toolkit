@@ -13,7 +13,7 @@ import type {
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { liveSceneHead, seedLiveToken } from '../../tests/fixtures/liveSceneToken'
+import { liveSceneHead } from '../../tests/fixtures/liveSceneToken'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene
@@ -86,10 +86,6 @@ it('captures current authenticated admission, presentation, active recipient epo
     ]),
     sceneEncounterId: null,
     sceneHeader: { id: sceneId, version: 0 },
-    sceneSnapshot: {
-      scene: expect.objectContaining({ id: sceneId, version: 0 }),
-      baseOrdinals: { tokens: [], barriers: [] }
-    },
     visionFreshness: expect.any(Object)
   })
   const encounterId = crypto.randomUUID()
@@ -107,37 +103,6 @@ it('captures current authenticated admission, presentation, active recipient epo
     base.owner.caller.query(capture, { ...input, mode: 'AUTHORITY' })
   ).resolves.toMatchObject({ sceneEncounterId: encounterId })
 }, 30_000)
-
-it('fills the shared room Scene cache with every entity even from a player capture (S-0)', async () => {
-  const { base, input, sceneId } = await setup()
-  const hiddenToken = {
-    assetId: null,
-    controlledByUserIds: [],
-    height: 1,
-    hidden: true,
-    id: crypto.randomUUID(),
-    label: 'Hidden scout',
-    locked: false,
-    position: { x: 10, y: 10 },
-    rotationDegrees: 0,
-    vision: null,
-    width: 1
-  }
-  await seedLiveToken({ ...base, sceneId, tokens: [] }, hiddenToken.id, hiddenToken)
-  const playerCapture = await base.other.caller.query(capture, {
-    ...input,
-    expectedRole: 'PLAYER',
-    expectedUserId: base.other.userId
-  })
-  expect(playerCapture.sceneSnapshot?.scene.tokens.map((token) => token.id)).toEqual([
-    hiddenToken.id
-  ])
-  // A token added during play has no definition ordinal.
-  expect(playerCapture.sceneSnapshot?.baseOrdinals).toEqual({
-    tokens: [{ tokenId: hiddenToken.id, baseOrdinal: null }],
-    barriers: []
-  })
-})
 
 it('captures a successfully admitted PLAYER origin and rejects anonymous or mismatched socket binding', async () => {
   const { base, input } = await setup()
@@ -248,8 +213,7 @@ it('captures a changed Scene header and presentation revision, then rejects stal
   const { base, input, sceneId } = await setup()
   await dimLiveScene(base, sceneId)
   await expect(base.owner.caller.query(capture, input)).resolves.toMatchObject({
-    sceneHeader: { ambientIllumination: 'DIM', id: sceneId, version: 1 },
-    sceneSnapshot: { scene: { ambientIllumination: 'DIM', id: sceneId, version: 1 } }
+    sceneHeader: { ambientIllumination: 'DIM', id: sceneId, version: 1 }
   })
   await base.owner.caller.mutation(setPresentation, {
     commandId: crypto.randomUUID(),
@@ -262,7 +226,6 @@ it('captures a changed Scene header and presentation revision, then rejects stal
     presentation: { campaignId: base.campaign.id, sceneId: null, version: 1 },
     sceneEncounterId: null,
     sceneHeader: null,
-    sceneSnapshot: null,
     visionFreshness: null
   })
 
@@ -281,7 +244,7 @@ it('captures a changed Scene header and presentation revision, then rejects stal
     })
   ).rejects.toThrow('Character changed')
 })
-it('keeps authority capture on current admission data while skipping Character and compact Scene validation', async () => {
+it('keeps authority capture on current admission data while skipping Character revision validation', async () => {
   const { base, input, sceneId } = await setup()
   const characterId = crypto.randomUUID()
   await base.t.run((ctx) =>
@@ -301,25 +264,6 @@ it('keeps authority capture on current admission data while skipping Character a
     sceneHeader: { id: sceneId, version: 0 },
     visionFreshness: null
   })
-
-  await dimLiveScene(base, sceneId)
-  await base.t.run(async (ctx) => {
-    const live = await ctx.db
-      .query('sceneLiveStates')
-      .withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId))
-      .unique()
-    if (!live) throw new Error('Missing live Scene state.')
-    await ctx.db.patch(live._id, { counts: { ...live.counts, tokens: 1 } })
-  })
-  const authorityCapture = await base.owner.caller.query(capture, authorityInput)
-  expect(authorityCapture).not.toHaveProperty('sceneSnapshot')
-  expect(authorityCapture.visionFreshness).toBeNull()
-  await expect(
-    base.owner.caller.query(capture, {
-      ...input,
-      observedCharacterRevisions: []
-    })
-  ).rejects.toThrow('Stored Scene geometry state is inconsistent')
 })
 
 it('skips vision freshness reads for authority capture while full capture retains them', async () => {

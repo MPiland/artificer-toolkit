@@ -26,8 +26,11 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { applySceneDelta, type SceneFogChunk } from '@artificer-toolkit/shared/vtt'
 import type { RoomTransaction } from './roomEncounterStore.js'
-import { ROOM_SCENE_DEFINITION_ENTITY } from './roomSceneDefinition.js'
-import { readRoomScene, readRoomSceneHeader } from './roomSceneRead.js'
+import {
+  readRoomScene,
+  readRoomSceneDefinitionEntity,
+  readRoomSceneHeader
+} from './roomSceneRead.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
 
 /** A Scene edit the room refuses with a user-safe code; the Scene is unchanged. */
@@ -96,19 +99,8 @@ export function publishRoomSceneInline(input: {
       readRoomSceneRow(transaction, 'sceneLiveCommands', [header.id, commandId]),
     readLiveEntity: (collection, entityId) =>
       readRoomSceneRow(transaction, 'sceneLiveEntities', [header.id, collection, entityId]),
-    readDefinitionEntity: (collection, entityId) => {
-      const matches = transaction.records(ROOM_SCENE_DEFINITION_ENTITY).filter((record) => {
-        const key: unknown = JSON.parse(record.key)
-        return (
-          Array.isArray(key) &&
-          key[0] === header.definitionSaveId &&
-          key[1] === collection &&
-          key[3] === entityId
-        )
-      })
-      if (matches.length > 1) throw new Error('Room Scene definition entity is inconsistent.')
-      return matches[0] ? JSON.parse(matches[0].json) : null
-    }
+    readDefinitionEntity: (collection, entityId) =>
+      readRoomSceneDefinitionEntity(transaction, header, collection, entityId)
   })
   if (plan.kind === 'REPLAY') return { result: plan.result, scene, header, fogChanged: false }
   if (plan.kind !== 'COMMIT')

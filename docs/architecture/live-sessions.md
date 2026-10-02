@@ -363,9 +363,11 @@ drops the Scene cache and challenges every socket, because no member saw the cha
 accepts a persisted sequence of N+1 only through that recovery; while a record exists the journal
 refuses other commits, the drain fence and `discardReplaceableAuthority`.
 
-The room cache holds every entity of the presented Scene: the transient capture's compact snapshot
-is read unfiltered (`readCompactScene` with no viewer), never for the capturing member. It keeps each
-token's and barrier's definition ordinal (`sceneSnapshot.baseOrdinals`, or the entity page ordinals)
+The room cache holds every entity of the presented Scene, built from the room SQLite store
+(`readRoomSceneState`, which shares the current-Scene assembly in `encounter-persistence` with
+Convex's `readCompactScene`), never from a Convex Scene read: the capture is admission authority
+only, and the aggregate load fills the store when it lacks the Scene's source. The cache keeps each
+token's and barrier's definition ordinal (`baseOrdinals`)
 and the bound `sceneEncounterId`, which the commit's `finish` and movement scope need. The room
 never applies a bound token's own `controlledByUserIds`: `beginSceneGeometry` checks the bound
 actor's controllers (`requireBoundTokenMoveControl`, refusing `NOT_ACTOR_CONTROLLER`), and
@@ -429,7 +431,7 @@ writes one SCENE-scope receipt ledger per Scene (`receiptLedgers` and `receiptLe
 entry per command, full stored command as the entry value). `sceneLiveCommands` is a small header
 table (`ledgerId`, `entryIndex`, `entryChecksum`, `sceneId`, `commandId`, `encoding`) indexed by
 `by_sceneId_commandId`; it carries no command body. The room checkpoint and hydration contracts
-are unchanged. The room-built Scene cache is target (A35-S3c3).
+are unchanged. The room-built Scene cache is current (A35-S3c3); the Convex `hydrate` route and the capture's `sceneSnapshot` are deleted.
 
 **Encounter binding through the room (SOURCE, execution proof pending, D47).**
 `NativeLiveSessionRoom.#executeEncounterBinding` now calls
