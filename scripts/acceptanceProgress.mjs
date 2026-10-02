@@ -16,6 +16,8 @@ const work = JSON.parse(readFileSync(workPath, 'utf8'))
 const openSliceStates = ['remaining', 'active', 'integrating', 'waiting']
 const statuses = ledger.statusVocabulary ?? []
 const accepted = 'ACCEPTED'
+// D80: a slice is done once its criteria are READY_FOR_ACCEPTANCE; only earlier states need an owner.
+const closedCriterionStates = ['READY_FOR_ACCEPTANCE', accepted]
 
 const validate = () => {
   const errors = []
@@ -115,7 +117,7 @@ const validateWork = (caseIds, criteria) => {
   }
   for (const [id, criterion] of criteria) {
     const owners = criterionOwners.get(id) ?? []
-    if (criterion.status !== accepted && owners.length !== 1) {
+    if (!closedCriterionStates.includes(criterion.status) && owners.length !== 1) {
       errors.push(`Open criterion ${id} must be closed by exactly one open slice (has ${owners.length})`)
     }
   }
@@ -133,8 +135,15 @@ const validateWork = (caseIds, criteria) => {
       errors.push(`Queue slice ${id} is ${slice.state}, not open`)
     }
   }
-  if ([...slices.values()].filter((slice) => slice.state === 'active').length > 1) {
-    errors.push('More than one slice is active')
+  // Parallel slices are allowed only when they close disjoint acceptance cases.
+  const activeCases = new Map()
+  for (const slice of slices.values()) {
+    if (slice.state !== 'active') continue
+    for (const caseId of slice.cases ?? []) {
+      if (activeCases.has(caseId)) {
+        errors.push(`Active slices ${activeCases.get(caseId)} and ${slice.id} share case ${caseId}`)
+      } else activeCases.set(caseId, slice.id)
+    }
   }
   return errors
 }
