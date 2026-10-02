@@ -1,6 +1,7 @@
 import {
   liveRoomInputsResponseSchema,
   type LiveRoomCharacterPart,
+  type LiveRoomDefinition,
   type LiveRoomInputsResponse,
   type LiveRoomInputsScope,
   type LiveRoomInputsDocument
@@ -52,7 +53,8 @@ export function roomInputsResponse(
     assignments = [],
     accountUserIds,
     authorityDocuments,
-    characterInputs
+    characterInputs,
+    definitions = []
   }: {
     campaignId: string
     systemId: string
@@ -62,6 +64,7 @@ export function roomInputsResponse(
     accountUserIds?: readonly string[]
     authorityDocuments?: LiveRoomInputsDocument[]
     characterInputs?: RoomCharacterInputs
+    definitions?: readonly LiveRoomDefinition[]
   }
 ): LiveRoomInputsResponse {
   switch (scope.kind) {
@@ -229,7 +232,7 @@ export function roomInputsResponse(
           { scope: 'SYSTEM', id: systemId, revision: null },
           { scope: 'CAMPAIGN', id: campaignId, revision: null }
         ],
-        definitions: [],
+        definitions: [...definitions],
         continueCursor: null
       }
     case 'CHARACTERS': {

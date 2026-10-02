@@ -11,14 +11,7 @@ import {
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
-import { sceneCurrentEntityPageSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
-import { sceneFogLayersPageSchema } from '@artificer-toolkit/schema/api/sceneFog'
 import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
-import {
-  sceneSessionCharacterVisionResultSchema,
-  sceneSessionVisionBindingsPageSchema,
-  sceneSessionVisionRunsPageSchema
-} from '@artificer-toolkit/schema/api/sceneSessionVision'
 import {
   liveSessionTransientCaptureInputSchema,
   type LiveSessionTransientCapture,
@@ -33,6 +26,7 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 
 import { ROOM_LIMITS } from '../src/roomLimits.js'
+import { characterSheetInputsFixture, darkvisionDefinition } from './characterSheetInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import {
   ROOM_INPUTS_PATH,
@@ -261,68 +255,7 @@ function installFetch(
       const result = (await mutate?.(++captures, capture, body)) ?? capture
       return result instanceof Response ? result : Response.json(result)
     }
-    const body = (await request.json()) as {
-      request: { collection?: string; kind: string; offset?: number; ownerUserId?: string | null }
-    }
-    if (body.request.kind === 'ENTITIES')
-      return Response.json({
-        kind: 'ENTITIES',
-        result: sceneCurrentEntityPageSchema.parse({
-          collection: body.request.collection,
-          next: null,
-          page:
-            body.request.collection === 'tokens'
-              ? [{ doorState: null, ordinal: 0, value: { collection: 'tokens', entity } }]
-              : [],
-          version: 1
-        })
-      })
-    if (body.request.kind === 'FOG_LAYERS')
-      return Response.json({
-        kind: 'FOG_LAYERS',
-        result: sceneFogLayersPageSchema.parse({
-          continueCursor: '',
-          isDone: true,
-          page: fogLayers.map((layer, ordinal) => ({
-            chunkCount: layer.chunks.length,
-            height: layer.height,
-            ordinal,
-            ownerUserId: layer.ownerUserId,
-            width: layer.width
-          })),
-          version: 1
-        })
-      })
-    if (body.request.kind === 'FOG_CHUNKS') {
-      const layer = fogLayers.find(
-        (candidate) => candidate.ownerUserId === body.request.ownerUserId
-      )
-      if (!layer) throw new Error('Unexpected fog chunk request.')
-      const offset = body.request.offset ?? 0
-      const page = layer.chunks.slice(offset, offset + 8)
-      return Response.json({
-        kind: 'FOG_CHUNKS',
-        result: {
-          height: layer.height,
-          isDone: offset + page.length === layer.chunks.length,
-          nextOffset: offset + page.length,
-          ownerUserId: layer.ownerUserId,
-          page,
-          version: 1,
-          width: layer.width
-        }
-      })
-    }
-    if (body.request.kind === 'VISION_RUNS')
-      return Response.json({
-        kind: 'VISION_RUNS',
-        result: sceneSessionVisionRunsPageSchema.parse({
-          continueCursor: '',
-          isDone: true,
-          page: []
-        })
-      })
-    throw new Error(`Unexpected hydration request: ${body.request.kind}`)
+    throw new Error(`Unexpected backend request: ${pathname}`)
   })
 }
 
@@ -1082,36 +1015,25 @@ it('drops previews without a third capture when the fresh capture also conflicts
   expect(captureCalls).toBe(5)
 })
 
-/** A room whose Scene token takes its vision from a bound Character at revision A, then B. */
+/**
+ * A room whose Scene token takes its vision from a bound Character at revision A (60 ft
+ * Darkvision), then B (no Senses), composed from the room's own store.
+ */
 async function characterVisionRoom() {
   const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
   const characterId = '00000000-0000-4000-8000-000000000112'
-  const revisionA = '00000000-0000-4000-8000-000000000113'
-  const revisionB = '00000000-0000-4000-8000-000000000114'
-  const run = {
-    campaignId,
-    encounterId: '00000000-0000-4000-8000-000000000115',
-    expectedEncounterVersion: 1,
-    expectedPresentationVersion: 1,
-    expectedSceneVersion: 1,
-    freshness: { campaign: null, play: null, system: null },
-    sceneId,
-    systemId: '00000000-0000-4000-8000-000000000111'
-  }
-  const binding = {
-    ...run,
-    actorId: '00000000-0000-4000-8000-000000000116',
-    characterId,
-    streamVersion: 0,
-    tokenId
-  }
+  const bound = { campaignId, characterId, ownerUserId: playerId, scene: { sceneId, tokenId } }
+  const revisionA = await characterSheetInputsFixture({ ...bound, darkvision: true })
+  const revisionB = await characterSheetInputsFixture(bound)
+  const { systemId, encounterId, actorId } = revisionA
   const room = {
-    revisionA,
-    revisionB,
+    revisionA: revisionA.characterRevision,
+    revisionB: revisionB.characterRevision,
     /** The Character's current CHARACTER revision in Convex. */
-    revision: revisionA,
+    revision: revisionA.characterRevision,
     captures: [] as LiveSessionTransientCaptureInput[],
-    visionRequests: [] as string[],
+    /** The CHARACTER revision of each Character page the room read. */
+    characterReads: [] as string[],
     authorizationReads: 0,
     /** Captures refused because they observed a superseded Character revision. */
     staleCaptures: 0,
@@ -1134,13 +1056,17 @@ async function characterVisionRoom() {
         if (inputs.scope.kind === 'SCENE') return Response.json(rawSceneInputs(sceneFixture))
         if (inputs.scope.kind === 'SCENE_DEFINITION')
           return Response.json(rawSceneDefinitionInputs(sceneFixture))
+        if (inputs.scope.kind === 'CHARACTERS') room.characterReads.push(room.revision)
+        const current = room.revision === room.revisionA ? revisionA : revisionB
         return Response.json(
           roomInputsResponse(inputs.scope, {
             campaignId,
-            systemId: run.systemId,
+            systemId,
             ownerUserId: ownerId,
             members,
-            assignments: [{ characterId, userId: playerId }]
+            assignments: [{ characterId, userId: playerId }],
+            characterInputs: { ...revisionA.characterInputs, parts: current.characterInputs.parts },
+            definitions: [darkvisionDefinition]
           })
         )
       }
@@ -1172,7 +1098,24 @@ async function characterVisionRoom() {
           roomAuthorizationResponse({
             members,
             assignments: [{ characterId, userId: playerId }],
-            characterRevisions: [{ characterId, revision: room.revision }]
+            characterRevisions: [{ characterId, revision: room.revision }],
+            play: {
+              encounter: {
+                encounterId,
+                sceneId,
+                healthDisplayDefault: 'HIDDEN',
+                actors: [
+                  {
+                    id: actorId,
+                    kind: 'CHARACTER',
+                    sourceId: characterId,
+                    controllerUserIds: [],
+                    healthDisplay: null
+                  }
+                ],
+                tokens: [{ tokenId, actorId }]
+              }
+            }
           })
         )
       }
@@ -1187,83 +1130,17 @@ async function characterVisionRoom() {
           room.staleCaptures += 1
           return new Response(null, { status: 409 })
         }
-        return Response.json(
-          captureFor(
+        return Response.json({
+          ...captureFor(
             origin.userId,
             origin.role,
             members.filter((candidate) => candidate.userId !== origin.userId)
-          )
-        )
-      }
-      const body = (await request.json()) as { request: { collection?: string; kind: string } }
-      if (body.request.kind === 'ENTITIES')
-        return Response.json({
-          kind: 'ENTITIES',
-          result: sceneCurrentEntityPageSchema.parse({
-            collection: body.request.collection,
-            next: null,
-            page:
-              body.request.collection === 'tokens'
-                ? [
-                    {
-                      doorState: null,
-                      ordinal: 0,
-                      value: { collection: 'tokens', entity: { ...token, vision: null } }
-                    }
-                  ]
-                : [],
-            version: 1
-          })
-        })
-      if (body.request.kind === 'FOG_LAYERS')
-        return Response.json({
-          kind: 'FOG_LAYERS',
-          result: sceneFogLayersPageSchema.parse({
-            continueCursor: '',
-            isDone: true,
-            page: [],
-            version: 1
-          })
-        })
-      if (body.request.kind === 'VISION_RUNS')
-        return Response.json({
-          kind: 'VISION_RUNS',
-          result: sceneSessionVisionRunsPageSchema.parse({
-            continueCursor: '',
-            isDone: true,
-            page: [run]
-          })
-        })
-      if (body.request.kind === 'VISION_BINDINGS')
-        return Response.json({
-          kind: 'VISION_BINDINGS',
-          result: sceneSessionVisionBindingsPageSchema.parse({
-            continueCursor: '',
-            isDone: true,
-            page: [binding]
-          })
-        })
-      if (body.request.kind === 'VISION_CHARACTER') {
-        room.visionRequests.push(room.revision)
-        return Response.json({
-          kind: 'VISION_CHARACTER',
-          result: sceneSessionCharacterVisionResultSchema.parse({
-            binding: {
-              actorId: binding.actorId,
-              characterId,
-              encounterId: binding.encounterId,
-              tokenId
-            },
-            characterRevision: room.revision,
-            characterVision: {
-              characterId,
-              dimRange: room.revision === revisionA ? { amount: 10, unit: 'FEET' } : null
-            },
-            snapshotChecksum: '0000000000000000000000000000000000000000000000000000000000000000'
-          })
+          ),
+          systemId,
+          sceneEncounterId: encounterId
         })
       }
-      throw new Error(`Unexpected hydration request: ${body.request.kind}`)
+      throw new Error(`Unexpected backend request: ${pathname}`)
     })
   })
   const [owner, player] = await Promise.all([
@@ -1271,7 +1148,7 @@ async function characterVisionRoom() {
     connect(stub, playerId, 'PLAYER')
   ])
   await synchronize(owner)
-  expect(room.visionRequests).toEqual([revisionA])
+  expect(room.characterReads).toEqual([room.revisionA])
   owner.messages.length = 0
   player.messages.length = 0
   return { room, owner, player, stub }
@@ -1309,7 +1186,7 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
     sendPreview(player, tokenPreview(sequence, { x: 20 + sequence, y: 10 }))
     expect(transient(player.messages).at(-1)).toMatchObject({ message: { visionLayers: [] } })
   })
-  expect(room.visionRequests).toEqual([room.revisionA, room.revisionB])
+  expect(room.characterReads).toEqual([room.revisionA, room.revisionB])
   expect(room.staleCaptures).toBe(1)
   const readsAfterRebuild = room.authorizationReads
   sendPreview(player, tokenPreview(sequence + 1, { x: 40, y: 10 }))

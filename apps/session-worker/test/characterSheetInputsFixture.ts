@@ -7,13 +7,20 @@ import {
   type ContentSnapshotManifestDto,
   type ContentSnapshotPart
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
+import {
+  liveRoomCharacterPartSchema,
+  liveRoomDefinitionSchema
+} from '@artificer-toolkit/schema/api/liveRoomInputs'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { encounterStoredRunSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import {
+  encounterSceneBindingSchema,
+  encounterStoredRunSchema
+} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
+import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
@@ -27,12 +34,17 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
+import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { elf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_DARKVISION_SENSE_ID,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { characterPageFixtureFor } from '../src/testing/characterPageFixture.js'
 import type { RoomCharacterInputs } from './roomInputsFixture.js'
@@ -43,6 +55,9 @@ const gzipContent = { contentType: 'application/json', contentEncoding: 'gzip' }
 // The captured Character's starting-equipment choice; the Background below offers exactly it.
 const GROUP_ID = '3b74a8d0-eb08-47c9-b103-8d3ec46bd283'
 const OPTION_ID = '319962bb-3446-4b1e-bc19-3f3d5e78a36d'
+
+// The Elf's 60 ft Darkvision Feature, the one way the captured Character gains a Sense.
+const darkvisionFeature = elf.features![1]!
 
 /**
  * The SRD roots the captured Character was built from, shaped like the Convex Character fixtures:
@@ -95,7 +110,10 @@ const roots = (() => {
     }
   }
   return [
-    { subjectKind: 'RACE' as const, document: { ...human, features: [] } },
+    {
+      subjectKind: 'RACE' as const,
+      document: { ...human, features: [] as (typeof darkvisionFeature)[] }
+    },
     {
       subjectKind: 'CLASS' as const,
       document: {
@@ -146,8 +164,30 @@ function listSource({
   return { subjectKind: 'EQUIPMENT', document: publication.document, builder, ...identity }
 }
 
+const darkvisionSeed = SRD_SENSE_DEFINITIONS.find(({ id }) => id === SRD_DARKVISION_SENSE_ID)!
+
+/** The platform Sense definition a room reads for the Darkvision `darkvision` grants. */
+export const darkvisionDefinition = liveRoomDefinitionSchema.parse({
+  id: darkvisionSeed.id,
+  sourceKind: 'PLATFORM',
+  definition: reusableDefinitionCurrentDtoSchema.parse({
+    id: darkvisionSeed.id,
+    gameSystemId: srdSystemRecord.id,
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitionFamilyKey: 'sense',
+    label: darkvisionSeed.label,
+    description: darkvisionSeed.description,
+    document: darkvisionSeed.document,
+    checksum: darkvisionSeed.checksum,
+    contractVersion: 1,
+    version: 1,
+    publishedAt: NOW,
+    publishedBy: crypto.randomUUID()
+  })
+})
+
 /** Builds the SRD source's snapshot objects, stores them in R2 as the build does, and returns its head. */
-async function publishSrdSource(): Promise<ContentSnapshotHead> {
+async function publishSrdSource(darkvision: boolean): Promise<ContentSnapshotHead> {
   const kinds: ContentSnapshotHead['kinds'] = {}
   for (const kind of ['RACE', 'CLASS', 'BACKGROUND', 'EQUIPMENT'] as const) {
     const header = {
@@ -158,7 +198,14 @@ async function publishSrdSource(): Promise<ContentSnapshotHead> {
     }
     const built = buildContentSnapshotKind(
       header,
-      roots.filter((root) => root.subjectKind === kind).map(listSource)
+      roots
+        .filter((root) => root.subjectKind === kind)
+        .map((root) =>
+          darkvision && root.subjectKind === 'RACE'
+            ? { ...root, document: { ...root.document, features: [darkvisionFeature] } }
+            : root
+        )
+        .map(listSource)
     )
     const store = async (part: ContentSnapshotPart) => {
       const { json, sha256, byteLength, rootCount } = built[part]
@@ -183,16 +230,21 @@ async function publishSrdSource(): Promise<ContentSnapshotHead> {
 /**
  * Consistent inputs for one assigned SRD Character held by an active Encounter: its Character
  * page and published content in R2, the SRD System, and the Run with the Character's actor.
- * Every identity, pin, checksum and revision comes from one set of values.
+ * Every identity, pin, checksum and revision comes from one set of values. `darkvision` gives the
+ * Character a 60 ft Darkvision Sense; `scene` binds the Encounter and the actor's token to a Scene.
  */
 export async function characterSheetInputsFixture({
   campaignId,
   characterId,
-  ownerUserId
+  ownerUserId,
+  darkvision = false,
+  scene
 }: {
   campaignId: string
   characterId: string
   ownerUserId: string
+  darkvision?: boolean
+  scene?: { sceneId: string; tokenId: string }
 }) {
   const systemId = srdSystemRecord.id
   const characterRevision = crypto.randomUUID()
@@ -202,7 +254,7 @@ export async function characterSheetInputsFixture({
       {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         kind: SRD_CONTENT_SOURCE.kind,
-        head: await publishSrdSource()
+        head: await publishSrdSource(darkvision)
       }
     ],
     campaign: {
@@ -350,6 +402,26 @@ export async function characterSheetInputsFixture({
   })
   await native.store.insert('encounterInitiativeRounds', initiative.round)
   await native.store.insert('encounterInitiativeParticipants', initiative.participants[0]!)
+  if (scene) {
+    await native.store.insert('encounterActorTokenBindings', {
+      encounterId,
+      actorId: actor.id,
+      tokenId: scene.tokenId,
+      sceneId: scene.sceneId
+    })
+    const commandId = crypto.randomUUID()
+    await native.store.insert(
+      'encounterSceneBindings',
+      encounterSceneBindingSchema.parse({
+        encounterId,
+        campaignId,
+        sceneId: scene.sceneId,
+        commandId,
+        commandFingerprint: checksumCanonicalJson({ commandId }),
+        createdAt: NOW
+      })
+    )
+  }
   const documents: RoomCharacterInputs['run']['documents'] = []
   for (const table of [
     'encounterRuns',
@@ -357,7 +429,9 @@ export async function characterSheetInputsFixture({
     'encounterActorProjectionFacts',
     'encounterSourceProjectionFacts',
     'encounterInitiativeRounds',
-    'encounterInitiativeParticipants'
+    'encounterInitiativeParticipants',
+    'encounterActorTokenBindings',
+    'encounterSceneBindings'
   ] as const) {
     for (const { _id, _creationTime, ...fields } of native.documents(table))
       documents.push({ table, id: _id, creationTime: _creationTime, fields })
