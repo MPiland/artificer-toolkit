@@ -119,7 +119,10 @@ This repo runs on Windows, and several frontend tools spawn native child process
 - Follow the active session's permission policy. In an unrestricted session, run commands normally. Request escalation only when supported and needed for a sandbox restriction; never supply escalation flags when the session forbids them.
 - Use documented repo commands through PowerShell, for example `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006`. Do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the documented command path itself is proven broken.
 - Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process the agent started.
-- If the local Convex backend appears offline, especially `ECONNREFUSED 127.0.0.1:3210`/`3211`, verify Docker Desktop and the local Convex container before diagnosing app auth or Sheet routes. Docker Desktop startup is user-owned.
+- If the local Convex backend appears offline, especially `ECONNREFUSED 127.0.0.1:3210`/`3211`, verify Docker Desktop and the local Convex container before diagnosing app auth or Sheet routes. Agents may start them when they are down:
+  - Start Docker Desktop once with `Start-Process "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"`, outside the sandbox, then wait for `docker info` to succeed.
+  - Start the existing container with `docker start phase82-convex-local-linux` and wait for `http://127.0.0.1:3210/version`. After an unclean shutdown, startup can take several minutes.
+  - Never reset, repair, prune or delete Docker data, settings, socket directories, containers or volumes. If Docker Desktop does not become ready within about three minutes, stop and tell the user.
 
 ## Secrets
 
