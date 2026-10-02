@@ -3133,6 +3133,7 @@ try {
       }
       if (movementBrowser) {
         const { readAuthoritativeSceneToken } = await import('./developmentEncounterCutover')
+        const { awaitSceneCheckpoint } = await import('./developmentCheckpoint')
         const { prepareEncounterMovementFixture, publishMovementReactionCreature } =
           await import('./developmentEncounterMovement')
         const { verifyEncounterMovementBrowser } =
@@ -3358,7 +3359,9 @@ try {
               })
             )
           },
-          verifyAuthoritative: async (stage) => {
+          verifyAuthoritative: async (stage, observedSceneVersion) => {
+            // Room Scene commits reach Convex at a checkpoint; read only once it holds the observed write.
+            await awaitSceneCheckpoint(owner.client, fixture.scene.liveSceneId, observedSceneVersion)
             if (stage === 'departed') {
               if (!completedMovement) throw new Error('Post-undo movement snapshot is unavailable.')
               const [ownerToken, ownerFog, run, timeline] = await Promise.all([
@@ -3648,6 +3651,11 @@ try {
             if (!reactionIssuedMovement)
               throw new Error('Reaction geometry snapshot is unavailable.')
             if (!completedMovement) throw new Error('Completed movement snapshot is unavailable.')
+            await awaitSceneCheckpoint(
+              owner.client,
+              fixture.scene.liveSceneId,
+              submission.result.version
+            )
             const after = await readMovementState()
             const delta = submission.result.delta
             const undone = (delta?.kind === 'BATCH' ? delta.deltas : [delta]).find(

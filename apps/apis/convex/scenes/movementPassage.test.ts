@@ -23,6 +23,7 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
 import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
@@ -606,6 +607,150 @@ describe('native Scene movement passage', () => {
       replayed: true
     })
     expect(await rows()).toEqual(after)
+  }, 60_000)
+
+  it('spends nothing before the terminal step, rolls the room back on a terminal failure and retries and replays the same command (V13.3)', async () => {
+    const value = await setupPassageScene({ rolls: 'PROMPT' })
+    await exhaustFixtureReaction(value)
+    const actorRows = () =>
+      value.base.t.run((ctx) =>
+        ctx.db
+          .query('encounterRunActors')
+          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
+          .collect()
+      )
+    const checksums = async () => (await actorRows()).map((actor) => actor.stateChecksum)
+    const rows = () =>
+      value.base.t.run(async (ctx) => ({
+        actors: await ctx.db.query('encounterRunActors').collect(),
+        runs: await ctx.db.query('encounterRuns').collect(),
+        scenes: await ctx.db.query('sceneLiveStates').collect(),
+        sceneEntities: await ctx.db.query('sceneLiveEntities').collect(),
+        sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
+        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+        receipts: await ctx.db.query('encounterRuleReceipts').collect()
+      }))
+    const usedAllowances = (actors: Awaited<ReturnType<typeof actorRows>>) =>
+      actors.reduce(
+        (total, actor) =>
+          total +
+          Object.values(
+            encounterRuleUsageSnapshot(
+              encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
+            )
+          ).reduce((sum, usage) => sum + usage, 0),
+        0
+      )
+    const spentBefore = await checksums()
+    const allowancesBefore = usedAllowances(await actorRows())
+
+    // Nothing is spent at the passage choice, the selection or the first contest d20.
+    const { choice } = await issuePassage(value)
+    expect(await checksums()).toEqual(spentBefore)
+    const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
+    if (!option) throw new Error('Expected an Overrun passage option.')
+    const selected = await respond(value, choice, {
+      kind: 'PASSAGE_OPTION',
+      optionId: option.optionId
+    })
+    const initiator = selected.result.occurrence?.pending
+    if (!initiator || initiator.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected initiator d20 request.')
+    expect(await checksums()).toEqual(spentBefore)
+    const defender = await respond(value, initiator, {
+      kind: 'ENTER_DICE',
+      requestId: initiator.request.requestId,
+      rawFaces: initiator.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+      rollMode: initiator.request.rollMode
+    })
+    const pending = defender.result.occurrence?.pending
+    if (!pending || pending.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected defender d20 request.')
+    expect(await checksums()).toEqual(spentBefore)
+    expect(usedAllowances(await actorRows())).toBe(allowancesBefore)
+
+    // The terminal step fails after the room transaction has staged all of its writes.
+    const command: ResolveRuleOccurrenceInputDto = {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      commandId: crypto.randomUUID(),
+      encounterId: value.base.run.id,
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      correlationId: null,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: pending.request.requestId,
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+        rollMode: pending.request.rollMode
+      }
+    }
+    const convexBefore = await rows()
+    const transact = RoomEncounterStore.prototype.transact
+    const roomState = (store: RoomEncounterStore) => ({
+      sequence: store.sequence,
+      actors: store.documents('encounterRunActors'),
+      runs: store.documents('encounterRuns'),
+      sceneRows: store.records('SCENE_CHECKPOINT_ROW')
+    })
+    const observed: {
+      before: ReturnType<typeof roomState>
+      staged: ReturnType<typeof roomState>
+      after: ReturnType<typeof roomState>
+    }[] = []
+    const failing = vi
+      .spyOn(RoomEncounterStore.prototype, 'transact')
+      .mockImplementation(function (this: RoomEncounterStore, ...args) {
+        const [work, durable] = args
+        // Only the command's journaled transaction carries its durable commit.
+        if (!durable) return transact.apply(this, args)
+        const entry = { before: roomState(this) } as (typeof observed)[number]
+        return transact
+          .call(
+            this,
+            async (transaction) => {
+              const result = await work(transaction)
+              entry.staged = roomState(this)
+              throw new Error('Injected passage terminal failure')
+              return result
+            },
+            durable
+          )
+          .finally(() => {
+            entry.after = roomState(this)
+            observed.push(entry)
+          })
+      })
+    await expect(planMovementDecisionInRoom(value.owner.caller, command)).rejects.toThrow(
+      'Injected passage terminal failure'
+    )
+    failing.mockRestore()
+    expect(observed).toHaveLength(1)
+    const [attempt] = observed
+    // The writes were applied inside the transaction, yet the room kept none of them.
+    expect(attempt!.staged.actors).not.toEqual(attempt!.before.actors)
+    expect(attempt!.after).toEqual(attempt!.before)
+    expect(await rows()).toEqual(convexBefore)
+
+    // The same command retries successfully and spends its allowance once.
+    const retry = await planMovementDecisionInRoom(value.owner.caller, command)
+    expect(retry.outcome.kind).toBe('TERMINAL')
+    await expect(retry.publish()).resolves.toMatchObject({
+      occurrence: { status: 'COMPLETE', pending: null }
+    })
+    const settled = await rows()
+    expect(usedAllowances(settled.actors)).toBe(allowancesBefore + 1)
+
+    // An exact replay through a fresh room, hydrated from the checkpoint, rolls and spends nothing.
+    vi.spyOn(rollRandom, 'nextRollInt').mockImplementation(() => {
+      throw new Error('random during Scene passage replay')
+    })
+    await expect(
+      planMovementDecisionInRoom(value.owner.caller, command).then((replay) => replay.publish())
+    ).resolves.toMatchObject({ replayed: true })
+    expect(await rows()).toEqual(settled)
   }, 60_000)
 
   it.each([

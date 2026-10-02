@@ -64,7 +64,11 @@ export type EncounterMovementBrowserInput = {
   retryExactUndo: (submission: EncounterMovementUndoSubmission) => Promise<void>
   readPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
   readPlayerPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
-  verifyAuthoritative: (stage: EncounterMovementStage) => Promise<void>
+  /** `observedSceneVersion` is the newest Scene version a room commit reported to either tab. */
+  verifyAuthoritative: (
+    stage: EncounterMovementStage,
+    observedSceneVersion: number
+  ) => Promise<void>
   verifyCompletedUndo: (submission: EncounterMovementUndoSubmission) => Promise<void>
   verifyUndoBaseline: () => Promise<void>
   revokePlayer: () => Promise<void>
@@ -100,6 +104,12 @@ export async function verifyEncounterMovementBrowser(
   let undoResult: SceneCommandResultDto | undefined
   let playerConvexSocketForDiagnostics: ConvexSocketTrace | undefined
   let pendingAtFailure: unknown
+  let observedSceneVersion = 0
+  const observeSceneVersion = (sceneId: string, version: number) => {
+    if (sceneId === input.scene.id) observedSceneVersion = Math.max(observedSceneVersion, version)
+  }
+  const verifyAuthoritative = (stage: EncounterMovementStage) =>
+    input.verifyAuthoritative(stage, observedSceneVersion)
 
   try {
     const ownerContext = await browser.newContext({
@@ -176,7 +186,8 @@ export async function verifyEncounterMovementBrowser(
       command: (frame) => {
         if (frame.command.type === 'MOVE_SCENE_TOKEN') movementCommand ??= frame
       },
-      result: () => undefined
+      result: () => undefined,
+      sceneVersion: observeSceneVersion
     })
     captureRoomSceneCommands(owner, {
       command: (frame) => {
@@ -184,7 +195,8 @@ export async function verifyEncounterMovementBrowser(
       },
       result: (result) => {
         if (result.commandId === undoCommand?.command.commandId) undoResult ??= result
-      }
+      },
+      sceneVersion: observeSceneVersion
     })
 
     await Promise.all([
@@ -197,7 +209,7 @@ export async function verifyEncounterMovementBrowser(
       openTabletop(player, input, playerSession)
     ])
     await Promise.all([assertScene(owner, input.scene.name), assertScene(player, input.scene.name)])
-    await input.verifyAuthoritative('hydrated')
+    await verifyAuthoritative('hydrated')
     expect(diagnostics.filter((entry) => entry.includes('Server Error'))).toEqual([])
 
     stage = 'issue voluntary movement'
@@ -210,7 +222,7 @@ export async function verifyEncounterMovementBrowser(
     await expect(
       owner.getByRole('button', { name: 'Open pending decision', exact: true })
     ).toBeVisible()
-    await input.verifyAuthoritative(
+    await verifyAuthoritative(
       input.scenario === 'PASSAGE' ? 'passage-issued' : 'movement-issued'
     )
 
@@ -224,7 +236,7 @@ export async function verifyEncounterMovementBrowser(
       await player.getByRole('button', { name: 'Overrun · Action', exact: true }).click()
       await expect.poll(async () => (await input.readPlayerPending())?.kind).toBe('D20_EVIDENCE')
       await resolveEvidence(player, input.readPlayerPending, 'max', true)
-      await input.verifyAuthoritative('passage-initiator-resolved')
+      await verifyAuthoritative('passage-initiator-resolved')
       await expect(
         player.getByRole('button', { name: 'Open pending decision', exact: true })
       ).toHaveCount(0)
@@ -234,7 +246,7 @@ export async function verifyEncounterMovementBrowser(
       await expect.poll(input.readPlayerPending).toBeNull()
       await owner.getByRole('button', { name: 'Open pending decision', exact: true }).click()
       await resolveEvidence(owner, input.readPending, 'min', true)
-      await input.verifyAuthoritative('passage-resolved')
+      await verifyAuthoritative('passage-resolved')
     }
 
     stage = 'verify private reaction audience'
@@ -250,7 +262,7 @@ export async function verifyEncounterMovementBrowser(
       exact: true
     })
     await expect(reaction).toBeVisible()
-    await input.verifyAuthoritative('reaction-issued')
+    await verifyAuthoritative('reaction-issued')
 
     stage = 'resolve reaction evidence'
     await reaction.click()
@@ -258,7 +270,7 @@ export async function verifyEncounterMovementBrowser(
     await expect(
       owner.getByRole('button', { name: 'Open pending decision', exact: true })
     ).toHaveCount(0)
-    await input.verifyAuthoritative('reaction-resolved')
+    await verifyAuthoritative('reaction-resolved')
 
     stage = 'reconnect after completed command'
     const openedBeforeDisconnect = playerConvexSocket.opened
@@ -274,17 +286,17 @@ export async function verifyEncounterMovementBrowser(
     await playerContext.setOffline(false)
     await expect.poll(() => playerConvexSocket.opened).toBeGreaterThan(openedBeforeDisconnect)
     await assertScene(player, input.scene.name)
-    await input.verifyAuthoritative('reconnected')
+    await verifyAuthoritative('reconnected')
 
     stage = 'retry exact movement command after reconnect'
     if (!movementCommand) throw new Error('Browser did not expose the submitted movement command.')
     await input.retryExactMovement(movementCommand)
-    await input.verifyAuthoritative('replayed')
+    await verifyAuthoritative('replayed')
 
     stage = 'reload converged clients'
     await Promise.all([reloadTabletop(owner, ownerSession), reloadTabletop(player, playerSession)])
     await Promise.all([assertScene(owner, input.scene.name), assertScene(player, input.scene.name)])
-    await input.verifyAuthoritative('reconnected')
+    await verifyAuthoritative('reconnected')
 
     stage = 'undo completed token move'
     await expect(
@@ -339,7 +351,7 @@ export async function verifyEncounterMovementBrowser(
     await expect(
       player.getByRole('region', { name: `Live scene: ${input.scene.name}` })
     ).toHaveCount(0)
-    await input.verifyAuthoritative('departed')
+    await verifyAuthoritative('departed')
 
     await Promise.all([
       owner.screenshot({
@@ -559,6 +571,7 @@ function captureRoomSceneCommands(
   capture: {
     command: (frame: RoomSceneCommandFrame) => void
     result: (result: SceneCommandResultDto) => void
+    sceneVersion: (sceneId: string, version: number) => void
   }
 ): void {
   page.on('websocket', (socket) => {
@@ -581,12 +594,12 @@ function captureRoomSceneCommands(
       const message = liveSessionWebSocketServerMessageDtoSchema.safeParse(
         parseFrame(payload.toString())
       )
-      if (
-        message.success &&
-        message.data.type === 'COMMAND_COMMITTED' &&
-        message.data.delta?.scope === 'SCENE'
-      )
-        capture.result(message.data.delta.result)
+      if (!message.success || message.data.type !== 'COMMAND_COMMITTED') return
+      const delta = message.data.delta
+      if (delta?.scope === 'SCENE') {
+        capture.result(delta.result)
+        capture.sceneVersion(delta.result.sceneId, delta.result.version)
+      } else if (delta?.scope === 'SCENE_VERSION') capture.sceneVersion(delta.sceneId, delta.version)
     })
   })
 }

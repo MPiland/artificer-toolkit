@@ -11,7 +11,9 @@ import { deleteRunActor, readRunState } from '@artificer-toolkit/encounter-persi
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { liveCharacterHoldSchema } from '@artificer-toolkit/schema/projections/liveCharacterHold'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { input as draftInput } from '../../tests/fixtures/characters'
 import { api } from '../_generated/api'
@@ -237,6 +239,42 @@ describe('native Character live holds', () => {
       await assertConvexOwnsCharacterPlay(ctx, base.character.id)
     })
     expect(await readHolds(base)).toEqual([])
+  })
+
+  it('settles a departed held Character when its hold drops (D81)', async () => {
+    const base = await setupCharacterRun()
+    const itemIds = Array.from({ length: 5 }, () => crypto.randomUUID())
+    await base.t.run(async (ctx) => {
+      await writeRunLifecycle(ctx, base.run.id, 'ACTIVE')
+      await editCharacterRecord(ctx, base.character.id, (document) => ({
+        ...document,
+        state: {
+          ...document.state,
+          equipment: {
+            ...document.state.equipment,
+            inventory: [
+              ...document.state.equipment.inventory,
+              ...itemIds.map((id) => ({ id, equipmentId: club.id, quantity: 1 }))
+            ],
+            attuned: itemIds
+          }
+        }
+      }))
+    })
+    const { authority } = await claim(base)
+    const attuned = async () =>
+      readCharacterRecord((await base.readState()).character!).state.equipment.attuned
+    await base.player.caller.mutation(api.campaigns.assignments.unassign, {
+      campaignId: base.campaign.id
+    })
+    // The room still holds the Character's play until it freezes the departed actor.
+    expect(await attuned()).toEqual(itemIds)
+    await base.t.run(async (ctx) => {
+      await writeRunLifecycle(ctx, base.run.id, 'ACTIVE', base.actor.id)
+      await reconcileCharacterHolds(ctx, base.campaign.id, authority.epoch, new Set([base.run.id]))
+    })
+    expect(await readHolds(base)).toEqual([])
+    expect(await attuned()).toEqual(itemIds.slice(0, 3))
   })
 
   it('ignores expired and retired epochs and releases only the matching replacement epoch', async () => {

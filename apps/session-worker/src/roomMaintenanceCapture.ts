@@ -6,6 +6,30 @@ import {
 import type { EncounterReadTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 
+/**
+ * A departed Character's dependents are Convex's to end (D81), so the room no longer counts or
+ * writes them, even while its cached copies remain.
+ */
+async function withoutDepartedOwners<Row extends { characterId: string }>(
+  ctx: EncounterReadTransaction,
+  state: EncounterRunState,
+  rows: Row[]
+) {
+  const assigned = new Map<string, boolean>()
+  for (const { characterId } of rows)
+    if (!assigned.has(characterId))
+      assigned.set(
+        characterId,
+        (
+          await ctx.db
+            .query('campaignCharacterAssignments')
+            .withIndex('by_characterId', (query) => query.eq('characterId', characterId))
+            .unique()
+        )?.campaignId === state.campaignId
+      )
+  return rows.filter((row) => assigned.get(row.characterId))
+}
+
 /** Native row identities are cursors inside the admitted room command's selected scope. */
 export function readRoomMaintenanceCapture(
   ctx: EncounterReadTransaction,
@@ -23,6 +47,7 @@ export function readRoomMaintenanceCapture(
                 .eq('sourceEncounterId', input.encounterId)
             )
             .collect()
+            .then((owned) => withoutDepartedOwners(ctx, state, owned))
         : await ctx.db
             .query('encounterActiveRuleEffects')
             .withIndex('by_state_encounter_owner_order', (query) =>

@@ -164,10 +164,16 @@ export async function applyCheckpointRecords(
         .query('characters')
         .withIndex('by_publicId', (q) => q.eq('id', id))
         .unique()
+      // A departed Character the room still holds keeps its play until the hold drops (D81).
+      const held =
+        !assignment &&
+        (await ctx.db
+          .query('liveCharacterHolds')
+          .withIndex('by_characterId', (q) => q.eq('characterId', id))
+          .collect()).some((hold) => hold.campaignId === campaign.id && hold.epoch === frame.epoch)
       if (
-        !assignment ||
         !character ||
-        character.userId !== assignment.userId ||
+        (assignment ? character.userId !== assignment.userId : !held) ||
         character.systemId !== campaign.gameSystemId
       )
         throw new Error('Checkpoint Character is not held by this Campaign.')

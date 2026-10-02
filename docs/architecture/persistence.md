@@ -2191,7 +2191,12 @@ the shared pure pruner requires this map from both native and retiring SQL calle
 The existing source-loss repair path prunes unavailable references in both canonical state and saved
 draft, retains private Sheet state/history, and creates a repair draft when required sources are lost.
 It also re-evaluates after overlay removal with no authored source loss, clamping current HP to the
-personal maximum. Only changed canonical documents advance the Character stream. Currency returned
+personal maximum. Departure ends everything the Campaign or its Runs own on the Character (D81):
+`settleDepartedCharacters` ends the Character's effects from the Campaign's Runs, terminates emptied
+maintained states (by their empty-dependent policy) only in Runs the room does not hold, trims
+attunement to the System limit (earliest kept), clamps HP and rewrites the record to refresh stats.
+Play history (damage, items given, XP) is kept. A live-held Character settles when the hold drops
+at a checkpoint or at room release. Only changed canonical documents advance the Character stream. Currency returned
 from canonical state is also removed from the saved draft without overwriting its other private fields.
 
 These handlers are local implementation, not P10 acceptance: generated client references/native web,

@@ -13,8 +13,59 @@ import { readCampaignCharacterState } from './characterState'
 import { returnDepartingCharacterCurrency } from './currencyDeparture'
 import { freezeEncounterCharacterStates } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { isRoomHeldRun } from '../liveSessions/authorityGuard'
+import { endCharacterRunEffects } from '@artificer-toolkit/encounter-persistence/characterRunEffects'
+import { isRoomHeldRun, readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { encounterWriteTransaction } from '../encounters/encounterPorts'
+
+/**
+ * D81: each listed Character no longer assigned to the Campaign loses what the Campaign put on its
+ * play: the effects its Runs applied, slots and maximums its settings or adjustments granted. A
+ * room-held Run keeps its maintained states for the room to settle. Called once Convex owns the
+ * Character's play: at departure, or when the room's hold on it drops.
+ */
+export async function settleDepartedCharacters(
+  ctx: MutationCtx,
+  campaignId: string,
+  characterIds: readonly string[]
+) {
+  for (const characterId of characterIds) {
+    const assignment = await ctx.db
+      .query('campaignCharacterAssignments')
+      .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+      .unique()
+    if (assignment?.campaignId === campaignId) continue
+    await endCharacterRunEffects(encounterWriteTransaction(ctx), {
+      characterId,
+      classifyRun: async (encounterId) => {
+        const run = await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', encounterId))
+          .unique()
+        if (run?.campaignId !== campaignId) return null
+        return (await isRoomHeldRun(ctx, run)) ? 'ROOM_HELD' : 'TERMINABLE'
+      },
+      occurredAt: new Date().toISOString()
+    })
+    const record = await readCharacterRow(ctx, characterId)
+    if (!record) throw new Error('Departing Character is unavailable.')
+    await reconcileCharacterSourceLoss({
+      ctx,
+      record,
+      targets: [],
+      stateAfterContextChange: readCharacterRecord(record).state as CharacterAuthored['state']
+    })
+    // Campaign adjustments and attunement no longer apply to the stored maximum hit points.
+    const departed = await readCharacterRow(ctx, characterId)
+    if (!departed) throw new Error('Departing Character is unavailable.')
+    await writeCharacterRecord(ctx, {
+      current: departed,
+      fields: {
+        streamVersion: departed.play.streamVersion,
+        updatedAt: departed.updatedAt
+      }
+    })
+  }
+}
 
 /** Caller authorizes the lifecycle operation before changing membership or Campaign authority. */
 export async function removeCampaignCharacterAssignment(input: {
@@ -86,16 +137,9 @@ export async function removeCampaignCharacterAssignment(input: {
     targets,
     stateAfterContextChange: returned.state
   })
-  // Campaign adjustments and attunement no longer apply to the stored maximum hit points.
-  const departed = await readCharacterRow(ctx, record.id)
-  if (!departed) throw new Error('Departing Character is unavailable.')
-  await writeCharacterRecord(ctx, {
-    current: departed,
-    fields: {
-      streamVersion: departed.play.streamVersion,
-      updatedAt: departed.updatedAt
-    }
-  })
+  // A held Character's play is the room's until its hold drops, which settles it then.
+  if (!(await readCharacterLiveHold(ctx, character.id)))
+    await settleDepartedCharacters(ctx, campaign.id, [character.id])
   if (result)
     await ctx.db.insert(
       'campaignEvents',

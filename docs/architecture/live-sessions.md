@@ -539,8 +539,13 @@ at load and `START` refuses `ACTIVE_ENCOUNTER_EXISTS` when another Run is ACTIVE
 ingestion refuses a checkpoint that would leave two ACTIVE Runs. Character effects load with their
 Character, so the RUN input's first page also lists the Characters holding each maintained state's
 dependents (`maintenanceCharacterOwners`). Before a Character dependents capture, the room loads
-those owners through `readCharacterRow`; a detached owner that is no longer ACTIVE or assigned refuses
-the command, as the Convex capture did. A retried commandId replays its
+those owners through `readCharacterRow`; a detached owner that is no longer ACTIVE refuses
+the command, as the Convex capture did. The room ignores dependents whose Character owner is no
+longer assigned to the Campaign: those effects end in Convex settlement (D81, see
+[Decisions](../handoffs/phase-08-2-decisions.md)), at a checkpoint that drops the hold
+(`reconcileCharacterHolds`) or at release (`releaseCharacterHolds`). A checkpoint accepts writes for
+an unassigned Character this epoch still holds. Known gap: an assigned non-actor Character that owns
+dependents is not held. A retried commandId replays its
 journaled result byte-identically; a reused commandId with different input is `INVALID_COMMAND`
 (the durable command journal is the replay authority, not the Convex receipt). A decision answer or GM void is
 classified from the room's loaded Run (`readRoomEncounterResponseRoute`): a movement decision goes

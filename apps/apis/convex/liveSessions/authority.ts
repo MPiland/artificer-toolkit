@@ -21,6 +21,7 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { reconcileOpenRunsAtRelease } from './releaseReconcile'
 import { reconcileCharacterHolds, releaseCharacterHolds } from './characterHolds'
+import { settleDepartedCharacters } from '../campaigns/characterDeparture'
 import {
   isExpiredActivatingAuthority,
   readCampaignLiveAuthority,
@@ -459,9 +460,10 @@ export const release = internalMutation({
       authority.persistedStateChecksum !== args.finalStateChecksum
     )
       throw new Error('Live Session final publication is incomplete.')
-    await releaseCharacterHolds(ctx, authority.campaignId, authority.epoch)
+    const released = await releaseCharacterHolds(ctx, authority.campaignId, authority.epoch)
     await ctx.db.delete(authority._id)
     await reconcileOpenRunsAtRelease(ctx, authority.campaignId)
+    await settleDepartedCharacters(ctx, authority.campaignId, released)
     return null
   }
 })

@@ -143,42 +143,18 @@ const sheetState = characterSheetStateSchema.parse(capturedPage.inputs.sheetStat
 const updatedAt = capturedPage.inputs.updatedAt
 const capturedRevisions = capturedPage.revisions
 
-/**
- * The assigned Character's first room-input part, including its complete private owner capture.
- * The capture can be re-keyed to another Character, owner and Campaign, and given the content
- * manifest and revisions of the room that serves it; the defaults are the capture itself.
- */
-export function characterPageFixtureFor({
+/** The captured Character's private stored row (structure with its play record), re-keyed to an owner. */
+export function characterOwnerRowFor({
   characterId = capturedPage.characterId,
-  userId = capturedPage.inputs.character.userId,
-  campaignId = capturedPage.inputs.campaign.id,
-  contentSnapshots = {
-    ...capturedPage.contentSnapshots,
-    campaign: { ...capturedPage.contentSnapshots.campaign, id: campaignId }
-  },
-  revisions = capturedRevisions.map((revision) => ({
-    ...revision,
-    id:
-      revision.scope === 'CHARACTER'
-        ? characterId
-        : revision.scope === 'SYSTEM'
-          ? revision.id
-          : campaignId
-  }))
-}: {
-  characterId?: string
-  userId?: string
-  campaignId?: string
-  contentSnapshots?: unknown
-  revisions?: unknown
-} = {}): unknown {
+  userId = capturedPage.inputs.character.userId
+}: { characterId?: string; userId?: string } = {}) {
   const character = characterDocumentSchema.parse({
     ...capturedPage.inputs.character,
     id: characterId,
     userId
   })
   const play = splitCharacterPlayState({ state: character.state, sheetState }).play
-  const owner = characterStoredRowSchema.parse(
+  return characterStoredRowSchema.parse(
     encodeCharacterRecord(
       {
         _id: 'fixture:character',
@@ -213,13 +189,44 @@ export function characterPageFixtureFor({
       }
     )
   )
+}
+
+/**
+ * The assigned Character's first room-input part, including its complete private owner capture.
+ * The capture can be re-keyed to another Character, owner and Campaign, and given the content
+ * manifest and revisions of the room that serves it; the defaults are the capture itself.
+ */
+export function characterPageFixtureFor({
+  characterId = capturedPage.characterId,
+  userId = capturedPage.inputs.character.userId,
+  campaignId = capturedPage.inputs.campaign.id,
+  contentSnapshots = {
+    ...capturedPage.contentSnapshots,
+    campaign: { ...capturedPage.contentSnapshots.campaign, id: campaignId }
+  },
+  revisions = capturedRevisions.map((revision) => ({
+    ...revision,
+    id:
+      revision.scope === 'CHARACTER'
+        ? characterId
+        : revision.scope === 'SYSTEM'
+          ? revision.id
+          : campaignId
+  }))
+}: {
+  characterId?: string
+  userId?: string
+  campaignId?: string
+  contentSnapshots?: unknown
+  revisions?: unknown
+} = {}): unknown {
   return {
     status: capturedPage.status,
     characterId,
     documents: capturedPage.documents,
     contentSnapshots,
     inputs: {
-      owner,
+      owner: characterOwnerRowFor({ characterId, userId }),
       campaign: { ...capturedPage.inputs.campaign, id: campaignId },
       sheetState
     },

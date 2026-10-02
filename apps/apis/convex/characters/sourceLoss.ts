@@ -261,6 +261,14 @@ export async function reconcileCharacterSourceLoss(input: {
         status: 'ACTIVE',
         state: {
           ...prepared.character.state,
+          // Slots a departed Campaign granted end with it; the earliest attunements keep theirs.
+          equipment: {
+            ...prepared.character.state.equipment,
+            attuned: prepared.character.state.equipment.attuned.slice(
+              0,
+              evaluation.output.rest.attunementSlotLimit
+            )
+          },
           hitpoints: {
             ...prepared.character.state.hitpoints,
             current: Math.min(

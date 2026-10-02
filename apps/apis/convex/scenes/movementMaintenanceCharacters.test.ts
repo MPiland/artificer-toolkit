@@ -35,8 +35,10 @@ import {
   setupReactionMovementScene,
   useMovementReactions
 } from '../../tests/fixtures/automaticSceneMovement'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { api, internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -61,8 +63,11 @@ const createRun = makeFunctionReference<
 
 async function setup() {
   const base = await setupCharacterRun()
-  const detachedDraft = await base.createCharacter()
-  await base.player.caller.mutation(api.characters.commit.commit, {
+  // The detached owner is assigned to the Campaign but not in the Run.
+  const party = await createPartyPlayer(base.t, base.campaign)
+  await party.join()
+  const detachedDraft = await base.createCharacter(undefined, party.caller)
+  await party.caller.mutation(api.characters.commit.commit, {
     expectedDraftId: detachedDraft.draft.id,
     mode: 'create',
     character: detachedDraft.character
@@ -199,6 +204,10 @@ async function setup() {
     run.actors.find((actor) => actor.kind === 'CREATURE' && actor.sourceId === creature.id)
   )
   if (!mover || reactors.some((actor) => !actor)) throw new Error('Missing movement actors.')
+  await party.caller.mutation(api.campaigns.assignments.assign, {
+    campaignId: base.campaign.id,
+    characterId: detachedDraft.character.id
+  })
   await base.t.run((ctx) =>
     activateFixtureRun(ctx, run.id, {
       automationMode: 'ASSISTED',
@@ -215,6 +224,7 @@ async function setup() {
       NonNullable<(typeof reactors)[number]>
     ],
     detached: detachedDraft.character,
+    party,
     maintenanceDefinitionId
   }
 }
@@ -295,13 +305,14 @@ async function snapshot(value: Awaited<ReturnType<typeof setup>>) {
   }))
 }
 
-it('settles present and detached Character maintenance once per used automatic contact', async () => {
-  const value = await setup()
-  const firstScene = await setupReactionMovementScene(
-    value,
-    [value.reactors[0], value.mover, value.reactors[1]],
-    [50, 1000]
-  )
+/**
+ * Publishes the first reaction, then gives each Character a dependent of its maintained state and
+ * an independent effect, with BLINDED owned by the dependent and POISONED by both.
+ */
+async function seedCharacterDependents(
+  value: Awaited<ReturnType<typeof setup>>,
+  firstScene: Awaited<ReturnType<typeof setupReactionMovementScene>>
+) {
   await (await useMovementReactions(firstScene)).publish()
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')!
   const poisoned = srdSystemRecord.conditionTypes.find(
@@ -368,6 +379,17 @@ it('settles present and detached Character maintenance once per used automatic c
     }
     return { removedIds, independentIds }
   })
+  return { ...seeded, blinded, poisoned }
+}
+
+it('settles present and detached Character maintenance once per used automatic contact', async () => {
+  const value = await setup()
+  const firstScene = await setupReactionMovementScene(
+    value,
+    [value.reactors[0], value.mover, value.reactors[1]],
+    [50, 1000]
+  )
+  const seeded = await seedCharacterDependents(value, firstScene)
   const projection = await resetAndDetachScene(value)
   const next = await setupReactionMovementScene(
     { ...value, run: projection },
@@ -383,9 +405,23 @@ it('settles present and detached Character maintenance once per used automatic c
   const detachedBefore = origin.characters.find((row) => row.id === value.detached.id)!
   // Assisted play offers both authored automatic reactions as Use/Decline. The GM uses them, so the
   // first reaction publishes at the second choice and the totals below span both publications.
-  const used = await useMovementReactions(next)
+  const firstUse = await useMovementReactions(next, 1)
+  const secondChoice = (await firstUse.publish()).occurrence?.pending
+  if (secondChoice?.kind !== 'MOVEMENT_REACTION' || !secondChoice.choice.options[0])
+    throw new Error('Expected the second Use/Decline reaction choice.')
+  const lastUse = {
+    type: 'RESOLVE_RULE_OCCURRENCE' as const,
+    commandId: crypto.randomUUID(),
+    encounterId: value.run.id,
+    expectedVersion: secondChoice.encounterVersion,
+    occurrenceId: secondChoice.occurrenceId,
+    expectedOccurrenceVersion: secondChoice.occurrenceVersion,
+    correlationId: null,
+    resolution: { kind: 'OPTION' as const, optionId: secondChoice.choice.options[0].optionId }
+  }
+  const used = await planMovementDecisionInRoom(value.owner.caller, lastUse)
   const before = await snapshot(value)
-  const prepared = used.prepared
+  const prepared = used
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected terminal preparation.')
   expect(prepared.outcome.result.reactionExecutions).toHaveLength(2)
@@ -441,7 +477,7 @@ it('settles present and detached Character maintenance once per used automatic c
   for (const row of [presentAfter, detachedAfter]) {
     const character = readCharacterRecord(row)
     expect(character.state.conditions?.map((condition) => condition.conditionTypeId)).toEqual([
-      poisoned.id
+      seeded.poisoned.id
     ])
   }
   expect(readCharacterRecord(presentAfter).state.hitpoints.current).toBe(
@@ -451,12 +487,43 @@ it('settles present and detached Character maintenance once per used automatic c
   const actorState = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
   expect(actorState).toMatchObject({ kind: 'CHARACTER', sourceId: value.character.id })
   expect(actorState).not.toHaveProperty('conditions')
-  const receipt = after.receipts.find((row) => row.commandId === used.responseCommandId)
+  const receipt = after.receipts.find((row) => row.commandId === lastUse.commandId)
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
   expect(after.characterReceipts.length - origin.characterReceipts.length).toBe(2)
-  expect(await used.publish()).toEqual({
+  const retry = await planMovementDecisionInRoom(value.owner.caller, lastUse)
+  expect(await retry.publish()).toEqual({
     ...published,
     replayed: true
   })
   expect(await snapshot(value)).toEqual(after)
+}, 60_000)
+
+it('ends the Run effects on a Character that leaves the Campaign (D81)', async () => {
+  const value = await setup()
+  const firstScene = await setupReactionMovementScene(
+    value,
+    [value.reactors[0], value.mover, value.reactors[1]],
+    [50, 1000]
+  )
+  await seedCharacterDependents(value, firstScene)
+  const before = await snapshot(value)
+  const detachedBefore = before.characters.find((row) => row.id === value.detached.id)!
+  await value.party.caller.mutation(api.campaigns.assignments.unassign, {
+    campaignId: value.campaign.id
+  })
+  const after = await snapshot(value)
+  const detachedAfter = after.characters.find((row) => row.id === value.detached.id)!
+  const remaining = after.characterEffects.filter((row) => row.characterId === value.detached.id)
+  expect(remaining).toEqual([])
+  expect(readCharacterRecord(detachedAfter).state.conditions ?? []).toEqual([])
+  expect(detachedAfter.play.streamVersion).toBeGreaterThan(detachedBefore.play.streamVersion)
+  // The present Character's dependents keep the maintained state alive.
+  expect(after.states).toEqual(before.states)
+  expect(after.characterEffects.map((row) => row.id)).toEqual(
+    expect.arrayContaining(
+      before.characterEffects
+        .filter((row) => row.characterId === value.character.id)
+        .map((row) => row.id)
+    )
+  )
 }, 60_000)

@@ -48,6 +48,7 @@ import { readRoomSceneEntities, readRoomSceneHeader } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
+import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { writeRoomSceneRow } from './roomSceneRecords.js'
 import { readRoomLiveMovementAdmission } from './roomSceneGeometryRead.js'
@@ -222,7 +223,12 @@ export async function executeRoomSceneGeometry(input: {
     await readRoomMaintenanceCapture(ctx, admission.state, request)
     if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
   }
-  assertRoomEncounterRulesRevisions(observed, admission.state, [...characterIds], plan.revisions)
+  // Complete the fence for Character owners whose maintenance the plan read without their sheet.
+  const revisions = mergeNativeRulesRevisions(
+    observed.filter((entry) => entry.scope !== 'CHARACTER' || characterIds.has(entry.id)),
+    plan.revisions
+  )
+  assertRoomEncounterRulesRevisions(observed, admission.state, [...characterIds], revisions)
   assertGeometryReceiving(admission.save, admission.header.version, userId)
   if (admission.save.fogSaves.length)
     throw new Error('Spatial preparation must precede fog staging.')

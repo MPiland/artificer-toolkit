@@ -3333,11 +3333,12 @@
             {
               "id": "V13.3",
               "text": "Passage continuation spends nothing before the terminal step and rolls back and retries within the same mutation.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
+                "historical: reworded, user-approved 2026-09-27 (ADR 0035); the next entry proved the per-command Convex path and no longer proves this criterion",
                 ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
-                "missing: re-proof on the room-authoritative path, including replay across a restart or release (ADR 0035 plan S6)"
+                "apps/apis/convex/scenes/movementPassage.test.ts › spends nothing before the terminal step, rolls the room back on a terminal failure and retries and replays the same command (V13.3) (VS-2)",
+                "note: replay runs in a fresh room hydrated from the checkpoint under a new authority epoch; an explicit release and reclaim of one authority and a real Durable Object restart are not exercised"
               ]
             }
           ]

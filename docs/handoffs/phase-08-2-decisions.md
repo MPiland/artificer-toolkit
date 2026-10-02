@@ -532,6 +532,23 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     rate-limiting rule on navigations and `/api/auth/*`, fail closed when the daily pool runs out,
     and an alert at 60%. Verify the free plan's rule allowances and that edge-blocked requests do
     not count against the Workers pool before configuring.
+- **D81 (2026-10-02): leaving a Campaign ends everything the Campaign or its Runs own on the
+  Character. Decided by the product owner on 2026-10-02.**
+  - **Ends at departure:** Run-applied effects and the conditions only those effects held; Campaign
+    settings such as extra attunement slots (the earliest attunements are kept up to the System
+    limit); GM/Campaign adjustments to maximum HP and stats (current HP is clamped).
+  - **Kept:** play history (damage taken, items given, XP).
+  - **Not live-held:** Convex settles in the departure mutation (`settleDepartedCharacters` in
+    `apps/apis/convex/campaigns/characterDeparture.ts`). It ends the Character's effects from the
+    Campaign's Runs, terminates emptied maintained states (by their empty-dependent policy) only in
+    Runs the room does not hold, reconciles source loss with no targets to trim attunement and clamp
+    HP, and rewrites the record to refresh stats.
+  - **Live-held (D74):** play stays the room's. Settlement runs when the hold drops at a checkpoint
+    (`reconcileCharacterHolds`) or at room release (`releaseCharacterHolds` through authority
+    release). The room ignores maintained-effect dependents whose Character owner is no longer
+    assigned to the Campaign; Convex ends them. A checkpoint accepts writes for an unassigned
+    Character this epoch still holds.
+  - **Known gap (pre-existing):** an assigned non-actor Character that owns dependents is not held.
 - **D80 (2026-10-02): the open queue becomes ten vertical slices. Re-slicing approved by the
   user on 2026-10-02; the cut by Claude (integration owner).**
   - **Rule:** each slice (stream `VS` in the [work-slice registry](../roadmap/08-2-work-slices.json))

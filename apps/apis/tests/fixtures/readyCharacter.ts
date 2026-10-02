@@ -81,8 +81,8 @@ export async function readyCharacterFixture(
       importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })
     ]
   })
-  async function createCharacter(request = input()) {
-    const draft = await base.owner.caller.mutation(api.characters.drafts.create, request)
+  async function createCharacter(request = input(), caller = base.owner.caller) {
+    const draft = await caller.mutation(api.characters.drafts.create, request)
     const character = characterAuthoredDtoSchema.parse({
       ...draft.payload.character,
       label: 'Aria',

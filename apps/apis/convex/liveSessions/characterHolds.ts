@@ -3,6 +3,7 @@ import { liveCharacterHoldSchema } from '@artificer-toolkit/schema/projections/l
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { settleDepartedCharacters } from '../campaigns/characterDeparture'
 
 /** The unfrozen Characters of the given Runs that are ACTIVE, with the Run each one fights in. */
 export async function readFightingCharacters(
@@ -55,24 +56,38 @@ export async function reconcileCharacterHolds(
     const hold = liveCharacterHoldSchema.parse({ characterId, campaignId, encounterId, epoch })
     expected.set(`${hold.encounterId}:${hold.characterId}`, hold)
   }
+  const dropped: string[] = []
   for (const hold of prior) {
     if (encounterIds && !encounterIds.has(hold.encounterId)) continue
     const key = `${hold.encounterId}:${hold.characterId}`
     const next = expected.get(key)
-    if (!next) await ctx.db.delete(hold._id)
-    else {
+    if (!next) {
+      await ctx.db.delete(hold._id)
+      dropped.push(hold.characterId)
+    } else {
       if (hold.epoch !== epoch) await ctx.db.replace(hold._id, next)
       expected.delete(key)
     }
   }
   for (const hold of expected.values()) await ctx.db.insert('liveCharacterHolds', hold)
+  // A departed Character's hold drops once the room has frozen its actor (D74, D81).
+  await settleDepartedCharacters(ctx, campaignId, dropped)
 }
 
-/** Called only after the room's final checkpoint has passed the release fence. */
+/**
+ * Called only after the room's final checkpoint has passed the release fence. Returns the released
+ * Characters, whose departures the caller settles once Convex owns the Runs again.
+ */
 export async function releaseCharacterHolds(ctx: MutationCtx, campaignId: string, epoch: string) {
   const holds = await ctx.db
     .query('liveCharacterHolds')
     .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
     .collect()
-  for (const hold of holds) if (hold.epoch === epoch) await ctx.db.delete(hold._id)
+  const released: string[] = []
+  for (const hold of holds)
+    if (hold.epoch === epoch) {
+      await ctx.db.delete(hold._id)
+      released.push(hold.characterId)
+    }
+  return released
 }

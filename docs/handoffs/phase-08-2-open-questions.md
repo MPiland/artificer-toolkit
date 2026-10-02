@@ -22,3 +22,19 @@ the user's answer. Preserving current aggregate checks is the alternative, with 
 reads retained. [Exact local proposal](../../local-validation/character-head-checksum-proposal.md).
 
 **Answer:** pending. This entry grants no migration or deployment permission.
+
+### Departure: GM play history versus GM modifiers (D81) — Claude, 2026-10-02
+
+Confirm the split in [D81](phase-08-2-decisions.md): when a Character leaves a Campaign, GM play
+history (damage taken, items given, XP) is kept, and GM modifiers (maximum HP and stat adjustments,
+Run-applied effects, Campaign settings) end at departure.
+
+**Answer:** pending.
+
+### Departure: spell-source customizations (D81) — Claude, 2026-10-02
+
+`UPDATE_SPELL_SOURCE_CUSTOMIZATION` (customName, displayAsAttack in `sheetState.spellCustomizations`)
+currently survives departure. Players can also write these, so GM-written ones cannot be told apart.
+Recommendation: keep them, as player-facing presentation.
+
+**Answer:** pending.

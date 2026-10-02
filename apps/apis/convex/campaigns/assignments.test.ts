@@ -18,6 +18,7 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignLiveState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
@@ -529,6 +530,37 @@ describe('native Campaign Character assignments', () => {
     expect(await base.assignmentRows()).toEqual([])
     await base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
     expect(await base.readState()).toEqual(after)
+  })
+
+  it('ends attunement slots the Campaign granted, keeping the earliest attunements', async () => {
+    const base = await setup()
+    await base.owner.caller.mutation(assign, {
+      campaignId: base.campaign.id,
+      characterId: base.character.id
+    })
+    const itemIds = Array.from({ length: 5 }, () => crypto.randomUUID())
+    await base.t.run((ctx) =>
+      editCharacterRecord(ctx, base.character.id, (document) => ({
+        ...document,
+        state: {
+          ...document.state,
+          equipment: {
+            ...document.state.equipment,
+            inventory: [
+              ...document.state.equipment.inventory,
+              ...itemIds.map((id) => ({ id, equipmentId: club.id, quantity: 1 }))
+            ],
+            attuned: itemIds
+          }
+        }
+      }))
+    )
+    await base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
+    const character = readCharacterRecord((await base.readState()).character!)
+    expect(character.state.equipment.attuned).toEqual(itemIds.slice(0, 3))
+    expect(character.state.equipment.inventory.map((item) => item.id)).toEqual(
+      expect.arrayContaining(itemIds)
+    )
   })
 
   it('replaces the player Character atomically and preserves the old ready Character', async () => {

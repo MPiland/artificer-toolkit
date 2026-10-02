@@ -13,7 +13,8 @@ import {
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
-import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -22,6 +23,7 @@ import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persiste
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { api } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 vi.mock('../lib/rollRandom', () => ({
@@ -127,9 +129,23 @@ async function resetReactionAndDetachScene(base: MaintainedBase) {
 }
 
 /** Commits a Character in the Run's deployment without assigning it to the Run's Campaign. */
+/** A party member's Character, assigned to the Campaign but not in the Run. */
 async function createDetachedCharacter(base: MaintainedBase) {
-  const { readState } = await readySheetFixture({}, undefined, base)
-  const stored = (await readState()).character
+  const party = await createPartyPlayer(base.t, base.campaign)
+  await party.join()
+  const { draft, character } = await (
+    await readyCharacterFixture({}, undefined, base)
+  ).createCharacter(undefined, party.caller)
+  await party.caller.mutation(api.characters.commit.commit, {
+    expectedDraftId: draft.id,
+    mode: 'create',
+    character
+  })
+  await party.caller.mutation(api.campaigns.assignments.assign, {
+    campaignId: base.campaign.id,
+    characterId: character.id
+  })
+  const stored = await base.t.run((ctx) => readCharacterRow(ctx, character.id))
   if (!stored) throw new Error('Detached Character fixture is unavailable.')
   return { id: stored.id, streamVersion: stored.play.streamVersion }
 }
