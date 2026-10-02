@@ -25,6 +25,7 @@ import {
   parseGeometryCommand,
   readSpatialPreparation
 } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
+import { createReceiptLedger } from '../lib/receiptLedgers'
 import { requireCampaignLiveAuthority } from './authorityGuard'
 
 interface SceneIndexRange extends IndexRange {
@@ -59,7 +60,7 @@ async function readRow<Table extends LiveSessionCheckpointSceneTable>(
 /** Complete normalized Scene writes share the rules, private play and acknowledgement transaction. */
 export async function applyCheckpointScenes(
   ctx: MutationCtx,
-  frame: { campaignId: string; epoch: string },
+  frame: { campaignId: string; epoch: string; checkpointId: string },
   scenes: readonly LiveSessionCheckpointScene[]
 ) {
   if (!scenes.length) return
@@ -105,11 +106,18 @@ export async function applyCheckpointScenes(
       before: Doc<LiveSessionCheckpointSceneTable> | null
       next: WithoutSystemFields<Doc<LiveSessionCheckpointSceneTable>> | null
     }[] = []
+    const commands: {
+      value: ReturnType<typeof canonicalJsonRecordSchema.parse>
+      command: ReturnType<typeof liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse>
+    }[] = []
     for (const change of scene.changes) {
       const identity = `${change.table}:${canonicalizeJson(change.key)}`
       if (identities.has(identity)) throw new Error('Checkpoint Scene record is duplicated.')
       identities.add(identity)
       const before = await readRow(ctx, change.table, change.key)
+      // Receipts live in the Scene ledger; their header only proves the key is already taken.
+      if (change.table === 'sceneLiveCommands' && (before || change.previousChecksum !== null))
+        throw new Error('Checkpoint Scene saves and receipts are append-only.')
       const previous = before ? content(before) : null
       if ((previous ? checksumCanonicalJson(previous) : null) !== change.previousChecksum)
         throw new Error('Checkpoint Scene record changed before publication.')
@@ -135,6 +143,14 @@ export async function applyCheckpointScenes(
         before
       )
         throw new Error('Checkpoint Scene saves and receipts are append-only.')
+      if (change.table === 'sceneLiveCommands') {
+        // Receipts are packed into the Scene's ledger below; only their header rows are indexed.
+        commands.push({
+          value,
+          command: liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse(value)
+        })
+        continue
+      }
       const next = liveSessionCheckpointSceneSchemas[change.table].parse(value)
       rows.push({ table: change.table, key: change.key, before, next })
     }
@@ -359,78 +375,95 @@ export async function applyCheckpointScenes(
           }
           break
         }
-        case 'sceneLiveCommands': {
-          const command = row as Doc<'sceneLiveCommands'>
-          if (
-            command.input.sceneId !== scene.sceneId ||
-            command.result.sceneId !== scene.sceneId ||
-            command.commandId !== command.input.commandId ||
-            command.commandId !== command.result.commandId ||
-            command.inputChecksum !== checksumCanonicalJson(command.input) ||
-            command.resultChecksum !== checksumCanonicalJson(command.result) ||
-            command.result.replayed ||
-            command.result.version < scene.fromVersion ||
-            command.result.version > scene.toVersion
-          )
-            throw new Error('Checkpoint Scene receipt is inconsistent.')
-          if (command.encoding === 'GEOMETRY') {
-            parseGeometryCommand(command, scene.toVersion)
-            const save = await ctx.db
-              .query('sceneGeometrySaves')
-              .withIndex('by_sceneId_commandId', (q) =>
-                q.eq('sceneId', scene.sceneId).eq('commandId', command.commandId)
-              )
-              .unique()
-            if (
-              !save ||
-              save.status !== 'PUBLISHED' ||
-              save.actorUserId !== command.actorUserId ||
-              save.inputChecksum !== command.inputChecksum ||
-              save.fogSaves.length !== command.result.fogPatches.length ||
-              command.result.fogPatches.some(
-                (patch) =>
-                  !save.fogSaves.some(
-                    (child) =>
-                      child.saveId === patch.saveId && child.ownerUserId === patch.ownerUserId
-                  )
-              )
-            )
-              throw new Error('Checkpoint geometry receipt publication is incomplete.')
-            for (const patch of command.result.fogPatches) {
-              const fog = await readFogSave(patch.saveId)
-              if (
-                !fog ||
-                fog.status !== 'PUBLISHED' ||
-                fog.sceneId !== scene.sceneId ||
-                fog.geometrySaveId !== save.id ||
-                fog.input.layer.width !== patch.width ||
-                fog.input.layer.height !== patch.height ||
-                fog.input.chunkManifest.length !== patch.chunkCount
-              )
-                throw new Error('Checkpoint geometry receipt fog references are inconsistent.')
-            }
-          }
-          if (command.encoding === 'FOG_PATCH') {
-            parseFogCommand(command, scene.toVersion)
-            const save = await readFogSave(command.result.patch.saveId)
-            if (
-              !save ||
-              save.status !== 'PUBLISHED' ||
-              save.sceneId !== scene.sceneId ||
-              save.commandId !== command.commandId ||
-              save.actorUserId !== command.actorUserId ||
-              save.inputChecksum !== command.inputChecksum
-            )
-              throw new Error('Checkpoint fog receipt publication is incomplete.')
-          }
-          if (
-            command.encoding === 'UNDO' &&
-            command.undoneCommandId !== command.result.delta.undoneCommandId
-          )
-            throw new Error('Checkpoint Scene undo receipt is inconsistent.')
-          break
-        }
       }
     }
+
+    // Receipt validation runs after the saves it references exist, inside the same rollback boundary.
+    for (const { command } of commands) {
+      if (
+        command.input.sceneId !== scene.sceneId ||
+        command.result.sceneId !== scene.sceneId ||
+        command.commandId !== command.input.commandId ||
+        command.commandId !== command.result.commandId ||
+        command.inputChecksum !== checksumCanonicalJson(command.input) ||
+        command.resultChecksum !== checksumCanonicalJson(command.result) ||
+        command.result.replayed ||
+        command.result.version < scene.fromVersion ||
+        command.result.version > scene.toVersion
+      )
+        throw new Error('Checkpoint Scene receipt is inconsistent.')
+      if (command.encoding === 'GEOMETRY') {
+        parseGeometryCommand(command, scene.toVersion)
+        const save = await ctx.db
+          .query('sceneGeometrySaves')
+          .withIndex('by_sceneId_commandId', (q) =>
+            q.eq('sceneId', scene.sceneId).eq('commandId', command.commandId)
+          )
+          .unique()
+        if (
+          !save ||
+          save.status !== 'PUBLISHED' ||
+          save.actorUserId !== command.actorUserId ||
+          save.inputChecksum !== command.inputChecksum ||
+          save.fogSaves.length !== command.result.fogPatches.length ||
+          command.result.fogPatches.some(
+            (patch) =>
+              !save.fogSaves.some(
+                (child) => child.saveId === patch.saveId && child.ownerUserId === patch.ownerUserId
+              )
+          )
+        )
+          throw new Error('Checkpoint geometry receipt publication is incomplete.')
+        for (const patch of command.result.fogPatches) {
+          const fog = await readFogSave(patch.saveId)
+          if (
+            !fog ||
+            fog.status !== 'PUBLISHED' ||
+            fog.sceneId !== scene.sceneId ||
+            fog.geometrySaveId !== save.id ||
+            fog.input.layer.width !== patch.width ||
+            fog.input.layer.height !== patch.height ||
+            fog.input.chunkManifest.length !== patch.chunkCount
+          )
+            throw new Error('Checkpoint geometry receipt fog references are inconsistent.')
+        }
+      }
+      if (command.encoding === 'FOG_PATCH') {
+        parseFogCommand(command, scene.toVersion)
+        const save = await readFogSave(command.result.patch.saveId)
+        if (
+          !save ||
+          save.status !== 'PUBLISHED' ||
+          save.sceneId !== scene.sceneId ||
+          save.commandId !== command.commandId ||
+          save.actorUserId !== command.actorUserId ||
+          save.inputChecksum !== command.inputChecksum
+        )
+          throw new Error('Checkpoint fog receipt publication is incomplete.')
+      }
+      if (
+        command.encoding === 'UNDO' &&
+        command.undoneCommandId !== command.result.delta.undoneCommandId
+      )
+        throw new Error('Checkpoint Scene undo receipt is inconsistent.')
+    }
+    if (commands.length)
+      await createReceiptLedger(
+        ctx,
+        {
+          id: crypto.randomUUID(),
+          scope: 'SCENE',
+          scopeId: scene.sceneId,
+          epoch: frame.epoch,
+          checkpointId: frame.checkpointId,
+          createdAt: new Date().toISOString()
+        },
+        commands.map(({ value, command }) => ({
+          table: 'sceneLiveCommands',
+          key: [command.sceneId, command.commandId],
+          value,
+          checksum: checksumCanonicalJson(value)
+        }))
+      )
   }
 }

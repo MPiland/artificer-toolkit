@@ -1,7 +1,7 @@
 import {
   liveSessionCheckpointHistoryEntrySchema,
   liveSessionCheckpointHistoryKeyFields,
-  type LiveSessionCheckpointHistoryEntry
+  type ReceiptLedgerEntry
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import {
   encounterStoreSchemas,
@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterStore'
 import {
   receiptHeaderSchemas,
+  sceneCommandHeaderSchema,
   type ReceiptHeaderDocuments,
   type ReceiptHeaderTable
 } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
@@ -24,7 +25,8 @@ import {
   decodeReceiptLedgerPayload,
   encodeReceiptLedgerPayload,
   projectReceiptHeader,
-  readReceiptLedgerEntry
+  readReceiptLedgerEntry,
+  receiptLedgerEntryInScope
 } from '@artificer-toolkit/encounter-persistence/receiptLedger'
 import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -37,8 +39,12 @@ export type ReceiptHeaderRef = {
 }[ReceiptHeaderTable]
 
 export type InsertedReceiptHeader = {
-  [Table in ReceiptHeaderTable]: { table: Table; entryIndex: number; id: Id<Table> }
-}[ReceiptHeaderTable]
+  [Table in ReceiptHeaderTable | 'sceneLiveCommands']: {
+    table: Table
+    entryIndex: number
+    id: Id<Table>
+  }
+}[ReceiptHeaderTable | 'sceneLiveCommands']
 
 export type HydratedReceiptHeader<Table extends ReceiptHeaderTable> =
   EncounterStoreDocuments[Table] & { _id: Id<Table>; _creationTime: number }
@@ -46,7 +52,7 @@ export type HydratedReceiptHeader<Table extends ReceiptHeaderTable> =
 export type DecodedReceiptLedger = {
   head: Doc<'receiptLedgers'>
   metadata: ReceiptLedgerMetadata
-  entries: (LiveSessionCheckpointHistoryEntry | null)[]
+  entries: (ReceiptLedgerEntry | null)[]
   parts: Doc<'receiptLedgerParts'>[]
 }
 
@@ -234,7 +240,7 @@ export async function readReceiptHeader<Table extends ReceiptHeaderTable>(
 
 async function insertHeader(
   ctx: MutationCtx,
-  entry: LiveSessionCheckpointHistoryEntry,
+  entry: ReceiptLedgerEntry,
   ledgerId: string,
   entryIndex: number
 ): Promise<InsertedReceiptHeader> {
@@ -244,6 +250,21 @@ async function insertHeader(
     entryChecksum: entry.checksum
   })
   switch (entry.table) {
+    case 'sceneLiveCommands': {
+      const fields = sceneCommandHeaderSchema.parse(header)
+      const collision = await ctx.db
+        .query(entry.table)
+        .withIndex('by_sceneId_commandId', (q) =>
+          q.eq('sceneId', fields.sceneId).eq('commandId', fields.commandId)
+        )
+        .take(1)
+      if (collision.length) throw new Error('Receipt header identity already exists.')
+      return {
+        table: entry.table,
+        entryIndex,
+        id: await ctx.db.insert(entry.table, fields)
+      }
+    }
     case 'characterCommandReceipts': {
       const fields = receiptHeaderSchemas.characterCommandReceipts.parse(header)
       const collision = await ctx.db
@@ -303,25 +324,20 @@ async function insertHeader(
 }
 
 /**
- * Runs inside the caller's mutation. Private Character and shared Encounter scopes stay separate;
+ * Runs inside the caller's mutation. Private Character, shared Encounter and Scene scopes stay separate;
  * the caller owns authority and any held Character association.
  */
 export async function createReceiptLedger(
   ctx: MutationCtx,
   identity: Omit<ReceiptLedgerMetadata, keyof ReceiptLedgerPayloadMetadata>,
-  entries: readonly (LiveSessionCheckpointHistoryEntry | null)[]
+  entries: readonly (ReceiptLedgerEntry | null)[]
 ): Promise<InsertedReceiptHeader[]> {
   const encoded = encodeReceiptLedgerPayload(entries)
   const { payload, parts: buffers, ...payloadMetadata } = encoded
   const metadata = receiptLedgerMetadataSchema.parse({ ...identity, ...payloadMetadata })
   const decoded = decodeReceiptLedgerPayload(encoded)
   for (const entry of decoded) {
-    if (
-      entry &&
-      (metadata.scope === 'CHARACTER'
-        ? entry.table !== 'characterCommandReceipts' || entry.value.characterId !== metadata.scopeId
-        : entry.table === 'characterCommandReceipts' || entry.value.campaignId !== metadata.scopeId)
-    )
+    if (entry && !receiptLedgerEntryInScope(metadata, entry))
       throw new Error('Receipt ledger entry scope does not match.')
   }
   const collision = await ctx.db
@@ -335,7 +351,10 @@ export async function createReceiptLedger(
   if (collision.length || orphanParts.length)
     throw new Error('Receipt ledger identity already exists.')
   // Refuse orphan headers as well: publishing a new body must never adopt a corrupt old pointer.
-  for (const table of Object.keys(receiptHeaderSchemas) as ReceiptHeaderTable[]) {
+  for (const table of [
+    ...(Object.keys(receiptHeaderSchemas) as ReceiptHeaderTable[]),
+    'sceneLiveCommands' as const
+  ]) {
     const orphanHeaders = await ctx.db
       .query(table)
       .withIndex('by_ledgerId_entryIndex', (q) => q.eq('ledgerId', metadata.id))

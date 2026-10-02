@@ -158,15 +158,6 @@ export const fogSaves = migrations.define({
   }
 })
 
-export const fogCommands = migrations.define({
-  table: 'sceneLiveCommands',
-  migrateOne: async (ctx, command) => {
-    if (command.encoding !== 'FOG_PATCH') return
-    const fog = migrateFogInput(command.input)
-    if (fog) await ctx.db.patch(command._id, fog)
-  }
-})
-
 export const presentationEvents = migrations.define({
   table: 'campaignEvents',
   migrateOne: async (ctx, event) => {
@@ -189,6 +180,5 @@ export const run = migrations.runner([
   internal.campaigns.playMigrations.encounterRuns,
   internal.campaigns.playMigrations.geometrySaves,
   internal.campaigns.playMigrations.fogSaves,
-  internal.campaigns.playMigrations.fogCommands,
   internal.campaigns.playMigrations.presentationEvents
 ])

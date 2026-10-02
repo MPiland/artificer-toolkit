@@ -6,6 +6,7 @@ import {
   liveSessionCheckpointHistoryEntrySchema,
   liveSessionCheckpointHistoryKeyFields
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
+import type { liveSessionCheckpointSceneSchemas } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import {
   encounterStoreSchemas,
   type EncounterStoreDocuments
@@ -16,9 +17,14 @@ import {
 } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { z } from 'zod'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import type { MutationCtx } from '../../convex/_generated/server'
-import { readReceiptHeader, readReceiptLedger } from '../../convex/lib/receiptLedgers'
+import {
+  createReceiptLedger,
+  readReceiptHeader,
+  readReceiptLedger
+} from '../../convex/lib/receiptLedgers'
 
 /** Changes logical history while keeping its physical envelope and stable header slot valid. */
 export async function replaceReceiptRecord<Table extends ReceiptHeaderTable>(
@@ -102,4 +108,69 @@ export async function replaceReceiptRecord<Table extends ReceiptHeaderTable>(
   ledger.metadata = { ...ledger.metadata, ...metadata }
   ledger.head = { ...ledger.head, ...replacementHead }
   ledger.parts = replacementParts
+}
+
+type SceneStoredCommand = z.infer<typeof liveSessionCheckpointSceneSchemas.sceneLiveCommands>
+
+/** Packs already-validated stored Scene commands into one SCENE ledger and indexes their headers. */
+export async function insertSceneCommandLedger(
+  ctx: MutationCtx,
+  commands: readonly SceneStoredCommand[],
+  options: { createdAt?: string } = {}
+) {
+  const [first] = commands
+  if (!first) throw new Error('A Scene command ledger needs at least one command.')
+  return createReceiptLedger(
+    ctx,
+    {
+      id: crypto.randomUUID(),
+      scope: 'SCENE',
+      scopeId: first.sceneId,
+      epoch: crypto.randomUUID(),
+      checkpointId: crypto.randomUUID(),
+      createdAt: options.createdAt ?? new Date().toISOString()
+    },
+    commands.map((command) => {
+      const value = canonicalJsonRecordSchema.parse(JSON.parse(JSON.stringify(command)))
+      return {
+        table: 'sceneLiveCommands' as const,
+        key: [command.sceneId, command.commandId],
+        value,
+        checksum: checksumCanonicalJson(value)
+      }
+    })
+  )
+}
+
+/** A minimal valid UNDO receipt; scalar checksums are opaque to ledger storage. */
+export function undoSceneCommand(sceneId: string, actorUserId: string): SceneStoredCommand {
+  const commandId = crypto.randomUUID()
+  return {
+    encoding: 'UNDO',
+    sceneId,
+    commandId,
+    actorUserId,
+    input: {
+      type: 'UNDO_LAST_SCENE_MOVE',
+      commandId,
+      sceneId,
+      expectedSceneVersion: 1
+    },
+    inputChecksum: 'a'.repeat(64),
+    result: {
+      commandId,
+      sceneId,
+      version: 2,
+      replayed: false,
+      occurrence: null,
+      delta: {
+        kind: 'TOKEN_MOVE_UNDONE',
+        tokenId: crypto.randomUUID(),
+        position: { x: 1, y: 2 },
+        undoneCommandId: crypto.randomUUID()
+      },
+      restoredFogOwners: []
+    },
+    resultChecksum: 'a'.repeat(64)
+  }
 }

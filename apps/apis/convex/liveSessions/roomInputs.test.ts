@@ -25,10 +25,7 @@ import {
   readRoomInputsBatch
 } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  createSceneDefinitionFixture,
-  publishScene
-} from '../../tests/fixtures/sceneDefinitions'
+import { createSceneDefinitionFixture, publishScene } from '../../tests/fixtures/sceneDefinitions'
 import { readLiveSceneForUser } from '../scenes/liveDocuments'
 import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -36,7 +33,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { commitSceneInRoom, insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import {
+  commitSceneInRoom,
+  insertActiveLiveAuthority
+} from '../../tests/fixtures/liveSessionWorker'
+import { insertSceneCommandLedger, undoSceneCommand } from '../../tests/fixtures/receiptRecords'
 import { api } from '../_generated/api'
 import {
   campaignRollNonceFingerprint,
@@ -389,6 +390,32 @@ describe('raw room Scene inputs', () => {
       collection: 'tokens',
       entity: { label: 'Native token', position: { x: 900, y: 100 } }
     })
+  })
+
+  it('hydrates packed command history one ledger per page, independent of the command count', async () => {
+    const base = await setupScene(true)
+    const history = 150
+    await base.t.run(async (ctx) => {
+      for (let ledger = 0; ledger < 2; ledger += 1)
+        await insertSceneCommandLedger(
+          ctx,
+          Array.from({ length: history }, () => undoSceneCommand(base.sceneId, base.owner.userId))
+        )
+    })
+    // The committed move left one ledger, so the Scene now holds three command ledgers.
+    const ledgerCount = 3
+    let response = await base.page()
+    const commandPages: number[] = []
+    for (;;) {
+      const commands = response.documents.filter(
+        (document) => document.table === 'sceneLiveCommands'
+      )
+      if (commands.length) commandPages.push(commands.length)
+      if (!response.continueCursor) break
+      response = await base.page(response.continueCursor)
+    }
+    expect(commandPages.sort((a, b) => a - b)).toEqual([1, history, history])
+    expect(commandPages).toHaveLength(ledgerCount)
   })
 
   it('reads an empty materialized Scene with exact source pins and no synthesized live rows', async () => {

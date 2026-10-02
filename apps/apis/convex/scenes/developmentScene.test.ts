@@ -26,6 +26,7 @@ import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogu
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
 import { liveSceneHead } from '../../tests/fixtures/liveSceneToken'
+import { insertSceneCommandLedger } from '../../tests/fixtures/receiptRecords'
 import { components } from '../_generated/api'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -253,7 +254,7 @@ async function seedNonadvancingMovementReceipt(
   base: Awaited<ReturnType<typeof setup>>,
   sceneId: string,
   snapshotVersion: number,
-  actorUserId = base.owner.userId
+  { corruptReceipt = false, actorUserId = base.owner.userId } = {}
 ) {
   const commandId = crypto.randomUUID()
   const input = {
@@ -309,7 +310,9 @@ async function seedNonadvancingMovementReceipt(
   })
   await base.t.run(async (ctx) => {
     await ctx.db.insert('sceneGeometrySaves', save)
-    await ctx.db.insert('sceneLiveCommands', receipt)
+    await insertSceneCommandLedger(ctx, [
+      corruptReceipt ? { ...receipt, resultChecksum: 'f'.repeat(64) } : receipt
+    ])
   })
   return { save, receipt }
 }
@@ -362,7 +365,7 @@ it.each([false, true])(
       })
       await base.t.run(async (ctx) => {
         await ctx.db.insert('sceneLiveStates', liveSceneHead(sceneId, { version }))
-        await ctx.db.insert('sceneLiveCommands', receipt)
+        await insertSceneCommandLedger(ctx, [receipt])
       })
     }
     await seedNonadvancingMovementReceipt(base, sceneId, version)
@@ -382,9 +385,17 @@ it.each([false, true])(
       await base.t.run(async (ctx) => ({
         geometrySaves: await ctx.db.query('sceneGeometrySaves').collect(),
         commands: await ctx.db.query('sceneLiveCommands').collect(),
+        ledgers: await ctx.db.query('receiptLedgers').collect(),
+        ledgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         heads: await ctx.db.query('sceneLiveStates').collect()
       }))
-    ).toEqual({ geometrySaves: [], commands: [], heads: [] })
+    ).toEqual({
+      geometrySaves: [],
+      commands: [],
+      ledgers: [],
+      ledgerParts: [],
+      heads: []
+    })
   },
   15_000
 )
@@ -395,18 +406,11 @@ it.each(['receipt', 'parent', 'missing-parent'] as const)(
     const base = await setup()
     const { initial } = await seedOwnerScene(base)
     const sceneId = initial.liveSceneId!
-    const { save, receipt } = await seedNonadvancingMovementReceipt(base, sceneId, 0)
+    const { save, receipt } = await seedNonadvancingMovementReceipt(base, sceneId, 0, {
+      corruptReceipt: damage === 'receipt'
+    })
     await base.t.run(async (ctx) => {
-      if (damage === 'receipt') {
-        const row = await ctx.db
-          .query('sceneLiveCommands')
-          .withIndex('by_sceneId_commandId', (q) =>
-            q.eq('sceneId', sceneId).eq('commandId', receipt.commandId)
-          )
-          .unique()
-        if (!row) throw new Error('Missing geometry receipt.')
-        await ctx.db.patch(row._id, { resultChecksum: 'f'.repeat(64) })
-      } else if (damage === 'parent') {
+      if (damage === 'parent') {
         const row = await ctx.db
           .query('sceneGeometrySaves')
           .withIndex('by_publicId', (q) => q.eq('id', save.id))
@@ -424,7 +428,9 @@ it.each(['receipt', 'parent', 'missing-parent'] as const)(
     })
     const before = await base.t.run(async (ctx) => ({
       saves: await ctx.db.query('sceneGeometrySaves').collect(),
-      commands: await ctx.db.query('sceneLiveCommands').collect()
+      commands: await ctx.db.query('sceneLiveCommands').collect(),
+      ledgers: await ctx.db.query('receiptLedgers').collect(),
+      ledgerParts: await ctx.db.query('receiptLedgerParts').collect()
     }))
     await expect(
       base.t.mutation(removeFixtureState, {
@@ -435,7 +441,9 @@ it.each(['receipt', 'parent', 'missing-parent'] as const)(
     expect(
       await base.t.run(async (ctx) => ({
         saves: await ctx.db.query('sceneGeometrySaves').collect(),
-        commands: await ctx.db.query('sceneLiveCommands').collect()
+        commands: await ctx.db.query('sceneLiveCommands').collect(),
+        ledgers: await ctx.db.query('receiptLedgers').collect(),
+        ledgerParts: await ctx.db.query('receiptLedgerParts').collect()
       }))
     ).toEqual(before)
   }
@@ -708,12 +716,16 @@ it('cleans fixture-player movement receipts only after exact Campaign fixture va
       leftAt: null
     })
   )
-  await seedNonadvancingMovementReceipt(base, initial.liveSceneId, 0, base.other.userId)
+  await seedNonadvancingMovementReceipt(base, initial.liveSceneId, 0, {
+    actorUserId: base.other.userId
+  })
   const snapshot = async () => ({
     scene: await state(base),
     children: await base.t.run(async (ctx) => ({
       geometrySaves: await ctx.db.query('sceneGeometrySaves').collect(),
-      commands: await ctx.db.query('sceneLiveCommands').collect()
+      commands: await ctx.db.query('sceneLiveCommands').collect(),
+      ledgers: await ctx.db.query('receiptLedgers').collect(),
+      ledgerParts: await ctx.db.query('receiptLedgerParts').collect()
     }))
   })
   const before = await snapshot()
@@ -772,7 +784,12 @@ it('cleans fixture-player movement receipts only after exact Campaign fixture va
     ownerUserId: base.owner.userId,
     campaignId: base.campaign.id
   })
-  expect((await snapshot()).children).toEqual({ geometrySaves: [], commands: [] })
+  expect((await snapshot()).children).toEqual({
+    geometrySaves: [],
+    commands: [],
+    ledgers: [],
+    ledgerParts: []
+  })
   expect((await state(base)).liveScenes).toEqual([])
 })
 
@@ -787,7 +804,9 @@ it.each([1, 17])(
     const children = () =>
       base.t.run(async (ctx) => ({
         geometrySaves: await ctx.db.query('sceneGeometrySaves').collect(),
-        commands: await ctx.db.query('sceneLiveCommands').collect()
+        commands: await ctx.db.query('sceneLiveCommands').collect(),
+        ledgers: await ctx.db.query('receiptLedgers').collect(),
+        ledgerParts: await ctx.db.query('receiptLedgerParts').collect()
       }))
     const before = { scene: await state(base), children: await children() }
     const removal = base.t.mutation(removeFixtureState, {
@@ -799,7 +818,12 @@ it.each([1, 17])(
       expect({ scene: await state(base), children: await children() }).toEqual(before)
     } else {
       await removal
-      expect(await children()).toEqual({ geometrySaves: [], commands: [] })
+      expect(await children()).toEqual({
+        geometrySaves: [],
+        commands: [],
+        ledgers: [],
+        ledgerParts: []
+      })
       expect((await state(base)).liveScenes).toEqual([])
     }
   }

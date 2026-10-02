@@ -424,8 +424,12 @@ begin/append/publish mutations, geometry staging and `scenes/undo` are deleted. 
 rows (`sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands`, `sceneFogSaves`,
 `sceneFogLayers`, `sceneFogChunks`, `sceneGeometrySaves`) are written only by the room checkpoint
 (`liveSessions/checkpointScenes.ts`), Scene definition and presentation flows, and Campaign
-deletion and retention. Packed Scene ledgers are target (A35-S3c2, D77); the room-built Scene
-cache is target (A35-S3c3).
+deletion and retention. Current (A35-S3c2, D77): Scene command history is packed. Each checkpoint
+writes one SCENE-scope receipt ledger per Scene (`receiptLedgers` and `receiptLedgerParts`, one
+entry per command, full stored command as the entry value). `sceneLiveCommands` is a small header
+table (`ledgerId`, `entryIndex`, `entryChecksum`, `sceneId`, `commandId`, `encoding`) indexed by
+`by_sceneId_commandId`; it carries no command body. The room checkpoint and hydration contracts
+are unchanged. The room-built Scene cache is target (A35-S3c3).
 
 **Encounter binding through the room (SOURCE, execution proof pending, D47).**
 `NativeLiveSessionRoom.#executeEncounterBinding` now calls
@@ -1332,7 +1336,9 @@ per-command Convex Scene writers ([D77](../handoffs/phase-08-2-decisions.md)).
 [RoomInputs](../../apps/session-worker/src/roomInputs.ts) now hydrate all seven native families:
 `sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands`, `sceneFogLayers`, `sceneFogSaves`,
 `sceneGeometrySaves` and `sceneFogChunks`. Indexed pages preserve tombstones, allocation counters,
-receipt evidence and only published saves/chunks. Source definition, presentation and Scene-version
+receipt evidence and only published saves/chunks. The `sceneLiveCommands` family pages the Scene's
+SCENE receipt ledgers, one ledger per page, and emits every packed command as a document, so rows
+read grow with ledgers and parts, not commands. Source definition, presentation and Scene-version
 pins fence every page; a changed whole read retries before replacing the aggregate. The cursor visits
 families in that order and pages chunks under one scoped fog save, using separate save-selection and
 chunk pages with one native paginate per query. Shared pure
@@ -1632,11 +1638,11 @@ Current rate limits live in `apps/apis/convex/lib/rateLimits.ts` (`@convex-dev/r
 Each is keyed only by the authenticated user ID and consumed inside the authorized mutation before any
 write, so a rejection rolls back the whole transaction. Account deletion resets every user-keyed counter.
 
-| Limit                  | Kind and allowance                 | Consumed by                                                                                                                                               |
-| ---------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `liveSessionTicket`    | Token bucket, 30/min, burst 10     | `liveSessions/admission:authorize`, called by `liveSessions/tickets:issue`                                                                                |
-| `campaignConversation` | Token bucket, 30/min, burst 30     | Campaign chat, public rolls and table rolls                                                                                                               |
-| Social                 | Fixed UTC-aligned hour/day windows | Applications, invitations, reports and blocks ([policy](persistence.md#native-social-rate-limits--local-implementation))                                  |
+| Limit                  | Kind and allowance                 | Consumed by                                                                                                              |
+| ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `liveSessionTicket`    | Token bucket, 30/min, burst 10     | `liveSessions/admission:authorize`, called by `liveSessions/tickets:issue`                                               |
+| `campaignConversation` | Token bucket, 30/min, burst 30     | Campaign chat, public rolls and table rolls                                                                              |
+| Social                 | Fixed UTC-aligned hour/day windows | Applications, invitations, reports and blocks ([policy](persistence.md#native-social-rate-limits--local-implementation)) |
 
 Convex has no Scene write allowance: the room is the only writer of a presented Scene (D79), and
 Scene edits are limited there.
@@ -1720,8 +1726,9 @@ the shared local action-revert reducer in current source; its protected Convex c
 for S5 parity. Its refusals use reason `REVERT_UNAVAILABLE` with a message naming what changed.
 
 Scene command retention is current: `scenes/commandRetention:purge` runs daily at 09:00 UTC
-(`convex/crons.ts`) and deletes `sceneLiveCommands` receipts older than 30 days together with their
-`sceneGeometrySaves`, in self-rescheduling batches of 64. Replay by command ID and owner undo
+(`convex/crons.ts`) and deletes SCENE receipt ledgers (with their parts) older than 30 days, in batches of 8, then the
+`sceneLiveCommands` headers left behind together with their `sceneGeometrySaves`, in
+self-rescheduling batches of 64. Campaign deletion removes the Scene's ledgers with its headers. Replay by command ID and owner undo
 therefore reach back at most 30 days. Open follow-up: derived fog saves keep a `geometrySaveId` that
 can point at a pruned geometry save, and superseded fog saves and chunks are not yet garbage-collected.
 

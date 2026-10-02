@@ -9,9 +9,9 @@ import {
 } from '@artificer-toolkit/schema/projections/sceneFogPersistence'
 import {
   sceneStoredLiveStateSchema,
-  sceneStoredLiveEntitySchema,
-  sceneStoredLiveCommandSchema
+  sceneStoredLiveEntitySchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import { sceneCommandHeaderSchema } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import {
   sceneStoredDefinitionSchema,
   sceneStoredDefinitionSaveSchema,
@@ -45,8 +45,9 @@ export const sceneTables = {
   sceneLiveEntities: defineTable(zodToConvexFields(sceneStoredLiveEntitySchema.shape))
     .index('by_sceneId_collection_entityId', ['sceneId', 'collection', 'entityId'])
     .index('by_sceneId_collection_ordinal', ['sceneId', 'collection', 'ordinal']),
-  sceneLiveCommands: defineTable(zodToConvex(sceneStoredLiveCommandSchema))
-    .index('by_sceneId_commandId', ['sceneId', 'commandId']),
+  sceneLiveCommands: defineTable(zodToConvex(sceneCommandHeaderSchema))
+    .index('by_sceneId_commandId', ['sceneId', 'commandId'])
+    .index('by_ledgerId_entryIndex', ['ledgerId', 'entryIndex']),
   campaignScenePresentations: defineTable(zodToConvexFields(sceneStoredPresentationSchema.shape))
     .index('by_campaignId', ['campaignId'])
     .index('by_campaignId_activeMapAssetId', ['campaignId', 'activeMapAssetId']),

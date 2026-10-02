@@ -22,7 +22,7 @@ const setPresentation = makeFunctionReference<
 
 afterEach(() => vi.useRealTimers())
 
-it('deletes only expired Scene command receipts together with their geometry saves', async () => {
+it('deletes only expired Scene command ledgers, then their headers and geometry saves', async () => {
   const base = await createSceneDefinitionFixture()
   const token = {
     id: crypto.randomUUID(),
@@ -67,6 +67,13 @@ it('deletes only expired Scene command receipts together with their geometry sav
         )
         .unique()
     }))
+  const ledgers = () =>
+    base.t.run((ctx) =>
+      ctx.db
+        .query('receiptLedgers')
+        .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE').eq('scopeId', sceneId))
+        .take(10)
+    )
   const move = (commandId: string, expectedSceneVersion: number, from: number, to: number) =>
     commitSceneInRoom(base.owner.caller, base.campaign.id, {
       type: 'MOVE_SCENE_TOKEN',
@@ -91,7 +98,14 @@ it('deletes only expired Scene command receipts together with their geometry sav
   const expiredCommand = (await receipts(expired)).command
   const retainedCommand = (await receipts(retained)).command
   if (!expiredCommand || !retainedCommand) throw new Error('Missing committed receipts.')
-  if (retainedCommand._creationTime <= expiredCommand._creationTime + 1)
+  // The checkpoint stamps a ledger just before it inserts its headers; retention ages the ledger.
+  const stored = await ledgers()
+  const expiredLedger = stored.find((ledger) => ledger.id === expiredCommand.ledgerId)
+  const retainedLedger = stored.find((ledger) => ledger.id === retainedCommand.ledgerId)
+  if (stored.length !== 2 || !expiredLedger || !retainedLedger)
+    throw new Error('Each checkpoint should pack its receipt into its own Scene ledger.')
+  const expiredAt = Math.max(Date.parse(expiredLedger.createdAt), expiredCommand._creationTime)
+  if (Date.parse(retainedLedger.createdAt) <= expiredAt + 1)
     throw new Error('The two receipts were created in the same millisecond.')
   expect(await receipts(expired)).toMatchObject({
     command: expect.anything(),
@@ -99,15 +113,17 @@ it('deletes only expired Scene command receipts together with their geometry sav
   })
 
   vi.useFakeTimers()
-  vi.setSystemTime(expiredCommand._creationTime + SCENE_COMMAND_RETENTION_MS - 1)
+  vi.setSystemTime(Date.parse(expiredLedger.createdAt) + SCENE_COMMAND_RETENTION_MS - 1)
   await base.t.mutation(purge, {})
+  expect(await ledgers()).toHaveLength(2)
   expect(await receipts(expired)).toMatchObject({
     command: expect.anything(),
     save: expect.anything()
   })
 
-  vi.setSystemTime(expiredCommand._creationTime + SCENE_COMMAND_RETENTION_MS + 1)
+  vi.setSystemTime(expiredAt + SCENE_COMMAND_RETENTION_MS + 1)
   await base.t.mutation(purge, {})
+  expect((await ledgers()).map((ledger) => ledger.id)).toEqual([retainedLedger.id])
   expect(await receipts(expired)).toEqual({ command: null, save: null })
   expect(await receipts(retained)).toMatchObject({
     command: expect.anything(),

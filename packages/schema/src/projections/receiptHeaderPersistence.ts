@@ -107,6 +107,15 @@ export const characterCommandReceiptHeaderSchema = lazySchema(() =>
   })
 )
 
+/** Scene command receipts are not Encounter history, so they stay out of `receiptHeaderSchemas`. */
+export const sceneCommandHeaderSchema = lazySchema(() =>
+  z.extend(receiptLedgerPointerSchema, {
+    sceneId: postgresUuidSchema,
+    commandId: postgresUuidSchema,
+    encoding: z.enum(['INLINE', 'FOG_PATCH', 'GEOMETRY', 'UNDO'])
+  })
+)
+
 export const receiptHeaderSchemas = {
   encounterRunCommands: encounterRunCommandHeaderSchema,
   encounterRuleReceipts: encounterRuleReceiptHeaderSchema,
@@ -118,6 +127,7 @@ export type EncounterRunCommandHeader = z.infer<typeof encounterRunCommandHeader
 export type EncounterRuleReceiptHeader = z.infer<typeof encounterRuleReceiptHeaderSchema>
 export type EncounterEvidenceRollHeader = z.infer<typeof encounterEvidenceRollHeaderSchema>
 export type CharacterCommandReceiptHeader = z.infer<typeof characterCommandReceiptHeaderSchema>
+export type SceneCommandHeader = z.infer<typeof sceneCommandHeaderSchema>
 export type ReceiptHeaderTable = keyof typeof receiptHeaderSchemas
 export type ReceiptHeaderDocuments = {
   [Table in ReceiptHeaderTable]: z.infer<(typeof receiptHeaderSchemas)[Table]>

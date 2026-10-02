@@ -15,9 +15,13 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
+import { readReceiptLedger } from '../lib/receiptLedgers'
 import { readLiveSceneForUser } from '../scenes/liveDocuments'
 
-type StoredRow = Record<string, unknown> & { _id: string; _creationTime: number }
+type StoredRow = Record<string, unknown> & {
+  _id: string
+  _creationTime: number
+}
 const PAGE = {
   numItems: MAX_ROOM_INPUT_PAGE_DOCUMENTS,
   maximumRowsRead: MAX_ROOM_INPUT_PAGE_DOCUMENTS + 1,
@@ -202,33 +206,62 @@ export async function readRoomSceneInputsPage(
     }
   }
 
-  const queries = [
-    () => ctx.db.query('sceneLiveStates').withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId)),
-    () =>
+  const table = TABLES[position]
+  if (!table) throw new Error('Room input cursor is invalid.')
+  if (table === 'sceneLiveCommands') {
+    // Command receipts are packed: one Scene ledger per page keeps rows read independent of history.
+    const ledgers = await ctx.db
+      .query('receiptLedgers')
+      .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE').eq('scopeId', sceneId))
+      .paginate({ ...PAGE, numItems: 1, cursor })
+    if (ledgers.pageStatus === 'SplitRequired')
+      throw new Error('Room Scene command page must split.')
+    assertAdvances(ledgers, cursor)
+    const documents: LiveRoomInputsDocument[] = []
+    for (const { id, _id, _creationTime } of ledgers.page)
+      for (const [index, entry] of (await readReceiptLedger(ctx, id)).entries.entries()) {
+        if (entry?.table !== 'sceneLiveCommands') continue
+        if (entry.value.sceneId !== sceneId)
+          throw new Error('Room input record belongs to another Scene.')
+        documents.push({
+          table,
+          id: `${_id}:${index}`,
+          creationTime: _creationTime,
+          fields: entry.value
+        })
+      }
+    return {
+      kind: 'SCENE',
+      source,
+      sceneVersion: header.version,
+      documents,
+      continueCursor: !ledgers.isDone
+        ? { position, paginationCursor: ledgers.continueCursor, fogSave: null }
+        : { position: position + 1, paginationCursor: null, fogSave: null }
+    }
+  }
+
+  const queries = {
+    sceneLiveStates: () =>
+      ctx.db.query('sceneLiveStates').withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId)),
+    sceneLiveEntities: () =>
       ctx.db
         .query('sceneLiveEntities')
         .withIndex('by_sceneId_collection_entityId', (q) => q.eq('sceneId', sceneId)),
-    () =>
-      ctx.db
-        .query('sceneLiveCommands')
-        .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', sceneId)),
-    () =>
+    sceneFogLayers: () =>
       ctx.db
         .query('sceneFogLayers')
         .withIndex('by_sceneId_ordinal', (q) => q.eq('sceneId', sceneId)),
-    () =>
+    sceneFogSaves: () =>
       ctx.db
         .query('sceneFogSaves')
         .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', sceneId)),
-    () =>
+    sceneGeometrySaves: () =>
       ctx.db
         .query('sceneGeometrySaves')
         .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', sceneId))
-  ] as const
-  const table = TABLES[position]
-  const query = queries[position]
-  if (!table || !query) throw new Error('Room input cursor is invalid.')
-  const page = await query().paginate({ ...PAGE, cursor })
+  } as const
+  const page = await queries[table]().paginate({ ...PAGE, cursor })
   assertAdvances(page, cursor)
   const continueCursor: LiveRoomSceneInputsCursor = !page.isDone
     ? { position, paginationCursor: page.continueCursor, fogSave: null }

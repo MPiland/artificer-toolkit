@@ -28,6 +28,7 @@ import * as accountUsage from '../lib/accountUsage'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { insertSceneCommandLedger, undoSceneCommand } from '../../tests/fixtures/receiptRecords'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene
@@ -351,7 +352,7 @@ describe('native Campaign deletion', () => {
     'removes live Scenes, receiving and expired saves from former owners, while retaining unrelated Scenes and map billing until cleanup for %s Campaigns',
     async (status) => {
       const base = await createSceneDefinitionFixture()
-      await publishEmptyScene(base)
+      const baseScene = await publishEmptyScene(base)
       const receiving = await base.owner.caller.mutation(begin, {
         ...base.input,
         commandId: crypto.randomUUID(),
@@ -431,6 +432,14 @@ describe('native Campaign deletion', () => {
           }
         }
       })
+      await base.t.run(async (ctx) => {
+        await insertSceneCommandLedger(ctx, [
+          undoSceneCommand(baseScene.sceneId, base.owner.userId)
+        ])
+        await insertSceneCommandLedger(ctx, [
+          undoSceneCommand(otherScene.sceneId, base.other.userId)
+        ])
+      })
       const currentCampaign =
         status === 'ARCHIVED'
           ? await base.owner.caller.query(api.campaigns.queries.get, { id: base.campaign.id })
@@ -474,6 +483,10 @@ describe('native Campaign deletion', () => {
         )
       }
       const maps = await base.t.run((ctx) => ctx.db.query('mediaAssets').collect())
+      const ledgers = await base.t.run((ctx) => ctx.db.query('receiptLedgers').collect())
+      expect(ledgers.map((ledger) => ledger.scopeId)).toEqual([otherScene.sceneId])
+      // Single-entry ledgers are stored inline, so no parts exist for either Scene.
+      expect(await base.t.run((ctx) => ctx.db.query('receiptLedgerParts').collect())).toEqual([])
       const detached = maps.find((row) => row.id === base.input.settings.map.assetId)
       if (!detached || detached.profileClass !== 'VTT_MAP') throw new Error('Missing retained map.')
       expect(detached).toMatchObject({
@@ -524,7 +537,10 @@ describe('native Campaign deletion', () => {
             })
           : currentCampaign
       await base.owner.caller.mutation(remove, command(deletedCampaign))
-      let rootStep: { jobId: Id<'campaignDeletionJobs'>; revision: number } | null = null
+      let rootStep: {
+        jobId: Id<'campaignDeletionJobs'>
+        revision: number
+      } | null = null
       for (let page = 0; page < 20; page++) {
         const job = await base.t.run((ctx) =>
           ctx.db

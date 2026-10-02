@@ -1,6 +1,8 @@
 import { v } from 'convex/values'
+import { liveSessionCheckpointSceneSchemas } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { campaignLiveScenePresentationReceiptDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { internalMutation } from '../lib/mutations'
+import { readReceiptLedger } from '../lib/receiptLedgers'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { refreshMapReferenceFlag } from '../media/vttMapDocuments'
 import { parseFogSave, parseFogLayer } from './fogDocuments'
@@ -190,7 +192,7 @@ export const removeFixtureState = internalMutation({
     }
     const liveChildren = await Promise.all(
       liveScenes.map(async (scene) => {
-        const [head, entities, commands] = await Promise.all([
+        const [head, entities, headers, ledgerRows] = await Promise.all([
           ctx.db
             .query('sceneLiveStates')
             .withIndex('by_sceneId', (q) => q.eq('sceneId', scene.id))
@@ -202,8 +204,22 @@ export const removeFixtureState = internalMutation({
           ctx.db
             .query('sceneLiveCommands')
             .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', scene.id))
+            .take(17),
+          ctx.db
+            .query('receiptLedgers')
+            .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE').eq('scopeId', scene.id))
             .take(17)
         ])
+        if (ledgerRows.length > 16)
+          throw new Error('Fixture live Scene command bounds or ownership mismatch.')
+        const ledgers = await Promise.all(ledgerRows.map((row) => readReceiptLedger(ctx, row.id)))
+        const commands = ledgers.flatMap(({ entries }) =>
+          entries.flatMap((entry) =>
+            entry?.table === 'sceneLiveCommands'
+              ? [liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse(entry.value)]
+              : []
+          )
+        )
         const advancingVersions = commands
           .filter(
             (command) =>
@@ -216,6 +232,7 @@ export const removeFixtureState = internalMutation({
         if (
           entities.length > 16 ||
           commands.length > 16 ||
+          headers.length !== commands.length ||
           (head?.version ?? 0) !== advancingVersions.length ||
           advancingVersions.some((version, index) => version !== index + 1)
         )
@@ -230,7 +247,7 @@ export const removeFixtureState = internalMutation({
             throw new Error('Fixture live Scene command ownership mismatch.')
           await requireFixtureCampaignPlayer(command.actorUserId)
         }
-        return { scene, head, entities, commands }
+        return { scene, head, entities, commands, headers, ledgers }
       })
     )
     if (liveChildren.reduce((count, children) => count + children.commands.length, 0) > 16)
@@ -406,9 +423,13 @@ export const removeFixtureState = internalMutation({
       for (const save of child.saves) await ctx.db.delete(save._id)
       for (const geometrySave of child.geometrySaves) await ctx.db.delete(geometrySave._id)
     }
-    for (const { head, entities, commands } of liveChildren) {
+    for (const { head, entities, headers, ledgers } of liveChildren) {
       for (const entity of entities) await ctx.db.delete(entity._id)
-      for (const command of commands) await ctx.db.delete(command._id)
+      for (const header of headers) await ctx.db.delete(header._id)
+      for (const ledger of ledgers) {
+        for (const part of ledger.parts) await ctx.db.delete(part._id)
+        await ctx.db.delete(ledger.head._id)
+      }
       if (head) await ctx.db.delete(head._id)
     }
     for (const receipt of receipts) await ctx.db.delete(receipt._id)

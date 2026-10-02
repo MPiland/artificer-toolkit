@@ -143,12 +143,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
         input: fogInput,
         inputChecksum: checksumCanonicalJson(fogInput)
       }),
-      fogCommand: await insertLegacy(ctx, 'sceneLiveCommands', {
-        sceneId: scene.id,
-        encoding: 'FOG_PATCH',
-        input: fogInput,
-        inputChecksum: checksumCanonicalJson(fogInput)
-      }),
       event: await insertLegacy(ctx, 'campaignEvents', {
         campaignId: campaign.id,
         type: 'SESSION_SCENE_PRESENTATION_SET',
@@ -182,7 +176,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
     run: await ctx.db.get(ids.run),
     geometrySave: await ctx.db.get(ids.geometrySave),
     fogSave: await ctx.db.get(ids.fogSave),
-    fogCommand: await ctx.db.get(ids.fogCommand),
     event: await ctx.db.get(ids.event)
   }))
   expect(migrated.authority).toBeNull()
@@ -211,12 +204,14 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
     freshness: { system: null, campaign: null, play: null }
   })
   const { session: _session, ...currentFog } = fogInput
-  const narrowedFog = { ...currentFog, presentation: { expectedPresentationVersion: 1 } }
-  for (const row of [migrated.fogSave, migrated.fogCommand])
-    expect(row).toMatchObject({
-      input: narrowedFog,
-      inputChecksum: checksumCanonicalJson(narrowedFog)
-    })
+  const narrowedFog = {
+    ...currentFog,
+    presentation: { expectedPresentationVersion: 1 }
+  }
+  expect(migrated.fogSave).toMatchObject({
+    input: narrowedFog,
+    inputChecksum: checksumCanonicalJson(narrowedFog)
+  })
   expect(JSON.parse(migrated.event!.payloadJson)).toMatchObject({
     result: { campaignId: campaign.id, sceneId: null, version: 0 }
   })

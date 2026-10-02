@@ -13,7 +13,8 @@ export const receiptLedgerTables = {
     payload: v.union(v.bytes(), v.null())
   })
     .index('by_publicId', ['id'])
-    .index('by_scope_scopeId', ['scope', 'scopeId']),
+    .index('by_scope_scopeId', ['scope', 'scopeId'])
+    .index('by_scope_createdAt', ['scope', 'createdAt']),
   receiptLedgerParts: defineTable({
     ...zodToConvexFields(receiptLedgerPartMetadataSchema.shape),
     bytes: v.bytes()

@@ -47609,20 +47609,6 @@ export declare const internal: {
         },
         any
       >;
-      fogCommands: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
       fogSaves: FunctionReference<
         "mutation",
         "internal",
@@ -58277,7 +58263,7 @@ export declare const internal: {
             epoch: string | null;
             id: string;
             partCount: number;
-            scope: "CAMPAIGN" | "CHARACTER";
+            scope: "CAMPAIGN" | "CHARACTER" | "SCENE";
             scopeId: string;
           }>;
           playChecksum: string;

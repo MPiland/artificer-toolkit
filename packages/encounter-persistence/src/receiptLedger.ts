@@ -1,14 +1,17 @@
 import {
-  liveSessionCheckpointHistoryEntrySchema,
-  liveSessionCheckpointHistoryKeyFields,
-  type LiveSessionCheckpointHistoryEntry,
-  type LiveSessionCheckpointHistoryTable
+  receiptLedgerEntryKeyFields,
+  receiptLedgerEntrySchema,
+  type ReceiptLedgerEntry,
+  type ReceiptLedgerEntryTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
+import { liveSessionCheckpointSceneSchemas } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { encounterStoreSchemas } from '@artificer-toolkit/schema/projections/encounterStore'
 import {
   receiptHeaderSchemas,
+  sceneCommandHeaderSchema,
   type ReceiptHeaderDocuments,
-  type ReceiptHeaderTable
+  type ReceiptHeaderTable,
+  type SceneCommandHeader
 } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import {
   RECEIPT_LEDGER_MAX_BYTES,
@@ -31,15 +34,19 @@ import {
 } from '@artificer-toolkit/shared/jsonPayloadChunks'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 
-function validateEntry(raw: unknown): LiveSessionCheckpointHistoryEntry {
+function validateEntry(raw: unknown): ReceiptLedgerEntry {
   // Validate raw JSON first: the object-schema parser must never invoke a caller's getter.
   const json = canonicalizeJson(canonicalJsonRecordSchema.parse(raw))
-  const entry = liveSessionCheckpointHistoryEntrySchema.parse(JSON.parse(json))
+  const entry = receiptLedgerEntrySchema.parse(JSON.parse(json))
   if (checksumCanonicalJson(entry.value) !== entry.checksum)
     throw new Error('Receipt ledger entry checksum does not match.')
-  const fields = liveSessionCheckpointHistoryKeyFields[entry.table]
+  const fields = receiptLedgerEntryKeyFields[entry.table]
   if (fields.some((field, index) => entry.value[field] !== entry.key[index]))
     throw new Error('Receipt ledger entry identity does not match its value.')
+  if (entry.table === 'sceneLiveCommands') {
+    liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse(entry.value)
+    return entry
+  }
   const stored = Object.fromEntries(
     Object.entries(entry.value).map(([field, value]) => [
       field,
@@ -50,7 +57,7 @@ function validateEntry(raw: unknown): LiveSessionCheckpointHistoryEntry {
   return entry
 }
 
-function validateEntries(raw: unknown): (LiveSessionCheckpointHistoryEntry | null)[] {
+function validateEntries(raw: unknown): (ReceiptLedgerEntry | null)[] {
   if (
     !Array.isArray(raw) ||
     Object.getPrototypeOf(raw) !== Array.prototype ||
@@ -60,7 +67,7 @@ function validateEntries(raw: unknown): (LiveSessionCheckpointHistoryEntry | nul
     throw new Error('Receipt ledger entries are empty or invalid.')
   canonicalJsonValueSchema.parse(raw)
   const identities = new Set<string>()
-  const entries: (LiveSessionCheckpointHistoryEntry | null)[] = []
+  const entries: (ReceiptLedgerEntry | null)[] = []
   for (let index = 0; index < raw.length; index++) {
     const slot = raw[index]
     if (slot === null) {
@@ -79,7 +86,7 @@ function validateEntries(raw: unknown): (LiveSessionCheckpointHistoryEntry | nul
 
 /** Slot order is preserved, including tombstones left by deleted receipts. */
 export function encodeReceiptLedgerPayload(
-  entries: readonly (LiveSessionCheckpointHistoryEntry | null)[]
+  entries: readonly (ReceiptLedgerEntry | null)[]
 ): ReceiptLedgerEncodedPayload {
   const body = canonicalizeJson(validateEntries(entries))
   if (new TextEncoder().encode(body).byteLength > RECEIPT_LEDGER_MAX_BYTES)
@@ -97,15 +104,22 @@ export function encodeReceiptLedgerPayload(
 
 /** Projects indexed metadata from a validated body, preserving the logical schema's scalars. */
 export function projectReceiptHeader(
-  raw: LiveSessionCheckpointHistoryEntry,
+  raw: ReceiptLedgerEntry,
   pointer: ReceiptLedgerPointer
-): ReceiptHeaderDocuments[ReceiptHeaderTable] {
+): ReceiptHeaderDocuments[ReceiptHeaderTable] | SceneCommandHeader {
   const entry = validateEntry(raw)
   const reference = receiptLedgerPointerSchema.parse(
     JSON.parse(canonicalizeJson(canonicalJsonRecordSchema.parse(pointer)))
   )
   if (reference.entryChecksum !== entry.checksum)
     throw new Error('Receipt header pointer checksum does not match its entry.')
+  if (entry.table === 'sceneLiveCommands')
+    return sceneCommandHeaderSchema.parse({
+      sceneId: entry.value.sceneId,
+      commandId: entry.value.commandId,
+      encoding: entry.value.encoding,
+      ...reference
+    })
   const fields =
     entry.table === 'encounterRunCommands'
       ? receiptHeaderSchemas.encounterRunCommands.def.options.flatMap((variant) =>
@@ -122,7 +136,7 @@ export function projectReceiptHeader(
 
 export function decodeReceiptLedgerPayload(
   encoded: ReceiptLedgerEncodedPayload
-): (LiveSessionCheckpointHistoryEntry | null)[] {
+): (ReceiptLedgerEntry | null)[] {
   if (
     encoded === null ||
     typeof encoded !== 'object' ||
@@ -163,16 +177,37 @@ export function decodeReceiptLedgerPayload(
   return entries
 }
 
+/** One scope rule for the codec and the Convex writer: scopes own disjoint receipt families. */
+export function receiptLedgerEntryInScope(
+  metadata: Pick<ReceiptLedgerMetadata, 'scope' | 'scopeId'>,
+  entry: ReceiptLedgerEntry
+): boolean {
+  switch (metadata.scope) {
+    case 'SCENE':
+      return entry.table === 'sceneLiveCommands' && entry.value.sceneId === metadata.scopeId
+    case 'CHARACTER':
+      return (
+        entry.table === 'characterCommandReceipts' && entry.value.characterId === metadata.scopeId
+      )
+    case 'CAMPAIGN':
+      return (
+        entry.table !== 'characterCommandReceipts' &&
+        entry.table !== 'sceneLiveCommands' &&
+        entry.value.campaignId === metadata.scopeId
+      )
+  }
+}
+
 /**
  * `entries` must be decoded from this head's payload metadata by decodeReceiptLedgerPayload.
  * Private Character receipts and shared Encounter receipts use separate ownership scopes.
  */
 export function readReceiptLedgerEntry(
   head: ReceiptLedgerMetadata,
-  entries: readonly (LiveSessionCheckpointHistoryEntry | null)[],
+  entries: readonly (ReceiptLedgerEntry | null)[],
   pointer: ReceiptLedgerPointer,
-  expected: { table: LiveSessionCheckpointHistoryTable; key: (string | number)[] }
-): LiveSessionCheckpointHistoryEntry {
+  expected: { table: ReceiptLedgerEntryTable; key: (string | number)[] }
+): ReceiptLedgerEntry {
   const metadata = receiptLedgerMetadataSchema.parse(
     JSON.parse(canonicalizeJson(canonicalJsonRecordSchema.parse(head)))
   )
@@ -199,11 +234,7 @@ export function readReceiptLedgerEntry(
     canonicalizeJson(entry.key) !== canonicalizeJson(identity.key)
   )
     throw new Error('Receipt ledger pointer identity or checksum does not match.')
-  if (
-    metadata.scope === 'CHARACTER'
-      ? entry.table !== 'characterCommandReceipts' || entry.value.characterId !== metadata.scopeId
-      : entry.table === 'characterCommandReceipts' || entry.value.campaignId !== metadata.scopeId
-  )
+  if (!receiptLedgerEntryInScope(metadata, entry))
     throw new Error('Receipt ledger entry scope does not match.')
   return entry
 }

@@ -2,7 +2,10 @@ import { z, lazySchema } from '../zod.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { canonicalJsonRecordSchema, jsonDeltaSchema } from '../shared/jsonDelta.js'
-import { liveSessionCheckpointSceneSchema } from './liveSessionCheckpointScenes.js'
+import {
+  liveSessionCheckpointSceneKeys,
+  liveSessionCheckpointSceneSchema
+} from './liveSessionCheckpointScenes.js'
 import { rollRecordDtoSchema } from './rolls.js'
 import {
   encounterStoreSchemas,
@@ -49,19 +52,17 @@ export const liveSessionCheckpointHistoryKeyFields = {
     string)[]
 }>
 
+/** Receipt ledgers also pack Scene command receipts, which reach Convex as Scene deltas. */
+export const receiptLedgerEntryKeyFields = {
+  ...liveSessionCheckpointHistoryKeyFields,
+  sceneLiveCommands: liveSessionCheckpointSceneKeys.sceneLiveCommands
+} as const
+
 export const liveSessionCheckpointTableSchema = lazySchema(() =>
   z.enum(
     Object.keys(liveSessionCheckpointKeyFields) as [
       keyof typeof liveSessionCheckpointKeyFields,
       ...(keyof typeof liveSessionCheckpointKeyFields)[]
-    ]
-  )
-)
-export const liveSessionCheckpointHistoryTableSchema = lazySchema(() =>
-  z.enum(
-    Object.keys(liveSessionCheckpointHistoryKeyFields) as [
-      keyof typeof liveSessionCheckpointHistoryKeyFields,
-      ...(keyof typeof liveSessionCheckpointHistoryKeyFields)[]
     ]
   )
 )
@@ -115,23 +116,30 @@ export const liveSessionCheckpointRecordChangeSchema = lazySchema(() =>
     )
 )
 
-export const liveSessionCheckpointHistoryEntrySchema = lazySchema(() =>
-  z
+function ledgerEntrySchema<Table extends string>(fields: Record<Table, readonly string[]>) {
+  return z
     .strictObject({
-      table: liveSessionCheckpointHistoryTableSchema,
+      table: z.enum(Object.keys(fields) as [Table, ...Table[]]),
       key: keySchema,
       value: canonicalJsonRecordSchema,
       checksum: projectionChecksumSchema
     })
     .check(
       z.superRefine((entry, context) => {
-        if (!validKey(liveSessionCheckpointHistoryKeyFields[entry.table], entry.key))
+        if (!validKey(fields[entry.table], entry.key))
           context.addIssue({
             code: 'custom',
             message: 'Checkpoint evidence identity is incomplete.'
           })
       })
     )
+}
+
+export const liveSessionCheckpointHistoryEntrySchema = lazySchema(() =>
+  ledgerEntrySchema(liveSessionCheckpointHistoryKeyFields)
+)
+export const receiptLedgerEntrySchema = lazySchema(() =>
+  ledgerEntrySchema(receiptLedgerEntryKeyFields)
 )
 
 /** Serialized committed writes are validated before the checkpoint builder replays them. */
@@ -173,15 +181,15 @@ export const liveSessionRoomWriteSetSchema = lazySchema(() => {
 })
 
 export type LiveSessionCheckpointTable = z.infer<typeof liveSessionCheckpointTableSchema>
-export type LiveSessionCheckpointHistoryTable = z.infer<
-  typeof liveSessionCheckpointHistoryTableSchema
->
+export type LiveSessionCheckpointHistoryTable = keyof typeof liveSessionCheckpointHistoryKeyFields
 export type LiveSessionCheckpointRecordChange = z.infer<
   typeof liveSessionCheckpointRecordChangeSchema
 >
 export type LiveSessionCheckpointHistoryEntry = z.infer<
   typeof liveSessionCheckpointHistoryEntrySchema
 >
+export type ReceiptLedgerEntry = z.infer<typeof receiptLedgerEntrySchema>
+export type ReceiptLedgerEntryTable = keyof typeof receiptLedgerEntryKeyFields
 export type LiveSessionRoomWriteSet = z.infer<typeof liveSessionRoomWriteSetSchema>
 
 /** Private room rolls merge into the owner's bounded history, never replace its global snapshot. */

@@ -32,7 +32,7 @@ export const receiptLedgerMetadataSchema = lazySchema(() =>
   z
     .extend(receiptLedgerPayloadMetadataSchema, {
       id: postgresUuidSchema,
-      scope: z.enum(['CAMPAIGN', 'CHARACTER']),
+      scope: z.enum(['CAMPAIGN', 'CHARACTER', 'SCENE']),
       scopeId: postgresUuidSchema,
       epoch: z.nullable(postgresUuidSchema),
       checkpointId: z.nullable(postgresUuidSchema),

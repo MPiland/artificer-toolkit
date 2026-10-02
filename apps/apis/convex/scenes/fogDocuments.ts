@@ -2,7 +2,10 @@ import {
   sceneStoredFogSaveSchema,
   sceneStoredFogLayerSchema
 } from '@artificer-toolkit/schema/projections/sceneFogPersistence'
-import { sceneStoredFogCommandSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import {
+  sceneStoredFogCommandSchema,
+  type sceneStoredLiveCommandSchema
+} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -36,9 +39,12 @@ export function parseFogLayer(row: Doc<'sceneFogLayers'>, version: number) {
   return parseSceneFogLayer(stored(row), version)
 }
 
-export function parseFogCommand(row: Doc<'sceneLiveCommands'>, version: number) {
-  if (row.encoding !== 'FOG_PATCH') throw new Error('Scene command is not a paged fog patch.')
-  const command = sceneStoredFogCommandSchema.parse(stored(row))
+export function parseFogCommand(
+  value: ReturnType<typeof sceneStoredLiveCommandSchema.parse>,
+  version: number
+) {
+  if (value.encoding !== 'FOG_PATCH') throw new Error('Scene command is not a paged fog patch.')
+  const command = sceneStoredFogCommandSchema.parse(value)
   if (
     command.inputChecksum !== checksumCanonicalJson(command.input) ||
     command.resultChecksum !== checksumCanonicalJson(command.result) ||

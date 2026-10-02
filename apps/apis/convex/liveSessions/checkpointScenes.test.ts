@@ -23,7 +23,10 @@ import { readRunState } from '@artificer-toolkit/encounter-persistence/documents
 import { diffJson } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createRun } from '../../tests/fixtures/encounterScene'
-import { commitSceneInRoom, insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import {
+  commitSceneInRoom,
+  insertActiveLiveAuthority
+} from '../../tests/fixtures/liveSessionWorker'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene,
@@ -31,6 +34,8 @@ import {
 } from '../../tests/fixtures/sceneDefinitions'
 import { api } from '../_generated/api'
 import type { Doc } from '../_generated/dataModel'
+import type { MutationCtx } from '../_generated/server'
+import { readReceiptLedger } from '../lib/receiptLedgers'
 import { parseFogLayer, parseFogSave, readFogChunk } from '../scenes/fogDocuments'
 import {
   parseGeometryCommand,
@@ -66,6 +71,16 @@ const tables = Object.keys(liveSessionCheckpointSceneKeys) as LiveSessionCheckpo
 function content(row: { _id: unknown; _creationTime: unknown }) {
   const { _id, _creationTime, ...value } = row
   return canonicalJsonRecordSchema.parse(JSON.parse(canonicalizeJson(value)))
+}
+
+/** Scene command receipts live in packed Scene ledgers; their header rows only index them. */
+async function readSceneCommands(ctx: MutationCtx) {
+  const ledgers = await ctx.db
+    .query('receiptLedgers')
+    .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE'))
+    .take(100)
+  const decoded = await Promise.all(ledgers.map((ledger) => readReceiptLedger(ctx, ledger.id)))
+  return decoded.flatMap(({ entries }) => entries.flatMap((entry) => (entry ? [entry.value] : [])))
 }
 
 function change(
@@ -172,11 +187,21 @@ async function fixture(withSecondScene = false) {
       // The room writes every chunk of the explored layer; every other family has one row.
       if (table === 'sceneFogChunks') expect(rows.length).toBeGreaterThan(0)
       else expect(rows).toHaveLength(1)
+      const values =
+        table === 'sceneLiveCommands' ? await readSceneCommands(ctx) : rows.map(content)
+      for (const value of values) changes.push(change(table, value))
       for (const row of rows) {
         if (table === 'sceneFogChunks') chunk ??= (row as Doc<'sceneFogChunks'>).chunk
-        changes.push(change(table, content(row)))
         await ctx.db.delete(row._id)
       }
+    }
+    for (const ledger of await ctx.db.query('receiptLedgers').take(100)) {
+      for (const part of await ctx.db
+        .query('receiptLedgerParts')
+        .withIndex('by_ledgerId_index', (q) => q.eq('ledgerId', ledger.id))
+        .take(100))
+        await ctx.db.delete(part._id)
+      await ctx.db.delete(ledger._id)
     }
     if (!chunk) throw new Error('Missing fog chunk fixture.')
     return { changes, chunk }
@@ -226,6 +251,8 @@ async function snapshot(base: Fixture) {
     rows: await Promise.all(
       tables.map(async (table) => [table, await ctx.db.query(table).take(1000)])
     ),
+    ledgers: await ctx.db.query('receiptLedgers').take(100),
+    ledgerParts: await ctx.db.query('receiptLedgerParts').take(100),
     sources: await ctx.db.query('campaignScenes').take(100),
     definitions: await ctx.db.query('sceneDefinitionSaves').take(100),
     definitionEntities: await ctx.db.query('sceneDefinitionEntities').take(100),
@@ -274,7 +301,9 @@ it('publishes native token, fog and geometry rows with the authority acknowledge
   expect(after.presentations).toEqual(before.presentations)
   for (const table of tables) {
     const rows = await base.t.run((ctx) => ctx.db.query(table).take(1000))
-    expect(rows.map(content)).toEqual(
+    const stored =
+      table === 'sceneLiveCommands' ? await base.t.run(readSceneCommands) : rows.map(content)
+    expect(stored).toEqual(
       base.publication.changes
         .filter((entry) => entry.table === table)
         .map((entry) => {
@@ -294,10 +323,22 @@ it('publishes native token, fog and geometry rows with the authority acknowledge
     const fogLayer = await ctx.db.query('sceneFogLayers').unique()
     const fogSave = await ctx.db.query('sceneFogSaves').unique()
     const geometrySave = await ctx.db.query('sceneGeometrySaves').unique()
-    const receipt = await ctx.db.query('sceneLiveCommands').unique()
-    if (!entity || !fogLayer || !fogSave || !geometrySave || !receipt)
+    const [receipt, ...otherReceipts] = await readSceneCommands(ctx)
+    const ledgers = await ctx.db.query('receiptLedgers').take(10)
+    if (!entity || !fogLayer || !fogSave || !geometrySave || !receipt || otherReceipts.length)
       throw new Error('Missing publication.')
-    expect(parseLiveEntity(entity, 1).value).toEqual({ collection: 'tokens', entity: base.token })
+    expect(ledgers).toMatchObject([
+      {
+        scope: 'SCENE',
+        scopeId: base.scene.sceneId,
+        checkpointId: input.checkpointId
+      }
+    ])
+    expect(await ctx.db.query('sceneLiveCommands').take(10)).toHaveLength(1)
+    expect(parseLiveEntity(entity, 1).value).toEqual({
+      collection: 'tokens',
+      entity: base.token
+    })
     const parsedLayer = parseFogLayer(fogLayer, 1)
     expect(parseFogSave(fogSave).status).toBe('PUBLISHED')
     expect(
@@ -431,15 +472,11 @@ it('rejects changed reuse of a Scene receipt in a later checkpoint without advan
   base.authority = first.authority
   const changes = await base.t.run(async (ctx) => {
     const head = await ctx.db.query('sceneLiveStates').unique()
-    const receipt = await ctx.db.query('sceneLiveCommands').unique()
+    const [receipt] = await readSceneCommands(ctx)
     if (!head || !receipt) throw new Error('Missing receipt fixture.')
     return [
       change('sceneLiveStates', { ...content(head), version: 2 }, content(head)),
-      change(
-        'sceneLiveCommands',
-        { ...content(receipt), actorUserId: base.other.userId },
-        content(receipt)
-      )
+      change('sceneLiveCommands', { ...receipt, actorUserId: base.other.userId }, receipt)
     ]
   })
   await assertRejected(
@@ -595,7 +632,7 @@ it('appends pending movement evidence at the current Scene version without writi
     expect(await ctx.db.query('sceneLiveStates').take(100)).toEqual([])
     expect(await ctx.db.query('sceneLiveEntities').take(100)).toEqual([])
     expect(await ctx.db.query('sceneFogLayers').take(100)).toEqual([])
-    const receipt = await ctx.db.query('sceneLiveCommands').unique()
+    const [receipt] = await readSceneCommands(ctx)
     if (!receipt) throw new Error('Missing pending receipt.')
     expect(parseGeometryCommand(receipt, 0).result).toEqual(result)
   })
@@ -604,4 +641,3 @@ it('appends pending movement evidence at the current Scene version without writi
   await expect(base.t.mutation(publish, checkpoint)).resolves.toMatchObject({ status: 'REPLAYED' })
   expect(await snapshot(base)).toEqual(after)
 })
-
