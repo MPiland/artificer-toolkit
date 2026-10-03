@@ -17,6 +17,8 @@ import {
  * - `ACKNOWLEDGEMENT`: a command or actor reconcile Convex must ingest before its receipt.
  * - `PRESENTATION`: a Scene presentation change.
  * - `DRAIN`: the final checkpoint before an idle release or close.
+ * - `BARRIER`: the development load proof asked the room to publish everything pending; never sent
+ *   in production play.
  */
 export const LIVE_SESSION_CHECKPOINT_REASONS = [
   'DEADLINE',
@@ -25,7 +27,8 @@ export const LIVE_SESSION_CHECKPOINT_REASONS = [
   'RELOAD',
   'ACKNOWLEDGEMENT',
   'PRESENTATION',
-  'DRAIN'
+  'DRAIN',
+  'BARRIER'
 ] as const
 
 export const liveSessionCheckpointReasonSchema = lazySchema(() =>

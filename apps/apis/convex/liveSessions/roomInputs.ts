@@ -78,7 +78,7 @@ type PageOptions = {
   maximumRowsRead: number
   maximumBytesRead: number
 }
-type RunTableQuery = (
+export type RunTableQuery = (
   ctx: QueryCtx,
   encounterId: string
 ) => {
@@ -103,7 +103,7 @@ function receiptRunTableQuery<Table extends ReceiptHeaderTable>(
  * The route joins consecutive pages into one response (`readRoomInputsBatch`), since each Worker
  * call is a subrequest and Workers Free allows 50 per invocation.
  */
-const PAGE: Omit<PageOptions, 'cursor'> = {
+export const PAGE: Omit<PageOptions, 'cursor'> = {
   numItems: MAX_ROOM_INPUT_PAGE_DOCUMENTS,
   // Let numItems stop a full page before the read ceiling marks it incomplete.
   maximumRowsRead: MAX_ROOM_INPUT_PAGE_DOCUMENTS + 1,
@@ -115,7 +115,7 @@ const PAGE: Omit<PageOptions, 'cursor'> = {
  * empty tables are skipped by a `first` probe so they cost no round trip.
  * The Run document itself rides the first page.
  */
-const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTableQuery }> = [
+export const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTableQuery }> = [
   {
     table: 'encounterRunActors',
     query: (ctx, encounterId) =>
@@ -411,7 +411,9 @@ async function readRunPage(
   if (!run || run.campaignId !== campaign.id) throw new Error('Encounter not found.')
   const active = await ctx.db
     .query('encounterRuns')
-    .withIndex('by_campaignId_status', (q) => q.eq('campaignId', campaign.id).eq('status', 'ACTIVE'))
+    .withIndex('by_campaignId_status', (q) =>
+      q.eq('campaignId', campaign.id).eq('status', 'ACTIVE')
+    )
     .first()
   const activeEncounterId = active?.id ?? null
   const isFirstPage = scope.cursor === null

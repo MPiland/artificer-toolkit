@@ -1,6 +1,8 @@
 import { DurableObject } from 'cloudflare:workers'
 import {
+  LIVE_SESSION_CHECKPOINT_BARRIER_PATH,
   LIVE_SESSION_CONTROL_PATH,
+  LIVE_SESSION_METER_PATH,
   liveSessionControlInputSchema,
   liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
@@ -87,7 +89,7 @@ import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { RoomCheckpoints } from './roomCheckpoints.js'
 import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
-import { meterFrame, meterStorage, ROOM_METER_PATH, RoomMeter } from './roomMeter.js'
+import { meterFrame, meterStorage, RoomMeter } from './roomMeter.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
 import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
@@ -411,8 +413,21 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const url = new URL(request.url)
     this.#meter.request('HTTP')
     // Reachable only through the development-guarded Worker route; production never forwards it.
-    if (request.method === 'GET' && url.pathname === ROOM_METER_PATH)
+    if (request.method === 'GET' && url.pathname === LIVE_SESSION_METER_PATH)
       return Response.json(this.#meter.read())
+    if (request.method === 'POST' && url.pathname === LIVE_SESSION_CHECKPOINT_BARRIER_PATH) {
+      // Behind every accepted command, so the barrier covers all of them; development only, like the meter.
+      const barrier = this.#commandChain.then(() => this.#publishThroughHead())
+      this.#commandChain = barrier.then(
+        () => undefined,
+        () => undefined
+      )
+      try {
+        return Response.json({ publishedSequence: await barrier })
+      } catch {
+        return new Response('The room has nothing it can checkpoint.', { status: 409 })
+      }
+    }
     if (request.method === 'POST' && url.pathname === LIVE_SESSION_CONTROL_PATH) {
       const parsed = liveSessionControlInputSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)
@@ -3214,6 +3229,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       previous = head.publishedSequence
       await this.#flushOutbox(reason)
     }
+  }
+
+  /** Publishes every committed command and returns the sequence Convex now holds. */
+  async #publishThroughHead(): Promise<number> {
+    const head = this.#journal.readCurrent()
+    if (!head || head.status === 'RELEASED') throw new Error('The room holds no live authority.')
+    await this.#checkpointThrough(head.authorityEpoch, head.sequence, 'BARRIER')
+    return head.sequence
   }
 
   async #publishPending(reason: LiveSessionCheckpointReason): Promise<void> {

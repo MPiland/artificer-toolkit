@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict'
-import { ConvexClient, type ConvexHttpClient } from 'convex/browser'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import type { ConvexHttpClient } from 'convex/browser'
 import { makeFunctionReference } from 'convex/server'
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  DevelopmentDocumentSizesInput,
+  DevelopmentDocumentSizesPage
+} from '@artificer-toolkit/schema/api/developmentCheckpoint'
+import {
+  encounterGmProjectionDtoSchema,
+  type EncounterCommandInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -12,6 +21,14 @@ import {
   executeEncounterCommand
 } from './developmentClient'
 import type { DevelopmentHttpClient } from './developmentHttpClient'
+import {
+  latencySummary,
+  measureConvergence,
+  PreviewProbe,
+  RoomControl,
+  RoomWatch,
+  type MeasuredCommit
+} from './developmentRoomMeasurement'
 import {
   bindScene,
   bindToken,
@@ -45,6 +62,19 @@ const inspectMovementReactionDamage = makeFunctionReference<
     afterHitPoints: number
   }
 >('encounters/developmentLifecycle:movementReactionDamage')
+// Window markers and the document-size read are development functions that `_generated/api.d.ts`
+// lists only after the gate's codegen, so they are referenced by name.
+const openMeasurementWindow = makeFunctionReference<'mutation', Record<string, never>, null>(
+  'liveSessions/developmentMeasurement:openWindow'
+)
+const closeMeasurementWindow = makeFunctionReference<'mutation', Record<string, never>, null>(
+  'liveSessions/developmentMeasurement:closeWindow'
+)
+const checkpointDocumentSizes = makeFunctionReference<
+  'query',
+  DevelopmentDocumentSizesInput,
+  DevelopmentDocumentSizesPage
+>('liveSessions/developmentMeasurement:checkpointDocumentSizes')
 
 // Authenticated V12/V14/V15 fixture.  It deliberately starts a new aggregate so
 // concurrency contenders never share lifecycle setup receipts.
@@ -170,6 +200,12 @@ export async function readAuthoritativeSceneToken(
 
 const MEASURED_SAMPLES = 1
 
+function environmentCount(name: string, fallback: number) {
+  const value = Number(process.env[name] ?? fallback)
+  if (!Number.isInteger(value) || value < 1) throw new Error(`${name} must be a positive integer.`)
+  return value
+}
+
 export const encounterCutoverWorkloadDefinition = {
   gm: 1,
   players: 5,
@@ -177,6 +213,12 @@ export const encounterCutoverWorkloadDefinition = {
   rounds: 8,
   actionsPerActorTurn: 2,
   reactionsPerActorTurn: 1,
+  // Out-of-combat Scene moves are paced, because the room's 120 s save timer arms on any unsaved
+  // change. The pace is an assumption set by the user (V15_OOC_*), not a claim about normal play.
+  outOfCombat: {
+    stepsPerMinute: environmentCount('V15_OOC_STEPS_PER_MINUTE', 6),
+    minutes: environmentCount('V15_OOC_MINUTES', 4)
+  },
   thresholds: {
     peerPreviewP95Ms: 150,
     durablePeerConvergenceP95Ms: 250,
@@ -417,8 +459,6 @@ type CutoverWorkloadAggregate = {
   aggregate: EncounterCutoverWorkItem['aggregate']
   /** The GM's client for this aggregate's Campaign; players share one client each across both. */
   gm: DevelopmentHttpClient
-  /** Measured commits: the Run version and when its initiator's acknowledgement arrived. */
-  commits: { version: number; committedAt: number }[]
   actorIds: readonly string[]
   positions: readonly { x: number; y: number }[]
   tokenIds: readonly string[]
@@ -448,6 +488,24 @@ function cutoverWorkloadPositions() {
   })
 }
 
+function workloadToken(
+  token: Pick<
+    EncounterLifecycleSceneOptions['tokens'][number],
+    'id' | 'label' | 'position' | 'controlledByUserIds'
+  >
+): EncounterLifecycleSceneOptions['tokens'][number] {
+  return {
+    ...token,
+    assetId: null,
+    height: 100,
+    hidden: false,
+    locked: false,
+    rotationDegrees: 0,
+    vision: null,
+    width: 100
+  }
+}
+
 function cutoverWorkloadActionId(actorId: string, kind: 'ACTION' | 'BONUS_ACTION' | 'REACTION') {
   const [featureId, effectId] =
     kind === 'ACTION'
@@ -458,24 +516,61 @@ function cutoverWorkloadActionId(actorId: string, kind: 'ACTION' | 'BONUS_ACTION
   return `${actorId}:FEATURE:${featureId}:EFFECT:${effectId}`
 }
 
-function participantClient(
-  aggregate: CutoverWorkloadAggregate,
-  players: readonly DevelopmentHttpClient[],
-  participant: EncounterCutoverWorkItem['participant']
-) {
-  if (participant === 'GM') return aggregate.gm
-  const player = players[Number(participant.slice('PLAYER_'.length)) - 1]
-  if (!player) throw new Error(`V15 workload ${participant} has no client.`)
-  return player
+/** A movement reaction's damage receipt, checked in Convex once the room has published it. */
+type ReactionReceiptCheck = {
+  rootCommandId: string
+  terminalCommandId: string
+  occurrenceId: string
+  moverActorId: string
+  reactorActorId: string
+  moverHitPointsBefore: number
+  moverHitPointsAfter: number
 }
 
-// A player's result carries their own projection, so the GM's current projection is reread. A commit's
-// acknowledgement time anchors durable convergence: Convex has committed before the room acknowledges.
-async function readWorkloadRun(aggregate: CutoverWorkloadAggregate, committedAt: number) {
-  aggregate.run = encounterGmProjectionDtoSchema.parse(
-    await aggregate.gm.query(api.encounters.projectionReads.get, { encounterId: aggregate.run.id })
+/**
+ * An aggregate played through its room. The room is the authority: every read in a measured window
+ * comes from the frames it pushes, never from Convex, which only follows at a checkpoint.
+ */
+type MeasuredAggregate = CutoverWorkloadAggregate & {
+  /** The GM's and each player's view of this aggregate's room, kept from its frames. */
+  watches: { gm: RoomWatch; players: readonly RoomWatch[] }
+  /** Measured commands, for warm convergence. */
+  commits: MeasuredCommit[]
+  receipts: ReactionReceiptCheck[]
+}
+
+function participantWatch(
+  aggregate: MeasuredAggregate,
+  participant: EncounterCutoverWorkItem['participant']
+) {
+  if (participant === 'GM') return aggregate.watches.gm
+  const watch = aggregate.watches.players[Number(participant.slice('PLAYER_'.length)) - 1]
+  if (!watch) throw new Error(`V15 workload ${participant} has no room watch.`)
+  return watch
+}
+
+/**
+ * Sends one Encounter command through the room as `member`, times it, and records it for
+ * convergence. The aggregate then adopts the GM's view of the Run the command produced, from the
+ * GM's own frames: a player's result carries only that player's projection.
+ */
+async function sendWorkloadCommand(
+  aggregate: MeasuredAggregate,
+  member: RoomWatch,
+  operation: EncounterCutoverOperation,
+  samples: EncounterCutoverCommandSample[],
+  command: EncounterCommandInputDto
+) {
+  const result = await timeCutoverCommand(operation, samples, () =>
+    member.client.mutation(executeEncounterCommand, { command })
   )
-  aggregate.commits.push({ version: aggregate.run.version, committedAt })
+  aggregate.commits.push({
+    commandId: command.commandId,
+    initiator: member,
+    version: result.projection.version
+  })
+  aggregate.run = await aggregate.watches.gm.run(result.projection.version)
+  return result
 }
 
 async function prepareCutoverWorkloadAggregate({
@@ -495,24 +590,16 @@ async function prepareCutoverWorkloadAggregate({
 }): Promise<CutoverWorkloadAggregate> {
   const positions = cutoverWorkloadPositions()
   const tokenIds = positions.map(() => crypto.randomUUID())
-  const token = (index: number): EncounterLifecycleSceneOptions['tokens'][number] => ({
-    id: tokenIds[index]!,
-    assetId: null,
-    controlledByUserIds: index === 0 ? [...playerUserIds] : [],
-    height: 100,
-    hidden: false,
-    label: `${aggregate} workload actor ${index + 1}`,
-    locked: false,
-    position: positions[index]!,
-    rotationDegrees: 0,
-    vision: null,
-    width: 100
-  })
-  const tokens: EncounterLifecycleSceneOptions['tokens'] = [
-    token(0),
-    token(1),
-    ...positions.slice(2).map((_, index) => token(index + 2))
-  ]
+  const [first, second, ...rest] = positions.map((position, index) =>
+    workloadToken({
+      id: tokenIds[index]!,
+      label: `${aggregate} workload actor ${index + 1}`,
+      position,
+      controlledByUserIds: index === 0 ? [...playerUserIds] : []
+    })
+  )
+  if (!first || !second) throw new Error('V15 workload needs at least two tokens.')
+  const tokens: EncounterLifecycleSceneOptions['tokens'] = [first, second, ...rest]
   const scene = await createEncounterLifecycleScene({
     owner,
     campaignId,
@@ -670,7 +757,6 @@ async function prepareCutoverWorkloadAggregate({
   return {
     aggregate,
     gm: owner,
-    commits: [],
     actorIds,
     positions,
     tokenIds,
@@ -682,8 +768,7 @@ async function prepareCutoverWorkloadAggregate({
 }
 
 async function executeCutoverWorkloadAction(
-  aggregate: CutoverWorkloadAggregate,
-  players: readonly DevelopmentHttpClient[],
+  aggregate: MeasuredAggregate,
   item: EncounterCutoverWorkItem,
   commandSamples: EncounterCutoverCommandSample[]
 ) {
@@ -694,25 +779,25 @@ async function executeCutoverWorkloadAction(
   assert.equal(aggregate.run.currentActorId, actorId)
   const targetBefore = aggregate.run.actors.find((actor) => actor.id === targetActorId)
   if (!targetBefore) throw new Error('V15 workload action target is unavailable.')
-  const actor = participantClient(aggregate, players, item.participant)
-  await timeCutoverCommand('RESOLVE_ACTION', commandSamples, () =>
-    actor.mutation(executeEncounterCommand, {
-      command: {
-        type: 'RESOLVE_ACTION',
-        acceptedWieldConflict: null,
-        acknowledgedWarnings: [],
-        encounterId: aggregate.run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: aggregate.run.version,
-        actorId,
-        targetActorId,
-        actionId: cutoverWorkloadActionId(actorId, item.ordinal === 1 ? 'ACTION' : 'BONUS_ACTION'),
-        optionalCombatIntent: null,
-        sceneContext: null
-      }
-    })
+  await sendWorkloadCommand(
+    aggregate,
+    participantWatch(aggregate, item.participant),
+    'RESOLVE_ACTION',
+    commandSamples,
+    {
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: [],
+      encounterId: aggregate.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: aggregate.run.version,
+      actorId,
+      targetActorId,
+      actionId: cutoverWorkloadActionId(actorId, item.ordinal === 1 ? 'ACTION' : 'BONUS_ACTION'),
+      optionalCombatIntent: null,
+      sceneContext: null
+    }
   )
-  await readWorkloadRun(aggregate, Date.now())
   const targetAfter = aggregate.run.actors.find((candidate) => candidate.id === targetActorId)
   if (!targetAfter) throw new Error('V15 workload action target disappeared.')
   assert.equal(targetAfter.currentHitPoints, targetBefore.currentHitPoints - 1)
@@ -720,8 +805,7 @@ async function executeCutoverWorkloadAction(
 
 /** A turn that provokes no reaction: its actor's controller only ends it. */
 async function executeCutoverWorkloadEndTurn(
-  aggregate: CutoverWorkloadAggregate,
-  players: readonly DevelopmentHttpClient[],
+  aggregate: MeasuredAggregate,
   item: EncounterCutoverWorkItem,
   commandSamples: EncounterCutoverCommandSample[]
 ) {
@@ -729,17 +813,18 @@ async function executeCutoverWorkloadEndTurn(
   const nextActorId = aggregate.actorIds[item.actor % aggregate.actorIds.length]
   if (!actorId || !nextActorId) throw new Error('V15 workload turn actor is unavailable.')
   assert.equal(aggregate.run.currentActorId, actorId)
-  await timeCutoverCommand('ADVANCE_TURN', commandSamples, () =>
-    participantClient(aggregate, players, item.participant).mutation(executeEncounterCommand, {
-      command: {
-        type: 'ADVANCE_TURN',
-        encounterId: aggregate.run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: aggregate.run.version
-      }
-    })
+  await sendWorkloadCommand(
+    aggregate,
+    participantWatch(aggregate, item.participant),
+    'ADVANCE_TURN',
+    commandSamples,
+    {
+      type: 'ADVANCE_TURN',
+      encounterId: aggregate.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: aggregate.run.version
+    }
   )
-  await readWorkloadRun(aggregate, Date.now())
   assert.equal(aggregate.run.currentActorId, nextActorId)
 }
 /**
@@ -747,12 +832,10 @@ async function executeCutoverWorkloadEndTurn(
  * through the room, the reactor's response and any dice continuations, then the mover ends the turn.
  */
 async function executeCutoverWorkloadReaction(
-  aggregate: CutoverWorkloadAggregate,
-  players: readonly DevelopmentHttpClient[],
+  aggregate: MeasuredAggregate,
   item: EncounterCutoverWorkItem,
   commandSamples: EncounterCutoverCommandSample[],
-  inspectPending?: (pending: { occurrenceId: string }) => Promise<void>,
-  observeDurable?: (version: number, submittedAt: number) => Promise<void>
+  inspectPending?: (pending: { occurrenceId: string; encounterVersion: number }) => Promise<void>
 ) {
   const actorIndex = item.actor - 1
   const actorId = aggregate.actorIds[actorIndex]
@@ -767,24 +850,22 @@ async function executeCutoverWorkloadReaction(
   assert.equal(aggregate.run.currentActorId, actorId)
   const moverBefore = aggregate.run.actors.find((actor) => actor.id === actorId)
   if (!moverBefore) throw new Error('V15 workload mover is unavailable.')
-  const mover = participantClient(aggregate, players, item.participant)
-  const reactor = participantClient(
-    aggregate,
-    players,
-    cutoverWorkloadParticipant(reactorIndex + 1)
-  )
+  const mover = participantWatch(aggregate, item.participant)
+  const reactor = participantWatch(aggregate, cutoverWorkloadParticipant(reactorIndex + 1))
+  const gm = aggregate.watches.gm
   const startedAt = performance.now()
-  const priorSceneVersion = aggregate.sceneVersion
+  const priorSceneVersion = gm.scene.version
+  const priorRunVersion = aggregate.run.version
   const rootCommandId = crypto.randomUUID()
   // Encounter-bound moves go only through the room on its presented Scene (D42, D43).
   const { result: issued } = await timeCutoverCommand('SCENE_MOVE', commandSamples, () =>
-    mover.executeSceneCommand(
+    mover.client.executeSceneCommand(
       {
         type: 'MOVE_SCENE_TOKEN',
         sceneId: aggregate.sceneId,
         commandId: rootCommandId,
-        expectedSceneVersion: aggregate.sceneVersion,
-        expectedEncounterVersion: aggregate.run.version,
+        expectedSceneVersion: mover.scene.version,
+        expectedEncounterVersion: priorRunVersion,
         correlationId: null,
         movementKind: 'VOLUNTARY',
         tokenId,
@@ -799,15 +880,17 @@ async function executeCutoverWorkloadReaction(
     assert.equal(issued.replayed, false)
     assert.equal(issued.occurrence?.status, 'PENDING')
   }
-  // The reactor's controller sees the decision as the tabletop reads it.
-  const pending = await reactor.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-    encounterId: aggregate.run.id
-  })
-  if (
-    !pending ||
-    pending.kind !== 'MOVEMENT_REACTION' ||
-    (issued && pending.occurrenceId !== issued.occurrence?.occurrenceId)
+  // The reactor's controller sees the decision in its held session, as the tabletop reads it.
+  const issuedOccurrenceId = issued?.occurrence?.occurrenceId
+  const pending = await reactor.pending(
+    (candidate) =>
+      candidate.kind === 'MOVEMENT_REACTION' &&
+      (issuedOccurrenceId
+        ? candidate.occurrenceId === issuedOccurrenceId
+        : candidate.encounterVersion >= priorRunVersion),
+    'the movement reaction decision'
   )
+  if (pending.kind !== 'MOVEMENT_REACTION')
     throw new Error('V15 workload movement did not create one reaction occurrence.')
   assert.equal(pending.choice.reactorActorId, reactorActorId)
   assert.equal(pending.choice.reactorTokenId, aggregate.tokenIds[reactorIndex])
@@ -817,19 +900,21 @@ async function executeCutoverWorkloadReaction(
   if (!option) throw new Error('V15 workload reaction option is unavailable.')
   await inspectPending?.(pending)
   let terminalCommandId = crypto.randomUUID()
-  let resolved = await timeCutoverCommand('REACTION_RESPONSE', commandSamples, () =>
-    reactor.mutation(executeEncounterCommand, {
-      command: {
-        type: 'RESOLVE_RULE_OCCURRENCE',
-        commandId: terminalCommandId,
-        encounterId: aggregate.run.id,
-        expectedVersion: pending.encounterVersion,
-        occurrenceId: pending.occurrenceId,
-        expectedOccurrenceVersion: pending.occurrenceVersion,
-        correlationId: null,
-        resolution: { kind: 'OPTION', optionId: option.optionId }
-      }
-    })
+  let resolved = await sendWorkloadCommand(
+    aggregate,
+    reactor,
+    'REACTION_RESPONSE',
+    commandSamples,
+    {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      commandId: terminalCommandId,
+      encounterId: aggregate.run.id,
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'OPTION', optionId: option.optionId }
+    }
   )
   for (let continuations = 0; resolved.occurrence?.status === 'PENDING'; continuations++) {
     assert.ok(continuations < 4, 'V15 workload reaction did not settle.')
@@ -855,77 +940,97 @@ async function executeCutoverWorkloadReaction(
           : null
     if (!resolution) throw new Error(`V15 workload reaction requested ${continuation.kind}.`)
     terminalCommandId = crypto.randomUUID()
-    resolved = await timeCutoverCommand('REACTION_RESPONSE', commandSamples, () =>
-      reactor.mutation(executeEncounterCommand, {
-        command: {
-          type: 'RESOLVE_RULE_OCCURRENCE',
-          commandId: terminalCommandId,
-          encounterId: aggregate.run.id,
-          expectedVersion: continuation.encounterVersion,
-          occurrenceId: continuation.occurrenceId,
-          expectedOccurrenceVersion: continuation.occurrenceVersion,
-          correlationId: null,
-          resolution
-        }
-      })
-    )
+    resolved = await sendWorkloadCommand(aggregate, reactor, 'REACTION_RESPONSE', commandSamples, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      commandId: terminalCommandId,
+      encounterId: aggregate.run.id,
+      expectedVersion: continuation.encounterVersion,
+      occurrenceId: continuation.occurrenceId,
+      expectedOccurrenceVersion: continuation.occurrenceVersion,
+      correlationId: null,
+      resolution
+    })
   }
-  const responseCommittedAt = Date.now()
   assert.equal(resolved.occurrence?.occurrenceId, pending.occurrenceId)
   assert.equal(resolved.occurrence?.status, 'COMPLETE')
-  await readWorkloadRun(aggregate, responseCommittedAt)
   const moverAfter = aggregate.run.actors.find((actor) => actor.id === actorId)
   if (!moverAfter) throw new Error('V15 workload mover disappeared.')
-  const receipt = await aggregate.gm.query(inspectMovementReactionDamage, {
-    campaignId: aggregate.run.campaignId,
-    encounterId: aggregate.run.id,
+  // The reaction costs the mover one hit point, or two on a critical hit; the receipt that names
+  // which is a Convex row, so it is checked once the room has published (verifyReactionReceipts).
+  const damage = moverBefore.currentHitPoints - moverAfter.currentHitPoints
+  assert.ok(damage === 1 || damage === 2, `V15 reaction dealt ${damage} damage.`)
+  aggregate.receipts.push({
     rootCommandId,
-    terminalCommandId
+    terminalCommandId,
+    occurrenceId: pending.occurrenceId,
+    moverActorId: actorId,
+    reactorActorId,
+    moverHitPointsBefore: moverBefore.currentHitPoints,
+    moverHitPointsAfter: moverAfter.currentHitPoints
   })
-  assert.equal(receipt.occurrenceId, pending.occurrenceId)
-  assert.equal(receipt.sourceActorId, reactorActorId)
-  assert.equal(receipt.targetActorId, actorId)
-  assert.ok(
-    receipt.resultPath === 'ON_HIT' ||
-      receipt.resultPath === 'ON_MISS' ||
-      receipt.resultPath === 'ON_CRIT',
-    'V15 reaction used an unauthored result path.'
-  )
-  const expectedDamage = receipt.resultPath === 'ON_CRIT' ? 2 : 1
-  assert.deepEqual(
-    receipt.requestedAmounts,
-    Array.from({ length: expectedDamage }, () => 1)
-  )
-  assert.equal(receipt.appliedAmount, expectedDamage)
-  assert.equal(receipt.beforeHitPoints, moverBefore.currentHitPoints)
-  assert.equal(receipt.afterHitPoints, moverBefore.currentHitPoints - expectedDamage)
-  assert.equal(moverAfter.currentHitPoints, receipt.afterHitPoints)
   assert.equal(
-    await aggregate.gm.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-      encounterId: aggregate.run.id
-    }),
+    gm.held?.state.pending ?? null,
     null,
     'A V15 movement path may create exactly one pending reaction occurrence.'
   )
-  aggregate.sceneVersion = (
-    await aggregate.gm.query(api.scenes.liveReads.header, { sceneId: aggregate.sceneId })
-  ).version
-  assert.ok(aggregate.sceneVersion > priorSceneVersion)
-  await observeDurable?.(aggregate.sceneVersion, responseCommittedAt)
-  // Players end their own actor's turn.
-  await timeCutoverCommand('ADVANCE_TURN', commandSamples, () =>
-    mover.mutation(executeEncounterCommand, {
-      command: {
-        type: 'ADVANCE_TURN',
-        encounterId: aggregate.run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: aggregate.run.version
-      }
-    })
+  // The move's Scene change reaches every member's socket; the GM's copy is the table's.
+  await gm.until(
+    () => (gm.scene.version > priorSceneVersion ? gm.scene.version : null),
+    'the committed Scene move'
   )
-  await readWorkloadRun(aggregate, Date.now())
+  // Players end their own actor's turn.
+  await sendWorkloadCommand(aggregate, mover, 'ADVANCE_TURN', commandSamples, {
+    type: 'ADVANCE_TURN',
+    encounterId: aggregate.run.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: aggregate.run.version
+  })
   assert.equal(aggregate.run.currentActorId, nextActorId)
   return performance.now() - startedAt
+}
+
+/**
+ * Once the room has published, Convex holds what the room decided: each reaction's damage receipt
+ * names its result path and amounts, and the Run and the Scene are at the room's versions.
+ */
+async function verifyPublishedAggregate(aggregate: MeasuredAggregate) {
+  const { gm: client, watches } = aggregate
+  for (const receipt of aggregate.receipts) {
+    const stored = await client.query(inspectMovementReactionDamage, {
+      campaignId: aggregate.run.campaignId,
+      encounterId: aggregate.run.id,
+      rootCommandId: receipt.rootCommandId,
+      terminalCommandId: receipt.terminalCommandId
+    })
+    assert.equal(stored.occurrenceId, receipt.occurrenceId)
+    assert.equal(stored.sourceActorId, receipt.reactorActorId)
+    assert.equal(stored.targetActorId, receipt.moverActorId)
+    assert.ok(
+      stored.resultPath === 'ON_HIT' ||
+        stored.resultPath === 'ON_MISS' ||
+        stored.resultPath === 'ON_CRIT',
+      'V15 reaction used an unauthored result path.'
+    )
+    const expectedDamage = stored.resultPath === 'ON_CRIT' ? 2 : 1
+    assert.deepEqual(
+      stored.requestedAmounts,
+      Array.from({ length: expectedDamage }, () => 1)
+    )
+    assert.equal(stored.appliedAmount, expectedDamage)
+    assert.equal(stored.beforeHitPoints, receipt.moverHitPointsBefore)
+    assert.equal(stored.afterHitPoints, receipt.moverHitPointsAfter)
+    assert.equal(receipt.moverHitPointsAfter, receipt.moverHitPointsBefore - expectedDamage)
+  }
+  const published = await client.query(api.encounters.projectionReads.get, {
+    encounterId: aggregate.run.id
+  })
+  assert.equal(published.version, aggregate.run.version)
+  assert.equal(published.round, aggregate.run.round)
+  assert.equal(published.currentActorId, aggregate.run.currentActorId)
+  assert.equal(
+    (await client.query(api.scenes.liveReads.header, { sceneId: aggregate.sceneId })).version,
+    watches.gm.scene.version
+  )
 }
 
 /**
@@ -935,16 +1040,13 @@ async function executeCutoverWorkloadReaction(
  */
 async function verifyCutoverWorkloadPreflight({
   peer,
-  aggregate,
-  players,
-  subscribers
+  aggregate
 }: {
   peer: DevelopmentHttpClient
-  aggregate: CutoverWorkloadAggregate
-  players: readonly DevelopmentHttpClient[]
-  subscribers: readonly ConvexClient[]
+  aggregate: MeasuredAggregate
 }) {
   const owner = aggregate.gm
+  const { gm, players } = aggregate.watches
   const actorId = aggregate.actorIds[0]!
   const targetActorId = aggregate.actorIds[1]!
   const action = (commandId: string) => ({
@@ -974,29 +1076,14 @@ async function verifyCutoverWorkloadPreflight({
   if (!winner || winner.status !== 'fulfilled' || !loser || loser.status !== 'rejected')
     throw new Error('V15 same-version contention did not produce one winner and one stale loser.')
   assert.match(String(loser.reason), /stale|changed/i)
-  aggregate.run = encounterGmProjectionDtoSchema.parse(winner.value.projection)
-  const afterWinner = await owner.query(api.encounters.projectionReads.get, {
-    encounterId: aggregate.run.id
-  })
-  const timelineAfterWinner = await owner.query(api.encounters.timelineReads.timeline, {
-    encounterId: aggregate.run.id,
-    limit: 100
-  })
+  aggregate.run = await gm.run(winner.value.projection.version)
+  // The room's held session is the Run the table sees; a refused or replayed command leaves it as is.
+  const afterWinner = await gm.session(aggregate.run.version)
   assert.deepEqual(
     await owner.mutation(executeEncounterCommand, contenders[winnerIndex]!),
     winner.value
   )
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: aggregate.run.id }),
-    afterWinner
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: aggregate.run.id,
-      limit: 100
-    }),
-    timelineAfterWinner
-  )
+  assert.deepEqual(gm.held, afterWinner)
   await assert.rejects(
     owner.mutation(executeEncounterCommand, {
       command: {
@@ -1016,23 +1103,12 @@ async function verifyCutoverWorkloadPreflight({
   )
   // A player cannot act for the GM's actor, even on its turn.
   await assert.rejects(
-    players[1]!.mutation(executeEncounterCommand, action(crypto.randomUUID())),
+    players[1]!.client.mutation(executeEncounterCommand, action(crypto.randomUUID())),
     (error) => assertDomainRejection(error, 'NOT_ACTOR_CONTROLLER')
   )
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: aggregate.run.id }),
-    afterWinner
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: aggregate.run.id,
-      limit: 100
-    }),
-    timelineAfterWinner
-  )
+  assert.deepEqual(gm.held, afterWinner)
   await executeCutoverWorkloadReaction(
     aggregate,
-    players,
     {
       aggregate: aggregate.aggregate,
       round: 1,
@@ -1044,141 +1120,88 @@ async function verifyCutoverWorkloadPreflight({
     [],
     async (decision) => {
       // Only the reacting actor's player (the first) sees the decision.
-      const pending = await Promise.all(
-        subscribers.map((subscriber) =>
-          subscriber.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-            encounterId: aggregate.run.id
-          })
-        )
-      )
-      assert.equal(pending[0]?.occurrenceId, decision.occurrenceId)
+      const [reactor, ...others] = players
+      assert.equal(reactor?.held?.state.pending?.occurrenceId, decision.occurrenceId)
+      await Promise.all(others.map((other) => other.session(decision.encounterVersion)))
       assert.deepEqual(
-        pending.slice(1),
-        Array.from({ length: encounterCutoverWorkloadDefinition.players - 1 }, () => null)
+        others.map((other) => other.held?.state.pending ?? null),
+        others.map(() => null)
       )
     }
   )
   for (let index = 1; index < encounterCutoverWorkloadDefinition.actors; index++)
-    aggregate.run = encounterGmProjectionDtoSchema.parse(
-      (
-        await owner.mutation(executeEncounterCommand, {
-          command: {
-            type: 'ADVANCE_TURN',
-            encounterId: aggregate.run.id,
-            commandId: crypto.randomUUID(),
-            expectedVersion: aggregate.run.version
-          }
-        })
-      ).projection
-    )
+    await sendWorkloadCommand(aggregate, gm, 'ADVANCE_TURN', [], {
+      type: 'ADVANCE_TURN',
+      encounterId: aggregate.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: aggregate.run.version
+    })
   assert.equal(aggregate.run.currentActorId, actorId)
 }
 
-async function subscribeCutoverWorkloadPlayers(
-  deploymentUrl: string,
-  playerFetchTokens: readonly (() => Promise<string>)[],
-  encounterIds: readonly string[]
-) {
-  assert.equal(playerFetchTokens.length, encounterCutoverWorkloadDefinition.players)
-  const clients = playerFetchTokens.map(() => new ConvexClient(deploymentUrl, { logger: false }))
-  const unsubscribers: (() => void)[] = []
-  // Every Run version each player's subscription delivers, for durable convergence.
-  const observations: { encounterId: string; version: number; player: number; at: number }[] = []
-  let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    const initial = clients.flatMap((client, index) => {
-      client.setAuth(playerFetchTokens[index]!)
-      return encounterIds.map(
-        (encounterId) =>
-          new Promise<void>((resolve, reject) => {
-            let ready = false
-            unsubscribers.push(
-              client.onUpdate(
-                api.encounters.projectionReads.get,
-                { encounterId },
-                (run) => {
-                  observations.push({
-                    encounterId,
-                    version: run.version,
-                    player: index,
-                    at: Date.now()
-                  })
-                  if (ready) return
-                  assert.equal(run.id, encounterId)
-                  ready = true
-                  resolve()
-                },
-                reject
-              )
-            )
-          })
-      )
+/**
+ * Joins each member of one aggregate's Campaign to its room, so the measured window reads the
+ * room's frames. The GM watches through the aggregate's own GM client.
+ */
+async function watchCutoverAggregate(
+  aggregate: CutoverWorkloadAggregate,
+  gmUserId: string,
+  players: readonly { client: DevelopmentHttpClient; userId: string }[]
+): Promise<MeasuredAggregate> {
+  const join = (client: DevelopmentHttpClient, userId: string) =>
+    RoomWatch.join(client, userId, {
+      encounterId: aggregate.run.id,
+      sceneId: aggregate.sceneId,
+      sceneVersion: aggregate.sceneVersion
     })
-    await Promise.race([
-      Promise.all(initial),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(
-          () => reject(new Error('V15 player subscriptions did not become ready.')),
-          30_000
-        )
-      })
-    ])
-    return { clients, unsubscribers, observations }
-  } catch (error) {
-    for (const unsubscribe of unsubscribers) unsubscribe()
-    await Promise.all(clients.map((client) => client.close()))
-    throw error
-  } finally {
-    clearTimeout(timer)
+  const [gm, ...members] = await Promise.all([
+    join(aggregate.gm, gmUserId),
+    ...players.map(({ client, userId }) => join(client, userId))
+  ])
+  return {
+    ...aggregate,
+    watches: { gm: gm!, players: members },
+    commits: [],
+    receipts: []
   }
 }
 
-/**
- * Warm durable convergence (V15.2): for each measured commit, the slowest player's first
- * subscription delivery of that Run version or a later one, measured from the commit's
- * acknowledgement. Convex commits before the room acknowledges, so the anchor is at or after the
- * commit; a delivery that beat the acknowledgement counts as a negative duration.
- */
-async function measureDurableConvergence(
-  aggregates: readonly CutoverWorkloadAggregate[],
-  observations: readonly { encounterId: string; version: number; player: number; at: number }[]
-) {
-  const players = Array.from({ length: encounterCutoverWorkloadDefinition.players }, (_, p) => p)
-  const delivered = (encounterId: string, version: number, player: number) =>
-    observations.find(
-      (entry) =>
-        entry.encounterId === encounterId && entry.player === player && entry.version >= version
+/** The room's journal and checkpoints for one Campaign, read from its development meter route. */
+async function readMeters(control: RoomControl, aggregates: readonly MeasuredAggregate[]) {
+  return Object.fromEntries(
+    await Promise.all(
+      aggregates.map(async (aggregate) => [
+        aggregate.aggregate,
+        {
+          campaignId: aggregate.watches.gm.campaignId,
+          meter: await control.meter(aggregate.watches.gm.campaignId)
+        }
+      ])
     )
-  const deadline = Date.now() + 15_000
-  while (
-    aggregates.some((aggregate) =>
-      players.some((player) => !delivered(aggregate.run.id, aggregate.run.version, player))
-    )
-  ) {
-    if (Date.now() > deadline)
-      throw new Error('V15 players did not receive the final Run versions.')
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-  const rawMs = aggregates.flatMap((aggregate) =>
-    aggregate.commits.map((commit) =>
-      Math.max(
-        ...players.map(
-          (player) => delivered(aggregate.run.id, commit.version, player)!.at - commit.committedAt
-        )
-      )
-    )
-  )
-  const sorted = [...rawMs].sort((left, right) => left - right)
-  const rank = (value: number) => sorted[Math.ceil(value * sorted.length) - 1]!
-  return {
-    samples: sorted.length,
-    p50Ms: rank(0.5),
-    p95Ms: rank(0.95),
-    p99Ms: rank(0.99),
-    maximumMs: sorted.at(-1)!,
-    rawMs
-  }
+  ) as Record<EncounterCutoverWorkItem['aggregate'], { campaignId: string; meter: unknown }>
 }
+
+/** Every document one aggregate's checkpoint writes, sized as Convex stores it. */
+async function readDocumentSizes(aggregate: MeasuredAggregate) {
+  const tables = new Map<string, { documents: number; totalBytes: number; maxBytes: number }>()
+  let next: DevelopmentDocumentSizesPage['next'] = { position: 0, cursor: null }
+  while (next) {
+    const page: DevelopmentDocumentSizesPage = await aggregate.gm.query(checkpointDocumentSizes, {
+      encounterId: aggregate.run.id,
+      sceneId: aggregate.sceneId,
+      ...next
+    })
+    const row = tables.get(page.table) ?? { documents: 0, totalBytes: 0, maxBytes: 0 }
+    tables.set(page.table, {
+      documents: row.documents + page.documents,
+      totalBytes: row.totalBytes + page.totalBytes,
+      maxBytes: Math.max(row.maxBytes, page.maxBytes)
+    })
+    next = page.next
+  }
+  return Object.fromEntries(tables)
+}
+
 /**
  * The frozen V15 local workload. Every client keeps its Session rooms open like a tabletop tab; the
  * GM and each player act only for the actors they control. Tokens are refreshed each round so rooms
@@ -1187,12 +1210,12 @@ async function measureDurableConvergence(
 export async function verifyEncounterCutoverWorkload({
   gm,
   players,
-  deploymentUrl,
   campaignId,
   independentCampaignId,
   initiativePolicyDefinitionId,
   creatureId,
   browserAccounts,
+  evidenceDirectory,
   preflightOnly = false
 }: {
   gm: {
@@ -1206,7 +1229,6 @@ export async function verifyEncounterCutoverWorkload({
     userId: string
     fetchToken: () => Promise<string>
   }[]
-  deploymentUrl: string
   campaignId: string
   independentCampaignId: string
   initiativePolicyDefinitionId: string
@@ -1215,8 +1237,9 @@ export async function verifyEncounterCutoverWorkload({
     owner: { email: string; password: string; username: string }
     players: readonly { email: string; password: string; username: string }[]
     campaignPublicId: string
-    evidenceDirectory?: string
   }
+  /** Where the room evidence for `scripts/v15Budgets.mjs` is written. */
+  evidenceDirectory?: string
   preflightOnly?: boolean
 }) {
   const { owner, peer } = gm
@@ -1244,58 +1267,42 @@ export async function verifyEncounterCutoverWorkload({
       sourceId: creatureId
     }))
   })
-  const primary = await prepareCutoverWorkloadAggregate({
-    owner,
-    campaignId,
-    initiativePolicyDefinitionId,
-    blueprintId: blueprint.id,
-    playerUserIds,
-    aggregate: 'PRIMARY'
-  })
-  const independent = await prepareCutoverWorkloadAggregate({
-    owner: peer,
-    campaignId: independentCampaignId,
-    initiativePolicyDefinitionId,
-    blueprintId: blueprint.id,
-    playerUserIds,
-    aggregate: 'INDEPENDENT'
-  })
-  const subscriptions = await subscribeCutoverWorkloadPlayers(
-    deploymentUrl,
-    players.map(({ fetchToken }) => fetchToken),
-    [primary.run.id, independent.run.id]
+  const primary = await watchCutoverAggregate(
+    await prepareCutoverWorkloadAggregate({
+      owner,
+      campaignId,
+      initiativePolicyDefinitionId,
+      blueprintId: blueprint.id,
+      playerUserIds,
+      aggregate: 'PRIMARY'
+    }),
+    gm.userId,
+    players
   )
-  let browser: Awaited<
-    ReturnType<
-      (typeof import('../../web/tests/live-backend/v15WorkloadBrowser'))['openV15WorkloadBrowser']
-    >
-  > | null = null
+  const independent = await watchCutoverAggregate(
+    await prepareCutoverWorkloadAggregate({
+      owner: peer,
+      campaignId: independentCampaignId,
+      initiativePolicyDefinitionId,
+      blueprintId: blueprint.id,
+      playerUserIds,
+      aggregate: 'INDEPENDENT'
+    }),
+    gm.userId,
+    players
+  )
+  const measuredAggregates = [primary, independent]
+  const control = await RoomControl.open(owner)
   try {
-    await verifyCutoverWorkloadPreflight({
-      peer,
-      aggregate: primary,
-      players: playerClients,
-      subscribers: subscriptions.clients
-    })
-    if (browserAccounts) {
-      const { openV15WorkloadBrowser } =
-        await import('../../web/tests/live-backend/v15WorkloadBrowser')
-      browser = await openV15WorkloadBrowser({
-        ...browserAccounts,
-        map: workloadMap,
-        tokenPosition: primary.positions[0]!
-      })
-      await browser.preview({ measure: false })
-    }
+    await verifyCutoverWorkloadPreflight({ peer, aggregate: primary })
     if (preflightOnly) {
       const commandSamples: EncounterCutoverCommandSample[] = []
       try {
         for (const ordinal of [1, 2] as const)
           await Promise.all(
-            [primary, independent].map((aggregate) =>
+            measuredAggregates.map((aggregate) =>
               executeCutoverWorkloadAction(
                 aggregate,
-                playerClients,
                 {
                   aggregate: aggregate.aggregate,
                   round: 1,
@@ -1308,19 +1315,30 @@ export async function verifyEncounterCutoverWorkload({
               )
             )
           )
-        await browser?.preview({ measure: false })
       } finally {
         console.log(`V15 native preflight action diagnostic: ${JSON.stringify({ commandSamples })}`)
       }
-      return { preflight: 'passed' as const, browserPreview: browser ? ('passed' as const) : null }
+      return { preflight: 'passed' as const }
     }
     const aggregates = { PRIMARY: primary, INDEPENDENT: independent }
     // The preflight's commits warmed the path; only the measured schedule counts.
-    for (const aggregate of [primary, independent]) aggregate.commits.length = 0
+    for (const aggregate of measuredAggregates) aggregate.commits.length = 0
     const firstMeasuredRound = {
       PRIMARY: primary.run.round,
       INDEPENDENT: independent.run.round
     }
+    // Previews from the GM's socket to its players', alongside the commands: the browsers measure
+    // painted previews out of combat; this measures the room's own fan-out while combat runs.
+    const probe = new PreviewProbe(
+      primary.watches.gm,
+      primary.watches.players,
+      primary.tokenIds[0]!
+    )
+    const dragFrom = primary.positions[0]!
+    const combatMetersBefore = await readMeters(control, measuredAggregates)
+    // Markers in the native Convex log bound the window: nothing between them may be a client call.
+    await owner.mutation(openMeasurementWindow, {})
+    const combatStartedAt = performance.now()
     const workload = await measureEncounterCutoverWorkload(async (schedules) => {
       const commandSamples: EncounterCutoverCommandSample[] = []
       const reactionCompositeDurationsMs: number[] = []
@@ -1329,46 +1347,33 @@ export async function verifyEncounterCutoverWorkload({
         if (!items[0] || !items[1]) throw new Error('V15 workload schedules diverged.')
         if (items[0].actor === 1 && items[0].kind === 'ACTION' && items[0].ordinal === 1)
           await refreshAuth()
-        const preview =
-          browser &&
+        if (
           items[0].kind === 'ACTION' &&
           items[0].ordinal === 1 &&
           [1, 6, 11].includes(items[0].actor)
-            ? browser.preview()
-            : Promise.resolve()
-        const [composites] = await Promise.all([
-          Promise.all(
-            items.map((item) => {
-              const aggregate = aggregates[item.aggregate]
-              assert.equal(
-                aggregate.run.round,
-                firstMeasuredRound[item.aggregate] + item.round - 1,
-                `${item.aggregate} workload is in the wrong Run round.`
-              )
-              return (
-                item.kind === 'ACTION'
-                  ? executeCutoverWorkloadAction(aggregate, playerClients, item, commandSamples)
-                  : item.kind === 'END_TURN'
-                    ? executeCutoverWorkloadEndTurn(aggregate, playerClients, item, commandSamples)
-                    : executeCutoverWorkloadReaction(
-                        aggregate,
-                        playerClients,
-                        item,
-                        commandSamples,
-                        undefined,
-                        item.aggregate === 'PRIMARY'
-                          ? browser?.observeDurable.bind(browser)
-                          : undefined
-                      )
-              ).catch((error: unknown) => {
-                throw new Error(`V15 workload item failed: ${JSON.stringify(item)}`, {
-                  cause: error
-                })
+        )
+          await probe.drag([15, 30, 45].map((dx) => ({ x: dragFrom.x + dx, y: dragFrom.y })))
+        const composites = await Promise.all(
+          items.map((item) => {
+            const aggregate = aggregates[item.aggregate]
+            assert.equal(
+              aggregate.run.round,
+              firstMeasuredRound[item.aggregate] + item.round - 1,
+              `${item.aggregate} workload is in the wrong Run round.`
+            )
+            return (
+              item.kind === 'ACTION'
+                ? executeCutoverWorkloadAction(aggregate, item, commandSamples)
+                : item.kind === 'END_TURN'
+                  ? executeCutoverWorkloadEndTurn(aggregate, item, commandSamples)
+                  : executeCutoverWorkloadReaction(aggregate, item, commandSamples)
+            ).catch((error: unknown) => {
+              throw new Error(`V15 workload item failed: ${JSON.stringify(item)}`, {
+                cause: error
               })
             })
-          ),
-          preview
-        ])
+          })
+        )
         for (const composite of composites)
           if (composite !== undefined) reactionCompositeDurationsMs.push(composite)
       }
@@ -1382,9 +1387,43 @@ export async function verifyEncounterCutoverWorkload({
       )
       return { commandSamples, reactionCompositeDurationsMs }
     })
-    const durable = await measureDurableConvergence(
-      [primary, independent],
-      subscriptions.observations
+    const combatMs = performance.now() - combatStartedAt
+    const combatMetersAfter = await readMeters(control, measuredAggregates)
+    await owner.mutation(closeMeasurementWindow, {})
+    const memberWatches = measuredAggregates.flatMap(({ watches }) => [
+      watches.gm,
+      ...watches.players
+    ])
+    // Every member must hold each aggregate's final Run before convergence is read from its frames.
+    await Promise.all(
+      measuredAggregates.flatMap((aggregate) =>
+        [aggregate.watches.gm, ...aggregate.watches.players].map((watch) =>
+          watch.session(aggregate.run.version)
+        )
+      )
+    )
+    const convergence = measureConvergence(
+      measuredAggregates.flatMap(({ commits }) => commits),
+      memberWatches
+    )
+    const previews = probe.latenciesMs.length > 0 ? latencySummary(probe.latenciesMs) : null
+    // Durability is Convex's, behind the room's journal: the barrier publishes what the room holds,
+    // then Convex must hold the Run, the Scene and every reaction receipt the room decided.
+    const barriers = Object.fromEntries(
+      await Promise.all(
+        measuredAggregates.map(
+          async (aggregate) =>
+            [aggregate.aggregate, await control.barrier(aggregate.watches.gm.campaignId)] as const
+        )
+      )
+    )
+    for (const aggregate of measuredAggregates) await verifyPublishedAggregate(aggregate)
+    const documents = Object.fromEntries(
+      await Promise.all(
+        measuredAggregates.map(
+          async (aggregate) => [aggregate.aggregate, await readDocumentSizes(aggregate)] as const
+        )
+      )
     )
     // Report the measurement before the thresholds judge it, so a missed budget keeps its numbers.
     const composites = [...workload.reactionCompositeDurationsMs].sort(
@@ -1410,39 +1449,186 @@ export async function verifyEncounterCutoverWorkload({
           p50Ms: composites[Math.ceil(0.5 * composites.length) - 1],
           p95Ms: composites[Math.ceil(0.95 * composites.length) - 1]
         },
-        durable: {
-          samples: durable.samples,
-          p50Ms: durable.p50Ms,
-          p95Ms: durable.p95Ms,
-          p99Ms: durable.p99Ms,
-          maximumMs: durable.maximumMs
+        convergence: {
+          session: { ...convergence.session, rawMs: undefined },
+          commandCommitted: convergence.commandCommitted && {
+            ...convergence.commandCommitted,
+            rawMs: undefined
+          }
         },
-        workloadMaximumMs: workload.workloadMaximumMs
+        roomPreviews: previews && { ...previews, rawMs: undefined, dropped: probe.dropped },
+        workloadMaximumMs: workload.workloadMaximumMs,
+        combatWindowMs: combatMs
       })}`
     )
     assertEncounterCutoverWorkload(workload)
     assert.ok(
-      durable.p95Ms <= encounterCutoverWorkloadDefinition.thresholds.durablePeerConvergenceP95Ms,
-      'V15 durable peer convergence p95 exceeded 250 ms.'
+      convergence.session.p95Ms <=
+        encounterCutoverWorkloadDefinition.thresholds.durablePeerConvergenceP95Ms,
+      'V15 warm durable peer convergence p95 exceeded 250 ms.'
     )
     assert.ok(
-      durable.p99Ms <= encounterCutoverWorkloadDefinition.thresholds.durablePeerConvergenceP99Ms,
-      'V15 durable peer convergence p99 exceeded 500 ms.'
+      convergence.session.p99Ms <=
+        encounterCutoverWorkloadDefinition.thresholds.durablePeerConvergenceP99Ms,
+      'V15 warm durable peer convergence p99 exceeded 500 ms.'
     )
+    assert.ok(previews, 'V15 combat previews all dropped before reaching a peer.')
+    assert.ok(
+      previews.p95Ms <= encounterCutoverWorkloadDefinition.thresholds.peerPreviewP95Ms,
+      'V15 room preview p95 exceeded 150 ms.'
+    )
+    const outOfCombat = await measureOutOfCombat({
+      control,
+      aggregate: primary,
+      browserAccounts,
+      evidenceDirectory
+    })
+    if (evidenceDirectory) {
+      await mkdir(evidenceDirectory, { recursive: true })
+      await writeFile(
+        resolve(evidenceDirectory, 'v15-room-evidence.json'),
+        JSON.stringify(
+          {
+            combat: {
+              rounds: encounterCutoverWorkloadDefinition.rounds,
+              aggregates: measuredAggregates.length,
+              durationMs: combatMs,
+              meters: { before: combatMetersBefore, after: combatMetersAfter },
+              barriers,
+              documents,
+              convergence,
+              roomPreviews: previews && { ...previews, dropped: probe.dropped }
+            },
+            outOfCombat
+          },
+          null,
+          2
+        )
+      )
+    }
+    return { ...workload, convergence, roomPreviews: previews, outOfCombat }
+  } finally {
+    for (const client of [owner, peer, ...playerClients]) client.closeRooms()
+  }
+}
+
+/**
+ * Paced Scene moves with no Encounter. Every unsaved room change arms the room's 120 s save timer,
+ * so unlike combat this window is measured over minutes: its pace is an assumption the user sets
+ * (`V15_OOC_STEPS_PER_MINUTE`, `V15_OOC_MINUTES`), not a claim about normal play. The members take
+ * turns moving the token they control; the six browsers, when given, paint every move and the
+ * previews between them.
+ */
+async function measureOutOfCombat({
+  control,
+  aggregate,
+  browserAccounts,
+  evidenceDirectory
+}: {
+  control: RoomControl
+  aggregate: MeasuredAggregate
+  browserAccounts?: Parameters<typeof verifyEncounterCutoverWorkload>[0]['browserAccounts']
+  evidenceDirectory?: string
+}) {
+  const { gm, players } = aggregate.watches
+  // Completing the Run unbinds its Scene, so token moves commit directly instead of staging.
+  await gm.client.mutation(executeEncounterCommand, {
+    command: {
+      type: 'COMPLETE',
+      encounterId: aggregate.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: aggregate.run.version
+    }
+  })
+  await control.barrier(gm.campaignId)
+  const home = aggregate.positions[0]!
+  const away = { x: home.x + 100, y: home.y }
+  const tokenId = aggregate.tokenIds[0]!
+  const { stepsPerMinute, minutes } = encounterCutoverWorkloadDefinition.outOfCombat
+  const steps = stepsPerMinute * minutes
+  const intervalMs = 60_000 / stepsPerMinute
+  const members = [gm, ...players]
+  let browser: Awaited<
+    ReturnType<
+      (typeof import('../../web/tests/live-backend/v15WorkloadBrowser'))['openV15WorkloadBrowser']
+    >
+  > | null = null
+  try {
+    if (browserAccounts) {
+      const { openV15WorkloadBrowser } =
+        await import('../../web/tests/live-backend/v15WorkloadBrowser')
+      browser = await openV15WorkloadBrowser({
+        ...browserAccounts,
+        evidenceDirectory,
+        map: workloadMap,
+        tokenPosition: home
+      })
+    }
+    const commandMs: number[] = []
+    const metersBefore = await readMeters(control, [aggregate])
+    await gm.client.mutation(openMeasurementWindow, {})
+    const startedAt = performance.now()
+    for (let step = 0; step < steps; step++) {
+      const stepStartedAt = performance.now()
+      const mover = members[step % members.length]!
+      const outbound = step % 2 === 0
+      const commit = await mover.client.executeSceneCommand(
+        {
+          type: 'MOVE_SCENE_TOKEN',
+          sceneId: aggregate.sceneId,
+          commandId: crypto.randomUUID(),
+          expectedSceneVersion: mover.scene.version,
+          expectedEncounterVersion: null,
+          correlationId: null,
+          movementKind: 'VOLUNTARY',
+          tokenId,
+          path: outbound ? [home, away] : [away, home]
+        },
+        { expectedPresentationVersion: aggregate.presentation.version }
+      )
+      commandMs.push(performance.now() - stepStartedAt)
+      const committedAt = Date.now()
+      if (browser) {
+        await browser.observeDurable(commit.version, committedAt)
+        // Back at its home, where the browser drags it.
+        if (!outbound) await browser.preview()
+      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.max(0, intervalMs - (performance.now() - stepStartedAt)))
+      )
+    }
+    const durationMs = performance.now() - startedAt
+    const metersAfter = await readMeters(control, [aggregate])
+    await gm.client.mutation(closeMeasurementWindow, {})
+    await Promise.all(
+      members.map((member) =>
+        member.until(
+          () => (member.scene.version >= gm.scene.version ? true : null),
+          'the final Scene version'
+        )
+      )
+    )
+    const barrier = await control.barrier(gm.campaignId)
+    const { header, token } = await readAuthoritativeSceneToken(gm.client, {
+      sceneId: aggregate.sceneId,
+      tokenId
+    })
+    assert.equal(header.version, gm.scene.version)
+    assert.deepEqual(token.position, steps % 2 === 0 ? home : away)
     return {
-      ...workload,
-      durable,
+      steps,
+      stepsPerMinute,
+      minutes,
+      intervalMs,
+      durationMs,
+      commandMs: latencySummary(commandMs),
+      meters: { before: metersBefore, after: metersAfter },
+      barrier,
       browser:
-        browser?.summary({
-          previewSamples: encounterCutoverWorkloadDefinition.rounds * 3,
-          durableSamples: countWorkItems([scheduleEncounterCutoverWorkload()], 'REACTION')
-        }) ?? null
+        browser?.summary({ previewSamples: Math.floor(steps / 2), durableSamples: steps }) ?? null
     }
   } finally {
     await browser?.close()
-    for (const unsubscribe of subscriptions.unsubscribers) unsubscribe()
-    await Promise.all(subscriptions.clients.map((client) => client.close()))
-    for (const client of [owner, peer, ...playerClients]) client.closeRooms()
   }
 }
 

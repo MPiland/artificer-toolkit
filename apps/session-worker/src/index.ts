@@ -1,6 +1,8 @@
 import {
+  LIVE_SESSION_CHECKPOINT_BARRIER_PATH,
   LIVE_SESSION_CONTROL_PATH,
   LIVE_SESSION_CONTROL_SECRET_HEADER,
+  LIVE_SESSION_METER_PATH,
   LIVE_SESSION_PATH_PREFIX,
   LIVE_SESSION_TICKET_PROTOCOL_PREFIX,
   LIVE_SESSION_WEBSOCKET_PROTOCOL,
@@ -12,10 +14,15 @@ import { CONTENT_SNAPSHOT_PATH_PREFIX } from '@artificer-toolkit/schema/api/cont
 import { serveContentSnapshot } from './contentSnapshots.js'
 import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
 import { NativeLiveSessionRoom as LiveSessionRoom } from './nativeLiveSessionRoom.js'
-import { ROOM_METER_PATH } from './roomMeter.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
+
+/** Load-proof routes into one room, `<path>/<campaignId>`; see the gate in `fetch`. */
+const developmentRoomRoutes = [
+  { method: 'GET', path: LIVE_SESSION_METER_PATH },
+  { method: 'POST', path: LIVE_SESSION_CHECKPOINT_BARRIER_PATH }
+] as const
 
 function secretMatches(supplied: string, expected: string): boolean {
   const encoder = new TextEncoder()
@@ -76,12 +83,13 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
         })
       )
     }
-    const meter = url.pathname.match(new RegExp(`^${ROOM_METER_PATH}/([^/]+)$`))
-    if (meter) {
+    for (const route of developmentRoomRoutes) {
+      const campaign = url.pathname.match(new RegExp(`^${route.path}/([^/]+)$`))
+      if (!campaign) continue
       // Development only: the local-origin marker is absent from every deployed environment.
       const secret = environment.LIVE_SESSION_WORKER_SECRET
       if (
-        request.method !== 'GET' ||
+        request.method !== route.method ||
         environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN !== 'http://127.0.0.1:8026' ||
         !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
       )
@@ -89,9 +97,9 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
       const supplied = request.headers.get(LIVE_SESSION_CONTROL_SECRET_HEADER)
       if (!secret || !supplied || !secretMatches(supplied, secret))
         return new Response('Unauthorized.', { status: 401 })
-      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(meter[1])
+      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(campaign[1])
       return environment.LIVE_SESSION_ROOMS.get(objectId).fetch(
-        new Request(`https://live-session.internal${ROOM_METER_PATH}`)
+        new Request(`https://live-session.internal${route.path}`, { method: route.method })
       )
     }
     const path = url.pathname.match(new RegExp(`^${LIVE_SESSION_PATH_PREFIX}/([^/]+)$`))

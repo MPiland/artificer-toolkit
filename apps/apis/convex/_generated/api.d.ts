@@ -40731,6 +40731,27 @@ export declare const api: {
     };
   };
   liveSessions: {
+    developmentMeasurement: {
+      checkpointDocumentSizes: FunctionReference<
+        "query",
+        "public",
+        {
+          cursor: string | null;
+          encounterId: string;
+          position: number;
+          sceneId: string;
+        },
+        {
+          documents: number;
+          maxBytes: number;
+          next: { cursor: string | null; position: number } | null;
+          table: string;
+          totalBytes: number;
+        }
+      >;
+      closeWindow: FunctionReference<"mutation", "public", {}, null>;
+      openWindow: FunctionReference<"mutation", "public", {}, null>;
+    };
     tickets: {
       issue: FunctionReference<
         "action",

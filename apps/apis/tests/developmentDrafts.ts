@@ -3755,7 +3755,6 @@ try {
         else {
           const workloadResult = await verifyEncounterCutoverWorkload({
             ...workloadMembers,
-            deploymentUrl: deploymentUrl.origin,
             campaignId: campaign.id,
             independentCampaignId,
             initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
@@ -3773,10 +3772,10 @@ try {
                       password,
                       username
                     })),
-                    campaignPublicId: campaign.publicId,
-                    evidenceDirectory: process.env.CAMPAIGN_CUSTODY_EVIDENCE_DIRECTORY
+                    campaignPublicId: campaign.publicId
                   }
                 : undefined,
+            evidenceDirectory: process.env.CAMPAIGN_CUSTODY_EVIDENCE_DIRECTORY,
             preflightOnly: process.argv.includes('--encounter-v15-preflight')
           })
           console.log(`V15 native workload: ${JSON.stringify(workloadResult)}`)

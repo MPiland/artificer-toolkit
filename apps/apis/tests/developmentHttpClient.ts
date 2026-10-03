@@ -18,7 +18,8 @@ import {
   LIVE_SESSION_TICKET_PROTOCOL_PREFIX,
   LIVE_SESSION_WEBSOCKET_PROTOCOL,
   liveSessionWebSocketServerMessageDtoSchema,
-  type LiveSessionWebSocketClientMessageDto
+  type LiveSessionWebSocketClientMessageDto,
+  type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   sceneFogPatchInputSchema,
@@ -28,7 +29,8 @@ import {
 } from '@artificer-toolkit/schema/api/sceneFog'
 import type {
   SceneCommandInputDto,
-  SceneCommandResultDto
+  SceneCommandResultDto,
+  SceneTransientEnvelopeDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { api } from '../convex/_generated/api.js'
@@ -65,7 +67,20 @@ export type CommandRoom = {
     command: SceneFogPatchCommand,
     presentation: RoomScenePresentation
   ) => Promise<RoomSceneCommit>
+  /** Resolves once the room has admitted this member and sent its first STATE_SYNC. */
+  whenReady: () => Promise<void>
+  /** Holds the Encounter session subscription, re-sent after the room asks to authenticate again. */
+  subscribeEncounterSession: (timeline: boolean) => void
+  /** Sends one transient (a token drag preview), as the tabletop does during a drag. */
+  sendTransient: (envelope: SceneTransientEnvelopeDto) => void
   close: () => void
+}
+
+/** A frame the room sent one member, stamped on arrival (`performance.now()`) before it is parsed. */
+export type RoomFrame = {
+  campaignId: string
+  message: LiveSessionWebSocketServerMessageDto
+  receivedAt: number
 }
 
 /** A room refusal that is not a domain rejection, with the room's code (for example STALE_STATE). */
@@ -116,6 +131,21 @@ const idleCloseMs = 5_000
 const liveSessionOrigin = 'http://localhost:3000'
 const loopbackHosts = new Set(['127.0.0.1', 'localhost', '[::1]'])
 
+/**
+ * The Session Worker's base URL (http or https), for the room sockets and the development-only
+ * meter and barrier routes. A local Convex target requires a loopback Worker.
+ */
+function liveSessionWorkerUrl(convexUrl: string): URL {
+  const url = new URL(process.env.VITE_LIVE_SESSION_WEBSOCKET_URL ?? 'ws://127.0.0.1:8787')
+  if (url.protocol === 'ws:') url.protocol = 'http:'
+  if (url.protocol === 'wss:') url.protocol = 'https:'
+  if (url.protocol !== 'http:' && url.protocol !== 'https:')
+    throw new Error('The Session room URL must use ws, wss, http or https.')
+  if (loopbackHosts.has(new URL(convexUrl).hostname) && !loopbackHosts.has(url.hostname))
+    throw new Error('A local Convex target requires a loopback Session room.')
+  return url
+}
+
 // Node's WebSocket (undici) accepts request headers in its init object. The DOM typing this project
 // compiles against does not declare that overload, and the Worker admits only allowed Origins.
 const openNodeSocket: OpenRoomSocket = (url, init) =>
@@ -135,10 +165,16 @@ export function openCommandRoom(options: {
   onClosed: () => void
   holdOpen?: boolean
   openSocket?: OpenRoomSocket
+  onMessage?: (message: LiveSessionWebSocketServerMessageDto, receivedAt: number) => void
 }): CommandRoom {
   const pending = new Map<string, PendingCommand>()
   let socket: RoomSocket | null = null
   let admitted = false
+  // Admitted and synchronized: set by STATE_SYNC, cleared when the room asks to authenticate again.
+  let synchronized = false
+  const readyWaiters: { resolve: () => void; reject: (error: Error) => void }[] = []
+  let encounterTimeline: boolean | null = null
+  let encounterSubscribed = false
   let sequence: number | null = null
   // The room's synchronized Scene as its last STATE_SYNC and committed Scene changes report it.
   let roomScene: { id: string; version: number } | null = null
@@ -158,6 +194,7 @@ export function openCommandRoom(options: {
       entry.reject(error)
     }
     pending.clear()
+    for (const waiter of readyWaiters.splice(0)) waiter.reject(error)
     socket?.close(1000, 'Development driver closed the Session room.')
     options.onClosed()
   }
@@ -223,7 +260,14 @@ export function openCommandRoom(options: {
     }
   }
 
+  const applyEncounterSubscription = () => {
+    if (encounterTimeline === null || encounterSubscribed) return
+    send({ timeline: encounterTimeline, type: 'SUBSCRIBE_ENCOUNTER_SESSION' })
+    encounterSubscribed = true
+  }
+
   const receive = (event: MessageEvent) => {
+    const receivedAt = performance.now()
     let raw: unknown = null
     try {
       raw = typeof event.data === 'string' ? JSON.parse(event.data) : null
@@ -233,10 +277,13 @@ export function openCommandRoom(options: {
     const parsed = liveSessionWebSocketServerMessageDtoSchema.safeParse(raw)
     if (!parsed.success) return fail(new Error('The Session room sent an invalid message.'))
     const message = parsed.data
+    options.onMessage?.(message, receivedAt)
     if (message.type === 'AUTHENTICATION_REQUIRED') {
       // A command in flight when admission changes is dropped by the room; resend it after the next
       // STATE_SYNC. Its command ID makes a repeat an exact replay.
       admitted = false
+      synchronized = false
+      encounterSubscribed = false
       requestedSynchronization = null
       for (const entry of pending.values()) entry.sent = false
       authenticate()
@@ -247,6 +294,9 @@ export function openCommandRoom(options: {
       roomScene = message.state.scene
         ? { id: message.state.scene.id, version: message.state.scene.version }
         : null
+      synchronized = true
+      for (const waiter of readyWaiters.splice(0)) waiter.resolve()
+      applyEncounterSubscription()
       flush()
     } else if (message.type === 'COMMAND_COMMITTED') {
       const delta = message.delta
@@ -394,6 +444,18 @@ export function openCommandRoom(options: {
 
   return {
     close,
+    whenReady: () =>
+      failure
+        ? Promise.reject(failure)
+        : synchronized
+          ? Promise.resolve()
+          : new Promise<void>((resolve, reject) => readyWaiters.push({ resolve, reject })),
+    subscribeEncounterSession(timeline) {
+      encounterTimeline = timeline
+      encounterSubscribed = false
+      if (synchronized) applyEncounterSubscription()
+    },
+    sendTransient: (envelope) => send({ envelope, type: 'TRANSIENT' }),
     executeEncounter(command) {
       const refused = refusal(command.commandId)
       if (refused) return Promise.reject(refused)
@@ -474,6 +536,7 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   readonly #rooms = new Map<string, CommandRoom>()
   readonly #encounterCampaigns = new Map<string, string>()
   readonly #sceneCampaigns = new Map<string, string>()
+  readonly #frameListeners = new Set<(frame: RoomFrame) => void>()
 
   // No `auth` option: the base constructor would call setAuth before this class's fields exist.
   // `holdRooms` keeps idle rooms connected, as a browser tab does, until `closeRooms`.
@@ -521,13 +584,58 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     return (await this.#sceneRoom(command.sceneId)).executeSceneFog(command, presentation)
   }
 
-  async #sceneRoom(sceneId: string): Promise<CommandRoom> {
+  async #sceneCampaign(sceneId: string): Promise<string> {
     let campaignId = this.#sceneCampaigns.get(sceneId)
     if (!campaignId) {
       campaignId = (await this.query(api.scenes.recipientReads.header, { sceneId })).campaignId
       this.#sceneCampaigns.set(sceneId, campaignId)
     }
-    return this.#room(campaignId)
+    return campaignId
+  }
+
+  async #encounterCampaign(encounterId: string): Promise<string> {
+    let campaignId = this.#encounterCampaigns.get(encounterId)
+    if (!campaignId) {
+      campaignId = (await this.query(api.encounters.projectionReads.get, { encounterId }))
+        .campaignId
+      this.#encounterCampaigns.set(encounterId, campaignId)
+    }
+    return campaignId
+  }
+
+  async #sceneRoom(sceneId: string): Promise<CommandRoom> {
+    return this.#room(await this.#sceneCampaign(sceneId))
+  }
+
+  /**
+   * Looks up an Encounter's and its Scene's Campaign and joins the room, so measured commands pay no
+   * lookup, ticket or join. Returns the Campaign ID.
+   */
+  async warmRoom(input: { encounterId: string; sceneId: string }): Promise<string> {
+    const campaignId = await this.#encounterCampaign(input.encounterId)
+    if ((await this.#sceneCampaign(input.sceneId)) !== campaignId)
+      throw new Error('The Scene and the Encounter belong to different Campaigns.')
+    await this.#room(campaignId).whenReady()
+    return campaignId
+  }
+
+  /** Every frame any of this client's rooms receives; returns the function that stops listening. */
+  onRoomFrame(listener: (frame: RoomFrame) => void): () => void {
+    this.#frameListeners.add(listener)
+    return () => this.#frameListeners.delete(listener)
+  }
+
+  subscribeEncounterSession(campaignId: string, timeline: boolean) {
+    this.#room(campaignId).subscribeEncounterSession(timeline)
+  }
+
+  sendTransient(campaignId: string, envelope: SceneTransientEnvelopeDto) {
+    this.#room(campaignId).sendTransient(envelope)
+  }
+
+  /** The Session Worker this client's rooms connect to (http or https). */
+  workerUrl(): URL {
+    return liveSessionWorkerUrl(this.url)
   }
 
   closeRooms() {
@@ -536,26 +644,14 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
 
   async #executeEncounterCommand(input: unknown): Promise<EncounterCommandResultDto> {
     const { command } = encounterExecuteInputSchema.parse(input)
-    let campaignId = this.#encounterCampaigns.get(command.encounterId)
-    if (!campaignId) {
-      campaignId = (
-        await this.query(api.encounters.projectionReads.get, { encounterId: command.encounterId })
-      ).campaignId
-      this.#encounterCampaigns.set(command.encounterId, campaignId)
-    }
-    return this.#room(campaignId).executeEncounter(command)
+    return this.#room(await this.#encounterCampaign(command.encounterId)).executeEncounter(command)
   }
 
   #room(campaignId: string): CommandRoom {
     const existing = this.#rooms.get(campaignId)
     if (existing) return existing
-    const url = new URL(process.env.VITE_LIVE_SESSION_WEBSOCKET_URL ?? 'ws://127.0.0.1:8787')
-    if (url.protocol === 'http:') url.protocol = 'ws:'
-    if (url.protocol === 'https:') url.protocol = 'wss:'
-    if (url.protocol !== 'ws:' && url.protocol !== 'wss:')
-      throw new Error('The Session room URL must use ws, wss, http or https.')
-    if (loopbackHosts.has(new URL(this.url).hostname) && !loopbackHosts.has(url.hostname))
-      throw new Error('A local Convex target requires a loopback Session room.')
+    const url = this.workerUrl()
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
     url.pathname = `${url.pathname.replace(/\/$/, '')}${LIVE_SESSION_PATH_PREFIX}/${campaignId}`
     const room = openCommandRoom({
       url: url.toString(),
@@ -563,6 +659,9 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
       issueTicket: () => super.action(api.liveSessions.tickets.issue, { campaignId }),
       accessToken: () => this.#accessToken,
       holdOpen: this.#holdRooms,
+      onMessage: (message, receivedAt) => {
+        for (const listener of this.#frameListeners) listener({ campaignId, message, receivedAt })
+      },
       onClosed: () => {
         if (this.#rooms.get(campaignId) === room) this.#rooms.delete(campaignId)
       }

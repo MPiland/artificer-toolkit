@@ -589,7 +589,9 @@ Every checkpoint send names one trigger, `LIVE_SESSION_CHECKPOINT_REASONS` in
 `ADMISSION` (a socket authenticates, or a background retry after admission), `ACTIVATION` (bootstrap
 recovery and the first publication after activation), `RELOAD` (the room aggregate must reload from
 Convex before a command), `ACKNOWLEDGEMENT` (a command with `checkpointBeforeAcknowledgement`),
-`PRESENTATION` (before a Scene presentation commit) and `DRAIN` (the final checkpoint before release).
+`PRESENTATION` (before a Scene presentation commit), `DRAIN` (the final checkpoint before release) and
+`BARRIER` (development only: `POST /internal/live-sessions/checkpoint/<campaignId>` publishes everything
+the room has journaled through the head of its command chain and answers `{ publishedSequence }`, or 409).
 A flush already in flight keeps its own reason, so a concurrent caller is attributed to the send that
 actually ran.
 
@@ -603,12 +605,26 @@ admissions and the peak concurrent sockets per member (the case for merging a cl
 command wall time, and checkpoints by reason with payload bytes, Worker-to-Convex request count, wall
 time and the Convex-reported `io`. Staged checkpoints report the commit mutation's `io` only. Each
 checkpoint logs one `[room-meter]` JSON line and release logs the epoch summary. The totals are
-readable only in development, through `GET /internal/live-sessions/meter/<campaignId>` on the Worker,
-which requires the `LOCAL_CONTENT_SNAPSHOT_ORIGIN` marker, a loopback host and the worker secret.
+readable only in development, through `GET /internal/live-sessions/meter/<campaignId>` on the Worker. The
+meter and barrier routes require the `LOCAL_CONTENT_SNAPSHOT_ORIGIN` marker, a loopback host and the
+worker secret header.
 
-`scripts/v15Budgets.mjs <proof>.native-executions.jsonl <meter-totals>.json` compares a run against
-4.3 MB of Convex I/O per 4-hour session and the Workers Free Durable Object allowances divided by the
-Q16 session rate, and exits non-zero on a miss. It is not part of `validatePreStagingLocal`.
+`scripts/v15Budgets.mjs <proofName>` judges the `v15-workload` proof and `validatePreStagingLocal` runs it
+after that stage. The driver (`developmentEncounterCutover.ts`) brackets two measured windows, combat and
+paced out-of-combat Scene moves, with the development-only no-op mutations
+`liveSessions/developmentMeasurement:openWindow` and `closeWindow`, reads each window's state from room
+frames (never from Convex), and writes `v15-room-evidence.json` into the proof's evidence directory: the
+meter before and after each window, the barrier results, and the size of every document a checkpoint
+writes (`checkpointDocumentSizes`). The script reads the native Convex log between the markers: in combat
+only checkpoint ingestion, authorization refresh and sign-in token refresh may reach Convex (no command
+does); the out-of-combat window has the same rule unless real browsers ran. It also checks the largest
+checkpoint document against the Convex document limit with Q16 headroom, that a paced window longer than
+120 s saw a `DEADLINE` checkpoint, and the Convex I/O and Durable Object use per session against Q16's
+allowances. It reports unit costs (per combat command, per out-of-combat minute, per checkpoint reason).
+The session estimate is made only when the user sets its assumptions, `V15_ESTIMATE_COMBAT_COMMANDS` and
+`V15_ESTIMATE_OOC_MINUTES` (and optionally `V15_ESTIMATE_SESSION_HOURS`, default 4): they describe how a
+table plays and are not measured. The out-of-combat pace is likewise a user-set assumption
+(`V15_OOC_STEPS_PER_MINUTE`, `V15_OOC_MINUTES`; defaults 6 and 4).
 
 Convex retains Scene command receipts for 30 days: `scenes/commandRetention:purge` runs daily at 09:00 UTC
 (`convex/crons.ts`), so replay by command ID and undo reach back at most 30 days. Open follow-up:
@@ -827,7 +843,9 @@ complete browser journeys. The frozen V15 workload keeps its thresholds: transie
 `150 ms`; durable browser p95 at or below `250 ms` and p99 at or below `500 ms`; authoritative completion
 at or below `1,000 ms`; Scene-only host p95 below `100 ms`; rule-bound host p95 below `250 ms`. The workload
 (`apps/apis/tests/developmentEncounterCutover.ts`) sends every command through the room from the member who
-controls its actor. Real-backend development drivers do the same through `DevelopmentHttpClient`, which
+controls its actor and measures from the sockets: warm durable convergence is the slowest peer's held
+Encounter session at the commit's Run version, timed from the initiator's own `COMMAND_COMMITTED` frame
+(the room's journal commit); Convex durability is checked after a barrier. Real-backend development drivers do the same through `DevelopmentHttpClient`, which
 issues a ticket, opens the Worker socket and resolves on the `COMMAND_COMMITTED` result. Managed verification
 runs only after the complete local lifecycle is green. The
 [Phase 8.2 acceptance ledger](../roadmap/08-2-convex-cutover-acceptance.md) controls acceptance.

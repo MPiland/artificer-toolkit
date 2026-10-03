@@ -93,6 +93,9 @@ export type EncounterSessionFrameDto = z.infer<typeof encounterSessionFrameDtoSc
 
 export const LIVE_SESSION_CONTROL_PATH = '/internal/live-sessions/control'
 export const LIVE_SESSION_CONTROL_SECRET_HEADER = 'x-artificer-live-session-secret'
+/** Development-only Worker routes (`<path>/<campaignId>`) the V15 load proof calls with the Worker secret. */
+export const LIVE_SESSION_METER_PATH = '/internal/live-sessions/meter'
+export const LIVE_SESSION_CHECKPOINT_BARRIER_PATH = '/internal/live-sessions/checkpoint'
 
 const scenePresentationOperationSchema = lazySchema(() =>
   z.strictObject({

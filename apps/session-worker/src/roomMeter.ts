@@ -3,9 +3,6 @@ import type {
   LiveSessionCheckpointReason
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 
-/** Development-only read of the room's cost counters (D85, ADR 0035 Decision 9). */
-export const ROOM_METER_PATH = '/internal/live-sessions/meter'
-
 /** How Cloudflare bills an incoming request; WebSocket messages count 20:1 (ADR 0035 Decision 9). */
 export type RoomRequestKind = 'WEBSOCKET_MESSAGE' | 'HTTP' | 'ALARM'
 

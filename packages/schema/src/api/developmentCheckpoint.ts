@@ -47,6 +47,29 @@ export const developmentCheckpointInspectionSchema = lazySchema(() =>
     ledgers: z.array(receiptLedgerMetadataSchema)
   })
 )
+
+const documentCount = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
+/** One page of the load proof's per-document size read: one Encounter or Scene table at a time. */
+export const developmentDocumentSizesInputSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: postgresUuidSchema,
+    sceneId: postgresUuidSchema,
+    position: documentCount,
+    cursor: z.nullable(z.string())
+  })
+)
+export const developmentDocumentSizesPageSchema = lazySchema(() =>
+  z.strictObject({
+    table: z.string(),
+    documents: documentCount,
+    /** UTF-8 bytes of each document's JSON as read, summed. */
+    totalBytes: documentCount,
+    maxBytes: documentCount,
+    next: z.nullable(z.strictObject({ position: documentCount, cursor: z.nullable(z.string()) }))
+  })
+)
+export type DevelopmentDocumentSizesInput = z.infer<typeof developmentDocumentSizesInputSchema>
+export type DevelopmentDocumentSizesPage = z.infer<typeof developmentDocumentSizesPageSchema>
 export type DevelopmentCheckpointScope = z.infer<typeof developmentCheckpointScopeSchema>
 export type DevelopmentCheckpointInspection = z.infer<typeof developmentCheckpointInspectionSchema>
 export type DevelopmentCheckpointRollbackInput = z.infer<
