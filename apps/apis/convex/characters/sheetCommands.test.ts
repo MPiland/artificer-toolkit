@@ -247,10 +247,10 @@ describe('native personal Sheet command transactions', () => {
       owner.caller.mutation(execute, {
         id: character.id,
         command: {
-          type: 'SET_INSPIRATION',
+          type: 'SET_EXHAUSTION',
           commandId: crypto.randomUUID(),
           expectedVersion: 1,
-          inspired: true
+          level: 1
         }
       })
     ).rejects.toThrow('Injected post-write projection failure')

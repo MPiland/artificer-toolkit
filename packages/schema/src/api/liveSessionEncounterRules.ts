@@ -202,7 +202,6 @@ export const liveSessionEncounterInputsResponseSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('INPUTS'),
     revisions: liveSessionRulesRevisionsSchema,
-    readChecksum: projectionChecksumSchema,
     state: encounterRunStateSchema,
     system: systemAuthoredDtoSchema
   })
@@ -213,7 +212,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('MOVEMENT_INPUTS'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       campaignOwnerUserId: postgresUuidSchema,
       autoRollByActorId: encounterAutoRollByActorIdSchema,
       /** The app roll a movement response settles with; null for any other answer. */
@@ -227,7 +225,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('TURN_COMMAND'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       campaignOwnerUserId: postgresUuidSchema,
       /** The GM's preference for the GM's own turn step: initiative. */
       autoRollDice: z.boolean(),
@@ -250,7 +247,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('CONCENTRATION_RESPONSE'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       fingerprint: projectionChecksumSchema,
       /** Each remaining check's roller preference; auto-roll settles it in the answering commit (D23). */
       autoRollByActorId: encounterAutoRollByActorIdSchema,
@@ -265,7 +261,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('CLEAVING_BINDINGS'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       bindings: z
         .array(z.strictObject({ actorId: postgresUuidSchema, tokenId: postgresUuidSchema }))
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
@@ -273,19 +268,16 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('INITIATIVE_ROUND'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       state: z.nullable(encounterInitiativeRoundStateDtoSchema)
     }),
     z.strictObject({
       kind: z.literal('SYSTEM_VOCABULARY'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       snapshot: systemVocabularySnapshotSchema
     }),
     z.strictObject({
       kind: z.literal('ACTION_SCENE'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       context: z.nullable(
         z.strictObject({
           sceneId: postgresUuidSchema,
@@ -299,19 +291,16 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('MAINTENANCE_SLOT'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       state: z.nullable(encounterMaintainedEffectStateRecordSchema)
     }),
     z.strictObject({
       kind: z.literal('MAINTENANCE_STATE'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       state: z.nullable(encounterMaintainedEffectStateRecordSchema)
     }),
     z.strictObject({
       kind: z.literal('SCENE_PERCEPTION'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       context: z.nullable(
         z.strictObject({
           header: sceneLiveStateHeaderSchema,
@@ -323,13 +312,11 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('SCENE_PERCEPTION_ENTITIES'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       page: sceneCurrentEntityPageSchema
     }),
     z.strictObject({
       kind: z.literal('SCENE_SPATIAL_EFFECTS'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       sceneId: postgresUuidSchema,
       sceneVersion: z.number().check(z.int()).check(z.nonnegative()),
       effects: z.array(encounterSpatialRuleEffectRecordSchema).check(z.maxLength(4)),
@@ -338,21 +325,18 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('MAINTENANCE_DEPENDENTS'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       effects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(4)),
       continueCursor: paginationCursor
     }),
     z.strictObject({
       kind: z.literal('MAINTENANCE_OWNER'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       owner: activeRuleEffectOwnerSchema,
       character: z.nullable(characterStoredRowSchema)
     }),
     z.strictObject({
       kind: z.literal('MAINTENANCE_OWNER_EFFECTS'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       owner: activeRuleEffectOwnerSchema,
       effects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(4)),
       continueAfter: z.nullable(postgresUuidSchema)
@@ -360,7 +344,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('ACTION_COMMAND'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       autoRollByActorId: encounterAutoRollByActorIdSchema,
       command: resolveEncounterActionInputDtoSchema,
       fingerprint: projectionChecksumSchema,
@@ -369,7 +352,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('ACTION_RESPONSE'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       autoRollByActorId: encounterAutoRollByActorIdSchema,
       appRoll: z.nullable(encounterSettledAppRollDtoSchema),
       command: resolveEncounterActionInputDtoSchema,
@@ -380,7 +362,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('CLEAVING_RESPONSE'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       fingerprint: projectionChecksumSchema,
       /** Each remaining Concentration check's roller preference, the responder as initiator (D23). */
       autoRollByActorId: encounterAutoRollByActorIdSchema,
@@ -391,7 +372,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('DISARM'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       /** An admitted Disarm to plan; null when `result` replays a stored one. */
       ready: z.nullable(
         z.strictObject({
@@ -413,7 +393,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('BASIC_ACTION'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       /** The admitted basic action to plan; null when `result` replays a stored one. */
       ready: z.nullable(
         z.strictObject({
@@ -427,14 +406,12 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('ACTOR'),
       revisions: liveSessionRulesRevisionsSchema,
-      readChecksum: projectionChecksumSchema,
       actor: encounterRunActorStateSchema,
       effects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(4)),
       continueAfter: z.nullable(postgresUuidSchema)
     }),
     z.strictObject({
       kind: z.literal('EFFECTS'),
-      readChecksum: projectionChecksumSchema,
       revisions: liveSessionRulesRevisionsSchema,
       actorId: postgresUuidSchema,
       effects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(4)),
@@ -442,7 +419,6 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('DEFINITION'),
-      readChecksum: projectionChecksumSchema,
       revisions: liveSessionRulesRevisionsSchema,
       definition: z.nullable(reusableDefinitionCurrentDtoSchema)
     })

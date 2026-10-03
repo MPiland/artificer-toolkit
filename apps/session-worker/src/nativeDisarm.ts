@@ -41,7 +41,7 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { liveEncounterCaptures, type LiveCaptureReads } from './nativeCaptureCache.js'
+import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects

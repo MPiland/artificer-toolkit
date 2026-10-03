@@ -41,7 +41,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
@@ -102,15 +102,14 @@ export async function planNativeLiveEncounterAction(
     commandInput.expectedVersion !== initial.expectedVersion
   )
     throw new Error('Live Encounter command scope mismatch.')
-  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest; readChecksum: string }> =
-    []
+  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest }> = []
   let revisions: LiveSessionRulesRevisions = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
     const response = await executionOptions.captures.encounterRules(input)
     if (response.kind !== request.kind) throw new Error('Encounter rules capture kind mismatch.')
     revisions = mergeNativeRulesRevisions(revisions, response.revisions)
-    dependencies.push({ request: input.request, readChecksum: response.readChecksum })
+    dependencies.push({ request: input.request })
     return response
   }
   const admission = await capture(initial.request)

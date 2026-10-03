@@ -33,7 +33,7 @@ export async function readEncounterMaintenanceCapture(
   }) => Promise<
     Omit<
       Extract<LiveSessionEncounterRulesResponse, { kind: 'MAINTENANCE_DEPENDENTS' }>,
-      'kind' | 'revisions' | 'readChecksum'
+      'kind' | 'revisions'
     >
   >
 ) {

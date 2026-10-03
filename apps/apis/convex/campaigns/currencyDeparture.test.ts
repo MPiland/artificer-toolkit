@@ -98,7 +98,8 @@ async function setup(amounts = [2, 3], destination = 7) {
         .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id))
         .collect()
     }))
-  const depart = (failAfter = false, reason = 'CHARACTER_UNASSIGNED') =>
+  /** `invalidAmount` corrupts the in-memory state only: the stored writer and reader reject it. */
+  const depart = (failAfter = false, reason = 'CHARACTER_UNASSIGNED', invalidAmount?: number) =>
     base.t.run(async (ctx) => {
       const row = await readCharacterRow(ctx, base.character.id)
       const storedCampaign = await ctx.db
@@ -112,7 +113,20 @@ async function setup(amounts = [2, 3], destination = 7) {
         campaign: storedCampaign,
         characterId: row.id,
         actorUserId: base.owner.userId,
-        state: character.state,
+        state:
+          invalidAmount === undefined
+            ? character.state
+            : {
+                ...character.state,
+                currency: character.state.currency.map((group) => ({
+                  ...group,
+                  currencies: group.currencies.map((balance) =>
+                    balance.currencyId === denominationId
+                      ? { ...balance, amount: invalidAmount }
+                      : balance
+                  )
+                }))
+              },
         reason
       })
       await writeCharacterRecord(ctx, row, { document: { ...character, state: result.state } })
@@ -278,11 +292,12 @@ describe('Campaign departure currency return', () => {
   })
 
   it.each([-1, 0.5, Number.MAX_SAFE_INTEGER + 1])(
-    'rejects invalid stored amount %s without transferring currency',
+    'rejects invalid amount %s at the stored writer and in departure without transferring currency',
     async (amount) => {
-      const base = await setup([amount])
+      await expect(setup([amount])).rejects.toThrow()
+      const base = await setup([2])
       const before = await base.snapshot()
-      await expect(base.depart()).rejects.toThrow()
+      await expect(base.depart(false, 'CHARACTER_UNASSIGNED', amount)).rejects.toThrow(/amount/)
       expect(await base.snapshot()).toEqual(before)
     }
   )

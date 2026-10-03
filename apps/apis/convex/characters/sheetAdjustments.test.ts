@@ -372,10 +372,10 @@ describe('native Character Sheet adjustment storage', () => {
       owner.caller.mutation(execute, {
         id: character.id,
         command: {
-          type: 'SET_INSPIRATION',
+          type: 'SET_EXHAUSTION',
           commandId: crypto.randomUUID(),
           expectedVersion: after.character!.play.streamVersion,
-          inspired: true
+          level: 1
         }
       })
     ).rejects.toThrow('ownership mismatch')

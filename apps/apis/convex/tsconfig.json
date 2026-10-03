@@ -9,6 +9,6 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../tests/**/*.ts"],
   "exclude": ["./_generated"]
 }

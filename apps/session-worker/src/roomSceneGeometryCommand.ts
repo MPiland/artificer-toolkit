@@ -31,7 +31,7 @@ import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-ru
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareStagedSceneCommit,
   type ExternalSceneCommand,

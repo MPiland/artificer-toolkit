@@ -19,7 +19,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { liveEncounterCaptures, type LiveCaptureReads } from './nativeCaptureCache.js'
+import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects

@@ -56,7 +56,7 @@ export type RoomSceneCommit = {
 export type CommandRoom = {
   executeEncounter: (command: EncounterCommandInputDto) => Promise<EncounterCommandResultDto>
   executeScene: (
-    command: SceneCommandInputDto,
+    command: SceneCommandInputDto | SceneFogPublishCommandInput,
     presentation: RoomScenePresentation,
     replayOfSequence?: number
   ) => Promise<RoomSceneCommit>
@@ -502,7 +502,7 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   }
 
   async executeSceneCommand(
-    command: SceneCommandInputDto,
+    command: SceneCommandInputDto | SceneFogPublishCommandInput,
     presentation: RoomScenePresentation,
     replayOfSequence?: number
   ): Promise<RoomSceneCommit> {

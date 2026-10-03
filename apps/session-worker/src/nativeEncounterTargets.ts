@@ -16,7 +16,7 @@ import {
   withEncounterBasicActionDefense
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 
 export async function readNativeLiveActorsAndEffects(input: {

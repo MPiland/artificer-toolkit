@@ -16,7 +16,7 @@ import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encou
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
@@ -57,8 +57,7 @@ export async function planNativeLiveEncounterTurn(
     request: { kind: 'TURN_COMMAND', command }
   })
   let revisions: LiveSessionRulesRevisions = []
-  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest; readChecksum: string }> =
-    []
+  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest }> = []
   const reads = new Map<string, Promise<LiveSessionEncounterRulesResponse>>()
   function capture(request: LiveSessionEncounterRulesRequest) {
     const key = checksumCanonicalJson(request)
@@ -69,7 +68,7 @@ export async function planNativeLiveEncounterTurn(
         const response = await captures.encounterRules(input)
         if (response.kind !== request.kind) throw new Error('Turn capture kind mismatch.')
         revisions = mergeNativeRulesRevisions(revisions, response.revisions)
-        dependencies.push({ request: input.request, readChecksum: response.readChecksum })
+        dependencies.push({ request: input.request })
         return response
       })()
       reads.set(key, read)

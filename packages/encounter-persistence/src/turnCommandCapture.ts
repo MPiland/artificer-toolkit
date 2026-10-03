@@ -15,7 +15,7 @@ import { presentEncounterResultForMember } from './resultPresentation.js'
 
 type TurnCommandResponse = Omit<
   Extract<LiveSessionEncounterRulesResponse, { kind: 'TURN_COMMAND' }>,
-  'readChecksum' | 'revisions'
+  'revisions'
 >
 
 /** The host stamps its revisions and canonical read checksum around this semantic response. */

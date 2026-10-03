@@ -146,7 +146,14 @@ function createFullPoolReaders(publications: readonly FullPoolPublication[]): Re
     readEquipment: async () => ({
       documents: ofKind('EQUIPMENT').map(({ document }) => document as EquipmentAuthored)
     }),
-    readFeats: async () => ofKind('FEAT').map(({ document: { id, label } }) => ({ id, label }))
+    readFeats: async () => ofKind('FEAT').map(({ document: { id, label } }) => ({ id, label })),
+    // The picker entries come from the Spell documents, as the snapshot index part carries them.
+    readSpellCatalogue: async (referencedSpellIds) => ({
+      entries: ofKind('SPELL').map((published) => toContentSnapshotIndexEntry(published)),
+      documents: ofKind('SPELL')
+        .map(({ document }) => document)
+        .filter((document) => referencedSpellIds.has(document.id))
+    })
   }
 }
 

@@ -651,7 +651,8 @@ denial, and privileged content integration remain required.
 #### Canonical source import
 
 With the local deployment running, use `yarn seed:srd:convex:local`, then
-`yarn audit:srd:convex:local` from this workspace. Both scripts explicitly select `local`.
+`yarn audit:srd:convex:local` from this workspace. Both scripts target the local Docker backend at `http://127.0.0.1:3210` through
+`scripts/convexRunLocal.mjs`, which generates an admin key inside the container for the run.
 `content/seed` is an internal Node action loading the preserved `packages/source-data` corpus;
 `content/import` contains internal, indexed mutations and read-back queries. These are provisioning
 operations, not public authoring endpoints. Verify public denial with

@@ -4640,11 +4640,6 @@ try {
       password: author.password,
       start,
       equipmentOptionLabel: equipmentParent?.label ?? equipmentOptions[0]?.label,
-      equipmentVariantLabels: equipmentBrowser
-        ? srdBaselineContent.subjects.equipment
-            .filter((item) => item.category === 'VARIANT')
-            .map((item) => item.label)
-        : undefined,
       verifySaved: async (label) => {
         const draft = drafts.find((entry) => entry.client === author.client)
         assert.ok(draft)

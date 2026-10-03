@@ -10,6 +10,7 @@ import {
   liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema
 } from '@artificer-toolkit/schema/api/liveSessions'
+import type { SceneFogPublishCommandInput } from '@artificer-toolkit/schema/api/sceneFog'
 import type {
   SceneCommandInputDto,
   SceneCommandResultDto
@@ -76,7 +77,7 @@ export type EncounterMovementBrowserInput = {
 
 /** A Scene command the tabletop sent through the Session room, with the sequence it carried. */
 export type RoomSceneCommandFrame = {
-  command: SceneCommandInputDto
+  command: SceneCommandInputDto | SceneFogPublishCommandInput
   expectedSessionSequence: number
 }
 

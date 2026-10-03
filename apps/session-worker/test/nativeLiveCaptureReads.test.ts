@@ -4,7 +4,7 @@ import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/a
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
-import { liveEncounterCaptures } from '../src/nativeCaptureCache.js'
+import { liveEncounterCaptures } from '../src/nativeEncounterReads.js'
 import {
   readNativeLiveMaintenanceOwners,
   readNativeLiveMaintenanceSlot
@@ -480,12 +480,7 @@ describe('liveEncounterCaptures', () => {
   }
 
   it('shares one read between identical requests and records dependencies in request order', async () => {
-    const fake = captureFake((request) => ({
-      kind: 'DEFINITION',
-      ...captureEnvelope,
-      readChecksum: request.kind === 'DEFINITION' && request.definitionId === DEFINITION_ID ? 'b'.repeat(64) : 'c'.repeat(64),
-      definition: null
-    }))
+    const fake = captureFake(() => ({ kind: 'DEFINITION', ...captureEnvelope, definition: null }))
     const captures = liveEncounterCaptures(initial, fake.reads)
 
     await Promise.all([
@@ -496,8 +491,8 @@ describe('liveEncounterCaptures', () => {
 
     expect(fake.requests).toHaveLength(2)
     expect(captures.dependencies).toEqual([
-      { request: { kind: 'DEFINITION', definitionId: DEFINITION_ID }, readChecksum: 'b'.repeat(64) },
-      { request: { kind: 'DEFINITION', definitionId: testUuid(0x21) }, readChecksum: 'c'.repeat(64) }
+      { request: { kind: 'DEFINITION', definitionId: DEFINITION_ID } },
+      { request: { kind: 'DEFINITION', definitionId: testUuid(0x21) } }
     ])
   })
 

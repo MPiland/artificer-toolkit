@@ -25,19 +25,19 @@ export async function readFogLayers(
     (input.expectedVersion !== null && input.expectedVersion !== header.version)
   )
     throw new Error('Live Scene snapshot changed before fog hydration.')
-  let rows = ctx.db
+  const result = await ctx.db
     .query('sceneFogLayers')
     .withIndex('by_sceneId_ownerUserId', (q) => q.eq('sceneId', header.id))
-  if (audience === 'RECIPIENT' && membership.role !== 'OWNER')
-    rows = rows.filter((q) =>
-      q.or(q.eq(q.field('ownerUserId'), null), q.eq(q.field('ownerUserId'), userId))
-    )
-  // A Scene has at most 101 bounded reference headers; recipient filtering may scan them all.
-  const result = await rows.paginate(input.paginationOpts)
+    .paginate({ ...input.paginationOpts, maximumRowsRead: 8, maximumBytesRead: 512 * 1024 })
+  // Recipients see the shared layer and their own; a page may therefore hold fewer rows than it read.
+  const visible =
+    audience === 'RECIPIENT' && membership.role !== 'OWNER'
+      ? result.page.filter((row) => row.ownerUserId === null || row.ownerUserId === userId)
+      : result.page
   return sceneFogLayersPageSchema.parse({
     ...result,
     version: header.version,
-    page: result.page.map((row) => {
+    page: visible.map((row) => {
       const layer = parseFogLayer(row, header.version)
       return {
         ownerUserId: layer.ownerUserId,

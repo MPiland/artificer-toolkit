@@ -41,7 +41,7 @@ import { readMovementResolution } from '@artificer-toolkit/encounter-persistence
 type SemanticResponse = {
   [Kind in LiveSessionEncounterRulesResponse['kind']]: Omit<
     Extract<LiveSessionEncounterRulesResponse, { kind: Kind }>,
-    'readChecksum' | 'revisions'
+    'revisions'
   >
 }[LiveSessionEncounterRulesResponse['kind']]
 
@@ -130,8 +130,7 @@ export async function readRoomEncounterTurnCapture(
     }
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
-      revisions: observed,
-      readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
+      revisions: observed
     })
   }
   if (concentrationAdmission?.kind === 'REPLAY')
@@ -163,8 +162,7 @@ export async function readRoomEncounterTurnCapture(
     }
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
-      revisions: observed,
-      readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
+      revisions: observed
     })
   }
   if (input.request.kind === 'ACTION_COMMAND' || input.request.kind === 'ACTION_RESPONSE') {
@@ -248,8 +246,7 @@ export async function readRoomEncounterTurnCapture(
     }
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
-      revisions: observed,
-      readChecksum: checksumCanonicalJson({ input, userId, response })
+      revisions: observed
     })
   }
   if (input.request.kind === 'CLEAVING_RESPONSE') {
@@ -273,8 +270,7 @@ export async function readRoomEncounterTurnCapture(
     }
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
-      revisions: observed,
-      readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
+      revisions: observed
     })
   }
   if (input.request.kind === 'BASIC_ACTION') {
@@ -299,16 +295,14 @@ export async function readRoomEncounterTurnCapture(
     }
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
-      revisions: observed,
-      readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
+      revisions: observed
     })
   }
   if (input.request.kind === 'TURN_COMMAND') {
     const { response } = await readEncounterTurnCommandCapture(ctx, input)
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
-      revisions: observed,
-      readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
+      revisions: observed
     })
   }
   const { userId } = await ctx.ports.requireIdentity()
@@ -508,7 +502,6 @@ export async function readRoomEncounterTurnCapture(
   }
   return liveSessionEncounterRulesResponseSchema.parse({
     ...response,
-    revisions: observed,
-    readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
+    revisions: observed
   })
 }

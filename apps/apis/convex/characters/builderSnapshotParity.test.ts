@@ -277,7 +277,8 @@ describe('Builder resolution from content snapshots', () => {
     const [fighterResult, wizardResult, , , homebrewResult, lossResult] = results
     // Documents load per kind as evaluation reads them: a Fighter never fetches Spells or Creatures.
     expect(new Set(fighterResult!.loadedKinds)).toEqual(new Set(['RACE', 'CLASS', 'BACKGROUND']))
-    expect(new Set(wizardResult!.loadedKinds)).toContain('SPELL')
+    // The Spell picker reads index entries; Spell documents load only for referenced Spells.
+    expect(new Set(wizardResult!.loadedKinds)).not.toContain('SPELL')
     // ADR 0036 S6 gate: warm evaluation p95 at most 100 ms over the corpus, as a Node proxy.
     const durations = await timeWarmResolves(results, 5)
     const p95 = durations[Math.ceil(durations.length * 0.95) - 1]!

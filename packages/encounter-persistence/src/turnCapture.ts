@@ -25,7 +25,7 @@ type TurnRequest = Extract<
 type TurnResponse = {
   [K in TurnRequest['kind']]: Omit<
     Extract<LiveSessionEncounterRulesResponse, { kind: K }>,
-    'readChecksum' | 'revisions'
+    'revisions'
   >
 }[TurnRequest['kind']]
 

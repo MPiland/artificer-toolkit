@@ -7,7 +7,6 @@ import {
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import {
   executeInRoom,
-  expectRedactedRoomRefusal,
   planMovementDecisionInRoom,
   planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'

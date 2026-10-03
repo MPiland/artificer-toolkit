@@ -697,7 +697,7 @@ export function reconcileDeparturesInRoom(caller: MemberCaller, encounterId: str
       const { store, inputs, authorization } = room
       const departures = await withoutHttp(async () => {
         await room.hydrate()
-        const found = await readRoomActorDepartures(store, authorization)
+        const found = await readRoomActorDepartures(store, inputs, authorization)
         if (!found) return null
         const deletedCharacterIds = found.unassignedCharacterIds.length
           ? await inputs.deletedCharacterIds(found.unassignedCharacterIds)

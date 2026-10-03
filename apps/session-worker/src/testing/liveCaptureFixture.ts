@@ -17,7 +17,7 @@ import { encounterOptionalCombatSnapshotDtoSchema } from '@artificer-toolkit/sch
 import { prepareMaintainedEffectStateRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import type { LiveCaptureReads } from '../nativeCaptureCache.js'
+import type { LiveCaptureReads } from '../nativeEncounterReads.js'
 
 /** A canonical, deterministic UUID for test identities. */
 export function testUuid(value: number) {
@@ -33,7 +33,7 @@ export const GAME_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 const TIMESTAMP = '2026-09-26T00:00:00.000Z'
 
 /** The envelope every capture response carries; the planners only accumulate it. */
-export const captureEnvelope = { revisions: [], readChecksum: 'a'.repeat(64) }
+export const captureEnvelope = { revisions: [] }
 
 /**
  * Answers planner captures from `answer` and records every request in the order it was issued,

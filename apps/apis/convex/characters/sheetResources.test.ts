@@ -319,10 +319,10 @@ describe('native Character Sheet resource usage', () => {
         owner.caller.mutation(execute, {
           id: character.id,
           command: {
-            type: 'SET_INSPIRATION',
+            type: 'SET_EXHAUSTION',
             commandId: crypto.randomUUID(),
             expectedVersion: 2,
-            inspired: true
+            level: 1
           }
         })
       ).rejects.toThrow(/ownership|unique/)

@@ -14,7 +14,6 @@ const saveId = '00000000-0000-4000-8000-000000000103'
 const observerId = '00000000-0000-4000-8000-000000000104'
 const subjectId = '00000000-0000-4000-8000-000000000105'
 const systemId = '00000000-0000-4000-8000-000000000106'
-const checksum = '0'.repeat(64)
 const revisions = [
   { scope: 'SYSTEM' as const, id: systemId, revision: null },
   { scope: 'CAMPAIGN' as const, id: campaignId, revision: null },
@@ -86,7 +85,6 @@ it('reads BASE then multiple APPENDED pages and returns the complete Scene fence
       if (request.kind === 'SCENE_PERCEPTION')
         return liveSessionEncounterRulesResponseSchema.parse({
           kind: request.kind,
-          readChecksum: checksum,
           revisions,
           context: {
             header,
@@ -112,7 +110,6 @@ it('reads BASE then multiple APPENDED pages and returns the complete Scene fence
             : null
       return liveSessionEncounterRulesResponseSchema.parse({
         kind: request.kind,
-        readChecksum: checksum,
         revisions,
         page: sceneCurrentEntityPageSchema.parse({
           collection,

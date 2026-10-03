@@ -35,10 +35,12 @@ function departures(authorization: LiveSessionRoomAuthorization) {
 
 /**
  * The departures the open Runs name: the unfrozen Character actors whose assignment is gone, or
- * `null` when no open Run names a departed controller or such a Character.
+ * `null` when no open Run names a departed controller or such a Character and the room holds no
+ * cached inputs of an unassigned Character.
  */
 export async function readRoomActorDepartures(
   store: RoomEncounterStore,
+  inputs: RoomInputs,
   authorization: LiveSessionRoomAuthorization
 ): Promise<{ unassignedCharacterIds: string[] } | null> {
   const { archived, isDeparted, isUnassigned } = departures(authorization)
@@ -51,7 +53,9 @@ export async function readRoomActorDepartures(
         unassigned.add(actor.sourceId)
       departed ||= actor.controllerUserIds.some(isDeparted)
     }
-  return departed || unassigned.size ? { unassignedCharacterIds: [...unassigned] } : null
+  return departed || unassigned.size || inputs.cachedCharacterIds().some(isUnassigned)
+    ? { unassignedCharacterIds: [...unassigned] }
+    : null
 }
 
 /**
@@ -79,6 +83,8 @@ export async function reconcileRoomActorDepartures(input: {
   }
   for await (const state of openRuns(store))
     await reconcileRunActorDepartures(ctx, state, { isDeparted, isUnassigned, isMissing })
+  for (const characterId of inputs.cachedCharacterIds())
+    if (isUnassigned(characterId)) inputs.evictCharacter(characterId, transaction)
   if (deletedCharacterIds.size) {
     const { ownerUserId } = authorization.campaign
     const context = await roomEncounterWriteTransaction({

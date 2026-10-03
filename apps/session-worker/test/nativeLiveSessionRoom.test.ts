@@ -6212,7 +6212,14 @@ it('keeps the authority draining when its final checkpoint fails and releases on
   const close = () =>
     control({ campaignId: base.capture.campaignId, operation: { type: 'CLOSE_ROOM' } })
 
-  await expect(close()).rejects.toThrow()
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  try {
+    // A failed checkpoint is a transient 503 for Convex's retry, not an unhandled handler rejection.
+    expect((await close()).status).toBe(503)
+    expect(logged).toHaveBeenCalledWith('Live Session room close failed; retrying.', expect.anything())
+  } finally {
+    logged.mockRestore()
+  }
   expect(base.authorityLifecycleCalls).toEqual(['/live-sessions/begin-drain'])
   expect(checkpoints).toHaveLength(1)
   expect(
@@ -7077,4 +7084,27 @@ it('bounds staged fog per GM and expires an unpublished patch', async () => {
   )
   expect(base.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
   expect(await journalEvidence(base)).toMatchObject({ authority: { sequence: 0 } })
+})
+
+it('sweeps expired staged fog on the room alarm without another begin', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  base.messages.length = 0
+  const patch = fogPatch(scene)
+  base.socket.send(JSON.stringify({ input: patch.input, type: 'SCENE_FOG_BEGIN' }))
+  await vi.waitFor(() => expect(fogProgress(base.messages, patch.input.commandId)).toHaveLength(1))
+  const stagedRows = () =>
+    runInDurableObject(
+      base.stub,
+      (_instance, state) =>
+        state.storage.sql
+          .exec<{ count: number }>('SELECT COUNT(*) AS count FROM room_scene_fog_uploads')
+          .one().count
+    )
+  expect(await stagedRows()).toBe(1)
+
+  vi.spyOn(Date, 'now').mockReturnValue(Date.now() + ROOM_LIMITS.fogUploadWindowMs + 1)
+  await runInDurableObject(base.stub, (instance) => instance.alarm())
+  expect(await stagedRows()).toBe(0)
 })

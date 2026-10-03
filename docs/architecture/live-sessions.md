@@ -578,7 +578,7 @@ command arrives, then awaits the in-flight command chain, including forwarded En
 before it sets the drain fence and releases authority.
 
 **Room capture reads (CURRENT, S6c3).** Room planners read rules content through `LiveCaptureReads`
-(`apps/session-worker/src/nativeCaptureCache.ts`), which the room answers from its own SQLite
+(`apps/session-worker/src/nativeEncounterReads.ts`), which the room answers from its own SQLite
 transaction: `encounterRules` serves the Encounter capture kinds from the hydrated Run, System and
 Character inputs, and `prepareCharacter` builds a Character's rule context from the room-held
 Character and its hydrated sources. `liveEncounterCaptures` shares identical requests within one

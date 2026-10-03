@@ -25,6 +25,7 @@ const DEPARTED = uuid(0xa04)
 const CHARACTER_A = uuid(0xb01)
 const CHARACTER_B = uuid(0xb02)
 const CHARACTER_C = uuid(0xb03)
+const CHARACTER_D = uuid(0xb04)
 const PLAYER_OF: Record<string, string> = {
   [CHARACTER_A]: PLAYER_B,
   [CHARACTER_B]: PLAYER_B,
@@ -45,11 +46,14 @@ afterEach(() => {
 async function heldRoom({
   assigned,
   controllers = {},
-  archived = false
+  archived = false,
+  cached = []
 }: {
   assigned: readonly string[]
   controllers?: Record<string, string[]>
   archived?: boolean
+  /** Characters whose cached room inputs the room holds. */
+  cached?: readonly string[]
 }) {
   const members = archived
     ? []
@@ -148,7 +152,13 @@ async function heldRoom({
         key: 'SYSTEM:SYSTEM',
         revision: JSON.stringify(system.revisions),
         json: JSON.stringify(system)
-      }
+      },
+      ...cached.map((characterId) => ({
+        kind: 'ROOM_INPUT',
+        key: `CHARACTER:${characterId}`,
+        revision: null,
+        json: '{}'
+      }))
     ]
   })
   const inputs = new RoomInputs(
@@ -185,7 +195,7 @@ async function heldRoom({
     if (typeof row?.json !== 'string') throw new Error('Missing write set.')
     return liveSessionRoomWriteSetSchema.parse(JSON.parse(row.json))
   }
-  return { store, authorization, actors, reconcile, journaled }
+  return { store, inputs, authorization, actors, reconcile, journaled }
 }
 
 const rowIdOf = (store: RoomEncounterStore, actorId: string) =>
@@ -199,26 +209,36 @@ describe('readRoomActorDepartures', () => {
     },
     { name: 'an archived Campaign', assigned: [CHARACTER_C], archived: true }
   ])('returns null and writes nothing for $name', async ({ assigned, archived }) => {
-    const { store, authorization } = await heldRoom({ assigned, archived })
+    const { store, inputs, authorization } = await heldRoom({ assigned, archived })
     const { sequence, logRows } = store
-    await expect(readRoomActorDepartures(store, authorization)).resolves.toBeNull()
+    await expect(readRoomActorDepartures(store, inputs, authorization)).resolves.toBeNull()
     expect([store.sequence, store.logRows]).toEqual([sequence, logRows])
   })
 
   it('names the unfrozen Character actors whose assignment is gone', async () => {
-    const { store, authorization } = await heldRoom({
+    const { store, inputs, authorization } = await heldRoom({
       assigned: [CHARACTER_C]
     })
-    const departures = await readRoomActorDepartures(store, authorization)
+    const departures = await readRoomActorDepartures(store, inputs, authorization)
     expect(departures?.unassignedCharacterIds.sort()).toEqual([CHARACTER_A, CHARACTER_B])
   })
 
   it('reports a departed controller with no unassigned Character', async () => {
-    const { store, authorization } = await heldRoom({
+    const { store, inputs, authorization } = await heldRoom({
       assigned: [CHARACTER_A, CHARACTER_B, CHARACTER_C],
       controllers: { [CHARACTER_C]: [PLAYER_C, DEPARTED] }
     })
-    await expect(readRoomActorDepartures(store, authorization)).resolves.toEqual({
+    await expect(readRoomActorDepartures(store, inputs, authorization)).resolves.toEqual({
+      unassignedCharacterIds: []
+    })
+  })
+
+  it('reports a cached unassigned Character that no open Run names', async () => {
+    const { store, inputs, authorization } = await heldRoom({
+      assigned: [CHARACTER_A, CHARACTER_B, CHARACTER_C],
+      cached: [CHARACTER_D]
+    })
+    await expect(readRoomActorDepartures(store, inputs, authorization)).resolves.toEqual({
       unassignedCharacterIds: []
     })
   })
@@ -277,6 +297,19 @@ describe('reconcileRoomActorDepartures', () => {
     expect(Object.keys(reconciled).sort()).toEqual([CHARACTER_B, CHARACTER_C])
     expect(reconciled[CHARACTER_B]).toMatchObject({ frozenState: { currentHitPoints: 11 } })
     expect(reconciled[CHARACTER_C]).toEqual(held[CHARACTER_C])
+  })
+
+  it('evicts the cached inputs of every unassigned Character and keeps assigned ones', async () => {
+    const { store, reconcile } = await heldRoom({
+      assigned: [CHARACTER_B, CHARACTER_C],
+      cached: [CHARACTER_A, CHARACTER_C, CHARACTER_D]
+    })
+    const cached = () => store.records('ROOM_INPUT').map(({ key }) => key)
+    await reconcile(new Set([CHARACTER_A]))
+    expect(cached()).toContain(`CHARACTER:${CHARACTER_C}`)
+    expect(cached()).not.toContain(`CHARACTER:${CHARACTER_A}`)
+    expect(cached()).not.toContain(`CHARACTER:${CHARACTER_D}`)
+    expect(store.documents('characterPlayStates')).toHaveLength(2)
   })
 
   it('unlists a controller who is no longer a member and keeps the rest', async () => {

@@ -30,7 +30,7 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { liveEncounterCaptures, type LiveCaptureReads } from './nativeCaptureCache.js'
+import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import { readNativeLiveCleavingStep } from './nativeEncounterCleaving.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {

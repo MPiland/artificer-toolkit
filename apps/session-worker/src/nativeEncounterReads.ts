@@ -29,8 +29,7 @@ export function liveEncounterCaptures(
   captures: LiveCaptureReads
 ) {
   let revisions: LiveSessionRulesRevisions = []
-  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest; readChecksum: string }> =
-    []
+  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest }> = []
   const reads = new Map<string, Promise<LiveSessionEncounterRulesResponse>>()
   function capture<R extends LiveSessionEncounterRulesRequest>(
     request: R
@@ -43,7 +42,7 @@ export function liveEncounterCaptures(
         const response = await captures.encounterRules(input)
         if (response.kind !== request.kind) throw new Error('Encounter capture kind mismatch.')
         revisions = mergeNativeRulesRevisions(revisions, response.revisions)
-        dependencies.push({ request: input.request, readChecksum: response.readChecksum })
+        dependencies.push({ request: input.request })
         return response
       })()
       reads.set(key, read)

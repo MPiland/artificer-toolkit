@@ -25,7 +25,7 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sceneTokenMovementFailure, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
@@ -49,8 +49,7 @@ export async function readNativeLiveMovementInputs(input: {
     request: { kind: 'MOVEMENT_INPUTS' }
   })
   let revisions: LiveSessionRulesRevisions = []
-  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest; readChecksum: string }> =
-    []
+  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest }> = []
   const reads = new Map<string, Promise<LiveSessionEncounterRulesResponse>>()
   function capture(request: LiveSessionEncounterRulesRequest) {
     const key = checksumCanonicalJson(request)
@@ -61,7 +60,7 @@ export async function readNativeLiveMovementInputs(input: {
         .then((response) => {
         if (response.kind !== request.kind) throw new Error('Movement capture kind mismatch.')
         revisions = mergeNativeRulesRevisions(revisions, response.revisions)
-        dependencies.push({ request, readChecksum: response.readChecksum })
+        dependencies.push({ request })
         return response
       })
       reads.set(key, read)

@@ -38,7 +38,7 @@ import { geometryTarget } from '@artificer-toolkit/encounter-persistence/sceneGe
 
 import { LiveSessionRouteError } from './liveSessionRoutes.js'
 import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { prepareNativeLiveMovement } from './nativeEncounterMovement.js'
 import type { LiveEncounterActor } from './nativeRoomEncounterCommand.js'
 

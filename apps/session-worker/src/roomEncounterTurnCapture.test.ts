@@ -250,9 +250,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
       [0, 1, 2, 3].map((index) => uuid(0xe30 + index))
     )
     expect(first.continueAfter).toBe(uuid(0xe33))
-    const { revisions, readChecksum, ...response } = first
-    expect(revisions).toEqual(observed)
-    expect(readChecksum).toBe(checksumCanonicalJson({ input, userId: gmId, response }))
+    expect(first.revisions).toEqual(observed)
     const second = await capture(owner, {
       ...input,
       request: { kind: 'EFFECTS', actorId: actor.id, afterEffectId: first.continueAfter }

@@ -34,7 +34,7 @@ type UploadRow = {
  * not Scene state, so they live beside the journaled room store and never reach a checkpoint;
  * publication copies them into Scene rows. A published row keeps its identity, without chunks,
  * until its window passes so a retried begin finds the same save. Rows belong to one authority
- * epoch and are bounded per account in count and bytes.
+ * epoch and are bounded per account in count; each batch is bounded by the message limits.
  */
 export class RoomSceneFogUploads {
   readonly #sql: SqlStorage
@@ -51,7 +51,6 @@ export class RoomSceneFogUploads {
         input_json TEXT NOT NULL,
         input_checksum TEXT NOT NULL,
         received_chunks INTEGER NOT NULL,
-        bytes INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
         UNIQUE (epoch, user_id, command_id)
       );
@@ -66,7 +65,7 @@ export class RoomSceneFogUploads {
 
   /** Stages a new patch, or returns the progress of the same patch staged earlier. */
   begin(scope: UploadScope, input: SceneFogPatchInput, now = Date.now()): SceneFogSaveProgress {
-    this.#expire(now)
+    this.expire(now)
     const inputChecksum = checksumCanonicalJson(input)
     const [prior] = this.#sql
       .exec<UploadRow>(
@@ -103,8 +102,8 @@ export class RoomSceneFogUploads {
     }
     this.#sql.exec(
       `INSERT INTO room_scene_fog_uploads
-         (save_id, epoch, user_id, command_id, status, input_json, input_checksum, received_chunks, bytes, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
+         (save_id, epoch, user_id, command_id, status, input_json, input_checksum, received_chunks, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`,
       row.save_id,
       scope.epoch,
       scope.userId,
@@ -152,19 +151,6 @@ export class RoomSceneFogUploads {
         'INVALID_COMMAND',
         'Scene fog chunk batch offset is invalid.'
       )
-    const bytes = encoded.reduce((total, chunk) => total + chunk.length, 0)
-    const [staged] = this.#sql
-      .exec<{ bytes: number | null }>(
-        'SELECT SUM(bytes) AS bytes FROM room_scene_fog_uploads WHERE user_id = ? AND expires_at > ?',
-        scope.userId,
-        now
-      )
-      .toArray()
-    if ((staged?.bytes ?? 0) + bytes > ROOM_LIMITS.maxFogUploadBytesPerUser)
-      throw new RoomSceneCommandRefusal(
-        'RATE_LIMITED',
-        'Too much fog is staged; publish or wait out your other fog changes first.'
-      )
     for (const [index, chunk] of encoded.entries())
       this.#sql.exec(
         'INSERT INTO room_scene_fog_upload_chunks (save_id, ordinal, chunk_json) VALUES (?, ?, ?)',
@@ -174,9 +160,8 @@ export class RoomSceneFogUploads {
       )
     const received = row.received_chunks + encoded.length
     this.#sql.exec(
-      'UPDATE room_scene_fog_uploads SET received_chunks = ?, bytes = bytes + ? WHERE save_id = ?',
+      'UPDATE room_scene_fog_uploads SET received_chunks = ? WHERE save_id = ?',
       received,
-      bytes,
       row.save_id
     )
     return progress({ ...row, received_chunks: received })
@@ -212,7 +197,7 @@ export class RoomSceneFogUploads {
   markPublished(saveId: string): void {
     this.#sql.exec('DELETE FROM room_scene_fog_upload_chunks WHERE save_id = ?', saveId)
     this.#sql.exec(
-      "UPDATE room_scene_fog_uploads SET status = 'PUBLISHED', bytes = 0 WHERE save_id = ?",
+      "UPDATE room_scene_fog_uploads SET status = 'PUBLISHED' WHERE save_id = ?",
       saveId
     )
   }
@@ -232,7 +217,16 @@ export class RoomSceneFogUploads {
     this.#sql.exec('DELETE FROM room_scene_fog_uploads')
   }
 
-  #expire(now: number): void {
+  /** The earliest window end among staged and published rows, for the room's alarm. */
+  nextExpiry(): number | null {
+    const [row] = this.#sql
+      .exec<{ expires_at: number | null }>('SELECT MIN(expires_at) AS expires_at FROM room_scene_fog_uploads')
+      .toArray()
+    return row?.expires_at ?? null
+  }
+
+  /** Discards every row whose window has passed; the room's alarm sweeps what no begin does. */
+  expire(now: number): void {
     this.#sql.exec(
       'DELETE FROM room_scene_fog_upload_chunks WHERE save_id IN (SELECT save_id FROM room_scene_fog_uploads WHERE expires_at <= ?)',
       now

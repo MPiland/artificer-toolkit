@@ -24,11 +24,11 @@ export const ROOM_LIMITS = {
   /** A background preview refresh starts at most once per input in this window. */
   previewRetryMs: 5_000,
   /**
-   * A GM's staged fog patches (D79): at most this many unpublished uploads and staged chunk bytes
-   * per account, each discarded once its window passes, at publication, or when the epoch ends.
+   * A GM's staged fog patches (D79): at most this many unpublished uploads per account, each
+   * discarded once its window passes, at publication, or when the epoch ends. The per-batch message
+   * limits bound the bytes, so no separate byte cap exists.
    */
   maxFogUploadsPerUser: 2,
-  maxFogUploadBytesPerUser: 512 * 1024,
   fogUploadWindowMs: 10 * 60_000
 } as const
 

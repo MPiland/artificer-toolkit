@@ -409,7 +409,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           return new Response('Live Scene presentation is unavailable.', { status: 409 })
         }
       }
-      return Response.json({ closed: await this.#closeRoom(parsed.data.campaignId) })
+      try {
+        return Response.json({ closed: await this.#closeRoom(parsed.data.campaignId) })
+      } catch (error) {
+        // The drain fence and unpublished checkpoint persist; Convex retries a transient status.
+        console.error('Live Session room close failed; retrying.', error)
+        return new Response('Live Session room close is unavailable.', { status: 503 })
+      }
     }
     if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket')
       return new Response('Expected a WebSocket upgrade.', { status: 426 })
@@ -631,6 +637,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (value.acceptedAt + ROOM_LIMITS.authenticationTimeoutMs <= now)
         this.#closeSocket(socket, 'Live-session authentication timed out.')
     }
+    this.#fogUploads.expire(now)
     try {
       const checkpointAt = this.#checkpointAt()
       if (checkpointAt !== null && checkpointAt <= now) await this.#flushOutbox()
@@ -664,7 +671,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     await this.#scheduleAlarm(leaving)
   }
 
-  /** The room's one alarm serves every pending admission window and the idle release. */
+  /** The room's one alarm serves every pending admission window, the idle release, the checkpoint and fog staging expiry. */
   async #scheduleAlarm(leaving?: WebSocket): Promise<void> {
     const open = this.#openSockets(leaving)
     const deadlines = open.flatMap((socket) => {
@@ -677,6 +684,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (releaseAt !== null && open.length === 0) deadlines.push(releaseAt)
     const checkpointAt = this.#checkpointAt()
     if (checkpointAt !== null) deadlines.push(checkpointAt)
+    const fogExpiresAt = this.#fogUploads.nextExpiry()
+    if (fogExpiresAt !== null) deadlines.push(fogExpiresAt)
     if (deadlines.length === 0) await this.ctx.storage.deleteAlarm()
     else await this.ctx.storage.setAlarm(Math.min(...deadlines))
   }
@@ -2304,6 +2313,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             }
           : this.#fogUploads.begin(uploader, input)
       })
+      await this.#scheduleAlarm()
     } catch (error) {
       if (!(error instanceof RoomSceneCommandRefusal)) throw error
       this.#rejectCommand(socket, commandId, error.code, error.message)
@@ -2890,7 +2900,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const authorization = this.#authorization.current(current.authorityEpoch)
     if (!authorization) return
     if (this.#aggregateNeedsReload) await this.#flushOutbox()
-    const departures = await readRoomActorDepartures(this.#roomStore, authorization)
+    const departures = await readRoomActorDepartures(
+      this.#roomStore,
+      this.#roomInputs,
+      authorization
+    )
     if (!departures) return
     const campaignId = this.#roomCampaignId()
     if (!campaignId) throw new Error('Live Session Campaign is unavailable.')

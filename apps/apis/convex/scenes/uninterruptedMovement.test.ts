@@ -13,10 +13,7 @@ beforeEach(() =>
 )
 afterEach(() => vi.unstubAllEnvs())
 
-async function setup(
-  mode: 'MANUAL' | 'ASSISTED',
-  movementKind: 'VOLUNTARY' | 'FORCED' | 'TELEPORT' = 'VOLUNTARY'
-) {
+async function setup(mode: 'MANUAL' | 'ASSISTED') {
   const fixture = await createSpatialPreparationFixture()
   const { base, tokenId } = fixture
   await base.owner.caller.run(async (ctx) => {
@@ -106,7 +103,7 @@ it.each([
 ] as const)(
   'publishes $mode $movementKind movement and fog without a Run occurrence',
   async ({ mode, movementKind }) => {
-    const value = await setup(mode, movementKind)
+    const value = await setup(mode)
     if (mode === 'MANUAL') await seedSpatialEffect(value.base)
     const before = await current(value)
     const command = {

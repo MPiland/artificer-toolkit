@@ -849,6 +849,26 @@ export class RoomInputs {
     return held !== null && isCurrent(held, observed)
   }
 
+  /** The Characters whose inputs the room holds, whether or not they are still assigned. */
+  cachedCharacterIds() {
+    return this.#store
+      .records(CACHE_KIND)
+      .flatMap((record) =>
+        record.key.startsWith('CHARACTER:') ? [record.key.slice('CHARACTER:'.length)] : []
+      )
+  }
+
+  /**
+   * Drops a departed Character's cached inputs. Its stored head, play and effect rows stay: play
+   * and effects are checkpointed state, and a deletion would publish to Convex, where the Character
+   * still exists. A later re-assignment reloads the head and keeps the stored play.
+   */
+  evictCharacter(characterId: string, transaction: RoomTransaction) {
+    const key = cacheKey({ kind: 'CHARACTER', characterId })
+    transaction.deleteRecord(CACHE_KIND, key)
+    this.#content.delete(key)
+  }
+
   /**
    * The Character's stored inputs. A stale Builder/content entry reloads in the caller transaction,
    * retaining room-owned play and active effects.

@@ -21,7 +21,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { rebuildNativeLiveDeferredCleaving } from './nativeEncounterCleaving.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 
 /** Plans one admitted concentration response without publishing the child or touching the Run. */
 export async function planNativeLiveConcentrationResponse(
@@ -43,15 +43,14 @@ export async function planNativeLiveConcentrationResponse(
     response.expectedVersion !== initial.expectedVersion
   )
     throw new Error('Live concentration response scope mismatch.')
-  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest; readChecksum: string }> =
-    []
+  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest }> = []
   let revisions: LiveSessionEncounterConcentrationCommitInput['revisions'] = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
     const result = await executionOptions.captures.encounterRules(input)
     if (result.kind !== request.kind) throw new Error('Concentration capture kind mismatch.')
     revisions = mergeNativeRulesRevisions(revisions, result.revisions)
-    dependencies.push({ request: input.request, readChecksum: result.readChecksum })
+    dependencies.push({ request: input.request })
     return result
   }
   const admission = await capture({ kind: 'CONCENTRATION_RESPONSE' })
