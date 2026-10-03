@@ -13,11 +13,10 @@ import { query } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import {
-  readEncounterWaitingOn,
-  readPendingRunDecision
-} from '@artificer-toolkit/encounter-persistence/pendingReads'
-import { presentRun, readActiveRun } from './projectionReads'
-import { readTurnMovementView } from '@artificer-toolkit/encounter-persistence/turnMovement'
+  readEncounterDecisionSettlement,
+  readEncounterSessionState
+} from '@artificer-toolkit/encounter-persistence/sessionReads'
+import { readActiveRun } from './projectionReads'
 import { encounterReadTransaction } from './encounterPorts'
 
 /** One authenticated snapshot keeps the tabletop's active Campaign Run and pending decision in sync. */
@@ -32,27 +31,13 @@ export const active = query({
     })
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    const row = await readActiveRun(ctx, campaign.id)
-    if (!row) return { encounter: null, pending: null, waitingOn: null, turnMovement: [] }
-    const encounter = await presentRun(ctx, row, campaign, membership)
-    const pending = await readPendingRunDecision(
-      encounterReadTransaction(ctx),
-      row,
-      campaign,
-      membership
-    )
-    return encounterSessionStateDtoSchema.parse({
-      encounter,
-      pending,
-      waitingOn: pending
-        ? null
-        : await readEncounterWaitingOn(encounterReadTransaction(ctx), row, campaign),
-      turnMovement: await readTurnMovementView(encounterReadTransaction(ctx), {
-        row,
+    return encounterSessionStateDtoSchema.parse(
+      await readEncounterSessionState(encounterReadTransaction(ctx), {
+        row: await readActiveRun(ctx, campaign.id),
         campaign,
         membership
       })
-    })
+    )
   }
 })
 
@@ -68,31 +53,16 @@ export const decisionSettlement = query({
     const encounterId = input.encounterId.toLowerCase()
     const occurrenceId = input.occurrenceId.toLowerCase()
     const { userId } = await requireIdentity(ctx)
-    const [run, occurrence] = await Promise.all([
-      ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', encounterId))
-        .unique(),
-      ctx.db
-        .query('encounterRuleOccurrences')
-        .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
-        .unique()
-    ])
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', encounterId))
+      .unique()
     if (!run) throw new Error('Encounter is unavailable.')
     await requireCampaignAuthority(ctx, run.campaignId, userId)
-    if (!occurrence || occurrence.encounterId !== run.id)
-      throw new Error('Rule occurrence is unavailable.')
-    if (occurrence.state === 'PENDING' && occurrence.version === input.occurrenceVersion)
-      return null
-    const skip = await ctx.db
-      .query('encounterDecisionSkips')
-      .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (q) =>
-        q
-          .eq('encounterId', run.id)
-          .eq('occurrenceId', occurrence.id)
-          .eq('occurrenceVersion', input.occurrenceVersion)
-      )
-      .unique()
-    return skip ? 'GM_SKIP' : 'ANSWER'
+    return readEncounterDecisionSettlement(encounterReadTransaction(ctx), {
+      encounterId: run.id,
+      occurrenceId,
+      occurrenceVersion: input.occurrenceVersion
+    })
   }
 })

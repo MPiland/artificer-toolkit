@@ -11,7 +11,8 @@ import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { postCampaignChatEntry } from '../campaigns/chat'
-import { presentRun } from './projectionReads'
+import { presentEncounterRun } from '@artificer-toolkit/encounter-persistence/sessionReads'
+import { encounterReadTransaction } from './encounterPorts'
 
 const descriptiveStateLabels: Record<HealthDescriptiveStateDto, string> = {
   UNHURT: 'unhurt',
@@ -39,7 +40,12 @@ export const share = mutation({
     const authority = await requireCampaignAuthority(ctx, row.campaignId, profile.identity.userId)
     if (authority.membership.role !== 'OWNER') throw new Error('Campaign not found.')
     const projection = encounterGmProjectionDtoSchema.parse(
-      await presentRun(ctx, row, authority.campaign, authority.membership)
+      await presentEncounterRun(
+        encounterReadTransaction(ctx),
+        row,
+        authority.campaign,
+        authority.membership
+      )
     )
     const actor = projection.actors.find(
       (candidate) => candidate.id === input.actorId.toLowerCase()

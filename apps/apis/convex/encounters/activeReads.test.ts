@@ -14,7 +14,6 @@ import type {
   CreateEncounterInputDto,
   EncounterBlueprintDto,
   EncounterGmProjectionDto,
-  EncounterPlayerProjectionDto,
   EncounterSessionStateDto,
   PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounterData'
@@ -54,11 +53,6 @@ const saveSettings = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
-const active = makeFunctionReference<
-  'query',
-  { campaignId: string },
-  EncounterGmProjectionDto | EncounterPlayerProjectionDto | null
->('encounters/projectionReads:active')
 const pending = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -211,7 +205,7 @@ it('reads the active projection and pending decision together with existing visi
   const ownerState = await base.owner.caller.query(activeState, input)
   const [visible, hidden] = ownerState.encounter?.actors ?? []
   expect(ownerState).toEqual({
-    encounter: await base.owner.caller.query(active, { campaignId: campaign.id }),
+    encounter: expect.objectContaining({ id: run.id, status: 'ACTIVE' }),
     pending: await base.owner.caller.query(pending, { encounterId: run.id }),
     waitingOn: null,
     // The GM sees every actor's movement this turn against its stat block's walking speed.
@@ -225,7 +219,7 @@ it('reads the active projection and pending decision together with existing visi
   expect(ownerState.pending).not.toBeNull()
   const playerState = await base.other.caller.query(activeState, input)
   expect(playerState).toEqual({
-    encounter: await base.other.caller.query(active, { campaignId: campaign.id }),
+    encounter: expect.objectContaining({ id: run.id, status: 'ACTIVE' }),
     pending: await base.other.caller.query(pending, { encounterId: run.id }),
     // The player can't answer the GM's pending turn step, and the signal survives a reload.
     waitingOn: 'GM',

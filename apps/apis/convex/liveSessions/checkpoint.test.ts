@@ -1,7 +1,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
-  LiveSessionCheckpointInput,
+  LiveSessionCheckpointRequest,
   LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import {
@@ -59,7 +59,7 @@ const commitActivation = makeFunctionReference<
 >('liveSessions/authority:commitActivation')
 const publish = makeFunctionReference<
   'mutation',
-  LiveSessionCheckpointInput,
+  LiveSessionCheckpointRequest,
   LiveSessionCheckpointResponse
 >('liveSessions/checkpoint:publish')
 
@@ -117,7 +117,7 @@ type FixtureRecords = Omit<LiveSessionCheckpointRecords, 'scenes'> &
 function frame(
   authority: LiveSessionAuthorityDto,
   records: FixtureRecords
-): LiveSessionCheckpointInput {
+): LiveSessionCheckpointRequest {
   const payload = { ...records, scenes: records.scenes ?? [] }
   return {
     campaignId: authority.campaignId,
@@ -129,6 +129,7 @@ function frame(
     checksum: 'b'.repeat(64),
     payloadChecksum: checksumCanonicalJson(payload),
     knownAuthorization: null,
+    reason: 'DEADLINE',
     records: payload
   }
 }
@@ -298,6 +299,11 @@ it('publishes Run and Character play deltas with grouped history, then replays w
   if (!beforeCharacterRevision) throw new Error('Missing fixture Character revision.')
   const committed = await base.t.mutation(publish, input)
   expect(committed.status).toBe('COMMITTED')
+  // The mutation reports its own transaction cost to the room's meter (D85).
+  expect(committed.io.bytesRead).toBeGreaterThan(0)
+  expect(committed.io.bytesWritten).toBeGreaterThan(0)
+  expect(committed.io.documentsRead).toBeGreaterThan(0)
+  expect(committed.io.documentsWritten).toBeGreaterThan(0)
   expect(committed.authority).toMatchObject({
     persistedSequence: 3,
     persistedStateChecksum: input.checksum,
@@ -935,7 +941,7 @@ it('rejects stale record and delta checksums, altered payloads, malformed input 
   const run = await runChange(base)
   const input = frame(authority, { changes: [run.change], history: [] })
   const before = await snapshot(base)
-  const variants: [LiveSessionCheckpointInput, string | undefined][] = [
+  const variants: [LiveSessionCheckpointRequest, string | undefined][] = [
     [{ ...input, payloadChecksum: 'f'.repeat(64) }, 'payload checksum does not match'],
     [{ ...input, fromSequence: 0.5 }, undefined],
     [{ ...input, epoch: crypto.randomUUID() }, 'authority is stale'],

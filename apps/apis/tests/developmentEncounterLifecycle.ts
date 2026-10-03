@@ -163,7 +163,7 @@ export async function verifyEncounterLifecycle({
   assert.equal(projection.round, 1)
   assert.equal(projection.currentActorId, first.id)
   assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.active, { campaignId }),
+    (await owner.query(api.encounters.activeReads.active, { campaignId })).encounter,
     projection
   )
   await execute({ ...commandBase(), type: 'ADVANCE_TURN' })
@@ -318,7 +318,10 @@ export async function verifyEncounterLifecycle({
   await execute({ ...commandBase(), type: 'COMPLETE' })
   assert.equal(projection.status, 'COMPLETED')
   assert.deepEqual(projection.reminders, reminders)
-  assert.equal(await owner.query(api.encounters.projectionReads.active, { campaignId }), null)
+  assert.equal(
+    (await owner.query(api.encounters.activeReads.active, { campaignId })).encounter,
+    null
+  )
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
     projection

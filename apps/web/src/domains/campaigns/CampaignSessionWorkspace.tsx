@@ -1,7 +1,6 @@
 import { Select, Tabs } from '@mantine/core'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { useConvex } from 'convex/react'
 import { getCampaignSession, useCampaignDetail } from '#app/data/campaigns/queries'
 import { getCampaignEncounters } from '#app/data/encounters/queries'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
@@ -32,11 +31,10 @@ export function CampaignSessionWorkspace({
   sessionNumber: number
 }) {
   const queryClient = useQueryClient()
-  const convex = useConvex()
   const campaign = useCampaignDetail(campaignId)
   const { data: session } = useSuspenseQuery(getCampaignSession(campaign.id, sessionNumber))
   const encounters = useQuery({
-    ...getCampaignEncounters(campaign.id, convex),
+    ...getCampaignEncounters(campaign.id),
     enabled: campaign.role === 'OWNER'
   })
   const views = useMemo<SessionWorkspaceView[]>(

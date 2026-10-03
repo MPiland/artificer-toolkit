@@ -24,7 +24,11 @@ const PUSHED_PRIVATE_ROLL_LIMIT = 20
  * mutations. The command ID is the entry's client nonce, so a retry replays the original entry.
  * The GM's private rolls and reveals (Q14) follow the same switch.
  */
-export function useCampaignChatRoom(campaignId: string | undefined) {
+export function useCampaignChatRoom(
+  campaignId: string | undefined,
+  /** Also follows the room's Encounter session, with the timeline on request. */
+  encounterSession: { timeline: boolean } | null = null
+) {
   const authority = useQuery(getCampaignLiveAuthority(campaignId))
   const holdsAuthority = Boolean(authority.data)
   const [pushed, setPushed] = useState<CampaignChatEntryDto[]>([])
@@ -32,6 +36,7 @@ export function useCampaignChatRoom(campaignId: string | undefined) {
   const live = useCampaignLiveSession({
     campaignId: campaignId ?? '',
     enabled: holdsAuthority,
+    encounterSession,
     onCampaignChatEntry: (entry) =>
       setPushed((current) =>
         current.some((existing) => existing.id === entry.id)
@@ -109,6 +114,7 @@ export function useCampaignChatRoom(campaignId: string | undefined) {
 
   return {
     executePrivateRoll,
+    encounterSession: live.encounterSession,
     executeRoll,
     pushedEntries: pushed,
     pushedPrivateRolls,

@@ -1,55 +1,37 @@
-import { convexQuery } from '@convex-dev/react-query'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import {
-  pendingEncounterRuleOccurrenceSummaryDtoSchema,
-  type EncounterCommandInputDto,
-  type EncounterGmProjectionDto,
-  type EncounterPlayerProjectionDto,
-  type EncounterCommandResultDto
+import { useMutation, useQuery } from '@tanstack/react-query'
+import type {
+  EncounterCommandInputDto,
+  EncounterGmProjectionDto,
+  EncounterPlayerProjectionDto,
+  EncounterCommandResultDto,
+  PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { CampaignTabletopDecisionDrawer } from '../vtt/CampaignTabletopDecisionDrawer'
 import { getEncounterLatestEvidenceRoll } from '#app/data/campaigns/encounterActions'
-import { queryKeys } from '#app/lib/queryKeys'
 
 export function CampaignEncounterDecision({
-  campaignId,
   canVoid,
   connected,
   encounter,
   onResolved,
+  pending,
   sendCommand
 }: {
-  campaignId: string
   canVoid: boolean
   connected: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   onResolved?: (result: EncounterCommandResultDto) => void
+  /** The decision pending on `encounter`, read by the caller from the room or Convex. */
+  pending: PendingEncounterRuleOccurrenceSummaryDto | null
   sendCommand: (command: EncounterCommandInputDto) => Promise<EncounterCommandResultDto>
 }) {
-  const queryClient = useQueryClient()
-  const pending = useQuery({
-    ...convexQuery(convexApi.encounters.pendingReads.pendingRuleOccurrence, {
-      encounterId: encounter.id
-    }),
-    select: (occurrence) =>
-      occurrence === null ? null : pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(occurrence)
-  })
-  const latestRoll = useQuery(getEncounterLatestEvidenceRoll(pending.data ? encounter.id : null))
+  const latestRoll = useQuery(getEncounterLatestEvidenceRoll(pending ? encounter.id : null))
   const resolve = useMutation({
     mutationFn: sendCommand,
-    onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaignId) })
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.encounters.detail(encounter.id),
-        exact: true
-      })
-      void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.timeline(encounter.id) })
-      onResolved?.(result)
-    }
+    onSuccess: (result) => onResolved?.(result)
   })
 
-  if (!pending.data) return null
+  if (!pending) return null
 
   return (
     <CampaignTabletopDecisionDrawer
@@ -57,7 +39,7 @@ export function CampaignEncounterDecision({
       connected={connected}
       encounter={encounter}
       latestRoll={latestRoll.data ?? null}
-      pending={pending.data}
+      pending={pending}
       skipped={null}
       submitting={resolve.isPending}
       onResolve={resolve.mutateAsync}

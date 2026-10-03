@@ -48,8 +48,10 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import { queryKeys } from '#app/lib/queryKeys'
 import { errorMessage } from '#app/lib/errorMessage'
 import type { GetEncounterOptionalActionChoicesInputDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import { encounterProjectionListDtoSchema } from '@artificer-toolkit/schema/api/encounters'
-import { encounterSessionStateDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
+import {
+  encounterPreparedPendingListDtoSchema,
+  encounterSessionStateDtoSchema
+} from '@artificer-toolkit/schema/api/encounterData'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneEncounterBindingSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
@@ -99,17 +101,58 @@ export function CampaignVttStage({
 }) {
   const convex = useConvex()
   const [actionsOpened, setActionsOpened] = useState(false)
-  const encounterSessionState = useQuery({
-    ...convexQuery(convexApi.encounters.activeReads.active, { campaignId: campaign.id }),
+  const renderer = useRef<VttSceneRenderer | null>(null)
+  const rendererHost = useRef<HTMLDivElement | null>(null)
+  const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
+  const sceneRef = useRef<CampaignSceneStateDto | undefined>(undefined)
+  const commitTokenMoveRef = useRef(commitTokenMove)
+  const transientSequence = useRef(0)
+  const optimisticDoorCommands = useRef(new Map<string, string>())
+  const [mode, setMode] = useState<CampaignVttMode>('PLAY')
+  const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
+  const [tool, setTool] = useState<CampaignVttTool>('SELECT')
+  const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
+  const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
+  // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
+  const [sharePreviews, setSharePreviews] = useState(false)
+  const fogOwnerUserIdRef = useRef<string | null>(null)
+  fogOwnerUserIdRef.current = fogOwnerUserId
+  // Each ping replaces the announcement's content, so a repeated ping is announced again.
+  const [pingAnnouncement, setPingAnnouncement] = useState({ id: 0, text: '' })
+  const announcePing = (userId: string) =>
+    setPingAnnouncement((previous) => ({
+      id: previous.id + 1,
+      text: describeVttPing(campaign.memberships, userId, currentUserId)
+    }))
+  const announcePingRef = useRef(announcePing)
+  announcePingRef.current = announcePing
+
+  const live = useCampaignLiveSession({
+    campaignId: campaign.id,
+    enabled: true,
+    encounterSession: { timeline: false },
+    onTransient: (message) => {
+      renderer.current?.applyTransient(message)
+      if (message.envelope.kind === 'PING') announcePing(message.userId)
+    }
+  })
+  // The room's session while it holds the Run; Convex's stored session otherwise.
+  const room = live.encounterSession
+  const storedSessionState = useQuery({
+    ...convexQuery(
+      convexApi.encounters.activeReads.active,
+      room ? 'skip' : { campaignId: campaign.id }
+    ),
     select: encounterSessionStateDtoSchema.parse
   })
+  const encounterSessionState = room ? room.state : storedSessionState.data
   const {
     encounter: activeEncounter,
     currentActor,
     currentActorMine,
     turnMovement: currentTurnMovement
-  } = readActiveTurn(campaign, currentUserId, encounterSessionState.data)
-  const pendingOccurrence = encounterSessionState.data?.pending
+  } = readActiveTurn(campaign, currentUserId, encounterSessionState)
+  const pendingOccurrence = encounterSessionState?.pending
   useEffect(() => {
     if (
       !currentActorMine ||
@@ -142,9 +185,9 @@ export function CampaignVttStage({
     if (pendingOccurrence && campaign.role !== 'OWNER') setShownDecision(pendingOccurrence)
   }, [campaign.role, pendingOccurrence])
   const settledDecision = pendingOccurrence ? null : shownDecision
-  const decisionSettlement = useQuery(
+  const storedDecisionSettlement = useQuery(
     getEncounterDecisionSettlement(
-      settledDecision && activeEncounter
+      settledDecision && activeEncounter && !room
         ? {
             encounterId: activeEncounter.id,
             occurrenceId: settledDecision.occurrenceId,
@@ -153,9 +196,10 @@ export function CampaignVttStage({
         : null
     )
   )
+  const decisionOutcome = room ? (room.settlement?.outcome ?? null) : storedDecisionSettlement.data
   useEffect(() => {
-    if (decisionSettlement.data === 'ANSWER') setShownDecision(null)
-  }, [decisionSettlement.data])
+    if (decisionOutcome === 'ANSWER') setShownDecision(null)
+  }, [decisionOutcome])
   const drawerDecision = pendingOccurrence ?? settledDecision
   const currentActionChoices =
     actionChoiceScope &&
@@ -174,49 +218,14 @@ export function CampaignVttStage({
       loadCampaignEncounterOptionalActionChoices(convex, input),
     [convex]
   )
-  const pendingPrepared = useQuery({
-    ...convexQuery(convexApi.encounters.projectionReads.pendingPrepared, {
-      campaignId: campaign.id
-    }),
-    select: encounterProjectionListDtoSchema.parse
+  const storedPendingPrepared = useQuery({
+    ...convexQuery(
+      convexApi.encounters.projectionReads.pendingPrepared,
+      room ? 'skip' : { campaignId: campaign.id }
+    ),
+    select: encounterPreparedPendingListDtoSchema.parse
   })
-  const preparedPendingEncounters = (pendingPrepared.data ?? []).filter(
-    (encounter) => encounter.status === 'PREPARED'
-  )
-  const renderer = useRef<VttSceneRenderer | null>(null)
-  const rendererHost = useRef<HTMLDivElement | null>(null)
-  const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
-  const sceneRef = useRef<CampaignSceneStateDto | undefined>(undefined)
-  const commitTokenMoveRef = useRef(commitTokenMove)
-  const transientSequence = useRef(0)
-  const optimisticDoorCommands = useRef(new Map<string, string>())
-  const [mode, setMode] = useState<CampaignVttMode>('PLAY')
-  const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
-  const [tool, setTool] = useState<CampaignVttTool>('SELECT')
-  const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
-  const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
-  // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
-  const [sharePreviews, setSharePreviews] = useState(false)
-  const fogOwnerUserIdRef = useRef<string | null>(null)
-  fogOwnerUserIdRef.current = fogOwnerUserId
-  // Each ping replaces the announcement's content, so a repeated ping is announced again.
-  const [pingAnnouncement, setPingAnnouncement] = useState({ id: 0, text: '' })
-  const announcePing = (userId: string) =>
-    setPingAnnouncement((previous) => ({
-      id: previous.id + 1,
-      text: describeVttPing(campaign.memberships, userId, currentUserId)
-    }))
-  const announcePingRef = useRef(announcePing)
-  announcePingRef.current = announcePing
-
-  const live = useCampaignLiveSession({
-    campaignId: campaign.id,
-    enabled: true,
-    onTransient: (message) => {
-      renderer.current?.applyTransient(message)
-      if (message.envelope.kind === 'PING') announcePing(message.userId)
-    }
-  })
+  const preparedPendingEncounters = room ? room.preparedPending : (storedPendingPrepared.data ?? [])
   const liveScenes = useQuery({
     ...getCampaignLiveScenes(campaign.id, convex),
     enabled: campaign.role === 'OWNER',
@@ -255,7 +264,8 @@ export function CampaignVttStage({
   const activeEncounterSceneBinding =
     currentSceneBinding &&
     activeEncounter &&
-    currentSceneBinding.encounterVersion === activeEncounter.version
+    // The binding stores Convex's Run version, which trails the room's while the room holds the Run.
+    (room || currentSceneBinding.encounterVersion === activeEncounter.version)
       ? currentSceneBinding
       : null
   const actorTokenBindings = useQuery({
@@ -787,7 +797,7 @@ export function CampaignVttStage({
     return <VttEmpty title='Scene could not be loaded' body={presented.error.message} />
   }
   if (
-    encounterSessionState.isPending ||
+    (!room && storedSessionState.isPending) ||
     presented.isLoading ||
     (Boolean(presented.recipientHeader) && !live.recipientState?.scene)
   ) {
@@ -1031,7 +1041,7 @@ export function CampaignVttStage({
               optionalRules={currentActionChoices?.optionalRules ?? []}
               pending={encounterCommand.isPending || pendingOccurrence !== null}
               scene={scene}
-              waitingOn={encounterSessionState.data?.waitingOn ?? null}
+              waitingOn={encounterSessionState?.waitingOn ?? null}
               actorIdByTokenId={actorIdByTokenId}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
               onUseBasicAction={(command) => encounterCommand.mutateAsync(command)}
@@ -1046,7 +1056,7 @@ export function CampaignVttStage({
               latestRoll={latestEvidenceRoll.data ?? null}
               pending={drawerDecision}
               skipped={
-                !pendingOccurrence && decisionSettlement.data === 'GM_SKIP'
+                !pendingOccurrence && decisionOutcome === 'GM_SKIP'
                   ? { onDismiss: () => setShownDecision(null) }
                   : null
               }
@@ -1054,13 +1064,13 @@ export function CampaignVttStage({
               onResolve={(command) => encounterCommand.mutateAsync(command)}
             />
           ) : null}
-          {preparedPendingEncounters.map((encounter) => (
+          {preparedPendingEncounters.map(({ encounter, pending }) => (
             <CampaignEncounterDecision
-              campaignId={campaign.id}
               canVoid={campaign.role === 'OWNER'}
               connected={campaign.status === 'ACTIVE' && live.commandReady}
               encounter={encounter}
               key={encounter.id}
+              pending={pending}
               sendCommand={live.sendEncounterCommand}
             />
           ))}

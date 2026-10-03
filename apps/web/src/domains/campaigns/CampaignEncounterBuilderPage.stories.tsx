@@ -1,7 +1,7 @@
 import { Stack } from '@mantine/core'
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { ConvexReactClient, useConvex } from 'convex/react'
+import { useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { ConvexReactClient, useConvex, usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { expect, fn, mocked, spyOn, userEvent, waitFor, within } from 'storybook/test'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
@@ -14,6 +14,7 @@ import { CREATURE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import { getContentCatalogueManifest } from '#app/data/contentSnapshots/queries'
 import { contentCatalogueQueryKey } from '#app/data/contentSnapshots/useContentCatalogue'
+import { getCampaignEncounters, getEncounter } from '#app/data/encounters/queries'
 import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { CampaignEncounterBuilderPage } from './CampaignEncounterBuilderPage'
@@ -29,7 +30,7 @@ const blueprintId = '99999999-9999-4999-8999-999999999903'
 const createBlueprint = fn()
 const createEncounterRun = fn()
 const deleteEncounterRun = fn()
-let encounterRunCreated = false
+let storyQueryClient: QueryClient
 
 const creatureId = '99999999-9999-4999-8999-999999999904'
 const creatureScopeId = '99999999-9999-4999-8999-999999999905'
@@ -130,21 +131,13 @@ const meta = {
     createBlueprint.mockClear()
     createEncounterRun.mockClear()
     deleteEncounterRun.mockClear()
-    encounterRunCreated = false
-    const client = new ConvexReactClient('https://story-fixture.convex.cloud', { logger: false })
-    Object.defineProperty(client, 'query', {
-      value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference]) => {
-        const name = getFunctionName(reference)
-        if (name === getFunctionName(convexApi.encounters.blueprints.list)) {
-          return { page: [blueprint], isDone: true, continueCursor: '' }
-        }
-        if (name === getFunctionName(convexApi.encounters.projectionReads.list))
-          return encounterRunCreated ? [summarizeEncounterProjection(createdEncounter)] : []
-        if (name === getFunctionName(convexApi.encounters.projectionReads.get))
-          return createdEncounter
-        throw new Error(`Unexpected encounter fixture query: ${name}`)
-      })
+    mocked(usePaginatedQuery).mockReturnValue({
+      isLoading: false,
+      loadMore: () => undefined,
+      results: [blueprint],
+      status: 'Exhausted'
     })
+    const client = new ConvexReactClient('https://story-fixture.convex.cloud', { logger: false })
     Object.defineProperty(client, 'mutation', {
       value: fn<ConvexReactClient['mutation']>().mockImplementation(
         async (...[reference, input]) => {
@@ -155,12 +148,18 @@ const meta = {
           }
           if (name === getFunctionName(convexApi.encounters.runs.create)) {
             createEncounterRun(input)
-            encounterRunCreated = true
+            storyQueryClient.setQueryData(
+              getEncounter(createdEncounter.id).queryKey,
+              createdEncounter
+            )
+            storyQueryClient.setQueryData(getCampaignEncounters(campaign.id).queryKey, [
+              summarizeEncounterProjection(createdEncounter)
+            ])
             return createdEncounter
           }
           if (name === getFunctionName(convexApi.encounters.runs.deletePrepared)) {
             deleteEncounterRun(input)
-            encounterRunCreated = false
+            storyQueryClient.setQueryData(getCampaignEncounters(campaign.id).queryKey, [])
             return { campaignId: campaign.id, encounterId: createdEncounter.id }
           }
           throw new Error(`Unexpected encounter fixture mutation: ${name}`)
@@ -173,6 +172,8 @@ const meta = {
   decorators: [
     (Story) => {
       const queryClient = useQueryClient()
+      storyQueryClient = queryClient
+      queryClient.setQueryData(getCampaignEncounters(campaign.id).queryKey, [])
       const campaignQuery = getCampaignDetail(campaign.id)
       queryClient.setQueryDefaults(campaignQuery.queryKey, { queryFn: async () => campaign })
       queryClient.setQueryData(campaignQuery.queryKey, campaign)

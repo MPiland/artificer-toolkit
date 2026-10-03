@@ -1,3 +1,5 @@
+import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
+import type { CampaignCharacterState } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import type { EncounterProjectionCharacterStates } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import {
   encounterRunActorStateSchema,
@@ -43,6 +45,8 @@ export function characterProjectionState(
  * Reads each Character actor's current hit points and conditions for a Run projection (ADR 0034
  * decision 4). A completed Run, and an open Run whose Character left the Campaign, show the values
  * frozen when the Run stopped reading it: a detached Character grants no current Sheet access.
+ * `campaignConditions` layers the Campaign's own conditions, as the viewer may see them, over each
+ * live Character's Sheet conditions.
  */
 export async function readEncounterCharacterStates(
   ctx: EncounterProjectionTransaction,
@@ -50,7 +54,11 @@ export async function readEncounterCharacterStates(
   actors: readonly (
     | Pick<EncounterRunCharacterActorState, 'kind' | 'sourceId' | 'frozenState'>
     | { kind: 'CREATURE' | 'CUSTOM' }
-  )[]
+  )[],
+  campaignConditions?: {
+    viewer: 'CAMPAIGN_OWNER' | 'CHARACTER_OWNER'
+    read(characterId: string): Promise<CampaignCharacterState['conditions']>
+  }
 ): Promise<EncounterProjectionCharacterStates> {
   const states = new Map<
     string,
@@ -83,7 +91,20 @@ export async function readEncounterCharacterStates(
     if (!play || play.userId !== assignment.userId)
       throw new Error('Stored Encounter Character source is unavailable.')
     conditionTypes ??= (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes
-    states.set(characterId, await readCharacterPlayProjection(ctx, play, conditionTypes))
+    states.set(
+      characterId,
+      await readCharacterPlayProjection(
+        ctx,
+        play,
+        conditionTypes,
+        campaignConditions
+          ? getVisibleCampaignConditions({
+              conditions: await campaignConditions.read(characterId),
+              viewer: campaignConditions.viewer
+            })
+          : []
+      )
+    )
   }
   return states
 }
@@ -92,10 +113,12 @@ export async function readEncounterCharacterStates(
 export async function readCharacterPlayProjection(
   ctx: EncounterProjectionTransaction,
   play: EncounterDocument<'characterPlayStates'>,
-  conditionTypes: SystemAuthoredDto['conditionTypes']
+  conditionTypes: SystemAuthoredDto['conditionTypes'],
+  campaignConditions: Array<{ conditionTypeId: string; notes?: string }> = []
 ) {
+  const sheet = ctx.ports.readCharacterPlay(play)
   return characterProjectionState(
-    ctx.ports.readCharacterPlay(play),
+    { ...sheet, conditions: [...(sheet.conditions ?? []), ...campaignConditions] },
     await readCharacterMaximumHitPoints(ctx, play),
     conditionTypes
   )

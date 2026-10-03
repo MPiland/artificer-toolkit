@@ -10,7 +10,7 @@ import {
   TextInput,
   Title
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { IconChevronLeft } from '@tabler/icons-react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { CreateEncounterBlueprintInputDto } from '@artificer-toolkit/schema/api/encounterData'
@@ -18,8 +18,7 @@ import { useConvex } from 'convex/react'
 import { useState } from 'react'
 import { useCampaignDetail } from '#app/data/campaigns/queries'
 import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
-import { getEncounterBlueprints } from '#app/data/encounters/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useEncounterBlueprints } from '#app/data/encounters/queries'
 import * as sharedStyles from './campaigns.css'
 import * as encounterStyles from './components/encounter.css'
 
@@ -30,12 +29,11 @@ type BlueprintEnemy =
 export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: string }) {
   const convex = useConvex()
   const campaign = useCampaignDetail(campaignId)
-  const blueprints = useQuery({
-    ...getEncounterBlueprints(campaign.gameSystemId, convex),
-    enabled: campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
-  })
+  const blueprints = useEncounterBlueprints(
+    campaign.gameSystemId,
+    campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  )
   const creatures = useContentCatalogue('CREATURE')
-  const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [creatureId, setCreatureId] = useState<string | null>(null)
   const [customName, setCustomName] = useState('')
@@ -55,12 +53,9 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
         commandId: crypto.randomUUID()
       })
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       setName('')
       setEnemies([])
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.encounters.blueprints(campaign.gameSystemId)
-      })
       window.history.back()
     }
   })
@@ -84,7 +79,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
           Back to Session
         </Button>
       </header>
-      {blueprints.error || creatures.isError ? (
+      {creatures.isError ? (
         <Alert color='red'>
           Encounter builder options couldn’t be loaded. Refresh the page to try again.
         </Alert>

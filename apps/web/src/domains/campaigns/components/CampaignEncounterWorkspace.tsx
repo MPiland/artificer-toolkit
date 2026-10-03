@@ -13,34 +13,31 @@ import {
   Text,
   Tooltip
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { IconChevronDown, IconChevronUp, IconDotsVertical, IconTrash } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { useConvex } from 'convex/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   encounterGmProjectionDtoSchema,
   type EncounterCommandInputDto,
-  type EncounterGmProjectionDto,
-  type EncounterPlayerProjectionDto,
-  type EncounterSummaryDto
+  type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { healthDisplayLevelDtoSchema } from '@artificer-toolkit/schema/api/healthDisplay'
 import { getEncounterTimeline } from '#app/data/encounters/queries'
-import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
 import { useSystemList } from '#app/data/systems/useSystemList'
 import { AppSelect } from '#app/ui/primitives/Select'
-import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from '../campaigns.css'
 import * as encounterStyles from './encounter.css'
 import { EncounterActorCard } from './EncounterActorCard'
 import { EncounterReinforcement } from './EncounterReinforcement'
 import { CampaignEncounterDecision } from './CampaignEncounterDecision'
 import { EncounterReminders } from './EncounterReminders'
+import { readRoomEncounterRun } from '../vtt/roomEncounterRun'
 import { useCampaignLiveSession } from '../vtt/useCampaignLiveSession'
+import { useEncounterPendingDecision } from './useEncounterPendingDecision'
 import { LiveSessionCommandRejectedError } from '../vtt/liveSessionClient'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 import { healthDisplayLevelOptions } from '../healthDisplay'
@@ -48,36 +45,49 @@ import { healthDisplayLevelOptions } from '../healthDisplay'
 export function CampaignEncounterWorkspace({
   campaign,
   currentUserId,
-  encounter,
+  encounter: storedEncounter,
   onUpdated
 }: {
   campaign: CampaignDetailDto
   currentUserId: string
+  /** The Run as Convex last stored it; the room's Run replaces it while the room holds it. */
   encounter: EncounterGmProjectionDto
   onUpdated: (encounter: EncounterGmProjectionDto) => void
 }) {
-  const queryClient = useQueryClient()
-  const convex = useConvex()
+  const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const live = useCampaignLiveSession({
+    campaignId: campaign.id,
+    enabled: canManage && storedEncounter.status !== 'COMPLETED',
+    encounterSession: { timeline: true }
+  })
+  const room = canManage ? readRoomEncounterRun(live.encounterSession, storedEncounter.id) : null
+  const roomEncounter = room?.encounter
+  const encounter = useMemo(
+    () => (roomEncounter ? encounterGmProjectionDtoSchema.parse(roomEncounter) : storedEncounter),
+    [roomEncounter, storedEncounter]
+  )
   const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false)
   const [undoConfirmOpen, setUndoConfirmOpen] = useState(false)
   const [reinforceOpen, setReinforceOpen] = useState(false)
   const [removeActorId, setRemoveActorId] = useState<string | null>(null)
   const [rulesetSystemId, setRulesetSystemId] = useState<string | null>(null)
   const [round, setRound] = useState(encounter.round)
-  const timeline = useQuery(getEncounterTimeline(encounter.id, convex))
+  const roomTimeline =
+    live.encounterSession?.state.encounter?.id === encounter.id
+      ? live.encounterSession.timeline
+      : null
+  const storedTimeline = useQuery(getEncounterTimeline(roomTimeline ? null : encounter.id))
+  const timeline = roomTimeline
+    ? { data: roomTimeline, error: null, isPending: false }
+    : storedTimeline
   const needsExplicitSystem =
     encounter.status === 'PREPARED' && encounter.actors.every((actor) => actor.systemId === null)
-  const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   const systems = useSystemList(needsExplicitSystem && canManage)
   const [openedActorId, setOpenedActorId] = useState<string | null>(
     encounter.currentActorId ??
       encounter.actors.find((actor) => actor.initiative === null)?.id ??
       null
   )
-  const live = useCampaignLiveSession({
-    campaignId: campaign.id,
-    enabled: canManage && encounter.status !== 'COMPLETED'
-  })
   const command = useMutation({
     mutationFn: live.sendEncounterCommand,
     onSuccess: (result) => {
@@ -89,21 +99,6 @@ export function CampaignEncounterWorkspace({
           message: `Rolled ${result.roll.evidence.total}`
         })
       }
-      queryClient.setQueryData(
-        queryKeys.encounters.detail(updated.id),
-        (current: EncounterGmProjectionDto | EncounterPlayerProjectionDto | undefined) =>
-          current && current.version > updated.version ? current : updated
-      )
-      queryClient.setQueryData(
-        queryKeys.encounters.list(campaign.id),
-        (current: EncounterSummaryDto[] | undefined) =>
-          current?.map((candidate) =>
-            candidate.id === updated.id && candidate.version <= updated.version
-              ? summarizeEncounterProjection(updated)
-              : candidate
-          )
-      )
-      void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.timeline(encounter.id) })
       setCompleteConfirmOpen(false)
       setUndoConfirmOpen(false)
       setRemoveActorId(null)
@@ -119,23 +114,21 @@ export function CampaignEncounterWorkspace({
       : 'The Encounter couldn’t be updated. Try that action again.'
     : null
   const commandBlocked = command.isPending || !live.commandReady
-  const pendingDecision = useQuery({
-    ...convexQuery(convexApi.encounters.pendingReads.pendingRuleOccurrence, {
-      encounterId: encounter.id
-    }),
-    enabled: !readOnly
-  })
+  const pendingDecision = useEncounterPendingDecision(encounter.id, room, !readOnly)
   const needsSideOrder =
     !readOnly &&
     encounter.status === 'ACTIVE' &&
     encounter.initiativePolicy?.procedure === 'SIDE_ROLL'
-  const actorSides = useQuery({
-    ...convexQuery(convexApi.encounters.projectionReads.actorSides, {
-      encounterId: encounter.id,
-      expectedVersion: encounter.version
-    }),
-    enabled: needsSideOrder
-  })
+  const roomActorSides = live.encounterSession?.actorSides ?? null
+  const storedActorSides = useQuery(
+    convexQuery(
+      convexApi.encounters.projectionReads.actorSides,
+      needsSideOrder && !roomActorSides
+        ? { encounterId: encounter.id, expectedVersion: encounter.version }
+        : 'skip'
+    )
+  )
+  const actorSides = roomActorSides ? { data: roomActorSides, error: null } : storedActorSides
   const sideByActor = new Map(
     actorSides.data?.actors.map((actor) => [actor.id, actor.sideId]) ?? []
   )
@@ -316,13 +309,13 @@ export function CampaignEncounterWorkspace({
       ) : null}
       {encounter.status === 'PREPARED' ? (
         <CampaignEncounterDecision
-          campaignId={campaign.id}
           canVoid={canManage}
           connected={live.commandReady}
           encounter={encounter}
           onResolved={(result) =>
             onUpdated(encounterGmProjectionDtoSchema.parse(result.projection))
           }
+          pending={pendingDecision.data ?? null}
           sendCommand={live.sendEncounterCommand}
         />
       ) : null}

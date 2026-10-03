@@ -10,6 +10,7 @@ import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
 } from '@artificer-toolkit/schema/api/campaignSettings'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterGmProjectionDtoSchema,
   type CreateEncounterBlueprintInputDto,
@@ -78,11 +79,11 @@ const getEncounter = makeFunctionReference<
   { encounterId: string },
   EncounterGmProjectionDto | EncounterPlayerProjectionDto
 >('encounters/projectionReads:get')
-const getActiveEncounter = makeFunctionReference<
+const getActiveSession = makeFunctionReference<
   'query',
   { campaignId: string },
-  EncounterGmProjectionDto | EncounterPlayerProjectionDto | null
->('encounters/projectionReads:active')
+  EncounterSessionStateDto
+>('encounters/activeReads:active')
 const listEncounters = makeFunctionReference<
   'query',
   { campaignId: string },
@@ -503,9 +504,9 @@ describe('native Encounter Run commands', () => {
       ...started,
       projection: completed.projection
     })
-    expect(await owner.caller.query(getActiveEncounter, { campaignId: campaign.id })).toEqual(
-      siblingStarted.projection
-    )
+    expect(
+      (await owner.caller.query(getActiveSession, { campaignId: campaign.id })).encounter
+    ).toEqual(siblingStarted.projection)
   })
 
   it('rechecks Campaign activation when pending initiative settles and rolls back a rejected response', async () => {
@@ -1312,7 +1313,9 @@ describe('native Encounter Run commands', () => {
     expect(await owner.caller.query(listEncounters, { campaignId: campaign.id })).toEqual([
       encounterSummaryOf(encounterGmProjectionDtoSchema.parse(pending.projection))
     ])
-    expect(await owner.caller.query(getActiveEncounter, { campaignId: campaign.id })).toBeNull()
+    expect(
+      (await owner.caller.query(getActiveSession, { campaignId: campaign.id })).encounter
+    ).toBeNull()
     expect(await owner.caller.query(getPendingOccurrence, { encounterId: run.id })).toEqual(
       pending.occurrence?.pending
     )
@@ -1452,11 +1455,13 @@ describe('native Encounter Run commands', () => {
       outcome: null,
       pending: null
     })
-    expect(await owner.caller.query(getActiveEncounter, { campaignId: campaign.id })).toEqual(
-      settled.projection
-    )
+    expect(
+      (await owner.caller.query(getActiveSession, { campaignId: campaign.id })).encounter
+    ).toEqual(settled.projection)
     expect(await owner.caller.query(getPendingOccurrence, { encounterId: run.id })).toBeNull()
-    expect(await other.caller.query(getActiveEncounter, { campaignId: campaign.id })).toEqual(
+    expect(
+      (await other.caller.query(getActiveSession, { campaignId: campaign.id })).encounter
+    ).toEqual(
       projectPlayerEncounterProjection(encounterGmProjectionDtoSchema.parse(settled.projection), {
         userId: other.userId,
         characters: new Map()

@@ -70,7 +70,9 @@ export function messageClass(message: LiveSessionWebSocketClientMessageDto | nul
     message.type === 'RESUME' ||
     message.type === 'SYNCHRONIZE_SCENE' ||
     message.type === 'SUBSCRIBE_CHARACTER_SHEET' ||
-    message.type === 'UNSUBSCRIBE_CHARACTER_SHEET'
+    message.type === 'UNSUBSCRIBE_CHARACTER_SHEET' ||
+    message.type === 'SUBSCRIBE_ENCOUNTER_SESSION' ||
+    message.type === 'UNSUBSCRIBE_ENCOUNTER_SESSION'
   )
     return 'SYNC'
   if (message.type === 'SCENE_FOG_BEGIN' || message.type === 'SCENE_FOG_APPEND') return 'FOG_UPLOAD'

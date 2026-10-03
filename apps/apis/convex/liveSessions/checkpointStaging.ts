@@ -108,7 +108,11 @@ export async function commitStagedCheckpoint(
   ctx: MutationCtx,
   rawInput: LiveSessionCheckpointCommitInput
 ) {
-  const { knownAuthorization, ...frame } = liveSessionCheckpointCommitInputSchema.parse(rawInput)
+  const {
+    knownAuthorization,
+    reason: _reason,
+    ...frame
+  } = liveSessionCheckpointCommitInputSchema.parse(rawInput)
   // An exact retry needs no uploaded bytes: the first transaction retained its validated fence.
   return publishCheckpointFrame(ctx, frame, knownAuthorization, async (writeCtx) => {
     const { row, upload } = await readUpload(writeCtx, frame.checkpointId)

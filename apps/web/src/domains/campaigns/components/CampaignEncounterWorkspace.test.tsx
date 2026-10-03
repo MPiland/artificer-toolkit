@@ -1,14 +1,10 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { getFunctionName } from 'convex/server'
-import type {
-  EncounterGmProjectionDto,
-  EncounterSummaryDto
-} from '@artificer-toolkit/schema/api/encounters'
-import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import type { HeldEncounterSession } from '../vtt/useCampaignLiveSession'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   createTabletopCampaign,
@@ -18,11 +14,11 @@ import {
 const mocks = vi.hoisted(() => ({
   commandReady: true,
   convexQuery: vi.fn(),
+  encounterSession: null as HeldEncounterSession | null,
   pendingDecision: null as object | null,
   sendEncounterCommand: vi.fn(),
   useMutation: vi.fn(),
-  useQuery: vi.fn(),
-  useQueryClient: vi.fn()
+  useQuery: vi.fn()
 }))
 
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
@@ -36,6 +32,7 @@ vi.mock('convex/react', async (importOriginal) => ({
 vi.mock('../vtt/useCampaignLiveSession', () => ({
   useCampaignLiveSession: () => ({
     commandReady: mocks.commandReady,
+    encounterSession: mocks.encounterSession,
     error: null,
     sendEncounterCommand: mocks.sendEncounterCommand
   })
@@ -43,8 +40,7 @@ vi.mock('../vtt/useCampaignLiveSession', () => ({
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
   useMutation: mocks.useMutation,
-  useQuery: mocks.useQuery,
-  useQueryClient: mocks.useQueryClient
+  useQuery: mocks.useQuery
 }))
 vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
   useContentCatalogue: () => ({
@@ -96,6 +92,7 @@ describe('CampaignEncounterWorkspace controls', () => {
     vi.clearAllMocks()
     mocks.commandReady = true
     mocks.pendingDecision = null
+    mocks.encounterSession = null
     mocks.convexQuery.mockImplementation((reference: unknown) => ({
       queryKey: [getFunctionName(reference as Parameters<typeof getFunctionName>[0])]
     }))
@@ -129,10 +126,6 @@ describe('CampaignEncounterWorkspace controls', () => {
         return { data: [], error: null, isPending: false }
       }
       return { data: { entries: [] }, error: null, isPending: false }
-    })
-    mocks.useQueryClient.mockReturnValue({
-      invalidateQueries: vi.fn(),
-      setQueryData: vi.fn()
     })
     mocks.sendEncounterCommand.mockResolvedValue({ projection: tabletopGmEncounter, roll: null })
     mocks.useMutation.mockImplementation(
@@ -169,38 +162,29 @@ describe('CampaignEncounterWorkspace controls', () => {
     )
   })
 
-  it('writes a command result into the Run detail and its list summary', async () => {
-    const setQueryData = vi.fn()
-    mocks.useQueryClient.mockReturnValue({ invalidateQueries: vi.fn(), setQueryData })
+  it('commands the held Run at the version the room pushed', async () => {
+    const roomEncounter = { ...encounterWithThirdActor(), version: tabletopGmEncounter.version + 5 }
+    mocks.encounterSession = {
+      held: true,
+      version: roomEncounter.version,
+      state: { encounter: roomEncounter, pending: null, waitingOn: null, turnMovement: [] },
+      preparedPending: [],
+      actorSides: null,
+      settlement: null,
+      timeline: { entries: [], nextCursor: null }
+    }
     const user = userEvent.setup()
-    renderWorkspace()
+    renderWorkspace(tabletopGmEncounter)
 
     await user.click(screen.getByRole('button', { name: 'Move Third enemy earlier' }))
 
-    await waitFor(() => expect(setQueryData).toHaveBeenCalledTimes(2))
-    const [[detailKey, updateDetail], [listKey, updateList]] = setQueryData.mock.calls as [
-      [unknown, (current: EncounterGmProjectionDto | undefined) => EncounterGmProjectionDto],
-      [unknown, (current: EncounterSummaryDto[] | undefined) => EncounterSummaryDto[]]
-    ]
-    expect(detailKey).toEqual(queryKeys.encounters.detail(tabletopGmEncounter.id))
-    expect(updateDetail(undefined)).toEqual(tabletopGmEncounter)
-    const newer = { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 }
-    expect(updateDetail(newer)).toBe(newer)
-
-    expect(listKey).toEqual(queryKeys.encounters.list(createTabletopCampaign('OWNER').id))
-    const other = {
-      ...summarizeEncounterProjection(tabletopGmEncounter),
-      id: '99999999-9999-4999-8999-999999999905'
-    }
-    const stale = {
-      ...summarizeEncounterProjection(tabletopGmEncounter),
-      name: 'Stale name',
-      version: tabletopGmEncounter.version - 1
-    }
-    expect(updateList([other, stale])).toEqual([
-      other,
-      summarizeEncounterProjection(tabletopGmEncounter)
-    ])
+    expect(mocks.sendEncounterCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: roomEncounter.version,
+        type: 'REORDER'
+      })
+    )
   })
 
   it('disables command controls until the live table is command-ready', () => {

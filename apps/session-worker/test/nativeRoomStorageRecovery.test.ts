@@ -83,11 +83,14 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
     })
     const checkpoints = new RoomCheckpoints(store, storage, publish)
     await expect(
-      checkpoints.flush({
-        campaignId: uuid(2),
-        epoch: OLD_EPOCH,
-        knownAuthorization: null
-      })
+      checkpoints.flush(
+        {
+          campaignId: uuid(2),
+          epoch: OLD_EPOCH,
+          knownAuthorization: null
+        },
+        'DEADLINE'
+      )
     ).rejects.toThrow('Checkpoint upload interrupted.')
     expect(publish).toHaveBeenCalledOnce()
     for (const { table, count } of rowCounts(storage)) {
@@ -206,11 +209,14 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
     expect(journal.authorityEpoch).toBeNull()
     expect(journal.readCurrent()).toBeNull()
     expect(
-      await checkpoints.flush({
-        campaignId: uuid(2),
-        epoch: NEW_EPOCH,
-        knownAuthorization: null
-      })
+      await checkpoints.flush(
+        {
+          campaignId: uuid(2),
+          epoch: NEW_EPOCH,
+          knownAuthorization: null
+        },
+        'DEADLINE'
+      )
     ).toBeNull()
     expect(publish).not.toHaveBeenCalled()
   })

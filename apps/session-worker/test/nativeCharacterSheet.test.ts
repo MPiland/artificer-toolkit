@@ -15,7 +15,7 @@ import {
   liveSessionActivationInputSchema,
   liveSessionBootstrapInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
-import { liveSessionCheckpointInputSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import {
   liveSessionTransientCaptureInputSchema,
@@ -71,7 +71,7 @@ async function sheetRoom() {
   let members = everyone
   let assignments = [{ characterId, userId: ownerId }]
   let characterDeleted = false
-  const checkpoints: ReturnType<typeof liveSessionCheckpointInputSchema.parse>[] = []
+  const checkpoints: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>[] = []
   const inputs = await characterSheetInputsFixture({
     campaignId,
     characterId,
@@ -148,7 +148,7 @@ async function sheetRoom() {
           })
         )
       if (pathname === '/live-sessions/checkpoint') {
-        const body = liveSessionCheckpointInputSchema.parse(await request.json())
+        const body = liveSessionCheckpointRequestSchema.parse(await request.json())
         checkpoints.push(body)
         const now = new Date().toISOString()
         return Response.json({
@@ -169,7 +169,8 @@ async function sheetRoom() {
             characterRevisions: characterDeleted
               ? []
               : [{ characterId, revision: inputs.characterRevision }]
-          })
+          }),
+          io: { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
         })
       }
       if (pathname === '/live-sessions/capture') {

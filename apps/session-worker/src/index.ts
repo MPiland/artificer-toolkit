@@ -12,6 +12,7 @@ import { CONTENT_SNAPSHOT_PATH_PREFIX } from '@artificer-toolkit/schema/api/cont
 import { serveContentSnapshot } from './contentSnapshots.js'
 import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
 import { NativeLiveSessionRoom as LiveSessionRoom } from './nativeLiveSessionRoom.js'
+import { ROOM_METER_PATH } from './roomMeter.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
@@ -73,6 +74,24 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
           headers: { 'content-type': 'application/json' },
           method: 'POST'
         })
+      )
+    }
+    const meter = url.pathname.match(new RegExp(`^${ROOM_METER_PATH}/([^/]+)$`))
+    if (meter) {
+      // Development only: the local-origin marker is absent from every deployed environment.
+      const secret = environment.LIVE_SESSION_WORKER_SECRET
+      if (
+        request.method !== 'GET' ||
+        environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN !== 'http://127.0.0.1:8026' ||
+        !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
+      )
+        return new Response('Not found.', { status: 404 })
+      const supplied = request.headers.get(LIVE_SESSION_CONTROL_SECRET_HEADER)
+      if (!secret || !supplied || !secretMatches(supplied, secret))
+        return new Response('Unauthorized.', { status: 401 })
+      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(meter[1])
+      return environment.LIVE_SESSION_ROOMS.get(objectId).fetch(
+        new Request(`https://live-session.internal${ROOM_METER_PATH}`)
       )
     }
     const path = url.pathname.match(new RegExp(`^${LIVE_SESSION_PATH_PREFIX}/([^/]+)$`))

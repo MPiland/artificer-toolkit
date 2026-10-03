@@ -17,6 +17,7 @@ import type { EncounterOptionalCombatSnapshotDto } from '@artificer-toolkit/sche
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
+import type { CampaignCharacterState } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import type { CharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
@@ -77,6 +78,14 @@ export interface EncounterReadPorts {
     campaign: EncounterDocument<'campaigns'>,
     membership: EncounterDocument<'campaignMemberships'>
   ): Promise<{ id: string } | null>
+  /**
+   * The Campaign's own conditions on an assigned Character, which a Run projection layers on. The
+   * Character must be the Campaign's assigned, ACTIVE Character in its System, as stored.
+   */
+  readCampaignCharacterConditions(
+    campaign: EncounterDocument<'campaigns'>,
+    characterId: string
+  ): Promise<CampaignCharacterState['conditions']>
   readAutoRollDice(userId: string): Promise<boolean>
   /** The GM's remembered Public/Private roll toggle: it decides rolls the GM did not start. */
   readGmRollVisibility(userId: string): Promise<RollVisibilityDto>

@@ -7,7 +7,7 @@ import {
   liveRoomInputsResponseSchema
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import {
-  liveSessionCheckpointInputSchema,
+  liveSessionCheckpointRequestSchema,
   liveSessionCheckpointResponseSchema
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import {
@@ -96,7 +96,7 @@ const liveSessionRoutes = {
     output: liveSessionCheckpointResponseSchema
   },
   checkpoint: {
-    input: liveSessionCheckpointInputSchema,
+    input: liveSessionCheckpointRequestSchema,
     output: liveSessionCheckpointResponseSchema
   },
   capture: {

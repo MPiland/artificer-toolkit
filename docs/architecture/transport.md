@@ -294,8 +294,9 @@ allowing every R2 bucket. The storage service still enforces signed authorizatio
 
 ```mermaid
 flowchart LR
-  Encounter["Encounter workspace and tabletop"] --> Reads["encounters/projectionReads: get, active, list, pendingPrepared, actorSides"]
-  Encounter --> Session["encounters/sessionReads:active<br/>active Run and pending decision in one snapshot"]
+  Encounter["Encounter workspace and tabletop"] --> Reads["encounters/projectionReads: get, list, pendingPrepared, actorSides"]
+  Encounter --> Session["encounters/activeReads:active<br/>active Run and pending decision in one snapshot"]
+  Encounter --> Held["Held Run: ENCOUNTER_SESSION frame pushed by the room<br/>(Convex reads above are the fallback)"]
   Encounter --> Pending["encounters/pendingReads: pendingRuleOccurrence"]
   Encounter --> Timeline["encounters/timelineReads: timeline"]
   Encounter --> Writes["encounters/blueprints:create, runs:create, commands:execute"]
@@ -312,8 +313,10 @@ authority, shared argument/return validation, and recipient redaction. There is 
 query invocation. Projection, pending-decision, and timeline modules retain separate import graphs;
 the prepared-Encounter read uses an internal pending registration sharing the public handler.
 
-The web adapters validate native responses with shared schemas and retain existing query keys,
-polling intervals, command IDs and expected versions. Blueprint and live Scene selectors exhaust
+The web adapters read Encounters through Convex subscriptions (no polling interval remains) and, while
+the room holds the Run, from the room's pushed session frame
+([Held Encounter session](live-sessions.md#held-encounter-session)). They retain command IDs and
+expected versions. Blueprint and live Scene selectors exhaust
 cursor pages, including empty continuation pages, and reject repeated cursors. Scene list requests
 retain cancellation and owner-only enablement. The tabletop subscribes to the exact Session's
 presentation and recipient-safe Scene header. Open Sessions request `includeSnapshot:false` and use

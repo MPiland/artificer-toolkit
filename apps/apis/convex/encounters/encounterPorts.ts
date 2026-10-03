@@ -8,7 +8,10 @@ import { postRulesChatMessage } from '@artificer-toolkit/encounter-persistence/r
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
+import {
+  readCampaignCharacterState,
+  requireCampaignCharacterAuthority
+} from '../campaigns/characterState'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { executeEncounterCharacterCommand } from '../characters/encounterCommands'
@@ -21,6 +24,7 @@ import {
 } from '../characters/stateDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
+import { readAssignedActiveCharacter } from '../liveSessions/characterRulesCapture'
 import {
   createConvexEncounterStore,
   createConvexEncounterStoreReader
@@ -66,6 +70,17 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
     readCharacterPlay,
     readAssignedCharacter: (campaign, membership) =>
       readCampaignAssignedCharacter(ctx, campaign, membership),
+    readCampaignCharacterConditions: async (campaign, characterId) => {
+      const active = await readAssignedActiveCharacter(
+        ctx,
+        campaign,
+        characterId,
+        campaign.ownerUserId
+      )
+      readCharacterRecord(active)
+      readCharacterSheetState(active)
+      return (await readCampaignCharacterState(ctx, campaign.id, characterId)).state.conditions
+    },
     readAutoRollDice: (userId) => readAutoRollDice(ctx, userId),
     readGmRollVisibility: (userId) => readGmRollVisibility(ctx, userId),
     hasAccountProfile: async (userId) =>

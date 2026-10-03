@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  liveSessionCheckpointInputSchema,
+  liveSessionCheckpointRequestSchema,
   type LiveSessionCheckpointInput,
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
@@ -68,7 +68,8 @@ function response(input: LiveSessionCheckpointInput): LiveSessionCheckpointRespo
       createdAt: '2026-09-30T00:00:00.000Z',
       updatedAt: '2026-09-30T00:00:00.000Z'
     },
-    authorization: roomAuthorizationResponse({ members: [] })
+    authorization: roomAuthorizationResponse({ members: [] }),
+    io: { bytesRead: 100, bytesWritten: 50, documentsRead: 4, documentsWritten: 2 }
   }
 }
 
@@ -107,11 +108,18 @@ describe('room checkpoint publication', () => {
   it('publishes a small checkpoint inline and returns current authorization', async () => {
     const input = checkpoint()
     const { calls, expectedResponse } = mockRoutes(input)
-    const result = await publishRoomCheckpoint(environment, input)
+    const result = await publishRoomCheckpoint(environment, input, 'RELOAD')
 
-    expect(result).toEqual(expectedResponse)
+    expect(result).toEqual({
+      response: expectedResponse,
+      payloadBytes: new TextEncoder().encode(canonicalizeJson(input.records)).byteLength,
+      requests: 1
+    })
     expect(calls.map(({ path }) => path)).toEqual([LIVE_SESSION_ROUTE_PATHS.checkpoint])
-    expect(liveSessionCheckpointInputSchema.parse(JSON.parse(calls[0].body))).toEqual(input)
+    expect(liveSessionCheckpointRequestSchema.parse(JSON.parse(calls[0].body))).toEqual({
+      ...input,
+      reason: 'RELOAD'
+    })
   })
 
   it('stages canonical UTF-8 records in order, then commits the same fence and authorization', async () => {
@@ -163,7 +171,7 @@ describe('room checkpoint publication', () => {
     input.payloadChecksum = checksumCanonicalJson(input.records)
     input.knownAuthorization = response(input).authorization.revisions
     const { calls } = mockRoutes(input)
-    await publishRoomCheckpoint(environment, input)
+    const published = await publishRoomCheckpoint(environment, input, 'ADMISSION')
 
     const { records, knownAuthorization, ...frame } = input
     const recordsJson = canonicalizeJson(records)
@@ -191,14 +199,19 @@ describe('room checkpoint publication', () => {
     expect(checksumCanonicalJson(JSON.parse(reconstructed))).toBe(input.payloadChecksum)
     expect(liveSessionCheckpointCommitInputSchema.parse(JSON.parse(calls.at(-1)!.body))).toEqual({
       ...frame,
-      knownAuthorization
+      knownAuthorization,
+      reason: 'ADMISSION'
     })
+    expect(published.requests).toBe(partCount + 2)
+    expect(published.payloadBytes).toBe(byteLength)
   })
 
   it('skips uploads on a replayed begin and still fetches the commit response', async () => {
     const input = checkpoint('x'.repeat(JSON_PAYLOAD_CHUNK_MAX_BYTES))
     const { calls, expectedResponse } = mockRoutes(input, { replayed: true })
-    expect(await publishRoomCheckpoint(environment, input)).toEqual(expectedResponse)
+    const published = await publishRoomCheckpoint(environment, input, 'DEADLINE')
+    expect(published.response).toEqual(expectedResponse)
+    expect(published.requests).toBe(2)
     expect(calls.map(({ path }) => path)).toEqual([
       LIVE_SESSION_ROUTE_PATHS.checkpointStage,
       LIVE_SESSION_ROUTE_PATHS.checkpointCommit
@@ -208,29 +221,36 @@ describe('room checkpoint publication', () => {
   it('retries an interrupted upload with identical metadata and part bytes', async () => {
     const input = checkpoint('x'.repeat(JSON_PAYLOAD_CHUNK_MAX_BYTES * 2))
     const interrupted = mockRoutes(input, { failPart: 1 })
-    await expect(publishRoomCheckpoint(environment, input)).rejects.toThrow()
+    await expect(publishRoomCheckpoint(environment, input, 'DEADLINE')).rejects.toThrow()
     expect(interrupted.calls.map(({ path }) => path)).toEqual([
       LIVE_SESSION_ROUTE_PATHS.checkpointStage,
       LIVE_SESSION_ROUTE_PATHS.checkpointPart,
       LIVE_SESSION_ROUTE_PATHS.checkpointPart
     ])
     const retry = mockRoutes(input)
-    await publishRoomCheckpoint(environment, input)
+    await publishRoomCheckpoint(environment, input, 'DEADLINE')
     expect(retry.calls.slice(0, interrupted.calls.length)).toEqual(interrupted.calls)
   })
 
   it('rejects invalid contracts, checksums, and oversized records before any request', async () => {
     const input = checkpoint()
     const { fetchMock } = mockRoutes(input)
-    await expect(publishRoomCheckpoint(environment, { ...input, sequence: -1 })).rejects.toThrow()
     await expect(
-      publishRoomCheckpoint(environment, {
-        ...input,
-        payloadChecksum: 'f'.repeat(64)
-      })
+      publishRoomCheckpoint(environment, { ...input, sequence: -1 }, 'DEADLINE')
+    ).rejects.toThrow()
+    await expect(
+      publishRoomCheckpoint(
+        environment,
+        { ...input, payloadChecksum: 'f'.repeat(64) },
+        'DEADLINE'
+      )
     ).rejects.toThrow('checksum')
     await expect(
-      publishRoomCheckpoint(environment, checkpoint('x'.repeat(LIVE_SESSION_CHECKPOINT_MAX_BYTES)))
+      publishRoomCheckpoint(
+        environment,
+        checkpoint('x'.repeat(LIVE_SESSION_CHECKPOINT_MAX_BYTES)),
+        'DEADLINE'
+      )
     ).rejects.toThrow('byte limit')
     expect(fetchMock).not.toHaveBeenCalled()
   })

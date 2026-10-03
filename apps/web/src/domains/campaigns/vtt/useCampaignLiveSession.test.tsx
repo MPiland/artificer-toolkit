@@ -39,6 +39,8 @@ const mocks = vi.hoisted(() => ({
   sendCommand: vi.fn(() => true),
   sendTransient: vi.fn(() => true),
   submitCommand: vi.fn(() => Promise.resolve(commit)),
+  subscribeCharacterSheet: vi.fn(),
+  subscribeEncounterSession: vi.fn(),
   synchronizeScene: vi.fn(),
   useConvex: vi.fn()
 }))
@@ -58,6 +60,8 @@ vi.mock('./liveSessionClient', async (importOriginal) => ({
       sendCommand: mocks.sendCommand,
       sendTransient: mocks.sendTransient,
       submitCommand: mocks.submitCommand,
+      subscribeCharacterSheet: mocks.subscribeCharacterSheet,
+      subscribeEncounterSession: mocks.subscribeEncounterSession,
       synchronizeScene: mocks.synchronizeScene
     }
   }
@@ -72,6 +76,8 @@ describe('useCampaignLiveSession', () => {
     mocks.sendCommand.mockClear()
     mocks.sendTransient.mockClear()
     mocks.submitCommand.mockClear()
+    mocks.subscribeCharacterSheet.mockClear()
+    mocks.subscribeEncounterSession.mockClear()
     mocks.synchronizeScene.mockClear()
     mocks.getAccessToken.mockResolvedValue({ data: { token: 'test-access-token' } })
     mocks.issueTicket.mockResolvedValue({
@@ -138,12 +144,16 @@ describe('useCampaignLiveSession', () => {
     result.current.synchronizeScene(sceneId, 7, 11)
     expect(mocks.synchronizeScene).toHaveBeenCalledWith(sceneId, 7, 11)
     expect(Object.keys(result.current).sort()).toEqual([
+      'characterSheet',
       'commandReady',
+      'encounterSession',
       'error',
       'recipientState',
       'rejection',
+      'sendCharacterSheetCommand',
       'sendCommand',
       'sendEncounterCommand',
+      'sendSceneFog',
       'sendTransient',
       'sequence',
       'status',
@@ -152,6 +162,44 @@ describe('useCampaignLiveSession', () => {
 
     unmount()
     expect(mocks.close).toHaveBeenCalledOnce()
+  })
+
+  it('follows the room Encounter session only while it holds one and the socket is connected', async () => {
+    const held = {
+      held: true as const,
+      version: 3,
+      state: { encounter: null, pending: null, waitingOn: null, turnMovement: [] },
+      preparedPending: [],
+      actorSides: null,
+      settlement: null,
+      timeline: null
+    }
+    const { result, rerender } = renderHook(
+      ({ timeline }: { timeline: boolean }) =>
+        useCampaignLiveSession({
+          campaignId,
+          enabled: true,
+          encounterSession: { timeline },
+          onTransient: vi.fn()
+        }),
+      { initialProps: { timeline: false } }
+    )
+    await waitFor(() => expect(mocks.options).not.toBeNull())
+    const options = mocks.options as Parameters<typeof createLiveSessionConnection>[0]
+    expect(mocks.subscribeEncounterSession).toHaveBeenLastCalledWith({ timeline: false })
+    rerender({ timeline: true })
+    expect(mocks.subscribeEncounterSession).toHaveBeenLastCalledWith({ timeline: true })
+
+    act(() => {
+      options.onStatus('CONNECTED')
+      options.onEncounterSession?.(held)
+    })
+    expect(result.current.encounterSession).toEqual(held)
+    act(() => options.onEncounterSession?.({ held: false }))
+    expect(result.current.encounterSession).toBeNull()
+    act(() => options.onEncounterSession?.(held))
+    act(() => options.onStatus('RECONNECTING'))
+    expect(result.current.encounterSession).toBeNull()
   })
 
   it('rejects missing Better Auth Convex tokens', async () => {

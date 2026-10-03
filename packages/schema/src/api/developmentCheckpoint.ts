@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { liveSessionCheckpointInputSchema } from './liveSessionCheckpoint.js'
+import { liveSessionCheckpointRequestSchema } from './liveSessionCheckpoint.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
 import { receiptLedgerMetadataSchema } from '../projections/receiptLedgerPersistence.js'
 import { liveSessionAuthorityDtoSchema } from './liveSessionState.js'
@@ -19,7 +19,7 @@ export const developmentCheckpointScopeSchema = lazySchema(() =>
 export const developmentCheckpointRollbackInputSchema = lazySchema(() =>
   z.strictObject({
     scope: developmentCheckpointScopeSchema,
-    checkpoint: liveSessionCheckpointInputSchema,
+    checkpoint: liveSessionCheckpointRequestSchema,
     staged: z._default(z.boolean(), false)
   })
 )

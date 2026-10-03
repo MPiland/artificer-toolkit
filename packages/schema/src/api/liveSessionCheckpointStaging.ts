@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { liveSessionCheckpointReasonSchema } from './liveSessionCheckpoint.js'
 import { liveSessionCheckpointFenceInputSchema } from './liveSessionCheckpointFence.js'
 import { liveSessionRoomAuthorizationRevisionsSchema } from './liveSessionRoomAuthorization.js'
 import {
@@ -28,7 +29,8 @@ export const liveSessionCheckpointStageResponseSchema = lazySchema(() =>
 
 export const liveSessionCheckpointCommitInputSchema = lazySchema(() =>
   z.extend(liveSessionCheckpointFenceInputSchema, {
-    knownAuthorization: z.nullable(liveSessionRoomAuthorizationRevisionsSchema)
+    knownAuthorization: z.nullable(liveSessionRoomAuthorizationRevisionsSchema),
+    reason: liveSessionCheckpointReasonSchema
   })
 )
 

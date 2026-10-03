@@ -63,12 +63,12 @@ import { CampaignPlayerEncounterDecisions } from './CampaignPlayerEncounterDecis
 
 describe('CampaignPlayerEncounterDecisions', () => {
   let listed: EncounterSummaryDto[]
-  let pendingPrepared: EncounterPlayerProjectionDto[]
+  let pendingPrepared: { encounter: EncounterPlayerProjectionDto; pending: typeof pending }[]
 
   beforeEach(() => {
     vi.clearAllMocks()
     listed = []
-    pendingPrepared = [prepared]
+    pendingPrepared = [{ encounter: prepared, pending }]
     mocks.convexQuery.mockImplementation((reference) => ({
       queryKey: [getFunctionName(reference)]
     }))
@@ -76,8 +76,6 @@ describe('CampaignPlayerEncounterDecisions', () => {
       const key = options.queryKey[0]
       if (key === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared))
         return { data: pendingPrepared, error: null, isPending: false }
-      if (key === getFunctionName(convexApi.encounters.pendingReads.pendingRuleOccurrence))
-        return { data: pending, error: null, isPending: false }
       return { data: listed, error: null, isPending: false }
     })
     mocks.useMutation.mockReturnValue({ isPending: false, mutateAsync: vi.fn() })

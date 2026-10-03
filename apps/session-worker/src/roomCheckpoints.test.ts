@@ -43,7 +43,8 @@ function response(input: LiveSessionCheckpointInput): LiveSessionCheckpointRespo
       createdAt: '2026-09-30T00:00:00.000Z',
       updatedAt: '2026-09-30T00:00:00.000Z'
     },
-    authorization: roomAuthorizationResponse({ members: [] })
+    authorization: roomAuthorizationResponse({ members: [] }),
+    io: { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
   }
 }
 
@@ -53,7 +54,7 @@ describe('room checkpoints', () => {
     const publish =
       vi.fn<(input: LiveSessionCheckpointInput) => Promise<LiveSessionCheckpointResponse>>()
     const checkpoints = new RoomCheckpoints(store, storage, publish)
-    expect(await checkpoints.flush(scope)).toBeNull()
+    expect(await checkpoints.flush(scope, 'DEADLINE')).toBeNull()
     expect(publish).not.toHaveBeenCalled()
     expect(storage.sql.exec('SELECT * FROM room_pending_checkpoint').toArray()).toEqual([])
     expect(storage.sql.exec('SELECT * FROM room_pending_checkpoint_chunks').toArray()).toEqual([])
@@ -70,7 +71,7 @@ describe('room checkpoints', () => {
       input.checkpointId = uuid(0x999)
       throw new Error('Publication unavailable.')
     })
-    await expect(failed.flush({ ...scope, knownAuthorization })).rejects.toThrow(
+    await expect(failed.flush({ ...scope, knownAuthorization }, 'DEADLINE')).rejects.toThrow(
       'Publication unavailable.'
     )
     expect(store.checkpointSnapshot()).toEqual(before)
@@ -81,7 +82,7 @@ describe('room checkpoints', () => {
       inputs.push(structuredClone(input))
       return { ...response(input), status: 'REPLAYED' }
     })
-    const result = await checkpoints.flush(scope)
+    const result = await checkpoints.flush(scope, 'DEADLINE')
     expect(inputs).toHaveLength(2)
     expect(inputs[1]).toEqual(inputs[0])
     expect(inputs[1]!.knownAuthorization).toEqual(knownAuthorization)
@@ -103,7 +104,7 @@ describe('room checkpoints', () => {
       if (inputs.length === 1) await command(store, 2)
       return response(input)
     })
-    await checkpoints.flush(scope)
+    await checkpoints.flush(scope, 'DEADLINE')
     expect(inputs).toHaveLength(1)
     expect(inputs[0]!.sequence).toBe(1)
     expect(store.sequence).toBe(2)
@@ -113,7 +114,7 @@ describe('room checkpoints', () => {
     expect(restarted.sequence).toBe(2)
     expect(restarted.logRows).toBe(1)
 
-    await checkpoints.flush(scope)
+    await checkpoints.flush(scope, 'DEADLINE')
     expect(inputs).toHaveLength(2)
     expect(inputs[1]).toMatchObject({
       fromSequence: 1,
@@ -141,11 +142,11 @@ describe('room checkpoints', () => {
         }
         return result
       })
-      await expect(checkpoints.flush(scope)).rejects.toThrow('exact committed prefix')
+      await expect(checkpoints.flush(scope, 'DEADLINE')).rejects.toThrow('exact committed prefix')
       expect(store.checkpointSnapshot()).toEqual(before)
       expect(store.logRows).toBe(1)
       expect(storage.sql.exec('SELECT * FROM room_pending_checkpoint').toArray()).toHaveLength(1)
-      await checkpoints.flush(scope)
+      await checkpoints.flush(scope, 'DEADLINE')
       expect(inputs[1]).toEqual(inputs[0])
       expect(store.logRows).toBe(0)
     }
@@ -173,7 +174,7 @@ describe('room checkpoints', () => {
       )
       throw new Error('Upload interrupted.')
     })
-    await expect(checkpoints.flush(scope)).rejects.toThrow('Upload interrupted.')
+    await expect(checkpoints.flush(scope, 'DEADLINE')).rejects.toThrow('Upload interrupted.')
     const chunks = storage.sql
       .exec(
         'SELECT part, length(data) AS characters FROM room_pending_checkpoint_chunks ORDER BY part'
@@ -187,9 +188,32 @@ describe('room checkpoints', () => {
     await new RoomCheckpoints(restarted, storage, async (input) => {
       expect(input).toEqual(original)
       return response(input)
-    }).flush(scope)
+    }).flush(scope, 'DEADLINE')
     expect(restarted.logRows).toBe(0)
     expect(restarted.sequence).toBe(16)
+  })
+
+  it('attributes each send to its flush trigger without storing the trigger in the pending input', async () => {
+    const { store, storage } = open()
+    await command(store, 1)
+    const sends: { reason: string; keys: string[] }[] = []
+    const failed = new RoomCheckpoints(store, storage, async (input, reason) => {
+      sends.push({ reason, keys: Object.keys(input) })
+      throw new Error('Publication unavailable.')
+    })
+    await expect(failed.flush(scope, 'ADMISSION')).rejects.toThrow('Publication unavailable.')
+    const retry = new RoomCheckpoints(
+      new RoomEncounterStore(storage),
+      storage,
+      async (input, reason) => {
+        sends.push({ reason, keys: Object.keys(input) })
+        return response(input)
+      }
+    )
+    await retry.flush(scope, 'DEADLINE')
+    expect(sends.map(({ reason }) => reason)).toEqual(['ADMISSION', 'DEADLINE'])
+    expect(sends[1]!.keys).toEqual(sends[0]!.keys)
+    expect(sends[0]!.keys).not.toContain('reason')
   })
 
   it('coalesces concurrent flush callers into one publication', async () => {
@@ -204,8 +228,8 @@ describe('room checkpoints', () => {
       return response(input)
     })
     const checkpoints = new RoomCheckpoints(store, storage, publish)
-    const first = checkpoints.flush(scope)
-    const second = checkpoints.flush(scope)
+    const first = checkpoints.flush(scope, 'DEADLINE')
+    const second = checkpoints.flush(scope, 'DEADLINE')
     expect(second).toBe(first)
     finish!()
     expect(await first).toEqual(await second)
@@ -256,7 +280,7 @@ describe('room checkpoints', () => {
         new TextEncoder().encode(canonicalizeJson(input.records)).byteLength
       ).toBeLessThanOrEqual(LIVE_SESSION_CHECKPOINT_MAX_BYTES)
       return response(input)
-    }).flush(scope)
+    }).flush(scope, 'DEADLINE')
     expect(inputs.length).toBeGreaterThan(1)
     expect(inputs[0]!.sequence).toBeLessThan(page.toSequence)
     expect(
@@ -271,13 +295,15 @@ describe('room checkpoints', () => {
     const failed = new RoomCheckpoints(store, storage, async () => {
       throw new Error('Interrupted.')
     })
-    await expect(failed.flush(scope)).rejects.toThrow('Interrupted.')
+    await expect(failed.flush(scope, 'DEADLINE')).rejects.toThrow('Interrupted.')
     const ack = { epoch: EPOCH, sequence: store.sequence, checksum: store.checksum }
     store.compact(ack)
     const restarted = new RoomEncounterStore(storage)
     const publish =
       vi.fn<(input: LiveSessionCheckpointInput) => Promise<LiveSessionCheckpointResponse>>()
-    expect(await new RoomCheckpoints(restarted, storage, publish).flush(scope)).toBeNull()
+    expect(
+      await new RoomCheckpoints(restarted, storage, publish).flush(scope, 'DEADLINE')
+    ).toBeNull()
     expect(publish).not.toHaveBeenCalled()
     expect(storage.sql.exec('SELECT * FROM room_pending_checkpoint').toArray()).toEqual([])
   })
@@ -298,12 +324,14 @@ describe('room checkpoints', () => {
         return undefined
       }
     )
-    await expect(checkpoints.flush(scope)).rejects.toThrow('Acknowledgement interrupted.')
+    await expect(checkpoints.flush(scope, 'DEADLINE')).rejects.toThrow(
+      'Acknowledgement interrupted.'
+    )
     expect(store.checkpointSnapshot()).toEqual(before)
     expect(storage.sql.exec('SELECT * FROM checkpoint_test_ack').toArray()).toEqual([])
     expect(storage.sql.exec('SELECT * FROM room_pending_checkpoint').toArray()).toHaveLength(1)
     fail = false
-    await checkpoints.flush(scope)
+    await checkpoints.flush(scope, 'DEADLINE')
     expect(store.logRows).toBe(0)
     expect(storage.sql.exec('SELECT * FROM checkpoint_test_ack').toArray()).toEqual([
       { sequence: 1 }

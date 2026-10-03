@@ -45,6 +45,8 @@ export interface LiveSessionConnection {
   sendTransient: (envelope: SceneTransientEnvelopeDto) => boolean
   /** Follows one held Character Sheet (resent on every reconnect); null stops following. */
   subscribeCharacterSheet: (characterId: string | null) => void
+  /** Follows the room's Encounter session (resent on every reconnect); null stops following. */
+  subscribeEncounterSession: (subscription: { timeline: boolean } | null) => void
   synchronizeScene: (sceneId: string, version: number, expectedPresentationVersion: number) => void
 }
 
@@ -57,6 +59,11 @@ export type LiveSessionCharacterSheetPush = Extract<
   LiveSessionWebSocketServerMessageDto,
   { type: 'CHARACTER_SHEET' }
 >
+
+export type LiveSessionEncounterSessionPush = Extract<
+  LiveSessionWebSocketServerMessageDto,
+  { type: 'ENCOUNTER_SESSION' }
+>['session']
 
 export interface LiveSessionDurableState {
   commandReady: boolean
@@ -92,9 +99,11 @@ type LiveSessionClientMessage = Extract<
       | 'SCENE_FOG_APPEND'
       | 'SCENE_FOG_BEGIN'
       | 'SUBSCRIBE_CHARACTER_SHEET'
+      | 'SUBSCRIBE_ENCOUNTER_SESSION'
       | 'SYNCHRONIZE_SCENE'
       | 'TRANSIENT'
       | 'UNSUBSCRIBE_CHARACTER_SHEET'
+      | 'UNSUBSCRIBE_ENCOUNTER_SESSION'
   }
 >
 type SceneSynchronizationMessage = Extract<LiveSessionClientMessage, { type: 'SYNCHRONIZE_SCENE' }>
@@ -111,6 +120,7 @@ interface LiveSessionConnectionOptions {
   onCampaignChatEntry?: (entry: CampaignChatEntryDto) => void
   onPrivateRoll?: (roll: RollHistoryEntryDto) => void
   onCharacterSheet?: (push: LiveSessionCharacterSheetPush) => void
+  onEncounterSession?: (session: LiveSessionEncounterSessionPush) => void
   onCommandRejected?: (rejection: LiveSessionCommandRejection) => void
   onDurableState?: (state: LiveSessionDurableState) => void
   onStatus: (status: LiveSessionConnectionStatus) => void
@@ -216,6 +226,7 @@ export function createLiveSessionConnection(
   >()
   let requestedScene: SceneSynchronizationMessage | null = null
   let requestedSheetCharacterId: string | null = null
+  let requestedEncounterSession: { timeline: boolean } | null = null
   let synchronizedScene: SceneSynchronizationMessage | null = null
   const previewSentAt = new Map<string, number>()
 
@@ -259,6 +270,11 @@ export function createLiveSessionConnection(
   const requestSheet = () => {
     if (ready && requestedSheetCharacterId !== null)
       send({ characterId: requestedSheetCharacterId, type: 'SUBSCRIBE_CHARACTER_SHEET' })
+  }
+
+  const requestEncounterSession = () => {
+    if (ready && requestedEncounterSession !== null)
+      send({ ...requestedEncounterSession, type: 'SUBSCRIBE_ENCOUNTER_SESSION' })
   }
 
   const synchronizeRequestedScene = () => {
@@ -362,6 +378,7 @@ export function createLiveSessionConnection(
           ready = true
           synchronizeRequestedScene()
           requestSheet()
+          requestEncounterSession()
           requestResume()
           options.onStatus('CONNECTED')
         } else if (message.type === 'AUTHENTICATION_REQUIRED') {
@@ -380,6 +397,8 @@ export function createLiveSessionConnection(
         } else if (message.type === 'CHARACTER_SHEET') {
           if (message.characterId.toLowerCase() === requestedSheetCharacterId?.toLowerCase())
             options.onCharacterSheet?.(message)
+        } else if (message.type === 'ENCOUNTER_SESSION') {
+          if (requestedEncounterSession) options.onEncounterSession?.(message.session)
         } else if (message.type === 'STATE_SYNC') {
           sequence = message.sequence
           recipientState = message.state
@@ -621,6 +640,12 @@ export function createLiveSessionConnection(
       requestedSheetCharacterId = characterId
       if (characterId === null) send({ type: 'UNSUBSCRIBE_CHARACTER_SHEET' })
       else requestSheet()
+    },
+    subscribeEncounterSession(subscription) {
+      if (subscription?.timeline === requestedEncounterSession?.timeline) return
+      requestedEncounterSession = subscription
+      if (subscription === null) send({ type: 'UNSUBSCRIBE_ENCOUNTER_SESSION' })
+      else requestEncounterSession()
     },
     synchronizeScene(sceneId, version, expectedPresentationVersion) {
       requestedScene = {

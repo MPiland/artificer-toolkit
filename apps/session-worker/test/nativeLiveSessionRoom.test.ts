@@ -21,7 +21,7 @@ import {
   liveSessionAuthorityDtoSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
-import { liveSessionCheckpointInputSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
@@ -87,7 +87,7 @@ const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const sockets: WebSocket[] = []
 
 function checkpointResponse(
-  body: ReturnType<typeof liveSessionCheckpointInputSchema.parse>,
+  body: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>,
   members: Parameters<typeof roomAuthorizationResponse>[0]['members']
 ) {
   const now = new Date().toISOString()
@@ -103,7 +103,8 @@ function checkpointResponse(
       phase: 'DO_ACTIVE',
       updatedAt: now
     },
-    authorization: roomAuthorizationResponse({ members })
+    authorization: roomAuthorizationResponse({ members }),
+    io: { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
   }
 }
 
@@ -121,7 +122,7 @@ function fireCheckpointAlarm(stub: Awaited<ReturnType<typeof fixture>>['stub']) 
 }
 
 function checkpointReceipt(
-  checkpoint: ReturnType<typeof liveSessionCheckpointInputSchema.parse>,
+  checkpoint: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>,
   commandId: string
 ) {
   const change = checkpoint.records.scenes
@@ -398,7 +399,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
         )
       }
       if (pathname === '/live-sessions/checkpoint') {
-        const body = liveSessionCheckpointInputSchema.parse(await request.json())
+        const body = liveSessionCheckpointRequestSchema.parse(await request.json())
         persisted = { sequence: body.sequence, checksum: body.checksum }
         return Response.json(checkpointResponse(body, authorization.members))
       }
@@ -684,7 +685,7 @@ it.each([0, 600])(
 
     let publishStarted = false
     let publishFinished = false
-    const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+    const publications: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
     let heldEvidence: {
       authority: { published_sequence: number; sequence: number }
       pendingWriteCount: number
@@ -693,7 +694,7 @@ it.each([0, 600])(
       vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
         const request = new Request(input, init)
         expect(new URL(request.url).pathname).toBe('/live-sessions/checkpoint')
-        const body = liveSessionCheckpointInputSchema.parse(await request.json())
+        const body = liveSessionCheckpointRequestSchema.parse(await request.json())
         publications.push(body)
         const chain = state.storage.sql
           .exec<{ chain: string }>(
@@ -878,7 +879,7 @@ it.each([false, true])(
     const heldPublication = new Promise<void>((resolve) => {
       releasePublication = resolve
     })
-    const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+    const publications: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
     const presentations: Array<ReturnType<typeof liveSessionPresentationCommitInputSchema.parse>> =
       []
     await runInDurableObject(base.stub, (_instance, state) => {
@@ -888,7 +889,7 @@ it.each([false, true])(
         const request = new Request(input, init)
         const pathname = new URL(request.url).pathname
         if (pathname === '/live-sessions/checkpoint') {
-          const body = liveSessionCheckpointInputSchema.parse(await request.json())
+          const body = liveSessionCheckpointRequestSchema.parse(await request.json())
           publications.push(body)
           if (publications.length === 1) await heldPublication
           if (publicationFails) return new Response('Publication unavailable.', { status: 409 })
@@ -1186,7 +1187,7 @@ it('keeps the new presentation fence when an older authentication capture finish
   })
   let holdNextCapture = true
   let delayedAuthentication: Promise<void> | undefined
-  const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const publications: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   await runInDurableObject(base.stub, (instance, state) => {
     const originalFetch = vi.mocked(globalThis.fetch).getMockImplementation()
     if (!originalFetch) throw new Error('Missing native request fixture.')
@@ -1218,7 +1219,7 @@ it('keeps the new presentation fence when an older authentication capture finish
         })
       }
       if (pathname === '/live-sessions/checkpoint') {
-        const body = liveSessionCheckpointInputSchema.parse(await request.json())
+        const body = liveSessionCheckpointRequestSchema.parse(await request.json())
         publications.push(body)
         expect(base.capture.presentation?.version).toBe(2)
         expect(body.records.scenes[0]?.presentationVersion).toBe(2)
@@ -1325,7 +1326,7 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
   )
   player.messages.length = 0
 
-  const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const publications: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   const heldEvidence: Array<{
     authority: { published_sequence: number; sequence: number }
     pendingWriteCount: number
@@ -1335,7 +1336,7 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
     vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       expect(new URL(request.url).pathname).toBe('/live-sessions/checkpoint')
-      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      const body = liveSessionCheckpointRequestSchema.parse(await request.json())
       publications.push(body)
       heldEvidence.push({
         authority: state.storage.sql
@@ -1606,12 +1607,12 @@ it('commits and replays writes to two Campaign rooms concurrently', async () => 
     bases.push(base)
   }
   // Each fixture installs its own fetch mock; one dispatcher now serves both rooms' publications.
-  const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const publications: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   await runInDurableObject(bases[0]!.stub, () => {
     vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       expect(new URL(request.url).pathname).toBe('/live-sessions/checkpoint')
-      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      const body = liveSessionCheckpointRequestSchema.parse(await request.json())
       publications.push(body)
       const owner = bases.find((base) => base.capture.campaignId === body.campaignId)
       if (!owner) throw new Error('Unexpected checkpoint Campaign.')
@@ -2123,10 +2124,10 @@ it('recovers a native Scene commit whose acknowledgement was lost and retries wi
   })
   let publishedSequence = 0
   let publishedChecksum = 'a'.repeat(64)
-  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   await routeEncounterRequests(base, async (pathname, request) => {
     if (pathname === '/live-sessions/checkpoint') {
-      const checkpoint = liveSessionCheckpointInputSchema.parse(await request.json())
+      const checkpoint = liveSessionCheckpointRequestSchema.parse(await request.json())
       expect(checkpoint.sequence).toBe(1)
       expect(checkpoint.checksum).toBe(durable.evidence.checksum)
       checkpoints.push(checkpoint)
@@ -3832,10 +3833,10 @@ function localEncounterEvidence(storage: DurableObjectStorage) {
 it('commits warm native reminders, round, initiative, health display, and actor control before acknowledgement', async () => {
   const { base, player, state, actors } = await localEncounterFixture()
   const reminderId = crypto.randomUUID()
-  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   await routeEncounterRequests(base, async (pathname, request) => {
     if (pathname !== '/live-sessions/checkpoint') return undefined
-    const checkpoint = liveSessionCheckpointInputSchema.parse(await request.json())
+    const checkpoint = liveSessionCheckpointRequestSchema.parse(await request.json())
     checkpoints.push(checkpoint)
     return Response.json(checkpointResponse(checkpoint, base.authorization.members))
   })
@@ -4062,7 +4063,7 @@ it('checkpoints the complete native Encounter prefix before acknowledging COMPLE
         if (!previous) throw new Error('Missing native fetch fixture.')
         return previous(input, init)
       }
-      const checkpoint = liveSessionCheckpointInputSchema.parse(await request.json())
+      const checkpoint = liveSessionCheckpointRequestSchema.parse(await request.json())
       const evidence = localEncounterEvidence(context.storage)
       expect(checkpoint).toMatchObject({
         campaignId: base.capture.campaignId,
@@ -5250,7 +5251,7 @@ it('publishes a local token-control revocation before an evicted room reloads Co
   await routeEncounterRequests(base, async (pathname, request) => {
     if (pathname === '/live-sessions/checkpoint') {
       revocationPublished ||=
-        liveSessionCheckpointInputSchema.parse(await request.json()).sequence >= 1
+        liveSessionCheckpointRequestSchema.parse(await request.json()).sequence >= 1
       return undefined
     }
     if (pathname !== ROOM_AUTHORIZATION_PATH) return undefined
@@ -6121,7 +6122,7 @@ it('retries the exact pending checkpoint after eviction before an idle room rele
   const base = await fixture(value.scene)
   await synchronizeScene(base, value.scene)
   const calls: string[] = []
-  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   let publishAvailable = false
   await runInDurableObject(base.stub, () => {
     const original = vi.mocked(globalThis.fetch).getMockImplementation()
@@ -6131,7 +6132,7 @@ it('retries the exact pending checkpoint after eviction before an idle room rele
       const pathname = new URL(request.url).pathname
       calls.push(pathname)
       if (pathname !== '/live-sessions/checkpoint') return original(input, init)
-      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      const body = liveSessionCheckpointRequestSchema.parse(await request.json())
       checkpoints.push(body)
       if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
       return Response.json(checkpointResponse(body, base.authorization.members))
@@ -6185,7 +6186,7 @@ it('keeps the authority draining when its final checkpoint fails and releases on
   const value = doorScene(crypto.randomUUID())
   const base = await fixture(value.scene)
   await synchronizeScene(base, value.scene)
-  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const checkpoints: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   let publishAvailable = false
   await runInDurableObject(base.stub, () => {
     const original = vi.mocked(globalThis.fetch).getMockImplementation()
@@ -6194,7 +6195,7 @@ it('keeps the authority draining when its final checkpoint fails and releases on
       const request = new Request(input, init)
       if (new URL(request.url).pathname !== '/live-sessions/checkpoint')
         return original(input, init)
-      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      const body = liveSessionCheckpointRequestSchema.parse(await request.json())
       checkpoints.push(body)
       if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
       return Response.json(checkpointResponse(body, base.authorization.members))
@@ -6253,7 +6254,7 @@ it('keeps an alarm scheduled when the idle release checkpoint fails and releases
       const request = new Request(input, init)
       if (new URL(request.url).pathname !== '/live-sessions/checkpoint')
         return original(input, init)
-      const body = liveSessionCheckpointInputSchema.parse(await request.json())
+      const body = liveSessionCheckpointRequestSchema.parse(await request.json())
       if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
       return Response.json(checkpointResponse(body, base.authorization.members))
     })
@@ -6574,14 +6575,14 @@ function rejectionOf(messages: LiveSessionWebSocketServerMessageDto[], commandId
 
 /** Records every Checkpoint the room publishes while the fixture keeps answering. */
 async function recordCheckpoints(base: Awaited<ReturnType<typeof fixture>>) {
-  const publications: Array<ReturnType<typeof liveSessionCheckpointInputSchema.parse>> = []
+  const publications: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   await runInDurableObject(base.stub, () => {
     const answer = vi.mocked(globalThis.fetch).getMockImplementation()
     if (!answer) throw new Error('Missing fixture fetch.')
     vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       if (new URL(request.url).pathname === '/live-sessions/checkpoint')
-        publications.push(liveSessionCheckpointInputSchema.parse(await request.clone().json()))
+        publications.push(liveSessionCheckpointRequestSchema.parse(await request.clone().json()))
       return answer(request)
     })
   })

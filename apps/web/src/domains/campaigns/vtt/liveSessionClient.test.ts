@@ -186,6 +186,49 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
+  it('follows the room Encounter session only while subscribed, as the socket becomes ready', async () => {
+    const sessions: unknown[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket-1' }),
+      onEncounterSession: (session) => sessions.push(session),
+      onError: (error) => {
+        throw error
+      },
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    const lastSent = () => JSON.parse(socket.sent.at(-1)!) as unknown
+    connection.subscribeEncounterSession({ timeline: true })
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    expect(socket.sent.map((message) => JSON.parse(message) as unknown)).not.toContainEqual({
+      timeline: true,
+      type: 'SUBSCRIBE_ENCOUNTER_SESSION'
+    })
+
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+    expect(lastSent()).toEqual({ timeline: true, type: 'SUBSCRIBE_ENCOUNTER_SESSION' })
+    socket.receive({ session: { held: false }, type: 'ENCOUNTER_SESSION' })
+    expect(sessions).toEqual([{ held: false }])
+
+    connection.subscribeEncounterSession({ timeline: false })
+    expect(lastSent()).toEqual({ timeline: false, type: 'SUBSCRIBE_ENCOUNTER_SESSION' })
+    const sentCount = socket.sent.length
+    connection.subscribeEncounterSession({ timeline: false })
+    expect(socket.sent).toHaveLength(sentCount)
+
+    connection.subscribeEncounterSession(null)
+    expect(lastSent()).toEqual({ type: 'UNSUBSCRIBE_ENCOUNTER_SESSION' })
+    socket.receive({ session: { held: false }, type: 'ENCOUNTER_SESSION' })
+    expect(sessions).toHaveLength(1)
+    connection.close()
+  })
+
   it('sends each preview stream at most 10 times a second and pings at most twice', async () => {
     let now = 1_000
     vi.spyOn(performance, 'now').mockImplementation(() => now)

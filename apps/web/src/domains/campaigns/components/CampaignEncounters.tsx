@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Group, Modal, Select, Stack, Text, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
@@ -13,10 +13,8 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import {
   getCampaignEncounters,
   getEncounter,
-  getEncounterBlueprints
+  useEncounterBlueprints
 } from '#app/data/encounters/queries'
-import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
-import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
 import * as sharedStyles from '../campaigns.css'
@@ -33,23 +31,18 @@ export function CampaignEncounters({
 }) {
   const navigate = useNavigate()
   const convex = useConvex()
-  const queryClient = useQueryClient()
-  const encounters = useQuery(getCampaignEncounters(campaign.id, convex))
+  const encounters = useQuery(getCampaignEncounters(campaign.id))
   const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null)
   const [encounterAdderOpen, setEncounterAdderOpen] = useState(false)
   const [selectedBlueprintId, setSelectedBlueprintId] = useState<string | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
-  const blueprints = useQuery({
-    ...getEncounterBlueprints(campaign.gameSystemId, convex),
-    enabled: canManage && encounterAdderOpen
-  })
+  const blueprints = useEncounterBlueprints(campaign.gameSystemId, canManage && encounterAdderOpen)
   const summaries = encounters.data ?? []
   const selected =
     summaries.find((candidate) => candidate.id === selectedEncounterId) ?? summaries[0]
   const selectedEncounter = useQuery({
-    ...getEncounter(selected?.id ?? '', convex),
-    enabled: selected !== undefined,
+    ...getEncounter(selected?.id ?? null),
     select: encounterGmProjectionDtoSchema.parse
   })
   const addEncounter = useMutation({
@@ -65,15 +58,6 @@ export function CampaignEncounters({
       setSelectedEncounterId(created.id)
       setSelectedBlueprintId(null)
       setEncounterAdderOpen(false)
-      queryClient.setQueryData(queryKeys.encounters.detail(created.id), created)
-      queryClient.setQueryData(
-        queryKeys.encounters.list(campaign.id),
-        (current: EncounterSummaryDto[] | undefined) => [
-          ...(current ?? []),
-          summarizeEncounterProjection(created)
-        ]
-      )
-      void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaign.id) })
     }
   })
   const deleteEncounter = useMutation({
@@ -84,16 +68,9 @@ export function CampaignEncounters({
         commandId: crypto.randomUUID(),
         expectedVersion: encounter.version
       }),
-    onSuccess: ({ encounterId }) => {
+    onSuccess: () => {
       setDeleteConfirmOpen(false)
       setSelectedEncounterId(null)
-      queryClient.setQueryData(
-        queryKeys.encounters.list(campaign.id),
-        (current: EncounterSummaryDto[] | undefined) =>
-          current?.filter((candidate) => candidate.id !== encounterId)
-      )
-      queryClient.removeQueries({ queryKey: queryKeys.encounters.detail(encounterId), exact: true })
-      void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaign.id) })
     }
   })
 
@@ -241,13 +218,10 @@ export function CampaignEncounters({
                   Cancel
                 </Button>
               </Group>
-              {!blueprints.isPending && !blueprints.error && !blueprints.data?.length ? (
+              {!blueprints.isPending && !blueprints.data?.length ? (
                 <Text c='dimmed' size='sm'>
                   No saved encounters yet. Build one to add it here.
                 </Text>
-              ) : null}
-              {blueprints.error ? (
-                <Alert color='red'>Saved encounters couldn’t be loaded.</Alert>
               ) : null}
               {addEncounter.error ? (
                 <Alert color='red'>That encounter couldn’t be added.</Alert>

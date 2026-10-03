@@ -568,6 +568,21 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     end Campaign-owned state by D81.
   - **Why held:** a released Character could change in Convex while room-owned effects still write
     it, so the room would write from a stale base and its checkpoint would be refused.
+- **D85 (2026-10-03): measure live-play cost before changing checkpoints; Encounter history follows
+  Foundry. Decided by the product owner on 2026-10-03 (VS-8).**
+  - **Finding:** S0 modelled checkpoint I/O at about 5.9 MB per session at N = 120 s and 2.4 MB at
+    round and lifecycle boundaries only, against the 4.3 MB Q16 budget. Nothing is yet measured on the
+    room design. Separately, the web still polls Convex every 5 s for Encounter state during live play
+    and subscribes to `activeReads`, so turns and pending decisions lag until a checkpoint (A35-S6d).
+  - **Decision:** change nothing that is not proven waste. Instrument everything: each checkpoint's
+    Convex bytes read and written by trigger (timer, round, lifecycle, release), room rows and
+    requests, and every Convex call during live play. Remove known waste (the live-play polling and
+    subscriptions, A35-S6d). Then measure V15 and decide cadence, `patch` versus `replace` and record
+    shapes from real numbers. Losing up to one round on a rare Durable Object storage loss is
+    acceptable for the MVP.
+  - **Encounter history:** like Foundry, where ending combat deletes the Combat and the chat log
+    remains, chat and roll cards persist (D69) and the turn-by-turn Encounter timeline need not
+    outlive the Run. Implementation is sequenced with the measured changes.
 - **D84 (2026-10-03): the Builder commit budget is per distinct Class, not a flat 300 KB.
   Decided by the product owner on 2026-10-03 (VS-6).**
   - **Finding:** the native local run measured commit at 782 KB (Fighter 2 / Rogue 1) and 955 KB

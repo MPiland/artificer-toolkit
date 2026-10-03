@@ -1,9 +1,9 @@
 import { v } from 'convex/values'
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import {
-  liveSessionCheckpointInputSchema,
+  liveSessionCheckpointRequestSchema,
   liveSessionCheckpointResponseSchema,
-  type LiveSessionCheckpointInput,
+  type LiveSessionCheckpointRequest,
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -21,9 +21,14 @@ import { readRoomAuthorization } from './roomAuthorization'
 /** Mutable deltas, packed history, and the replay fence share the caller's native transaction. */
 export async function publishCheckpoint(
   rawCtx: MutationCtx,
-  rawInput: LiveSessionCheckpointInput
+  rawInput: LiveSessionCheckpointRequest
 ): Promise<LiveSessionCheckpointResponse> {
-  const { records, knownAuthorization, ...frame } = liveSessionCheckpointInputSchema.parse(rawInput)
+  const {
+    records,
+    knownAuthorization,
+    reason: _reason,
+    ...frame
+  } = liveSessionCheckpointRequestSchema.parse(rawInput)
   if (
     new TextEncoder().encode(canonicalizeJson(records)).byteLength >
     LIVE_SESSION_CHECKPOINT_MAX_BYTES
@@ -46,14 +51,24 @@ export async function publishCheckpointFrame(
   // Refresh outside-view revisions without invalidating the room's own committed inputs.
   const ctx = withSceneVisionTracking(rawCtx)
   const result = await commitCampaignLiveCheckpoint(ctx, frame, () => apply(ctx))
+  const authorization = await readRoomAuthorization(ctx, {
+    campaignId: frame.campaignId,
+    epoch: frame.epoch,
+    known: knownAuthorization
+  })
+  // Read last so the room meter sees the whole transaction (D85); the response itself is not metered.
+  const { bytesRead, bytesWritten, documentsRead, documentsWritten } =
+    await rawCtx.meta.getTransactionMetrics()
   return liveSessionCheckpointResponseSchema.parse({
     status: result.status,
     authority: presentCampaignLiveAuthority(result.authority),
-    authorization: await readRoomAuthorization(ctx, {
-      campaignId: frame.campaignId,
-      epoch: frame.epoch,
-      known: knownAuthorization
-    })
+    authorization,
+    io: {
+      bytesRead: bytesRead.used,
+      bytesWritten: bytesWritten.used,
+      documentsRead: documentsRead.used,
+      documentsWritten: documentsWritten.used
+    }
   })
 }
 

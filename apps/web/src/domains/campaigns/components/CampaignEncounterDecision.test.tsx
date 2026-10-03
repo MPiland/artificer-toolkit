@@ -58,17 +58,12 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
 import { CampaignEncounterDecision } from './CampaignEncounterDecision'
 
 describe('CampaignEncounterDecision', () => {
-  let currentPending: PendingEncounterRuleOccurrenceSummaryDto | null
-
   beforeEach(() => {
     vi.clearAllMocks()
-    currentPending = pending
     mocks.convexQuery.mockImplementation((reference: FunctionReference<'query'>) => ({
       queryKey: [getFunctionName(reference)]
     }))
-    mocks.useQuery.mockImplementation((options: { queryKey: string[] }) => ({
-      data: options.queryKey[0] === 'encounters/evidenceRolls:latest' ? null : currentPending
-    }))
+    mocks.useQuery.mockReturnValue({ data: null })
     mocks.useMutation.mockImplementation((options) => ({
       isPending: false,
       mutateAsync: async (command: ResolveRuleOccurrenceInputDto) => {
@@ -85,9 +80,9 @@ describe('CampaignEncounterDecision', () => {
     const view = renderWithAppProviders(
       <CampaignEncounterDecision
         canVoid
-        campaignId={tabletopGmEncounter.campaignId}
         connected
         encounter={tabletopGmEncounter}
+        pending={pending}
         sendCommand={mocks.sendCommand}
       />
     )
@@ -114,13 +109,12 @@ describe('CampaignEncounterDecision', () => {
       )
     )
 
-    currentPending = null
     view.rerender(
       <CampaignEncounterDecision
         canVoid
-        campaignId={tabletopGmEncounter.campaignId}
         connected
         encounter={tabletopGmEncounter}
+        pending={null}
         sendCommand={mocks.sendCommand}
       />
     )
@@ -132,9 +126,9 @@ describe('CampaignEncounterDecision', () => {
     renderWithAppProviders(
       <CampaignEncounterDecision
         canVoid
-        campaignId={tabletopGmEncounter.campaignId}
         connected={false}
         encounter={tabletopGmEncounter}
+        pending={pending}
         sendCommand={mocks.sendCommand}
       />
     )

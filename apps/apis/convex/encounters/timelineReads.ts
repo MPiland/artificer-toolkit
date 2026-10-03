@@ -19,6 +19,7 @@ import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readCampaignRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { readEncounterTimelinePage } from '@artificer-toolkit/encounter-persistence/timelinePages'
 
 export const timeline = query({
   args: zodToConvexFields(getEncounterTimelineInputDtoSchema.shape),
@@ -69,53 +70,50 @@ export const timeline = query({
         throw new Error('Stored Encounter command ownership mismatch.')
       presentTimelineEntry(await readReceiptHeader(ctx, 'encounterRunCommands', cursor, loadLedger))
     }
-    // Each committed Run version has exactly one receipt, including CREATE at version zero.
-    const beforeVersion = cursor?.version ?? row.version + 1
-    const commands = player
-      ? ctx.db
-          .query('encounterRunCommands')
-          .withIndex('by_encounterId_visibility_version', (q) =>
-            q.eq('encounterId', row.id).eq('visibility', 'TABLE').lt('version', beforeVersion)
-          )
-      : ctx.db
-          .query('encounterRunCommands')
-          .withIndex('by_encounterId_version', (q) =>
-            q.eq('encounterId', row.id).lt('version', beforeVersion)
-          )
-    const entries: EncounterTimelineDto['entries'] = []
     const outputLedgers = new Set<string>()
     let ledgerBytesRead = 0
     let bytesRead = 0
-    let hasMore = false
     // The cursor ledger has its own allowance; output ledgers share one 4 MiB budget.
     // Reusing the loader keeps cursor and output reads of the same ledger together.
     // Short pages preserve the UUID cursor and never cap the Run's history or creative content.
-    for await (const header of commands.order('desc')) {
-      if (entries.length >= input.limit || (entries.length > 0 && bytesRead >= 4 * 1024 * 1024)) {
-        hasMore = true
-        break
-      }
-      if (header.campaignId !== campaign.id)
-        throw new Error('Stored Encounter command ownership mismatch.')
-      if (!outputLedgers.has(header.ledgerId)) {
-        const metadata = await readReceiptLedgerMetadata(ctx, header.ledgerId)
-        if (entries.length > 0 && ledgerBytesRead + metadata.byteLength > RECEIPT_LEDGER_MAX_BYTES) {
-          hasMore = true
-          break
+    return encounterTimelineDtoSchema.parse(
+      await readEncounterTimelinePage({
+        campaignId: campaign.id,
+        player,
+        runVersion: row.version,
+        cursorVersion: cursor?.version ?? null,
+        limit: input.limit,
+        scan: ({ visibility, beforeVersion }) =>
+          visibility
+            ? ctx.db
+                .query('encounterRunCommands')
+                .withIndex('by_encounterId_visibility_version', (q) =>
+                  q
+                    .eq('encounterId', row.id)
+                    .eq('visibility', visibility)
+                    .lt('version', beforeVersion)
+                )
+                .order('desc')
+            : ctx.db
+                .query('encounterRunCommands')
+                .withIndex('by_encounterId_version', (q) =>
+                  q.eq('encounterId', row.id).lt('version', beforeVersion)
+                )
+                .order('desc'),
+        read: async (header, entriesRead) => {
+          if (entriesRead > 0 && bytesRead >= 4 * 1024 * 1024) return null
+          if (!outputLedgers.has(header.ledgerId)) {
+            const metadata = await readReceiptLedgerMetadata(ctx, header.ledgerId)
+            if (entriesRead > 0 && ledgerBytesRead + metadata.byteLength > RECEIPT_LEDGER_MAX_BYTES)
+              return null
+            ledgerBytesRead += metadata.byteLength
+            outputLedgers.add(header.ledgerId)
+          }
+          const command = await readReceiptHeader(ctx, 'encounterRunCommands', header, loadLedger)
+          bytesRead += new TextEncoder().encode(JSON.stringify(command)).byteLength
+          return command
         }
-        ledgerBytesRead += metadata.byteLength
-        outputLedgers.add(header.ledgerId)
-      }
-      const command = await readReceiptHeader(ctx, 'encounterRunCommands', header, loadLedger)
-      bytesRead += new TextEncoder().encode(JSON.stringify(command)).byteLength
-      const entry = presentTimelineEntry(command)
-      if (player && entry.visibility !== 'TABLE')
-        throw new Error('Stored Encounter timeline metadata mismatch.')
-      entries.push(entry)
-    }
-    return encounterTimelineDtoSchema.parse({
-      entries,
-      nextCursor: hasMore ? (entries.at(-1)?.id ?? null) : null
-    })
+      })
+    )
   }
 })

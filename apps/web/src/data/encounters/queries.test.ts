@@ -1,86 +1,30 @@
-import { QueryClient } from '@tanstack/react-query'
-import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
-import { afterEach, expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import type {
-  EncounterBlueprintDto,
-  EncounterSummaryDto
-} from '@artificer-toolkit/schema/api/encounterData'
-import { encounterBlueprintListInputSchema } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
-import { getCampaignEncounters, getEncounterBlueprints } from './queries'
+import { getCampaignEncounters, getEncounter, getEncounterTimeline } from './queries'
 
-const gameSystemId = '00000000-0000-4000-8000-000000000001'
 const campaignId = '00000000-0000-4000-8000-000000000002'
-const blueprint = {
-  id: '00000000-0000-4000-8000-000000000003',
-  gameSystemId,
-  name: 'Fixture Blueprint',
-  version: 1,
-  enemies: [],
-  createdAt: '2026-09-12T00:00:00.000Z',
-  updatedAt: '2026-09-12T00:00:00.000Z',
-  setupChecksum: 'a'.repeat(64)
-} satisfies EncounterBlueprintDto
-const summary = {
-  id: '00000000-0000-4000-8000-000000000004',
-  name: 'Vault sentries',
-  status: 'PREPARED',
-  round: 0,
-  actorCount: 2,
-  updatedAt: '2026-09-12T00:00:00.000Z',
-  version: 1
-} satisfies EncounterSummaryDto
+const encounterId = '00000000-0000-4000-8000-000000000004'
 
-function client() {
-  return new ConvexReactClient('https://unit-test.convex.cloud', { logger: false })
-}
-
-afterEach(() => vi.restoreAllMocks())
-
-it('reads campaign encounter summaries from the native query endpoint', async () => {
-  const convex = client()
-  const query = vi.spyOn(convex, 'query').mockResolvedValue([summary])
-  const queryClient = new QueryClient()
-
-  await expect(queryClient.fetchQuery(getCampaignEncounters(campaignId, convex))).resolves.toEqual([
-    summary
+it('subscribes to the campaign encounter summaries and one encounter', () => {
+  expect(getCampaignEncounters(campaignId).queryKey).toEqual([
+    'convexQuery',
+    getFunctionName(convexApi.encounters.projectionReads.list),
+    { campaignId }
   ])
-  expect(getFunctionName(query.mock.calls[0]![0])).toBe(
-    getFunctionName(convexApi.encounters.projectionReads.list)
-  )
-  expect(query.mock.calls[0]![1]).toEqual({ campaignId })
-})
-
-it('loads all Blueprint pages, including an empty continuation page', async () => {
-  const convex = client()
-  const query = vi.spyOn(convex, 'query').mockImplementation(async (...[, input]) => {
-    const cursor = encounterBlueprintListInputSchema.parse(input).paginationOpts.cursor
-    if (cursor === null) return { page: [], isDone: false, continueCursor: 'next' }
-    return { page: [blueprint], isDone: true, continueCursor: '' }
-  })
-  const queryClient = new QueryClient()
-
-  await expect(
-    queryClient.fetchQuery(getEncounterBlueprints(gameSystemId, convex))
-  ).resolves.toEqual([blueprint])
-  expect(query).toHaveBeenCalledTimes(2)
-  expect(query.mock.calls.map(([, input]) => input)).toEqual([
-    { gameSystemId, paginationOpts: { cursor: null, numItems: 48 } },
-    { gameSystemId, paginationOpts: { cursor: 'next', numItems: 48 } }
+  expect(getEncounter(encounterId).queryKey).toEqual([
+    'convexQuery',
+    getFunctionName(convexApi.encounters.projectionReads.get),
+    { encounterId }
   ])
 })
 
-it('rejects a nonadvancing Blueprint cursor', async () => {
-  const convex = client()
-  vi.spyOn(convex, 'query').mockResolvedValue({
-    page: [],
-    isDone: false,
-    continueCursor: 'same'
-  })
-  const queryClient = new QueryClient()
-
-  await expect(
-    queryClient.fetchQuery(getEncounterBlueprints(gameSystemId, convex))
-  ).rejects.toThrow('Encounter Blueprint pagination did not advance.')
+it('reads the newest 50 timeline entries and skips without an encounter', () => {
+  expect(getEncounterTimeline(encounterId).queryKey).toEqual([
+    'convexQuery',
+    getFunctionName(convexApi.encounters.timelineReads.timeline),
+    { encounterId, limit: 50 }
+  ])
+  expect(getEncounter(null).queryKey[2]).toBe('skip')
+  expect(getEncounterTimeline(null).queryKey[2]).toBe('skip')
 })

@@ -1,7 +1,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
-  LiveSessionCheckpointInput,
+  LiveSessionCheckpointRequest,
   LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import type { LiveSessionCheckpointRecords } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
@@ -48,7 +48,7 @@ afterEach(() => vi.useRealTimers())
 
 const publish = makeFunctionReference<
   'mutation',
-  LiveSessionCheckpointInput,
+  LiveSessionCheckpointRequest,
   LiveSessionCheckpointResponse
 >('liveSessions/checkpoint:publish')
 const present = makeFunctionReference<
@@ -108,7 +108,7 @@ function frame(
     'campaignId' | 'epoch' | 'persistedSequence' | 'persistedStateChecksum'
   >,
   records: LiveSessionCheckpointRecords
-): LiveSessionCheckpointInput {
+): LiveSessionCheckpointRequest {
   return {
     campaignId: authority.campaignId,
     epoch: authority.epoch,
@@ -119,6 +119,7 @@ function frame(
     checksum: 'b'.repeat(64),
     payloadChecksum: checksumCanonicalJson(records),
     knownAuthorization: null,
+    reason: 'DEADLINE',
     records
   }
 }

@@ -3029,9 +3029,11 @@ try {
         const loserIndex = 1 - winnerIndex
         assert.equal(winner.value.projection.status, 'ACTIVE')
         assert.deepEqual(
-          await owner.client.query(api.encounters.projectionReads.active, {
-            campaignId: campaign.id
-          }),
+          (
+            await owner.client.query(api.encounters.activeReads.active, {
+              campaignId: campaign.id
+            })
+          ).encounter,
           winner.value.projection
         )
         assert.deepEqual(
@@ -3054,9 +3056,11 @@ try {
         )
         assert.equal(loserStarted.projection.status, 'ACTIVE')
         assert.deepEqual(
-          await owner.client.query(api.encounters.projectionReads.active, {
-            campaignId: campaign.id
-          }),
+          (
+            await owner.client.query(api.encounters.activeReads.active, {
+              campaignId: campaign.id
+            })
+          ).encounter,
           loserStarted.projection
         )
         assert.deepEqual(
@@ -3072,9 +3076,11 @@ try {
           }
         })
         assert.equal(
-          await owner.client.query(api.encounters.projectionReads.active, {
-            campaignId: campaign.id
-          }),
+          (
+            await owner.client.query(api.encounters.activeReads.active, {
+              campaignId: campaign.id
+            })
+          ).encounter,
           null
         )
         console.log(
@@ -3361,7 +3367,11 @@ try {
           },
           verifyAuthoritative: async (stage, observedSceneVersion) => {
             // Room Scene commits reach Convex at a checkpoint; read only once it holds the observed write.
-            await awaitSceneCheckpoint(owner.client, fixture.scene.liveSceneId, observedSceneVersion)
+            await awaitSceneCheckpoint(
+              owner.client,
+              fixture.scene.liveSceneId,
+              observedSceneVersion
+            )
             if (stage === 'departed') {
               if (!completedMovement) throw new Error('Post-undo movement snapshot is unavailable.')
               const [ownerToken, ownerFog, run, timeline] = await Promise.all([

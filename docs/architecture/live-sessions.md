@@ -109,13 +109,13 @@ transaction commits. A command that changes nothing writes no row.
 
 Command scopes and their owning modules (all under `apps/session-worker/src/`):
 
-| Scope                  | Commands                                                                                           | Module                                                                                       |
-| ---------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `SCENE`                | Moves, door changes, token and barrier edits, inline settings, fog painting, undo, presentation   | `roomSceneGeometryCommand.ts`, `roomSceneEdits.ts`, `roomSceneUndo.ts`, `roomSceneFogUploads.ts` |
-| `ENCOUNTER`            | Every Encounter command: actions, Disarm, Cleaving and Concentration answers, turns, basic actions, GM tools, dice | `roomEncounterCommands.ts`, `roomEncounterTurns.ts`, `roomEncounterBasicActions.ts`, `roomEncounterResponseRouting.ts` |
-| `ENCOUNTER_BINDING`    | GM binds an Encounter to the presented Scene                                                       | `roomSceneBinding.ts`                                                                        |
-| `CHARACTER_SHEET`      | Nineteen held-Character play commands                                                              | `roomCharacterSheetCommands.ts`                                                              |
-| `CAMPAIGN_CHAT`        | Chat, public and TABLE rolls, GM private rolls, roll reveals                                       | `roomChatCommands.ts`                                                                        |
+| Scope               | Commands                                                                                                           | Module                                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `SCENE`             | Moves, door changes, token and barrier edits, inline settings, fog painting, undo, presentation                    | `roomSceneGeometryCommand.ts`, `roomSceneEdits.ts`, `roomSceneUndo.ts`, `roomSceneFogUploads.ts`                       |
+| `ENCOUNTER`         | Every Encounter command: actions, Disarm, Cleaving and Concentration answers, turns, basic actions, GM tools, dice | `roomEncounterCommands.ts`, `roomEncounterTurns.ts`, `roomEncounterBasicActions.ts`, `roomEncounterResponseRouting.ts` |
+| `ENCOUNTER_BINDING` | GM binds an Encounter to the presented Scene                                                                       | `roomSceneBinding.ts`                                                                                                  |
+| `CHARACTER_SHEET`   | Nineteen held-Character play commands                                                                              | `roomCharacterSheetCommands.ts`                                                                                        |
+| `CAMPAIGN_CHAT`     | Chat, public and TABLE rolls, GM private rolls, roll reveals                                                       | `roomChatCommands.ts`                                                                                                  |
 
 Contracts: [liveSessionEncounterCommand.ts](../../packages/schema/src/api/liveSessionEncounterCommand.ts)
 (`ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES` owns which Encounter commands run locally),
@@ -214,6 +214,35 @@ viewer-projected Sheet at once and after every committed transaction that change
 (unsequenced `CHARACTER_SHEET` message). Every push re-admits, so a lost assignment, hold or membership
 drops the subscription. The web Sheet takes `expectedVersion` from the pushed `streamVersion`
 (`useLiveCharacterSheet`).
+
+### Held Encounter session
+
+`SUBSCRIBE_ENCOUNTER_SESSION { timeline }` and `UNSUBSCRIBE_ENCOUNTER_SESSION` (one per socket) subscribe a
+member to the Encounter state the room holds.
+[RoomEncounterSessionFeed](../../apps/session-worker/src/roomEncounterSessionFeed.ts) sends an unsequenced
+`ENCOUNTER_SESSION` frame after admission and after every committed transaction (`#queuePostCommit`, after
+the Sheet push), only to subscribed sockets and only when the socket's serialized frame changed. The frame
+is `{ held: false }` while the room holds no open Run for the Campaign (the feed never lazy-loads a Run, so
+the web falls back to Convex), else `{ held: true, version, state, preparedPending, actorSides,
+settlement, timeline }`:
+
+- `state` is the `EncounterSessionStateDto` (the active Run in the member's projection plus its pending
+  decision, `waitingOn`), `preparedPending` the PREPARED Runs with a pending initiative or recharge
+  decision, `actorSides` the GM's actor-side map (null for a player), `timeline` the newest 50 entries
+  when the socket asked for them (the web asks only while the chat roll view is Encounter, or in the
+  Encounter workspace), and `settlement` how a player's last shown decision ended (D39), remembered per
+  socket.
+- Frames are built by the same readers Convex uses
+  ([sessionReads](../../packages/encounter-persistence/src/sessionReads.ts),
+  [timelinePages](../../packages/encounter-persistence/src/timelinePages.ts)) over the room store through
+  `roomEncounterReadPorts`, so projection, privacy (players see TABLE entries and their own redactions)
+  and integrity checks cannot drift. Authorization, budgets and receipt-ledger loading stay in the
+  Convex reads. Every push re-admits the socket against the current authorization.
+- A command's `expectedVersion` comes from the pushed `version`; the checkpointed Convex version lags the
+  room while the Run is held, so a client must not compare the two.
+
+Out of scope for the frame (still Convex reads): `actionChoices.get`, `actionChoices.optional`,
+`evidenceRolls.latest` and `sceneBindings.get`.
 
 **Holds.** [liveCharacterHolds](../../packages/schema/src/projections/liveCharacterHold.ts) fence each
 Character and active Run pair by Campaign and epoch. Claim and recovery establish holds, checkpoints
@@ -520,6 +549,34 @@ Campaign history and separately packed private Character history) and the Scene/
   (`checkpointDeadlineMs`, 120 s); later commands do not extend it. Admission, Scene presentation, drain
   and `checkpointBeforeAcknowledgement` commands flush a checkpoint before their boundary.
 
+### Checkpoint triggers and the room meter (D85)
+
+Every checkpoint send names one trigger, `LIVE_SESSION_CHECKPOINT_REASONS` in
+`api/liveSessionCheckpoint`: `DEADLINE` (the alarm, 120 s after the earliest unpublished receipt),
+`ADMISSION` (a socket authenticates, or a background retry after admission), `ACTIVATION` (bootstrap
+recovery and the first publication after activation), `RELOAD` (the room aggregate must reload from
+Convex before a command), `ACKNOWLEDGEMENT` (a command with `checkpointBeforeAcknowledgement`),
+`PRESENTATION` (before a Scene presentation commit) and `DRAIN` (the final checkpoint before release).
+A flush already in flight keeps its own reason, so a concurrent caller is attributed to the send that
+actually ran.
+
+[RoomMeter](../../apps/session-worker/src/roomMeter.ts) counts per authority epoch and is reset at
+release. It changes no room behavior and is wired in at entry points only: the room's SQLite storage is
+wrapped once (`meterStorage`, the one choke point for rows read and written; the runtime's own
+`DurableObjectState` is never proxied, workerd rejects that), and sockets are watched when accepted or
+found after a hibernation wake, so outgoing frames are counted by `send()`. It records incoming requests by kind
+(WebSocket message, HTTP, alarm), messages and outgoing frames by `type` (new types need no edit),
+admissions and the peak concurrent sockets per member (the case for merging a client's sockets),
+command wall time, and checkpoints by reason with payload bytes, Worker-to-Convex request count, wall
+time and the Convex-reported `io`. Staged checkpoints report the commit mutation's `io` only. Each
+checkpoint logs one `[room-meter]` JSON line and release logs the epoch summary. The totals are
+readable only in development, through `GET /internal/live-sessions/meter/<campaignId>` on the Worker,
+which requires the `LOCAL_CONTENT_SNAPSHOT_ORIGIN` marker, a loopback host and the worker secret.
+
+`scripts/v15Budgets.mjs <proof>.native-executions.jsonl <meter-totals>.json` compares a run against
+4.3 MB of Convex I/O per 4-hour session and the Workers Free Durable Object allowances divided by the
+Q16 session rate, and exits non-zero on a miss. It is not part of `validatePreStagingLocal`.
+
 Convex retains Scene command receipts for 30 days: `scenes/commandRetention:purge` runs daily at 09:00 UTC
 (`convex/crons.ts`), so replay by command ID and undo reach back at most 30 days. Open follow-up:
 derived fog saves keep a `geometrySaveId` that can point at a pruned geometry save, and superseded fog
@@ -625,9 +682,13 @@ publications and all other durable product state converge in Convex.
 
 An open tabletop subscribes to the authorized presentation and recipient header for Scene identity and
 version with `includeSnapshot:false` and renders the room's recipient Scene. Ordered command deltas update
-individual tokens or door states; Pixi retains unchanged graphics. The tabletop subscribes to
-`encounters/activeReads:active` for its active Encounter and pending decision together, from one Convex
-snapshot.
+individual tokens or door states; Pixi retains unchanged graphics.
+
+While the room holds an Encounter the web reads it from the room, not Convex (see
+[Held Encounter session](#held-encounter-session)). The tabletop, the Encounter workspace, chat and the
+player decision prompt fall back to the Convex reads (`encounters/activeReads:active`,
+`projectionReads:pendingPrepared`, `timelineReads:timeline`, `activeReads:decisionSettlement`) only while
+the frame says `held: false`. Convex reads are reactive subscriptions; no Encounter read polls.
 
 ## Security and limits
 
@@ -635,10 +696,10 @@ Convex rate limits live in `apps/apis/convex/lib/rateLimits.ts` (`@convex-dev/ra
 by the authenticated user ID and consumed inside the authorized mutation before any write, so a rejection
 rolls back the transaction. Account deletion resets every user-keyed counter.
 
-| Limit                  | Kind and allowance                 | Consumed by                                                                                                              |
-| ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `liveSessionTicket`    | Token bucket, 30/min, burst 10     | `liveSessions/admission:authorize`, called by `liveSessions/tickets:issue`                                               |
-| `campaignConversation` | Token bucket, 30/min, burst 30     | Campaign chat, public rolls and table rolls outside live play                                                            |
+| Limit                  | Kind and allowance                 | Consumed by                                                                                 |
+| ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| `liveSessionTicket`    | Token bucket, 30/min, burst 10     | `liveSessions/admission:authorize`, called by `liveSessions/tickets:issue`                  |
+| `campaignConversation` | Token bucket, 30/min, burst 30     | Campaign chat, public rolls and table rolls outside live play                               |
 | Social                 | Fixed UTC-aligned hour/day windows | Applications, invitations, reports and blocks ([policy](persistence.md#social-rate-limits)) |
 
 Convex has no Scene write allowance. While a live room holds authority, chat, roll and Scene allowances
@@ -693,23 +754,23 @@ module-load budget. Public functions keep generated Convex argument validators.
 
 ## Configuration
 
-| Owner               | Name                              | Purpose                                                                                     |
-| ------------------- | --------------------------------- | ------------------------------------------------------------------------------------------- |
-| Browser             | `VITE_CONVEX_URL`                 | Public Convex query/mutation WebSocket endpoint                                             |
-| Browser             | `VITE_LIVE_SESSION_WEBSOCKET_URL` | Session Worker WebSocket origin                                                             |
-| Web/Convex runtime  | `CONVEX_SITE_URL`                 | Convex HTTP Actions origin used by server and local tooling                                 |
-| Convex auth         | `SITE_URL`                        | Canonical application origin for Better Auth                                                |
-| Convex auth         | `BETTER_AUTH_SECRET`              | Better Auth signing secret                                                                  |
-| Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                                 |
-| Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                          |
-| Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte secret for Worker-to-Convex routes and Convex-to-Worker control            |
-| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction, closure and invalidation control calls reach              |
-| Worker              | `CONVEX_SITE_URL`                 | Matching Convex HTTP Actions origin for room calls                                          |
-| Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                       |
-| Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                         |
-| Worker              | `LIVE_SESSION_WORKER_SECRET`      | Matching shared secret                                                                      |
-| Worker              | `LIVE_SESSION_ROOMS`              | Durable Object namespace binding                                                            |
-| Worker              | `RULES_CONTINUATION_SECRET`       | At least 32-byte rules continuation sealing secret; Worker-only, never sent over HTTP       |
+| Owner               | Name                              | Purpose                                                                               |
+| ------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
+| Browser             | `VITE_CONVEX_URL`                 | Public Convex query/mutation WebSocket endpoint                                       |
+| Browser             | `VITE_LIVE_SESSION_WEBSOCKET_URL` | Session Worker WebSocket origin                                                       |
+| Web/Convex runtime  | `CONVEX_SITE_URL`                 | Convex HTTP Actions origin used by server and local tooling                           |
+| Convex auth         | `SITE_URL`                        | Canonical application origin for Better Auth                                          |
+| Convex auth         | `BETTER_AUTH_SECRET`              | Better Auth signing secret                                                            |
+| Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                           |
+| Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                    |
+| Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte secret for Worker-to-Convex routes and Convex-to-Worker control      |
+| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction, closure and invalidation control calls reach        |
+| Worker              | `CONVEX_SITE_URL`                 | Matching Convex HTTP Actions origin for room calls                                    |
+| Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                 |
+| Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                   |
+| Worker              | `LIVE_SESSION_WORKER_SECRET`      | Matching shared secret                                                                |
+| Worker              | `LIVE_SESSION_ROOMS`              | Durable Object namespace binding                                                      |
+| Worker              | `RULES_CONTINUATION_SECRET`       | At least 32-byte rules continuation sealing secret; Worker-only, never sent over HTTP |
 
 Browser variables must never contain either secret. Staging and production bind each Worker to the matching
 Convex deployment and web origin. The Worker also binds the R2 content-snapshot bucket (see

@@ -13,7 +13,9 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { playerControlFixture, type PlayerControlFixture } from '../../tests/fixtures/playerControl'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { presentRun, readRunSummaries } from './projectionReads'
+import { presentEncounterRun } from '@artificer-toolkit/encounter-persistence/sessionReads'
+import { encounterReadTransaction } from './encounterPorts'
+import { readRunSummaries } from './projectionReads'
 
 /**
  * What one Encounter command writes, and what building a member's projection reads, at 11 and 100
@@ -141,7 +143,7 @@ async function projectionReadCost(base: PlayerControlFixture, role: 'OWNER' | 'P
         .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
         .unique()
       if (!row) throw new Error('Missing write-set Run.')
-      await presentRun({ ...ctx, db }, row, campaign, {
+      await presentEncounterRun(encounterReadTransaction({ ...ctx, db }), row, campaign, {
         role,
         userId: role === 'OWNER' ? base.owner.userId : base.player.userId
       })

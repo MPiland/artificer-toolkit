@@ -2,6 +2,7 @@ import {
   liveSessionCheckpointInputSchema,
   liveSessionCheckpointResponseSchema,
   type LiveSessionCheckpointInput,
+  type LiveSessionCheckpointReason,
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { LIVE_SESSION_CHECKPOINT_MAX_BYTES } from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
@@ -26,7 +27,10 @@ const PENDING_CHUNK_BYTES = 72_000
 export class RoomCheckpoints {
   readonly #store: RoomEncounterStore
   readonly #storage: RoomStorage
-  readonly #publish: (input: LiveSessionCheckpointInput) => Promise<LiveSessionCheckpointResponse>
+  readonly #publish: (
+    input: LiveSessionCheckpointInput,
+    reason: LiveSessionCheckpointReason
+  ) => Promise<LiveSessionCheckpointResponse>
   readonly #onAcknowledge?: (
     ack: LiveSessionCheckpointAcknowledgement,
     response: LiveSessionCheckpointResponse
@@ -40,7 +44,10 @@ export class RoomCheckpoints {
   constructor(
     store: RoomEncounterStore,
     storage: RoomStorage,
-    publish: (input: LiveSessionCheckpointInput) => Promise<LiveSessionCheckpointResponse>,
+    publish: (
+      input: LiveSessionCheckpointInput,
+      reason: LiveSessionCheckpointReason
+    ) => Promise<LiveSessionCheckpointResponse>,
     onAcknowledge?: (
       ack: LiveSessionCheckpointAcknowledgement,
       response: LiveSessionCheckpointResponse
@@ -62,7 +69,11 @@ export class RoomCheckpoints {
     )`)
   }
 
-  flush(input: FlushInput): Promise<LiveSessionCheckpointResponse | null> {
+  /** `reason` names the trigger of every send this flush makes; a flush already running keeps its own. */
+  flush(
+    input: FlushInput,
+    reason: LiveSessionCheckpointReason
+  ): Promise<LiveSessionCheckpointResponse | null> {
     const validated = liveSessionRoomAuthorizationInputSchema.parse({
       campaignId: input.campaignId,
       epoch: input.epoch,
@@ -76,14 +87,19 @@ export class RoomCheckpoints {
         return Promise.reject(new Error('Concurrent checkpoint scope does not match.'))
       return this.#flushing.promise
     }
-    const promise = this.#flush({ ...input, knownAuthorization: validated.known }).finally(() => {
-      this.#flushing = null
-    })
+    const promise = this.#flush({ ...input, knownAuthorization: validated.known }, reason).finally(
+      () => {
+        this.#flushing = null
+      }
+    )
     this.#flushing = { campaignId: validated.campaignId, epoch: validated.epoch, promise }
     return promise
   }
 
-  async #flush(scope: FlushInput): Promise<LiveSessionCheckpointResponse | null> {
+  async #flush(
+    scope: FlushInput,
+    reason: LiveSessionCheckpointReason
+  ): Promise<LiveSessionCheckpointResponse | null> {
     const throughSequence = this.#store.sequence
     let last: LiveSessionCheckpointResponse | null = null
     for (;;) {
@@ -134,7 +150,7 @@ export class RoomCheckpoints {
       }
       // The publisher receives a clone; a failed callback cannot mutate durable retry evidence.
       const response = liveSessionCheckpointResponseSchema.parse(
-        await this.#publish(structuredClone(pending))
+        await this.#publish(structuredClone(pending), reason)
       )
       const { authority } = response
       if (

@@ -13,7 +13,7 @@ import { readEncounterReplayReceipt } from './replayReceipts.js'
 import { rejectDomain } from './domainRejections.js'
 import type { EncounterReadContext, EncounterWriteContext } from './store.js'
 
-type StoredCommand = z.infer<typeof encounterStoredRunCommandSchema>
+export type StoredCommand = z.infer<typeof encounterStoredRunCommandSchema>
 
 function commandTimelineMetadata(command: StoredCommand) {
   const input =

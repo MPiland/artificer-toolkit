@@ -24,6 +24,13 @@ import {
   liveSessionRecipientStateDtoSchema,
   liveSessionSequenceDtoSchema
 } from './liveSessionCommands.js'
+import {
+  encounterActorSidesDtoSchema,
+  encounterPreparedPendingListDtoSchema,
+  encounterSessionStateDtoSchema,
+  encounterSettledDecisionDtoSchema,
+  encounterTimelineDtoSchema
+} from './encounterData.js'
 
 export {
   liveSessionCommandDtoSchema,
@@ -60,6 +67,28 @@ export {
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
+
+/**
+ * The room's Encounter session for one member: held while the room holds the Campaign's ACTIVE Run
+ * (or PREPARED Runs paused on a START decision); otherwise the Convex reads are current. `version`
+ * is the ACTIVE Run's, else the highest held PREPARED Run's. `actorSides` is the GM's alone, and
+ * `timeline` is the ACTIVE Run's, present only when the subscriber asked for it.
+ */
+export const encounterSessionFrameDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('held', [
+    z.strictObject({ held: z.literal(false) }),
+    z.strictObject({
+      held: z.literal(true),
+      version: versionSchema,
+      state: encounterSessionStateDtoSchema,
+      preparedPending: encounterPreparedPendingListDtoSchema,
+      actorSides: z.nullable(encounterActorSidesDtoSchema),
+      settlement: z.nullable(encounterSettledDecisionDtoSchema),
+      timeline: z.nullable(encounterTimelineDtoSchema)
+    })
+  ])
+)
+export type EncounterSessionFrameDto = z.infer<typeof encounterSessionFrameDtoSchema>
 
 export const LIVE_SESSION_CONTROL_PATH = '/internal/live-sessions/control'
 export const LIVE_SESSION_CONTROL_SECRET_HEADER = 'x-artificer-live-session-secret'
@@ -175,6 +204,9 @@ export const liveSessionWebSocketClientMessageDtoSchema = lazySchema(() =>
       type: z.literal('SUBSCRIBE_CHARACTER_SHEET')
     }),
     z.strictObject({ type: z.literal('UNSUBSCRIBE_CHARACTER_SHEET') }),
+    // One Encounter session subscription per socket; a new one replaces the previous.
+    z.strictObject({ timeline: z.boolean(), type: z.literal('SUBSCRIBE_ENCOUNTER_SESSION') }),
+    z.strictObject({ type: z.literal('UNSUBSCRIBE_ENCOUNTER_SESSION') }),
     // The GM's fog patch stages in bounded batches under the socket cap; each answers with
     // SCENE_FOG_PROGRESS or COMMAND_REJECTED for the patch's command ID (D79).
     z.strictObject({ input: sceneFogPatchInputSchema, type: z.literal('SCENE_FOG_BEGIN') }),
@@ -209,6 +241,11 @@ export const liveSessionWebSocketServerMessageDtoSchema = lazySchema(() =>
       sheet: characterSheetResponseDtoSchema,
       streamVersion: versionSchema,
       type: z.literal('CHARACTER_SHEET')
+    }),
+    // Unsequenced: the subscriber's Encounter session as the room holds it.
+    z.strictObject({
+      session: encounterSessionFrameDtoSchema,
+      type: z.literal('ENCOUNTER_SESSION')
     }),
     z.strictObject({
       commandId: uuidSchema,

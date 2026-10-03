@@ -191,6 +191,17 @@ export async function roomEncounterReadTransaction(input: {
     readCharacterSheetState,
     readCharacterPlay,
     readAssignedCharacter,
+    readCampaignCharacterConditions: async (campaign, characterId) => {
+      if (campaign.id !== campaignId) throw new Error('Room Campaign authority scope changed.')
+      const part = await inputs.character(characterId, observed, transaction)
+      if (
+        !part.inputs ||
+        part.inputs.campaign.id !== campaign.id ||
+        part.inputs.owner.id !== characterId
+      )
+        throw new Error('Room Campaign Character state is unavailable.')
+      return part.inputs.campaign.state.conditions
+    },
     readAutoRollDice: async (id) => readRoomPreference(authorization, id).autoRollDice,
     readGmRollVisibility: async (id) => readRoomPreference(authorization, id).gmRollVisibility,
     hasAccountProfile: async (id) => inputs.hasAccountProfile(id, transaction),

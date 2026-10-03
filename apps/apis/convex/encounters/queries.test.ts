@@ -4,6 +4,7 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -49,11 +50,9 @@ const get = makeFunctionReference<
   { encounterId: string },
   EncounterGmProjectionDto | EncounterPlayerProjectionDto
 >('encounters/projectionReads:get')
-const active = makeFunctionReference<
-  'query',
-  { campaignId: string },
-  EncounterGmProjectionDto | EncounterPlayerProjectionDto | null
->('encounters/projectionReads:active')
+const active = makeFunctionReference<'query', { campaignId: string }, EncounterSessionStateDto>(
+  'encounters/activeReads:active'
+)
 const list = makeFunctionReference<'query', { campaignId: string }, EncounterSummaryDto[]>(
   'encounters/projectionReads:list'
 )
@@ -202,7 +201,7 @@ describe('native Encounter reads', () => {
       const single = await viewer.caller.query(get, { encounterId: run.id })
       expect(single.actors.find((actor) => actor.public)?.conditions).toEqual(expected)
       expect(
-        (await viewer.caller.query(active, { campaignId: campaign.id }))?.actors.find(
+        (await viewer.caller.query(active, { campaignId: campaign.id })).encounter?.actors.find(
           (actor) => actor.public
         )?.conditions
       ).toEqual(expected)
@@ -273,7 +272,7 @@ describe('native Encounter reads', () => {
     expect(JSON.stringify(playerProjection)).not.toContain('secret GM note')
     expect(JSON.stringify(playerProjection)).not.toContain('visible only to GM')
     expect(await other.caller.query(list, { campaignId: campaign.id })).toEqual([])
-    expect(await other.caller.query(active, { campaignId: campaign.id })).toBeNull()
+    expect((await other.caller.query(active, { campaignId: campaign.id })).encounter).toBeNull()
     expect(await other.caller.query(pending, { encounterId: run.id })).toBeNull()
 
     await setStatus(t, run.id, 'COMPLETED')
@@ -290,13 +289,13 @@ describe('native Encounter reads', () => {
     const activeOwnerProjection = encounterGmProjectionDtoSchema.parse(
       await owner.caller.query(get, { encounterId: run.id })
     )
-    expect(await owner.caller.query(active, { campaignId: campaign.id })).toEqual(
+    expect((await owner.caller.query(active, { campaignId: campaign.id })).encounter).toEqual(
       activeOwnerProjection
     )
     expect(await owner.caller.query(list, { campaignId: campaign.id })).toEqual([
       encounterSummaryOf(activeOwnerProjection)
     ])
-    expect(await other.caller.query(active, { campaignId: campaign.id })).toEqual(
+    expect((await other.caller.query(active, { campaignId: campaign.id })).encounter).toEqual(
       projectPlayerEncounterProjection(activeOwnerProjection, {
         userId: other.userId,
         characters: new Map()

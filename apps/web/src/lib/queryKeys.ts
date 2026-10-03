@@ -86,16 +86,6 @@ export const queryKeys = {
     moderationQueue: () => ['social-hub', 'moderation', 'queue'] as const
   },
 
-  encounters: {
-    detail: (encounterId: string) => ['encounters', encounterId] as const,
-    pendingOccurrence: (encounterId: string) =>
-      ['encounters', encounterId, 'pending-occurrence'] as const,
-    timeline: (encounterId: string) => ['encounters', encounterId, 'timeline'] as const,
-    active: (campaignId: string) => ['encounters', 'campaign', campaignId, 'active'] as const,
-    list: (campaignId: string) => ['encounters', 'campaign', campaignId, 'list'] as const,
-    blueprints: (gameSystemId: string) => ['encounters', 'blueprints', gameSystemId] as const
-  },
-
   media: {
     vttMap: (assetId: string) => ['media', 'vtt-map', assetId] as const
   },

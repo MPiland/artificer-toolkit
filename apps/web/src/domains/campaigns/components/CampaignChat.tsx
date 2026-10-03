@@ -26,15 +26,22 @@ export function CampaignChat({
   campaign: CampaignDetailDto
   currentUserId: string
 }) {
-  const { pushedEntries, pushedPrivateRolls, revealRoll, sendChat } = useCampaignChatRoom(
-    campaign.id
+  const [rollView, setRollView] = useState<CampaignRollView>(null)
+  const {
+    encounterSession: roomSession,
+    pushedEntries,
+    pushedPrivateRolls,
+    revealRoll,
+    sendChat
+  } = useCampaignChatRoom(
+    campaign.id,
+    campaign.role === 'OWNER' ? { timeline: rollView === 'ENCOUNTER' } : null
   )
   const editEntry = useConvexMutation(convexApi.campaigns.chat.edit)
   const unsendEntry = useConvexMutation(convexApi.campaigns.chat.unsend)
   const markConversationRead = useConvexMutation(convexApi.campaigns.conversations.markRead)
   const [room, setRoom] = useState<CampaignChatRoom>('TABLE')
   const [directUserId, setDirectUserId] = useState<string>()
-  const [rollView, setRollView] = useState<CampaignRollView>(null)
   const [mode, setMode] = useState<'OOC' | 'ROLEPLAY'>('OOC')
   const [body, setBody] = useState('')
   const reduceMotion = useReducedMotion()
@@ -43,21 +50,26 @@ export function CampaignChat({
   const currentMember = campaign.memberships.find((member) => member.userId === currentUserId)
   const assignedCharacter = currentMember?.assignedCharacter ?? null
   const conversations = useQuery(getCampaignConversations(campaign.id))
-  const encounters = useQuery(
+  // The room's Run and timeline while it holds the Run; Convex's stored ones otherwise.
+  const storedSession = useQuery(
     convexQuery(
-      convexApi.encounters.projectionReads.active,
-      campaign.role === 'OWNER' ? { campaignId: campaign.id } : 'skip'
+      convexApi.encounters.activeReads.active,
+      campaign.role === 'OWNER' && !roomSession ? { campaignId: campaign.id } : 'skip'
     )
   )
-  const activeEncounter = encounters.data
-  const encounterTimeline = useQuery(
+  const activeEncounter = (roomSession ? roomSession.state : storedSession.data)?.encounter
+  const roomTimeline = roomSession?.timeline ?? null
+  const storedTimeline = useQuery(
     convexQuery(
       convexApi.encounters.timelineReads.timeline,
-      rollView === 'ENCOUNTER' && activeEncounter
+      rollView === 'ENCOUNTER' && activeEncounter && !roomTimeline
         ? { encounterId: activeEncounter.id, limit: 50 }
         : 'skip'
     )
   )
+  const encounterTimeline = roomTimeline
+    ? { data: roomTimeline, isError: false, isPending: false }
+    : storedTimeline
   const privateRolls = useQuery(getRollHistory(rollView === 'MINE'))
   const showRolls = rollView !== null
   const history = useCampaignChatHistory(
@@ -193,7 +205,7 @@ export function CampaignChat({
   }
 
   const error =
-    send.error ?? entryAction.error ?? history.error ?? conversations.error ?? encounters.error
+    send.error ?? entryAction.error ?? history.error ?? conversations.error ?? storedSession.error
   const roomUnread = (kind: Exclude<CampaignChatRoom, 'DIRECT'>) =>
     conversations.data?.find((conversation) => conversation.kind === kind)?.unreadCount ?? 0
   const directUnread = directMembers.reduce((total, member) => total + member.unreadCount, 0)

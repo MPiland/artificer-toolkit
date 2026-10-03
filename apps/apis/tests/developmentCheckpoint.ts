@@ -16,9 +16,9 @@ import {
   type DevelopmentCheckpointInspection
 } from '@artificer-toolkit/schema/api/developmentCheckpoint'
 import {
-  liveSessionCheckpointInputSchema,
+  liveSessionCheckpointRequestSchema,
   liveSessionCheckpointResponseSchema,
-  type LiveSessionCheckpointInput,
+  type LiveSessionCheckpointRequest,
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import {
@@ -49,7 +49,7 @@ import { developmentTarget } from './developmentTarget'
 const prepare = makeFunctionReference<
   'mutation',
   DevelopmentCheckpointPreparationInput,
-  LiveSessionCheckpointInput
+  LiveSessionCheckpointRequest
 >('liveSessions/developmentCheckpoint:prepare')
 const inspect = makeFunctionReference<
   'query',
@@ -66,7 +66,7 @@ const discardUpload = makeFunctionReference<
 >('liveSessions/developmentCheckpoint:discardUpload')
 const publish = makeFunctionReference<
   'mutation',
-  LiveSessionCheckpointInput,
+  LiveSessionCheckpointRequest,
   LiveSessionCheckpointResponse
 >('liveSessions/checkpoint:publish')
 const beginUpload = makeFunctionReference<
@@ -162,7 +162,7 @@ export async function verifyDevelopmentCheckpoint({
 
   let campaignId: string | undefined
   let blueprintId: string | undefined
-  let checkpoint: LiveSessionCheckpointInput | undefined
+  let checkpoint: LiveSessionCheckpointRequest | undefined
   let released = false
   let scope: DevelopmentCheckpointScope | undefined
   let proof:
@@ -208,7 +208,7 @@ export async function verifyDevelopmentCheckpoint({
     })
     assert.equal(run.status, 'PREPARED')
     scope = { ...fixture, campaignId, encounterId: run.id }
-    checkpoint = liveSessionCheckpointInputSchema.parse(
+    checkpoint = liveSessionCheckpointRequestSchema.parse(
       await invoke(prepare, undefined, { ...scope, staged })
     )
     const before = developmentCheckpointInspectionSchema.parse(
@@ -221,7 +221,7 @@ export async function verifyDevelopmentCheckpoint({
     if (staged) {
       const json = canonicalizeJson(checkpoint.records)
       const parts = encodeUtf8PayloadChunks(json)
-      const { knownAuthorization: _knownAuthorization, ...frame } = commit
+      const { knownAuthorization: _knownAuthorization, reason: _reason, ...frame } = commit
       upload = {
         ...frame,
         byteLength: new TextEncoder().encode(json).byteLength,

@@ -150,7 +150,7 @@ function uploadPlan(frame: LiveSessionCheckpointFenceInput, bytes: Uint8Array) {
   return {
     stage: { ...frame, byteLength: bytes.byteLength, partCount: parts.length },
     parts,
-    commit: { ...frame, knownAuthorization: null }
+    commit: { ...frame, knownAuthorization: null, reason: 'DEADLINE' as const }
   }
 }
 
@@ -377,7 +377,7 @@ it('rolls back publication, history, fence and staging deletions when the enclos
   await upload(base, plan)
   const before = await snapshot(base)
   await expect(
-    base.t.mutation(async (ctx) => {
+    base.t.run(async (ctx) => {
       const published = await ctx.runMutation(commit, plan.commit)
       expect(published.status).toBe('COMMITTED')
       expect(

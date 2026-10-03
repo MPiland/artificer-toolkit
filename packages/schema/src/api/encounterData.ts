@@ -489,6 +489,19 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
   })
 )
 export type EncounterSessionStateDto = z.infer<typeof encounterSessionStateDtoSchema>
+/**
+ * The PREPARED Runs paused on a START decision this member sees (initiative or recharge), each
+ * with the decision itself: a PREPARED Run never shares the Campaign with an ACTIVE one.
+ */
+export const encounterPreparedPendingListDtoSchema = lazySchema(() =>
+  z.array(
+    z.strictObject({
+      encounter: encounterProjectionDtoSchema,
+      pending: pendingEncounterRuleOccurrenceSummaryDtoSchema
+    })
+  )
+)
+export type EncounterPreparedPendingListDto = z.infer<typeof encounterPreparedPendingListDtoSchema>
 export const getEncounterDecisionSettlementInputDtoSchema = lazySchema(() =>
   z.strictObject({
     encounterId: uuidSchema,
@@ -504,6 +517,14 @@ export const encounterDecisionSettlementDtoSchema = lazySchema(() =>
   z.nullable(z.enum(['ANSWER', 'GM_SKIP']))
 )
 export type EncounterDecisionSettlementDto = z.infer<typeof encounterDecisionSettlementDtoSchema>
+/** A settled decision the room pushes with the session state, keyed as the viewer saw it. */
+export const encounterSettledDecisionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    occurrenceId: uuidSchema,
+    occurrenceVersion: versionSchema,
+    outcome: z.enum(['ANSWER', 'GM_SKIP'])
+  })
+)
 
 export type EncounterPlayerProjectionDto = z.infer<typeof encounterPlayerProjectionDtoSchema>
 export type EncounterGmProjectionDto = z.infer<typeof encounterGmProjectionDtoSchema>

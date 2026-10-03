@@ -4,6 +4,7 @@ import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
+  EncounterSessionFrameDto,
   LiveSessionCommandDto,
   LiveSessionRecipientStateDto
 } from '@artificer-toolkit/schema/api/liveSessions'
@@ -26,10 +27,14 @@ import {
   type LiveSessionConnectionStatus
 } from './liveSessionClient'
 
+/** The Encounter session while the room holds the Campaign's Run; otherwise Convex is the source. */
+export type HeldEncounterSession = Extract<EncounterSessionFrameDto, { held: true }>
+
 export function useCampaignLiveSession({
   campaignId,
   characterSheetId = null,
   enabled,
+  encounterSession = null,
   onCampaignChatEntry,
   onPrivateRoll,
   onTransient
@@ -38,6 +43,8 @@ export function useCampaignLiveSession({
   /** The held Character whose viewer-projected Sheet the room pushes (D73). */
   characterSheetId?: string | null
   enabled: boolean
+  /** Follows the room's Encounter session while it holds one; `timeline` adds the newest timeline page. */
+  encounterSession?: { timeline: boolean } | null
   /** An entry the room pushed to this member's conversations; deduplicate by entry id. */
   onCampaignChatEntry?: (entry: CampaignChatEntryDto) => void
   /** The GM's retained roll as the room now holds it; deduplicate by roll id. */
@@ -50,6 +57,9 @@ export function useCampaignLiveSession({
   const onPrivateRollRef = useRef(onPrivateRoll)
   const convex = useConvex()
   const [characterSheet, setCharacterSheet] = useState<LiveSessionCharacterSheetPush | null>(null)
+  const [heldEncounterSession, setHeldEncounterSession] = useState<HeldEncounterSession | null>(
+    null
+  )
   const [commandReady, setCommandReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recipientState, setRecipientState] = useState<LiveSessionRecipientStateDto | null>(null)
@@ -63,6 +73,7 @@ export function useCampaignLiveSession({
   useEffect(() => {
     if (!enabled) {
       setCharacterSheet(null)
+      setHeldEncounterSession(null)
       setCommandReady(false)
       setRecipientState(null)
       setRejection(null)
@@ -91,13 +102,18 @@ export function useCampaignLiveSession({
       onCampaignChatEntry: (entry) => onCampaignChatEntryRef.current?.(entry),
       onPrivateRoll: (roll) => onPrivateRollRef.current?.(roll),
       onCharacterSheet: setCharacterSheet,
+      onEncounterSession: (session) => setHeldEncounterSession(session.held ? session : null),
       onCommandRejected: setRejection,
       onDurableState: (state) => {
         setCommandReady(state.commandReady)
         setRecipientState(state.recipientState)
         setSequence(state.sequence)
       },
-      onStatus: setStatus,
+      onStatus: (nextStatus) => {
+        setStatus(nextStatus)
+        // Without the room, Convex is the source again until the room pushes a fresh frame.
+        if (nextStatus !== 'CONNECTED') setHeldEncounterSession(null)
+      },
       onTransient: (message) => onTransientRef.current?.(message),
       url: resolveLiveSessionWebSocketUrl(configuredUrl, campaignId)
     })
@@ -112,6 +128,15 @@ export function useCampaignLiveSession({
     connection.current?.subscribeCharacterSheet(enabled ? characterSheetId : null)
     return () => setCharacterSheet(null)
   }, [campaignId, characterSheetId, enabled])
+
+  const followsEncounterSession = enabled && encounterSession !== null
+  const followsEncounterTimeline = encounterSession?.timeline ?? false
+  useEffect(() => {
+    connection.current?.subscribeEncounterSession(
+      followsEncounterSession ? { timeline: followsEncounterTimeline } : null
+    )
+    return () => setHeldEncounterSession(null)
+  }, [campaignId, followsEncounterSession, followsEncounterTimeline])
 
   const sendCommand = useCallback(
     (command: LiveSessionCommandDto): Promise<LiveSessionCommandCommit> => {
@@ -169,6 +194,7 @@ export function useCampaignLiveSession({
   return {
     characterSheet,
     commandReady,
+    encounterSession: heldEncounterSession,
     error,
     recipientState,
     rejection,

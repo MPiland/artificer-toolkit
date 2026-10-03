@@ -39186,245 +39186,6 @@ export declare const api: {
       >;
     };
     projectionReads: {
-      active: FunctionReference<
-        "query",
-        "public",
-        { campaignId: string },
-        | {
-            actors: Array<{
-              conditions:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>;
-              controllerUserIds: Array<string>;
-              currentHitPoints: number;
-              defeated: boolean;
-              disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
-              encounterId: string;
-              features?: Array<{
-                description: string;
-                id: string;
-                label: string;
-                resource?: {
-                  maximum: number;
-                  remaining: number;
-                  resetKind:
-                    | "DAILY"
-                    | "DAWN"
-                    | "DUSK"
-                    | "LONG_REST"
-                    | "SHORT_REST"
-                    | "MANUAL";
-                  used: number;
-                } | null;
-                rollDefinitions?: Array<{
-                  chargeCost?: number | null;
-                  expression: { count: number; die: number; modifier: number };
-                  id: string;
-                  kind:
-                    | "ATTACK"
-                    | "DAMAGE"
-                    | "HEALING"
-                    | "ABILITY_CHECK"
-                    | "SAVING_THROW";
-                  label: string;
-                  order: number;
-                  rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                }>;
-                section?:
-                  | "TRAIT"
-                  | "ACTION"
-                  | "BONUS_ACTION"
-                  | "REACTION"
-                  | "LEGENDARY_ACTION"
-                  | "LAIR_ACTION"
-                  | "REGIONAL_EFFECT"
-                  | "OTHER";
-              }>;
-              gmNotes: string | null;
-              healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
-              healthDisplay: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
-              id: string;
-              initiative: number | null;
-              kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-              label: string;
-              manualOrder: number | null;
-              maxHitPoints: number;
-              outOfInitiative: boolean;
-              public: boolean;
-              resources:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>;
-              sourceId: string | null;
-              sourceRevision: number | null;
-              stableTieKey: string;
-              statBlock: {
-                abilityScores: Record<string, number> | null;
-                armorClass: number | null;
-                conditionImmunities: Array<string>;
-                damageImmunities: Array<string>;
-                damageResistances: Array<string>;
-                damageVulnerabilities: Array<string>;
-                qualifiedDamageDefenses: Array<{
-                  bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
-                  damageTypeIds: Array<string>;
-                  kind: "RESISTANCE" | "IMMUNITY";
-                }>;
-                senses: Array<string>;
-                speeds: Array<any>;
-              } | null;
-              systemId: string | null;
-              tempHitPoints: number;
-            }>;
-            automationMode: "ASSISTED" | "MANUAL";
-            blueprintChecksum: string;
-            blueprintId: string;
-            blueprintVersion: number;
-            campaignId: string;
-            createdAt: string;
-            currentActorId: string | null;
-            gameSystemId: string;
-            healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
-            id: string;
-            initiativePolicy?: {
-              cadence: "ENCOUNTER_START" | "EACH_ROUND";
-              definitionId: string;
-              label: string;
-              procedure:
-                | "ACTOR_ROLL"
-                | "ACTOR_SCORE"
-                | "SIDE_ROLL"
-                | "DECLARED_ACTION_ROLL";
-              tieResolverDefinitionId: string;
-              tieResolverLabel: string;
-            } | null;
-            manualReminderMode: "OFF" | "SUBTLE";
-            name: string;
-            optionalCombatRules?: Array<{
-              definitionId: string;
-              kind:
-                | "FLANKING"
-                | "ALTERNATING_DIAGONALS"
-                | "FACING"
-                | "CLIMB_ONTO_LARGER_CREATURE"
-                | "DISARM"
-                | "MARK"
-                | "OVERRUN"
-                | "SHOVE_ASIDE"
-                | "TUMBLE"
-                | "HITTING_COVER"
-                | "CLEAVING"
-                | "INJURIES"
-                | "MASSIVE_DAMAGE"
-                | "MORALE";
-              label: string;
-            }>;
-            reminders?: Array<{
-              actorId: string | null;
-              id: string;
-              label: string;
-              notes: string | null;
-              order: number;
-              public: boolean;
-              round: number | null;
-              timing:
-                | "ROUND_START"
-                | "ROUND_END"
-                | "ROUND_NUMBER"
-                | "TURN_START"
-                | "TURN_END";
-            }>;
-            round: number;
-            status: "PREPARED" | "ACTIVE" | "COMPLETED";
-            updatedAt: string;
-            version: number;
-          }
-        | {
-            actors: Array<{
-              conditions:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>;
-              controllerUserIds: Array<string>;
-              defeated: boolean;
-              disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
-              encounterId: string;
-              health:
-                | {
-                    level: "DESCRIPTIVE";
-                    state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
-                  }
-                | { level: "BAR"; ratio: number }
-                | { current: number; level: "EXACT"; maximum: number }
-                | null;
-              id: string;
-              initiative: number | null;
-              kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-              label: string;
-              manualOrder: number | null;
-              outOfInitiative: boolean;
-              public: boolean;
-              sourceId: string | null;
-              sourceRevision: number | null;
-            }>;
-            automationMode: "ASSISTED" | "MANUAL";
-            blueprintChecksum: string;
-            blueprintId: string;
-            blueprintVersion: number;
-            campaignId: string;
-            createdAt: string;
-            currentActorId: string | null;
-            gameSystemId: string;
-            id: string;
-            initiativePolicy?: {
-              cadence: "ENCOUNTER_START" | "EACH_ROUND";
-              definitionId: string;
-              label: string;
-              procedure:
-                | "ACTOR_ROLL"
-                | "ACTOR_SCORE"
-                | "SIDE_ROLL"
-                | "DECLARED_ACTION_ROLL";
-              tieResolverDefinitionId: string;
-              tieResolverLabel: string;
-            } | null;
-            name: string;
-            optionalCombatRules?: Array<{
-              definitionId: string;
-              kind:
-                | "FLANKING"
-                | "ALTERNATING_DIAGONALS"
-                | "FACING"
-                | "CLIMB_ONTO_LARGER_CREATURE"
-                | "DISARM"
-                | "MARK"
-                | "OVERRUN"
-                | "SHOVE_ASIDE"
-                | "TUMBLE"
-                | "HITTING_COVER"
-                | "CLEAVING"
-                | "INJURIES"
-                | "MASSIVE_DAMAGE"
-                | "MORALE";
-              label: string;
-            }>;
-            round: number;
-            status: "PREPARED" | "ACTIVE" | "COMPLETED";
-            updatedAt: string;
-            version: number;
-          }
-        | null
-      >;
       actorSides: FunctionReference<
         "query",
         "public",
@@ -39692,246 +39453,423 @@ export declare const api: {
         "query",
         "public",
         { campaignId: string },
-        Array<
-          | {
-              actors: Array<{
-                conditions:
-                  | string
-                  | number
-                  | boolean
-                  | null
-                  | Array<any>
-                  | Record<string, any>;
-                controllerUserIds: Array<string>;
-                currentHitPoints: number;
-                defeated: boolean;
-                disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
-                encounterId: string;
-                features?: Array<{
-                  description: string;
+        Array<{
+          encounter:
+            | {
+                actors: Array<{
+                  conditions:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  controllerUserIds: Array<string>;
+                  currentHitPoints: number;
+                  defeated: boolean;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
+                  encounterId: string;
+                  features?: Array<{
+                    description: string;
+                    id: string;
+                    label: string;
+                    resource?: {
+                      maximum: number;
+                      remaining: number;
+                      resetKind:
+                        | "DAILY"
+                        | "DAWN"
+                        | "DUSK"
+                        | "LONG_REST"
+                        | "SHORT_REST"
+                        | "MANUAL";
+                      used: number;
+                    } | null;
+                    rollDefinitions?: Array<{
+                      chargeCost?: number | null;
+                      expression: {
+                        count: number;
+                        die: number;
+                        modifier: number;
+                      };
+                      id: string;
+                      kind:
+                        | "ATTACK"
+                        | "DAMAGE"
+                        | "HEALING"
+                        | "ABILITY_CHECK"
+                        | "SAVING_THROW";
+                      label: string;
+                      order: number;
+                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    }>;
+                    section?:
+                      | "TRAIT"
+                      | "ACTION"
+                      | "BONUS_ACTION"
+                      | "REACTION"
+                      | "LEGENDARY_ACTION"
+                      | "LAIR_ACTION"
+                      | "REGIONAL_EFFECT"
+                      | "OTHER";
+                  }>;
+                  gmNotes: string | null;
+                  healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
+                  healthDisplay:
+                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
+                  id: string;
+                  initiative: number | null;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  label: string;
+                  manualOrder: number | null;
+                  maxHitPoints: number;
+                  outOfInitiative: boolean;
+                  public: boolean;
+                  resources:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  sourceId: string | null;
+                  sourceRevision: number | null;
+                  stableTieKey: string;
+                  statBlock: {
+                    abilityScores: Record<string, number> | null;
+                    armorClass: number | null;
+                    conditionImmunities: Array<string>;
+                    damageImmunities: Array<string>;
+                    damageResistances: Array<string>;
+                    damageVulnerabilities: Array<string>;
+                    qualifiedDamageDefenses: Array<{
+                      bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                      damageTypeIds: Array<string>;
+                      kind: "RESISTANCE" | "IMMUNITY";
+                    }>;
+                    senses: Array<string>;
+                    speeds: Array<any>;
+                  } | null;
+                  systemId: string | null;
+                  tempHitPoints: number;
+                }>;
+                automationMode: "ASSISTED" | "MANUAL";
+                blueprintChecksum: string;
+                blueprintId: string;
+                blueprintVersion: number;
+                campaignId: string;
+                createdAt: string;
+                currentActorId: string | null;
+                gameSystemId: string;
+                healthDisplayDefault:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                id: string;
+                initiativePolicy?: {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  definitionId: string;
+                  label: string;
+                  procedure:
+                    | "ACTOR_ROLL"
+                    | "ACTOR_SCORE"
+                    | "SIDE_ROLL"
+                    | "DECLARED_ACTION_ROLL";
+                  tieResolverDefinitionId: string;
+                  tieResolverLabel: string;
+                } | null;
+                manualReminderMode: "OFF" | "SUBTLE";
+                name: string;
+                optionalCombatRules?: Array<{
+                  definitionId: string;
+                  kind:
+                    | "FLANKING"
+                    | "ALTERNATING_DIAGONALS"
+                    | "FACING"
+                    | "CLIMB_ONTO_LARGER_CREATURE"
+                    | "DISARM"
+                    | "MARK"
+                    | "OVERRUN"
+                    | "SHOVE_ASIDE"
+                    | "TUMBLE"
+                    | "HITTING_COVER"
+                    | "CLEAVING"
+                    | "INJURIES"
+                    | "MASSIVE_DAMAGE"
+                    | "MORALE";
+                  label: string;
+                }>;
+                reminders?: Array<{
+                  actorId: string | null;
                   id: string;
                   label: string;
-                  resource?: {
-                    maximum: number;
-                    remaining: number;
-                    resetKind:
-                      | "DAILY"
-                      | "DAWN"
-                      | "DUSK"
-                      | "LONG_REST"
-                      | "SHORT_REST"
-                      | "MANUAL";
-                    used: number;
-                  } | null;
-                  rollDefinitions?: Array<{
-                    chargeCost?: number | null;
-                    expression: {
-                      count: number;
-                      die: number;
-                      modifier: number;
-                    };
-                    id: string;
-                    kind:
-                      | "ATTACK"
-                      | "DAMAGE"
-                      | "HEALING"
-                      | "ABILITY_CHECK"
-                      | "SAVING_THROW";
-                    label: string;
-                    order: number;
-                    rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  }>;
-                  section?:
-                    | "TRAIT"
-                    | "ACTION"
-                    | "BONUS_ACTION"
-                    | "REACTION"
-                    | "LEGENDARY_ACTION"
-                    | "LAIR_ACTION"
-                    | "REGIONAL_EFFECT"
-                    | "OTHER";
+                  notes: string | null;
+                  order: number;
+                  public: boolean;
+                  round: number | null;
+                  timing:
+                    | "ROUND_START"
+                    | "ROUND_END"
+                    | "ROUND_NUMBER"
+                    | "TURN_START"
+                    | "TURN_END";
                 }>;
-                gmNotes: string | null;
-                healthBand: "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL";
-                healthDisplay:
-                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
+                round: number;
+                status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                updatedAt: string;
+                version: number;
+              }
+            | {
+                actors: Array<{
+                  conditions:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  controllerUserIds: Array<string>;
+                  defeated: boolean;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
+                  encounterId: string;
+                  health:
+                    | {
+                        level: "DESCRIPTIVE";
+                        state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                      }
+                    | { level: "BAR"; ratio: number }
+                    | { current: number; level: "EXACT"; maximum: number }
+                    | null;
+                  id: string;
+                  initiative: number | null;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  label: string;
+                  manualOrder: number | null;
+                  outOfInitiative: boolean;
+                  public: boolean;
+                  sourceId: string | null;
+                  sourceRevision: number | null;
+                }>;
+                automationMode: "ASSISTED" | "MANUAL";
+                blueprintChecksum: string;
+                blueprintId: string;
+                blueprintVersion: number;
+                campaignId: string;
+                createdAt: string;
+                currentActorId: string | null;
+                gameSystemId: string;
                 id: string;
-                initiative: number | null;
-                kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                label: string;
-                manualOrder: number | null;
-                maxHitPoints: number;
-                outOfInitiative: boolean;
-                public: boolean;
-                resources:
-                  | string
-                  | number
-                  | boolean
-                  | null
-                  | Array<any>
-                  | Record<string, any>;
-                sourceId: string | null;
-                sourceRevision: number | null;
-                stableTieKey: string;
-                statBlock: {
-                  abilityScores: Record<string, number> | null;
-                  armorClass: number | null;
-                  conditionImmunities: Array<string>;
-                  damageImmunities: Array<string>;
-                  damageResistances: Array<string>;
-                  damageVulnerabilities: Array<string>;
-                  qualifiedDamageDefenses: Array<{
-                    bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
-                    damageTypeIds: Array<string>;
-                    kind: "RESISTANCE" | "IMMUNITY";
-                  }>;
-                  senses: Array<string>;
-                  speeds: Array<any>;
+                initiativePolicy?: {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  definitionId: string;
+                  label: string;
+                  procedure:
+                    | "ACTOR_ROLL"
+                    | "ACTOR_SCORE"
+                    | "SIDE_ROLL"
+                    | "DECLARED_ACTION_ROLL";
+                  tieResolverDefinitionId: string;
+                  tieResolverLabel: string;
                 } | null;
-                systemId: string | null;
-                tempHitPoints: number;
-              }>;
-              automationMode: "ASSISTED" | "MANUAL";
-              blueprintChecksum: string;
-              blueprintId: string;
-              blueprintVersion: number;
-              campaignId: string;
-              createdAt: string;
-              currentActorId: string | null;
-              gameSystemId: string;
-              healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
-              id: string;
-              initiativePolicy?: {
-                cadence: "ENCOUNTER_START" | "EACH_ROUND";
-                definitionId: string;
-                label: string;
-                procedure:
-                  | "ACTOR_ROLL"
-                  | "ACTOR_SCORE"
-                  | "SIDE_ROLL"
-                  | "DECLARED_ACTION_ROLL";
-                tieResolverDefinitionId: string;
-                tieResolverLabel: string;
-              } | null;
-              manualReminderMode: "OFF" | "SUBTLE";
-              name: string;
-              optionalCombatRules?: Array<{
-                definitionId: string;
-                kind:
-                  | "FLANKING"
-                  | "ALTERNATING_DIAGONALS"
-                  | "FACING"
-                  | "CLIMB_ONTO_LARGER_CREATURE"
-                  | "DISARM"
-                  | "MARK"
-                  | "OVERRUN"
-                  | "SHOVE_ASIDE"
-                  | "TUMBLE"
-                  | "HITTING_COVER"
-                  | "CLEAVING"
-                  | "INJURIES"
-                  | "MASSIVE_DAMAGE"
-                  | "MORALE";
-                label: string;
-              }>;
-              reminders?: Array<{
-                actorId: string | null;
-                id: string;
-                label: string;
-                notes: string | null;
-                order: number;
-                public: boolean;
-                round: number | null;
-                timing:
-                  | "ROUND_START"
-                  | "ROUND_END"
-                  | "ROUND_NUMBER"
-                  | "TURN_START"
-                  | "TURN_END";
-              }>;
-              round: number;
-              status: "PREPARED" | "ACTIVE" | "COMPLETED";
-              updatedAt: string;
-              version: number;
-            }
-          | {
-              actors: Array<{
-                conditions:
-                  | string
-                  | number
-                  | boolean
-                  | null
-                  | Array<any>
-                  | Record<string, any>;
-                controllerUserIds: Array<string>;
-                defeated: boolean;
-                disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
-                encounterId: string;
-                health:
+                name: string;
+                optionalCombatRules?: Array<{
+                  definitionId: string;
+                  kind:
+                    | "FLANKING"
+                    | "ALTERNATING_DIAGONALS"
+                    | "FACING"
+                    | "CLIMB_ONTO_LARGER_CREATURE"
+                    | "DISARM"
+                    | "MARK"
+                    | "OVERRUN"
+                    | "SHOVE_ASIDE"
+                    | "TUMBLE"
+                    | "HITTING_COVER"
+                    | "CLEAVING"
+                    | "INJURIES"
+                    | "MASSIVE_DAMAGE"
+                    | "MORALE";
+                  label: string;
+                }>;
+                round: number;
+                status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                updatedAt: string;
+                version: number;
+              };
+          pending:
+            | {
+                allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                encounterVersion: number;
+                kind: "D20_EVIDENCE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                request: {
+                  derivedRollModeReasons: Array<string>;
+                  max: 20;
+                  min: 1;
+                  requestId: string;
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
+                rollerActorId: string | null;
+                trigger?: {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "CONCENTRATION";
+                  sourceLabel: string | null;
+                };
+              }
+            | {
+                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                encounterVersion: number;
+                kind: "ACTION_OUTCOME_EVIDENCE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                request: { max: number; min: number; requestId: string };
+                rollerActorId: string | null;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                choice: {
+                  options: Array<{
+                    actionId: string;
+                    actionSourceKind: "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                    optionId: string;
+                  }>;
+                  pathDistance: number;
+                  reactorActorId: string;
+                  reactorTokenId: string;
+                };
+                encounterVersion: number;
+                kind: "MOVEMENT_REACTION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "LEGENDARY_RESISTANCE_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ optionId: string }>;
+                targetActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
+                encounterVersion: number;
+                kind: "LEGENDARY_ACTION_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  actionId: string;
+                  featureCost: number;
+                  label: string;
+                  optionId: string;
+                  ownerFeatureId: string;
+                  targetActorIds: Array<string>;
+                }>;
+                ownerActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "OPTIONAL_COMBAT_CLEAVING";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ optionId: string; targetActorId: string }>;
+                sourceActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "MOVEMENT_PASSAGE_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  economy: "ACTION" | "BONUS_ACTION";
+                  optionId: string;
+                  ruleKind: "OVERRUN" | "TUMBLE";
+                }>;
+                sourceActorId: string;
+              }
+            | {
+                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                encounterVersion: number;
+                kind: "INITIATIVE_EVIDENCE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                request: { max: number; min: number; requestId: string };
+              }
+            | {
+                actorId: string;
+                adjudicationFields: Array<
                   | {
-                      level: "DESCRIPTIVE";
-                      state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                      key: "actorSize";
+                      kind: "SELECT";
+                      label: string;
+                      options: Array<{ label: string; value: string }>;
+                      required: true;
                     }
-                  | { level: "BAR"; ratio: number }
-                  | { current: number; level: "EXACT"; maximum: number }
-                  | null;
-                id: string;
-                initiative: number | null;
-                kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                label: string;
-                manualOrder: number | null;
-                outOfInitiative: boolean;
-                public: boolean;
-                sourceId: string | null;
-                sourceRevision: number | null;
-              }>;
-              automationMode: "ASSISTED" | "MANUAL";
-              blueprintChecksum: string;
-              blueprintId: string;
-              blueprintVersion: number;
-              campaignId: string;
-              createdAt: string;
-              currentActorId: string | null;
-              gameSystemId: string;
-              id: string;
-              initiativePolicy?: {
-                cadence: "ENCOUNTER_START" | "EACH_ROUND";
-                definitionId: string;
-                label: string;
-                procedure:
-                  | "ACTOR_ROLL"
-                  | "ACTOR_SCORE"
-                  | "SIDE_ROLL"
-                  | "DECLARED_ACTION_ROLL";
-                tieResolverDefinitionId: string;
-                tieResolverLabel: string;
-              } | null;
-              name: string;
-              optionalCombatRules?: Array<{
-                definitionId: string;
-                kind:
-                  | "FLANKING"
-                  | "ALTERNATING_DIAGONALS"
-                  | "FACING"
-                  | "CLIMB_ONTO_LARGER_CREATURE"
-                  | "DISARM"
-                  | "MARK"
-                  | "OVERRUN"
-                  | "SHOVE_ASIDE"
-                  | "TUMBLE"
-                  | "HITTING_COVER"
-                  | "CLEAVING"
-                  | "INJURIES"
-                  | "MASSIVE_DAMAGE"
-                  | "MORALE";
-                label: string;
-              }>;
-              round: number;
-              status: "PREPARED" | "ACTIVE" | "COMPLETED";
-              updatedAt: string;
-              version: number;
-            }
-        >
+                  | {
+                      key: "actionFactors";
+                      kind: "MULTI_SELECT";
+                      label: string;
+                      maximumSelections: number;
+                      minimumSelections: number;
+                      options: Array<{ label: string; value: string }>;
+                    }
+                  | {
+                      key: "spellLevel";
+                      kind: "NULLABLE_INTEGER";
+                      label: string;
+                      maximum: number;
+                      minimum: number;
+                    }
+                >;
+                allowedResponses: Array<"INITIATIVE_DECLARATION">;
+                bonusOptions: Array<{
+                  kind:
+                    | "CHARACTER_ACTION"
+                    | "CHARACTER_SPELL_CAST"
+                    | "CREATURE_FEATURE_ACTION"
+                    | "GM_ADJUDICATED";
+                  label: string;
+                  optionId: string;
+                  selectionContract: string;
+                }>;
+                encounterVersion: number;
+                kind: "INITIATIVE_DECLARATION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                primaryOptions: Array<{
+                  kind:
+                    | "CHARACTER_ACTION"
+                    | "CHARACTER_SPELL_CAST"
+                    | "CREATURE_FEATURE_ACTION"
+                    | "GM_ADJUDICATED";
+                  label: string;
+                  optionId: string;
+                  selectionContract: string;
+                }>;
+                requestId: string;
+              }
+            | {
+                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                encounterVersion: number;
+                kind: "RECHARGE_EVIDENCE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                request: { max: 6; min: 1; requestId: string };
+                rollerActorId: string;
+              }
+            | {
+                allowedResponses: Array<"INITIATIVE_ENTITY">;
+                encounterVersion: number;
+                entityKind: "ACTOR" | "SIDE";
+                kind: "INITIATIVE_ORDER";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                optionIds: Array<string>;
+                requestId: string;
+              };
+        }>
       >;
     };
     runs: {
@@ -53036,6 +52974,12 @@ export declare const internal: {
               system: string | null;
             };
           };
+          io: {
+            bytesRead: number;
+            bytesWritten: number;
+            documentsRead: number;
+            documentsWritten: number;
+          };
           status: "COMMITTED" | "REPLAYED";
         }
       >;
@@ -53131,6 +53075,12 @@ export declare const internal: {
               preferences: string;
               system: string | null;
             };
+          };
+          io: {
+            bytesRead: number;
+            bytesWritten: number;
+            documentsRead: number;
+            documentsWritten: number;
           };
           status: "COMMITTED" | "REPLAYED";
         }

@@ -8,6 +8,7 @@ import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
@@ -30,11 +31,9 @@ const get = makeFunctionReference<
   { encounterId: string },
   EncounterGmProjectionDto | EncounterPlayerProjectionDto
 >('encounters/projectionReads:get')
-const active = makeFunctionReference<
-  'query',
-  { campaignId: string },
-  EncounterGmProjectionDto | EncounterPlayerProjectionDto | null
->('encounters/projectionReads:active')
+const active = makeFunctionReference<'query', { campaignId: string }, EncounterSessionStateDto>(
+  'encounters/activeReads:active'
+)
 const list = makeFunctionReference<'query', { campaignId: string }, EncounterSummaryDto[]>(
   'encounters/projectionReads:list'
 )
@@ -172,9 +171,14 @@ describe('native Encounter current Character conditions', () => {
           await ctx.db.patch(row._id, { ownerUserId: owner.userId })
         }
       })
-      await expect(owner.caller.query(get, { encounterId: run.id })).rejects.toThrow(
-        corruption === 'route owner' ? /assignment mismatch/ : corruption === 'Character' ? /build integrity mismatch/ : /checksum mismatch/
-      )
+      const message =
+        corruption === 'route owner'
+          ? /assignment mismatch/
+          : corruption === 'Character'
+            ? /build integrity mismatch/
+            : /checksum mismatch/
+      await expect(owner.caller.query(get, { encounterId: run.id })).rejects.toThrow(message)
+      await expect(owner.caller.query(active, { campaignId: campaign.id })).rejects.toThrow(message)
     },
     30_000
   )
@@ -271,10 +275,10 @@ describe('native Encounter current Character conditions', () => {
       visibleOverlay,
       secretOverlay
     ])
-    expect(ownerActive).toEqual(ownerGet)
+    expect(ownerActive.encounter).toEqual(ownerGet)
     expect(ownerList).toEqual([encounterSummaryOf(ownerGet)])
     expect(characterConditions(playerGet, actor.id)).toEqual([personal, visibleOverlay])
-    expect(playerActive).toEqual(playerGet)
+    expect(playerActive.encounter).toEqual(playerGet)
     expect(playerList).toEqual([encounterSummaryOf(playerGet)])
     expect(characterConditions(partyGet, actor.id)).toEqual([personal, visibleOverlay])
     expect(JSON.stringify(playerGet)).not.toContain('SECRET-CONDITION-NOTE')
@@ -315,7 +319,7 @@ describe('native Encounter current Character conditions', () => {
     for (const caller of [owner.caller, player.caller, party.caller]) {
       const detached = await caller.query(get, { encounterId: run.id })
       expect(characterConditions(detached, actor.id)).toEqual([])
-      expect(await caller.query(active, { campaignId: campaign.id })).toEqual(detached)
+      expect((await caller.query(active, { campaignId: campaign.id })).encounter).toEqual(detached)
       expect(await caller.query(list, { campaignId: campaign.id })).toEqual([
         encounterSummaryOf(detached)
       ])

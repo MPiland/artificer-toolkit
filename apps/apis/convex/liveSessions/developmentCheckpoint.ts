@@ -9,7 +9,7 @@ import {
   DEVELOPMENT_CHECKPOINT_ROLLBACK_MARKER,
   type DevelopmentCheckpointScope
 } from '@artificer-toolkit/schema/api/developmentCheckpoint'
-import { liveSessionCheckpointInputSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
 import {
   liveSessionCheckpointHistoryKeyFields,
@@ -226,7 +226,9 @@ export const prepare = untrackedInternalMutation({
       history: entries,
       scenes: []
     }
-    return liveSessionCheckpointInputSchema.parse({
+    // The fixture stands in for the room's deadline-alarm checkpoint.
+    return liveSessionCheckpointRequestSchema.parse({
+      reason: 'DEADLINE',
       campaignId: scope.campaignId,
       epoch: authority.epoch,
       checkpointId: crypto.randomUUID(),

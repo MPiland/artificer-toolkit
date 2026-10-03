@@ -10,6 +10,7 @@ import {
   type LiveSessionWebSocketClientMessageDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import type { LiveSessionCheckpointReason } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import type { LiveSessionTransientCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
@@ -86,6 +87,7 @@ import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { RoomCheckpoints } from './roomCheckpoints.js'
 import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
+import { meterFrame, meterStorage, ROOM_METER_PATH, RoomMeter } from './roomMeter.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
 import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
@@ -108,7 +110,8 @@ import {
   type AccountBucketKind
 } from './roomRateLimits.js'
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
-import { RoomCharacterSheetFeed } from './roomCharacterSheetFeed.js'
+import { RoomCharacterSheetFeed, type FeedScope } from './roomCharacterSheetFeed.js'
+import { RoomEncounterSessionFeed } from './roomEncounterSessionFeed.js'
 import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
 import {
   executeRoomEncounterCommand,
@@ -205,6 +208,7 @@ function viewer(value: Pick<Admission, 'role' | 'userId'>): SceneViewer {
 function send(socket: WebSocket, message: LiveSessionWebSocketServerMessageDto): void {
   if (socket.readyState !== WebSocket.OPEN) return
   socket.send(JSON.stringify(liveSessionWebSocketServerMessageDtoSchema.parse(message)))
+  meterFrame(socket, message.type)
 }
 
 /**
@@ -270,6 +274,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   readonly #fogUploads: RoomSceneFogUploads
   /** Held Character Sheets pushed to their owner and the GM (D73). */
   readonly #sheetFeed: RoomCharacterSheetFeed
+  /** The held Encounter session pushed to the sockets that subscribed to it. */
+  readonly #encounterFeed: RoomEncounterSessionFeed
   #postCommitQueued = false
   readonly #checkpoints: RoomCheckpoints
   #aggregateNeedsReload = false
@@ -305,6 +311,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   #cache: TransientCache | null = null
   #cacheGeneration = 0
   #presentationChanging = false
+  readonly #meter: RoomMeter
+  readonly #storage: DurableObjectStorage
   #commandChain: Promise<void> = Promise.resolve()
   #outboxFlush: Promise<void> | null = null
   #storageRecovery: Promise<void> | null = null
@@ -313,14 +321,30 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   constructor(ctx: DurableObjectState, env: SessionWorkerEnvironment) {
     super(ctx, env)
-    this.#journal = new DurableCommandJournal(ctx.storage)
-    this.#buckets = new RoomAccountBuckets(ctx.storage.sql)
-    this.#fogUploads = new RoomSceneFogUploads(ctx.storage.sql)
-    this.#roomStore = new RoomEncounterStore(ctx.storage, () => this.#queuePostCommit())
+    this.#meter = new RoomMeter()
+    // Sockets that survived hibernation are counted from this wake; later ones at their upgrade.
+    for (const socket of ctx.getWebSockets()) this.#meter.watch(socket)
+    const storage = meterStorage(ctx.storage, this.#meter)
+    this.#storage = storage
+    this.#journal = new DurableCommandJournal(storage)
+    this.#buckets = new RoomAccountBuckets(storage.sql)
+    this.#fogUploads = new RoomSceneFogUploads(storage.sql)
+    this.#roomStore = new RoomEncounterStore(storage, () => this.#queuePostCommit())
     this.#checkpoints = new RoomCheckpoints(
       this.#roomStore,
-      ctx.storage,
-      (input) => publishRoomCheckpoint(this.env, input),
+      storage,
+      async (input, reason) => {
+        const started = Date.now()
+        const published = await publishRoomCheckpoint(this.env, input, reason)
+        this.#meter.checkpoint({
+          reason,
+          payloadBytes: published.payloadBytes,
+          requests: published.requests,
+          wallMs: Date.now() - started,
+          io: published.response.io
+        })
+        return published.response
+      },
       (ack) => {
         this.#journal.acknowledgeCheckpointInTransaction({
           authorityEpoch: ack.epoch,
@@ -342,21 +366,23 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return loadRoomContentSnapshots(this.env, manifest, campaignId)
       }
     )
-    this.#sheetFeed = new RoomCharacterSheetFeed({
+    const feedDependencies = {
       store: this.#roomStore,
       inputs: this.#roomInputs,
-      authorize: (scope) => this.#authorizationBoundary(scope),
-      admission: (socket) => this.#liveAdmission(socket),
-      scope: (socket) => {
+      authorize: (scope: FeedScope) => this.#authorizationBoundary(scope),
+      admission: (socket: WebSocket) => this.#liveAdmission(socket),
+      scope: (socket: WebSocket) => {
         const value = attachment(socket)
         return value && this.#journal.readCurrent()?.authorityEpoch === value.authorityEpoch
           ? { authorityEpoch: value.authorityEpoch, campaignId: value.campaignId }
           : null
       },
       send
-    })
+    }
+    this.#sheetFeed = new RoomCharacterSheetFeed(feedDependencies)
+    this.#encounterFeed = new RoomEncounterSessionFeed(feedDependencies)
     ctx.blockConcurrencyWhile(async () => {
-      ctx.storage.sql.exec(`
+      storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS native_room_identity (
           id INTEGER PRIMARY KEY CHECK (id = 1),
           campaign_id TEXT NOT NULL
@@ -375,6 +401,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
+    this.#meter.request('HTTP')
+    // Reachable only through the development-guarded Worker route; production never forwards it.
+    if (request.method === 'GET' && url.pathname === ROOM_METER_PATH)
+      return Response.json(this.#meter.read())
     if (request.method === 'POST' && url.pathname === LIVE_SESSION_CONTROL_PATH) {
       const parsed = liveSessionControlInputSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)
@@ -432,7 +462,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (roomCampaignId && roomCampaignId !== claims.campaignId)
       return new Response('Live-session room identity does not match.', { status: 403 })
     if (!roomCampaignId)
-      this.ctx.storage.sql.exec(
+      this.#storage.sql.exec(
         'INSERT INTO native_room_identity (id, campaign_id) VALUES (1, ?)',
         claims.campaignId
       )
@@ -443,9 +473,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (this.ctx.getWebSockets().length >= ROOM_LIMITS.maxSocketsPerRoom)
       return new Response('Live-session room is full.', { status: 503 })
     const nowSeconds = Math.floor(Date.now() / 1_000)
-    this.ctx.storage.sql.exec('DELETE FROM used_tickets WHERE expires_at <= ?', nowSeconds)
+    this.#storage.sql.exec('DELETE FROM used_tickets WHERE expires_at <= ?', nowSeconds)
     try {
-      this.ctx.storage.sql.exec(
+      this.#storage.sql.exec(
         'INSERT INTO used_tickets (jti, expires_at) VALUES (?, ?)',
         claims.jti,
         claims.exp
@@ -468,6 +498,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       userId: claims.sub
     } satisfies SocketAttachment)
     this.ctx.acceptWebSocket(server, [claims.sub])
+    this.#meter.watch(server)
     await this.#scheduleAlarm()
     return new Response(null, {
       headers: { 'sec-websocket-protocol': 'artificer.live-session.v1' },
@@ -477,11 +508,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   async webSocketMessage(socket: WebSocket, rawMessage: string | ArrayBuffer): Promise<void> {
+    this.#meter.request('WEBSOCKET_MESSAGE')
+    this.#meter.watch(socket)
     if (typeof rawMessage !== 'string' || exceedsMessageBytes(rawMessage)) {
       this.#closeSocket(socket, 'Invalid live-session message.')
       return
     }
     const parsed = liveSessionWebSocketClientMessageDtoSchema.safeParse(this.#json(rawMessage))
+    this.#meter.message(parsed.success ? parsed.data.type : 'INVALID')
     let budget = this.#budgets.get(socket)
     if (!budget) {
       budget = new SocketMessageBudget()
@@ -516,6 +550,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (parsed.data.type === 'SUBSCRIBE_CHARACTER_SHEET') {
       // The push admits the socket: an unauthorized or unheld subscription is dropped there.
       this.#sheetFeed.subscribe(socket, parsed.data.characterId)
+      this.#queuePostCommit()
+      return
+    }
+    if (parsed.data.type === 'UNSUBSCRIBE_ENCOUNTER_SESSION') {
+      this.#encounterFeed.drop(socket)
+      return
+    }
+    if (parsed.data.type === 'SUBSCRIBE_ENCOUNTER_SESSION') {
+      this.#encounterFeed.subscribe(socket, parsed.data.timeline)
       this.#queuePostCommit()
       return
     }
@@ -554,7 +597,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           (this.#playerEncounterCommands.get(playerEncounter) ?? 0) + 1
         )
       const next = this.#commandChain
-        .then(() => this.#executeCommand(socket, work.admission, work.message))
+        .then(() =>
+          this.#meter.command(() => this.#executeCommand(socket, work.admission, work.message))
+        )
         .catch((error: unknown) =>
           error instanceof RoomRateLimitedError
             ? this.#rejectCommand(socket, commandId, 'RATE_LIMITED', error.message)
@@ -626,6 +671,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    * authority once the room has had no admitted socket for the idle window.
    */
   async alarm(): Promise<void> {
+    this.#meter.request('ALARM')
     if (await this.#recoverStorageIfNeeded()) {
       await this.#scheduleAlarm()
       return
@@ -640,7 +686,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#fogUploads.expire(now)
     try {
       const checkpointAt = this.#checkpointAt()
-      if (checkpointAt !== null && checkpointAt <= now) await this.#flushOutbox()
+      if (checkpointAt !== null && checkpointAt <= now) await this.#flushOutbox('DEADLINE')
       const releaseAt = this.#idleReleaseAt()
       const campaignId = this.#roomCampaignId()
       // A socket still inside its admission window may be a reconnect, so release waits for it.
@@ -662,9 +708,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    */
   async #refreshIdleRelease(leaving?: WebSocket): Promise<void> {
     if (this.#openSockets(leaving).some((socket) => attachment(socket)?.membershipEpoch))
-      this.ctx.storage.sql.exec('DELETE FROM room_idle_release WHERE id = 1')
+      this.#storage.sql.exec('DELETE FROM room_idle_release WHERE id = 1')
     else if (this.#journal.readCurrent()?.status === 'ACTIVE')
-      this.ctx.storage.sql.exec(
+      this.#storage.sql.exec(
         'INSERT OR IGNORE INTO room_idle_release (id, release_at) VALUES (1, ?)',
         Date.now() + ROOM_LIMITS.idleReleaseMs
       )
@@ -692,7 +738,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   #idleReleaseAt(): number | null {
     return (
-      this.ctx.storage.sql
+      this.#storage.sql
         .exec<{ release_at: number }>('SELECT release_at FROM room_idle_release WHERE id = 1')
         .toArray()[0]?.release_at ?? null
     )
@@ -742,8 +788,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#authenticating.set(socket, { accessToken, deadline, generation })
     try {
       if (await this.#recoverStorageIfNeeded(value.authorityEpoch)) return
+      this.#meter.epoch(value.authorityEpoch)
       // Reconnect reads the acknowledged product state after the room's pending prefix is saved.
-      await this.#flushOutbox()
+      await this.#flushOutbox('ADMISSION')
       const capture = await callLiveSessionRoute(this.env, accessToken, 'capture', {
         campaignId: value.campaignId,
         expectedRole: value.role,
@@ -829,6 +876,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (socket.readyState !== WebSocket.OPEN || this.#generations.get(socket) !== generation)
         return
       this.#admissions.set(socket, admitted)
+      this.#meter.admitted(
+        admitted.userId,
+        [...this.#admissions].filter(
+          ([open, member]) => member.userId === admitted.userId && open.readyState === WebSocket.OPEN
+        ).length
+      )
       const current = this.#liveAdmission(socket)
       if (
         current?.generation === admitted.generation &&
@@ -840,6 +893,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           type: 'TRANSIENT_READY'
         })
         this.#sendStateSync(socket, current)
+        this.#queuePostCommit()
         this.#publishInBackground()
         // A reconnect inside the idle window cancels the pending release.
         await this.#refreshIdleRelease()
@@ -905,7 +959,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         )
           throw new Error('Live Session publication state is inconsistent.')
         if (current.publishedSequence < bootstrap.persistedSequence) {
-          await this.#flushOutbox()
+          await this.#flushOutbox('ACTIVATION')
           current = this.#journal.readCurrent()
           if (!current || current.publishedSequence !== bootstrap.persistedSequence)
             throw new Error('Live Session checkpoint recovery is incomplete.')
@@ -928,7 +982,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           current.publishedChecksum !== bootstrap.persistedStateChecksum
         )
           throw new Error('Live Session publication checksum is inconsistent.')
-        await this.#flushOutbox()
+        await this.#flushOutbox('ACTIVATION')
         await this.#loadRoomAggregate(sceneId)
       })()
       this.#activation = work
@@ -1015,7 +1069,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         commitDurable: () => {
           this.#journal.discardFencedAuthorityInTransaction(epoch)
           this.#checkpoints.discardFencedCheckpointInTransaction()
-          this.ctx.storage.sql.exec('DELETE FROM room_idle_release')
+          this.#storage.sql.exec('DELETE FROM room_idle_release')
           return undefined
         }
       })
@@ -1183,7 +1237,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const command = sceneCommand.data
     if (this.#aggregateNeedsReload) {
       try {
-        await this.#flushOutbox()
+        await this.#flushOutbox('RELOAD')
         const candidates = this.ctx.getWebSockets().flatMap((candidateSocket) => {
           const candidate = this.#liveAdmission(candidateSocket)
           return candidate ? [{ admission: candidate, socket: candidateSocket }] : []
@@ -1494,7 +1548,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     let movementResponse = false
     if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') {
       try {
-        if (this.#aggregateNeedsReload) await this.#flushOutbox()
+        if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
         await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
         movementResponse =
           (await readRoomEncounterResponseRoute(this.#roomStore, command)) === 'MOVEMENT' &&
@@ -1535,7 +1589,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             prior.receipt.checkpointBeforeAcknowledgement &&
             prior.receipt.sequence > (this.#journal.readCurrent()?.publishedSequence ?? 0)
           )
-            await this.#checkpointThrough(value.authorityEpoch, prior.receipt.sequence)
+            await this.#checkpointThrough(
+              value.authorityEpoch,
+              prior.receipt.sequence,
+              'ACKNOWLEDGEMENT'
+            )
           await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
           const authorization = await this.#authorizationBoundary(value)
           if (
@@ -1612,7 +1670,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const commandId = command.command.commandId
     const fingerprint = checksumCanonicalJson(command)
     try {
-      if (this.#aggregateNeedsReload) await this.#flushOutbox()
+      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
       await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
       const current = this.#journal.readCurrent()
       if (
@@ -1901,7 +1959,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     try {
       const bucket = this.#bucket('TABLE', value, admission)
       if (!this.#buckets.admits(bucket)) throw new RoomRateLimitedError()
-      if (this.#aggregateNeedsReload) await this.#flushOutbox()
+      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
       await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
       const current = this.#journal.readCurrent()
       if (
@@ -2023,7 +2081,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         : null
     try {
       if (tableBucket && !this.#buckets.admits(tableBucket)) throw new RoomRateLimitedError()
-      if (this.#aggregateNeedsReload) await this.#flushOutbox()
+      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
       await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
       const current = this.#journal.readCurrent()
       if (
@@ -2146,7 +2204,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           this.#broadcastStateSync()
       }
       if (result.checkpointBeforeAcknowledgement)
-        await this.#checkpointThrough(value.authorityEpoch, current.sequence + 1)
+        await this.#checkpointThrough(value.authorityEpoch, current.sequence + 1, 'ACKNOWLEDGEMENT')
       const latest = await this.#authorizationBoundary(value)
       for (const recipientSocket of this.ctx.getWebSockets()) {
         const member = this.#liveAdmission(recipientSocket)
@@ -2334,7 +2392,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     /** Runs inside the durable commit, with the journal receipt. */
     onDurable?: () => void
   ): Promise<void> {
-    if (this.#aggregateNeedsReload) await this.#flushOutbox()
+    if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
     await this.#loadRoomAggregate(command.sceneId)
     const cache = this.#cache?.synchronized ? this.#cache : null
     const current = this.#journal.readCurrent()
@@ -2448,7 +2506,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     command: StagedSceneCommand,
     fingerprint: string
   ) {
-    if (this.#aggregateNeedsReload) await this.#flushOutbox()
+    if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
     await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
     const context = this.#stagedSceneContext()
     if (!context) throw new LiveSessionRouteError(409)
@@ -2663,7 +2721,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const sceneId = synchronized.scene.id
     const { presentation } = synchronized
     try {
-      if (this.#aggregateNeedsReload) await this.#flushOutbox()
+      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
       await this.#loadRoomAggregate(sceneId)
       const current = this.#journal.readCurrent()
       if (!current || current.authorityEpoch !== value.authorityEpoch)
@@ -2863,7 +2921,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    * After every committed room transaction and each authorization reload: reconciles the departures
    * Convex leaves to the room for the Runs it holds (D74), so a Run hydrated later is corrected
    * before any checkpoint carries it, then pushes the subscribed Sheets whose play stream version
-   * changed (D73). It queues behind the running command, so the command's own receipt reaches its
+   * changed (D73) and the Encounter sessions whose frame changed. It queues behind the running command, so the command's own receipt reaches its
    * sender first. A failed step is logged and retried by the next trigger; the chain stays alive.
    */
   #queuePostCommit(): void {
@@ -2878,13 +2936,24 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       } catch (error) {
         console.error('Live Session actor reconcile failed.', error)
       }
+      if (this.#sheetFeed.size === 0 && this.#encounterFeed.size === 0) return
       try {
-        if (this.#sheetFeed.size === 0) return
-        if (this.#aggregateNeedsReload) await this.#flushOutbox()
+        if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
         await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
+      } catch (error) {
+        // Without the held aggregate a push would misreport what the room holds.
+        console.error('Live Session push aggregate load failed.', error)
+        return
+      }
+      try {
         await this.#sheetFeed.push()
       } catch (error) {
         console.error('Live Session Sheet push failed.', error)
+      }
+      try {
+        await this.#encounterFeed.push()
+      } catch (error) {
+        console.error('Live Session Encounter session push failed.', error)
       }
     })
   }
@@ -2899,7 +2968,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   ): Promise<void> {
     const authorization = this.#authorization.current(current.authorityEpoch)
     if (!authorization) return
-    if (this.#aggregateNeedsReload) await this.#flushOutbox()
+    if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
     const departures = await readRoomActorDepartures(
       this.#roomStore,
       this.#roomInputs,
@@ -2962,7 +3031,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
     )
     if (checkpointBeforeAcknowledgement) {
-      await this.#checkpointThrough(current.authorityEpoch, sequence)
+      await this.#checkpointThrough(current.authorityEpoch, sequence, 'ACKNOWLEDGEMENT')
       // A removed actor drops its token binding and controls, which a `delta: null` receipt does
       // not carry: cached play and Scene go, and members resume from the committed state.
       this.#bumpCacheGeneration()
@@ -3091,12 +3160,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   /** Admissions and drains retry a retained checkpoint; commands use the deadline alarm. */
   #publishInBackground(): void {
-    this.ctx.waitUntil(this.#flushOutbox().catch(() => undefined))
+    this.ctx.waitUntil(this.#flushOutbox('ADMISSION').catch(() => undefined))
   }
 
-  #flushOutbox(): Promise<void> {
+  /** `reason` is the trigger a checkpoint this flush sends is attributed to; see `RoomMeter`. */
+  #flushOutbox(reason: LiveSessionCheckpointReason): Promise<void> {
     if (this.#outboxFlush) return this.#outboxFlush
-    const work = this.#publishPending()
+    const work = this.#publishPending(reason)
     this.#outboxFlush = work
     void work.then(
       () => {
@@ -3110,7 +3180,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /** An older in-flight prefix cannot satisfy a later lifecycle command's acknowledgement fence. */
-  async #checkpointThrough(epoch: string, sequence: number): Promise<void> {
+  async #checkpointThrough(
+    epoch: string,
+    sequence: number,
+    reason: LiveSessionCheckpointReason
+  ): Promise<void> {
     if (this.#outboxFlush) await this.#outboxFlush
     let previous = -1
     for (;;) {
@@ -3121,11 +3195,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (head.publishedSequence === previous)
         throw new Error('The lifecycle checkpoint made no progress.')
       previous = head.publishedSequence
-      await this.#flushOutbox()
+      await this.#flushOutbox(reason)
     }
   }
 
-  async #publishPending(): Promise<void> {
+  async #publishPending(reason: LiveSessionCheckpointReason): Promise<void> {
     const current = this.#journal.readCurrent()
     const campaignId = this.#roomCampaignId()
     if (!current || !campaignId || current.status === 'RELEASED') return
@@ -3145,11 +3219,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       sequence: current.sequence,
       checksum: current.stateChecksum
     })
-    const response = await this.#checkpoints.flush({
-      campaignId,
-      epoch: current.authorityEpoch,
-      knownAuthorization: this.#authorization.current(current.authorityEpoch)?.revisions ?? null
-    })
+    const response = await this.#checkpoints.flush(
+      {
+        campaignId,
+        epoch: current.authorityEpoch,
+        knownAuthorization: this.#authorization.current(current.authorityEpoch)?.revisions ?? null
+      },
+      reason
+    )
     if (response) {
       const head = this.#journal.readCurrent()
       if (head && head.sequence === head.publishedSequence)
@@ -3672,7 +3749,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   /** The Campaign this room is bound to by its first admitted ticket, if any. */
   #roomCampaignId(): string | null {
     return (
-      this.ctx.storage.sql
+      this.#storage.sql
         .exec<NativeRoomIdentityRow>('SELECT campaign_id FROM native_room_identity WHERE id = 1')
         .toArray()[0]?.campaign_id ?? null
     )
@@ -3715,6 +3792,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#admissions.delete(socket)
     this.#authenticating.delete(socket)
     this.#sheetFeed.drop(socket)
+    this.#encounterFeed.drop(socket)
     return generation
   }
 
@@ -3756,7 +3834,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#bumpCacheGeneration()
     this.#movementIndexes.clear()
     try {
-      await this.#flushOutbox()
+      await this.#flushOutbox('PRESENTATION')
       const current = this.#journal.readCurrent()
       if (
         current &&
@@ -3816,18 +3894,19 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     } catch (error) {
       drainError = error
     }
-    await this.#checkpointThrough(fence.authorityEpoch, fence.finalSequence)
+    await this.#checkpointThrough(fence.authorityEpoch, fence.finalSequence, 'DRAIN')
     try {
       await callLiveSessionRoute(this.env, null, 'release', input)
     } catch (error) {
       throw drainError ?? error
     }
     this.#journal.release(fence)
+    this.#meter.release()
     this.#buckets.clear()
     this.#fogUploads.clear()
     // The next admitted socket bootstraps a fresh epoch over the released journal.
     this.#activation = null
-    this.ctx.storage.sql.exec('DELETE FROM room_idle_release WHERE id = 1')
+    this.#storage.sql.exec('DELETE FROM room_idle_release WHERE id = 1')
     return closed
   }
 

@@ -496,6 +496,34 @@ describe('live-session contracts', () => {
     ).toBe(false)
   })
 
+  it('subscribes to the room Encounter session and pushes only a strict frame', () => {
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse({
+        timeline: true,
+        type: 'SUBSCRIBE_ENCOUNTER_SESSION'
+      })
+    ).toEqual({ timeline: true, type: 'SUBSCRIBE_ENCOUNTER_SESSION' })
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({ type: 'SUBSCRIBE_ENCOUNTER_SESSION' })
+        .success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse({ type: 'UNSUBSCRIBE_ENCOUNTER_SESSION' })
+    ).toEqual({ type: 'UNSUBSCRIBE_ENCOUNTER_SESSION' })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        session: { held: false },
+        type: 'ENCOUNTER_SESSION'
+      })
+    ).toEqual({ session: { held: false }, type: 'ENCOUNTER_SESSION' })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.safeParse({
+        session: { held: true, version: 3 },
+        type: 'ENCOUNTER_SESSION'
+      }).success
+    ).toBe(false)
+  })
+
   it('preserves existing authentication and transient server messages', () => {
     expect(
       liveSessionWebSocketServerMessageDtoSchema.parse({ type: 'AUTHENTICATION_REQUIRED' })

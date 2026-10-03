@@ -8,13 +8,13 @@ import type { RoomEncounterStore } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 import { admitsRoomMember } from './roomAuthorization.js'
 
-interface FeedMember {
+export interface FeedMember {
   membershipEpoch: string
   role: 'OWNER' | 'PLAYER'
   userId: string
 }
 
-interface FeedScope {
+export interface FeedScope {
   authorityEpoch: string
   campaignId: string
 }

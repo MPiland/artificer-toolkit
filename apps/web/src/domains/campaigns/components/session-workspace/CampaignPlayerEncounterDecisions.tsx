@@ -1,36 +1,46 @@
 import { Badge, Group, Stack, Text, Title } from '@mantine/core'
 import { convexQuery } from '@convex-dev/react-query'
 import { useQuery } from '@tanstack/react-query'
-import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import {
   encounterPlayerProjectionDtoSchema,
-  encounterProjectionListDtoSchema,
   type EncounterPlayerProjectionDto,
-  type EncounterSummaryDto
+  type EncounterSummaryDto,
+  type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { getCampaignEncounters } from '#app/data/encounters/queries'
+import { encounterPreparedPendingListDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { CampaignEncounterDecision } from '../CampaignEncounterDecision'
 import { useCampaignLiveSession } from '../../vtt/useCampaignLiveSession'
 import * as styles from '../../campaignSessions.css'
 
 export function CampaignPlayerEncounterDecisions({ campaign }: { campaign: CampaignDetailDto }) {
-  const convex = useConvex()
-  const encounters = useQuery(getCampaignEncounters(campaign.id, convex))
-  const pendingPrepared = useQuery({
-    ...convexQuery(convexApi.encounters.projectionReads.pendingPrepared, {
-      campaignId: campaign.id
-    }),
-    select: encounterProjectionListDtoSchema.parse
+  const encounters = useQuery(getCampaignEncounters(campaign.id))
+  const live = useCampaignLiveSession({
+    campaignId: campaign.id,
+    enabled: campaign.status === 'ACTIVE',
+    encounterSession: { timeline: false }
   })
+  const room = live.encounterSession
+  const storedPendingPrepared = useQuery({
+    ...convexQuery(
+      convexApi.encounters.projectionReads.pendingPrepared,
+      room ? 'skip' : { campaignId: campaign.id }
+    ),
+    select: encounterPreparedPendingListDtoSchema.parse
+  })
+  const pendingPrepared = room ? room.preparedPending : storedPendingPrepared.data
   const visibleById = new Map<
     string,
     Pick<EncounterSummaryDto, 'id' | 'name' | 'round' | 'status'>
   >((encounters.data ?? []).map((summary) => [summary.id, summary]))
-  const pendingPreparedById = new Map<string, EncounterPlayerProjectionDto>()
-  for (const candidate of pendingPrepared.data ?? []) {
-    const parsed = encounterPlayerProjectionDtoSchema.safeParse(candidate)
+  const pendingPreparedById = new Map<
+    string,
+    { encounter: EncounterPlayerProjectionDto; pending: PendingEncounterRuleOccurrenceSummaryDto }
+  >()
+  for (const candidate of pendingPrepared ?? []) {
+    const parsed = encounterPlayerProjectionDtoSchema.safeParse(candidate.encounter)
     if (
       !parsed.success ||
       parsed.data.status !== 'PREPARED' ||
@@ -38,13 +48,9 @@ export function CampaignPlayerEncounterDecisions({ campaign }: { campaign: Campa
     )
       continue
     visibleById.set(parsed.data.id, parsed.data)
-    pendingPreparedById.set(parsed.data.id, parsed.data)
+    pendingPreparedById.set(parsed.data.id, { encounter: parsed.data, pending: candidate.pending })
   }
   const visible = [...visibleById.values()]
-  const live = useCampaignLiveSession({
-    campaignId: campaign.id,
-    enabled: campaign.status === 'ACTIVE' && pendingPreparedById.size > 0
-  })
 
   return (
     <section className={styles.sessionEncounterPanel} aria-labelledby='session-player-encounters'>
@@ -69,10 +75,10 @@ export function CampaignPlayerEncounterDecisions({ campaign }: { campaign: Campa
               </Badge>
               {pendingProjection ? (
                 <CampaignEncounterDecision
-                  campaignId={campaign.id}
                   canVoid={false}
                   connected={live.commandReady}
-                  encounter={pendingProjection}
+                  encounter={pendingProjection.encounter}
+                  pending={pendingProjection.pending}
                   sendCommand={live.sendEncounterCommand}
                 />
               ) : null}

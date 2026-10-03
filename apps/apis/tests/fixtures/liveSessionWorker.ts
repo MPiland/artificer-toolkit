@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { characterSheetCommandResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessionCommands'
+import type { EncounterSessionFrameDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import {
@@ -65,6 +66,7 @@ import {
   readRoomActorDepartures,
   reconcileRoomActorDepartures
 } from '../../../session-worker/src/roomActorReconcile'
+import { RoomEncounterSessionFeed } from '../../../session-worker/src/roomEncounterSessionFeed'
 import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
 import { RoomInputs } from '../../../session-worker/src/roomInputs'
 import { RoomCheckpoints } from '../../../session-worker/src/roomCheckpoints'
@@ -295,9 +297,9 @@ async function openRoom(
     hydrate: () =>
       inputs.hydrate({ epoch, encounterId, sceneId: read.sceneId, checkpoint: read.checkpoint }),
     flush: () =>
-      new RoomCheckpoints(store, storage, (checkpoint) =>
-        caller.mutation(internal.liveSessions.checkpoint.publish, checkpoint)
-      ).flush({ campaignId, epoch, knownAuthorization: null }),
+      new RoomCheckpoints(store, storage, (checkpoint, reason) =>
+        caller.mutation(internal.liveSessions.checkpoint.publish, { ...checkpoint, reason })
+      ).flush({ campaignId, epoch, knownAuthorization: null }, 'DEADLINE'),
     close: () => database.close()
   }
 }
@@ -726,6 +728,50 @@ export function reconcileDeparturesInRoom(caller: MemberCaller, encounterId: str
 }
 
 /**
+ * The Encounter session frame a fresh room pushes the caller after it subscribes (see
+ * `RoomEncounterSessionFeed`): the room hydrated at the Run's persisted checkpoint, as a socket
+ * admitted as the caller would see it. `held` is false when hydration leaves the room no open Run.
+ */
+export function readEncounterSessionInRoom(
+  caller: MemberCaller,
+  encounterId: string,
+  options: { timeline: boolean }
+) {
+  return asRoomMember(caller, encounterId, async (actor) => {
+    const room = await openRoom(caller, actor, encounterId.toLowerCase())
+    try {
+      const member = room.authorization.campaign.members.find(
+        (entry) => entry.userId === actor.expectedUserId
+      )
+      if (!member) throw new Error('The caller is not a Campaign member.')
+      const socket: WebSocket = Object.create(WebSocket.prototype)
+      const scope = { authorityEpoch: actor.authorityEpoch, campaignId: actor.campaignId }
+      const frames: EncounterSessionFrameDto[] = []
+      const feed = new RoomEncounterSessionFeed({
+        store: room.store,
+        inputs: room.inputs,
+        authorize: async () => room.authorization,
+        admission: () => member,
+        scope: () => scope,
+        send: (_socket, message) => {
+          if (message.type === 'ENCOUNTER_SESSION') frames.push(message.session)
+        }
+      })
+      await withoutHttp(async () => {
+        await room.hydrate()
+        feed.subscribe(socket, options.timeline)
+        await feed.push()
+      })
+      const [frame] = frames
+      if (!frame) throw new Error('The room pushed no Encounter session.')
+      return frame
+    } finally {
+      room.close()
+    }
+  })
+}
+
+/**
  * Retries a settled command as a lost acknowledgement's retry reaches the room: a fresh room
  * hydrated from the Encounter documents must return the stored result without rolling.
  */
@@ -774,11 +820,7 @@ async function sceneEncounterId(caller: Pick<MemberCaller, 'run'>, sceneId: stri
  * later does; until then Convex has not seen the commit, so a test can inspect it in between. Dice
  * come from `nextRollInt`, so a test's spy on it drives them.
  */
-async function planInRoom(
-  caller: MemberCaller,
-  encounterId: string,
-  command: StagedSceneCommand
-) {
+async function planInRoom(caller: MemberCaller, encounterId: string, command: StagedSceneCommand) {
   const planned = await queueRoomWork(async () => {
     const member = await enterRoom(caller, { encounterId })
     try {
