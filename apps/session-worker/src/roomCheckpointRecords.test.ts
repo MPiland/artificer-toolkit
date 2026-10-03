@@ -714,13 +714,8 @@ describe('room checkpoint records', () => {
     }
   )
 
-  it('omits clock-only Character play writes and checkpoints actual play changes without that clock', () => {
+  it('checkpoints Character play changes with the room play clock', () => {
     const document = characterPlay()
-    expect(build([document], [[patch(document.id, { streamVersion: 8 })]])).toEqual({
-      changes: [],
-      history: [],
-      scenes: []
-    })
     const state = {
       hitpoints: { current: 7, hitDice: [] },
       equipped: [],
@@ -729,11 +724,11 @@ describe('room checkpoint records', () => {
       partyVisibility: { sheet: false, health: 'HIDDEN' }
     }
     const result = build([document], [[patch(document.id, { streamVersion: 9, state })]])
-    const { streamVersion, ...before } = document.fields
-    expect(streamVersion).toBe(7)
-    const normalizedBefore = canonicalJsonRecordSchema.parse(before)
+    expect(document.fields.streamVersion).toBe(7)
+    const normalizedBefore = canonicalJsonRecordSchema.parse(document.fields)
     const normalizedAfter = canonicalJsonRecordSchema.parse({
-      ...before,
+      ...document.fields,
+      streamVersion: 9,
       state
     })
     expect(result.changes).toHaveLength(1)
@@ -742,7 +737,6 @@ describe('room checkpoint records', () => {
     expect(change.previousChecksum).toBe(checksumCanonicalJson(normalizedBefore))
     expect(change.nextChecksum).toBe(checksumCanonicalJson(normalizedAfter))
     expect(applyJsonDelta(normalizedBefore, change.delta!)).toEqual(normalizedAfter)
-    expect(JSON.stringify(change)).not.toContain('streamVersion')
   })
 
   it('packs immutable evidence in commit/write order, decoding JSON and hashing full rows', () => {
@@ -977,10 +971,14 @@ describe('room checkpoint records', () => {
         fromChecksum: snapshot.checksum,
         entries
       })
-      const { streamVersion, ...base } = fetched.fields
-      expect(streamVersion).toBe(7)
-      const before = canonicalJsonRecordSchema.parse(base)
-      const after = canonicalJsonRecordSchema.parse({ ...base, state: nextState })
+      // The delta carries the room's play clock.
+      expect(fetched.fields.streamVersion).toBe(7)
+      const before = canonicalJsonRecordSchema.parse(fetched.fields)
+      const after = canonicalJsonRecordSchema.parse({
+        ...fetched.fields,
+        streamVersion: 8,
+        state: nextState
+      })
       expect(result.changes).toHaveLength(1)
       const change = result.changes[0]!
       expect(change).toMatchObject({ table: 'characterPlayStates', key: [uuid(3)] })
@@ -991,6 +989,26 @@ describe('room checkpoint records', () => {
     } finally {
       database.close()
     }
+  })
+
+  it('folds several play commits between checkpoints into one delta that carries the room play clock', () => {
+    const play = characterPlay()
+    const result = build(
+      [play],
+      [
+        [patch(play.id, { streamVersion: 8, updatedAt: '2026-01-02T00:00:00.000Z' })],
+        [patch(play.id, { streamVersion: 9, updatedAt: '2026-01-03T00:00:00.000Z' })]
+      ]
+    )
+    const before = canonicalJsonRecordSchema.parse(play.fields)
+    const after = canonicalJsonRecordSchema.parse({
+      ...play.fields,
+      streamVersion: 9,
+      updatedAt: '2026-01-03T00:00:00.000Z'
+    })
+    expect(result.changes).toHaveLength(1)
+    expect(applyJsonDelta(before, result.changes[0]!.delta!)).toEqual(after)
+    expect(result.changes[0]!.nextChecksum).toBe(checksumCanonicalJson(after))
   })
 
   it('uses the actual checksum-verified snapshot and committed room journal', async () => {

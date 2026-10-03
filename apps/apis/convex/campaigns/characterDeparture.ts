@@ -21,7 +21,8 @@ import { encounterWriteTransaction } from '../encounters/encounterPorts'
  * D81: each listed Character no longer assigned to the Campaign loses what the Campaign put on its
  * play: the effects its Runs applied, slots and maximums its settings or adjustments granted. A
  * room-held Run keeps its maintained states for the room to settle. Called once Convex owns the
- * Character's play: at departure, or when the room's hold on it drops.
+ * Character's play: at departure, or when the room's hold on it drops. A deleted Character is
+ * skipped: account deletion ends its effects and unheld maintained states before removing it.
  */
 export async function settleDepartedCharacters(
   ctx: MutationCtx,
@@ -34,6 +35,8 @@ export async function settleDepartedCharacters(
       .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
       .unique()
     if (assignment?.campaignId === campaignId) continue
+    // Account deletion already removed the Character's effects with it.
+    if (!(await readCharacterRow(ctx, characterId))) continue
     await endCharacterRunEffects(encounterWriteTransaction(ctx), {
       characterId,
       classifyRun: async (encounterId) => {

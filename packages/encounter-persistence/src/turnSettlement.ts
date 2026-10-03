@@ -4,7 +4,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { hydrateStagedState } from '@artificer-toolkit/rules-runtime/encounterInitiativeStaging'
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
-import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
 import { readRunActors } from './documents.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
@@ -84,7 +84,7 @@ export async function readNativeTurnSettlement(input: {
       !isSettledEncounterInitiativeAdvance({
         state: original,
         currentActorId: state.currentActorId,
-        defeatedActorIds: defeatedEncounterActorIds(durableActors),
+        defeatedActorIds: skippedEncounterActorIds(durableActors),
         plan: root.initiativeAdvance
       })
     )

@@ -17,9 +17,7 @@ import type {
 } from '@artificer-toolkit/shared/subjects/authored'
 import {
   clampCharacterCurrentHitPoints,
-  createCharacterResourceOwnerKey,
-  createCharacterSpellSourceKey,
-  toCharacterResourceOwnerKey
+  createCharacterSpellSourceKey
 } from '@artificer-toolkit/shared/character'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
@@ -27,10 +25,14 @@ import {
   CharacterSheetCommandError,
   summarizeCharacterSheetCommand
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
-import { getProspectiveSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentCommands'
+import {
+  getProspectiveSheetAdjustments,
+  pruneSheetAdjustments
+} from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentCommands'
 import {
   getProspectiveSheetResourceUsage,
-  getSheetCommandResourceUsageUpdate
+  getSheetCommandResourceUsageUpdate,
+  pruneSheetResourceUsage
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
 import {
   activeEffectEndsOnRest,
@@ -327,14 +329,6 @@ export async function executeCharacterSheetCommand(
           sheet: initial.sheet
         })
       : undefined
-  const recoveredResourceIds = new Set(completedRest?.allRecoveredResourceIds)
-  const recoveredResourceOwnerKeys = new Set(
-    initial.sheet.resources.items
-      .filter((resource) => recoveredResourceIds.has(resource.id))
-      .map((resource) =>
-        createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(resource.owner))
-      )
-  )
   if (command.type === 'UPDATE_INVENTORY_ITEM' && command.quantity !== undefined) {
     const held = initial.character.state.equipment.inventory.find(
       (item) => item.id === command.itemId
@@ -398,17 +392,17 @@ export async function executeCharacterSheetCommand(
   }
   const nextSheetState = characterSheetStateSchema.parse({
     spellCustomizations,
-    adjustments: getProspectiveSheetAdjustments({
-      adjustments: initial.sheetState.adjustments,
-      characterId: initial.active.id,
-      command,
-      userId,
-      now: occurredAt
-    }).filter(
-      (adjustment) =>
-        adjustment.id !== rest?.resetMaximumModifierId &&
-        (adjustment.family !== 'ITEM' || adjustment.itemInstanceId !== removedItemId)
-    ),
+    adjustments: pruneSheetAdjustments({
+      adjustments: getProspectiveSheetAdjustments({
+        adjustments: initial.sheetState.adjustments,
+        characterId: initial.active.id,
+        command,
+        userId,
+        now: occurredAt
+      }),
+      resetMaximumModifierId: rest?.resetMaximumModifierId,
+      removedItemId
+    }),
     movementDisplayPreference:
       command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE'
         ? command.preference
@@ -417,19 +411,19 @@ export async function executeCharacterSheetCommand(
       command.type === 'SET_PARTY_VISIBILITY'
         ? command.visibility
         : initial.sheetState.partyVisibility,
-    resourceUsage: getProspectiveSheetResourceUsage({
-      resourceUsage: initial.sheetState.resourceUsage,
-      resourceUsageUpdate,
-      characterId: initial.active.id,
-      userId,
-      now: occurredAt
-    }).filter(
-      (usage) =>
-        !recoveredResourceOwnerKeys.has(createCharacterResourceOwnerKey(usage.owner)) &&
-        (usage.owner.kind !== 'ITEM_INSTANCE' || usage.owner.itemInstanceId !== removedItemId) &&
-        (usage.owner.kind !== 'COMPANION_FEATURE' ||
-          usage.owner.companionInstanceId !== removedCompanionId)
-    )
+    resourceUsage: pruneSheetResourceUsage({
+      resourceUsage: getProspectiveSheetResourceUsage({
+        resourceUsage: initial.sheetState.resourceUsage,
+        resourceUsageUpdate,
+        characterId: initial.active.id,
+        userId,
+        now: occurredAt
+      }),
+      resources: initial.sheet.resources.items,
+      recoveredResourceIds: new Set(completedRest?.allRecoveredResourceIds),
+      removedItemId,
+      removedCompanionId
+    })
   })
   const sheetStateChanged =
     canonicalizeRuleDocument(JSON.parse(JSON.stringify(nextSheetState))) !==

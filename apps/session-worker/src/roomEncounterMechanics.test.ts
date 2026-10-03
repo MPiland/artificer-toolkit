@@ -104,6 +104,7 @@ it('settles Character and Creature mechanics from native play with private recei
     kind: 'CHARACTER',
     sourceId: owner.id,
     frozenState: null,
+    outOfInitiative: false,
     stableTieKey: uuid(0xb04)
   })
   const creatureActor = encounterRunActorStateSchema.parse({

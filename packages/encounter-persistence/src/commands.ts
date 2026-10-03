@@ -362,6 +362,12 @@ async function recordEncounterToolCommand(
         input.conditions !== undefined)
     )
       throw new Error('Character HP must be changed through its Sheet command.')
+    if (
+      input.type === 'UPDATE_ACTOR' &&
+      input.returnToInitiative &&
+      (actor.kind !== 'CHARACTER' || !actor.outOfInitiative)
+    )
+      throw new Error('Only a Character out of initiative can return to initiative.')
     if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
       if (actor.kind !== 'CHARACTER')
         throw new Error('Sheet command does not target this Character actor.')
@@ -426,6 +432,7 @@ async function recordEncounterToolCommand(
               : { controllerUserIds: input.controllerUserIds }),
             ...(input.disposition === undefined ? {} : { disposition: input.disposition }),
             ...(input.healthDisplay === undefined ? {} : { healthDisplay: input.healthDisplay }),
+            ...(input.returnToInitiative ? { outOfInitiative: false } : {}),
             ...(input.sideId === undefined ? {} : { sideId: input.sideId }),
             updatedAt
           }

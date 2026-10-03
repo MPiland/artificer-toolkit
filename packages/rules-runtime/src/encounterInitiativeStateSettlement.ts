@@ -199,9 +199,9 @@ function orderedInitiativeSides(state: EncounterInitiativeRoundStateDto): string
 }
 
 /**
- * Plans the next turn. Defeated actors (D63) keep their initiative place, but their turns are
- * skipped: the next turn goes to the next actor that isn't defeated, wrapping the round when none
- * remains after the current one.
+ * Plans the next turn. Skipped actors (`defeatedActorIds`: defeated D63, or a Character out of
+ * initiative D82) keep their initiative place, but their turns are skipped: the next turn goes to
+ * the next actor that isn't skipped, wrapping the round when none remains after the current one.
  */
 export function planEncounterInitiativeAdvance(input: {
   state: EncounterInitiativeRoundStateDto

@@ -304,7 +304,6 @@ it.each([
           expect(readCharacterRecord(staged.inputs.owner).state.hitpoints.current).toBe(
             expectedHitPoints
           )
-          expect(inputs.characterBuilderSnapshot(owner.id)?.label).toBe('Initial Builder')
           throw new Error('Parent command refused.')
         })
       ).rejects.toThrow('Parent command refused.')

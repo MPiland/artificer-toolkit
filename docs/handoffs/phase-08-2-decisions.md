@@ -548,7 +548,26 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     release). The room ignores maintained-effect dependents whose Character owner is no longer
     assigned to the Campaign; Convex ends them. A checkpoint accepts writes for an unassigned
     Character this epoch still holds.
-  - **Known gap (pre-existing):** an assigned non-actor Character that owns dependents is not held.
+  - **Scope:** D81 covers leaving the Campaign only. Leaving a Run is D82.
+- **D82 (2026-10-02): leaving a Run never changes the Character, and the room holds it until the
+  Run ends. Decided by the product owner on 2026-10-02.**
+  - **Why a GM removes a Character mid-Run:** it flees or is carried off, its player leaves the
+    session, or it was added by mistake. None of these ends what the fight did to it.
+  - **Rule:** a GM removal takes the Character out of initiative (it takes no turns) but keeps its
+    actor in the Run, so the room keeps holding it and its Sheet play stays in the room. Effects the
+    Run applied run their course on Encounter time (rounds); a session paused for the night pauses
+    them too. The hold is released when the Run completes, as before.
+  - **Mechanism (CURRENT):** a Character Run actor carries `outOfInitiative`. REMOVE_ACTOR on an
+    unfrozen Character of an ACTIVE Run sets it instead of deleting the actor; the initiative
+    participant rows stay (the actor/participant invariant holds) and turn advancement skips the actor
+    through the same skip set as D63 defeat (`skippedEncounterActorIds`). The GM returns it with
+    `UPDATE_ACTOR` `returnToInitiative`, into its old slot. A pending decision refuses the removal.
+    Frozen (departed) Characters and PREPARED Runs still delete the actor. Persisted shape: new required
+    `outOfInitiative` on Character run actors and their projection facts, so dev data needs a reseed.
+  - **Not D82:** account deletion removes the actor (D74) and leaving the Campaign freezes it; both
+    end Campaign-owned state by D81.
+  - **Why held:** a released Character could change in Convex while room-owned effects still write
+    it, so the room would write from a stale base and its checkpoint would be refused.
 - **D80 (2026-10-02): the open queue becomes ten vertical slices. Re-slicing approved by the
   user on 2026-10-02; the cut by Claude (integration owner).**
   - **Rule:** each slice (stream `VS` in the [work-slice registry](../roadmap/08-2-work-slices.json))

@@ -23,7 +23,8 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
       maxHitPoints: true,
       tempHitPoints: true,
       conditions: true,
-      defeated: true
+      defeated: true,
+      outOfInitiative: true
     }),
     {
       sideId: postgresUuidSchema,
@@ -71,7 +72,8 @@ export const encounterRunActorStateSchema = lazySchema(() =>
     z.extend(encounterRunActorStateBaseSchema, {
       kind: z.literal('CHARACTER'),
       sourceId: postgresUuidSchema,
-      frozenState: encounterCharacterFrozenStateSchema
+      frozenState: encounterCharacterFrozenStateSchema,
+      outOfInitiative: z.boolean()
     }),
     z.extend(encounterRunActorStateBaseSchema, {
       kind: z.enum(['CREATURE', 'CUSTOM']),
@@ -102,7 +104,8 @@ export const encounterActorProjectionFactsSchema = lazySchema(() =>
     z.extend(encounterActorProjectionFactsBaseSchema, {
       kind: z.literal('CHARACTER'),
       sourceId: postgresUuidSchema,
-      frozenState: encounterCharacterFrozenStateSchema
+      frozenState: encounterCharacterFrozenStateSchema,
+      outOfInitiative: z.boolean()
     }),
     z.extend(encounterActorProjectionFactsBaseSchema, {
       kind: z.enum(['CREATURE', 'CUSTOM']),

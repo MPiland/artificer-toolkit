@@ -1,4 +1,7 @@
-import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
@@ -39,6 +42,9 @@ import {
   replayInRoom,
   RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { definition, descriptor, lifecycle } from '../../tests/fixtures/maintainedEffects'
+import { readFightingCharacters } from '../liveSessions/characterHolds'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 
@@ -78,7 +84,10 @@ async function setup(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
   let initiativePolicyDefinitionId: string | null = null
   if (mode !== 'MANUAL') {
     const { definitions, policyIds } = createEncounterInitiativeDefinitions([
-      { cadence: 'ENCOUNTER_START', procedure: mode === 'AUTO_ROLL' ? 'SIDE_ROLL' : 'ACTOR_ROLL' }
+      {
+        cadence: 'ENCOUNTER_START',
+        procedure: mode === 'AUTO_ROLL' ? 'SIDE_ROLL' : 'ACTOR_ROLL'
+      }
     ])
     await base.t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -90,7 +99,9 @@ async function setup(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
     version,
     updatedAt: _updatedAt,
     ...settings
-  } = await base.owner.caller.query(getSettings, { campaignId: base.campaign.id })
+  } = await base.owner.caller.query(getSettings, {
+    campaignId: base.campaign.id
+  })
   await base.owner.caller.mutation(saveSettings, {
     ...settings,
     expectedVersion: version,
@@ -183,7 +194,11 @@ describe('native actor removal transaction', () => {
                 encounterId: base.run.id,
                 commandId: crypto.randomUUID(),
                 expectedVersion: base.run.version,
-                enemy: { kind: 'CUSTOM', label: 'Reinforcement', maxHitPoints: 3 },
+                enemy: {
+                  kind: 'CUSTOM',
+                  label: 'Reinforcement',
+                  maxHitPoints: 3
+                },
                 public: true
               }
       const authorityId = await base.t.run((ctx) =>
@@ -242,10 +257,16 @@ describe('native actor removal transaction', () => {
                 encounterId: base.run.id,
                 commandId: crypto.randomUUID(),
                 expectedVersion: expired.projection.version,
-                enemy: { kind: 'CUSTOM', label: 'Released reinforcement', maxHitPoints: 3 },
+                enemy: {
+                  kind: 'CUSTOM',
+                  label: 'Released reinforcement',
+                  maxHitPoints: 3
+                },
                 public: true
               }
-      const released = await base.owner.caller.mutation(execute, { command: next })
+      const released = await base.owner.caller.mutation(execute, {
+        command: next
+      })
       expect(released.projection.version).toBe(expired.projection.version + 1)
     }
   )
@@ -364,7 +385,12 @@ describe('native actor removal transaction', () => {
             diagonalPolicy: 'EQUAL',
             unit: 'FEET'
           },
-          map: { assetId: crypto.randomUUID(), width: 800, height: 400, tileManifestAssetId: null },
+          map: {
+            assetId: crypto.randomUUID(),
+            width: 800,
+            height: 400,
+            tileManifestAssetId: null
+          },
           definitionId: crypto.randomUUID(),
           definitionVersion: 1,
           definitionSaveId: crypto.randomUUID(),
@@ -452,7 +478,9 @@ describe('native actor removal transaction', () => {
     ).toEqual({ ...result, projection: current.projection })
     expect(await capture(base)).toEqual(later)
     await expectRedactedRoomRefusal(
-      executeInRoom(base.owner.caller, { command: { ...command, actorId: other.id } }),
+      executeInRoom(base.owner.caller, {
+        command: { ...command, actorId: other.id }
+      }),
       'already used for different input',
       'INVALID_COMMAND'
     )
@@ -502,7 +530,9 @@ describe('native actor removal transaction', () => {
         round: 2
       }
     })
-    const noncurrent = base.run.actors.find((actor) => actor.id !== retainedCurrent)!
+    const noncurrent = base.run.actors.find(
+      (actor) => actor.id !== retainedCurrent && actor.kind !== 'CHARACTER'
+    )!
     result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'REMOVE_ACTOR',
@@ -525,7 +555,10 @@ describe('native actor removal transaction', () => {
         }
       })
     }
-    expect(result.projection.actors).toEqual([])
+    // D82: a removed Character stays in the Run, out of initiative, so no actor takes a turn.
+    expect(result.projection.actors).toEqual([
+      expect.objectContaining({ kind: 'CHARACTER', outOfInitiative: true })
+    ])
     expect(result.projection.currentActorId).toBeNull()
     result = await executeInRoom(base.owner.caller, {
       command: {
@@ -538,8 +571,9 @@ describe('native actor removal transaction', () => {
     })
     expect(result.projection.round).toBe(3)
     const stored = await capture(base)
-    expect(stored.participants).toEqual([])
-    expect(stored.sides).toEqual([])
+    expect(stored.participants.filter((p) => p.round === 3).map((p) => p.actorId)).toEqual([
+      result.projection.actors[0]!.id
+    ])
   })
 
   it('supersedes a frozen Assisted initiative and preserves its maintenance receipt on retry', async () => {
@@ -575,7 +609,7 @@ describe('native actor removal transaction', () => {
     expect(await capture(base)).toEqual(after)
   })
 
-  it('reconciles an empty automatic SIDE_ROLL side and preserves historical removal replay', async () => {
+  it('takes a Character out of an automatic SIDE_ROLL round without moving it and preserves replay', async () => {
     const base = await setup('AUTO_ROLL')
     const removed = base.run.actors.find((actor) => actor.kind === 'CHARACTER')
     const [firstSurvivor, secondSurvivor] = base.run.actors.filter(
@@ -658,26 +692,23 @@ describe('native actor removal transaction', () => {
     expect(await capture(base)).toEqual(before)
     const removedResult = await executeInRoom(base.owner.caller, { command })
     const afterRemoval = await capture(base)
-    const survivingParticipants = afterRemoval.participants
+    // D82: the Character leaves initiative but keeps its actor, its place and every side.
+    expect(afterRemoval.participants).toEqual(before.participants)
+    expect(afterRemoval.sides).toEqual(before.sides)
+    expect(removedResult.projection.actors.find((actor) => actor.id === removed.id)).toMatchObject({
+      outOfInitiative: true
+    })
+    expect(removedResult.projection.currentActorId).toBe(firstSurvivor.id)
+    const [firstTurn, secondTurn] = afterRemoval.participants
       .filter((participant) => participant.actorId !== removed.id)
       .sort((left, right) => left.turnOrderOrdinal! - right.turnOrderOrdinal!)
-    expect(
-      afterRemoval.participants.some((participant) => participant.actorId === removed.id)
-    ).toBe(false)
-    expect(afterRemoval.sides).toHaveLength(1)
-    expect(survivingParticipants.map((participant) => participant.turnOrderOrdinal)).toEqual([0, 1])
-    expect(survivingParticipants.filter((participant) => participant.status === 'ACTIVE')).toEqual([
-      expect.objectContaining({ actorId: removedResult.projection.currentActorId })
-    ])
-    const otherActorId = survivingParticipants[0]?.actorId
-    if (!otherActorId) throw new Error('Missing surviving Actor for cursor correction.')
     const corrected = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_CURRENT_ACTOR',
         encounterId: base.run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: removedResult.projection.version,
-        actorId: otherActorId
+        actorId: firstTurn!.actorId
       }
     })
     const advanced = await executeInRoom(base.owner.caller, {
@@ -688,7 +719,11 @@ describe('native actor removal transaction', () => {
         expectedVersion: corrected.projection.version
       }
     })
-    expect(advanced.projection).toMatchObject({ status: 'ACTIVE', round: 1 })
+    expect(advanced.projection).toMatchObject({
+      status: 'ACTIVE',
+      round: 1,
+      currentActorId: secondTurn!.actorId
+    })
     const afterLaterCommands = await capture(base)
     await expect(
       replayInRoom(base.owner.caller, {
@@ -701,6 +736,142 @@ describe('native actor removal transaction', () => {
       })
     ).resolves.toEqual({ ...removedResult, projection: advanced.projection })
     expect(await capture(base)).toEqual(afterLaterCommands)
+  }, 30000)
+
+  it('keeps a GM-removed Character in the Run, held and running, out of initiative until the GM returns it (D82)', async () => {
+    const base = await setup()
+    const character = base.run.actors.find((actor) => actor.kind === 'CHARACTER')
+    const [target, other] = base.run.actors.filter((actor) => actor.kind === 'CUSTOM')
+    if (!character || !target || !other) throw new Error('Fixture Custom actor is unavailable.')
+    let version = base.run.version
+    for (const [index, actor] of [character, target, other].entries())
+      await executeInRoom(base.owner.caller, {
+        command: {
+          type: 'SET_INITIATIVE',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: version++,
+          actorId: actor.id,
+          initiative: 20 - index,
+          manualOrder: index
+        }
+      })
+    const started = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'START',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: version++
+      }
+    })
+    const stateId = crypto.randomUUID()
+    const characterEffectId = crypto.randomUUID()
+    const dependentEffectId = crypto.randomUUID()
+    await base.t.run(async (ctx) => {
+      const effects = createActiveRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      })
+      await effects.createMaintainedState({
+        id: stateId,
+        encounterId: base.run.id,
+        ownerActorId: character.id,
+        descriptor: descriptor(character.id, 'TERMINATE_WHEN_EMPTY')
+      })
+      await effects.create({
+        id: characterEffectId,
+        owner: { kind: 'CHARACTER', characterId: base.character.id },
+        definition: definition(base.run.id, character.id),
+        lifecycle,
+        maintainedEffectStateId: stateId
+      })
+      await effects.create({
+        id: dependentEffectId,
+        owner: {
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId: base.run.id,
+          targetActorId: target.id
+        },
+        definition: definition(base.run.id, character.id),
+        lifecycle,
+        maintainedEffectStateId: stateId
+      })
+    })
+    const before = await capture(base)
+    const removed = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'REMOVE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: started.projection.version,
+        actorId: character.id
+      }
+    })
+    expect(removed.projection.actors.find((actor) => actor.id === character.id)).toMatchObject({
+      outOfInitiative: true
+    })
+    expect(removed.projection.actors.find((actor) => actor.id === target.id)).toMatchObject({
+      outOfInitiative: false
+    })
+    const after = await capture(base)
+    expect(after.characters).toEqual(before.characters)
+    expect(after.characterPlayStates).toEqual(before.characterPlayStates)
+    expect(after.characterEffects).toEqual(before.characterEffects)
+    expect(after.effects).toEqual(before.effects)
+    expect(after.states).toEqual(before.states)
+    expect(after.actors.map((row) => row.id)).toContain(character.id)
+    expect(
+      await base.t.run(async (ctx) => {
+        const run = await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+          .unique()
+        return readFightingCharacters(ctx, base.campaign.id, [run])
+      })
+    ).toEqual([{ characterId: base.character.id, encounterId: base.run.id }])
+    const current = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'SET_CURRENT_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: removed.projection.version,
+        actorId: target.id
+      }
+    })
+    const advance = (expectedVersion: number) =>
+      executeInRoom(base.owner.caller, {
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion
+        }
+      })
+    // The Character's slot is first in order, yet the turn passes it by into the next round.
+    const second = await advance(current.projection.version)
+    expect(second.projection).toMatchObject({ round: 1, currentActorId: other.id })
+    const advanced = await advance(second.projection.version)
+    expect(advanced.projection).toMatchObject({ round: 2, currentActorId: target.id })
+    const returned = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: advanced.projection.version,
+        actorId: character.id,
+        returnToInitiative: true
+      }
+    })
+    expect(returned.projection.actors.find((actor) => actor.id === character.id)).toMatchObject({
+      outOfInitiative: false
+    })
+    const afterTarget = await advance(returned.projection.version)
+    const next = await advance(afterTarget.projection.version)
+    expect(next.projection).toMatchObject({ round: 3, currentActorId: character.id })
+    expect(await capture(base)).toMatchObject({
+      characterEffects: before.characterEffects,
+      effects: before.effects,
+      states: before.states
+    })
   }, 30000)
 
   it('rolls back after successful actor deletion and rejects stale versions or corrupt state without writes', async () => {
@@ -732,7 +903,9 @@ describe('native actor removal transaction', () => {
     ).rejects.toThrow('Abort after actor deletion')
     expect(await capture(base)).toEqual(before)
     await expect(
-      executeInRoom(base.owner.caller, { command: { ...command, expectedVersion: 99 } })
+      executeInRoom(base.owner.caller, {
+        command: { ...command, expectedVersion: 99 }
+      })
     ).rejects.toThrow('Encounter version is stale.')
     expect(await capture(base)).toEqual(before)
     await base.t.run(async (ctx) => {
@@ -743,7 +916,9 @@ describe('native actor removal transaction', () => {
         )
         .unique()
       if (!actor) throw new Error('Missing fixture actor')
-      await ctx.db.patch(actor._id, { stateChecksum: checksumCanonicalJson('corrupt') })
+      await ctx.db.patch(actor._id, {
+        stateChecksum: checksumCanonicalJson('corrupt')
+      })
     })
     const corrupt = await capture(base)
     await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(RoomCommandRefusal)

@@ -4,6 +4,9 @@ import { syncAccountUsage } from '../lib/accountUsage'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { retireCharacterReceipts } from './receiptCleanup'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { endCharacterRunEffects } from '@artificer-toolkit/encounter-persistence/characterRunEffects'
+import { encounterWriteTransaction } from '../encounters/encounterPorts'
+import { isRoomHeldRun } from '../liveSessions/authorityGuard'
 import {
   deleteCharacterDraftPayload,
   readCharacterDraft,
@@ -96,6 +99,19 @@ export async function removeAccountPrivateCharacters(ctx: MutationCtx, userId: s
         throw new Error('Stored Sheet command receipt Character mismatch.')
     }
     if (active) {
+      // A held Character skipped D81 settlement at departure, and its hold drops after the row is
+      // gone: end maintained states of Runs the room does not hold now, before the owner vanishes.
+      await endCharacterRunEffects(encounterWriteTransaction(ctx), {
+        characterId,
+        classifyRun: async (encounterId) => {
+          const run = await ctx.db
+            .query('encounterRuns')
+            .withIndex('by_publicId', (q) => q.eq('id', encounterId))
+            .unique()
+          return run && !(await isRoomHeldRun(ctx, run)) ? 'TERMINABLE' : null
+        },
+        occurredAt: new Date().toISOString()
+      })
       for (const effect of await effects.list({ kind: 'CHARACTER', characterId })) {
         if (effect.owner.kind !== 'CHARACTER' || effect.owner.characterId !== characterId)
           throw new Error('Stored Character active rule effect ownership mismatch.')

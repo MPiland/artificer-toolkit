@@ -30,6 +30,19 @@ function toProspectiveSheetAdjustment(
   }
 }
 
+/** Drops the rest-reset maximum HP modifier and Item adjustments for a removed Item. */
+export function pruneSheetAdjustments(params: {
+  adjustments: readonly CharacterSheetAdjustment[]
+  resetMaximumModifierId?: string
+  removedItemId?: string
+}): readonly CharacterSheetAdjustment[] {
+  return params.adjustments.filter(
+    (adjustment) =>
+      adjustment.id !== params.resetMaximumModifierId &&
+      (adjustment.family !== 'ITEM' || adjustment.itemInstanceId !== params.removedItemId)
+  )
+}
+
 export function getProspectiveSheetAdjustments(params: {
   adjustments: readonly CharacterSheetAdjustment[]
   characterId: string

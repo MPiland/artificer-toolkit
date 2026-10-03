@@ -6,7 +6,7 @@ import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { defeatedEncounterActorIds } from './encounterActorDefeat.js'
+import { skippedEncounterActorIds } from './encounterActorDefeat.js'
 import { planEncounterInitiativeAdvance } from './encounterInitiativeStateSettlement.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
 import type { prepareEncounterTurnEffects } from './encounterTurnEffects.js'
@@ -31,7 +31,7 @@ export function planEncounterTurnAdvance(input: {
   const advance = planEncounterInitiativeAdvance({
     state: input.initiativeRound,
     currentActorId: input.state.currentActorId,
-    defeatedActorIds: defeatedEncounterActorIds(input.actors)
+    defeatedActorIds: skippedEncounterActorIds(input.actors)
   })
   return {
     initiativeAdvance: advance,

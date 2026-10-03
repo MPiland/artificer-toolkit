@@ -60,7 +60,7 @@ only referenced Spell documents are captured and parsed for mechanics. The prote
 retains each read request/checksum for atomic commit validation, including missing sources and
 catalogue membership. Local command preparation joins the caller's transaction: a stale Builder
 reload reconciles hit dice and removed resource usage, preserves room play, and applies the existing
-level-down HP clamp using Builder maxima. It changes the play clock once only when play changes;
+clamp of current HP to the evaluated maximum. It changes the play clock once only when play changes;
 stats-only updates keep that clock. Full held-Sheet routing remains pending.
 This source optimization awaits execution proof; publication pages
 bound ordinary payload reads, while maximum-size shared parent chains still need local backend validation.

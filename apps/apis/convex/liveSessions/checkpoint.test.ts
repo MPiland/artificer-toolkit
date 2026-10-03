@@ -183,7 +183,8 @@ async function playChange(base: Fixture) {
     const next = canonicalJsonRecordSchema.parse({
       ...before,
       state: nextState,
-      checksum: checksumCanonicalJson(nextState)
+      checksum: checksumCanonicalJson(nextState),
+      streamVersion: row.streamVersion + 1
     })
     return {
       row,
@@ -323,11 +324,7 @@ it('publishes Run and Character play deltas with grouped history, then replays w
   })
   expect(after.invalidations).toEqual(before.invalidations)
   expect(after.run).toEqual({ ...run.row, ...run.nextStored })
-  expect(after.play).toEqual({
-    ...play.row,
-    ...play.next,
-    streamVersion: play.row.streamVersion + 1
-  })
+  expect(after.play).toEqual({ ...play.row, ...play.next })
   const checkpointLedgers = after.ledgers.filter(
     (ledger) => ledger.checkpointId === input.checkpointId
   )
@@ -988,7 +985,7 @@ it('rejects stale record and delta checksums, altered payloads, malformed input 
   expect(await snapshot(base)).toEqual(corrupted)
 })
 
-it('refuses Character play insertion, deletion, a supplied clock and mismatched play content checksum', async () => {
+it('refuses Character play insertion, deletion, a stale clock and mismatched play content checksum', async () => {
   const base = await setupCharacterRun()
   const authority = await activate(base)
   const play = await playChange(base)
@@ -1009,9 +1006,9 @@ it('refuses Character play insertion, deletion, a supplied clock and mismatched 
     [
       recordChange('characterPlayStates', [base.character.id], play.before, {
         ...play.next,
-        streamVersion: 999
+        streamVersion: play.row.streamVersion
       }),
-      'cannot supply the Convex play clock'
+      'play version must advance'
     ],
     [
       recordChange('characterPlayStates', [base.character.id], play.before, {

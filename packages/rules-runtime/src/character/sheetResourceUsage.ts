@@ -18,28 +18,20 @@ type SheetResource = CharacterSheetResponseDto['resources']['items'][number]
 export function getProspectiveSheetResourceUsage(params: {
   resourceUsage: readonly CharacterResourceUsage[]
   resourceUsageUpdate?: { resource: SheetResource; used: number }
-  recoveredResourceOwnerKeys?: ReadonlySet<string>
   characterId: string
   userId: string
   now?: string
 }): readonly CharacterResourceUsage[] {
-  const resourceUsageAfterRest = params.recoveredResourceOwnerKeys?.size
-    ? params.resourceUsage.map((usage) =>
-        params.recoveredResourceOwnerKeys?.has(createCharacterResourceOwnerKey(usage.owner))
-          ? { ...usage, used: 0 }
-          : usage
-      )
-    : params.resourceUsage
   const update = params.resourceUsageUpdate
-  if (!update) return resourceUsageAfterRest
+  if (!update) return params.resourceUsage
 
   const owner = toCharacterResourceOwnerKey(update.resource.owner)
   const changedPoolId = createCharacterResourceOwnerKey(owner)
-  const existing = resourceUsageAfterRest.find(
+  const existing = params.resourceUsage.find(
     (usage) => createCharacterResourceOwnerKey(usage.owner) === changedPoolId
   )
   return [
-    ...resourceUsageAfterRest.filter(
+    ...params.resourceUsage.filter(
       (usage) => createCharacterResourceOwnerKey(usage.owner) !== changedPoolId
     ),
     ...(update.used === 0
@@ -64,6 +56,30 @@ export function getProspectiveSheetResourceUsage(params: {
               })()
         ])
   ]
+}
+
+/** Drops usage for Resources a rest recovered and for owners removed with an item or companion. */
+export function pruneSheetResourceUsage(params: {
+  resourceUsage: readonly CharacterResourceUsage[]
+  resources: readonly SheetResource[]
+  recoveredResourceIds: ReadonlySet<string>
+  removedItemId?: string
+  removedCompanionId?: string
+}): readonly CharacterResourceUsage[] {
+  const recoveredOwnerKeys = new Set(
+    params.resources
+      .filter((resource) => params.recoveredResourceIds.has(resource.id))
+      .map((resource) =>
+        createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(resource.owner))
+      )
+  )
+  return params.resourceUsage.filter(
+    (usage) =>
+      !recoveredOwnerKeys.has(createCharacterResourceOwnerKey(usage.owner)) &&
+      (usage.owner.kind !== 'ITEM_INSTANCE' || usage.owner.itemInstanceId !== params.removedItemId) &&
+      (usage.owner.kind !== 'COMPANION_FEATURE' ||
+        usage.owner.companionInstanceId !== params.removedCompanionId)
+  )
 }
 
 /** The same resource admission and spend calculation for Convex and room Sheet commands. */

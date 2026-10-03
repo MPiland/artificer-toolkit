@@ -226,6 +226,7 @@ const actorBases = [
     kind: 'CHARACTER',
     label: "Ember's Wake",
     manualOrder: null,
+    outOfInitiative: false,
     public: true,
     sourceId: assignedCharacter.id,
     sourceRevision: null
@@ -241,6 +242,7 @@ const actorBases = [
     kind: 'CREATURE',
     label: 'Vault Warden',
     manualOrder: null,
+    outOfInitiative: false,
     public: true,
     sourceId: null,
     sourceRevision: null

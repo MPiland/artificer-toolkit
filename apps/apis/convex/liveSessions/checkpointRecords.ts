@@ -110,11 +110,11 @@ export async function applyCheckpointRecords(
     if (change.table === 'characterPlayStates') {
       if (!row || !next || !('streamVersion' in row))
         throw new Error('Checkpoint cannot create or delete Character play state.')
-      if (Object.hasOwn(next, 'streamVersion'))
-        throw new Error('Checkpoint cannot supply the Convex play clock.')
+      // The room owns the play clock while it holds the Character; it may only move forward.
+      if (typeof next.streamVersion !== 'number' || next.streamVersion <= row.streamVersion)
+        throw new Error('Checkpoint Character play version must advance.')
       if (checksumCanonicalJson(next.state) !== next.checksum)
         throw new Error('Checkpoint Character play checksum does not match.')
-      next.streamVersion = row.streamVersion + 1
     }
     // Encoding validates the complete stored shape, even though the eventual write is a patch.
     if (next) encodeCheckpointRecord(change.table, next)

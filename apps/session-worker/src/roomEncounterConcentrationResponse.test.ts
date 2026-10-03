@@ -220,11 +220,12 @@ it('atomically resolves a failed native Concentration save, retains the private 
     gmNotes: 'Private concentrating actor',
     snapshot: {},
     frozenState: null,
+    outOfInitiative: false,
     createdAt: now,
     updatedAt: now
   })
   if (actor.kind !== 'CHARACTER') throw new Error('Missing concentrating Character actor.')
-  const { frozenState: _frozenState, ...actorBase } = actor
+  const { frozenState: _frozenState, outOfInitiative: _outOfInitiative, ...actorBase } = actor
   const recipientActor = encounterRunActorStateSchema.parse({
     ...actorBase,
     id: uuid(0x1117),
@@ -275,7 +276,11 @@ it('atomically resolves a failed native Concentration save, retains the private 
     spells: {},
     system: {
       abilities: [
-        { id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID, code: 'CONSTITUTION', label: 'Constitution' }
+        {
+          id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
+          code: 'CONSTITUTION',
+          label: 'Constitution'
+        }
       ],
       skills: [],
       speeds: []

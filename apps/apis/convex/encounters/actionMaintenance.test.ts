@@ -30,10 +30,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { api, internal } from '../_generated/api'
-import {
-  readRunState,
-  writeRunActor
-} from '@artificer-toolkit/encounter-persistence/documents'
+import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from './encounterPorts'
 import { readCharacterRow } from '../characters/stateDocuments'
@@ -808,7 +805,8 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     }
   })
   const afterRemoval = await records(base)
-  expect(afterRemoval.actors.some((actor) => actor.id === base.characterTarget.id)).toBe(false)
+  // D82: a GM removal leaves initiative but keeps the Character's actor and effects.
+  expect(afterRemoval.actors.some((actor) => actor.id === base.characterTarget.id)).toBe(true)
   expect(afterRemoval.characterEffects).toHaveLength(1)
   expect(afterRemoval.maintainedStates).toHaveLength(1)
   await resetActionAllowance(base)
@@ -1093,9 +1091,11 @@ it('reads a detached Character owner only through its live maintained dependent'
       actorId: base.characterTarget.id
     }
   })
-  expect(removed.projection.actors.some((actor) => actor.id === base.characterTarget.id)).toBe(
-    false
-  )
+  expect(
+    removed.projection.actors.find((actor) => actor.id === base.characterTarget.id)
+  ).toMatchObject({
+    outOfInitiative: true
+  })
   await resetActionAllowance(base)
   const replacement = await executeInRoom(base.owner.caller, {
     command: action(base, removed.projection.version, base.secondActor.id)

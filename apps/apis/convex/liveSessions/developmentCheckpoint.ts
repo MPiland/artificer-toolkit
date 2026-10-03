@@ -158,6 +158,7 @@ export const prepare = untrackedInternalMutation({
       ...playFields,
       state: nextPlay,
       checksum: checksumCanonicalJson(nextPlay),
+      streamVersion: play.streamVersion + 1,
       updatedAt: now
     })
     const entries = reminders.map((reminder, i) => {

@@ -537,7 +537,7 @@
             {
               "id": "F12.3",
               "text": "Shared chat, rolls, the Session log, Campaign-owned Encounter Run history (ADR 0033), including held Runs (ADR 0035), and retained handout delivery survive with Deleted user attribution.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/campaigns/deletedMemberHistory.test.ts › keeps the Session log, Encounter Run history and handout delivery attributed to the deleted account id (after auth onDelete and media purgeAccount: shared Session notes and handouts read Deleted user, RSVPs and the Run timeline keep the opaque account id, handout delivery unchanged)",
                 "apps/apis/convex/campaigns/chat.test.ts › masks a removed profile while retaining OOC, roleplay, and roll snapshots (chat and roll entries read Deleted user once the profile is gone)",
@@ -547,13 +547,15 @@
                 "apps/apis/convex/liveSessions/roomInputs.test.ts › reads as DELETED once the Character no longer exists",
                 "apps/session-worker/src/roomInputs.test.ts › hydrates a Run whose Character left or was deleted, leaving its actor to the reconcile",
                 "impl (A35-S7b, D74): apps/session-worker/src/roomActorReconcile.ts (removes deleted Characters' actors with the shared removeMissingCharacterActors), apps/session-worker/src/nativeLiveSessionRoom.ts (#reconcileActorDepartures checkpoints before its receipt), apps/apis/convex/liveSessions/roomInputs.ts (CHARACTERS answers DELETED)",
-                "missing: an integrated room test where account deletion while the room holds the Run removes the actor through the reconcile and its history reaches Convex by checkpoint (REL-4)"
+                "apps/apis/convex/liveSessions/heldAccountDeletion.test.ts › account deletion with a Character held by a live room › leaves the held Run to the room, which removes the actor and keeps the history (VS-4: roll and chat history read Deleted user, Convex writes no actor of the held Run, the room's reconcile removes the actor and appends REMOVE_ACTOR, the hold releases at the checkpoint)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › evicts a deleted account's player and removes its Character's actor before acknowledging (F12.4) (the actor removal reaches the checkpoint before the receipt)",
+                "impl (VS-4): apps/apis/convex/characters/accountDeletion.ts ends maintained states of Runs the room does not hold before deleting the Character's effects; apps/apis/convex/campaigns/characterDeparture.ts skips a deleted Character"
               ]
             },
             {
               "id": "F12.4",
               "text": "Account deletion evicts the exact user from the Campaign live table, including held Runs (ADR 0033, ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/campaigns/accountDeparture.test.ts › detaches a trusted account from an %s Campaign while retaining Campaign history (asserts the exact liveSessions/control:evictUser schedule)",
                 "apps/apis/convex/liveSessions/control.test.ts › evicts one membership epoch from the Campaign room without any Session",
@@ -562,7 +564,9 @@
                 "reworded, user-approved 2026-09-27 (ADR 0035): the entries above still prove eviction from the live table; a Run held by the room is not covered",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › closes a removed member at the next command boundary, refusing broadcasts and their queued command",
                 "impl (A35-S7b, D74): the room's departure reconcile removes the deleted account's actors from held Runs; Convex writes none (apps/apis/convex/campaigns/accountDeparture.helper.ts)",
-                "missing: an integrated room test of account deletion during a held Run: eviction, socket close, refused queued commands and actor removal together (REL-4)"
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › evicts a deleted account's player and removes its Character's actor before acknowledging (F12.4) (VS-4: exact-epoch EVICT_USER closes only the player's socket with 1008, the GM stays connected, a command sent after eviction is never committed, the reconcile removes the actor and checkpoints it before the receipt)",
+                "apps/session-worker/src/roomActorReconcile.test.ts › reconcileRoomActorDepartures › removes a deleted Character actor and freezes an unassigned one in one reconcile",
+                "limit: a command already in flight when eviction lands is a race the cached authorization may admit; the proof covers commands sent after eviction"
               ]
             },
             {
@@ -2187,12 +2191,12 @@
             {
               "id": "P15.3",
               "text": "Clock version contention, exact replay, once-only DAILY recovery and watermark hold, and managed recovery stays within limits.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/campaigns/developmentSessionControl.test.ts › runs Session, Clock and GM control contention, replay and authority through public commands (Clock advance race with one winner, exact replay, once-only DAILY recovery, watermark held through rewind and reset)",
                 "apps/apis/convex/campaigns/clock.test.ts › pauses a running clock for combat, resumes only that pause, and yields to GM commands (2026-10-01 combat decision, A35-S3b)",
                 "apps/apis/convex/campaigns/clock.test.ts › leaves fighting Characters to a GM prompt at a boundary and recovers them once combat ends (A35-S3b)",
-                "missing: managed recovery within limits needs a managed run; .codex/validation/phase82-p15-performance/verification.md is historical"
+                "docs/validation/phase-08-2/p15-3-local-recovery-2026-10-02.md (VS-4, ADR 0035 managed run on the local Docker backend: max campaigns/clock:advance DAILY recovery read 89 documents and 126,926 bytes, wrote 8 documents, 0.680 s against the 1 s limit; one-Character fixture proves the path, not scale, which V15 owns); .codex/validation/phase82-p15-performance/verification.md is historical"
               ]
             },
             {
@@ -3404,7 +3408,7 @@
             {
               "id": "V14.5",
               "text": "The room holds Character play state; outside edits reload at the next command boundary without losing play state (ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/encounters/liveCharacterState.test.ts › keeps Encounter commands and projections current after Sheet edits made after Run creation",
@@ -3412,7 +3416,10 @@
                 "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan (deleted in A35-S6c3)",
                 "apps/apis/convex/encounters/runs.test.ts › atomically snapshots assigned Characters and enemies, and replays without source reads (Character actor stores no currentHitPoints or sourceRevision)",
                 "impl: apps/apis/convex/encounters/documents.ts, apps/session-worker/src/roomEncounterTurnCapture.ts (the Convex encounterRulesCapture was deleted in A35-S6c3)",
-                "missing: room-held play state, with a Builder save and a room HP change both surviving and a level-up clamping HP (ADR 0035 plan S7)"
+                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts › Sheet play on a held Character › keeps Builder edits committing in Convex and reloads them into the next room command (VS-4: a Builder level-up and level-down commit in Convex while held, room HP changes survive both, the lowered maximum clamps HP, and the acknowledged play version equals Convex's after the checkpoint)",
+                "apps/session-worker/src/roomCharacterRules.test.ts (current HP clamps to the effective maximum; a GM raise does not clamp)",
+                "apps/session-worker/src/roomCheckpointRecords.test.ts (play changes carry the room play clock; several commits fold into one delta with the last version)",
+                "impl (VS-4): the checkpoint carries the room's play streamVersion and Convex refuses one that does not advance (apps/apis/convex/liveSessions/checkpointRecords.ts); the shared reducer clamps current HP to the effective maximum (packages/rules-runtime/src/character/sheetCommandReducer.ts)"
               ]
             }
           ]
@@ -3700,14 +3707,15 @@
             {
               "id": "R06.3",
               "text": "While a Character is in the live ACTIVE Run, its play state is room-owned and the Sheet acts through the room; otherwise Sheet writes stay in Convex (ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/liveSessions/state.test.ts › keeps Character Sheet commands in Convex while Scene authority is active and draining",
                 "impl: apps/apis/convex/characters/sheetCommands.ts",
                 "apps/session-worker/test/nativeCharacterSheet.test.ts › plays a Character Sheet command through the room with the real Character rules path (A35-S6b)",
                 "apps/session-worker/test/nativeCharacterSheet.test.ts › refuses a Sheet command from a player who does not own the Character (A35-S6b)",
-                "missing: the held-Character Convex write refusal (A35-S6a) and room Sheet push (A35-S7a) proved together on the final source after the A35-S6c switch (REL-4)"
+                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts › Sheet play on a held Character › refuses Convex play, commits the owner through the room and refuses a non-owner (VS-4: Convex refuses HELD play, the owner's command commits through the room and checkpoints, a non-owner is refused, an exact retry replays without writes)",
+                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts › Sheet play on a held Character › keeps Builder edits committing in Convex and reloads them into the next room command (Builder structure stays in Convex while held)"
               ]
             },
             {

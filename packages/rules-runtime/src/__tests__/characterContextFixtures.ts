@@ -1,0 +1,273 @@
+import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
+import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
+import {
+  contentSnapshotDocumentsObjectSchema,
+  contentSnapshotIndexObjectSchema,
+  type ContentSnapshotObject,
+  type ContentSnapshotScope
+} from '@artificer-toolkit/schema/api/contentSnapshots'
+import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
+import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
+import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
+import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type {
+  CharacterAuthored,
+  EquipmentAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
+import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
+import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
+import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+import { parsePublicationDocument } from '../authoredPublicationRead.js'
+import { toCharacterBuilderEquipmentCatalogRecord } from '../character/builderCatalog.js'
+import { prepareCharacterBuilderFromContext } from '../character/builderPreparation.js'
+import {
+  prepareActiveCharacterBuilderContext,
+  prepareCharacterRuleContext
+} from '../character/contextPreparation.js'
+import { createSnapshotReaders } from '../character/snapshotReaders.js'
+import { prepareCharacterSheetFromContext } from '../character/sheetPreparation.js'
+import { projectCharacterSheetBundle } from '../character/sheetProjection.js'
+import { buildContentSnapshotKind } from '../contentSnapshots.js'
+
+export const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
+export type PublicationKind = AuthoredPublicationDocument['subjectKind']
+
+/** Index and documents objects of one scope, as the S2 build writes them. */
+export function scopeObjects(
+  documents: Partial<Record<PublicationKind, readonly unknown[]>>,
+  scope: ContentSnapshotScope = 'SOURCE'
+): ContentSnapshotObject[] {
+  const scopeId = crypto.randomUUID()
+  return Object.entries(documents).flatMap(([key, raw]) => {
+    const kind = key as PublicationKind
+    const published = (raw ?? []).map((document) => parsePublicationDocument(kind, document))
+    const equipment = new Map(
+      published.flatMap((entry) =>
+        entry.subjectKind === 'EQUIPMENT' ? [[entry.document.id, entry.document] as const] : []
+      )
+    )
+    const sources = published.map((entry, index) => {
+      const document = entry.document
+      const listFacts = {
+        publicId: document.id,
+        magicSchoolLabel: 'School',
+        publicationVersion: {
+          identity: {
+            subjectKind: entry.subjectKind,
+            subjectId: document.id,
+            systemId: document.systemId,
+            contentSourceId: scopeId,
+            versionId: document.id,
+            checksum: checksumRuleDocument(JSON.parse(JSON.stringify(raw![index])))
+          },
+          version: 1,
+          storedParentId:
+            'parentRaceId' in document
+              ? document.parentRaceId
+              : 'parentClassId' in document
+                ? document.parentClassId
+                : 'parentEquipmentId' in document
+                  ? document.parentEquipmentId
+                  : null
+        }
+      }
+      if (entry.subjectKind !== 'EQUIPMENT') return { ...entry, ...listFacts }
+      // The stored projection the build reads: the effective facts along the variant chain.
+      const effective = resolveEquipmentAuthored(
+        entry.document as EquipmentAuthored,
+        (id) => equipment.get(id) as EquipmentAuthored | undefined
+      )
+      const record = toCharacterBuilderEquipmentCatalogRecord(effective)
+      const { builder } = authoredEquipmentOptionFactsSchema.parse({
+        checksum: '0'.repeat(64),
+        category: entry.document.category,
+        properties: entry.document.properties ?? [],
+        builder: {
+          version: 1,
+          parentEquipmentId:
+            entry.document.category === 'VARIANT' ? entry.document.parentEquipmentId : null,
+          category: record.category,
+          properties: record.properties,
+          isContainer: record.isContainer,
+          ...(record.maxStack === undefined ? {} : { maxStack: record.maxStack }),
+          requiresAttunement: record.requiresAttunement
+        }
+      })
+      if (!builder) throw new Error('Expected Equipment builder facts.')
+      return { ...entry, builder, ...listFacts }
+    })
+    const { index, documents: part } = buildContentSnapshotKind(
+      { format: 2, scope, scopeId, kind },
+      sources
+    )
+    return [
+      contentSnapshotIndexObjectSchema.parse(JSON.parse(index.json)),
+      contentSnapshotDocumentsObjectSchema.parse(JSON.parse(part.json))
+    ]
+  })
+}
+
+export function emptyCharacter(): CharacterAuthored {
+  return createEmptyCharacterAuthored({
+    id: crypto.randomUUID(),
+    systemId: system.id,
+    userId: crypto.randomUUID()
+  })
+}
+
+if (fighter.category !== 'BASE') throw new Error('Expected the canonical parent Fighter class.')
+const fighterClass = fighter
+
+/**
+ * A ready level 1 Human Fighter with a Short Rest Resource, over the SRD documents the Builder
+ * needs. Features and starting equipment are stripped, and so are proficiencies unless
+ * `languageChoice` keeps the Acolyte's two chosen languages, which the Character must then select.
+ */
+export function readyFighterFixture({ languageChoice = false } = {}) {
+  const shortRestResource = {
+    id: crypto.randomUUID(),
+    label: 'Short Resource',
+    order: 0,
+    availableAtLevel: 1,
+    charges: {
+      id: crypto.randomUUID(),
+      resetKind: 'SHORT_REST' as const,
+      limitKind: 'FIXED_AMOUNT' as const,
+      scalingKind: 'NONE' as const,
+      amount: 2
+    }
+  }
+  const baseClass = {
+    ...structuredClone(fighterClass),
+    resources: shortRestResource,
+    features: [],
+    proficiencies: [],
+    startingEquipment: { ...fighterClass.startingEquipment!, sets: [] }
+  }
+  const background = {
+    ...acolyte,
+    features: [],
+    proficiencies: languageChoice ? acolyte.proficiencies : [],
+    startingEquipment: { id: crypto.randomUUID(), sets: [] }
+  }
+  const empty = emptyCharacter()
+  const character: CharacterAuthored = {
+    ...empty,
+    label: 'Aria',
+    intent: {
+      ...empty.intent,
+      race: { raceId: human.id },
+      background: { backgroundId: background.id },
+      classes: [{ classId: baseClass.id, classLevel: 1 }],
+      abilities: {
+        method: 'STANDARD_ARRAY',
+        assignments: [
+          { ability: 'STRENGTH', option: '15' },
+          { ability: 'DEXTERITY', option: '14' },
+          { ability: 'CONSTITUTION', option: '13' },
+          { ability: 'INTELLIGENCE', option: '12' },
+          { ability: 'WISDOM', option: '10' },
+          { ability: 'CHARISMA', option: '8' }
+        ]
+      },
+      hitpoints: {
+        method: 'FIXED',
+        levels: [{ level: 1, classId: baseClass.id, classLevel: 1, value: 10 }]
+      }
+    }
+  }
+  return {
+    character,
+    shortRestResource,
+    documents: {
+      RACE: [{ ...human, features: [] }],
+      CLASS: [baseClass],
+      BACKGROUND: [background],
+      EQUIPMENT: [club]
+    } satisfies Partial<Record<PublicationKind, readonly unknown[]>>
+  }
+}
+
+type FixtureDocuments = Partial<Record<PublicationKind, readonly unknown[]>>
+
+/**
+ * The Character's prepared rules context over in-memory content snapshot objects, with no
+ * persistence: the same preparation the Convex and Worker paths run behind their readers.
+ */
+async function prepareFixtureContext(character: CharacterAuthored, documents: FixtureDocuments) {
+  const readers = createSnapshotReaders(scopeObjects(documents))
+  const ruleContext = await prepareCharacterRuleContext(character, system, undefined, readers)
+  return prepareActiveCharacterBuilderContext(character, ruleContext, async () => [])
+}
+
+/** The Builder's reconciled Character and resolution for `character` over the fixture documents. */
+export async function prepareFixtureBuilder(input: {
+  character: CharacterAuthored
+  documents: FixtureDocuments
+  current?: CharacterAuthored | null
+}) {
+  const current = input.current ?? null
+  return prepareCharacterBuilderFromContext({
+    character: input.character,
+    current,
+    mode: current ? 'edit' : 'create',
+    context: await prepareFixtureContext(input.character, input.documents)
+  })
+}
+
+/** The Sheet and rule evaluation of a ready `character` over the fixture documents. */
+export async function prepareFixtureSheet(input: {
+  character: CharacterAuthored
+  documents: FixtureDocuments
+  resourceUsage?: readonly Pick<CharacterResourceUsage, 'owner' | 'used'>[]
+}) {
+  const { character } = input
+  const context = await prepareFixtureContext(character, input.documents)
+  const timestamp = new Date(0).toISOString()
+  const sheetState = characterSheetStateSchema.parse({
+    adjustments: [],
+    movementDisplayPreference: { mode: 'AUTO' },
+    partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY,
+    resourceUsage: (input.resourceUsage ?? []).map((usage) => ({
+      id: crypto.randomUUID(),
+      characterId: character.id,
+      createdBy: character.userId,
+      updatedBy: character.userId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      ...usage
+    }))
+  })
+  const prepared = await prepareCharacterSheetFromContext({
+    character,
+    context,
+    sheetState,
+    campaignContext: {
+      viewer: 'CHARACTER_OWNER',
+      campaignId: null,
+      campaignStatus: null,
+      contentMaturity: null,
+      attunementSlotOverride: null,
+      adjustments: [],
+      secretAdjustmentIds: new Set(),
+      conditions: []
+    }
+  })
+  const { sheet } = projectCharacterSheetBundle({
+    character: prepared.prepared.character,
+    resolution: prepared.prepared.resolution,
+    streamVersion: 1,
+    adjustments: prepared.adjustments,
+    creaturesById: prepared.prepared.context.creaturesById,
+    vehiclesById: prepared.prepared.context.vehiclesById,
+    ruleEvaluation: prepared.ruleEvaluation,
+    activeEffects: []
+  })
+  return { ...prepared, sheet }
+}

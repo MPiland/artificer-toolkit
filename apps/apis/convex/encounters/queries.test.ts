@@ -252,6 +252,7 @@ describe('native Encounter reads', () => {
       manualOrder: null,
       conditions: ownerCreature!.conditions,
       defeated: false,
+      outOfInitiative: false,
       controllerUserIds: [],
       disposition: 'HOSTILE',
       // Hidden by default (ADR 0034 decision 5).

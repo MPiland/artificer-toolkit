@@ -112,6 +112,8 @@ export const updateEncounterActorInputDtoSchema = lazySchema(() =>
     disposition: z.optional(encounterActorDispositionDtoSchema),
     /** GM-only override of the Encounter health display default for an enemy or NPC; null clears it. */
     healthDisplay: z.optional(z.nullable(healthDisplayLevelDtoSchema)),
+    /** GM-only: returns a Character taken out of initiative (D82) to its place in the round. */
+    returnToInitiative: z.optional(z.literal(true)),
     characterCommand: z.optional(characterSheetCommandInputDtoSchema)
   })
 )

@@ -61,7 +61,7 @@ Held direct Convex play/preferences/rest writes refuse. Outside Builder/structur
 entire acknowledged play row, stream clock and stats; Builder commit returns the actual persisted
 play/version. At the next room command boundary, changed Builder inputs reconcile hit dice/usage,
 filter equipped/attuned IDs against prepared inventory while preserving valid order, and
-clamp HP only when the newly evaluated Character-only maximum falls below the prior native maximum.
+clamp current HP to the newly evaluated maximum whenever it is above it.
 Canonical source-loss reconciliation already removes vanished inventory IDs, but held writes retain
 native play until this room cleanup. All reconciliation joins one native transaction and advances
 the play clock only on changed state. Existing SQLite commit/rollback/eviction/warm source checks

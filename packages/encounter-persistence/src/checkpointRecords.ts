@@ -9,7 +9,7 @@ import {
 } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 
-/** Canonical checkpoint values decode stored JSON and exclude the Convex-only play clock. */
+/** Canonical checkpoint values decode stored JSON; Character play carries the room's play clock. */
 export function decodeCheckpointRecord(
   table: keyof EncounterStoreDocuments,
   fields: Record<string, unknown>
@@ -17,8 +17,7 @@ export function decodeCheckpointRecord(
   const validated = encounterStoreSchemas[table].parse(fields)
   const decoded = Object.fromEntries(
     Object.entries(validated).flatMap(([field, value]) => {
-      if (value === undefined || (table === 'characterPlayStates' && field === 'streamVersion'))
-        return []
+      if (value === undefined) return []
       if (field.endsWith('Json') && value !== null) {
         if (typeof value !== 'string') throw new Error(`Invalid stored JSON ${table}.${field}.`)
         return [[field, canonicalJsonValueSchema.parse(JSON.parse(value))]]
@@ -29,7 +28,7 @@ export function decodeCheckpointRecord(
   return canonicalJsonRecordSchema.parse(JSON.parse(canonicalizeJson(decoded)))
 }
 
-/** Restores storage JSON fields; the caller supplies Convex's play clock before validation. */
+/** Restores storage JSON fields before validating the complete stored shape. */
 export function encodeCheckpointRecord<Table extends keyof EncounterStoreDocuments>(
   table: Table,
   fields: Record<string, JsonValue>

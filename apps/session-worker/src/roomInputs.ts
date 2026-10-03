@@ -839,18 +839,6 @@ export class RoomInputs {
     return { definition: entry.definition, sourceKind: entry.sourceKind }
   }
 
-  /** The captured Builder base; its play values are for reload comparison, never current gameplay. */
-  characterBuilderSnapshot(characterId: string, transaction?: RoomTransaction) {
-    const key = cacheKey({ kind: 'CHARACTER', characterId })
-    const held = transaction
-      ? transaction.record(CACHE_KIND, key)
-      : this.#store.record(CACHE_KIND, key)
-    return held
-      ? (expectAssigned(liveRoomCharacterPartSchema.parse(JSON.parse(held.json))).inputs?.owner ??
-          null)
-      : null
-  }
-
   /** Checks the authorized Builder/content revision without reading or changing play state. */
   characterIsCurrent(
     characterId: string,

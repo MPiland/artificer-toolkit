@@ -7,8 +7,8 @@ import { encounterWriteTransaction } from '../encounters/encounterPorts'
 /**
  * Convex regains the Campaign's open Runs at room release, including any the room never hydrated
  * this epoch, so it applies the departures it skipped under live authority (D74) against current
- * membership and assignment. Actors of Characters that no longer exist go first; the rest freeze
- * from their play records.
+ * membership and assignment. Actors whose assignment is gone freeze from their play records first;
+ * actors of Characters that no longer exist are then removed, as the removal projects every actor.
  */
 export async function reconcileOpenRunsAtRelease(ctx: MutationCtx, campaignId: string) {
   const campaign = await ctx.db
@@ -32,12 +32,8 @@ export async function reconcileOpenRunsAtRelease(ctx: MutationCtx, campaignId: s
   const memberIds = new Set(memberships.map((member) => member.userId))
   const assigned = new Set(assignments.map((assignment) => assignment.characterId))
   const transaction = encounterWriteTransaction(ctx)
-  await removeMissingCharacterActors(
-    transaction,
-    campaign,
-    campaign.ownerUserId,
-    async (characterId) => !(await transaction.ports.readCharacterRow(characterId))
-  )
+  const isMissing = async (characterId: string) =>
+    !(await transaction.ports.readCharacterRow(characterId))
   for (const status of ['PREPARED', 'ACTIVE'] as const)
     for (const run of await ctx.db
       .query('encounterRuns')
@@ -45,6 +41,8 @@ export async function reconcileOpenRunsAtRelease(ctx: MutationCtx, campaignId: s
       .collect())
       await reconcileRunActorDepartures(transaction, readRunState(run), {
         isDeparted: (userId) => !memberIds.has(userId),
-        isUnassigned: (characterId) => !assigned.has(characterId)
+        isUnassigned: (characterId) => !assigned.has(characterId),
+        isMissing
       })
+  await removeMissingCharacterActors(transaction, campaign, campaign.ownerUserId, isMissing)
 }

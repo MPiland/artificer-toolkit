@@ -17,9 +17,26 @@ export function isEncounterActorDefeated(actor: DefeatableActor): boolean {
   return actor.kind !== 'CHARACTER' && actor.defeated
 }
 
-/** The actors whose turns initiative skips (D63). */
+/** The actors that are defeated (D63). */
 export function defeatedEncounterActorIds(
   actors: readonly (DefeatableActor & { id: string })[]
 ): ReadonlySet<string> {
   return new Set(actors.filter(isEncounterActorDefeated).map((actor) => actor.id))
+}
+
+/**
+ * The actors whose turns initiative skips: the defeated (D63) and the Characters the GM took out of
+ * initiative (D82). Both keep their place in the round.
+ */
+export function skippedEncounterActorIds(
+  actors: readonly ({ id: string } & (
+    | { kind: 'CHARACTER'; outOfInitiative: boolean }
+    | { kind: 'CREATURE' | 'CUSTOM'; defeated: boolean }
+  ))[]
+): ReadonlySet<string> {
+  return new Set(
+    actors
+      .filter((actor) => (actor.kind === 'CHARACTER' ? actor.outOfInitiative : actor.defeated))
+      .map((actor) => actor.id)
+  )
 }

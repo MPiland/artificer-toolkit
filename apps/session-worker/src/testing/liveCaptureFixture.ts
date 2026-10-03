@@ -174,6 +174,7 @@ export function runActor(input: { id: string; characterId?: string }): Encounter
           kind: 'CHARACTER',
           sourceId: input.characterId,
           frozenState: null,
+          outOfInitiative: false,
           disposition: 'FRIENDLY'
         }
       : {

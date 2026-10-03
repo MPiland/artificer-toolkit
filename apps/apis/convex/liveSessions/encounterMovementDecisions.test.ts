@@ -242,8 +242,13 @@ it.each([
       sourceActor && encounterRuleUsageUsed(sourceActor, reaction.allowance.definitionId)
     ).toBe(reaction.allowance.afterUsed)
     expect(targetActor?.kind).toBe('CHARACTER')
+    // The room's play clock travels in the checkpoint: it advances once per Character state change
+    // (the reaction hit, the Concentration owner transition and each spatial hit).
     expect(committed.character?.play.streamVersion).toBe(
-      before.character!.play.streamVersion + 1
+      before.character!.play.streamVersion +
+        1 +
+        concentration.ownerTransitions.length +
+        spatial.length
     )
     const priorCharacterReceiptIds = new Set(before.characterReceipts.map((entry) => entry.id))
     const movementCharacterReceipts = committed.characterReceipts.filter(

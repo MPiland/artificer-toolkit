@@ -2,7 +2,10 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   encounterStoredRunCommandSchema,
   encounterStoredRuleOccurrenceSchema,
@@ -14,7 +17,13 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import type { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { changedFields, deleteRunActor, readRunActors, readRunState } from './documents.js'
+import {
+  changedFields,
+  deleteRunActor,
+  readRunActors,
+  readRunState,
+  writeRunActor
+} from './documents.js'
 import {
   encounterReplayReceipt,
   readEncounterReplayReceipt,
@@ -239,11 +248,12 @@ async function removeEncounterActorCore(
       rejectDomain('COMMAND_ID_REUSED')
     const replayReceipt = readEncounterReplayReceipt(prior)
     const state = readRunState(row)
+    // A Character the GM took out of initiative (D82) stays in the Run; any other removal deletes it.
+    const keptActor = state.actorIds.includes(input.actorId)
     if (
       checksumCanonicalJson(JSON.parse(prior.commandJson)) !== fingerprint ||
       prior.version !== input.expectedVersion + 1 ||
       prior.version > row.version ||
-      state.actorIds.includes(input.actorId) ||
       replayReceipt.roll !== null ||
       replayReceipt.occurrence !== null
     )
@@ -257,7 +267,8 @@ async function removeEncounterActorCore(
       if (
         checksumCanonicalJson(initiative) !== prior.initiativeStateChecksum ||
         initiative.round.encounterId !== row.id ||
-        initiative.participants.some((participant) => participant.actorId === input.actorId)
+        initiative.participants.some((participant) => participant.actorId === input.actorId) !==
+          keptActor
       )
         throw new Error('Stored actor removal initiative receipt mismatch.')
     }
@@ -327,12 +338,24 @@ async function removeEncounterActorCore(
   const removed = actors.find((actor) => actor.id === input.actorId)
   if (!removed) throw new Error('Encounter actor was not found.')
   if (mode === 'ACCOUNT_CLEANUP') await requireOwnedCharacterActor(ctx, removed, userId)
+  // D82: a GM removal mid-Run never changes a Character the room holds; it only leaves initiative.
+  const outOfInitiativeCharacter =
+    mode === 'PUBLIC' &&
+    row.status === 'ACTIVE' &&
+    removed.kind === 'CHARACTER' &&
+    !removed.frozenState
+      ? removed
+      : null
+  if (outOfInitiativeCharacter?.outOfInitiative)
+    throw new Error('Encounter Character is already out of initiative.')
   const pendingRows = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', row.id).eq('state', 'PENDING'))
     .take(2)
   if (pendingRows.length > 1) throw new Error('Encounter has multiple pending occurrences.')
   const pending = pendingRows[0] ?? null
+  if (outOfInitiativeCharacter && pending)
+    throw new Error('Resolve the pending Encounter occurrence before removing this actor.')
   let concentrationState:
     | ReturnType<
         typeof encounterConcentrationDamageCheckPendingContextDtoSchema.parse
@@ -368,11 +391,13 @@ async function removeEncounterActorCore(
   }
   const now = new Date().toISOString()
   const version = row.version + 1
-  const cleanup = await cleanupRemovedActorEffects(ctx, {
-    state,
-    actorId: input.actorId,
-    occurredAt: now
-  })
+  const cleanup = outOfInitiativeCharacter
+    ? null
+    : await cleanupRemovedActorEffects(ctx, {
+        state,
+        actorId: input.actorId,
+        occurredAt: now
+      })
   if (
     concentrationState !== null &&
     !cleanup?.terminatedStates.some(
@@ -386,20 +411,38 @@ async function removeEncounterActorCore(
   )
     throw new Error('Pending concentration cleanup did not terminate its maintained state.')
 
-  const initiative = await removeActorInitiative(ctx, state, input.actorId, now)
+  const initiative = await removeActorInitiative(
+    ctx,
+    state,
+    input.actorId,
+    now,
+    outOfInitiativeCharacter !== null
+  )
   const actorRow = await ctx.db
     .query('encounterRunActors')
     .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', input.actorId))
     .unique()
   if (!actorRow) throw new Error('Encounter actor was not found.')
-  await deleteRunActor(ctx, actorRow)
-  const binding = await ctx.db
-    .query('encounterActorTokenBindings')
-    .withIndex('by_encounterId_actorId', (q) =>
-      q.eq('encounterId', row.id).eq('actorId', input.actorId)
+  if (outOfInitiativeCharacter)
+    await writeRunActor(
+      ctx,
+      actorRow._id,
+      encounterRunActorStateSchema.parse({
+        ...outOfInitiativeCharacter,
+        outOfInitiative: true,
+        updatedAt: now
+      })
     )
-    .unique()
-  if (binding) await ctx.db.delete(binding._id)
+  else {
+    await deleteRunActor(ctx, actorRow)
+    const binding = await ctx.db
+      .query('encounterActorTokenBindings')
+      .withIndex('by_encounterId_actorId', (q) =>
+        q.eq('encounterId', row.id).eq('actorId', input.actorId)
+      )
+      .unique()
+    if (binding) await ctx.db.delete(binding._id)
+  }
 
   const maintenance =
     cleanup ??
@@ -468,14 +511,17 @@ async function removeEncounterActorCore(
     )
   }
   const currentActorId = state.currentActorId === input.actorId ? null : state.currentActorId
-  const reminders = state.reminders.filter((reminder) => reminder.actorId !== input.actorId)
   const nextState = encounterRunStateSchema.parse({
     ...state,
-    actorIds: state.actorIds.filter((id) => id !== input.actorId),
+    actorIds: outOfInitiativeCharacter
+      ? state.actorIds
+      : state.actorIds.filter((id) => id !== input.actorId),
     currentActorId,
     turnSequence:
       currentActorId === state.currentActorId ? state.turnSequence : state.turnSequence + 1,
-    reminders,
+    reminders: outOfInitiativeCharacter
+      ? state.reminders
+      : state.reminders.filter((reminder) => reminder.actorId !== input.actorId),
     version,
     updatedAt: now
   })

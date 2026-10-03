@@ -181,7 +181,8 @@ export function projectEncounterActorFacts(
         ...shown,
         kind: actor.kind,
         sourceId: actor.sourceId,
-        frozenState: actor.frozenState
+        frozenState: actor.frozenState,
+        outOfInitiative: actor.outOfInitiative
       }),
       source: null
     }
@@ -331,6 +332,7 @@ export function projectGmFacts(
         tempHitPoints: current.temporary,
         conditions: current.conditions,
         defeated: isEncounterActorDefeated(actor),
+        outOfInitiative: actor.kind === 'CHARACTER' && actor.outOfInitiative,
         resources: actor.resources,
         gmNotes: actor.gmNotes,
         statBlock: source?.statBlock ?? null,

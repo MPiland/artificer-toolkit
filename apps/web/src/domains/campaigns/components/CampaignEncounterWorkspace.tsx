@@ -378,9 +378,11 @@ export function CampaignEncounterWorkspace({
                     ) : null}
                   </Group>
                   <Text c='dimmed' size='sm'>
-                    {actor.initiative === null
-                      ? 'Initiative not set'
-                      : `Initiative ${actor.initiative}`}{' '}
+                    {actor.outOfInitiative
+                      ? 'Out of initiative'
+                      : actor.initiative === null
+                        ? 'Initiative not set'
+                        : `Initiative ${actor.initiative}`}{' '}
                     · {actor.kind === 'CHARACTER' ? 'Character' : 'Enemy'}
                   </Text>
                 </Group>
@@ -448,6 +450,23 @@ export function CampaignEncounterWorkspace({
                     <IconTrash aria-hidden size={17} />
                   </ActionIcon>
                 </Tooltip>
+              ) : null}
+              {actor.outOfInitiative && !readOnly ? (
+                <Button
+                  disabled={commandBlocked}
+                  mr='sm'
+                  size='compact-sm'
+                  variant='default'
+                  onClick={() =>
+                    commandWithVersion({
+                      type: 'UPDATE_ACTOR',
+                      actorId: actor.id,
+                      returnToInitiative: true
+                    })
+                  }
+                >
+                  Return to initiative
+                </Button>
               ) : null}
             </Group>
             <Accordion.Panel>

@@ -51,21 +51,12 @@ describe('checkpoint record decoding', () => {
     expect(fields).toEqual(original)
   })
 
-  it('excludes only the Character play stream version, retaining play content and its other metadata', () => {
+  it('carries the Character play stream version with its content and other metadata', () => {
     const decoded = decodeCheckpointRecord('characterPlayStates', play)
-    const { streamVersion, ...content } = play
-    expect(streamVersion).toBe(7)
-    expect(decoded).toEqual(content)
-    expect(Object.hasOwn(decoded, 'streamVersion')).toBe(false)
-    expect(decodeCheckpointRecord('characterPlayStates', { ...play, streamVersion: 20 })).toEqual(
-      decoded
-    )
-    const changed = decodeCheckpointRecord('characterPlayStates', {
-      ...play,
-      streamVersion: 20,
-      state: { ...play.state, hitpoints: { ...play.state.hitpoints, current: 7 } }
-    })
-    expect(checksumCanonicalJson(changed)).not.toBe(checksumCanonicalJson(decoded))
+    expect(decoded).toEqual(play)
+    const advanced = decodeCheckpointRecord('characterPlayStates', { ...play, streamVersion: 20 })
+    expect(advanced.streamVersion).toBe(20)
+    expect(checksumCanonicalJson(advanced)).not.toBe(checksumCanonicalJson(decoded))
     for (const metadata of [
       { maximumHitPoints: 11 },
       { walkingSpeed: 35 },
@@ -78,7 +69,9 @@ describe('checkpoint record decoding', () => {
     expect(() =>
       decodeCheckpointRecord('characterPlayStates', { ...play, streamVersion: -1 })
     ).toThrow()
-    expect(() => decodeCheckpointRecord('characterPlayStates', content)).toThrow()
+    expect(() =>
+      decodeCheckpointRecord('characterPlayStates', { ...play, streamVersion: undefined })
+    ).toThrow()
   })
 
   it('omits undefined optional fields and preserves explicit nulls', () => {

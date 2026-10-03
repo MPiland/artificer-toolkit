@@ -8,6 +8,8 @@ import {
   type ResolveRuleOccurrenceInputDto,
   type VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { characterSheetCommandResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import {
@@ -36,6 +38,7 @@ import {
   readSpatialPreparation
 } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { readRoomAuthorization } from '../../convex/liveSessions/roomAuthorization'
+import { claimCampaignLiveAuthority } from '../../convex/liveSessions/authority'
 import { releaseCharacterHolds } from '../../convex/liveSessions/characterHolds'
 import { installContentSnapshots } from './roomContentSnapshots'
 import {
@@ -57,6 +60,11 @@ import {
   readRoomEncounterResponseRoute,
   roomOwnsEncounterVoid
 } from '../../../session-worker/src/roomEncounterResponseRouting'
+import { executeRoomCharacterSheetCommand } from '../../../session-worker/src/roomCharacterSheetCommands'
+import {
+  readRoomActorDepartures,
+  reconcileRoomActorDepartures
+} from '../../../session-worker/src/roomActorReconcile'
 import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
 import { RoomInputs } from '../../../session-worker/src/roomInputs'
 import { RoomCheckpoints } from '../../../session-worker/src/roomCheckpoints'
@@ -616,6 +624,108 @@ export async function executeInRoom(
 }
 
 /**
+ * Sends one live Character Sheet command to the room as a member (see `asRoomMember`), as the Session
+ * room commits it: a fresh room, `executeRoomCharacterSheetCommand` in one room transaction with no
+ * HTTP, then the room's checkpoint published before this returns. A Sheet or room refusal reaches
+ * the member as the room reports it.
+ */
+export function executeSheetInRoom(
+  caller: MemberCaller,
+  command: Extract<LiveSessionCommandDto, { scope: 'CHARACTER_SHEET' }>
+) {
+  return asRoomMember(caller, command.encounterId, async (actor) => {
+    // As the room does, a reused command ID is answered from its journal before any execution.
+    const journalKey = `${actor.campaignId}:${command.command.commandId}`
+    const fingerprint = JSON.stringify(command)
+    const prior = roomJournal.get(journalKey)
+    if (prior) {
+      if (prior.userId !== actor.expectedUserId || prior.fingerprint !== fingerprint)
+        throw roomRefusal('INVALID_COMMAND', 'The command ID was already used for different input.')
+      if (prior.resultJson === null)
+        throw roomRefusal('STALE_STATE', 'This decision was already settled.')
+      return characterSheetCommandResponseDtoSchema.parse(JSON.parse(prior.resultJson))
+    }
+    const room = await openRoom(caller, actor, command.encounterId.toLowerCase())
+    try {
+      const { store, inputs, authorization } = room
+      const { acknowledgement } = await withoutHttp(async () => {
+        await room.hydrate()
+        return store.transact(
+          (transaction) =>
+            executeRoomCharacterSheetCommand({
+              store,
+              transaction,
+              inputs,
+              authorization,
+              campaignId: actor.campaignId,
+              epoch: actor.authorityEpoch,
+              userId: actor.expectedUserId,
+              command
+            }),
+          // As the room does, every command commits one journal entry with its receipt.
+          () => undefined
+        )
+      }).catch((error: unknown) => {
+        if (error instanceof CharacterSheetCommandError || error instanceof RoomCommandRefusal)
+          throw error
+        throw domainRejection(error) ?? new RoomCommandRefusal(error)
+      })
+      roomJournal.set(journalKey, {
+        userId: actor.expectedUserId,
+        fingerprint,
+        resultJson: JSON.stringify(acknowledgement)
+      })
+      await withoutHttp(room.flush)
+      return acknowledgement
+    } finally {
+      room.close()
+    }
+  })
+}
+
+/**
+ * The room's own departure reconcile for `encounterId`'s Campaign (D74), run as the Session room
+ * runs it when its authorization reloads: hydrated, deleted Characters read fresh, one room
+ * transaction, then the checkpoint published. `caller` only supplies the room's Convex identity
+ * and must be a Campaign member. Returns the departures it reconciled, or null when no open Run
+ * named one and nothing was written.
+ */
+export function reconcileDeparturesInRoom(caller: MemberCaller, encounterId: string) {
+  return asRoomMember(caller, encounterId, async (actor) => {
+    const room = await openRoom(caller, actor, encounterId.toLowerCase())
+    try {
+      const { store, inputs, authorization } = room
+      const departures = await withoutHttp(async () => {
+        await room.hydrate()
+        const found = await readRoomActorDepartures(store, authorization)
+        if (!found) return null
+        const deletedCharacterIds = found.unassignedCharacterIds.length
+          ? await inputs.deletedCharacterIds(found.unassignedCharacterIds)
+          : new Set<string>()
+        await store.transact(
+          (transaction) =>
+            reconcileRoomActorDepartures({
+              store,
+              transaction,
+              inputs,
+              authorization,
+              campaignId: actor.campaignId,
+              epoch: actor.authorityEpoch,
+              deletedCharacterIds
+            }),
+          () => undefined
+        )
+        return found
+      })
+      if (departures) await withoutHttp(room.flush)
+      return departures
+    } finally {
+      room.close()
+    }
+  })
+}
+
+/**
  * Retries a settled command as a lost acknowledgement's retry reaches the room: a fresh room
  * hydrated from the Encounter documents must return the stored result without rolling.
  */
@@ -803,6 +913,25 @@ export function inProcessDevelopmentClient(caller: MemberCaller): DevelopmentCli
           ) as Promise<FunctionReturnType<Reference>>)
         : caller.run((ctx) => ctx.runMutation(reference, ...args))
   }
+}
+
+/**
+ * Claims and activates the Campaign's live authority as its owner, so the room holds every open
+ * Run's Characters as a running table does: Convex refuses their play until the room releases
+ * them, and the room fixtures above reuse this authority instead of creating a temporary one.
+ */
+export function claimActiveLiveAuthority(
+  t: TestConvex<typeof schema>,
+  input: { campaignId: string; userId: string }
+) {
+  return t.run(async (ctx) => {
+    const { authority } = await claimCampaignLiveAuthority(ctx, {
+      ...input,
+      expiresAt: Date.now() + 60_000
+    })
+    await ctx.db.patch(authority._id, { phase: 'DO_ACTIVE' })
+    return authority
+  })
 }
 
 export function insertActiveLiveAuthority(

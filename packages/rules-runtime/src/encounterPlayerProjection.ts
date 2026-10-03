@@ -116,6 +116,7 @@ export function projectPlayerEncounterProjection(
           manualOrder: actor.manualOrder,
           conditions: actor.conditions,
           defeated: actor.defeated,
+          outOfInitiative: actor.outOfInitiative,
           health: playerActorHealth(level, actor.currentHitPoints, actor.maxHitPoints)
         }
       }),

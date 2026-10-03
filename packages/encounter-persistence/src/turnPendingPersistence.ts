@@ -12,7 +12,7 @@ import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rul
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
-import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { changedFields, readRunActors } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
@@ -136,7 +136,7 @@ export async function persistEncounterTurnPending(
       !isSettledEncounterInitiativeAdvance({
         state: normalized,
         currentActorId: state.currentActorId,
-        defeatedActorIds: defeatedEncounterActorIds(actors),
+        defeatedActorIds: skippedEncounterActorIds(actors),
         plan: advance
       })
     )

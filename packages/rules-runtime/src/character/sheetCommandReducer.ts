@@ -764,8 +764,9 @@ export function applyCharacterSheetCommand(
         const absorbed = Math.min(currentTemp, command.amount)
         const remainingDamage = command.amount - absorbed
         next.state.hitpoints.temp = Math.max(currentTemp - absorbed, 0)
+        // Damage lands on the effective maximum when current HP stands above it.
         next.state.hitpoints.current = clamp(
-          next.state.hitpoints.current - remainingDamage,
+          Math.min(next.state.hitpoints.current, maxHitPoints) - remainingDamage,
           0,
           maxHitPoints
         )

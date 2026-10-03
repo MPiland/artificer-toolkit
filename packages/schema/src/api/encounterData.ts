@@ -86,7 +86,13 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
      * no turns, actions or reactions until it regains hit points. Always false for a Character, which
      * falls unconscious and dying instead.
      */
-    defeated: z.boolean()
+    defeated: z.boolean(),
+    /**
+     * A Character the GM took out of initiative mid-Run (D82): it keeps its place in the Run, its
+     * Sheet play and what the Run applied to it, but initiative skips its turns until the GM returns
+     * it. Always false for a Creature or custom actor.
+     */
+    outOfInitiative: z.boolean()
   })
 )
 

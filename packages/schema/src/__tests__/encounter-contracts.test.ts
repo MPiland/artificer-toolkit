@@ -570,7 +570,8 @@ describe('encounter contracts', () => {
           initiative: 12,
           manualOrder: null,
           conditions: [],
-          defeated: false
+          defeated: false,
+          outOfInitiative: false
         }
       ],
       createdAt: '2026-08-07T00:00:00.000Z',
@@ -616,6 +617,7 @@ describe('encounter contracts', () => {
             maxHitPoints: 7,
             tempHitPoints: 0,
             defeated: false,
+            outOfInitiative: false,
             resources: {},
             gmNotes: 'Hidden',
             statBlock: null,
@@ -655,6 +657,7 @@ describe('encounter contracts', () => {
             maxHitPoints: 7,
             tempHitPoints: 0,
             defeated: false,
+            outOfInitiative: false,
             resources: {},
             gmNotes: null,
             statBlock: null,

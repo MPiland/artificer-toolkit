@@ -8,11 +8,16 @@ import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import type { EncounterWriteContext } from './store.js'
 
+/**
+ * Takes the actor out of initiative. `keepsActor` (D82) leaves its participant rows and place: only
+ * ending its turn resets the round's cursor, as removal of the current actor does.
+ */
 export async function removeActorInitiative(
   ctx: EncounterWriteContext,
   state: EncounterRunState,
   actorId: string,
-  occurredAt: string
+  occurredAt: string,
+  keepsActor: boolean
 ): Promise<EncounterInitiativeRoundStateDto | null> {
   const current = await createEncounterInitiativeStore(ctx).lockInitiativeRound({
     encounterId: state.id,
@@ -34,18 +39,19 @@ export async function removeActorInitiative(
     })
   }
 
-  // Match actor ownership across historical rounds without loading their other participants.
-  for await (const row of ctx.db
-    .query('encounterInitiativeParticipants')
-    .withIndex('by_encounterId_actorId_round', (q) =>
-      q.eq('encounterId', state.id).eq('actorId', actorId)
-    ))
-    await ctx.db.delete(row._id)
-  if (current === null) return null
+  if (!keepsActor)
+    // Match actor ownership across historical rounds without loading their other participants.
+    for await (const row of ctx.db
+      .query('encounterInitiativeParticipants')
+      .withIndex('by_encounterId_actorId_round', (q) =>
+        q.eq('encounterId', state.id).eq('actorId', actorId)
+      ))
+      await ctx.db.delete(row._id)
+  if (current === null || (keepsActor && state.currentActorId !== actorId)) return null
 
   const currentActorId = state.currentActorId === actorId ? null : state.currentActorId
   const ordered = current.participants
-    .filter((participant) => participant.actorId !== actorId)
+    .filter((participant) => keepsActor || participant.actorId !== actorId)
     .sort((a, b) => a.turnOrderOrdinal! - b.turnOrderOrdinal!)
   const activeIndex = ordered.findIndex((participant) => participant.actorId === currentActorId)
   const participants = ordered.map((participant, index) => ({
@@ -95,7 +101,7 @@ export async function removeActorInitiative(
   validateInitiativeCursor({
     state: result,
     currentActorId,
-    actorIds: state.actorIds.filter((id) => id !== actorId),
+    actorIds: keepsActor ? state.actorIds : state.actorIds.filter((id) => id !== actorId),
     allowedSideIds: state.sides.map((side) => side.id)
   })
   const round = await ctx.db

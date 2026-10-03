@@ -39,6 +39,7 @@ function gmActor(id: string, visible: boolean) {
     maxHitPoints: 7,
     tempHitPoints: 0,
     defeated: false,
+    outOfInitiative: false,
     resources: {},
     gmNotes: 'GM only',
     statBlock: null,

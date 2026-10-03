@@ -7,12 +7,8 @@ import {
   createPlatformRulesRuntime,
   requireInstalledGameSystemRuleCapability
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import type {
-  ActiveRuleEffectDefinitionDto,
-  ActiveRuleEffectLifecycleDto,
-  EncounterMaintainedEffectDescriptorDto
-} from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { definition, descriptor, lifecycle } from '../../tests/fixtures/maintainedEffects'
 
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
@@ -25,68 +21,6 @@ import {
 } from '../../tests/fixtures/liveSessionWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 import { readCharacterRow } from '../characters/stateDocuments'
-
-const lifecycle: ActiveRuleEffectLifecycleDto = { schemaVersion: 1, remainingTicks: 3 }
-type EmptyPolicy = 'V1' | 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
-
-function definition(encounterId: string, sourceActorId: string): ActiveRuleEffectDefinitionDto {
-  const sourceOccurrenceId = crypto.randomUUID()
-  const rootCommandId = crypto.randomUUID()
-  const authoredEffectId = crypto.randomUUID()
-  const compiledEntryId = crypto.randomUUID()
-  return {
-    schemaVersion: 1,
-    origin: {
-      kind: 'ENCOUNTER',
-      sourceAggregateId: encounterId,
-      sourceOccurrenceId,
-      rootCommandId,
-      sourceActorId
-    },
-    authoredEffectId,
-    compiledEntryId,
-    frozenGraphNodeId: 'entry',
-    frozenGraph: {
-      schemaVersion: 1,
-      source: {
-        definitionId: authoredEffectId,
-        gameSystemId: crypto.randomUUID(),
-        definitionFamilyKey: 'effect',
-        checksum: 'a'.repeat(64)
-      },
-      capabilityContractVersion: 1,
-      factContracts: [],
-      nodes: [{ id: 'entry', operation: { key: 'comparison', contractVersion: 1 }, inputs: {} }],
-      sourceEntryBindings: [{ sourceEntryId: compiledEntryId, nodeId: 'entry' }],
-      outputs: { result: { kind: 'LITERAL', value: true } }
-    },
-    adapterFacts: {},
-    perceptionContributions: [],
-    recurrence: {
-      recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
-      endOnEvents: [],
-      lifetimeScope: 'ENCOUNTER',
-      expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
-    }
-  }
-}
-
-function descriptor(
-  sourceActorId: string,
-  policy: EmptyPolicy
-): EncounterMaintainedEffectDescriptorDto {
-  const base = {
-    maintenanceDefinitionId: crypto.randomUUID(),
-    definitionChecksum: 'b'.repeat(64),
-    sourceActionId: crypto.randomUUID(),
-    sourceOccurrenceId: crypto.randomUUID(),
-    sourceActorId,
-    replacementPolicy: 'REPLACE_SAME_DEFINITION' as const
-  }
-  if (policy === 'V1') return { ...base, schemaVersion: 1 }
-  return { ...base, schemaVersion: 2, emptyDependentPolicy: policy }
-}
 
 async function runState(fixture: Awaited<ReturnType<typeof setupCharacterRun>>) {
   return fixture.t.run(async (ctx) => {
@@ -127,7 +61,9 @@ describe('native actor maintained-effect cleanup', () => {
       const characterEffectId = crypto.randomUUID()
       const actorEffectId = crypto.randomUUID()
       await fixture.t.run(async (ctx) => {
-        const effects = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+        const effects = createActiveRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        })
         await effects.createMaintainedState({
           id: stateId,
           encounterId: state.id,
@@ -164,7 +100,10 @@ describe('native actor maintained-effect cleanup', () => {
       const removed = await executeInRoom(fixture.owner.caller, { command })
       expect(
         removed.projection.actors.find((actor) => actor.id === fixture.actor.id)
-      ).toMatchObject({ sourceRevision: null, currentHitPoints: fixture.actor.currentHitPoints })
+      ).toMatchObject({
+        sourceRevision: null,
+        currentHitPoints: fixture.actor.currentHitPoints
+      })
       const result = await fixture.t.run(async (ctx) => {
         const receipt = await ctx.db
           .query('encounterRuleReceipts')
@@ -181,8 +120,16 @@ describe('native actor maintained-effect cleanup', () => {
       expect(result).toMatchObject({
         terminatedStates: [{ id: stateId, ownerActorId: removedActor.id, expectedVersion: 1 }],
         removedEffects: [
-          { activeEffectId: characterEffectId, kind: 'CHARACTER', ownerId: fixture.character.id },
-          { activeEffectId: actorEffectId, kind: 'ENCOUNTER_ACTOR', ownerId: fixture.actor.id }
+          {
+            activeEffectId: characterEffectId,
+            kind: 'CHARACTER',
+            ownerId: fixture.character.id
+          },
+          {
+            activeEffectId: actorEffectId,
+            kind: 'ENCOUNTER_ACTOR',
+            ownerId: fixture.actor.id
+          }
         ],
         characterOwnerTransitions: [
           {
@@ -227,7 +174,9 @@ describe('native actor maintained-effect cleanup', () => {
     const target = fixture.actor
     const other = fixture.run.actors.find((actor) => actor.id !== target.id)!
     const maintained = await fixture.t.run((ctx) =>
-      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).createMaintainedState({
+      createActiveRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      }).createMaintainedState({
         id: crypto.randomUUID(),
         encounterId: state.id,
         ownerActorId: target.id,
@@ -257,10 +206,15 @@ describe('native actor maintained-effect cleanup', () => {
           {
             id: 'entry',
             operation: { key: 'evidence.integer-range', contractVersion: 1 },
-            inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+            inputs: {
+              min: { kind: 'LITERAL', value: 1 },
+              max: { kind: 'LITERAL', value: 20 }
+            }
           }
         ],
-        outputs: { value: { kind: 'NODE_OUTPUT', nodeId: 'entry', port: 'value' } }
+        outputs: {
+          value: { kind: 'NODE_OUTPUT', nodeId: 'entry', port: 'value' }
+        }
       },
       occurrenceId,
       facts: {}
@@ -306,7 +260,11 @@ describe('native actor maintained-effect cleanup', () => {
           campaignOverlayChecksum: checksum,
           mechanicalContextChecksum: checksum
         },
-        systemVocabularySnapshot: { id: state.gameSystemId, version: 1, checksum },
+        systemVocabularySnapshot: {
+          id: state.gameSystemId,
+          version: 1,
+          checksum
+        },
         contextChecksum: checksum,
         remaining: []
       }
@@ -341,7 +299,9 @@ describe('native actor maintained-effect cleanup', () => {
     }
     const before = await records(fixture)
     await expect(
-      executeInRoom(fixture.owner.caller, { command: { ...command, actorId: other.id } })
+      executeInRoom(fixture.owner.caller, {
+        command: { ...command, actorId: other.id }
+      })
     ).rejects.toThrow(RoomCommandRefusal)
     expect(await records(fixture)).toEqual(before)
     if (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK')
@@ -402,7 +362,9 @@ describe('native actor maintained-effect cleanup', () => {
     const foreignStateId = crypto.randomUUID()
     const effectId = crypto.randomUUID()
     await fixture.t.run(async (ctx) => {
-      const effects = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+      const effects = createActiveRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      })
       await effects.createMaintainedState({
         id: foreignStateId,
         encounterId: state.id,
@@ -411,7 +373,11 @@ describe('native actor maintained-effect cleanup', () => {
       })
       await effects.create({
         id: effectId,
-        owner: { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: removedActor.id },
+        owner: {
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId: state.id,
+          targetActorId: removedActor.id
+        },
         definition: definition(state.id, fixture.actor.id),
         lifecycle,
         maintainedEffectStateId: foreignStateId
@@ -446,7 +412,9 @@ describe('native actor maintained-effect cleanup', () => {
     const foreignStateId = crypto.randomUUID()
     const retainedCharacterEffectId = crypto.randomUUID()
     await fixture.t.run(async (ctx) => {
-      const effects = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+      const effects = createActiveRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      })
       await effects.createMaintainedState({
         id: foreignStateId,
         encounterId: state.id,
@@ -462,7 +430,11 @@ describe('native actor maintained-effect cleanup', () => {
       })
       await effects.create({
         id: crypto.randomUUID(),
-        owner: { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: removedActor.id },
+        owner: {
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId: state.id,
+          targetActorId: removedActor.id
+        },
         definition: definition(state.id, fixture.actor.id),
         lifecycle,
         maintainedEffectStateId: foreignStateId
@@ -476,12 +448,17 @@ describe('native actor maintained-effect cleanup', () => {
         occurredAt: '2026-09-13T00:00:00.000Z'
       })
     )
-    expect(result).toMatchObject({ terminatedStates: [], characterOwnerTransitions: [] })
+    expect(result).toMatchObject({
+      terminatedStates: [],
+      characterOwnerTransitions: []
+    })
     const after = await records(fixture)
     expect(after.character).toEqual(before.character)
     expect(
       await fixture.t.run((ctx) =>
-        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).findById(
+        createActiveRuleEffectStore({
+          db: createConvexEncounterStore(ctx)
+        }).findById(
           { kind: 'CHARACTER', characterId: fixture.character.id },
           retainedCharacterEffectId
         )
@@ -524,7 +501,9 @@ describe('native actor maintained-effect cleanup', () => {
     const state = await runState(fixture)
     const stateId = crypto.randomUUID()
     await fixture.t.run(async (ctx) => {
-      const effects = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+      const effects = createActiveRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      })
       await effects.createMaintainedState({
         id: stateId,
         encounterId: state.id,
@@ -560,7 +539,9 @@ describe('native actor maintained-effect cleanup', () => {
     const state = await runState(fixture)
     const stateId = crypto.randomUUID()
     await fixture.t.run(async (ctx) => {
-      const effects = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+      const effects = createActiveRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      })
       await effects.createMaintainedState({
         id: stateId,
         encounterId: state.id,

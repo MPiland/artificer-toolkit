@@ -11,20 +11,9 @@ import {
   liveRoomCharacterPartSchema,
   liveRoomDefinitionSchema
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  encounterSceneBindingSchema,
-  encounterStoredRunSchema
-} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
-import { insertRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import {
@@ -47,10 +36,14 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { characterPageFixtureFor } from '../src/testing/characterPageFixture.js'
+import { encounterRunFixture } from '../src/testing/encounterRunFixture.js'
 import type { RoomCharacterInputs } from './roomInputsFixture.js'
 
 const NOW = '2026-09-30T00:00:00.000Z'
-const gzipContent = { contentType: 'application/json', contentEncoding: 'gzip' }
+const gzipContent = {
+  contentType: 'application/json',
+  contentEncoding: 'gzip'
+}
 
 // The captured Character's starting-equipment choice; the Background below offers exactly it.
 const GROUP_ID = '3b74a8d0-eb08-47c9-b103-8d3ec46bd283'
@@ -98,7 +91,12 @@ const roots = (() => {
                       id: '00000000-0000-4000-8000-0000000000a4',
                       order: 1,
                       startingEquipmentKind: 'CURRENCY' as const,
-                      currencies: [{ currencyId: fighter.startingGold.currencyId, amount: 15 }]
+                      currencies: [
+                        {
+                          currencyId: fighter.startingGold.currencyId,
+                          amount: 15
+                        }
+                      ]
                     }
                   ]
                 }
@@ -146,7 +144,11 @@ function listSource({
       systemId: publication.document.systemId,
       contentSourceId: SRD_CONTENT_SOURCE.id,
       versionId: uuidV5(
-        canonicalizeRuleDocument({ id: publication.document.id, kind: subjectKind, checksum }),
+        canonicalizeRuleDocument({
+          id: publication.document.id,
+          kind: subjectKind,
+          checksum
+        }),
         uuidV5.URL
       ),
       checksum
@@ -161,7 +163,12 @@ function listSource({
     resolveEquipmentAuthored(club, () => undefined)
   )
   if (!builder) throw new Error('The Equipment option facts have no Builder projection.')
-  return { subjectKind: 'EQUIPMENT', document: publication.document, builder, ...identity }
+  return {
+    subjectKind: 'EQUIPMENT',
+    document: publication.document,
+    builder,
+    ...identity
+  }
 }
 
 const darkvisionSeed = SRD_SENSE_DEFINITIONS.find(({ id }) => id === SRD_DARKVISION_SENSE_ID)!
@@ -202,7 +209,10 @@ async function publishSrdSource(darkvision: boolean): Promise<ContentSnapshotHea
         .filter((root) => root.subjectKind === kind)
         .map((root) =>
           darkvision && root.subjectKind === 'RACE'
-            ? { ...root, document: { ...root.document, features: [darkvisionFeature] } }
+            ? {
+                ...root,
+                document: { ...root.document, features: [darkvisionFeature] }
+              }
             : root
         )
         .map(listSource)
@@ -224,7 +234,13 @@ async function publishSrdSource(darkvision: boolean): Promise<ContentSnapshotHea
       documents: await store('documents')
     }
   }
-  return { scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id, revision: 1, builtRevision: 1, kinds }
+  return {
+    scope: 'SOURCE',
+    scopeId: SRD_CONTENT_SOURCE.id,
+    revision: 1,
+    builtRevision: 1,
+    kinds
+  }
 }
 
 /**
@@ -260,7 +276,13 @@ export async function characterSheetInputsFixture({
     campaign: {
       id: campaignId,
       contentMaturity: 'STANDARD',
-      head: { scope: 'CAMPAIGN', scopeId: campaignId, revision: 0, builtRevision: 0, kinds: {} }
+      head: {
+        scope: 'CAMPAIGN',
+        scopeId: campaignId,
+        revision: 0,
+        builtRevision: 0,
+        kinds: {}
+      }
     }
   }
   const part = liveRoomCharacterPartSchema.parse(
@@ -300,154 +322,30 @@ export async function characterSheetInputsFixture({
     })
   }
 
-  const encounterId = crypto.randomUUID()
-  const sideId = crypto.randomUUID()
-  const actor = encounterRunActorStateSchema.parse({
-    id: crypto.randomUUID(),
-    encounterId,
-    sideId,
-    kind: 'CHARACTER',
-    sourceId: characterId,
-    frozenState: null,
-    label: 'Aria',
-    systemId,
-    stableTieKey: crypto.randomUUID(),
-    public: true,
-    controllerUserIds: [],
-    disposition: 'FRIENDLY',
-    healthDisplay: null,
-    resources: {},
-    gmNotes: null,
-    initiative: null,
-    manualOrder: null,
-    createdAt: NOW,
-    updatedAt: NOW,
-    snapshot: { kind: 'CHARACTER', id: characterId, label: 'Aria', systemId }
-  })
-  const optionalCombatSnapshot = { schemaVersion: 1, gameSystemId: systemId, definitions: [] }
-  const state = encounterRunStateSchema.parse({
-    id: encounterId,
+  const { encounterId, actorIds, documents, version } = await encounterRunFixture({
     campaignId,
-    gameSystemId: systemId,
-    blueprintId: crypto.randomUUID(),
-    blueprintVersion: 1,
-    blueprintChecksum: 'b'.repeat(64),
-    name: 'Native Sheet Encounter',
-    status: 'ACTIVE',
-    automationMode: 'MANUAL',
-    manualReminderMode: 'OFF',
-    healthDisplayDefault: 'HIDDEN',
-    version: 1,
-    round: 1,
-    currentActorId: null,
-    actorIds: [actor.id],
-    initiativePolicySnapshot: null,
-    initiativePolicySnapshotChecksum: null,
-    optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalCombatSnapshot),
-    turnSequence: 0,
-    sides: [{ id: sideId, label: 'Party', sortOrder: 0 }],
-    createdAt: NOW,
-    updatedAt: NOW
+    systemId,
+    actors: [{ characterId }],
+    scene
   })
-  const native = createMemoryEncounterStore({ idPrefix: 'sheet-fixture' })
-  await native.store.insert(
-    'encounterRuns',
-    encounterStoredRunSchema.parse({
-      id: encounterId,
-      campaignId,
-      gameSystemId: systemId,
-      status: state.status,
-      version: state.version,
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state),
-      createdAt: NOW,
-      updatedAt: NOW
-    })
-  )
-  await insertRunActor({ db: native.store }, actor)
-  // An ACTIVE Run projects from its normalized initiative round.
-  const initiative = encounterInitiativeRoundStateDtoSchema.parse({
-    round: {
-      encounterId,
-      round: 1,
-      procedure: 'MANUAL',
-      cadence: 'ENCOUNTER_START',
-      status: 'ACTIVE',
-      policySnapshotChecksum: null,
-      nextTurnOrderOrdinal: 1,
-      version: 0,
-      createdAt: NOW,
-      updatedAt: NOW
-    },
-    sides: [],
-    participants: [
-      {
-        encounterId,
-        round: 1,
-        actorId: actor.id,
-        sideId,
-        status: 'READY',
-        initiativeScore: null,
-        evaluation: { occurrenceId: null, resultChecksum: null },
-        tie: { occurrenceId: null, resultChecksum: null },
-        declaration: null,
-        declarationChecksum: null,
-        turnOrderOrdinal: 0,
-        version: 0,
-        createdAt: NOW,
-        updatedAt: NOW
-      }
-    ]
-  })
-  await native.store.insert('encounterInitiativeRounds', initiative.round)
-  await native.store.insert('encounterInitiativeParticipants', initiative.participants[0]!)
-  if (scene) {
-    await native.store.insert('encounterActorTokenBindings', {
-      encounterId,
-      actorId: actor.id,
-      tokenId: scene.tokenId,
-      sceneId: scene.sceneId
-    })
-    const commandId = crypto.randomUUID()
-    await native.store.insert(
-      'encounterSceneBindings',
-      encounterSceneBindingSchema.parse({
-        encounterId,
-        campaignId,
-        sceneId: scene.sceneId,
-        commandId,
-        commandFingerprint: checksumCanonicalJson({ commandId }),
-        createdAt: NOW
-      })
-    )
-  }
-  const documents: RoomCharacterInputs['run']['documents'] = []
-  for (const table of [
-    'encounterRuns',
-    'encounterRunActors',
-    'encounterActorProjectionFacts',
-    'encounterSourceProjectionFacts',
-    'encounterInitiativeRounds',
-    'encounterInitiativeParticipants',
-    'encounterActorTokenBindings',
-    'encounterSceneBindings'
-  ] as const) {
-    for (const { _id, _creationTime, ...fields } of native.documents(table))
-      documents.push({ table, id: _id, creationTime: _creationTime, fields })
-  }
 
   const characterInputs: RoomCharacterInputs = {
     parts: [part],
     system: systemInputs,
     run: {
       kind: 'RUN',
-      encounterVersion: state.version,
+      encounterVersion: version,
       activeEncounterId: null,
       maintenanceCharacterOwners: [],
       documents,
       continueCursor: null
     }
   }
-  return { actorId: actor.id, characterInputs, characterRevision, encounterId, systemId }
+  return {
+    actorId: actorIds[0]!,
+    characterInputs,
+    characterRevision,
+    encounterId,
+    systemId
+  }
 }

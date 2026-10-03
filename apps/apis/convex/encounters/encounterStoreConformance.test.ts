@@ -9,8 +9,11 @@ import type {
   EncounterTableName
 } from '@artificer-toolkit/encounter-persistence/store'
 import { encounterStoreSchemas } from '@artificer-toolkit/encounter-persistence/storeTables'
+import { receiptHeaderSchemas } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
+import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { PlayerControlFixture } from '../../tests/fixtures/playerControl'
 import { encounterConformanceCorpus } from '../../tests/fixtures/encounterConformanceCorpus'
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { encounterWriteTransaction } from './encounterPorts'
 
 /**
@@ -47,16 +50,38 @@ function atFixedTime() {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-27T12:00:00.000Z') })
 }
 
+/** Receipt ledgers store `*Json` bodies canonically, so Convex reads them back key-sorted. */
+function canonicalReceiptJson(document: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(document).map(([field, value]) => [
+      field,
+      field.endsWith('Json') && typeof value === 'string'
+        ? canonicalizeJson(JSON.parse(value))
+        : value
+    ])
+  )
+}
+
 function storeOf(memory: ReturnType<typeof createMemoryEncounterStore>) {
   return Object.fromEntries(
-    tables.map((table) => [table, memory.documents(table)])
+    tables.map((table) => [
+      table,
+      Object.hasOwn(receiptHeaderSchemas, table)
+        ? memory.documents(table).map(canonicalReceiptJson)
+        : memory.documents(table)
+    ])
   ) as unknown as StoreSnapshot
 }
 
 async function snapshotStore(base: PlayerControlFixture): Promise<StoreSnapshot> {
+  // The memory store holds logical rows; the Convex reader joins receipt headers with their ledgers.
   return base.t.run(async (ctx) => {
+    // The reader's per-table overloads cannot take a runtime table name.
+    const { query } = createConvexEncounterStoreReader(ctx) as unknown as {
+      query: (table: EncounterTableName) => { collect: () => Promise<unknown[]> }
+    }
     const entries = await Promise.all(
-      tables.map(async (table) => [table, await ctx.db.query(table).collect()] as const)
+      tables.map(async (table) => [table, await query(table).collect()] as const)
     )
     return Object.fromEntries(entries) as unknown as StoreSnapshot
   })

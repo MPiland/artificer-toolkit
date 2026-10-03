@@ -1,14 +1,8 @@
-import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
-import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
 import {
-  contentSnapshotDocumentsObjectSchema,
   contentSnapshotIndexObjectSchema,
   type ContentSnapshotIndexObject,
-  type ContentSnapshotObject,
-  type ContentSnapshotScope
+  type ContentSnapshotObject
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   CharacterAuthored,
@@ -29,14 +23,10 @@ import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it, vi } from 'vitest'
 
 import { parsePublicationDocument } from '../authoredPublicationRead.js'
-import {
-  createCharacterBuilderCatalog,
-  toCharacterBuilderEquipmentCatalogRecord
-} from '../character/builderCatalog.js'
+import { createCharacterBuilderCatalog } from '../character/builderCatalog.js'
 import { createCharacterBuilderChangePreview } from '../character/builderPresentation.js'
 import { prepareCharacterBuilderFromContext } from '../character/builderPreparation.js'
 import { toCharacterBuilderPayload } from '../character/characterBuilderView.js'
@@ -47,96 +37,16 @@ import {
   prepareCharacterRuleContext
 } from '../character/contextPreparation.js'
 import { createLazySnapshotReaders, createSnapshotReaders } from '../character/snapshotReaders.js'
-import { buildContentSnapshotKind, toContentSnapshotIndexEntry } from '../contentSnapshots.js'
+import { toContentSnapshotIndexEntry } from '../contentSnapshots.js'
+import {
+  emptyCharacter,
+  scopeObjects,
+  system,
+  type PublicationKind as Kind
+} from './characterContextFixtures.js'
 
 // ADR 0036 S9: the Builder's picker pools come only from content snapshots, so the catalogue
 // rules the server once asserted over Convex reads are asserted here over snapshot objects.
-
-const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
-type Kind = AuthoredPublicationDocument['subjectKind']
-
-/** Index and documents objects of one scope, as the S2 build writes them. */
-function scopeObjects(
-  documents: Partial<Record<Kind, readonly unknown[]>>,
-  scope: ContentSnapshotScope = 'SOURCE'
-): ContentSnapshotObject[] {
-  const scopeId = crypto.randomUUID()
-  return Object.entries(documents).flatMap(([key, raw]) => {
-    const kind = key as Kind
-    const published = (raw ?? []).map((document) => parsePublicationDocument(kind, document))
-    const equipment = new Map(
-      published.flatMap((entry) =>
-        entry.subjectKind === 'EQUIPMENT' ? [[entry.document.id, entry.document] as const] : []
-      )
-    )
-    const sources = published.map((entry, index) => {
-      const document = entry.document
-      const listFacts = {
-        publicId: document.id,
-        magicSchoolLabel: 'School',
-        publicationVersion: {
-          identity: {
-            subjectKind: entry.subjectKind,
-            subjectId: document.id,
-            systemId: document.systemId,
-            contentSourceId: scopeId,
-            versionId: document.id,
-            checksum: checksumRuleDocument(JSON.parse(JSON.stringify(raw![index])))
-          },
-          version: 1,
-          storedParentId:
-            'parentRaceId' in document
-              ? document.parentRaceId
-              : 'parentClassId' in document
-                ? document.parentClassId
-                : 'parentEquipmentId' in document
-                  ? document.parentEquipmentId
-                  : null
-        }
-      }
-      if (entry.subjectKind !== 'EQUIPMENT') return { ...entry, ...listFacts }
-      // The stored projection the build reads: the effective facts along the variant chain.
-      const effective = resolveEquipmentAuthored(
-        entry.document as EquipmentAuthored,
-        (id) => equipment.get(id) as EquipmentAuthored | undefined
-      )
-      const record = toCharacterBuilderEquipmentCatalogRecord(effective)
-      const { builder } = authoredEquipmentOptionFactsSchema.parse({
-        checksum: '0'.repeat(64),
-        category: entry.document.category,
-        properties: entry.document.properties ?? [],
-        builder: {
-          version: 1,
-          parentEquipmentId:
-            entry.document.category === 'VARIANT' ? entry.document.parentEquipmentId : null,
-          category: record.category,
-          properties: record.properties,
-          isContainer: record.isContainer,
-          ...(record.maxStack === undefined ? {} : { maxStack: record.maxStack }),
-          requiresAttunement: record.requiresAttunement
-        }
-      })
-      if (!builder) throw new Error('Expected Equipment builder facts.')
-      return { ...entry, builder, ...listFacts }
-    })
-    const { index, documents: part } = buildContentSnapshotKind(
-      { format: 2, scope, scopeId, kind },
-      sources
-    )
-    return [
-      contentSnapshotIndexObjectSchema.parse(JSON.parse(index.json)),
-      contentSnapshotDocumentsObjectSchema.parse(JSON.parse(part.json))
-    ]
-  })
-}
-
-function emptyCharacter(): CharacterAuthored {
-  return createEmptyCharacterAuthored({
-    id: crypto.randomUUID(),
-    systemId: system.id,
-    userId: crypto.randomUUID()
-  })
-}
 
 async function selectorsCatalogue(objects: readonly ContentSnapshotObject[]) {
   const character = emptyCharacter()

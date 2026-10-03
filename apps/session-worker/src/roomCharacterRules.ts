@@ -24,7 +24,6 @@ export async function prepareRoomLiveCharacterSheet(
   const initialInput = liveSessionCharacterRulesInputSchema.parse(scope)
   if (room.epoch !== initialInput.authorityEpoch)
     throw new Error('Room Character rules epoch mismatch.')
-  const priorBuilder = room.characterBuilderSnapshot(initialInput.characterId, transaction)
   let [part, systemInput] = await Promise.all([
     room.character(initialInput.characterId, observed, transaction),
     room.system('SYSTEM', observed, transaction)
@@ -74,18 +73,13 @@ export async function prepareRoomLiveCharacterSheet(
     const inventoryIds = new Set(
       facts.prepared.character.state.equipment.inventory.map((item) => item.id)
     )
-    const builder = room.characterBuilderSnapshot(initialInput.characterId, transaction)
-    const clampsHitPoints =
-      priorBuilder &&
-      builder &&
-      priorBuilder.updatedAt !== builder.updatedAt &&
-      stats.maximumHitPoints < play.maximumHitPoints &&
-      state.hitpoints.current > stats.maximumHitPoints
     const nextState = {
       ...state,
       hitpoints: {
         ...state.hitpoints,
-        current: clampsHitPoints ? stats.maximumHitPoints : state.hitpoints.current,
+        // The evaluated maximum already includes Campaign adjustments, so this bound never cuts HP
+        // they grant; active-effect reductions only lower the real maximum further.
+        current: Math.min(state.hitpoints.current, stats.maximumHitPoints),
         hitDice: facts.prepared.character.state.hitpoints.hitDice
       },
       equipped: state.equipped.filter((itemId) => inventoryIds.has(itemId)),

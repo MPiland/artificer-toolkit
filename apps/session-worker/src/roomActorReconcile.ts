@@ -56,7 +56,8 @@ export async function readRoomActorDepartures(
 
 /**
  * Runs inside the caller's room transaction; the caller journals it. Actors of Characters that no
- * longer exist go first, as account deletion removes them in Convex; the rest freeze.
+ * longer exist are removed last, as account deletion removes them in Convex: the removal projects
+ * every remaining actor, so the ones whose assignment is gone freeze first.
  */
 export async function reconcileRoomActorDepartures(input: {
   store: RoomEncounterStore
@@ -71,6 +72,13 @@ export async function reconcileRoomActorDepartures(input: {
     input
   const { archived, isDeparted, isUnassigned } = departures(authorization)
   if (archived) return
+  const isMissing = async (characterId: string) => deletedCharacterIds.has(characterId)
+  const ctx: EncounterProjectionTransaction & { db: RoomEncounterStore['store'] } = {
+    db: store.store,
+    ports: { readCharacterPlay, requireSystem: async () => inputs.systemSnapshot() }
+  }
+  for await (const state of openRuns(store))
+    await reconcileRunActorDepartures(ctx, state, { isDeparted, isUnassigned, isMissing })
   if (deletedCharacterIds.size) {
     const { ownerUserId } = authorization.campaign
     const context = await roomEncounterWriteTransaction({
@@ -84,14 +92,6 @@ export async function reconcileRoomActorDepartures(input: {
       observed: inputs.revisions(campaignId, authorization.revisions)
     })
     const { campaign } = await context.ports.requireCampaignAuthority(campaignId, ownerUserId)
-    await removeMissingCharacterActors(context, campaign, ownerUserId, async (characterId) =>
-      deletedCharacterIds.has(characterId)
-    )
+    await removeMissingCharacterActors(context, campaign, ownerUserId, isMissing)
   }
-  const ctx: EncounterProjectionTransaction & { db: RoomEncounterStore['store'] } = {
-    db: store.store,
-    ports: { readCharacterPlay, requireSystem: async () => inputs.systemSnapshot() }
-  }
-  for await (const state of openRuns(store))
-    await reconcileRunActorDepartures(ctx, state, { isDeparted, isUnassigned })
 }

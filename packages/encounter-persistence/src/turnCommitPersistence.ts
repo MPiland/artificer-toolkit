@@ -7,7 +7,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { applyEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
-import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import {
   legendaryActionDamage,
   nativeConcentrationDamageApplications
@@ -199,7 +199,7 @@ export async function persistEncounterTurnCommit(
       repository: initiative,
       state: original,
       plan: advance,
-      defeatedActorIds: defeatedEncounterActorIds(await readRunActors(ctx, state))
+      defeatedActorIds: skippedEncounterActorIds(await readRunActors(ctx, state))
     })
   }
   const incoming = await persistEncounterTurnEffects(

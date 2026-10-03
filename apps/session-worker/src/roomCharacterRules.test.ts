@@ -179,7 +179,7 @@ it('reconciles native play atomically, recovers after eviction and preserves the
   }))
   const state = characterPlayStateSchema.parse({
     ...readCharacterPlay(original.play),
-    hitpoints: { current: 11, temp: 4, hitDice: [{ die: 10, total: 2, used: 1 }] },
+    hitpoints: { current: 7, temp: 4, hitDice: [{ die: 10, total: 2, used: 1 }] },
     inspiration: true,
     resources: [{ resourceGrantId: 'legacy-resource', used: 2 }],
     spellSlots: [{ slotKey: '1', used: 1 }],
@@ -402,14 +402,22 @@ it('reconciles native play atomically, recovers after eviction and preserves the
     expect(loadContent).toHaveBeenCalledTimes(fetches)
     expect(read).not.toHaveBeenCalled()
 
-    // A changed Campaign effective maximum alone updates stats and does not clamp native HP.
+    // A lowered evaluated maximum (a Builder level-down or a removed Campaign adjustment) clamps current HP.
     maximumHitPoints = 5
+    const lowered = await store.transact((transaction) =>
+      prepareRoomLiveCharacterSheet(store, room, scope, part.revisions, transaction)
+    )
+    expect(lowered.active.play).toMatchObject({ maximumHitPoints: 5 })
+    expect(lowered.active.play.state.hitpoints.current).toBe(5)
+    expect(store.documents('characters')).toEqual(before.head)
+    expect(store.records('ROOM_INPUT')).toEqual(before.records)
+
+    // A raised maximum (a GM adjustment) updates stats and leaves current HP alone.
+    maximumHitPoints = 9
     const statsOnly = await store.transact((transaction) =>
       prepareRoomLiveCharacterSheet(store, room, scope, part.revisions, transaction)
     )
-    expect(statsOnly.active.play).toEqual({ ...committed.active.play, maximumHitPoints: 5 })
-    expect(store.documents('characters')).toEqual(before.head)
-    expect(store.records('ROOM_INPUT')).toEqual(before.records)
+    expect(statsOnly.active.play).toEqual({ ...lowered.active.play, maximumHitPoints: 9 })
     const final = snapshot()
     store = new RoomEncounterStore(storage)
     expect(snapshot()).toEqual(final)

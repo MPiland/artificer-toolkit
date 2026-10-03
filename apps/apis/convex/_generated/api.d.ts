@@ -37874,6 +37874,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  outOfInitiative: boolean;
                   public: boolean;
                   resources:
                     | string
@@ -37993,6 +37994,7 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
+                  outOfInitiative: boolean;
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -38527,6 +38529,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  outOfInitiative: boolean;
                   public: boolean;
                   resources:
                     | string
@@ -38646,6 +38649,7 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
+                  outOfInitiative: boolean;
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -40052,6 +40056,7 @@ export declare const api: {
                         healthDisplay?:
                           "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                         public?: boolean;
+                        returnToInitiative?: true;
                         sideId?: string;
                         tempHitPoints?: number;
                         type: "UPDATE_ACTOR";
@@ -40785,6 +40790,7 @@ export declare const api: {
               label: string;
               manualOrder: number | null;
               maxHitPoints: number;
+              outOfInitiative: boolean;
               public: boolean;
               resources:
                 | string
@@ -40903,6 +40909,7 @@ export declare const api: {
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
               label: string;
               manualOrder: number | null;
+              outOfInitiative: boolean;
               public: boolean;
               sourceId: string | null;
               sourceRevision: number | null;
@@ -41033,6 +41040,7 @@ export declare const api: {
               label: string;
               manualOrder: number | null;
               maxHitPoints: number;
+              outOfInitiative: boolean;
               public: boolean;
               resources:
                 | string
@@ -41151,6 +41159,7 @@ export declare const api: {
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
               label: string;
               manualOrder: number | null;
+              outOfInitiative: boolean;
               public: boolean;
               sourceId: string | null;
               sourceRevision: number | null;
@@ -41289,6 +41298,7 @@ export declare const api: {
                 label: string;
                 manualOrder: number | null;
                 maxHitPoints: number;
+                outOfInitiative: boolean;
                 public: boolean;
                 resources:
                   | string
@@ -41407,6 +41417,7 @@ export declare const api: {
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                 label: string;
                 manualOrder: number | null;
+                outOfInitiative: boolean;
                 public: boolean;
                 sourceId: string | null;
                 sourceRevision: number | null;
@@ -41528,6 +41539,7 @@ export declare const api: {
             label: string;
             manualOrder: number | null;
             maxHitPoints: number;
+            outOfInitiative: boolean;
             public: boolean;
             resources:
               | string
@@ -54590,6 +54602,7 @@ export declare const internal: {
                 healthDisplay?:
                   "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 public?: boolean;
+                returnToInitiative?: true;
                 sideId?: string;
                 tempHitPoints?: number;
                 type: "UPDATE_ACTOR";
@@ -55192,6 +55205,7 @@ export declare const internal: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  outOfInitiative: boolean;
                   public: boolean;
                   resources:
                     | string
@@ -55311,6 +55325,7 @@ export declare const internal: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
+                  outOfInitiative: boolean;
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -56604,6 +56619,7 @@ export declare const internal: {
                         healthDisplay?:
                           "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                         public?: boolean;
+                        returnToInitiative?: true;
                         sideId?: string;
                         tempHitPoints?: number;
                         type: "UPDATE_ACTOR";

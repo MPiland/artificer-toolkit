@@ -272,6 +272,7 @@ export function characterActor(input: { id: string; characterId: string }): Enco
     label: 'Aria',
     sourceId: input.characterId,
     frozenState: null,
+    outOfInitiative: false,
     public: true,
     controllerUserIds: [],
     disposition: 'FRIENDLY',

@@ -7,7 +7,7 @@ import { encounterInitiativeSettlementDtoSchema } from '@artificer-toolkit/schem
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { stableActors } from './encounterActorState.js'
-import { defeatedEncounterActorIds } from './encounterActorDefeat.js'
+import { skippedEncounterActorIds } from './encounterActorDefeat.js'
 import {
   firstUndefeatedActorId,
   skipDefeatedOpeningTurns
@@ -417,7 +417,7 @@ export async function prepareEncounterTurnInitiative(input: {
   }
   if (result.orderedActorIds.length === 0) throw new Error('Encounter initiative did not settle.')
   // Defeated actors keep their rolled place, but the round opens with the first that can act (D63).
-  const defeatedActorIds = defeatedEncounterActorIds(actors)
+  const defeatedActorIds = skippedEncounterActorIds(actors)
   const roundState = await skipDefeatedOpeningTurns({
     repository: staged.repository,
     state: result.state,

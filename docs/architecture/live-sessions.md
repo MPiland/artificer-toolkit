@@ -544,8 +544,8 @@ the command, as the Convex capture did. The room ignores dependents whose Charac
 longer assigned to the Campaign: those effects end in Convex settlement (D81, see
 [Decisions](../handoffs/phase-08-2-decisions.md)), at a checkpoint that drops the hold
 (`reconcileCharacterHolds`) or at release (`releaseCharacterHolds`). A checkpoint accepts writes for
-an unassigned Character this epoch still holds. Known gap: an assigned non-actor Character that owns
-dependents is not held. A retried commandId replays its
+an unassigned Character this epoch still holds. A GM removal of a Character takes it out of
+initiative but keeps its actor, so the room holds it until the Run ends (D82; `outOfInitiative` on the actor, skipped by turn advancement, cleared by `UPDATE_ACTOR` `returnToInitiative`). A retried commandId replays its
 journaled result byte-identically; a reused commandId with different input is `INVALID_COMMAND`
 (the durable command journal is the replay authority, not the Convex receipt). A decision answer or GM void is
 classified from the room's loaded Run (`readRoomEncounterResponseRoute`): a movement decision goes
@@ -981,9 +981,9 @@ remain Convex-only.
 Character/active Run pair by Campaign/epoch. Claim/recovery establishes holds, changed Run/actor
 checkpoints reconcile them and final acknowledged release removes that epoch's holds. Direct Convex
 play/preferences/rest writes reject a held Character. Outside structure writes preserve the entire
-checkpoint play row, clock and stats; Builder commit returns actual persisted play/version. A changed
-Builder clock triggers room reconciliation against the prior native maximum, clamping current HP
-only when the newly evaluated Character-only maximum decreases. Campaign deletion includes hold rows. The new hold schema needs guarded local reset/seed/codegen.
+checkpoint play row, clock and stats; Builder commit returns actual persisted play/version. Room
+reconciliation clamps current HP to the evaluated maximum (Builder plus Campaign adjustments)
+whenever it exceeds it. Campaign deletion includes hold rows. The new hold schema needs guarded local reset/seed/codegen.
 No generated check or integrated execution gate has run, and S7/S8 acceptance is unchanged.
 
 **The room pushes the held Sheet (D73, current source, unverified).** A client sends
@@ -1295,8 +1295,10 @@ The mutation checks public keys against existing complete indexes, previous/next
 Campaign/assigned Character scope, stored shapes and domain checksums. Mutable changes, packed
 Campaign history, separately packed private Character history and the authority acknowledgement
 commit atomically. Actor and actor-facts keys contain both Encounter UUID and actor UUID. Stored JSON
-is decoded for deltas and restored at the persistence boundary. Character play deltas omit the Convex
-`streamVersion`; publication advances that clock once per changed play record. Builder structure is
+is decoded for deltas and restored at the persistence boundary. Character play deltas carry the room's
+`streamVersion`, which is authoritative while the room holds the Character: publication accepts it
+only when it is strictly greater than the stored version of a changed play record and refuses it
+otherwise. Delta checksums cover it. Builder structure is
 excluded. Outside-view revisions refresh in the same transaction, and checkpoint-originated writes
 send no input invalidation back to their own room. The response returns current authorization sections
 to renew the existing lease.
@@ -1410,8 +1412,11 @@ cached Character Builder structure is one such input per Character id. It joins 
 Character head, play and active effects for preparation; room-owned play/effects are not replaced
 when Builder structure refreshes. At the next local command boundary, preparation reconciles hit-die
 pools through the existing Builder rules, removes usage for resource pools no longer granted, and
-preserves current HP, temporary HP, conditions and slot spend. A lower Builder maximum clamps HP
-using the captured Builder maxima; Campaign-adjusted maxima do not trigger that clamp. State changes
+preserves temporary HP, conditions and slot spend. Current HP never exceeds the evaluated
+maximum, which already includes Campaign/GM adjustments: reconciliation clamps it whenever it is
+above that maximum (a Builder level-down or a removed adjustment), and a raised maximum leaves it
+alone. Active-effect reductions are not in the evaluated maximum; the shared Sheet reducer lands
+damage on the effective maximum when current HP stands above it. State changes
 advance the play clock once, while derived-stat-only changes preserve it. Structure refresh,
 reconciliation and the command share the caller's SQLite transaction and roll back together.
 `apps/session-worker/src/roomInputs.ts` fills the authorized base
